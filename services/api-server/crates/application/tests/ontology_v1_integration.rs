@@ -155,14 +155,16 @@ async fn seed_flight(
         .execute(pool)
         .await;
 
+    // flight_legs uses origin_stations / destination_stations JSONB arrays (not origin_code).
     sqlx::query(
         r#"
         INSERT INTO flight_legs (
             leg_id, flight_id, leg_type, flight_no, flight_type,
-            origin_code, destination_code, is_vip, scheduled_time, created_at, updated_at
+            origin_stations, destination_stations, is_vip, scheduled_time, created_at, updated_at
         ) VALUES (
             $1, $2, 'inbound', $3, 'domestic',
-            'PEK', 'SZX', FALSE, NOW() + INTERVAL '1 hours', NOW(), NOW()
+            '[{"code":"PEK"}]'::jsonb, '[{"code":"SZX"}]'::jsonb,
+            FALSE, NOW() + INTERVAL '1 hours', NOW(), NOW()
         )
         ON CONFLICT (flight_id, leg_type) DO UPDATE SET flight_no = EXCLUDED.flight_no
         "#,
@@ -179,10 +181,11 @@ async fn seed_flight(
             r#"
             INSERT INTO flight_legs (
                 leg_id, flight_id, leg_type, flight_no, flight_type,
-                origin_code, destination_code, is_vip, scheduled_time, created_at, updated_at
+                origin_stations, destination_stations, is_vip, scheduled_time, created_at, updated_at
             ) VALUES (
                 $1, $2, 'outbound', $3, 'domestic',
-                'SZX', 'PEK', FALSE, NOW() + INTERVAL '3 hours', NOW(), NOW()
+                '[{"code":"SZX"}]'::jsonb, '[{"code":"PEK"}]'::jsonb,
+                FALSE, NOW() + INTERVAL '3 hours', NOW(), NOW()
             )
             ON CONFLICT (flight_id, leg_type) DO UPDATE SET flight_no = EXCLUDED.flight_no
             "#,

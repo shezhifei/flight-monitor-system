@@ -117,7 +117,14 @@ server/di/flight.rs  (装配 OntologyService)
 ### 集成测试
 
 ```powershell
-$env:TEST_DATABASE_URL = "postgres://USER:PASS@localhost:5432/flight_monitor_test"
-# 确保已执行 migrations 含 119
-cargo test -p fms-application --test ontology_v1_integration -- --ignored --nocapture
+# 推荐：从 .env 读凭证，目标库 flight_monitor_test（不会打到 dev）
+.\scripts\dev\run_ontology_v1_db_tests.ps1
+
+# 或手动：
+# $env:TEST_DATABASE_URL = "postgres://USER:PASS@localhost:5432/flight_monitor_test"
+# 确保已执行 migrations/119_ontology_v1_core.sql
+# cargo test -p fms-application --test ontology_v1_integration -- --ignored --nocapture
 ```
+
+本地验收（宿主机 psql，`flight_monitor_test` + migration 119）：**3/3 通过**
+（reassign / allocate+accept suggestion / auto-link scan）。
