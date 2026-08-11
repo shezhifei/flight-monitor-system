@@ -3,9 +3,14 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
+use fms_application::services::ontology_read_action_service::{
+    read_action_permission, OntologyReadActionService, ReadActionError,
+};
 use fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema;
 use fms_domain::ontology::schema_export::{build_schema_export, OntologySchemaExport};
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
+use serde::Deserialize;
+use serde_json::Value;
 use std::sync::Arc;
 
 async fn load_schema(
@@ -64,12 +69,44 @@ async fn get_actions(
     Ok(HttpResponse::Ok().json(actions))
 }
 
+/// 契约 §4.2：只读动作直接执行，不创建 pending action；权限按动作声明校验。
+#[derive(Debug, Deserialize)]
+struct ReadActionRequest {
+    action_name: String,
+    #[serde(default = "default_arguments")]
+    arguments: Value,
+}
+
+fn default_arguments() -> Value {
+    serde_json::json!({})
+}
+
+async fn execute_read_action(
+    claims: JwtAuth,
+    service: web::Data<Arc<OntologyReadActionService>>,
+    body: web::Json<ReadActionRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let permission = read_action_permission(&body.action_name)
+        .ok_or_else(|| ApiError::BadRequest(format!("unknown read action: {}", body.action_name)))?;
+    claims.ensure_permission(permission)?;
+
+    match service.execute(&body.action_name, &body.arguments).await {
+        Ok(result) => Ok(HttpResponse::Ok().json(result)),
+        Err(ReadActionError::UnknownAction(name)) => Err(ApiError::BadRequest(format!("unknown read action: {name}"))),
+        Err(ReadActionError::InvalidArguments(msg)) => Err(ApiError::BadRequest(msg)),
+        Err(ReadActionError::NotFound(msg)) => Err(ApiError::NotFound(msg)),
+        Err(ReadActionError::Repository(msg)) => Err(ApiError::Internal(msg)),
+        Err(ReadActionError::Internal(msg)) => Err(ApiError::Internal(msg)),
+    }
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v2/ai/ontology")
             .route("/schema", web::get().to(get_schema))
             .route("/objects", web::get().to(get_objects))
-            .route("/actions", web::get().to(get_actions)),
+            .route("/actions", web::get().to(get_actions))
+            .route("/actions/read", web::post().to(execute_read_action)),
     );
 }
 
@@ -140,6 +177,14 @@ mod tests {
             .to_request();
         let resp = test::call_service(&app, req).await;
         assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+
+        // 只读动作执行入口：未认证必须 401（契约 §4.2：权限按动作声明校验）。
+        let unauth_read = test::TestRequest::post()
+            .uri("/api/v2/ai/ontology/actions/read")
+            .set_json(serde_json::json!({"action_name": "flight.search", "arguments": {}}))
+            .to_request();
+        let resp = test::call_service(&app, unauth_read).await;
+        assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
     }
 
     #[actix_web::test]

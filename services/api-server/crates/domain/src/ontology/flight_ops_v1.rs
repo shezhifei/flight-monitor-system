@@ -42,6 +42,40 @@ fn irreversible_compensation() -> Option<CompensationMetadata> {
     })
 }
 
+/// 只读动作统一定义（契约 §4.2：不创建 pending action，直接执行，响应带 evidence）。
+fn read_action(
+    name: &str,
+    description: &str,
+    parameters: HashMap<String, OntologyActionParameter>,
+    parameters_schema: serde_json::Value,
+    permission: &str,
+) -> OntologyActionDef {
+    OntologyActionDef {
+        name: name.to_string(),
+        description: description.to_string(),
+        category: "read".to_string(),
+        parameters,
+        parameters_schema,
+        required_permissions: vec![permission.to_string()],
+        risk_level: "low".to_string(),
+        approval_strategy: "auto_approve".to_string(),
+        approval_policy: "auto_execute".to_string(),
+        constraints: vec![],
+        execution_mapping: None,
+        idempotency_key_strategy: None,
+        compensation: None,
+    }
+}
+
+fn string_param(name: &str, description: &str, required: bool) -> OntologyActionParameter {
+    OntologyActionParameter {
+        name: name.to_string(),
+        param_type: "String".to_string(),
+        description: description.to_string(),
+        required,
+    }
+}
+
 pub fn build_flight_ops_v1_schema() -> OntologySchema {
     let mut objects = HashMap::new();
 
@@ -201,6 +235,25 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
+    flight_actions.insert(
+        "search".to_string(),
+        read_action(
+            "search",
+            "Search flights by flight number, status, origin, destination, date or open-anomaly flag (limit <= 200).",
+            {
+                let mut p = HashMap::new();
+                p.insert("flight_no".to_string(), string_param("flight_no", "Flight number filter", false));
+                p.insert("status".to_string(), string_param("status", "Status filter", false));
+                p.insert("origin".to_string(), string_param("origin", "Origin airport code", false));
+                p.insert("destination".to_string(), string_param("destination", "Destination airport code", false));
+                p.insert("date".to_string(), string_param("date", "Operating date YYYY-MM-DD", false));
+                p
+            },
+            json!({"type": "object", "required": []}),
+            "flight:read",
+        ),
+    );
+
     objects.insert(
         "Flight".to_string(),
         OntologyObjectDef {
@@ -270,6 +323,21 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
+    stand_actions.insert(
+        "check_availability".to_string(),
+        read_action(
+            "check_availability",
+            "Check stand availability in a time window, with conflicts and alternative suggestions.",
+            {
+                let mut p = HashMap::new();
+                p.insert("stand_id".to_string(), string_param("stand_id", "Stand id or code", true));
+                p
+            },
+            json!({"type": "object", "required": ["stand_id", "time_window"]}),
+            "flight:read",
+        ),
+    );
+
     objects.insert(
         "Stand".to_string(),
         OntologyObjectDef {
@@ -304,6 +372,23 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
     );
 
     let mut dispatch_order_actions = HashMap::new();
+    dispatch_order_actions.insert(
+        "get_status".to_string(),
+        read_action(
+            "get_status",
+            "Read the full status of a dispatch order including team, equipment and conflicts.",
+            {
+                let mut p = HashMap::new();
+                p.insert(
+                    "dispatch_order_id".to_string(),
+                    string_param("dispatch_order_id", "Dispatch order to inspect", true),
+                );
+                p
+            },
+            json!({"type": "object", "required": ["dispatch_order_id"]}),
+            "dispatch:read",
+        ),
+    );
     dispatch_order_actions.insert(
         "recommend_replan".to_string(),
         OntologyActionDef {
@@ -417,6 +502,21 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
     );
 
     let mut anomaly_actions = HashMap::new();
+    anomaly_actions.insert(
+        "list_open".to_string(),
+        read_action(
+            "list_open",
+            "List unresolved anomalies (open + acknowledged) with severity summary.",
+            {
+                let mut p = HashMap::new();
+                p.insert("severity".to_string(), string_param("severity", "Severity filter", false));
+                p.insert("flight_id".to_string(), string_param("flight_id", "Flight filter", false));
+                p
+            },
+            json!({"type": "object", "required": []}),
+            "anomaly:read",
+        ),
+    );
     anomaly_actions.insert(
         "acknowledge".to_string(),
         OntologyActionDef {
@@ -817,6 +917,49 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
+    // 10.5 Report Object (只读汇报动作的宿主对象)
+    let mut report_fields = HashMap::new();
+    report_fields.insert(
+        "report_id".to_string(),
+        OntologyFieldDef {
+            name: "report_id".to_string(),
+            field_type: "String".to_string(),
+            description: "Report identifier".to_string(),
+            required: true,
+        },
+    );
+
+    let mut report_actions = HashMap::new();
+    report_actions.insert(
+        "generate_briefing".to_string(),
+        read_action(
+            "generate_briefing",
+            "Generate an operations briefing for a shift window with explicit limitations and confidence.",
+            {
+                let mut p = HashMap::new();
+                p.insert("shift_start".to_string(), string_param("shift_start", "RFC3339 shift start", false));
+                p.insert("shift_end".to_string(), string_param("shift_end", "RFC3339 shift end", false));
+                p.insert("scope".to_string(), string_param("scope", "all|inbound|outbound", false));
+                p.insert("department_id".to_string(), string_param("department_id", "Department filter", false));
+                p
+            },
+            json!({"type": "object", "required": []}),
+            "flight:read",
+        ),
+    );
+
+    objects.insert(
+        "Report".to_string(),
+        OntologyObjectDef {
+            name: "Report".to_string(),
+            description: "Operational report / briefing".to_string(),
+            object_id_strategy: "report_id".to_string(),
+            fields: report_fields,
+            relations: HashMap::new(),
+            actions: report_actions,
+        },
+    );
+
     OntologySchema {
         version: FLIGHT_OPS_ONTOLOGY_VERSION.to_string(),
         description: "Flight Operations Ontology Schema V1".to_string(),
@@ -872,6 +1015,35 @@ mod tests {
                     .and_then(|object| object.actions.get(action_name))
                     .is_some(),
                 "{object_type}.{action_name} must be present in static fallback ontology"
+            );
+        }
+    }
+
+    #[test]
+    fn flight_ops_v1_read_actions_follow_contract_rules() {
+        let schema = build_flight_ops_v1_schema();
+
+        let read_actions = [
+            ("Flight", "get_context", "flight:read"),
+            ("Flight", "search", "flight:read"),
+            ("DispatchOrder", "get_status", "dispatch:read"),
+            ("Anomaly", "list_open", "anomaly:read"),
+            ("Stand", "check_availability", "flight:read"),
+            ("Report", "generate_briefing", "flight:read"),
+        ];
+        for (object_type, action_name, permission) in read_actions {
+            let action = schema
+                .objects
+                .get(object_type)
+                .and_then(|object| object.actions.get(action_name))
+                .unwrap_or_else(|| panic!("{object_type}.{action_name} must exist"));
+            assert_eq!(action.category, "read", "{object_type}.{action_name}");
+            assert_eq!(action.risk_level, "low", "{object_type}.{action_name}");
+            assert_eq!(action.approval_policy, "auto_execute", "{object_type}.{action_name}");
+            assert_eq!(action.required_permissions, vec![permission], "{object_type}.{action_name}");
+            assert!(
+                action.execution_mapping.is_none(),
+                "{object_type}.{action_name} 只读动作不得映射到 DomainActionExecutor"
             );
         }
     }

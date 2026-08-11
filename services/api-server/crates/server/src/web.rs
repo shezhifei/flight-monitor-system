@@ -91,6 +91,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .app_data(web::Data::new(di.ai_job_svc.clone()))
         .app_data(web::Data::new(di.ai_output_validator.clone()))
         .app_data(web::Data::new(di.ai_ontology_repo.clone()))
+        .app_data(web::Data::new(di.ontology_read_action_svc.clone()))
         .app_data(web::Data::new(di.ai_proposal_ingest_svc.clone()))
         .app_data(web::Data::new(di.ai_execution_readiness_svc.clone()))
         .app_data(web::Data::new(di.ai_execution_metrics_svc.clone()))

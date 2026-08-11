@@ -53,6 +53,7 @@ use fms_application::services::llm_eval_service::LLMEvalService;
 use fms_application::services::mobile_upload_service::MobileUploadService;
 use fms_application::services::online_history_service::OnlineHistoryService;
 use fms_application::services::online_status_service::OnlineStatusService;
+use fms_application::services::ontology_read_action_service::OntologyReadActionService;
 use fms_application::services::ontology_service::OntologyService;
 use fms_application::services::operator_identity_service::OperatorIdentityService;
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
@@ -102,6 +103,7 @@ pub struct DiContainer {
     pub flight_import_svc: Arc<FlightImportService>,
     pub flight_archive_svc: Arc<FlightArchiveService>,
     pub ontology_svc: Arc<OntologyService>,
+    pub ontology_read_action_svc: Arc<OntologyReadActionService>,
     pub auth_svc: Arc<ConcreteAuthService>,
     pub login_failure_limiter: Arc<fms_api::routes::auth::LoginFailureRateLimiter>,
     pub auth_validation_cache: Arc<fms_application::services::auth_validation_cache::AuthValidationCache>,
@@ -247,6 +249,7 @@ pub async fn build_di_container(
         flight_import_svc: flight.flight_import_svc.clone(),
         flight_archive_svc: flight.flight_archive_svc.clone(),
         ontology_svc: flight.ontology_svc.clone(),
+        ontology_read_action_svc: flight.ontology_read_action_svc.clone(),
         auth_svc: auth.auth_svc.clone(),
         login_failure_limiter: auth.login_failure_limiter.clone(),
         auth_validation_cache: auth.auth_validation_cache.clone(),

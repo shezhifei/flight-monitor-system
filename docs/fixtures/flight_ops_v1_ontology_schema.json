@@ -34,6 +34,22 @@
       ],
       "risk_level": "medium"
     },
+    "Anomaly.list_open": {
+      "action_name": "list_open",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Anomaly",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "anomaly:read"
+      ],
+      "risk_level": "low"
+    },
     "BusinessCase.close_case": {
       "action_name": "close_case",
       "approval_policy": "auto_execute",
@@ -69,6 +85,24 @@
         "business_case:create"
       ],
       "risk_level": "medium"
+    },
+    "DispatchOrder.get_status": {
+      "action_name": "get_status",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:read"
+      ],
+      "risk_level": "low"
     },
     "DispatchOrder.publish": {
       "action_name": "publish",
@@ -176,6 +210,22 @@
       ],
       "risk_level": "low"
     },
+    "Flight.search": {
+      "action_name": "search",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Flight",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:read"
+      ],
+      "risk_level": "low"
+    },
     "Flight.update_status": {
       "action_name": "update_status",
       "approval_policy": "require_approval",
@@ -213,6 +263,41 @@
         "notification:send"
       ],
       "risk_level": "medium"
+    },
+    "Report.generate_briefing": {
+      "action_name": "generate_briefing",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Report",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:read"
+      ],
+      "risk_level": "low"
+    },
+    "Stand.check_availability": {
+      "action_name": "check_availability",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "stand_id",
+          "time_window"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Stand",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:read"
+      ],
+      "risk_level": "low"
     },
     "Stand.reserve": {
       "action_name": "reserve",
@@ -358,6 +443,39 @@
             "anomaly:write"
           ],
           "risk_level": "medium"
+        },
+        "list_open": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "List unresolved anomalies (open + acknowledged) with severity summary.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "list_open",
+          "parameters": {
+            "flight_id": {
+              "description": "Flight filter",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": false
+            },
+            "severity": {
+              "description": "Severity filter",
+              "name": "severity",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "anomaly:read"
+          ],
+          "risk_level": "low"
         }
       },
       "description": "An operational anomaly",
@@ -466,6 +584,35 @@
     },
     "DispatchOrder": {
       "actions": {
+        "get_status": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read the full status of a dispatch order including team, equipment and conflicts.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_status",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order to inspect",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:read"
+          ],
+          "risk_level": "low"
+        },
         "publish": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
@@ -674,6 +821,57 @@
           ],
           "risk_level": "low"
         },
+        "search": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Search flights by flight number, status, origin, destination, date or open-anomaly flag (limit <= 200).",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "search",
+          "parameters": {
+            "date": {
+              "description": "Operating date YYYY-MM-DD",
+              "name": "date",
+              "param_type": "String",
+              "required": false
+            },
+            "destination": {
+              "description": "Destination airport code",
+              "name": "destination",
+              "param_type": "String",
+              "required": false
+            },
+            "flight_no": {
+              "description": "Flight number filter",
+              "name": "flight_no",
+              "param_type": "String",
+              "required": false
+            },
+            "origin": {
+              "description": "Origin airport code",
+              "name": "origin",
+              "param_type": "String",
+              "required": false
+            },
+            "status": {
+              "description": "Status filter",
+              "name": "status",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:read"
+          ],
+          "risk_level": "low"
+        },
         "update_status": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
@@ -827,8 +1025,99 @@
       "object_id_strategy": "notification_id",
       "relations": {}
     },
+    "Report": {
+      "actions": {
+        "generate_briefing": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Generate an operations briefing for a shift window with explicit limitations and confidence.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "generate_briefing",
+          "parameters": {
+            "department_id": {
+              "description": "Department filter",
+              "name": "department_id",
+              "param_type": "String",
+              "required": false
+            },
+            "scope": {
+              "description": "all|inbound|outbound",
+              "name": "scope",
+              "param_type": "String",
+              "required": false
+            },
+            "shift_end": {
+              "description": "RFC3339 shift end",
+              "name": "shift_end",
+              "param_type": "String",
+              "required": false
+            },
+            "shift_start": {
+              "description": "RFC3339 shift start",
+              "name": "shift_start",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:read"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Operational report / briefing",
+      "fields": {
+        "report_id": {
+          "description": "Report identifier",
+          "field_type": "String",
+          "name": "report_id",
+          "required": true
+        }
+      },
+      "name": "Report",
+      "object_id_strategy": "report_id",
+      "relations": {}
+    },
     "Stand": {
       "actions": {
+        "check_availability": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Check stand availability in a time window, with conflicts and alternative suggestions.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "check_availability",
+          "parameters": {
+            "stand_id": {
+              "description": "Stand id or code",
+              "name": "stand_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "stand_id",
+              "time_window"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:read"
+          ],
+          "risk_level": "low"
+        },
         "reserve": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",

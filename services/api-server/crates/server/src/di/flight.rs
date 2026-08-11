@@ -12,11 +12,15 @@ use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flight_service::FlightService;
 use fms_application::services::label_service::LabelService;
+use fms_application::services::ontology_read_action_service::OntologyReadActionService;
 use fms_application::services::ontology_service::OntologyService;
 use fms_application::sqlx_transactional_repositories::{
     SqlxFlightTimelineTransactionalRepository, SqlxFlightTransactionalRepository,
     SqlxOntologyTransactionalRepository,
 };
+use fms_domain::ports::anomaly_repository::AnomalyRepository;
+use fms_domain::ports::business_case_repository::BusinessCaseRepository;
+use fms_domain::ports::dispatch_repository::{DispatchOrderRepository, StandRepository, TeamRepository};
 use fms_domain::ports::flight_repository::FlightRepository;
 use fms_domain::ports::ontology_repository::{
     AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository,
@@ -45,6 +49,7 @@ pub(crate) struct FlightServices {
     pub flight_cache_svc: Arc<FlightCacheService>,
     pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
     pub ontology_svc: Arc<OntologyService>,
+    pub ontology_read_action_svc: Arc<OntologyReadActionService>,
 }
 
 pub(crate) fn build_flight_services(
@@ -89,6 +94,11 @@ pub(crate) fn build_flight_services(
     let suggestion_repo = Arc::new(PgResourceAdjustmentSuggestionRepository::new(repos.pool.clone()));
     let ontology_tx: Arc<dyn SqlxOntologyTransactionalRepository> = aircraft_repo.clone();
     let flight_repo_port: Arc<dyn FlightRepository + Send + Sync> = repos.flight_repo.clone();
+    let dispatch_order_port: Arc<dyn DispatchOrderRepository + Send + Sync> = repos.dispatch_order_repo.clone();
+    let anomaly_port: Arc<dyn AnomalyRepository + Send + Sync> = repos.anomaly_repo.clone();
+    let team_port: Arc<dyn TeamRepository + Send + Sync> = repos.team_repo.clone();
+    let stand_port: Arc<dyn StandRepository + Send + Sync> = repos.stand_repo.clone();
+    let business_case_port: Arc<dyn BusinessCaseRepository + Send + Sync> = repos.business_case_repo.clone();
     let aircraft_port: Arc<dyn AircraftRepository + Send + Sync> = aircraft_repo.clone();
     let occupation_port: Arc<dyn StandOccupationRepository + Send + Sync> = occupation_repo;
     let assignment_port: Arc<dyn GateAssignmentRepository + Send + Sync> = assignment_repo;
@@ -98,10 +108,10 @@ pub(crate) fn build_flight_services(
     let ontology_svc = Arc::new(
         OntologyService::new(
             repos.pool.clone(),
-            flight_repo_port,
+            flight_repo_port.clone(),
             flight_tx_repo,
             aircraft_port,
-            occupation_port,
+            occupation_port.clone(),
             assignment_port,
             link_port,
             suggestion_port,
@@ -109,6 +119,17 @@ pub(crate) fn build_flight_services(
         )
         .with_flight_service(flight_svc.clone()),
     );
+
+    // Ontology V1 只读动作服务（契约 §3.1）：直接查询仓储，响应带 evidence。
+    let ontology_read_action_svc = Arc::new(OntologyReadActionService::new(
+        flight_repo_port,
+        dispatch_order_port,
+        anomaly_port,
+        team_port,
+        stand_port,
+        occupation_port,
+        business_case_port,
+    ));
 
     FlightServices {
         flight_svc,
@@ -118,6 +139,7 @@ pub(crate) fn build_flight_services(
         flight_cache_svc,
         flight_batch_cell_svc,
         ontology_svc,
+        ontology_read_action_svc,
     }
 }
 
