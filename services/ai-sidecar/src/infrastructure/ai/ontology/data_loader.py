@@ -181,7 +181,7 @@ class OntologyDataLoader:
             task.add_done_callback(self._load_tasks.discard)
 
         context = {
-            "ontology_version": "1.0",
+            "ontology_version": self._cache.get("ontology_version") or "flight-ops.v1",
             "loaded_at": self._last_load_time,
             "object_types": [],
         }

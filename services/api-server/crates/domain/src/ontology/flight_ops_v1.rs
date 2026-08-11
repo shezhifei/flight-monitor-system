@@ -2,6 +2,7 @@ use crate::models::ai_ontology::{
     CompensationMetadata, OntologyActionDef, OntologyActionParameter, OntologyConstraint, OntologyFieldDef,
     OntologyObjectDef, OntologySchema,
 };
+use crate::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -817,7 +818,7 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
     );
 
     OntologySchema {
-        version: "flight-ops.v1".to_string(),
+        version: FLIGHT_OPS_ONTOLOGY_VERSION.to_string(),
         description: "Flight Operations Ontology Schema V1".to_string(),
         objects,
     }

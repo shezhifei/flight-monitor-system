@@ -13,6 +13,9 @@ from src.infrastructure.ai.security.url_guard import (
 
 RUST_API_ALLOW_INSECURE_HTTP_ENV = "AI_SIDECAR_ALLOW_INSECURE_RUST_API_HTTP"
 
+# 与 Rust `fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION` 保持一致。
+FLIGHT_OPS_ONTOLOGY_VERSION = "flight-ops.v1"
+
 
 def _env_truthy(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
@@ -34,7 +37,7 @@ class SchemaMirror:
         self.rust_api_url = _validate_rust_api_url(rust_api_url)
         self._schema_cache: dict[str, Any] | None = None
 
-    def load_schema_snapshot(self, version: str = "1.0.0") -> dict[str, Any]:
+    def load_schema_snapshot(self, version: str = FLIGHT_OPS_ONTOLOGY_VERSION) -> dict[str, Any]:
         """Fetch the schema from Rust backend and cache it."""
         response = requests.get(f"{self.rust_api_url}/api/v2/ai/ontology/schema")
         response.raise_for_status()

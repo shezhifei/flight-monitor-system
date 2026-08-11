@@ -40,7 +40,7 @@ def test_schema_mirror_builds_schema_snapshot_request(monkeypatch):
             return None
 
         def json(self):
-            return {"version": "1.0.0", "objects": {}}
+            return {"ontology_version": "flight-ops.v1", "objects": {}}
 
     def fake_get(url):
         captured["url"] = url
@@ -49,5 +49,5 @@ def test_schema_mirror_builds_schema_snapshot_request(monkeypatch):
     monkeypatch.setattr("src.infrastructure.ai.ontology.schema_mirror.requests.get", fake_get)
     mirror = SchemaMirror()
 
-    assert mirror.load_schema_snapshot() == {"version": "1.0.0", "objects": {}}
+    assert mirror.load_schema_snapshot() == {"ontology_version": "flight-ops.v1", "objects": {}}
     assert captured["url"] == "http://localhost:8080/api/v2/ai/ontology/schema"

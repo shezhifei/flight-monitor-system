@@ -28,7 +28,7 @@ async def _ontology_schema(request: Request) -> JSONResponse:
     require_service_identity(request)
     from src.infrastructure.ai.ontology.schema_mirror import schema_mirror
 
-    schema = schema_mirror._schema_cache or {"version": "1.0.0", "objects": {}}
+    schema = schema_mirror._schema_cache or {"ontology_version": "flight-ops.v1", "objects": {}}
     return JSONResponse(schema)
 
 

@@ -2,7 +2,9 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use actix_web::{web, HttpResponse};
+use chrono::Utc;
 use fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema;
+use fms_domain::ontology::schema_export::{build_schema_export, OntologySchemaExport};
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use std::sync::Arc;
 
@@ -21,13 +23,16 @@ async fn load_schema(
     build_flight_ops_v1_schema()
 }
 
+/// 契约 §7：返回稳定导出结构（ontology_version / exported_at / objects / actions /
+/// risk_policies / constraints）。
 async fn get_schema(
     repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
     let schema = load_schema(repo).await;
-    Ok(HttpResponse::Ok().json(schema))
+    let export: OntologySchemaExport = build_schema_export(&schema, Utc::now());
+    Ok(HttpResponse::Ok().json(export))
 }
 
 async fn get_objects(
@@ -162,9 +167,14 @@ mod tests {
             .to_request();
         let resp = test::call_service(&app, req).await;
         assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
-        let schema: fms_domain::models::ai_ontology::OntologySchema = test::read_body_json(resp).await;
-        assert_eq!(schema.version, "flight-ops.v1");
-        assert!(schema.objects.contains_key("Flight"));
+        let export: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(export["ontology_version"], "flight-ops.v1");
+        assert!(export.get("exported_at").is_some(), "exported_at required by contract §7");
+        assert!(export["objects"].get("Flight").is_some());
+        assert!(export["actions"].get("Flight.change_stand").is_some());
+        for level in ["low", "medium", "high", "critical"] {
+            assert!(export["risk_policies"].get(level).is_some(), "risk policy for {level}");
+        }
 
         // 2. GET /objects
         let req = test::TestRequest::get()

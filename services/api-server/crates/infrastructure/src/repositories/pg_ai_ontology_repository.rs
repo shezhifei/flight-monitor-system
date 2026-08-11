@@ -8,6 +8,7 @@ use fms_domain::models::ai_ontology::{
     OntologyActionDef, OntologyActionParameter, OntologyConstraint, OntologyFieldDef, OntologyObjectDef,
     OntologyRelationDef, OntologySchema,
 };
+use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::ai_ontology_repository::{AiOntologyRepository, AiOntologyRepositoryError};
 
 pub struct PgAiOntologyRepository {
@@ -129,7 +130,7 @@ impl AiOntologyRepository for PgAiOntologyRepository {
         }
 
         let mut schema = OntologySchema {
-            version: "flight-ops.v1".to_string(),
+            version: FLIGHT_OPS_ONTOLOGY_VERSION.to_string(),
             description: "Flight Operations Ontology Schema V1".to_string(),
             objects,
         };
