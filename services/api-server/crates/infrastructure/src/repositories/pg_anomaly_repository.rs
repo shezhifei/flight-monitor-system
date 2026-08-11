@@ -237,6 +237,19 @@ impl<'tx> AnomalyTransactionalRepository<Transaction<'tx, Postgres>> for PgAnoma
         .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(result.rows_affected() > 0)
     }
+
+    async fn resolve_in_tx(&self, tx: &mut Transaction<'tx, Postgres>, anomaly_id: &str) -> Result<bool, DomainError> {
+        let now = Utc::now();
+        let result = sqlx::query(
+            "UPDATE anomalies SET status = 'resolved', resolved_at = $1, updated_at = $1 WHERE anomaly_id = $2 AND status <> 'resolved'",
+        )
+        .bind(now)
+        .bind(anomaly_id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(result.rows_affected() > 0)
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -50,6 +50,24 @@
       ],
       "risk_level": "low"
     },
+    "Anomaly.resolve": {
+      "action_name": "resolve",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "anomaly_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Anomaly.resolve",
+      "object_type": "Anomaly",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "anomaly:write"
+      ],
+      "risk_level": "low"
+    },
     "Anomaly.suggest_escalation": {
       "action_name": "suggest_escalation",
       "approval_policy": "require_approval",
@@ -193,6 +211,25 @@
       ],
       "risk_level": "high"
     },
+    "DispatchOrder.update_status": {
+      "action_name": "update_status",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id",
+          "new_status"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.DispatchOrder.update_status",
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:write"
+      ],
+      "risk_level": "medium"
+    },
     "Flight.add_note": {
       "action_name": "add_note",
       "approval_policy": "auto_execute",
@@ -299,6 +336,44 @@
       ],
       "risk_level": "medium"
     },
+    "Flight.update_delay": {
+      "action_name": "update_delay",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "flight_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Flight.update_delay",
+      "object_type": "Flight",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:write"
+      ],
+      "risk_level": "medium"
+    },
+    "Flight.update_stand": {
+      "action_name": "update_stand",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "flight_id",
+          "new_stand_id",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Flight.update_stand",
+      "object_type": "Flight",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:write"
+      ],
+      "risk_level": "medium"
+    },
     "Flight.update_status": {
       "action_name": "update_status",
       "approval_policy": "require_approval",
@@ -316,6 +391,25 @@
         "flight:write"
       ],
       "risk_level": "high"
+    },
+    "Label.add": {
+      "action_name": "add",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "flight_id",
+          "label"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Label.add",
+      "object_type": "Label",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:write"
+      ],
+      "risk_level": "low"
     },
     "Notification.send": {
       "action_name": "send",
@@ -460,6 +554,24 @@
         "todo:write"
       ],
       "risk_level": "low"
+    },
+    "Workflow.start": {
+      "action_name": "start",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "workflow_template_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Workflow.start",
+      "object_type": "Workflow",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "workflow:start"
+      ],
+      "risk_level": "high"
     }
   },
   "constraints": [
@@ -471,6 +583,24 @@
         "expression": "stand.is_available()"
       },
       "object_type": "Flight"
+    },
+    {
+      "action_name": "update_stand",
+      "constraint": {
+        "constraint_type": "Precondition",
+        "description": "Target stand must be available",
+        "expression": "stand.is_available()"
+      },
+      "object_type": "Flight"
+    },
+    {
+      "action_name": "add",
+      "constraint": {
+        "constraint_type": "Precondition",
+        "description": "Label definition must exist",
+        "expression": "label.exists()"
+      },
+      "object_type": "Label"
     },
     {
       "action_name": "reserve",
@@ -566,6 +696,41 @@
           },
           "required_permissions": [
             "anomaly:read"
+          ],
+          "risk_level": "low"
+        },
+        "resolve": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Resolve the anomaly with an optional resolution note",
+          "execution_mapping": "DomainActionExecutor.Anomaly.resolve",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "resolve",
+          "parameters": {
+            "anomaly_id": {
+              "description": "Anomaly to resolve",
+              "name": "anomaly_id",
+              "param_type": "String",
+              "required": true
+            },
+            "resolution_note": {
+              "description": "Optional resolution note",
+              "name": "resolution_note",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "anomaly_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "anomaly:write"
           ],
           "risk_level": "low"
         },
@@ -853,6 +1018,56 @@
             "dispatch:read"
           ],
           "risk_level": "high"
+        },
+        "update_status": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": {
+            "before_snapshot_required": true,
+            "followup_action_name": null,
+            "followup_args": null,
+            "inverse_action_name": null,
+            "irreversible_fields": [],
+            "mode": "restore_snapshot",
+            "requires_approval": true
+          },
+          "constraints": [],
+          "description": "Transition the dispatch order status (pending|assigned|in_progress|completed|cancelled).",
+          "execution_mapping": "DomainActionExecutor.DispatchOrder.update_status",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_status",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order to update",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            },
+            "new_status": {
+              "description": "enum: pending|assigned|in_progress|completed|cancelled",
+              "name": "new_status",
+              "param_type": "String",
+              "required": true
+            },
+            "notes": {
+              "description": "Optional status change notes",
+              "name": "notes",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id",
+              "new_status"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:write"
+          ],
+          "risk_level": "medium"
         }
       },
       "description": "A dispatch order for ground handling",
@@ -1105,6 +1320,118 @@
           ],
           "risk_level": "medium"
         },
+        "update_delay": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": {
+            "before_snapshot_required": true,
+            "followup_action_name": null,
+            "followup_args": null,
+            "inverse_action_name": null,
+            "irreversible_fields": [],
+            "mode": "restore_snapshot",
+            "requires_approval": true
+          },
+          "constraints": [],
+          "description": "Update estimated departure/arrival times for a delayed flight (controlled write).",
+          "execution_mapping": "DomainActionExecutor.Flight.update_delay",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_delay",
+          "parameters": {
+            "estimated_arrival": {
+              "description": "RFC3339 estimated arrival",
+              "name": "estimated_arrival",
+              "param_type": "String",
+              "required": false
+            },
+            "estimated_departure": {
+              "description": "RFC3339 estimated departure",
+              "name": "estimated_departure",
+              "param_type": "String",
+              "required": false
+            },
+            "flight_id": {
+              "description": "Delayed flight",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "reason": {
+              "description": "Delay reason",
+              "name": "reason",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "flight_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:write"
+          ],
+          "risk_level": "medium"
+        },
+        "update_stand": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": {
+            "before_snapshot_required": true,
+            "followup_action_name": null,
+            "followup_args": null,
+            "inverse_action_name": null,
+            "irreversible_fields": [],
+            "mode": "restore_snapshot",
+            "requires_approval": true
+          },
+          "constraints": [
+            {
+              "constraint_type": "Precondition",
+              "description": "Target stand must be available",
+              "expression": "stand.is_available()"
+            }
+          ],
+          "description": "Adjust the flight stand with an explicit reason (controlled write, before/after snapshot).",
+          "execution_mapping": "DomainActionExecutor.Flight.update_stand",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_stand",
+          "parameters": {
+            "flight_id": {
+              "description": "Flight to adjust",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "new_stand_id": {
+              "description": "Target stand id",
+              "name": "new_stand_id",
+              "param_type": "String",
+              "required": true
+            },
+            "reason": {
+              "description": "Why the stand change is required",
+              "name": "reason",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "flight_id",
+              "new_stand_id",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:write"
+          ],
+          "risk_level": "medium"
+        },
         "update_status": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
@@ -1187,6 +1514,64 @@
       },
       "name": "FlightLeg",
       "object_id_strategy": "leg_id",
+      "relations": {}
+    },
+    "Label": {
+      "actions": {
+        "add": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [
+            {
+              "constraint_type": "Precondition",
+              "description": "Label definition must exist",
+              "expression": "label.exists()"
+            }
+          ],
+          "description": "Attach an existing label definition to a flight",
+          "execution_mapping": "DomainActionExecutor.Label.add",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "add",
+          "parameters": {
+            "flight_id": {
+              "description": "Flight to label",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "label": {
+              "description": "Label definition code",
+              "name": "label",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "flight_id",
+              "label"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:write"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Flight label definition / attachment",
+      "fields": {
+        "label_code": {
+          "description": "Label definition code",
+          "field_type": "String",
+          "name": "label_code",
+          "required": true
+        }
+      },
+      "name": "Label",
+      "object_id_strategy": "label_code",
       "relations": {}
     },
     "Notification": {
@@ -1576,6 +1961,63 @@
       },
       "name": "Todo",
       "object_id_strategy": "todo_id",
+      "relations": {}
+    },
+    "Workflow": {
+      "actions": {
+        "start": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Start a Flowable process instance from a workflow template",
+          "execution_mapping": "DomainActionExecutor.Workflow.start",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "start",
+          "parameters": {
+            "context": {
+              "description": "Process variables passed to the workflow",
+              "name": "context",
+              "param_type": "Object",
+              "required": false
+            },
+            "flight_id": {
+              "description": "Related flight",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": false
+            },
+            "workflow_template_id": {
+              "description": "Workflow template (process definition key)",
+              "name": "workflow_template_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "workflow_template_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "workflow:start"
+          ],
+          "risk_level": "high"
+        }
+      },
+      "description": "Flowable business process instance",
+      "fields": {
+        "workflow_id": {
+          "description": "Process instance identifier",
+          "field_type": "String",
+          "name": "workflow_id",
+          "required": true
+        }
+      },
+      "name": "Workflow",
+      "object_id_strategy": "workflow_id",
       "relations": {}
     }
   },

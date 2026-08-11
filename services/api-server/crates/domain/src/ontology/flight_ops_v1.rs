@@ -262,6 +262,68 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
+    // 契约 §3.3.1 flight.update_stand：受控写动作，reason 必填，携带 before/after。
+    flight_actions.insert(
+        "update_stand".to_string(),
+        OntologyActionDef {
+            name: "update_stand".to_string(),
+            description: "Adjust the flight stand with an explicit reason (controlled write, before/after snapshot).".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("flight_id".to_string(), string_param("flight_id", "Flight to adjust", true));
+                p.insert("new_stand_id".to_string(), string_param("new_stand_id", "Target stand id", true));
+                p.insert("reason".to_string(), string_param("reason", "Why the stand change is required", true));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["flight_id", "new_stand_id", "reason"]}),
+            required_permissions: vec!["flight:write".to_string()],
+            risk_level: "medium".to_string(),
+            approval_strategy: "require_approval".to_string(),
+            approval_policy: "require_approval".to_string(),
+            constraints: vec![OntologyConstraint {
+                constraint_type: "Precondition".to_string(),
+                expression: "stand.is_available()".to_string(),
+                description: "Target stand must be available".to_string(),
+            }],
+            execution_mapping: Some("DomainActionExecutor.Flight.update_stand".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: restore_snapshot_compensation(true),
+        },
+    );
+    // 契约 §3.3.2 flight.update_delay：至少一个预计时间，受控写动作。
+    flight_actions.insert(
+        "update_delay".to_string(),
+        OntologyActionDef {
+            name: "update_delay".to_string(),
+            description: "Update estimated departure/arrival times for a delayed flight (controlled write).".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("flight_id".to_string(), string_param("flight_id", "Delayed flight", true));
+                p.insert(
+                    "estimated_departure".to_string(),
+                    string_param("estimated_departure", "RFC3339 estimated departure", false),
+                );
+                p.insert(
+                    "estimated_arrival".to_string(),
+                    string_param("estimated_arrival", "RFC3339 estimated arrival", false),
+                );
+                p.insert("reason".to_string(), string_param("reason", "Delay reason", false));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["flight_id"]}),
+            required_permissions: vec!["flight:write".to_string()],
+            risk_level: "medium".to_string(),
+            approval_strategy: "require_approval".to_string(),
+            approval_policy: "require_approval".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.Flight.update_delay".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: restore_snapshot_compensation(true),
+        },
+    );
+
     flight_actions.insert(
         "suggest_stand_adjustment".to_string(),
         advisory_action(
@@ -482,6 +544,41 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             compensation: None,
         },
     );
+    // 契约 §3.3.3 dispatch.update_status：状态枚举迁移，受控写动作。
+    dispatch_order_actions.insert(
+        "update_status".to_string(),
+        OntologyActionDef {
+            name: "update_status".to_string(),
+            description: "Transition the dispatch order status (pending|assigned|in_progress|completed|cancelled).".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert(
+                    "dispatch_order_id".to_string(),
+                    string_param("dispatch_order_id", "Dispatch order to update", true),
+                );
+                p.insert(
+                    "new_status".to_string(),
+                    string_param(
+                        "new_status",
+                        "enum: pending|assigned|in_progress|completed|cancelled",
+                        true,
+                    ),
+                );
+                p.insert("notes".to_string(), string_param("notes", "Optional status change notes", false));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["dispatch_order_id", "new_status"]}),
+            required_permissions: vec!["dispatch:write".to_string()],
+            risk_level: "medium".to_string(),
+            approval_strategy: "require_approval".to_string(),
+            approval_policy: "require_approval".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.DispatchOrder.update_status".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: restore_snapshot_compensation(true),
+        },
+    );
     dispatch_order_actions.insert(
         "suggest_replan".to_string(),
         advisory_action(
@@ -656,6 +753,34 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             approval_policy: "require_approval".to_string(),
             constraints: vec![],
             execution_mapping: Some("DomainActionExecutor.Anomaly.escalate".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+
+    // 契约 §3.3.7 anomaly.resolve：低风险受控写动作。
+    anomaly_actions.insert(
+        "resolve".to_string(),
+        OntologyActionDef {
+            name: "resolve".to_string(),
+            description: "Resolve the anomaly with an optional resolution note".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("anomaly_id".to_string(), string_param("anomaly_id", "Anomaly to resolve", true));
+                p.insert(
+                    "resolution_note".to_string(),
+                    string_param("resolution_note", "Optional resolution note", false),
+                );
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["anomaly_id"]}),
+            required_permissions: vec!["anomaly:write".to_string()],
+            risk_level: "low".to_string(),
+            approval_strategy: "auto_approve".to_string(),
+            approval_policy: "auto_execute".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.Anomaly.resolve".to_string()),
             idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
             compensation: None,
         },
@@ -1074,6 +1199,120 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
+    // 10.75 Label Object（契约 §3.3.9 label.add 的宿主对象）
+    let mut label_fields = HashMap::new();
+    label_fields.insert(
+        "label_code".to_string(),
+        OntologyFieldDef {
+            name: "label_code".to_string(),
+            field_type: "String".to_string(),
+            description: "Label definition code".to_string(),
+            required: true,
+        },
+    );
+
+    let mut label_actions = HashMap::new();
+    label_actions.insert(
+        "add".to_string(),
+        OntologyActionDef {
+            name: "add".to_string(),
+            description: "Attach an existing label definition to a flight".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("flight_id".to_string(), string_param("flight_id", "Flight to label", true));
+                p.insert("label".to_string(), string_param("label", "Label definition code", true));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["flight_id", "label"]}),
+            required_permissions: vec!["flight:write".to_string()],
+            risk_level: "low".to_string(),
+            approval_strategy: "auto_approve".to_string(),
+            approval_policy: "auto_execute".to_string(),
+            constraints: vec![OntologyConstraint {
+                constraint_type: "Precondition".to_string(),
+                expression: "label.exists()".to_string(),
+                description: "Label definition must exist".to_string(),
+            }],
+            execution_mapping: Some("DomainActionExecutor.Label.add".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+
+    objects.insert(
+        "Label".to_string(),
+        OntologyObjectDef {
+            name: "Label".to_string(),
+            description: "Flight label definition / attachment".to_string(),
+            object_id_strategy: "label_code".to_string(),
+            fields: label_fields,
+            relations: HashMap::new(),
+            actions: label_actions,
+        },
+    );
+
+    // 10.8 Workflow Object（契约 §3.3.10 workflow.start 的宿主对象）
+    let mut workflow_fields = HashMap::new();
+    workflow_fields.insert(
+        "workflow_id".to_string(),
+        OntologyFieldDef {
+            name: "workflow_id".to_string(),
+            field_type: "String".to_string(),
+            description: "Process instance identifier".to_string(),
+            required: true,
+        },
+    );
+
+    let mut workflow_actions = HashMap::new();
+    workflow_actions.insert(
+        "start".to_string(),
+        OntologyActionDef {
+            name: "start".to_string(),
+            description: "Start a Flowable process instance from a workflow template".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert(
+                    "workflow_template_id".to_string(),
+                    string_param("workflow_template_id", "Workflow template (process definition key)", true),
+                );
+                p.insert("flight_id".to_string(), string_param("flight_id", "Related flight", false));
+                p.insert(
+                    "context".to_string(),
+                    OntologyActionParameter {
+                        name: "context".to_string(),
+                        param_type: "Object".to_string(),
+                        description: "Process variables passed to the workflow".to_string(),
+                        required: false,
+                    },
+                );
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["workflow_template_id"]}),
+            required_permissions: vec!["workflow:start".to_string()],
+            risk_level: "high".to_string(),
+            approval_strategy: "require_approval".to_string(),
+            approval_policy: "require_approval".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.Workflow.start".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+
+    objects.insert(
+        "Workflow".to_string(),
+        OntologyObjectDef {
+            name: "Workflow".to_string(),
+            description: "Flowable business process instance".to_string(),
+            object_id_strategy: "workflow_id".to_string(),
+            fields: workflow_fields,
+            relations: HashMap::new(),
+            actions: workflow_actions,
+        },
+    );
+
     OntologySchema {
         version: FLIGHT_OPS_ONTOLOGY_VERSION.to_string(),
         description: "Flight Operations Ontology Schema V1".to_string(),
@@ -1113,14 +1352,20 @@ mod tests {
             ("DispatchOrder", "recommend_replan"),
             ("DispatchOrder", "reassign"),
             ("DispatchOrder", "publish"),
+            ("DispatchOrder", "update_status"),
             ("Anomaly", "acknowledge"),
             ("Anomaly", "escalate"),
+            ("Anomaly", "resolve"),
             ("Notification", "send"),
             ("Todo", "create"),
             ("Todo", "complete"),
             ("BusinessCase", "create"),
             ("BusinessCase", "close_case"),
             ("Stand", "reserve"),
+            ("Flight", "update_stand"),
+            ("Flight", "update_delay"),
+            ("Label", "add"),
+            ("Workflow", "start"),
         ] {
             assert!(
                 schema
@@ -1157,6 +1402,96 @@ mod tests {
             assert!(
                 action.execution_mapping.is_none(),
                 "{object_type}.{action_name} 建议动作不得映射到 DomainActionExecutor（契约 §4.3）"
+            );
+        }
+    }
+
+    #[test]
+    fn flight_ops_v1_controlled_write_actions_follow_contract_rules() {
+        let schema = build_flight_ops_v1_schema();
+
+        // (object, action, permission, risk, approval_policy, execution_mapping)
+        let write_actions = [
+            (
+                "Flight",
+                "update_stand",
+                "flight:write",
+                "medium",
+                "require_approval",
+                "DomainActionExecutor.Flight.update_stand",
+            ),
+            (
+                "Flight",
+                "update_delay",
+                "flight:write",
+                "medium",
+                "require_approval",
+                "DomainActionExecutor.Flight.update_delay",
+            ),
+            (
+                "DispatchOrder",
+                "update_status",
+                "dispatch:write",
+                "medium",
+                "require_approval",
+                "DomainActionExecutor.DispatchOrder.update_status",
+            ),
+            (
+                "Anomaly",
+                "resolve",
+                "anomaly:write",
+                "low",
+                "auto_execute",
+                "DomainActionExecutor.Anomaly.resolve",
+            ),
+            (
+                "Label",
+                "add",
+                "flight:write",
+                "low",
+                "auto_execute",
+                "DomainActionExecutor.Label.add",
+            ),
+            (
+                "Workflow",
+                "start",
+                "workflow:start",
+                "high",
+                "require_approval",
+                "DomainActionExecutor.Workflow.start",
+            ),
+        ];
+        for (object_type, action_name, permission, risk, approval, mapping) in write_actions {
+            let action = schema
+                .objects
+                .get(object_type)
+                .and_then(|object| object.actions.get(action_name))
+                .unwrap_or_else(|| panic!("{object_type}.{action_name} must exist"));
+            assert_eq!(action.category, "write", "{object_type}.{action_name}");
+            assert_eq!(action.risk_level, risk, "{object_type}.{action_name}");
+            assert_eq!(action.approval_policy, approval, "{object_type}.{action_name}");
+            assert_eq!(action.required_permissions, vec![permission], "{object_type}.{action_name}");
+            assert_eq!(
+                action.execution_mapping.as_deref(),
+                Some(mapping),
+                "{object_type}.{action_name} 必须映射到 DomainActionExecutor（契约 §4.3）"
+            );
+            assert!(
+                action.idempotency_key_strategy.is_some(),
+                "{object_type}.{action_name} 写动作必须定义幂等键策略"
+            );
+        }
+
+        // 契约 §3.3.1：update_stand 必填参数
+        let update_stand = schema.objects["Flight"].actions.get("update_stand").unwrap();
+        for required in ["flight_id", "new_stand_id", "reason"] {
+            assert!(
+                update_stand.parameters_schema["required"]
+                    .as_array()
+                    .expect("required array")
+                    .iter()
+                    .any(|item| item == required),
+                "Flight.update_stand 必须要求 {required}"
             );
         }
     }

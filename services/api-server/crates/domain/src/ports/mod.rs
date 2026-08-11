@@ -1128,6 +1128,10 @@ mod null_repository_impls {
         async fn escalate_in_tx(&self, _: &mut Tx, _: &str) -> Result<bool, crate::error::DomainError> {
             Ok(false)
         }
+
+        async fn resolve_in_tx(&self, _: &mut Tx, _: &str) -> Result<bool, crate::error::DomainError> {
+            Ok(false)
+        }
     }
 
     #[async_trait]

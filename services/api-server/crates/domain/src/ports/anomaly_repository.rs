@@ -24,4 +24,5 @@ pub trait AnomalyRepository {
 pub trait AnomalyTransactionalRepository<Tx>: Send + Sync {
     async fn acknowledge_in_tx(&self, tx: &mut Tx, anomaly_id: &str) -> Result<bool, DomainError>;
     async fn escalate_in_tx(&self, tx: &mut Tx, anomaly_id: &str) -> Result<bool, DomainError>;
+    async fn resolve_in_tx(&self, tx: &mut Tx, anomaly_id: &str) -> Result<bool, DomainError>;
 }

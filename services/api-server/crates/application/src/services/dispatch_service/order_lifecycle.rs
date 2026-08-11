@@ -589,6 +589,63 @@ impl DispatchService {
         Ok(order_to_response(&order))
     }
 
+    /// Ontology 契约 §3.3.3 `dispatch.update_status` 的受控写入口：
+    /// 在调用方事务内更新派工单状态并写操作日志（与 outbox 同事务提交）。
+    pub async fn update_order_status_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        order_id: &str,
+        new_status: &str,
+        actor_id: &str,
+        notes: Option<&str>,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        Self::ensure_actor(actor_id)?;
+        let status = match new_status.trim() {
+            "pending" => DispatchOrderStatus::Pending,
+            "assigned" => DispatchOrderStatus::Assigned,
+            "in_progress" => DispatchOrderStatus::InProgress,
+            "completed" => DispatchOrderStatus::Completed,
+            "cancelled" => DispatchOrderStatus::Cancelled,
+            other => {
+                return Err(DomainError::ValidationError(format!(
+                    "invalid dispatch order status: {other}"
+                )));
+            }
+        };
+
+        let Some(mut order) = self.order.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+
+        let previous_status = order.status.as_ref().to_string();
+        order.status = status;
+        order.updated_at = Some(Utc::now());
+
+        let order_tx_repo = self.order.order_tx_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal("DispatchService order transactional repository is not configured".to_string())
+        })?;
+        order_tx_repo.save_in_tx(tx, &order).await?;
+        order_tx_repo
+            .append_log_in_tx(
+                tx,
+                &order.id,
+                "status_updated",
+                Some(actor_id),
+                Some(json!({
+                    "previous_status": previous_status,
+                    "new_status": new_status,
+                    "notes": notes,
+                    "source": "ai_action",
+                })),
+            )
+            .await?;
+
+        Ok(order_to_response(&order))
+    }
+
     pub async fn prepare_order_for_publication_internal(
         &self,
         order: &mut DispatchOrder,

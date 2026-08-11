@@ -112,6 +112,17 @@ impl AnomalyService {
         self.repo.resolve(anomaly_id).await
     }
 
+    pub async fn resolve_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        anomaly_id: &str,
+    ) -> Result<bool, DomainError> {
+        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal("AnomalyService transactional repository is not configured".to_string())
+        })?;
+        tx_repo.resolve_in_tx(tx, anomaly_id).await
+    }
+
     /// 创建异常
     pub async fn create_anomaly(&self, dto: AnomalyCreate) -> Result<AnomalyResponse, DomainError> {
         let now = Utc::now();

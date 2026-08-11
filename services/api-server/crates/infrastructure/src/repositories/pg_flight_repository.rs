@@ -249,7 +249,10 @@ impl PgFlightRepository {
         match row {
             None => Ok(None),
             Some(row) => {
-                let current = row.get::<i32, _>("version");
+                let current = row
+                    .try_get::<i32, _>("version")
+                    .or_else(|_| row.try_get::<i64, _>("version").map(|v| v as i32))
+                    .unwrap_or(-1);
                 Err(DomainError::ConcurrencyConflict(format!(
                     "航班版本已变化: expected {expected_version}, current {current}"
                 )))
@@ -1177,7 +1180,10 @@ fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
         anomaly_summary,
         created_at: r.get("created_at"),
         updated_at: r.get("updated_at"),
-        version: r.get("version"),
+        version: r
+            .try_get::<i32, _>("version")
+            .or_else(|_| r.try_get::<i64, _>("version").map(|v| v as i32))
+            .unwrap_or(0),
         labels: r
             .try_get::<Option<serde_json::Value>, _>("labels")
             .ok()

@@ -7,11 +7,13 @@ use crate::schemas::todo_schemas::{TodoComplete, TodoCreateCommand};
 use crate::services::business_case_service::BusinessCaseTerminalUpdatePayload;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
+use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
 use crate::types::{
     ConcreteAnomalyService, ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService,
     ConcreteNotificationService, ConcreteTodoService,
 };
+use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 
 use super::helpers::{optional_string, required_string};
 use super::types::{DomainActionError, DomainActionReceipt};
@@ -21,9 +23,10 @@ pub struct DomainActionExecutor {
     dispatch_service: Arc<DispatchService>,
     notification_service: Arc<ConcreteNotificationService>,
     anomaly_service: Arc<ConcreteAnomalyService>,
-    _label_service: Arc<ConcreteLabelService>,
+    label_service: Arc<ConcreteLabelService>,
     todo_service: Arc<ConcreteTodoService>,
     business_case_service: Arc<ConcreteBusinessCaseService>,
+    flowable_service: Option<FlowableService>,
     pool: sqlx::PgPool,
 }
 
@@ -43,11 +46,18 @@ impl DomainActionExecutor {
             dispatch_service,
             notification_service,
             anomaly_service,
-            _label_service: label_service,
+            label_service,
             todo_service,
             business_case_service,
+            flowable_service: None,
             pool,
         }
+    }
+
+    /// 契约 §3.3.10 `workflow.start` 依赖的 Flowable 网关（可选注入）。
+    pub fn with_flowable_service(mut self, flowable_service: FlowableService) -> Self {
+        self.flowable_service = Some(flowable_service);
+        self
     }
 
     pub async fn execute_approved_action(
@@ -77,6 +87,10 @@ impl DomainActionExecutor {
                 "executor_id": executor_id,
                 "arguments": arguments,
                 "result": val,
+                // 契约 §4.3：受控写动作必须携带 ontology version 与审计信息；
+                // correlation_id 由 proposal 管线通过 arguments 注入（Phase 4 wiring）。
+                "ontology_version": FLIGHT_OPS_ONTOLOGY_VERSION,
+                "correlation_id": arguments.get("correlation_id").cloned().unwrap_or(Value::Null),
             });
 
             if let Err(e) = write_flight_outbox_event(&mut tx, object_type, object_id, &event_type, payload).await {
@@ -152,7 +166,14 @@ impl DomainActionExecutor {
             "Flight.add_note" => {
                 let note = required_string(arguments, &["note_content", "note"], "note")?;
 
+                let before = self
+                    .flight_service
+                    .get_flight(object_id)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
+                    .ok_or_else(|| DomainActionError::NotFound(format!("Flight {} not found", object_id)))?;
                 let dto = crate::schemas::flight_schemas::FlightUpdate {
+                    expected_version: Some(before.version),
                     flight_remarks: crate::schemas::flight_schemas::NullableUpdate::Set(note.to_string()),
                     ..Default::default()
                 };
@@ -168,7 +189,15 @@ impl DomainActionExecutor {
             }
             "Flight.update_status" => {
                 let status = required_string(arguments, &["new_status", "status"], "status")?;
+                // 契约 §4.3：审批执行前重验对象版本，携带 expected_version 乐观锁。
+                let before = self
+                    .flight_service
+                    .get_flight(object_id)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
+                    .ok_or_else(|| DomainActionError::NotFound(format!("Flight {} not found", object_id)))?;
                 let dto = crate::schemas::flight_schemas::FlightUpdate {
+                    expected_version: Some(before.version),
                     status: Some(status.to_string()),
                     ..Default::default()
                 };
@@ -184,7 +213,14 @@ impl DomainActionExecutor {
             }
             "Flight.change_stand" => {
                 let new_stand_id = required_string(arguments, &["new_stand_id", "stand_id"], "new_stand_id")?;
+                let before = self
+                    .flight_service
+                    .get_flight(object_id)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
+                    .ok_or_else(|| DomainActionError::NotFound(format!("Flight {} not found", object_id)))?;
                 let dto = crate::schemas::flight_schemas::FlightUpdate {
+                    expected_version: Some(before.version),
                     stand: crate::schemas::flight_schemas::NullableUpdate::Set(new_stand_id.to_string()),
                     ..Default::default()
                 };
@@ -197,6 +233,104 @@ impl DomainActionExecutor {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
                 Ok(serde_json::json!({ "success": true, "stand": new_stand_id }))
+            }
+            // 契约 §3.3.1 flight.update_stand：调整航班机位（reason 必填，携带 before/after）。
+            "Flight.update_stand" => {
+                let new_stand_id = required_string(arguments, &["new_stand_id"], "new_stand_id")?;
+                let reason = required_string(arguments, &["reason"], "reason")?;
+                let before = self
+                    .flight_service
+                    .get_flight(object_id)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
+                    .ok_or_else(|| DomainActionError::NotFound(format!("Flight {} not found", object_id)))?;
+                let before_snapshot = serde_json::json!({
+                    "stand": before.stand.as_ref().map(|s| s.as_str()),
+                    "status": before.status.clone(),
+                    "version": before.version,
+                });
+                let dto = crate::schemas::flight_schemas::FlightUpdate {
+                    expected_version: Some(before.version),
+                    stand: crate::schemas::flight_schemas::NullableUpdate::Set(new_stand_id.to_string()),
+                    ..Default::default()
+                };
+                let res = self
+                    .flight_service
+                    .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
+                if res.is_none() {
+                    return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
+                }
+                Ok(serde_json::json!({
+                    "success": true,
+                    "stand": new_stand_id,
+                    "reason": reason,
+                    "before_snapshot": before_snapshot,
+                    "after_preview": { "stand": new_stand_id },
+                }))
+            }
+            // 契约 §3.3.2 flight.update_delay：更新预计到/离港时间（携带 before/after）。
+            "Flight.update_delay" => {
+                let parse_dt = |key: &str| -> Result<Option<chrono::DateTime<chrono::Utc>>, DomainActionError> {
+                    match arguments.get(key) {
+                        None | Some(Value::Null) => Ok(None),
+                        Some(Value::String(raw)) => raw.parse::<chrono::DateTime<chrono::Utc>>().map(Some).map_err(|_| {
+                            DomainActionError::Validation(format!("`{key}` is not an RFC3339 datetime"))
+                        }),
+                        Some(_) => Err(DomainActionError::Validation(format!(
+                            "`{key}` must be an RFC3339 datetime string"
+                        ))),
+                    }
+                };
+                let estimated_departure = parse_dt("estimated_departure")?;
+                let estimated_arrival = parse_dt("estimated_arrival")?;
+                if estimated_departure.is_none() && estimated_arrival.is_none() {
+                    return Err(DomainActionError::Validation(
+                        "at least one of estimated_departure / estimated_arrival is required".to_string(),
+                    ));
+                }
+                let before = self
+                    .flight_service
+                    .get_flight(object_id)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
+                    .ok_or_else(|| DomainActionError::NotFound(format!("Flight {} not found", object_id)))?;
+                let before_snapshot = serde_json::json!({
+                    "estimated_departure": before.estimated_departure,
+                    "estimated_arrival": before.estimated_arrival,
+                    "status": before.status.clone(),
+                    "version": before.version,
+                });
+                let dto = crate::schemas::flight_schemas::FlightUpdate {
+                    expected_version: Some(before.version),
+                    estimated_departure: estimated_departure
+                        .map(crate::schemas::flight_schemas::NullableUpdate::Set)
+                        .unwrap_or_default(),
+                    estimated_arrival: estimated_arrival
+                        .map(crate::schemas::flight_schemas::NullableUpdate::Set)
+                        .unwrap_or_default(),
+                    ..Default::default()
+                };
+                let res = self
+                    .flight_service
+                    .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
+                if res.is_none() {
+                    return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
+                }
+                Ok(serde_json::json!({
+                    "success": true,
+                    "estimated_departure": estimated_departure,
+                    "estimated_arrival": estimated_arrival,
+                    "reason": arguments.get("reason"),
+                    "before_snapshot": before_snapshot,
+                    "after_preview": {
+                        "estimated_departure": estimated_departure,
+                        "estimated_arrival": estimated_arrival,
+                    },
+                }))
             }
             "Notification.send" => {
                 let user_id = required_string(arguments, &["user_id", "recipient_user_id"], "user_id")?;
@@ -246,6 +380,25 @@ impl DomainActionExecutor {
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 Ok(serde_json::json!({ "success": true }))
+            }
+            // 契约 §3.3.7 anomaly.resolve：解决异常（事务内写，已解决时返回 false）。
+            "Anomaly.resolve" => {
+                let resolution_note = optional_string(arguments, &["resolution_note", "note"]);
+                let resolved = self
+                    .anomaly_service
+                    .resolve_in_tx(tx, object_id)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
+                if !resolved {
+                    return Err(DomainActionError::Execution(format!(
+                        "Anomaly {object_id} not found or already resolved"
+                    )));
+                }
+                Ok(serde_json::json!({
+                    "success": true,
+                    "resolved": true,
+                    "resolution_note": resolution_note,
+                }))
             }
             "Anomaly.escalate" => {
                 let severity = arguments.get("severity").and_then(|v| v.as_str()).unwrap_or("high");
@@ -317,6 +470,27 @@ impl DomainActionExecutor {
                     "replan_requested": true,
                     "reason": reason,
                     "replan_result": replan_result,
+                }))
+            }
+            // 契约 §3.3.3 dispatch.update_status：受控状态更新（枚举校验 + 事务内写）。
+            "DispatchOrder.update_status" => {
+                let new_status = required_string(arguments, &["new_status", "status"], "new_status")?;
+                let notes = optional_string(arguments, &["notes"]);
+                let updated = self
+                    .dispatch_service
+                    .update_order_status_in_tx(tx, object_id, new_status, executor_id, notes)
+                    .await
+                    .map_err(|e| match e {
+                        fms_domain::error::DomainError::NotFound { entity_type, id } => {
+                            DomainActionError::NotFound(format!("{entity_type} {id} not found"))
+                        }
+                        fms_domain::error::DomainError::ValidationError(msg) => DomainActionError::Validation(msg),
+                        other => DomainActionError::Execution(other.to_string()),
+                    })?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "order_id": updated.id,
+                    "status": new_status,
                 }))
             }
             "DispatchOrder.reassign" => {
@@ -509,6 +683,51 @@ impl DomainActionExecutor {
                     "success": true,
                     "case_id": updated.case_id,
                     "status": updated.status,
+                }))
+            }
+            // 契约 §3.3.9 label.add：为航班添加标签（唯一业务写入口为 LabelService）。
+            "Label.add" => {
+                let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
+                let label = required_string(arguments, &["label", "label_code", "code"], "label")?;
+                self.label_service
+                    .add_to_flight(flight_id, label, Some(executor_id))
+                    .await
+                    .map_err(|e| match e {
+                        fms_domain::error::DomainError::NotFound { entity_type, id } => {
+                            DomainActionError::NotFound(format!("{entity_type} {id} not found"))
+                        }
+                        fms_domain::error::DomainError::ValidationError(msg) => DomainActionError::Validation(msg),
+                        other => DomainActionError::Execution(other.to_string()),
+                    })?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "flight_id": flight_id,
+                    "label": label,
+                }))
+            }
+            // 契约 §3.3.10 workflow.start：发起 Flowable 流程（网关未配置时拒绝）。
+            "Workflow.start" => {
+                let flowable = self.flowable_service.as_ref().ok_or_else(|| {
+                    DomainActionError::Execution("workflow.start requires a configured Flowable gateway".to_string())
+                })?;
+                let template_id = required_string(arguments, &["workflow_template_id", "process_key"], "workflow_template_id")?;
+                let flight_id = optional_string(arguments, &["flight_id"]);
+                let mut variables: serde_json::Map<String, Value> = arguments
+                    .get("context")
+                    .and_then(Value::as_object)
+                    .cloned()
+                    .unwrap_or_default();
+                variables.insert("ontology_version".to_string(), serde_json::json!(FLIGHT_OPS_ONTOLOGY_VERSION));
+                variables.insert("started_by".to_string(), serde_json::json!(executor_id));
+                let process_instance_id = flowable
+                    .start_process_instance(template_id, flight_id, Some(&variables), None)
+                    .await
+                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "workflow_template_id": template_id,
+                    "flight_id": flight_id,
+                    "process_instance_id": process_instance_id,
                 }))
             }
             _ => Err(DomainActionError::NotFound(format!("unknown action: {}", action_key))),
