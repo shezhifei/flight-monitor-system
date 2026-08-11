@@ -48,11 +48,7 @@ pub trait StandOccupationRepository: Send + Sync {
     async fn find_active_by_flight(&self, flight_id: &str) -> Result<Vec<StandOccupation>, DomainError>;
 
     /// 按机号列全部占用（时间倒序，limit）
-    async fn list_by_registration(
-        &self,
-        registration: &str,
-        limit: i64,
-    ) -> Result<Vec<StandOccupation>, DomainError>;
+    async fn list_by_registration(&self, registration: &str, limit: i64) -> Result<Vec<StandOccupation>, DomainError>;
 
     /// 按机位号 + 时段列占用（用于冲突告警展示，不硬拦）
     async fn list_overlapping(
@@ -157,11 +153,8 @@ pub trait ResourceAdjustmentSuggestionRepository: Send + Sync {
     ) -> Result<Option<ResourceAdjustmentSuggestion>, DomainError>;
 
     /// 按航段 + 种类取 pending 建议（连续换机: 旧建议过期 + 新建议生成）
-    async fn find_pending(
-        &self,
-        flight_id: &str,
-        kind: &str,
-    ) -> Result<Vec<ResourceAdjustmentSuggestion>, DomainError>;
+    async fn find_pending(&self, flight_id: &str, kind: &str)
+        -> Result<Vec<ResourceAdjustmentSuggestion>, DomainError>;
 
     /// 列表（按航段 / 按状态）
     async fn list(
@@ -183,6 +176,9 @@ pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
     /// 新建占用
     async fn create_occupation_in_tx(&self, tx: &mut Tx, occupation: &StandOccupation) -> Result<(), DomainError>;
 
+    /// 调整占用（与航班计划同步时保持同一事务）
+    async fn update_occupation_in_tx(&self, tx: &mut Tx, occupation: &StandOccupation) -> Result<(), DomainError>;
+
     /// 释放占用
     async fn release_occupation_in_tx(
         &self,
@@ -193,6 +189,9 @@ pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
 
     /// 新建口分配
     async fn create_assignment_in_tx(&self, tx: &mut Tx, assignment: &GateAssignment) -> Result<(), DomainError>;
+
+    /// 调整口分配（与航班计划同步时保持同一事务）
+    async fn update_assignment_in_tx(&self, tx: &mut Tx, assignment: &GateAssignment) -> Result<(), DomainError>;
 
     /// 释放口分配
     async fn release_assignment_in_tx(
@@ -226,5 +225,10 @@ pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
     ) -> Result<(), DomainError>;
 
     /// 同一航段 + 种类的旧 pending 建议全部过期（连续换机，§4.9）
-    async fn expire_pending_suggestions_in_tx(&self, tx: &mut Tx, flight_id: &str, kind: &str) -> Result<usize, DomainError>;
+    async fn expire_pending_suggestions_in_tx(
+        &self,
+        tx: &mut Tx,
+        flight_id: &str,
+        kind: &str,
+    ) -> Result<usize, DomainError>;
 }

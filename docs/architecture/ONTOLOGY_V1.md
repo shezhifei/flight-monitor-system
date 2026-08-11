@@ -1,11 +1,17 @@
 # Ontology V1 — 飞机中心运行本体
 
-> 状态：V1 完成（`feat/ontology-definition`）  
+> 状态：飞机中心 V1 范围完成（`feat/ontology-definition`）；原始 AI Ontology 契约仍未全部实现。
 > 范围：机号权威、机位占用、登机口分配、周转链接、资源建议、draft 批确认
 
 本文档与代码对齐：`migrations/119_ontology_v1_core.sql`、
 `domain/models/ontology_v1*.rs`、`application/services/ontology_service`、
 `/api/v2/ontology/*`。
+
+> 范围说明：本文件描述的是飞机中心运行资源本体（Aircraft、StandOccupation、
+> GateAssignment、TurnaroundLink、ResourceAdjustmentSuggestion）。它不等同于
+> `docs/plans/2026-05-11-ontology-v1-contract.md` 中定义的完整 AI 动作集合；
+> 后者包含航班搜索、异常/派工查询、建议动作和更多受控写动作，当前仍按独立计划跟踪，
+> 不应使用本文件的“范围完成”状态作为其验收结论。
 
 ---
 

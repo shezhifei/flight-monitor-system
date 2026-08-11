@@ -182,7 +182,8 @@ vault.exe
 # Tracked baseline lives in README, QUICK_START, CLAUDE.md and the exceptions below.
 docs/superpowers/
 docs/analysis/
-docs/fixtures/
+docs/fixtures/*
+!docs/fixtures/flight_ops_v1_ontology_schema.json
 docs/releases/
 docs/runbooks/
 docs/ux_analysis/
@@ -198,10 +199,15 @@ docs/*.md
 docs/operations/*
 !docs/operations/frontend-parity-audit.md
 !docs/operations/dispatch-overrun-warning.md
+!docs/operations/ontology-v1-agent-handoff.md
 
 # Plans: keep only the tech-debt master plan
 docs/plans/*
 !docs/plans/2026-06-29-tech-debt-sweep-master-plan.md
+!docs/plans/2026-05-11-ontology-v1-contract.md
+
+# Playwright / e2e artifacts
+test-results/
 
 # One-off root reports
 AI_RUNTIME_P2_RC_FINAL_REPORT.md

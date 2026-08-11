@@ -6,12 +6,9 @@ use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, Utc};
 use fms_domain::error::DomainError;
-use fms_runtime::spawn_tracked::spawn_tracked;
-use tracing::{info, warn};
 use fms_domain::models::ontology_v1::{
-    AssignmentStatus, GateAssignment, OccupationKind, OccupationStatus, ResourceAdjustmentSuggestion,
-    StandOccupation, SuggestionKind, SuggestionStatus, TurnaroundLink, TurnaroundLinkSource,
-    TurnaroundLinkStatus,
+    AssignmentStatus, GateAssignment, OccupationKind, OccupationStatus, ResourceAdjustmentSuggestion, StandOccupation,
+    SuggestionKind, SuggestionStatus, TurnaroundLink, TurnaroundLinkSource, TurnaroundLinkStatus,
 };
 use fms_domain::models::ontology_v1_rules::{
     accept_permission_for, draft_can_be_occupied, enforce_link_health, reassign_gate_violation,
@@ -19,10 +16,12 @@ use fms_domain::models::ontology_v1_rules::{
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::flight_repository::{FlightRepository, FlightUpdatePatch, PatchField};
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository,
-    StandOccupationRepository, TurnaroundLinkRepository,
+    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
+    TurnaroundLinkRepository,
 };
+use fms_runtime::spawn_tracked::spawn_tracked;
 use sqlx::PgPool;
+use tracing::{info, warn};
 use ulid::Ulid;
 
 use crate::schemas::ontology_schemas::{
@@ -30,8 +29,7 @@ use crate::schemas::ontology_schemas::{
     AutoLinkScanRequest, AutoLinkScanResult, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
     ConfirmDraftFlightsResponse, CreateSuggestionRequest, CreateTurnaroundLinkRequest, FlightResourceView,
     GateAssignmentResult, ReassignAircraftRequest, ReassignAircraftResponse, ReassignAppliedResult,
-    ReleaseResourceRequest, StandOccupationResult, SuggestionAcceptRequest, SuggestionQuery,
-    SuggestionRejectRequest,
+    ReleaseResourceRequest, StandOccupationResult, SuggestionAcceptRequest, SuggestionQuery, SuggestionRejectRequest,
 };
 use crate::services::flight_domain_events::write_flight_update_outbox_events;
 use crate::services::flight_service::FlightService;
@@ -184,11 +182,7 @@ impl OntologyService {
         actor_permissions: &[String],
         actor_is_admin: bool,
     ) -> Result<ReassignAircraftResponse, OntologyError> {
-        Self::ensure_has_permission(
-            actor_permissions,
-            actor_is_admin,
-            "ontology.aircraft.reassign",
-        )?;
+        Self::ensure_has_permission(actor_permissions, actor_is_admin, "ontology.aircraft.reassign")?;
 
         if request.changes.is_empty() {
             return Err(OntologyError::validation("changes must not be empty"));
@@ -264,14 +258,8 @@ impl OntologyService {
                 if link.status != TurnaroundLinkStatus::Active {
                     continue;
                 }
-                let inbound = self
-                    .flight_repo
-                    .find_by_id(&link.inbound_flight_id.0)
-                    .await?;
-                let outbound = self
-                    .flight_repo
-                    .find_by_id(&link.outbound_flight_id.0)
-                    .await?;
+                let inbound = self.flight_repo.find_by_id(&link.inbound_flight_id.0).await?;
+                let outbound = self.flight_repo.find_by_id(&link.outbound_flight_id.0).await?;
                 // 当前事务尚未对另一端可见时：若 link 端点是本 flight，用 new_registration
                 let inbound_reg = if link.inbound_flight_id.0 == flight_id {
                     Some(new_registration)
@@ -284,9 +272,7 @@ impl OntologyService {
                     outbound.as_ref().and_then(|f| f.registration.as_deref())
                 };
                 let enforced = enforce_link_health(&link, inbound_reg, outbound_reg);
-                if enforced.status == TurnaroundLinkStatus::Broken
-                    && link.status == TurnaroundLinkStatus::Active
-                {
+                if enforced.status == TurnaroundLinkStatus::Broken && link.status == TurnaroundLinkStatus::Active {
                     let mut broken = enforced;
                     broken.updated_at = Utc::now();
                     self.ontology_tx.update_link_in_tx(&mut tx, &broken).await?;
@@ -298,12 +284,7 @@ impl OntologyService {
             if updated.outbound_leg.is_some() {
                 let candidates = self
                     .link_repo
-                    .find_candidates_for_outbound(
-                        new_registration,
-                        flight_id,
-                        updated.scheduled_departure,
-                        360,
-                    )
+                    .find_candidates_for_outbound(new_registration, flight_id, updated.scheduled_departure, 360)
                     .await?;
                 if let Some((inbound_id, _)) = candidates.into_iter().next() {
                     let existing = self.link_repo.find_active_by_outbound(flight_id).await?;
@@ -345,9 +326,7 @@ impl OntologyService {
             });
         }
 
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
 
         Ok(ReassignAircraftResponse { applied })
     }
@@ -382,9 +361,7 @@ impl OntologyService {
         let required = accept_permission_for(suggestion.kind);
         let is_admin = request.actor_permissions.iter().any(|p| p == "*");
         if !is_admin && !request.actor_permissions.iter().any(|p| p == required) {
-            return Err(OntologyError::forbidden(format!(
-                "missing permission {required}"
-            )));
+            return Err(OntologyError::forbidden(format!("missing permission {required}")));
         }
 
         let flight_id = suggestion.flight_id.0.clone();
@@ -418,11 +395,7 @@ impl OntologyService {
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
 
-        let registration = flight
-            .registration
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty());
+        let registration = flight.registration.as_deref().map(str::trim).filter(|s| !s.is_empty());
         if let Some(reg) = registration {
             self.ontology_tx.upsert_aircraft_in_tx(&mut tx, reg).await?;
         }
@@ -432,13 +405,7 @@ impl OntologyService {
             .update_partial_in_tx(&mut tx, &flight_id, &patch)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
-        write_flight_update_outbox_events(
-            &mut tx,
-            &flight_id,
-            &patch,
-            Some(request.accepted_by.as_str()),
-        )
-        .await?;
+        write_flight_update_outbox_events(&mut tx, &flight_id, &patch, Some(request.accepted_by.as_str())).await?;
 
         // §4.9 接受即执行：若有机号，则落正式 Occupation / Assignment（时段可从 payload 解析）
         if let Some(reg) = registration {
@@ -460,9 +427,7 @@ impl OntologyService {
                         created_at: now,
                         updated_at: now,
                     };
-                    self.ontology_tx
-                        .create_occupation_in_tx(&mut tx, &occupation)
-                        .await?;
+                    self.ontology_tx.create_occupation_in_tx(&mut tx, &occupation).await?;
                 }
                 SuggestionKind::Gate => {
                     let assignment = GateAssignment {
@@ -477,9 +442,7 @@ impl OntologyService {
                         created_at: now,
                         updated_at: now,
                     };
-                    self.ontology_tx
-                        .create_assignment_in_tx(&mut tx, &assignment)
-                        .await?;
+                    self.ontology_tx.create_assignment_in_tx(&mut tx, &assignment).await?;
                 }
             }
         }
@@ -494,9 +457,7 @@ impl OntologyService {
             )
             .await?;
 
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
 
         // 换机/资源落地后尝试自动建链（非阻断）
         if let Some(reg) = registration {
@@ -579,9 +540,9 @@ impl OntologyService {
                     Ok(None) => missing.push(flight_id.clone()),
                     Err(DomainError::ValidationError(_)) => {
                         // 非 draft 或 kind 不符：视为本批跳过并记 missing 语义外的拒绝
-                        return Err(OntologyError::from(DomainError::ValidationError(
-                            format!("cannot confirm draft for {flight_id}"),
-                        )));
+                        return Err(OntologyError::from(DomainError::ValidationError(format!(
+                            "cannot confirm draft for {flight_id}"
+                        ))));
                     }
                     Err(e) => return Err(OntologyError::from(e)),
                 }
@@ -593,9 +554,7 @@ impl OntologyService {
                     continue;
                 };
                 if !current.is_draft {
-                    return Err(OntologyError::validation(format!(
-                        "航班 {flight_id} 不是 draft 状态"
-                    )));
+                    return Err(OntologyError::validation(format!("航班 {flight_id} 不是 draft 状态")));
                 }
                 if current.flight_kind != "passenger" {
                     return Err(OntologyError::validation(format!(
@@ -613,24 +572,13 @@ impl OntologyService {
                     .begin()
                     .await
                     .map_err(|e| OntologyError::internal(e.to_string()))?;
-                let Some(_) = self
-                    .flight_tx
-                    .update_partial_in_tx(&mut tx, flight_id, &patch)
-                    .await?
-                else {
+                let Some(_) = self.flight_tx.update_partial_in_tx(&mut tx, flight_id, &patch).await? else {
                     missing.push(flight_id.clone());
                     continue;
                 };
-                write_flight_update_outbox_events(
-                    &mut tx,
-                    flight_id,
-                    &patch,
-                    Some(request.confirmed_by.as_str()),
-                )
-                .await?;
-                tx.commit()
-                    .await
-                    .map_err(|e| OntologyError::internal(e.to_string()))?;
+                write_flight_update_outbox_events(&mut tx, flight_id, &patch, Some(request.confirmed_by.as_str()))
+                    .await?;
+                tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
                 confirmed.push(flight_id.clone());
             }
         }
@@ -671,10 +619,7 @@ impl OntologyService {
     }
 
     /// §5.3 飞机资源视图。
-    pub async fn aircraft_resource_view(
-        &self,
-        registration: &str,
-    ) -> Result<AircraftResourceView, OntologyError> {
+    pub async fn aircraft_resource_view(&self, registration: &str) -> Result<AircraftResourceView, OntologyError> {
         let registration = registration.trim();
         if registration.is_empty() {
             return Err(OntologyError::validation("registration must not be empty"));
@@ -750,7 +695,13 @@ impl OntologyService {
         }
         Self::ensure_time_window(request.starts_at, request.ends_at)?;
         let kind = Self::parse_occupation_kind(&request.kind)?;
-        if matches!(kind, OccupationKind::Moving) && request.moving_to_stand.as_ref().map(|s| s.trim()).unwrap_or("").is_empty()
+        if matches!(kind, OccupationKind::Moving)
+            && request
+                .moving_to_stand
+                .as_ref()
+                .map(|s| s.trim())
+                .unwrap_or("")
+                .is_empty()
         {
             return Err(OntologyError::validation(
                 "moving_to_stand is required when kind=moving",
@@ -805,12 +756,8 @@ impl OntologyService {
             .begin()
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
-        self.ontology_tx
-            .upsert_aircraft_in_tx(&mut tx, registration)
-            .await?;
-        self.ontology_tx
-            .create_occupation_in_tx(&mut tx, &occupation)
-            .await?;
+        self.ontology_tx.upsert_aircraft_in_tx(&mut tx, registration).await?;
+        self.ontology_tx.create_occupation_in_tx(&mut tx, &occupation).await?;
 
         if request.sync_flight_plan {
             if let Some(flight_id) = occupation.flight_id.as_ref() {
@@ -825,9 +772,7 @@ impl OntologyService {
             }
         }
 
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
 
         Ok(StandOccupationResult {
             occupation: serde_json::to_value(&occupation).unwrap_or(serde_json::Value::Null),
@@ -873,9 +818,7 @@ impl OntologyService {
                 .filter(|s| !s.is_empty())
                 .map(|s| StandNumber(s.to_string()));
         }
-        if matches!(updated.kind, OccupationKind::Moving)
-            && updated.moving_to_stand.is_none()
-        {
+        if matches!(updated.kind, OccupationKind::Moving) && updated.moving_to_stand.is_none() {
             return Err(OntologyError::validation(
                 "moving_to_stand is required when kind=moving",
             ));
@@ -892,15 +835,14 @@ impl OntologyService {
             )
             .await?;
 
-        self.occupation_repo.update(&updated).await?;
-
         if request.sync_flight_plan {
+            let mut tx = self
+                .pool
+                .begin()
+                .await
+                .map_err(|e| OntologyError::internal(e.to_string()))?;
+            self.ontology_tx.update_occupation_in_tx(&mut tx, &updated).await?;
             if let Some(flight_id) = updated.flight_id.as_ref() {
-                let mut tx = self
-                    .pool
-                    .begin()
-                    .await
-                    .map_err(|e| OntologyError::internal(e.to_string()))?;
                 self.sync_flight_plan_field(
                     &mut tx,
                     &flight_id.0,
@@ -909,10 +851,10 @@ impl OntologyService {
                     actor_id,
                 )
                 .await?;
-                tx.commit()
-                    .await
-                    .map_err(|e| OntologyError::internal(e.to_string()))?;
             }
+            tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
+        } else {
+            self.occupation_repo.update(&updated).await?;
         }
 
         Ok(StandOccupationResult {
@@ -992,12 +934,8 @@ impl OntologyService {
             .begin()
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
-        self.ontology_tx
-            .upsert_aircraft_in_tx(&mut tx, registration)
-            .await?;
-        self.ontology_tx
-            .create_assignment_in_tx(&mut tx, &assignment)
-            .await?;
+        self.ontology_tx.upsert_aircraft_in_tx(&mut tx, registration).await?;
+        self.ontology_tx.create_assignment_in_tx(&mut tx, &assignment).await?;
 
         if request.sync_flight_plan {
             if let Some(flight_id) = assignment.flight_id.as_ref() {
@@ -1012,9 +950,7 @@ impl OntologyService {
             }
         }
 
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
 
         Ok(GateAssignmentResult {
             assignment: serde_json::to_value(&assignment).unwrap_or(serde_json::Value::Null),
@@ -1049,19 +985,18 @@ impl OntologyService {
         Self::ensure_time_window(updated.starts_at, updated.ends_at)?;
         updated.updated_at = Utc::now();
 
-        self.assignment_repo.update(&updated).await?;
-
         let consistency_warnings = self
             .build_gate_consistency_warnings(&updated.registration, &updated.gate_code.0, Utc::now())
             .await?;
 
         if request.sync_flight_plan {
+            let mut tx = self
+                .pool
+                .begin()
+                .await
+                .map_err(|e| OntologyError::internal(e.to_string()))?;
+            self.ontology_tx.update_assignment_in_tx(&mut tx, &updated).await?;
             if let Some(flight_id) = updated.flight_id.as_ref() {
-                let mut tx = self
-                    .pool
-                    .begin()
-                    .await
-                    .map_err(|e| OntologyError::internal(e.to_string()))?;
                 self.sync_flight_plan_field(
                     &mut tx,
                     &flight_id.0,
@@ -1070,10 +1005,10 @@ impl OntologyService {
                     actor_id,
                 )
                 .await?;
-                tx.commit()
-                    .await
-                    .map_err(|e| OntologyError::internal(e.to_string()))?;
             }
+            tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
+        } else {
+            self.assignment_repo.update(&updated).await?;
         }
 
         Ok(GateAssignmentResult {
@@ -1124,9 +1059,7 @@ impl OntologyService {
                     || p == "ontology.plan.confirm"
             })
         {
-            return Err(OntologyError::forbidden(
-                "missing permission to create turnaround link",
-            ));
+            return Err(OntologyError::forbidden("missing permission to create turnaround link"));
         }
 
         let inbound_id = request.inbound_flight_id.trim();
@@ -1137,9 +1070,7 @@ impl OntologyService {
             ));
         }
         if inbound_id == outbound_id {
-            return Err(OntologyError::validation(
-                "inbound and outbound flight must differ",
-            ));
+            return Err(OntologyError::validation("inbound and outbound flight must differ"));
         }
 
         let inbound = self
@@ -1189,11 +1120,7 @@ impl OntologyService {
             created_at: now,
             updated_at: now,
         };
-        link = enforce_link_health(
-            &link,
-            inbound.registration.as_deref(),
-            outbound.registration.as_deref(),
-        );
+        link = enforce_link_health(&link, inbound.registration.as_deref(), outbound.registration.as_deref());
 
         let mut tx = self
             .pool
@@ -1201,9 +1128,7 @@ impl OntologyService {
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.create_link_in_tx(&mut tx, &link).await?;
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
         Ok(link)
     }
 
@@ -1224,9 +1149,7 @@ impl OntologyService {
                     || p == "ontology.plan.confirm"
             })
         {
-            return Err(OntologyError::forbidden(
-                "missing permission to break turnaround link",
-            ));
+            return Err(OntologyError::forbidden("missing permission to break turnaround link"));
         }
 
         // 通过 list 端点扫不到 id：用 flight list 不够。仓储无 find_by_id for link。
@@ -1252,18 +1175,16 @@ impl OntologyService {
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.update_link_in_tx(&mut tx, &link).await?;
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
         Ok(link)
     }
 
     /// 自动建链扫描：为无 active 出港链接的出港航段匹配同机进港候选。
-    pub async fn auto_link_scan(
-        &self,
-        request: AutoLinkScanRequest,
-    ) -> Result<AutoLinkScanResult, OntologyError> {
-        let window = request.window_minutes.unwrap_or(self.autolink_window_minutes).clamp(30, 24 * 60);
+    pub async fn auto_link_scan(&self, request: AutoLinkScanRequest) -> Result<AutoLinkScanResult, OntologyError> {
+        let window = request
+            .window_minutes
+            .unwrap_or(self.autolink_window_minutes)
+            .clamp(30, 24 * 60);
         let limit = request.limit.unwrap_or(self.autolink_scan_limit).clamp(1, 500);
         let candidates = self.link_repo.list_outbound_for_autolink(limit).await?;
 
@@ -1323,12 +1244,7 @@ impl OntologyService {
         };
 
         // 避免进港已被其他出港占用为 active inbound（允许一对一健康链）
-        if self
-            .link_repo
-            .find_active_by_inbound(&inbound_id)
-            .await?
-            .is_some()
-        {
+        if self.link_repo.find_active_by_inbound(&inbound_id).await?.is_some() {
             return Ok(None);
         }
 
@@ -1353,9 +1269,7 @@ impl OntologyService {
         // 并发下可能撞唯一约束
         match self.ontology_tx.create_link_in_tx(&mut tx, &link).await {
             Ok(()) => {
-                tx.commit()
-                    .await
-                    .map_err(|e| OntologyError::internal(e.to_string()))?;
+                tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
                 Ok(Some(link.id))
             }
             Err(DomainError::Internal(msg)) if msg.contains("duplicate") || msg.contains("unique") => {
@@ -1456,12 +1370,8 @@ impl OntologyService {
             created_at: now,
             updated_at: now,
         };
-        self.ontology_tx
-            .create_suggestion_in_tx(&mut tx, &suggestion)
-            .await?;
-        tx.commit()
-            .await
-            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        self.ontology_tx.create_suggestion_in_tx(&mut tx, &suggestion).await?;
+        tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
         Ok(suggestion)
     }
 
@@ -1474,23 +1384,15 @@ impl OntologyService {
         actor_is_admin: bool,
         required: &str,
     ) -> Result<(), OntologyError> {
-        if actor_is_admin
-            || actor_permissions
-                .iter()
-                .any(|p| p == required || p == "*")
-        {
+        if actor_is_admin || actor_permissions.iter().any(|p| p == required || p == "*") {
             return Ok(());
         }
-        Err(OntologyError::forbidden(format!(
-            "missing permission {required}"
-        )))
+        Err(OntologyError::forbidden(format!("missing permission {required}")))
     }
 
     fn ensure_time_window(starts_at: DateTime<Utc>, ends_at: DateTime<Utc>) -> Result<(), OntologyError> {
         if ends_at <= starts_at {
-            return Err(OntologyError::validation(
-                "ends_at must be greater than starts_at",
-            ));
+            return Err(OntologyError::validation("ends_at must be greater than starts_at"));
         }
         Ok(())
     }
@@ -1642,12 +1544,7 @@ impl OntologyService {
         if flight.is_draft {
             return Ok(());
         }
-        let Some(registration) = flight
-            .registration
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-        else {
+        let Some(registration) = flight.registration.as_deref().map(str::trim).filter(|s| !s.is_empty()) else {
             return Ok(());
         };
         // 仅对有出港边的航段尝试
@@ -1683,10 +1580,7 @@ impl OntologyService {
     }
 
     /// 列出航段相关周转链接。
-    pub async fn list_turnaround_links(
-        &self,
-        flight_id: &str,
-    ) -> Result<Vec<TurnaroundLink>, OntologyError> {
+    pub async fn list_turnaround_links(&self, flight_id: &str) -> Result<Vec<TurnaroundLink>, OntologyError> {
         let flight_id = flight_id.trim();
         if flight_id.is_empty() {
             return Err(OntologyError::validation("flight_id must not be empty"));
@@ -1695,10 +1589,7 @@ impl OntologyService {
     }
 
     /// 批量过期 pending 建议（运维/扫描）。
-    pub async fn expire_stale_suggestions(
-        &self,
-        limit: i64,
-    ) -> Result<usize, OntologyError> {
+    pub async fn expire_stale_suggestions(&self, limit: i64) -> Result<usize, OntologyError> {
         let pending = self
             .suggestion_repo
             .list(None, Some("pending"), limit.clamp(1, 500))
@@ -1717,4 +1608,3 @@ impl OntologyService {
         Ok(expired)
     }
 }
-

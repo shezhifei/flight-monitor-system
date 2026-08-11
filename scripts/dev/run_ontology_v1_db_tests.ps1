@@ -5,7 +5,8 @@
 .DESCRIPTION
     Reads DB_HOST / DB_PORT / DB_USER / DB_PASSWORD from the project root .env,
     sets TEST_DATABASE_URL (never printed), verifies migration 119 tables exist,
-    and runs ignored ontology_v1_integration tests.
+    and runs ignored ontology_v1_integration tests. The tests fail when the
+    database is unavailable or migration 119 is missing; they do not silently skip.
 
 .PARAMETER DatabaseName
     Target database. Default: flight_monitor_test (never flight_monitor_dev).

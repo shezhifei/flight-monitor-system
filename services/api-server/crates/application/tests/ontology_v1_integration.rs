@@ -13,17 +13,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{Duration, Utc};
 use fms_application::schemas::ontology_schemas::{
-    AdjustGateRequest, AdjustStandRequest, AllocateGateRequest, AllocateStandRequest,
-    AutoLinkScanRequest, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
-    CreateSuggestionRequest, CreateTurnaroundLinkRequest, ReassignAircraftChange,
-    ReassignAircraftRequest, ReleaseResourceRequest, SuggestionAcceptRequest,
+    AdjustGateRequest, AdjustStandRequest, AllocateGateRequest, AllocateStandRequest, AutoLinkScanRequest,
+    BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest, CreateSuggestionRequest, CreateTurnaroundLinkRequest,
+    ReassignAircraftChange, ReassignAircraftRequest, ReleaseResourceRequest, SuggestionAcceptRequest,
     SuggestionRejectRequest,
 };
 use fms_application::services::ontology_service::OntologyService;
 use fms_domain::ports::flight_repository::FlightRepository;
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository,
-    StandOccupationRepository, TurnaroundLinkRepository,
+    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
+    TurnaroundLinkRepository,
 };
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_ontology_repository::{
@@ -46,15 +45,13 @@ fn test_database_url() -> Option<String> {
         .filter(|v| !v.trim().is_empty())
 }
 
-async fn connect_pool() -> Option<PgPool> {
-    let url = test_database_url()?;
-    match PgPool::connect(&url).await {
-        Ok(pool) => Some(pool),
-        Err(err) => {
-            eprintln!("skip: cannot connect to test database: {err}");
-            None
-        }
-    }
+async fn connect_pool() -> PgPool {
+    let url = test_database_url().expect(
+        "TEST_DATABASE_URL (or DATABASE_URL) must be set; refusing to silently skip ontology integration tests",
+    );
+    PgPool::connect(&url)
+        .await
+        .unwrap_or_else(|err| panic!("cannot connect to ontology test database: {err}"))
 }
 
 async fn ontology_tables_ready(pool: &PgPool) -> bool {
@@ -99,13 +96,7 @@ fn build_service(pool: PgPool) -> OntologyService {
     )
 }
 
-async fn seed_flight(
-    pool: &PgPool,
-    flight_id: &str,
-    registration: Option<&str>,
-    with_outbound: bool,
-    is_draft: bool,
-) {
+async fn seed_flight(pool: &PgPool, flight_id: &str, registration: Option<&str>, with_outbound: bool, is_draft: bool) {
     let flight_number = format!("O{}", &flight_id[flight_id.len().saturating_sub(5)..]);
 
     sqlx::query(
@@ -208,12 +199,10 @@ async fn cleanup(pool: &PgPool, flight_ids: &[&str], regs: &[&str]) {
             .bind(id)
             .execute(pool)
             .await;
-        let _ = sqlx::query(
-            "DELETE FROM turnaround_links WHERE inbound_flight_id = $1 OR outbound_flight_id = $1",
-        )
-        .bind(id)
-        .execute(pool)
-        .await;
+        let _ = sqlx::query("DELETE FROM turnaround_links WHERE inbound_flight_id = $1 OR outbound_flight_id = $1")
+            .bind(id)
+            .execute(pool)
+            .await;
         let _ = sqlx::query("DELETE FROM stand_occupations WHERE flight_id = $1")
             .bind(id)
             .execute(pool)
@@ -250,13 +239,11 @@ async fn cleanup(pool: &PgPool, flight_ids: &[&str], regs: &[&str]) {
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
 async fn reassign_aircraft_updates_registration() {
-    let Some(pool) = connect_pool().await else {
-        return;
-    };
-    if !ontology_tables_ready(&pool).await {
-        eprintln!("skip: ontology tables missing (apply migration 119)");
-        return;
-    }
+    let pool = connect_pool().await;
+    assert!(
+        ontology_tables_ready(&pool).await,
+        "ontology tables missing; apply migration 119"
+    );
 
     let suffix = unique_suffix();
     let flight_id = format!("OTF{suffix}");
@@ -285,12 +272,11 @@ async fn reassign_aircraft_updates_registration() {
     assert_eq!(result.applied.len(), 1);
     assert_eq!(result.applied[0].new_registration, new_reg);
 
-    let row: (Option<String>,) =
-        sqlx::query_as("SELECT registration FROM flights WHERE flight_id = $1")
-            .bind(&flight_id)
-            .fetch_one(&pool)
-            .await
-            .expect("read flight");
+    let row: (Option<String>,) = sqlx::query_as("SELECT registration FROM flights WHERE flight_id = $1")
+        .bind(&flight_id)
+        .fetch_one(&pool)
+        .await
+        .expect("read flight");
     assert_eq!(row.0.as_deref(), Some(new_reg.as_str()));
 
     cleanup(&pool, &[&flight_id], &[&old_reg, &new_reg]).await;
@@ -299,13 +285,11 @@ async fn reassign_aircraft_updates_registration() {
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
 async fn allocate_stand_and_accept_suggestion() {
-    let Some(pool) = connect_pool().await else {
-        return;
-    };
-    if !ontology_tables_ready(&pool).await {
-        eprintln!("skip: ontology tables missing (apply migration 119)");
-        return;
-    }
+    let pool = connect_pool().await;
+    assert!(
+        ontology_tables_ready(&pool).await,
+        "ontology tables missing; apply migration 119"
+    );
 
     let suffix = unique_suffix();
     let flight_id = format!("OTS{suffix}");
@@ -369,12 +353,11 @@ async fn allocate_stand_and_accept_suggestion() {
         .expect("accept suggestion");
     assert_eq!(accepted.status.as_str_status(), "accepted_executed");
 
-    let stand_code: (Option<String>,) =
-        sqlx::query_as("SELECT stand FROM flights WHERE flight_id = $1")
-            .bind(&flight_id)
-            .fetch_one(&pool)
-            .await
-            .expect("read stand");
+    let stand_code: (Option<String>,) = sqlx::query_as("SELECT stand FROM flights WHERE flight_id = $1")
+        .bind(&flight_id)
+        .fetch_one(&pool)
+        .await
+        .expect("read stand");
     assert_eq!(stand_code.0.as_deref(), Some("202"));
 
     let occ_count: (i64,) = sqlx::query_as(
@@ -392,13 +375,11 @@ async fn allocate_stand_and_accept_suggestion() {
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
 async fn auto_link_scan_creates_link_for_same_registration() {
-    let Some(pool) = connect_pool().await else {
-        return;
-    };
-    if !ontology_tables_ready(&pool).await {
-        eprintln!("skip: ontology tables missing (apply migration 119)");
-        return;
-    }
+    let pool = connect_pool().await;
+    assert!(
+        ontology_tables_ready(&pool).await,
+        "ontology tables missing; apply migration 119"
+    );
 
     let suffix = unique_suffix();
     let inbound_id = format!("OTI{suffix}");
@@ -433,10 +414,7 @@ async fn auto_link_scan_creates_link_for_same_registration() {
         .await
         .expect("scan");
 
-    assert!(
-        scan.created.iter().any(|id| !id.is_empty()) || scan.evaluated > 0,
-        "scan should evaluate candidates: {scan:?}"
-    );
+    assert!(scan.evaluated > 0, "scan should evaluate candidates: {scan:?}");
 
     let link_count: (i64,) = sqlx::query_as(
         "SELECT COUNT(*) FROM turnaround_links WHERE inbound_flight_id = $1 AND outbound_flight_id = $2 AND status = 'active'",
@@ -447,19 +425,7 @@ async fn auto_link_scan_creates_link_for_same_registration() {
     .await
     .expect("count links");
 
-    // If scan picked this pair, we must have a link; if not (limit/order), force try_auto_link
-    if link_count.0 == 0 {
-        let created = svc
-            .try_auto_link_outbound(
-                &outbound_id,
-                &reg,
-                Some(Utc::now() + Duration::minutes(40)),
-                360,
-            )
-            .await
-            .expect("force autolink");
-        assert!(created.is_some(), "expected auto link");
-    }
+    assert_eq!(link_count.0, 1, "auto_link_scan must create the expected active link");
 
     cleanup(&pool, &[&inbound_id, &outbound_id], &[&reg]).await;
 }
@@ -467,13 +433,11 @@ async fn auto_link_scan_creates_link_for_same_registration() {
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
 async fn stand_and_gate_adjust_and_release() {
-    let Some(pool) = connect_pool().await else {
-        return;
-    };
-    if !ontology_tables_ready(&pool).await {
-        eprintln!("skip: ontology tables missing (apply migration 119)");
-        return;
-    }
+    let pool = connect_pool().await;
+    assert!(
+        ontology_tables_ready(&pool).await,
+        "ontology tables missing; apply migration 119"
+    );
 
     let suffix = unique_suffix();
     let flight_id = format!("OTA{suffix}");
@@ -529,22 +493,25 @@ async fn stand_and_gate_adjust_and_release() {
         .await
         .expect("adjust stand");
     assert_eq!(
-        adjusted.occupation.get("stand_code").and_then(|v| v.as_str()).or_else(|| {
-            adjusted
-                .occupation
-                .get("stand_code")
-                .and_then(|v| v.get("0"))
-                .and_then(|v| v.as_str())
-        }),
+        adjusted
+            .occupation
+            .get("stand_code")
+            .and_then(|v| v.as_str())
+            .or_else(|| {
+                adjusted
+                    .occupation
+                    .get("stand_code")
+                    .and_then(|v| v.get("0"))
+                    .and_then(|v| v.as_str())
+            }),
         Some("302")
     );
 
-    let stand_code: (Option<String>,) =
-        sqlx::query_as("SELECT stand FROM flights WHERE flight_id = $1")
-            .bind(&flight_id)
-            .fetch_one(&pool)
-            .await
-            .expect("read stand");
+    let stand_code: (Option<String>,) = sqlx::query_as("SELECT stand FROM flights WHERE flight_id = $1")
+        .bind(&flight_id)
+        .fetch_one(&pool)
+        .await
+        .expect("read stand");
     assert_eq!(stand_code.0.as_deref(), Some("302"));
 
     let released = svc
@@ -602,12 +569,11 @@ async fn stand_and_gate_adjust_and_release() {
     .await
     .expect("adjust gate");
 
-    let gate_code: (Option<String>,) =
-        sqlx::query_as("SELECT gate FROM flights WHERE flight_id = $1")
-            .bind(&flight_id)
-            .fetch_one(&pool)
-            .await
-            .expect("read gate");
+    let gate_code: (Option<String>,) = sqlx::query_as("SELECT gate FROM flights WHERE flight_id = $1")
+        .bind(&flight_id)
+        .fetch_one(&pool)
+        .await
+        .expect("read gate");
     assert_eq!(gate_code.0.as_deref(), Some("G2"));
 
     let released_gate = svc
@@ -622,11 +588,9 @@ async fn stand_and_gate_adjust_and_release() {
         )
         .await
         .expect("release gate");
-    assert!(
-        format!("{:?}", released_gate.status)
-            .to_lowercase()
-            .contains("released")
-    );
+    assert!(format!("{:?}", released_gate.status)
+        .to_lowercase()
+        .contains("released"));
 
     cleanup(&pool, &[&flight_id], &[&reg]).await;
 }
@@ -634,13 +598,11 @@ async fn stand_and_gate_adjust_and_release() {
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
 async fn confirm_draft_and_reject_suggestion() {
-    let Some(pool) = connect_pool().await else {
-        return;
-    };
-    if !ontology_tables_ready(&pool).await {
-        eprintln!("skip: ontology tables missing (apply migration 119)");
-        return;
-    }
+    let pool = connect_pool().await;
+    assert!(
+        ontology_tables_ready(&pool).await,
+        "ontology tables missing; apply migration 119"
+    );
 
     let suffix = unique_suffix();
     let flight_id = format!("OTD{suffix}");
@@ -702,13 +664,11 @@ async fn confirm_draft_and_reject_suggestion() {
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
 async fn manual_turnaround_link_create_and_break() {
-    let Some(pool) = connect_pool().await else {
-        return;
-    };
-    if !ontology_tables_ready(&pool).await {
-        eprintln!("skip: ontology tables missing (apply migration 119)");
-        return;
-    }
+    let pool = connect_pool().await;
+    assert!(
+        ontology_tables_ready(&pool).await,
+        "ontology tables missing; apply migration 119"
+    );
 
     let suffix = unique_suffix();
     // keep ids within varchar(26)
@@ -749,11 +709,7 @@ async fn manual_turnaround_link_create_and_break() {
         )
         .await
         .expect("break link");
-    assert!(
-        format!("{:?}", broken.status)
-            .to_lowercase()
-            .contains("broken")
-    );
+    assert!(format!("{:?}", broken.status).to_lowercase().contains("broken"));
 
     cleanup(&pool, &[&inbound_id, &outbound_id], &[&reg]).await;
 }

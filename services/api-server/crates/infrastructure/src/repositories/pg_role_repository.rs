@@ -7,6 +7,7 @@ use chrono::Utc;
 use sqlx::{PgPool, Row};
 
 use fms_domain::error::DomainError;
+use fms_domain::models::ontology_v1_rules::dual_post_conflict;
 use fms_domain::models::user::Role;
 use fms_domain::ports::user_repository::RoleRepository;
 
@@ -114,12 +115,47 @@ impl PgRoleRepository {
 
     /// 为用户分配角色
     pub async fn assign_role_to_user(&self, user_id: &str, role_id: &str) -> Result<(), DomainError> {
+        let mut tx = self.pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+
+        // Serialize role changes per user so the AOC/TOC mutual exclusion
+        // cannot be bypassed by two concurrent assignment requests.
+        sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+
+        let target_name: Option<String> = sqlx::query_scalar("SELECT name FROM roles WHERE id = $1 AND is_active = TRUE")
+            .bind(role_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+
+        if let Some(target_name) = target_name.as_deref() {
+            let current_names: Vec<String> = sqlx::query_scalar(
+                "SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id = r.id \
+                 WHERE ur.user_id = $1 AND r.is_active = TRUE AND r.name IN ('AOC', 'TOC')",
+            )
+            .bind(user_id)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+            let has_aoc = current_names.iter().any(|name| name == "AOC") || target_name == "AOC";
+            let has_toc = current_names.iter().any(|name| name == "TOC") || target_name == "TOC";
+            if dual_post_conflict(has_aoc, has_toc) && !current_names.iter().any(|name| name == target_name) {
+                return Err(DomainError::Conflict(
+                    "a user cannot hold both AOC and TOC roles".into(),
+                ));
+            }
+        }
+
         sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
             .bind(user_id)
             .bind(role_id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;
+        tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(())
     }
 

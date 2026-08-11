@@ -44,12 +44,10 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         tx: &mut Transaction<'tx, Postgres>,
         occupation: &StandOccupation,
     ) -> Result<(), DomainError> {
-        sqlx::query(
-            &format!(
-                "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-                OCCUPATION_COLUMNS
-            ),
-        )
+        sqlx::query(&format!(
+            "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+            OCCUPATION_COLUMNS
+        ))
         .bind(&occupation.id)
         .bind(&occupation.registration)
         .bind(&occupation.stand_code.0)
@@ -65,6 +63,34 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .execute(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn update_occupation_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        occupation: &StandOccupation,
+    ) -> Result<(), DomainError> {
+        let result = sqlx::query(
+            "UPDATE stand_occupations SET stand_code=$2, starts_at=$3, ends_at=$4, kind=$5, \
+             moving_to_stand=$6, status=$7, updated_at=NOW() WHERE id=$1 AND status='active'",
+        )
+        .bind(&occupation.id)
+        .bind(&occupation.stand_code.0)
+        .bind(occupation.starts_at)
+        .bind(occupation.ends_at)
+        .bind(occupation_kind_str(occupation.kind))
+        .bind(occupation.moving_to_stand.as_ref().map(|s| &s.0))
+        .bind(occupation_status_str(occupation.status))
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if result.rows_affected() != 1 {
+            return Err(DomainError::ConcurrencyConflict(format!(
+                "active stand occupation {} changed concurrently",
+                occupation.id
+            )));
+        }
         Ok(())
     }
 
@@ -91,12 +117,10 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         tx: &mut Transaction<'tx, Postgres>,
         assignment: &GateAssignment,
     ) -> Result<(), DomainError> {
-        sqlx::query(
-            &format!(
-                "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-                ASSIGNMENT_COLUMNS
-            ),
-        )
+        sqlx::query(&format!(
+            "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+            ASSIGNMENT_COLUMNS
+        ))
         .bind(&assignment.id)
         .bind(&assignment.registration)
         .bind(&assignment.gate_code.0)
@@ -110,6 +134,32 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .execute(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn update_assignment_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        assignment: &GateAssignment,
+    ) -> Result<(), DomainError> {
+        let result = sqlx::query(
+            "UPDATE gate_assignments SET gate_code=$2, starts_at=$3, ends_at=$4, status=$5, \
+             updated_at=NOW() WHERE id=$1 AND status='active'",
+        )
+        .bind(&assignment.id)
+        .bind(&assignment.gate_code.0)
+        .bind(assignment.starts_at)
+        .bind(assignment.ends_at)
+        .bind(assignment_status_str(assignment.status))
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if result.rows_affected() != 1 {
+            return Err(DomainError::ConcurrencyConflict(format!(
+                "active gate assignment {} changed concurrently",
+                assignment.id
+            )));
+        }
         Ok(())
     }
 
@@ -136,12 +186,10 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         tx: &mut Transaction<'tx, Postgres>,
         link: &TurnaroundLink,
     ) -> Result<(), DomainError> {
-        sqlx::query(
-            &format!(
-                "INSERT INTO turnaround_links ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING",
-                LINK_COLUMNS
-            ),
-        )
+        sqlx::query(&format!(
+            "INSERT INTO turnaround_links ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING",
+            LINK_COLUMNS
+        ))
         .bind(&link.id)
         .bind(&link.inbound_flight_id.0)
         .bind(&link.outbound_flight_id.0)
@@ -157,7 +205,11 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         Ok(())
     }
 
-    async fn update_link_in_tx(&self, tx: &mut Transaction<'tx, Postgres>, link: &TurnaroundLink) -> Result<(), DomainError> {
+    async fn update_link_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        link: &TurnaroundLink,
+    ) -> Result<(), DomainError> {
         sqlx::query("UPDATE turnaround_links SET status=$2, broken_reason=$3, updated_at=NOW() WHERE id=$1")
             .bind(&link.id)
             .bind(link_status_str(link.status))
@@ -256,11 +308,13 @@ impl PgAircraftRepository {
 #[async_trait]
 impl AircraftRepository for PgAircraftRepository {
     async fn find_by_registration(&self, registration: &str) -> Result<Option<Aircraft>, DomainError> {
-        let row = sqlx::query("SELECT registration, first_seen_at, last_seen_at, notes FROM aircraft WHERE registration = $1")
-            .bind(registration)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let row = sqlx::query(
+            "SELECT registration, first_seen_at, last_seen_at, notes FROM aircraft WHERE registration = $1",
+        )
+        .bind(registration)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(row.map(|r| Aircraft {
             registration: r.get("registration"),
             first_seen_at: r.get("first_seen_at"),
@@ -326,7 +380,10 @@ fn row_to_occupation(r: &sqlx::postgres::PgRow) -> StandOccupation {
             .try_get::<Option<String>, _>("moving_to_stand")
             .unwrap_or(None)
             .map(StandNumber),
-        flight_id: r.try_get::<Option<String>, _>("flight_id").unwrap_or(None).map(FlightId),
+        flight_id: r
+            .try_get::<Option<String>, _>("flight_id")
+            .unwrap_or(None)
+            .map(FlightId),
         status: match r.get::<String, _>("status").as_str() {
             "released" => OccupationStatus::Released,
             "expired" => OccupationStatus::Expired,
@@ -352,12 +409,10 @@ impl StandOccupationRepository for PgStandOccupationRepository {
     }
 
     async fn create(&self, occupation: &StandOccupation) -> Result<(), DomainError> {
-        sqlx::query(
-            &format!(
-                "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-                OCCUPATION_COLUMNS
-            ),
-        )
+        sqlx::query(&format!(
+            "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+            OCCUPATION_COLUMNS
+        ))
         .bind(&occupation.id)
         .bind(&occupation.registration)
         .bind(&occupation.stand_code.0)
@@ -436,14 +491,13 @@ impl StandOccupationRepository for PgStandOccupationRepository {
     }
 
     async fn list_by_registration(&self, registration: &str, limit: i64) -> Result<Vec<StandOccupation>, DomainError> {
-        let rows = sqlx::query(
-            "SELECT * FROM stand_occupations WHERE registration=$1 ORDER BY starts_at DESC LIMIT $2",
-        )
-        .bind(registration)
-        .bind(limit)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let rows =
+            sqlx::query("SELECT * FROM stand_occupations WHERE registration=$1 ORDER BY starts_at DESC LIMIT $2")
+                .bind(registration)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(rows.iter().map(row_to_occupation).collect())
     }
 
@@ -506,7 +560,10 @@ fn row_to_assignment(r: &sqlx::postgres::PgRow) -> GateAssignment {
         gate_code: GateNumber(r.get("gate_code")),
         starts_at: r.get("starts_at"),
         ends_at: r.get("ends_at"),
-        flight_id: r.try_get::<Option<String>, _>("flight_id").unwrap_or(None).map(FlightId),
+        flight_id: r
+            .try_get::<Option<String>, _>("flight_id")
+            .unwrap_or(None)
+            .map(FlightId),
         status: match r.get::<String, _>("status").as_str() {
             "released" => AssignmentStatus::Released,
             "expired" => AssignmentStatus::Expired,
@@ -518,7 +575,8 @@ fn row_to_assignment(r: &sqlx::postgres::PgRow) -> GateAssignment {
     }
 }
 
-const ASSIGNMENT_COLUMNS: &str = "id, registration, gate_code, starts_at, ends_at, flight_id, status, created_by, created_at, updated_at";
+const ASSIGNMENT_COLUMNS: &str =
+    "id, registration, gate_code, starts_at, ends_at, flight_id, status, created_by, created_at, updated_at";
 
 #[async_trait]
 impl GateAssignmentRepository for PgGateAssignmentRepository {
@@ -532,12 +590,10 @@ impl GateAssignmentRepository for PgGateAssignmentRepository {
     }
 
     async fn create(&self, assignment: &GateAssignment) -> Result<(), DomainError> {
-        sqlx::query(
-            &format!(
-                "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-                ASSIGNMENT_COLUMNS
-            ),
-        )
+        sqlx::query(&format!(
+            "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+            ASSIGNMENT_COLUMNS
+        ))
         .bind(&assignment.id)
         .bind(&assignment.registration)
         .bind(&assignment.gate_code.0)
@@ -612,14 +668,12 @@ impl GateAssignmentRepository for PgGateAssignmentRepository {
     }
 
     async fn list_by_registration(&self, registration: &str, limit: i64) -> Result<Vec<GateAssignment>, DomainError> {
-        let rows = sqlx::query(
-            "SELECT * FROM gate_assignments WHERE registration=$1 ORDER BY starts_at DESC LIMIT $2",
-        )
-        .bind(registration)
-        .bind(limit)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let rows = sqlx::query("SELECT * FROM gate_assignments WHERE registration=$1 ORDER BY starts_at DESC LIMIT $2")
+            .bind(registration)
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(rows.iter().map(row_to_assignment).collect())
     }
 
@@ -675,7 +729,8 @@ fn row_to_link(r: &sqlx::postgres::PgRow) -> TurnaroundLink {
     }
 }
 
-const LINK_COLUMNS: &str = "id, inbound_flight_id, outbound_flight_id, status, source, broken_reason, created_by, created_at, updated_at";
+const LINK_COLUMNS: &str =
+    "id, inbound_flight_id, outbound_flight_id, status, source, broken_reason, created_by, created_at, updated_at";
 
 #[async_trait]
 impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
@@ -689,12 +744,10 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
     }
 
     async fn create(&self, link: &TurnaroundLink) -> Result<(), DomainError> {
-        sqlx::query(
-            &format!(
-                "INSERT INTO turnaround_links ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING",
-                LINK_COLUMNS
-            ),
-        )
+        sqlx::query(&format!(
+            "INSERT INTO turnaround_links ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING",
+            LINK_COLUMNS
+        ))
         .bind(&link.id)
         .bind(&link.inbound_flight_id.0)
         .bind(&link.outbound_flight_id.0)
@@ -711,15 +764,13 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
     }
 
     async fn update(&self, link: &TurnaroundLink) -> Result<(), DomainError> {
-        sqlx::query(
-            "UPDATE turnaround_links SET status=$2, broken_reason=$3, updated_at=NOW() WHERE id=$1",
-        )
-        .bind(&link.id)
-        .bind(link_status_str(link.status))
-        .bind(&link.broken_reason)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        sqlx::query("UPDATE turnaround_links SET status=$2, broken_reason=$3, updated_at=NOW() WHERE id=$1")
+            .bind(&link.id)
+            .bind(link_status_str(link.status))
+            .bind(&link.broken_reason)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(())
     }
 
@@ -840,8 +891,7 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
                 if registration.is_empty() {
                     return None;
                 }
-                let scheduled_departure: Option<DateTime<Utc>> =
-                    row.try_get("scheduled_departure").unwrap_or(None);
+                let scheduled_departure: Option<DateTime<Utc>> = row.try_get("scheduled_departure").unwrap_or(None);
                 Some((flight_id, registration, scheduled_departure))
             })
             .collect())
@@ -961,9 +1011,7 @@ impl ResourceAdjustmentSuggestionRepository for PgResourceAdjustmentSuggestionRe
         status: Option<&str>,
         limit: i64,
     ) -> Result<Vec<ResourceAdjustmentSuggestion>, DomainError> {
-        let mut query = String::from(
-            "SELECT * FROM resource_adjustment_suggestions WHERE 1=1",
-        );
+        let mut query = String::from("SELECT * FROM resource_adjustment_suggestions WHERE 1=1");
         if let Some(f) = flight_id {
             query.push_str(" AND flight_id = '");
             query.push_str(&f.replace('\'', "''"));
