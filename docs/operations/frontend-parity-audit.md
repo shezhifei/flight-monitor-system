@@ -32,6 +32,8 @@ A source file or production owner does not imply parity. Pass counts remain zero
 | `nl_query` | `vue-page` | `frontend/vue-app/src/pages/nl_query/NlQuery.vue` | `frontend/backup/legacy-frontend-archive/html/nl_query.html` | `contract-captured` |
 | `user_manager` | `vue-page` | `frontend/vue-app/src/pages/user_manager/UserManager.vue` | `frontend/backup/legacy-frontend-archive/html/user_manager.html` | `contract-captured` |
 | `label_manager` | `vue-page` | `frontend/vue-app/src/pages/label_manager/LabelManagerPage.vue` | `frontend/backup/legacy-frontend-archive/html/label_manager.html` | `contract-captured` |
+| `workspace` | `vue-native` | `frontend/vue-app/src/pages/workspace/WorkspacePage.vue` | — | `unverified` |
+| `ontology_center` | `vue-native` | `frontend/vue-app/src/pages/ontology_center/OntologyCenter.vue` | — | `unverified` |
 | `ai_monitor_react` | `react-page` | `frontend/ai-react/src/entries/ai_monitor.tsx` | `frontend/backup/legacy-frontend-archive/html/ai_monitor.html` | `contract-captured` |
 | `llm_eval_lab_react` | `react-page` | `frontend/ai-react/src/entries/llm_eval_lab.tsx` | `frontend/backup/legacy-frontend-archive/html/llm_eval_lab.html` | `contract-captured` |
 | `nl_query_react` | `react-page` | `frontend/ai-react/src/entries/nl_query.tsx` | `frontend/backup/legacy-frontend-archive/html/nl_query.html` | `contract-captured` |

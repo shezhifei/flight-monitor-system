@@ -7,6 +7,7 @@
  */
 export type SurfaceKind =
   | 'vue-page'
+  | 'vue-native'
   | 'react-page'
   | 'react-widget'
   | 'react-drawer'
@@ -85,6 +86,16 @@ export interface RetiredSurfaceParityRow extends SurfaceParityRowBase {
   evidence?: never;
 }
 
+/**
+ * Vue MPA pages that never had a legacy HTML archive counterpart.
+ * Listed for inventory/parity matrix completeness; not evidence-gated for pixel promotion.
+ */
+export interface VueNativeSurfaceParityRow extends SurfaceParityRowBase {
+  kind: 'vue-native';
+  status: 'unverified';
+  evidence?: never;
+}
+
 export interface RedirectSurfaceParityRow extends SurfaceParityRowBase {
   kind: 'redirect';
   status: 'redirect';
@@ -99,6 +110,7 @@ export interface DebugExcludedSurfaceParityRow extends SurfaceParityRowBase {
 
 export type SurfaceParityRow =
   | EvidenceGatedSurfaceParityRow
+  | VueNativeSurfaceParityRow
   | RetiredSurfaceParityRow
   | RedirectSurfaceParityRow
   | DebugExcludedSurfaceParityRow;
@@ -339,6 +351,31 @@ const RETIRED_SURFACES: RetiredSurfaceParityRow[] = [
   },
 ];
 
+/** Vue-only shells with no legacy archive HTML (not in the 21 legacy parity set). */
+const VUE_NATIVE_PAGES: VueNativeSurfaceParityRow[] = [
+  {
+    id: 'workspace',
+    kind: 'vue-native',
+    status: 'unverified',
+    vueHtml: `${PARITY_ROOT}/workspace.html`,
+    vueEntry: `${PARITY_ROOT}/src/entries/workspace.ts`,
+    vueComponent: `${PARITY_ROOT}/src/pages/workspace/WorkspacePage.vue`,
+    canonicalUrl: '/frontend/workspace.html',
+    notes: 'Workspace iframe shell; Vue-native, no legacy HTML counterpart.',
+  },
+  {
+    id: 'ontology_center',
+    kind: 'vue-native',
+    status: 'unverified',
+    vueHtml: `${PARITY_ROOT}/ontology_center.html`,
+    vueEntry: `${PARITY_ROOT}/src/entries/ontology_center.ts`,
+    vueComponent: `${PARITY_ROOT}/src/pages/ontology_center/OntologyCenter.vue`,
+    canonicalUrl: '/frontend/ontology_center.html',
+    notes:
+      'Ontology V1 workbench; Vue-native. Functional coverage: e2e/ontology_center.spec.ts (not legacy pixel parity).',
+  },
+];
+
 const SPECIAL_ENTRIES: Array<RedirectSurfaceParityRow | DebugExcludedSurfaceParityRow> = [
   {
     id: 'index',
@@ -359,6 +396,7 @@ const SPECIAL_ENTRIES: Array<RedirectSurfaceParityRow | DebugExcludedSurfacePari
 
 export const PAGE_PARITY_MATRIX: readonly SurfaceParityRow[] = [
   ...VUE_PAGES,
+  ...VUE_NATIVE_PAGES,
   ...REACT_AI_SURFACES,
   ...RETIRED_SURFACES,
   ...SPECIAL_ENTRIES,

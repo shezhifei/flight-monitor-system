@@ -13,8 +13,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{Duration, Utc};
 use fms_application::schemas::ontology_schemas::{
-    AllocateStandRequest, AutoLinkScanRequest, CreateSuggestionRequest, ReassignAircraftChange,
-    ReassignAircraftRequest, SuggestionAcceptRequest,
+    AdjustGateRequest, AdjustStandRequest, AllocateGateRequest, AllocateStandRequest,
+    AutoLinkScanRequest, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
+    CreateSuggestionRequest, CreateTurnaroundLinkRequest, ReassignAircraftChange,
+    ReassignAircraftRequest, ReleaseResourceRequest, SuggestionAcceptRequest,
+    SuggestionRejectRequest,
 };
 use fms_application::services::ontology_service::OntologyService;
 use fms_domain::ports::flight_repository::FlightRepository;
@@ -457,6 +460,300 @@ async fn auto_link_scan_creates_link_for_same_registration() {
             .expect("force autolink");
         assert!(created.is_some(), "expected auto link");
     }
+
+    cleanup(&pool, &[&inbound_id, &outbound_id], &[&reg]).await;
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
+async fn stand_and_gate_adjust_and_release() {
+    let Some(pool) = connect_pool().await else {
+        return;
+    };
+    if !ontology_tables_ready(&pool).await {
+        eprintln!("skip: ontology tables missing (apply migration 119)");
+        return;
+    }
+
+    let suffix = unique_suffix();
+    let flight_id = format!("OTA{suffix}");
+    let reg = format!("B-A{suffix}");
+    cleanup(&pool, &[&flight_id], &[&reg]).await;
+    seed_flight(&pool, &flight_id, Some(&reg), true, false).await;
+
+    let svc = build_service(pool.clone());
+    let now = Utc::now();
+    let stand_perms = ["ontology.stand.manage".into()];
+    let gate_perms = ["ontology.gate.manage".into()];
+
+    let stand = svc
+        .allocate_stand(
+            AllocateStandRequest {
+                registration: reg.clone(),
+                stand_code: "301".into(),
+                starts_at: now,
+                ends_at: now + Duration::hours(2),
+                kind: "normal".into(),
+                moving_to_stand: None,
+                flight_id: Some(flight_id.clone()),
+                sync_flight_plan: true,
+            },
+            "aoc",
+            &stand_perms,
+            false,
+        )
+        .await
+        .expect("allocate stand");
+    let occ_id = stand
+        .occupation
+        .get("id")
+        .and_then(|v| v.as_str())
+        .expect("occupation id")
+        .to_string();
+
+    let adjusted = svc
+        .adjust_stand(
+            &occ_id,
+            AdjustStandRequest {
+                stand_code: Some("302".into()),
+                starts_at: None,
+                ends_at: None,
+                kind: None,
+                moving_to_stand: None,
+                sync_flight_plan: true,
+            },
+            "aoc",
+            &stand_perms,
+            false,
+        )
+        .await
+        .expect("adjust stand");
+    assert_eq!(
+        adjusted.occupation.get("stand_code").and_then(|v| v.as_str()).or_else(|| {
+            adjusted
+                .occupation
+                .get("stand_code")
+                .and_then(|v| v.get("0"))
+                .and_then(|v| v.as_str())
+        }),
+        Some("302")
+    );
+
+    let stand_code: (Option<String>,) =
+        sqlx::query_as("SELECT stand FROM flights WHERE flight_id = $1")
+            .bind(&flight_id)
+            .fetch_one(&pool)
+            .await
+            .expect("read stand");
+    assert_eq!(stand_code.0.as_deref(), Some("302"));
+
+    let released = svc
+        .release_stand(
+            &occ_id,
+            ReleaseResourceRequest {
+                released_by: Some("aoc".into()),
+            },
+            "aoc",
+            &stand_perms,
+            false,
+        )
+        .await
+        .expect("release stand");
+    assert_eq!(
+        format!("{:?}", released.status).to_lowercase().contains("released"),
+        true
+    );
+
+    let gate = svc
+        .allocate_gate(
+            AllocateGateRequest {
+                registration: reg.clone(),
+                gate_code: "G1".into(),
+                starts_at: now,
+                ends_at: now + Duration::hours(2),
+                flight_id: Some(flight_id.clone()),
+                sync_flight_plan: true,
+            },
+            "toc",
+            &gate_perms,
+            false,
+        )
+        .await
+        .expect("allocate gate");
+    let asn_id = gate
+        .assignment
+        .get("id")
+        .and_then(|v| v.as_str())
+        .expect("assignment id")
+        .to_string();
+
+    svc.adjust_gate(
+        &asn_id,
+        AdjustGateRequest {
+            gate_code: Some("G2".into()),
+            starts_at: None,
+            ends_at: None,
+            sync_flight_plan: true,
+        },
+        "toc",
+        &gate_perms,
+        false,
+    )
+    .await
+    .expect("adjust gate");
+
+    let gate_code: (Option<String>,) =
+        sqlx::query_as("SELECT gate FROM flights WHERE flight_id = $1")
+            .bind(&flight_id)
+            .fetch_one(&pool)
+            .await
+            .expect("read gate");
+    assert_eq!(gate_code.0.as_deref(), Some("G2"));
+
+    let released_gate = svc
+        .release_gate(
+            &asn_id,
+            ReleaseResourceRequest {
+                released_by: Some("toc".into()),
+            },
+            "toc",
+            &gate_perms,
+            false,
+        )
+        .await
+        .expect("release gate");
+    assert!(
+        format!("{:?}", released_gate.status)
+            .to_lowercase()
+            .contains("released")
+    );
+
+    cleanup(&pool, &[&flight_id], &[&reg]).await;
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
+async fn confirm_draft_and_reject_suggestion() {
+    let Some(pool) = connect_pool().await else {
+        return;
+    };
+    if !ontology_tables_ready(&pool).await {
+        eprintln!("skip: ontology tables missing (apply migration 119)");
+        return;
+    }
+
+    let suffix = unique_suffix();
+    let flight_id = format!("OTD{suffix}");
+    let reg = format!("B-D{suffix}");
+    cleanup(&pool, &[&flight_id], &[&reg]).await;
+    seed_flight(&pool, &flight_id, Some(&reg), true, true).await;
+
+    let svc = build_service(pool.clone());
+    let confirmed = svc
+        .confirm_draft_flights(ConfirmDraftFlightsRequest {
+            flight_ids: vec![flight_id.clone()],
+            confirmed_by: "aoc".into(),
+        })
+        .await
+        .expect("confirm drafts");
+    assert!(confirmed.confirmed.iter().any(|id| id == &flight_id));
+
+    let is_draft: (bool,) = sqlx::query_as("SELECT is_draft FROM flights WHERE flight_id = $1")
+        .bind(&flight_id)
+        .fetch_one(&pool)
+        .await
+        .expect("read is_draft");
+    assert!(!is_draft.0);
+
+    let suggestion = svc
+        .create_suggestion(
+            CreateSuggestionRequest {
+                flight_id: flight_id.clone(),
+                kind: "gate".into(),
+                suggested_value: "B9".into(),
+                current_value: None,
+                reason: Some("reject me".into()),
+                payload: None,
+                expires_at: Some(Utc::now() + Duration::hours(1)),
+                created_by: Some("toc".into()),
+            },
+            "toc",
+            &["ontology.gate.manage".into()],
+            false,
+        )
+        .await
+        .expect("create suggestion");
+
+    let rejected = svc
+        .reject_suggestion(
+            &suggestion.id,
+            SuggestionRejectRequest {
+                rejected_by: "toc".into(),
+                reason: Some("not needed".into()),
+            },
+        )
+        .await
+        .expect("reject suggestion");
+    assert_eq!(rejected.status.as_str_status(), "rejected");
+
+    cleanup(&pool, &[&flight_id], &[&reg]).await;
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL with migration 119 applied"]
+async fn manual_turnaround_link_create_and_break() {
+    let Some(pool) = connect_pool().await else {
+        return;
+    };
+    if !ontology_tables_ready(&pool).await {
+        eprintln!("skip: ontology tables missing (apply migration 119)");
+        return;
+    }
+
+    let suffix = unique_suffix();
+    // keep ids within varchar(26)
+    let inbound_id = format!("MI{suffix}");
+    let outbound_id = format!("MO{suffix}");
+    let reg = format!("B-M{suffix}");
+    cleanup(&pool, &[&inbound_id, &outbound_id], &[&reg]).await;
+    seed_flight(&pool, &inbound_id, Some(&reg), false, false).await;
+    seed_flight(&pool, &outbound_id, Some(&reg), true, false).await;
+
+    let svc = build_service(pool.clone());
+    let link = svc
+        .create_turnaround_link(
+            CreateTurnaroundLinkRequest {
+                inbound_flight_id: inbound_id.clone(),
+                outbound_flight_id: outbound_id.clone(),
+                source: "manual".into(),
+                created_by: Some("aoc".into()),
+            },
+            "aoc",
+            &["ontology.plan.confirm".into()],
+            false,
+        )
+        .await
+        .expect("create link");
+    assert!(!link.id.is_empty());
+
+    let broken = svc
+        .break_turnaround_link(
+            &link.id,
+            BreakTurnaroundLinkRequest {
+                reason: Some("test break".into()),
+                broken_by: Some("aoc".into()),
+            },
+            "aoc",
+            &["ontology.plan.confirm".into()],
+            false,
+        )
+        .await
+        .expect("break link");
+    assert!(
+        format!("{:?}", broken.status)
+            .to_lowercase()
+            .contains("broken")
+    );
 
     cleanup(&pool, &[&inbound_id, &outbound_id], &[&reg]).await;
 }

@@ -126,5 +126,5 @@ server/di/flight.rs  (装配 OntologyService)
 # cargo test -p fms-application --test ontology_v1_integration -- --ignored --nocapture
 ```
 
-本地验收（宿主机 psql，`flight_monitor_test` + migration 119）：**3/3 通过**
-（reassign / allocate+accept suggestion / auto-link scan）。
+本地验收（宿主机 psql，`flight_monitor_test` + migration 119）：**6/6 通过**
+（reassign / allocate+accept / auto-link / stand·gate AAR / draft+reject / link create·break）。

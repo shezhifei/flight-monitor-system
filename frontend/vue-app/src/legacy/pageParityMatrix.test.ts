@@ -30,7 +30,7 @@ describe('page parity matrix', () => {
     const missing: string[] = [];
 
     for (const row of PAGE_PARITY_MATRIX) {
-      if (row.kind === 'vue-page') {
+      if (row.kind === 'vue-page' || row.kind === 'vue-native') {
         for (const key of ['vueHtml', 'vueEntry', 'vueComponent'] as const) {
           const value = row[key];
           if (!value) {
@@ -154,7 +154,10 @@ describe('page parity matrix', () => {
   it('every PRODUCTION_HTML_ENTRIES entry is described in the matrix', () => {
     const matrixIds = new Set(
       PAGE_PARITY_MATRIX.filter(
-        (row) => row.kind === 'vue-page' || row.kind === 'redirect',
+        (row) =>
+          row.kind === 'vue-page'
+          || row.kind === 'vue-native'
+          || row.kind === 'redirect',
       ).map((row) => row.id),
     );
     const missing = PRODUCTION_HTML_ENTRIES.filter((id) => !matrixIds.has(id));
