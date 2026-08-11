@@ -1,0 +1,806 @@
+{
+  "schema_version": 1,
+  "page": "login",
+  "legacy_html": "html/login.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/login.html",
+      "sha256": "5e8818e896688bfa1b66cf1c3f5b55dba2445d8e9a9e609d67628ede670b7d74"
+    },
+    {
+      "path": "icons/forbidden.svg",
+      "sha256": "20a95668317d2bd1ce392f78bb23fe627e99026f90dc1cf1b3d0a6973df4281a"
+    },
+    {
+      "path": "icons/ok.svg",
+      "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+    },
+    {
+      "path": "icons/password_unvisible.svg",
+      "sha256": "19941ef9f9054cdab0c61b5d17eb35ecf88bae301e8a0b949c3caf78e68d299c"
+    },
+    {
+      "path": "icons/password_visible.svg",
+      "sha256": "8e9412ce80411e9f2c0bb856ee942ee3c9e7b4ddc5b782eecb3a9cd02d372f36"
+    },
+    {
+      "path": "icons/plane.svg",
+      "sha256": "f20703f7608dac886ace3f62fb3260efe9c64c4d2509bd9f04fd95a68b34f53d"
+    },
+    {
+      "path": "images/index-pic-01.jpg",
+      "sha256": "951952ed49dd8f49e9ba089a5dba2cb9dd365006a79c3b533b7777204ff8b094"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "1aac6ab936fba40ef888e00647e482e9acc35253a4bf4571a1e84899329c6654",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/login/default.json",
+      "sha256": "58d27db89728691f73ecbf9bc111c61d5c0ffb906ce5406b178d668450724fc6"
+    },
+    {
+      "path": "parity/fixtures/pages/login/manifest.json",
+      "sha256": "fabc2fcba9f25a49228a5d13e5720e835f90c612478a9b49990baf4faab13196"
+    },
+    {
+      "path": "parity/fixtures/pages/login/password-visible.json",
+      "sha256": "1fd1a63d85f0a807165c666bff36cb6edf57c3f0e3dff3a80763739a8a8e42d8"
+    },
+    {
+      "path": "parity/fixtures/pages/login/required-username-error.json",
+      "sha256": "f18e97eb122585b0499a9aee702f807f80a962f91931a93ca09acc1c6ae7aea0"
+    }
+  ],
+  "baseline_observations": [
+    "The legacy login card is an internal scroll container at shorter desktop heights.",
+    "Autofocus and required-field focus can scroll that container, so the title is partially clipped in some desktop/laptop/tablet error-state captures; this is preserved as legacy behavior."
+  ],
+  "scenarios": [
+    {
+      "id": "default",
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "auth_role": "public",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".login-card",
+        "#loginForm",
+        ".demo-credentials"
+      ],
+      "regions": [
+        {
+          "id": "login-card",
+          "selector": ".login-card"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "required-username-error",
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "auth_role": "public",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".login-card",
+        "#loginForm",
+        ".demo-credentials"
+      ],
+      "regions": [
+        {
+          "id": "login-card",
+          "selector": ".login-card"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "password-visible",
+      "fixture": "client-interaction-no-api",
+      "theme": "light",
+      "auth_role": "public",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".login-card",
+        "#loginForm",
+        ".demo-credentials"
+      ],
+      "regions": [
+        {
+          "id": "login-card",
+          "selector": ".login-card"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "login/default--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "login/default--login-card--desktop-wide.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6d678e93aa6f79ae93fb9c461487279cbf42aa5987ce83759be5aa03d420e1f8"
+    },
+    {
+      "file": "login/default--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "login/default--login-card--desktop.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f93f6eed2bdbcb4dc1e891730e2a3012e7cd4e5cf73c57720f66874d611dc172"
+    },
+    {
+      "file": "login/default--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "login/default--login-card--laptop.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2d4ae688fbf3e1a4238d684428634508721b70a6e85ccd8a9d2a5c32c1078e1a"
+    },
+    {
+      "file": "login/default--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "login/default--login-card--tablet.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dad6e373bcb8a3c84b06df6eea5740e8b2ac6829c95323db90669cca2d721b9a"
+    },
+    {
+      "file": "login/default--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "login/default--login-card--mobile.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "static-public-no-api",
+      "theme": "light",
+      "scenario": "default",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6ad15b1571a2966ff0bd50863d5065ed98e5268d727cbbf89f2cca9243d78ee0"
+    },
+    {
+      "file": "login/required-username-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "1137b02da150cedb4b3e158883ce0c0991288469f4e3bc79e6aa908663ba201d"
+    },
+    {
+      "file": "login/required-username-error--login-card--desktop-wide.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6d95d685d236c94f8a2dfc69ab1a72fb455cf206a6e47f8bc8bfd11aea239b94"
+    },
+    {
+      "file": "login/required-username-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d763f25f72cc33c904dc2589b6d1b4c6dbb21cdd616d3dee6b38b313896f7485"
+    },
+    {
+      "file": "login/required-username-error--login-card--desktop.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c6185e020d08100f597a7b5f822c89b4131fd17b94794fe9f9679daab41ea5ad"
+    },
+    {
+      "file": "login/required-username-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "01fe968fdd1861da457a95e4c34cdd4afc903bf0ccb9f595a00e08b2a70ddd29"
+    },
+    {
+      "file": "login/required-username-error--login-card--laptop.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b39ca37fd3fa63ef43d36f7a8fc3a16837ed085761da813c70e43ce46c9a1eb2"
+    },
+    {
+      "file": "login/required-username-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "88a7cc8e4f490917d4055ad2c750e9e12e39ef69670b9152ebd812063a8a8212"
+    },
+    {
+      "file": "login/required-username-error--login-card--tablet.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8c845da6dd586e32c581cc89ddf2a1519801cc333e1a6ec9d8a85a873d5c016e"
+    },
+    {
+      "file": "login/required-username-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d6d19b891416f0140247a968fb3d65052b191c432d2501bb7331046cc612721c"
+    },
+    {
+      "file": "login/required-username-error--login-card--mobile.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "client-validation-no-api",
+      "theme": "light",
+      "scenario": "required-username-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "117162dffa620ca1d0d93bf7c1215888c56ca7758a577e7add7d4a08f38569bf"
+    },
+    {
+      "file": "login/password-visible--login-card--desktop-wide.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "client-interaction-no-api",
+      "theme": "light",
+      "scenario": "password-visible",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "fd78282274e8e2173e5ae06194f29593650292a48c7b77f310bcfdc4604393c1"
+    },
+    {
+      "file": "login/password-visible--login-card--desktop.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "client-interaction-no-api",
+      "theme": "light",
+      "scenario": "password-visible",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2684cac5b8b70de387e9360aa2c2f547493c15b403e3c31918a766fba5548e72"
+    },
+    {
+      "file": "login/password-visible--login-card--laptop.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "client-interaction-no-api",
+      "theme": "light",
+      "scenario": "password-visible",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c0b2ba368a0e8401f27ca74779898460b9d250a0aa3f50dd0167f56b121aade2"
+    },
+    {
+      "file": "login/password-visible--login-card--tablet.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "client-interaction-no-api",
+      "theme": "light",
+      "scenario": "password-visible",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8575c54586f2f4012d7e1b6e747f194cf3d424a9559dd062e3df3600ed5c8ea7"
+    },
+    {
+      "file": "login/password-visible--login-card--mobile.png",
+      "kind": "region",
+      "region": "login-card",
+      "selector": ".login-card",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "client-interaction-no-api",
+      "theme": "light",
+      "scenario": "password-visible",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "478e3cf513cf5de9d6b4a0753176a81c1e642eb9c1769189d58306f5d8067ec2"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "default",
+      "viewport": "desktop-wide",
+      "requests": []
+    },
+    {
+      "scenario": "default",
+      "viewport": "desktop",
+      "requests": []
+    },
+    {
+      "scenario": "default",
+      "viewport": "laptop",
+      "requests": []
+    },
+    {
+      "scenario": "default",
+      "viewport": "tablet",
+      "requests": []
+    },
+    {
+      "scenario": "default",
+      "viewport": "mobile",
+      "requests": []
+    },
+    {
+      "scenario": "required-username-error",
+      "viewport": "desktop-wide",
+      "requests": []
+    },
+    {
+      "scenario": "required-username-error",
+      "viewport": "desktop",
+      "requests": []
+    },
+    {
+      "scenario": "required-username-error",
+      "viewport": "laptop",
+      "requests": []
+    },
+    {
+      "scenario": "required-username-error",
+      "viewport": "tablet",
+      "requests": []
+    },
+    {
+      "scenario": "required-username-error",
+      "viewport": "mobile",
+      "requests": []
+    },
+    {
+      "scenario": "password-visible",
+      "viewport": "desktop-wide",
+      "requests": []
+    },
+    {
+      "scenario": "password-visible",
+      "viewport": "desktop",
+      "requests": []
+    },
+    {
+      "scenario": "password-visible",
+      "viewport": "laptop",
+      "requests": []
+    },
+    {
+      "scenario": "password-visible",
+      "viewport": "tablet",
+      "requests": []
+    },
+    {
+      "scenario": "password-visible",
+      "viewport": "mobile",
+      "requests": []
+    }
+  ]
+}

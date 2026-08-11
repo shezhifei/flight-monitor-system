@@ -1,0 +1,110 @@
+# Copyright 2023 The RocketMQ Rust Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+[package]
+name                   = "rocketmq-broker"
+version.workspace      = true
+authors.workspace      = true
+edition.workspace      = true
+homepage.workspace     = true
+repository.workspace   = true
+license.workspace      = true
+keywords.workspace     = true
+readme                 = "README.md"
+description.workspace  = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default          = ["local_file_store"]
+local_file_store = ["rocketmq-store/local_file_store"]
+
+[dependencies]
+rocketmq-rust        = { workspace = true }
+rocketmq-common      = { workspace = true }
+rocketmq-remoting    = { workspace = true }
+rocketmq-store       = { workspace = true }
+rocketmq-filter      = { workspace = true }
+rocketmq-runtime     = { workspace = true }
+rocketmq-client-rust = { workspace = true }
+rocketmq-error       = { workspace = true }
+rocketmq-auth        = { workspace = true }
+
+anyhow.workspace = true
+
+tokio.workspace = true
+
+tracing.workspace = true
+
+
+#JSON support
+serde.workspace      = true
+serde_json.workspace = true
+
+bytes                 = { workspace = true }
+parking_lot.workspace = true
+
+clap = { version = "4.6.1", features = ["derive"] }
+rand = { workspace = true }
+
+#tools
+dirs.workspace = true
+dns-lookup     = "3.0"
+
+cfg-if         = { workspace = true }
+num_cpus       = { workspace = true }
+sysinfo        = { workspace = true }
+thiserror      = { workspace = true }
+trait-variant  = { workspace = true }
+cheetah-string = { workspace = true }
+dashmap        = { workspace = true }
+arc-swap       = "1.9"
+
+crossbeam-skiplist = "0.1"
+
+futures = "0.3.32"
+
+opentelemetry     = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+
+[dev-dependencies]
+criterion            = { version = "0.8", features = ["html_reports"] }
+rocketmq-controller  = { workspace = true }
+rocketmq-namesrv     = { workspace = true }
+
+[[bin]]
+name = "rocketmq-broker-rust"
+path = "src/bin/broker_bootstrap_server.rs"
+
+[[bench]]
+name    = "syncunsafecell_mut"
+harness = false
+
+[[bench]]
+name    = "subscription_group_manager_benchmark"
+harness = false
+
+[[bench]]
+name    = "schedule_message_service_performance"
+harness = false
+
+[[bench]]
+name    = "consumer_manager_benchmark"
+harness = false
+
+[[bench]]
+name    = "consumer_filter_benchmark"
+harness = false

@@ -1,0 +1,3369 @@
+{
+  "schema_version": 1,
+  "page": "operations_review_report",
+  "legacy_html": "html/operations_review_report.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "css/workspace_unified_theme.css",
+      "sha256": "b63af6b73b8630f37f426c436b8ecfb74efdee47d010bd7092053d822527383b"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/operations_review_report.html",
+      "sha256": "b7cf8730f3aba3287e4d55b383efa0f58b9a3ecc89270b1d70154011470499f3"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/operations_review_report.js",
+      "sha256": "fb6dd9005d46375db96e2503c295d98581a95c5c268f6e39771fa5f88132b750"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "67e7551186a21226dfab5da9663d80416bd57014d59de63e22cfeb64410310f7",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/operations_review_report/empty.json",
+      "sha256": "82d9e08d9b9e2bc1dd2c61cd7b25bd2d231fd47431c1f07774b34834d96a4f0b"
+    },
+    {
+      "path": "parity/fixtures/pages/operations_review_report/manifest.json",
+      "sha256": "6dc320c892c7f538c5e40ed08de18ab837ea0732f843f42962a7ce334bf2e5a2"
+    },
+    {
+      "path": "parity/fixtures/pages/operations_review_report/partial.json",
+      "sha256": "b6ba498f0a5c96886ae14632debddea8dc04181fd2fea5cc234483e65abd6e5d"
+    },
+    {
+      "path": "parity/fixtures/pages/operations_review_report/server-error.json",
+      "sha256": "f06f34ef935c188973a528304b78c1a564954cd697a632a9aba60e7668ebe929"
+    },
+    {
+      "path": "parity/fixtures/pages/operations_review_report/success.json",
+      "sha256": "b9bb939e0790bee43756e155dea1084c97dc3b15bba7d0ae278e9ac4b8445ad4"
+    },
+    {
+      "path": "parity/fixtures/pages/operations_review_report/unauthorized.json",
+      "sha256": "c490cd4693c0709f8d4af60ea0e4759aba63ab195a613c8295af30aec0d290fb"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "operations-review-report-success",
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".replay-panel",
+        "#replayEventList"
+      ],
+      "regions": [
+        {
+          "id": "replay-panel",
+          "selector": ".replay-panel"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "operations-review-report-empty",
+      "fixture": "operations-review-report-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "operations-review-report-partial",
+      "fixture": "operations-review-report-partial",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "operations-review-report-unauthorized",
+      "fixture": "operations-review-report-unauthorized",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "operations-review-report-server-error",
+      "fixture": "operations-review-report-server-error",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "operations_review_report/operations-review-report-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "1362fb745d5a15591a6af9b2ac7ace7d1126c91bd6d6cc2062c793a73e25f6a9"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--replay-panel--desktop-wide.png",
+      "kind": "region",
+      "region": "replay-panel",
+      "selector": ".replay-panel",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "eedf214b0c7ee77f23a43f7dc38e9e602c03c4b54b0b6842e15652de62035f43"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5fc5f4cb924796bc44dfc0b8c4957b5b2e0369a142b8b517e540339b8fc5a26a"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--replay-panel--desktop.png",
+      "kind": "region",
+      "region": "replay-panel",
+      "selector": ".replay-panel",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a529b3589400f02090a9da89c4d7a698e6ab6ee5222388b46738d3454cd3a38b"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3a524c079a67c2e0bdd00d32333758d244fc512b488d4f1e94bf631e605f9f92"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--replay-panel--laptop.png",
+      "kind": "region",
+      "region": "replay-panel",
+      "selector": ".replay-panel",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "926a08682449c382131d13b3c763d952e331b0e91b959ede7eedff7e615e09e2"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f43de404fa48b143b6e7d96f56164a33ce1448ea5f3446a03dc5e672766f49e6"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--replay-panel--tablet.png",
+      "kind": "region",
+      "region": "replay-panel",
+      "selector": ".replay-panel",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6d2acf280bf77cca3bd415801fa0645a2f0b492990bbb51aab9bc602b336c792"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "019e8634cac48891bcc57bd6bfae5f9191fb919ed2a9fcb280e22472b9ac2652"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-success--replay-panel--mobile.png",
+      "kind": "region",
+      "region": "replay-panel",
+      "selector": ".replay-panel",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "operations-review-report-success",
+      "theme": "light",
+      "scenario": "operations-review-report-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "853914c559e37a9561195f143763d61afff73e020485d8ad41e94709c68b8cc7"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "operations-review-report-empty",
+      "theme": "light",
+      "scenario": "operations-review-report-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dc6eaad39cc1517e894545d933e84338255c027e74f7e016ca60a3c7f31ab743"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "operations-review-report-empty",
+      "theme": "light",
+      "scenario": "operations-review-report-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c687de6fb99ff9cce6a8d03500df1df2179771822b1cf13cae863f40ea58de45"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "operations-review-report-empty",
+      "theme": "light",
+      "scenario": "operations-review-report-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7eb84ed1ce567564da982f9aecfa238a5dfab634d7e7717c1024c26cfda790c7"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "operations-review-report-empty",
+      "theme": "light",
+      "scenario": "operations-review-report-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4c7b18d447333dc4547e2c9ef059862068031c4ee72e4f0fd01bda46abe04869"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "operations-review-report-empty",
+      "theme": "light",
+      "scenario": "operations-review-report-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6e3b48311e058e49bc244b1de5c8ddea813fd024ff836c2b2eb855f0d52bb6fe"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "operations-review-report-partial",
+      "theme": "light",
+      "scenario": "operations-review-report-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "303683459c13ddeecdff0bc44741aa290e20529d004be8dce85c3339eee3a697"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "operations-review-report-partial",
+      "theme": "light",
+      "scenario": "operations-review-report-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c077f0a8f77900383e0a9afc2d3667b420b298d670864baa573e0763465a3796"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "operations-review-report-partial",
+      "theme": "light",
+      "scenario": "operations-review-report-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "809dc0bd3ab0fdb32a47e71020aadf1cde22a4f4914199e1abac4cce49bc5705"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "operations-review-report-partial",
+      "theme": "light",
+      "scenario": "operations-review-report-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c2b2491f637337f21c62f8eb26c225e732bb2b60cc75896d4481c9cc4dedb1ae"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "operations-review-report-partial",
+      "theme": "light",
+      "scenario": "operations-review-report-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d8d767816dc4d2eafee6ef7be7f6b036288b7c5e648128be5b30061e1dd198b0"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "operations-review-report-unauthorized",
+      "theme": "light",
+      "scenario": "operations-review-report-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "operations-review-report-unauthorized",
+      "theme": "light",
+      "scenario": "operations-review-report-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "operations-review-report-unauthorized",
+      "theme": "light",
+      "scenario": "operations-review-report-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "operations-review-report-unauthorized",
+      "theme": "light",
+      "scenario": "operations-review-report-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "operations-review-report-unauthorized",
+      "theme": "light",
+      "scenario": "operations-review-report-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "operations-review-report-server-error",
+      "theme": "light",
+      "scenario": "operations-review-report-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "1a1d255f2022ee9582a3186011fa44459c438e9e6f541cec140b00ae7389071c"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "operations-review-report-server-error",
+      "theme": "light",
+      "scenario": "operations-review-report-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c77d3b81e3b926013d78c528d9b62dc9c0d4eec0d254a6abe4fa9eea14ac29c7"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "operations-review-report-server-error",
+      "theme": "light",
+      "scenario": "operations-review-report-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ac9ce751bed012136709f91855982aed2214dc3ad5fb99d3c119aa86420ac109"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "operations-review-report-server-error",
+      "theme": "light",
+      "scenario": "operations-review-report-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "27ad8d0ef889ad676746e812c2179c233ef4073f3943edd84dfed238f959a5d2"
+    },
+    {
+      "file": "operations_review_report/operations-review-report-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "operations-review-report-server-error",
+      "theme": "light",
+      "scenario": "operations-review-report-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "3e455ddbe0400dccfce469c0798bd0905833ceb3d196becd40710770854d6ce9",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "bfbc47d0b739ce481c2d7ca32cae192a2f926ea3a0841ffdd8a2c3cc4ee32835"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "operations-review-report-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-partial",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-partial",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-partial",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-partial",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-partial",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-unauthorized",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-unauthorized",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-unauthorized",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-unauthorized",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-unauthorized",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-server-error",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-server-error",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-server-error",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-server-error",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "operations-review-report-server-error",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights/updates/recent",
+          "query": {
+            "limit": [
+              "500"
+            ],
+            "minutes": [
+              "360"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "end_date": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "limit": [
+              "300"
+            ],
+            "offset": [
+              "0"
+            ],
+            "start_date": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T02:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-13T20:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/compare",
+          "query": {
+            "base_end_date": [
+              "2026-07-14"
+            ],
+            "base_start_date": [
+              "2026-07-08"
+            ],
+            "compare_end_date": [
+              "2026-07-07"
+            ],
+            "compare_start_date": [
+              "2026-07-01"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend-with-anomalies",
+          "query": {
+            "days": [
+              "14"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

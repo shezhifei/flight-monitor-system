@@ -1,0 +1,51 @@
+{
+  "scenario": "nl-query-empty",
+  "routes": [
+    {
+      "id": "nl-query-suggestions-empty",
+      "method": "GET",
+      "pathname": "/api/v2/ai/nl-query/suggestions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "suggestions": []
+          },
+          "message": "查询建议获取成功"
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "nl-query-events-empty",
+      "pathname": "/api/v2/ai/events/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "nl-query-empty-1",
+          "event": "ai_execution",
+          "data": {
+            "event_type": "ai_execution",
+            "payload": {
+              "run_id": "run-empty",
+              "status": "idle",
+              "message": "NL Query 实时通道已连接"
+            },
+            "emitted_at": "2026-07-14T02:30:00Z"
+          }
+        }
+      ]
+    }
+  ]
+}

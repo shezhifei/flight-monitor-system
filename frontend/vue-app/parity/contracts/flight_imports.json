@@ -1,0 +1,513 @@
+{
+  "contractVersion": 1,
+  "page": "flight_imports",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/flight_imports.html",
+    "htmlSha256": "43488147ac4f290a14ab0c61436ad6dad843d3ad6598bdaf6fe1c42a23f6a9e7",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-layout.css",
+        "archivePath": "css/admin-layout.css",
+        "exists": true,
+        "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-page.css",
+        "archivePath": "css/admin-page.css",
+        "exists": true,
+        "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/apple-theme.css",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/fast.svg",
+        "archivePath": "icons/fast.svg",
+        "exists": true,
+        "sha256": "69143303a9bff721ebca6c927dd196ba9c5967cafa0cc1e8605a9f372f82459f"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/logout.svg",
+        "archivePath": "icons/logout.svg",
+        "exists": true,
+        "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+      }
+    ],
+    "sourceHash": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div > main",
+        "tag": "main",
+        "role": null,
+        "text": "PAYLOAD 文件导入",
+        "visible": true
+      },
+      {
+        "selector": "body > div > main > header",
+        "tag": "header",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div > main > div > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "PAYLOAD 文件导入",
+        "visible": true
+      },
+      {
+        "selector": "body > div > main > div > div > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "上传与提交",
+        "visible": true
+      },
+      {
+        "selector": "body > div > main > div > div > div > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "预览摘要",
+        "visible": true
+      },
+      {
+        "selector": "body > div > main > div > div > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "行级预览",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div > main > div > div > section:nth-of-type(1) > h1",
+        "level": 1,
+        "text": "PAYLOAD 文件导入"
+      },
+      {
+        "selector": "body > div > main > div > div > div > section:nth-of-type(1) > h2",
+        "level": 2,
+        "text": "上传与提交"
+      },
+      {
+        "selector": "body > div > main > div > div > div > section:nth-of-type(2) > h2",
+        "level": 2,
+        "text": "预览摘要"
+      },
+      {
+        "selector": "body > div > main > div > div > section:nth-of-type(2) > h2",
+        "level": 2,
+        "text": "行级预览"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "body > div > aside > div:nth-of-type(3) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#fileInput",
+        "tag": "input",
+        "type": "file",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#previewBtn",
+        "tag": "button",
+        "type": "",
+        "text": "上传并预览",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#commitBtn",
+        "tag": "button",
+        "type": "",
+        "text": "确认导入",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": true
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div > aside > div:nth-of-type(1) > div:nth-of-type(1) > a",
+        "text": "系统管理",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div > aside > div:nth-of-type(3) > div:nth-of-type(2) > a",
+        "text": "返回工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#airportContext",
+      "#commitBtn",
+      "#fieldMapping",
+      "#fileInput",
+      "#fms-parity-contract-determinism",
+      "#globalErrors",
+      "#previewBtn",
+      "#previewId",
+      "#previewStatus",
+      "#rowsContainer",
+      "#sourceFile",
+      "#summaryGrid",
+      "#userAvatar",
+      "#userName",
+      "#userRole"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "flight_imports-success",
+      "fixture": "parity/fixtures/pages/flight_imports/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "flight_imports-unauthorized",
+      "fixture": "parity/fixtures/pages/flight_imports/unauthorized.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        401
+      ],
+      "expectedLegacyErrors": [
+        "status of 401 (Unauthorized)"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "flight_imports-forbidden",
+      "fixture": "parity/fixtures/pages/flight_imports/forbidden.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "flight_imports-server-error",
+      "fixture": "parity/fixtures/pages/flight_imports/server-error.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [
+        "status of 500 (Internal Server Error)"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    }
+  ],
+  "approvedExceptions": []
+}

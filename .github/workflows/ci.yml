@@ -1,0 +1,375 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-api:
+    name: Rust API — build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/api-server/target
+          key: ${{ runner.os }}-rust-api-${{ hashFiles('services/api-server/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-rust-api-
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Security audit
+        run: cargo audit
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+
+      - name: Deny check (advisory)
+        run: cargo deny check
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+
+      - name: Architecture boundary guard
+        run: |
+          cargo test -p fms-api --test layer_boundary_guard
+          cargo test -p fms-application --test application_boundary_inventory
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Coverage
+        run: cargo llvm-cov --lcov --output-path lcov.info
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-api-coverage
+          path: services/api-server/lcov.info
+
+  mq-gateway:
+    name: MQ Gateway — build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/mq-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/mq-gateway/target
+          key: ${{ runner.os }}-mq-gw-${{ hashFiles('services/mq-gateway/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-mq-gw-
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Security audit
+        run: cargo audit
+
+      - name: Build
+        run: cargo build --release --features rocketmq-backend
+
+      - name: Test
+        run: cargo test --features rocketmq-backend
+
+  python-sidecar:
+    name: Python AI Sidecar — test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai-sidecar
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Ruff check
+        run: ruff check src
+
+      - name: Ruff format check
+        run: ruff format --check src
+
+      - name: Mypy
+        run: mypy src
+
+      - name: Test
+        run: python -m pytest tests/sidecar -v --tb=short
+
+  architecture-docs:
+    name: Architecture Docs — consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Test architecture docs
+        run: |
+          python -m pytest \
+            tests/tools/test_architecture_docs_consistency.py \
+            tests/tools/test_docs_no_stale_references.py \
+            tests/tools/test_ci_architecture_guardrails.py \
+            tests/tools/test_schema_baseline_consistency.py \
+            tests/tools/test_observability_alerting_config.py \
+            tests/tools/test_deploy_security_guardrails.py \
+            -q
+
+  vue-frontend:
+    name: Vue Frontend — typecheck & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/vue-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/vue-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Playwright E2E
+        run: npx playwright test
+
+  docker-compose-validate:
+    name: Compose — validate YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate distributed compose
+        run: docker compose -f deploy/docker/docker-compose.distributed.yml config --quiet
+        env:
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          FMS_RUNTIME_ENV_FILE: /dev/null
+          VAULT_RENDERED_ENV_FILE: /dev/null
+
+  integration-test:
+    name: Integration — PG / Redis / RocketMQ contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Start integration stack (PG + Redis + RocketMQ + mq-gateway)
+        run: |
+          docker compose -f deploy/docker/docker-compose.distributed.yml \
+            -f deploy/docker/docker-compose.integration.yml \
+            up -d --wait postgres redis rocketmq-namesrv rocketmq-broker mq-gateway
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: /dev/null
+          VAULT_RENDERED_ENV_FILE: /dev/null
+
+      - name: Run infrastructure integration tests
+        working-directory: services/api-server
+        env:
+          DATABASE_URL: postgresql://postgres:ci_explicit_db_password_not_for_prod@localhost:5432/flight_monitor_dev
+          TEST_DATABASE_URL: postgresql://postgres:ci_explicit_db_password_not_for_prod@localhost:5432/flight_monitor_dev
+          REDIS_URL: redis://default:redis_ci_password@localhost:6379
+          ROCKETMQ_NAME_SERVER_ADDR: localhost:9876
+        run: cargo test -p fms-infrastructure
+
+      - name: Run mq-gateway RocketMQ contract tests
+        working-directory: services/mq-gateway
+        env:
+          ROCKETMQ_NAME_SERVER_ADDR: localhost:9876
+          MQ_GATEWAY_URL: http://localhost:8097
+        run: cargo test --features rocketmq-backend
+
+      - name: Capture integration stack diagnostics
+        if: failure()
+        run: |
+          docker compose -f deploy/docker/docker-compose.distributed.yml \
+            -f deploy/docker/docker-compose.integration.yml ps -a
+          docker compose -f deploy/docker/docker-compose.distributed.yml \
+            -f deploy/docker/docker-compose.integration.yml logs --no-color \
+            rocketmq-namesrv rocketmq-namesrv-2 rocketmq-broker mq-gateway
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: /dev/null
+          VAULT_RENDERED_ENV_FILE: /dev/null
+
+      - name: Tear down stack
+        if: always()
+        run: |
+          docker compose -f deploy/docker/docker-compose.distributed.yml \
+            -f deploy/docker/docker-compose.integration.yml down -v
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: /dev/null
+          VAULT_RENDERED_ENV_FILE: /dev/null
+
+  e2e-integration:
+    name: E2E — Playwright against running stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: frontend/vue-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/vue-app/package-lock.json
+
+      - name: Build Rust API (release)
+        working-directory: services/api-server
+        run: cargo build --release
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Generate minimal runtime env for stack
+        run: |
+          cat > "${{ github.workspace }}/ci_runtime.env" <<'EOF'
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB=flight_monitor_dev
+          DB_REPLICATION_PASSWORD=rep_ci_password
+          REDIS_PASSWORD=redis_ci_password
+TRUSTED_PROXY_CIDRS=127.0.0.1/32
+          EOF
+
+      - name: Bring up full stack (integration override exposes rust-api on :18443)
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f deploy/docker/docker-compose.distributed.yml \
+            -f deploy/docker/docker-compose.integration.yml up -d --wait
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+          VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+
+      - name: Playwright E2E
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost:18443
+
+      - name: Tear down stack
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f deploy/docker/docker-compose.distributed.yml \
+            -f deploy/docker/docker-compose.integration.yml down -v
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+          VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env

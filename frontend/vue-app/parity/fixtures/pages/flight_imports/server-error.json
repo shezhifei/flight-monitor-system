@@ -1,0 +1,36 @@
+{
+  "scenario": "flight_imports-server-error",
+  "capture": {
+    "expected_panels": [".import-shell", ".upload-box"],
+    "regions": [{ "id": "import-workspace", "selector": ".import-shell" }],
+    "blocked_interactions": [{
+      "id": "file-preview",
+      "reason": "Preview requires a real multipart upload; server-error only models /auth/me failure and does not invent preview endpoints.",
+      "source": "html/flight_imports.html#previewBtn"
+    }]
+  },
+  "routes": [
+    {
+      "id": "flight-imports-auth-me-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/auth/me",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "内部服务错误"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [],
+  "expected_legacy_errors": [
+    "status of 500 (Internal Server Error)"
+  ],
+  "coverage_note": "When auth/me fails with 500, legacy still keeps the shell after requireAuthAsync succeeds via token presence; username fields fall back to defaults."
+}

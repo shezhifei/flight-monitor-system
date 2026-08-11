@@ -1,0 +1,28 @@
+{
+  "id": "00000000-0000-4000-8000-000000000002",
+  "username": "parity_operator",
+  "email": "parity.operator@example.test",
+  "is_active": true,
+  "is_verified": true,
+  "is_admin": false,
+  "created_at": "2026-01-02T00:00:00Z",
+  "last_login_at": "2026-07-14T02:20:00Z",
+  "roles": ["dispatcher"],
+  "permissions": [
+    "flight:read",
+    "flight:write",
+    "dispatch:read",
+    "dispatch:write",
+    "anomaly:read",
+    "anomaly:write"
+  ],
+  "display_name": "基线调度员",
+  "effective_operator_name": "基线调度员",
+  "effective_operator_label": "基线调度员 · 当班调度",
+  "operator_context_type": "user",
+  "operator_context_id": "00000000-0000-4000-8000-000000000002",
+  "department": "运行控制中心",
+  "job_level": 5,
+  "job_title": "当班调度",
+  "permission_version": 11
+}

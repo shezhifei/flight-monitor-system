@@ -1,0 +1,102 @@
+{
+  "scenario": "resource-manager-unauthorized",
+  "expected_legacy_errors": [
+    "加载班组失败: Error: 登录已过期",
+    "加载班组类型失败: Error: 登录已过期",
+    "加载用户列表失败: Error: 登录已过期",
+    "加载设备失败: Error: 登录已过期",
+    "加载设备类型失败: Error: 登录已过期"
+  ],
+  "routes": [
+    {
+      "id": "resource-users-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-equipmentTypes-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-equipment-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-teamTypes-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/team-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-teams-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/teams",
+      "query": {
+        "include_inactive": [
+          "false"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

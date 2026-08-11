@@ -1,0 +1,57 @@
+[package]
+name = "fms-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "fms-server"
+path = "src/main.rs"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+tikv-jemallocator = "0.6"
+
+[dependencies]
+fms-domain = { path = "../domain" }
+fms-application = { path = "../application" }
+fms-infrastructure = { path = "../infrastructure" }
+fms-api = { path = "../api" }
+
+# Web framework
+actix-web = { workspace = true, features = ["rustls-0_23"] }
+actix-rt = { workspace = true }
+actix-cors = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures-util = "0.3"
+async-trait = { workspace = true }
+chrono = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+dotenvy = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+
+# Redis
+redis = { workspace = true }
+
+# Utilities
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ulid = { workspace = true }
+url = "2"
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+
+# Metrics exporter (Prometheus recorder installed once at startup)
+metrics-exporter-prometheus = "0.15"

@@ -1,0 +1,61 @@
+# cargo-mutants pilot configuration for audit debt #136.
+#
+# Keep this intentionally narrow: the default target is fms-domain pure logic
+# with no database, Redis, MQ, sidecar, or external network dependency.
+# Run from the repository root through:
+#   .\scripts\dev\run_api_mutation_pilot.ps1 -List
+#   .\scripts\dev\run_api_mutation_pilot.ps1 -Jobs 2
+
+test_tool = "cargo"
+test_package = ["fms-domain"]
+profile = "dev"
+output = "../../.tmp/mutation/api-server-domain-pilot"
+cap_lints = true
+minimum_test_timeout = 30.0
+timeout_multiplier = 2.0
+build_timeout_multiplier = 2.0
+
+# Cargo tests stay inside the library target for the selected package. This
+# avoids integration tests that may need databases or external services.
+additional_cargo_test_args = ["--lib"]
+
+# Default pilot surface: high-signal domain logic with existing unit tests.
+# Expanded in P2b to ~20 pure-logic files (no sqlx / fms_infrastructure / ports).
+# All entries remain inside fms-domain so cargo-mutants never builds/runs the
+# application/infrastructure crates (which would pull in DB/network). The
+# ports/** guardrail stays so no port trait is mutated.
+examine_globs = [
+    # --- existing pilot (5) ---
+    "crates/domain/src/models/ai_job.rs",
+    "crates/domain/src/models/ai_execution_readiness.rs",
+    "crates/domain/src/models/ai_proposal.rs",
+    "crates/domain/src/models/ai_realtime_audio.rs",
+    "crates/domain/src/ontology/flight_ops_v1.rs",
+    # --- P2b additions: domain pure-logic models (15) ---
+    "crates/domain/src/models/ai_context_envelope.rs",
+    "crates/domain/src/models/ai_copilot.rs",
+    "crates/domain/src/models/ai_media.rs",
+    "crates/domain/src/models/ai_structured_output.rs",
+    "crates/domain/src/models/anomaly.rs",
+    "crates/domain/src/models/business_case.rs",
+    "crates/domain/src/models/business_case_workflow.rs",
+    "crates/domain/src/models/dispatch_collaboration.rs",
+    "crates/domain/src/models/flight.rs",
+    "crates/domain/src/models/flight_leg.rs",
+    "crates/domain/src/models/flight_state.rs",
+    "crates/domain/src/models/value_objects.rs",
+    "crates/domain/src/models/mission_type.rs",
+    "crates/domain/src/models/notification.rs",
+    "crates/domain/src/models/label.rs",
+]
+
+# Explicit guardrails so a future broadening does not accidentally mutate port
+# traits or replication/parser code as part of this first low-risk pilot.
+exclude_globs = [
+    "crates/domain/src/ports/**/*.rs",
+    "crates/domain/src/pgoutput_decoder.rs",
+    "crates/application/**/*.rs",
+    "crates/api/**/*.rs",
+    "crates/infrastructure/**/*.rs",
+    "crates/server/**/*.rs",
+]

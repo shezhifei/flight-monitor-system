@@ -1,0 +1,128 @@
+{
+  "generated_for_host": {
+    "manufacturer": "Micro-Star International Co., Ltd.",
+    "model": "MS-7E61",
+    "cpu_model": "AMD Ryzen 9 9950X3D",
+    "physical_cores": 16,
+    "logical_processors": 32,
+    "memory_gb": 96,
+    "free_disk_gb": 2610
+  },
+  "planning_assumptions": {
+    "host_reserve_memory_gb": 28,
+    "host_reserve_logical_processors": 4,
+    "hypervisor": "Hyper-V",
+    "guest_os": "Ubuntu 24.04 LTS",
+    "disk_strategy": "Dynamic VHDX",
+    "dynamic_memory": false,
+    "notes": [
+      "Single Hyper-V host improves service isolation, not host-level HA.",
+      "PostgreSQL standby on the same physical host protects process/service faults, not motherboard or power failure."
+    ]
+  },
+  "network": {
+    "switch_name": "vSwitch-FlightMonitor",
+    "subnet": "172.16.10.0/24",
+    "gateway": "172.16.10.1",
+    "dns": [
+      "172.16.10.1",
+      "223.5.5.5"
+    ]
+  },
+  "vms": [
+    {
+      "name": "fm-edge-01",
+      "role": "nginx",
+      "vcpu": 2,
+      "memory_gb": 2,
+      "disk_gb": 20,
+      "ip": "172.16.10.10",
+      "services": [
+        "nginx"
+      ]
+    },
+    {
+      "name": "fm-api-01",
+      "role": "api",
+      "vcpu": 4,
+      "memory_gb": 8,
+      "disk_gb": 80,
+      "ip": "172.16.10.11",
+      "services": [
+        "rust-api"
+      ]
+    },
+    {
+      "name": "fm-api-02",
+      "role": "api",
+      "vcpu": 4,
+      "memory_gb": 8,
+      "disk_gb": 80,
+      "ip": "172.16.10.12",
+      "services": [
+        "rust-api"
+      ]
+    },
+    {
+      "name": "fm-worker-01",
+      "role": "worker",
+      "vcpu": 4,
+      "memory_gb": 8,
+      "disk_gb": 80,
+      "ip": "172.16.10.13",
+      "services": [
+        "worker"
+      ]
+    },
+    {
+      "name": "fm-flowable-01",
+      "role": "tomcat",
+      "vcpu": 4,
+      "memory_gb": 10,
+      "disk_gb": 100,
+      "ip": "172.16.10.20",
+      "services": [
+        "tomcat",
+        "flowable"
+      ]
+    },
+    {
+      "name": "fm-pg-primary-01",
+      "role": "postgres-primary",
+      "vcpu": 4,
+      "memory_gb": 16,
+      "disk_gb": 250,
+      "ip": "172.16.10.30",
+      "services": [
+        "postgresql-primary"
+      ]
+    },
+    {
+      "name": "fm-pg-standby-01",
+      "role": "postgres-standby",
+      "vcpu": 2,
+      "memory_gb": 8,
+      "disk_gb": 250,
+      "ip": "172.16.10.31",
+      "services": [
+        "postgresql-standby"
+      ]
+    },
+    {
+      "name": "fm-redis-01",
+      "role": "redis",
+      "vcpu": 2,
+      "memory_gb": 4,
+      "disk_gb": 40,
+      "ip": "172.16.10.40",
+      "services": [
+        "redis"
+      ]
+    }
+  ],
+  "totals": {
+    "allocated_vcpu": 26,
+    "allocated_memory_gb": 64,
+    "allocated_disk_gb": 900
+  }
+}

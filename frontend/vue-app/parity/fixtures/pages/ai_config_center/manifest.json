@@ -1,0 +1,10 @@
+{
+  "page": "ai_config_center",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "forbidden"
+  ]
+}

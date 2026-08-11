@@ -1,0 +1,199 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  mutation-test:
+    name: Mutation testing pilot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/api-server/target
+          key: ${{ runner.os }}-nightly-mutation-${{ hashFiles('services/api-server/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-nightly-mutation-
+
+      - name: Install PowerShell
+        run: sudo apt-get update && sudo apt-get install -y powershell
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      - name: Run mutation pilot
+        run: pwsh scripts/dev/run_api_mutation_pilot.ps1 -RequireTool
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: |
+            .tmp/mutation/api-server-domain-pilot
+          if-no-files-found: warn
+
+  performance-baseline:
+    name: Performance baseline (QPS matrix)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate minimal runtime env for stack
+        run: |
+          cat > "${{ github.workspace }}/ci_runtime.env" <<'EOF'
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB=flight_monitor_dev
+          DB_REPLICATION_PASSWORD=rep_ci_password
+          REDIS_PASSWORD=redis_ci_password
+TRUSTED_PROXY_CIDRS=127.0.0.1/32
+          EOF
+
+      - name: Bring up distributed stack
+        run: docker compose -f deploy/docker/docker-compose.distributed.yml up -d
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+          VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS https://localhost:18443/api/v2/health/ping >/dev/null 2>&1 || curl -fsS http://127.0.0.1:18080/ >/dev/null 2>&1; then
+              echo "API is up"; exit 0
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for API health"
+
+      - name: Install PowerShell
+        run: sudo apt-get update && sudo apt-get install -y powershell
+
+      - name: Run QPS matrix
+        run: |
+          pwsh scripts/perf/run_host_qps_matrix.ps1 || true
+          echo "QPS run finished (tolerated failures)."
+
+      - name: Upload QPS results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qps-results
+          path: |
+            scripts/perf/*.json
+            scripts/perf/*.csv
+            scripts/perf/*.log
+            qps-*.json
+          if-no-files-found: warn
+
+      - name: Compare to previous baseline
+        if: always()
+        run: |
+          echo "Best-effort regression comparison against previous artifact."
+          echo "Previous runs are stored as GitHub Actions artifacts; download"
+          echo "manually via the Actions UI to diff. Regression >10% is logged"
+          echo "here as a WARNING only (non-blocking due to continue-on-error)."
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f deploy/docker/docker-compose.distributed.yml down -v || true
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+          VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+
+  chaos-test:
+    name: Local chaos experiments
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate minimal runtime env for stack
+        run: |
+          cat > "${{ github.workspace }}/ci_runtime.env" <<'EOF'
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB=flight_monitor_dev
+          DB_REPLICATION_PASSWORD=rep_ci_password
+          REDIS_PASSWORD=redis_ci_password
+TRUSTED_PROXY_CIDRS=127.0.0.1/32
+          EOF
+
+      - name: Bring up chaos environment
+        run: docker compose -f deploy/docker/docker-compose.distributed.yml up -d
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+          VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+
+      - name: Wait for stack
+        run: sleep 30
+
+      - name: Install PowerShell
+        run: sudo apt-get update && sudo apt-get install -y powershell
+
+      - name: Run chaos experiments
+        run: pwsh scripts/chaos/Invoke-LocalChaosExperiment.ps1 -Apply -ConfirmToken I_UNDERSTAND_LOCAL_CHAOS || true
+
+      - name: Upload chaos report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-report
+          path: |
+            scripts/chaos/*.json
+            scripts/chaos/*.log
+            chaos-*.json
+          if-no-files-found: warn
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f deploy/docker/docker-compose.distributed.yml down -v || true
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: ci_explicit_db_password_not_for_prod
+          TRUSTED_PROXY_CIDRS: 127.0.0.1/32
+          DB_NAME: flight_monitor_dev
+          DB_REPLICATION_PASSWORD: rep_ci_password
+          REDIS_PASSWORD: redis_ci_password
+          FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
+          VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env

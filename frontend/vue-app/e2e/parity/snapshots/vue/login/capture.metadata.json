@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "page": "login",
+  "target": "vue",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "captures": [
+    {
+      "file": "login/default--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "default",
+      "viewport": "desktop-wide",
+      "sha256": "0d85723cb2fb273b07f8c879e3655e54946671a34fc0d16382b88749bdef66b8"
+    },
+    {
+      "file": "login/default--login-card--desktop-wide.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "default",
+      "viewport": "desktop-wide",
+      "sha256": "dbae5700c24285bacaf9b35aae2359c77523332e8ea74ca684e7c1b8cdabdbbd"
+    },
+    {
+      "file": "login/default--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "default",
+      "viewport": "desktop",
+      "sha256": "167a14e414a6d2745e4ff814cc5845c846c97fbc227e255b07e5a5450a5feeeb"
+    },
+    {
+      "file": "login/default--login-card--desktop.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "default",
+      "viewport": "desktop",
+      "sha256": "4328ec2f0147e14844a0e6e82aecc46050c3618bc0b5d8af0054537bc381134e"
+    },
+    {
+      "file": "login/default--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "default",
+      "viewport": "laptop",
+      "sha256": "11410894b869d1e2e80ef947840b4a529b3d81b116fddf7baa3225cfa2d00bdf"
+    },
+    {
+      "file": "login/default--login-card--laptop.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "default",
+      "viewport": "laptop",
+      "sha256": "645cd6332104e2a0901b33034047f44581e453f7c0286c4b928065db484e7d3b"
+    },
+    {
+      "file": "login/default--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "default",
+      "viewport": "tablet",
+      "sha256": "9cea8a62b3d970ddef383217c14708b75522f8d51bcb00de421191bb1b361053"
+    },
+    {
+      "file": "login/default--login-card--tablet.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "default",
+      "viewport": "tablet",
+      "sha256": "11090f396ab08f6e403dbd394dd68b3e91d0a6e33ebbb255034ef503b0ef5d84"
+    },
+    {
+      "file": "login/default--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "default",
+      "viewport": "mobile",
+      "sha256": "9d2542c22e307b819d93f64bf24cac69dbf6cef100aabcb23262c4aceb75948c"
+    },
+    {
+      "file": "login/default--login-card--mobile.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "default",
+      "viewport": "mobile",
+      "sha256": "aaa02878e4af62723b6aa3e692fec88b4894160c4c46d67cea9a1adef9592735"
+    },
+    {
+      "file": "login/required-username-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "required-username-error",
+      "viewport": "desktop-wide",
+      "sha256": "8cc0ce5cba40cb6b331fbf6f25edccc6bca41df72e150318cd88d806f3b451f1"
+    },
+    {
+      "file": "login/required-username-error--login-card--desktop-wide.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "required-username-error",
+      "viewport": "desktop-wide",
+      "sha256": "6d95d685d236c94f8a2dfc69ab1a72fb455cf206a6e47f8bc8bfd11aea239b94"
+    },
+    {
+      "file": "login/required-username-error--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "required-username-error",
+      "viewport": "desktop",
+      "sha256": "6a45eb3ac0066d9528fe28798d73b1ba0f4ddfcc3215917e2fa7a70024d18ef5"
+    },
+    {
+      "file": "login/required-username-error--login-card--desktop.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "required-username-error",
+      "viewport": "desktop",
+      "sha256": "c6185e020d08100f597a7b5f822c89b4131fd17b94794fe9f9679daab41ea5ad"
+    },
+    {
+      "file": "login/required-username-error--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "required-username-error",
+      "viewport": "laptop",
+      "sha256": "1e63979ffbbd9939dd233c90aa7ca8a6124469b9d73804437b4ee8aa2088815c"
+    },
+    {
+      "file": "login/required-username-error--login-card--laptop.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "required-username-error",
+      "viewport": "laptop",
+      "sha256": "b39ca37fd3fa63ef43d36f7a8fc3a16837ed085761da813c70e43ce46c9a1eb2"
+    },
+    {
+      "file": "login/required-username-error--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "required-username-error",
+      "viewport": "tablet",
+      "sha256": "857c2707697eccd1acefd455c3c881b942f3b9359a5790faf979fb7c417695f5"
+    },
+    {
+      "file": "login/required-username-error--login-card--tablet.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "required-username-error",
+      "viewport": "tablet",
+      "sha256": "8c845da6dd586e32c581cc89ddf2a1519801cc333e1a6ec9d8a85a873d5c016e"
+    },
+    {
+      "file": "login/required-username-error--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "required-username-error",
+      "viewport": "mobile",
+      "sha256": "4433b92e490d6cbb54fd78aa5845cac8773f0dc22eda8468b5576dfaa2fa67a4"
+    },
+    {
+      "file": "login/required-username-error--login-card--mobile.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "required-username-error",
+      "viewport": "mobile",
+      "sha256": "69a8a3f58b8eb6039407c7bce87466aa550119049011384c116959ada4ac1286"
+    },
+    {
+      "file": "login/password-visible--login-card--desktop-wide.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "password-visible",
+      "viewport": "desktop-wide",
+      "sha256": "fd78282274e8e2173e5ae06194f29593650292a48c7b77f310bcfdc4604393c1"
+    },
+    {
+      "file": "login/password-visible--login-card--desktop.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "password-visible",
+      "viewport": "desktop",
+      "sha256": "2684cac5b8b70de387e9360aa2c2f547493c15b403e3c31918a766fba5548e72"
+    },
+    {
+      "file": "login/password-visible--login-card--laptop.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "password-visible",
+      "viewport": "laptop",
+      "sha256": "c0b2ba368a0e8401f27ca74779898460b9d250a0aa3f50dd0167f56b121aade2"
+    },
+    {
+      "file": "login/password-visible--login-card--tablet.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "password-visible",
+      "viewport": "tablet",
+      "sha256": "8575c54586f2f4012d7e1b6e747f194cf3d424a9559dd062e3df3600ed5c8ea7"
+    },
+    {
+      "file": "login/password-visible--login-card--mobile.png",
+      "kind": "region",
+      "region": "login-card",
+      "scenario": "password-visible",
+      "viewport": "mobile",
+      "sha256": "d1a87f2ddcaa48ba1f07a26aa2a0235c0c7077623e2ebfc80e57a9e5ad320a97"
+    }
+  ]
+}

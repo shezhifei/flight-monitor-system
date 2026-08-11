@@ -1,0 +1,98 @@
+{
+  "scenario": "user-manager-forbidden",
+  "expected_legacy_errors": [
+    "Failed to load departments"
+  ],
+  "routes": [
+    {
+      "id": "user-manager-templates-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/auth/admin/permission-templates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "需要管理员权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-permissions-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/auth/permissions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "需要管理员权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-roles-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/auth/roles",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "需要管理员权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-users-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "需要管理员权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-departments-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少权限: dispatch:view"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

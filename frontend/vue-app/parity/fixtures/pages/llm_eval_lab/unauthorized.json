@@ -1,0 +1,27 @@
+{
+  "scenario": "llm-eval-lab-unauthorized",
+  "routes": [
+    {
+      "id": "llm-eval-jobs-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/ai/eval/jobs",
+      "query": {
+        "limit": [
+          "30"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

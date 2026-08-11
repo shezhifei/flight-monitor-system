@@ -1,0 +1,87 @@
+# Copyright 2023 The RocketMQ Rust Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+[workspace]
+# This is a standalone project, not part of the parent workspace
+
+[package]
+name = "rocketmq-example"
+version = "0.8.0"
+authors = ["mxsm <mxsm@apache.org>"]
+edition = "2024"
+homepage = "https://github.com/mxsm/rocketmq-rust"
+repository = "https://github.com/mxsm/rocketmq-rust"
+license = "MIT OR Apache-2.0"
+keywords = [
+  "apache-rocketmq",
+  "rocketmq-rust",
+  "rocketmq-rs",
+  "rust",
+  "rocketmq-client",
+]
+readme = "README.md"
+description = "Examples for RocketMQ Rust implementation"
+rust-version = "1.85.0"
+resolver = "3"
+
+[dependencies]
+
+[dev-dependencies]
+cheetah-string       = { version = "1.0.1", features = ["serde", "bytes", "simd"] }
+rand                 = "0.8"
+rocketmq-client-rust = { path = "../rocketmq-client" }
+rocketmq-common      = { path = "../rocketmq-common" }
+rocketmq-error       = { path = "../rocketmq-error" }
+rocketmq-remoting    = { path = "../rocketmq-remoting" }
+rocketmq-rust        = { path = "../rocketmq" }
+rocketmq-tools       = { path = "../rocketmq-tools/rocketmq-admin/rocketmq-admin-core", package = "rocketmq-admin-core" }
+tokio                = { version = "1.49", features = ["full"] }
+tracing              = "0.1.44"
+
+[[example]]
+name = "pop-consumer"
+path = "examples/consumer/pop_consumer.rs"
+
+[[example]]
+name = "consumer-cluster"
+path = "examples/consumer/consumer_cluster.rs"
+
+[[example]]
+name = "producer-simple"
+path = "examples/producer/producer_simple.rs"
+
+[[example]]
+name = "producer-with-timeout"
+path = "examples/producer/producer_with_timeout.rs"
+
+[[example]]
+name = "producer-basic-send"
+path = "examples/producer/basic_send.rs"
+
+[[example]]
+name = "producer-batch-send"
+path = "examples/producer/batch_send.rs"
+
+[[example]]
+name = "producer-send-to-queue"
+path = "examples/producer/send_to_queue.rs"
+
+[[example]]
+name = "producer-send-with-selector"
+path = "examples/producer/send_with_selector.rs"
+
+[[example]]
+name = "producer-send-with-selector-advanced"
+path = "examples/producer/send_with_selector_advanced.rs"

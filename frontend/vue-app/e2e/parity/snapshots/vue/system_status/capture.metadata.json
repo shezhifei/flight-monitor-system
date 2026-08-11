@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "page": "system_status",
+  "target": "vue",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "captures": [
+    {
+      "file": "system_status/system-status-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-status-success",
+      "viewport": "desktop-wide",
+      "sha256": "1603f33e3f1c7ab6c2f6a7b37a177448543f1dc85d84151875000b64b2311f7a"
+    },
+    {
+      "file": "system_status/system-status-success--realtime-log--desktop-wide.png",
+      "kind": "region",
+      "region": "realtime-log",
+      "scenario": "system-status-success",
+      "viewport": "desktop-wide",
+      "sha256": "18c31d8a5e7aa951bd7d9b8c9b6ebb642ae017a45cd17d0bb4f45b3ab3dbc641"
+    },
+    {
+      "file": "system_status/system-status-success--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-status-success",
+      "viewport": "desktop",
+      "sha256": "83deef7e1e9bb9b65f1ef321d09dcbbb48262161ee188e5a9bbacf893924a18d"
+    },
+    {
+      "file": "system_status/system-status-success--realtime-log--desktop.png",
+      "kind": "region",
+      "region": "realtime-log",
+      "scenario": "system-status-success",
+      "viewport": "desktop",
+      "sha256": "cf2a6ff3aa28600d44b5e7275ec6a642038e4442398ec00b517d3bdefad8ebd5"
+    },
+    {
+      "file": "system_status/system-status-success--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-status-success",
+      "viewport": "laptop",
+      "sha256": "0b702f22483da1e7a51a86e60921ed15d13e42399a6e6585fbd57b81fc5e81b6"
+    },
+    {
+      "file": "system_status/system-status-success--realtime-log--laptop.png",
+      "kind": "region",
+      "region": "realtime-log",
+      "scenario": "system-status-success",
+      "viewport": "laptop",
+      "sha256": "b1ae503157f4781443aa5b79974e336c89ac4ffdaa64157560c6fc6765db2ead"
+    },
+    {
+      "file": "system_status/system-status-success--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-status-success",
+      "viewport": "tablet",
+      "sha256": "30b1cf03cd3e9e72e2fd0e51874682f6bc21aed08b2d9eee8b7458e39c9c2203"
+    },
+    {
+      "file": "system_status/system-status-success--realtime-log--tablet.png",
+      "kind": "region",
+      "region": "realtime-log",
+      "scenario": "system-status-success",
+      "viewport": "tablet",
+      "sha256": "b453d1ad90d06e68b53d538b650b9b01cd93da3c298b93a33de2fd0e411639e9"
+    },
+    {
+      "file": "system_status/system-status-success--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-status-success",
+      "viewport": "mobile",
+      "sha256": "fae6a6306ece449ef6e4c23737f579d07c1c73cc142890d4262e8db12090853b"
+    },
+    {
+      "file": "system_status/system-status-success--realtime-log--mobile.png",
+      "kind": "region",
+      "region": "realtime-log",
+      "scenario": "system-status-success",
+      "viewport": "mobile",
+      "sha256": "fdf1ece24e43322571c343db5a34f3b60c4e465ddf24a6542633a45f12932858"
+    },
+    {
+      "file": "system_status/system-status-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-status-partial",
+      "viewport": "desktop-wide",
+      "sha256": "cccd8764c5bdc9f755dbdab9d57c54e6b32592c9ff4be27271c241bbb5d35160"
+    },
+    {
+      "file": "system_status/system-status-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-status-partial",
+      "viewport": "desktop",
+      "sha256": "2692160280464b7788e28813fc137fb6aea4690755011a013af387d19041be2a"
+    },
+    {
+      "file": "system_status/system-status-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-status-partial",
+      "viewport": "laptop",
+      "sha256": "ef1dc1adae0d9f4201320beb1461a1d6c5f593588bd8869043f0f0f5c0d3180f"
+    },
+    {
+      "file": "system_status/system-status-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-status-partial",
+      "viewport": "tablet",
+      "sha256": "bd1efc6b9d4e2177d25c37c78edcde373d402ad691690f5a127fce3dc3300ab2"
+    },
+    {
+      "file": "system_status/system-status-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-status-partial",
+      "viewport": "mobile",
+      "sha256": "a7cf9650fa776ce6e6b3deeec91ef7c223f487ec7a95d03a67fd056447533b28"
+    },
+    {
+      "file": "system_status/system-status-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-status-unauthorized",
+      "viewport": "desktop-wide",
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "system_status/system-status-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-status-unauthorized",
+      "viewport": "desktop",
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "system_status/system-status-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-status-unauthorized",
+      "viewport": "laptop",
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "system_status/system-status-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-status-unauthorized",
+      "viewport": "tablet",
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "system_status/system-status-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-status-unauthorized",
+      "viewport": "mobile",
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "system_status/system-status-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-status-forbidden",
+      "viewport": "desktop-wide",
+      "sha256": "53006fe184e344970205233564517c89a95facde34aa2587818d9ec4b65721e8"
+    },
+    {
+      "file": "system_status/system-status-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-status-forbidden",
+      "viewport": "desktop",
+      "sha256": "27708c9520498092d1de262cc30e8ca3c07e17d12b9bb3f9b072960b36f71d07"
+    },
+    {
+      "file": "system_status/system-status-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-status-forbidden",
+      "viewport": "laptop",
+      "sha256": "95d735c673123e6b45f5f6aff0386af12c9aa38b76cb6f2f8320b32e8c646198"
+    },
+    {
+      "file": "system_status/system-status-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-status-forbidden",
+      "viewport": "tablet",
+      "sha256": "c7e6b19655ff85412540defbc0b04db2b686343610f13d678de7d818655e244f"
+    },
+    {
+      "file": "system_status/system-status-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-status-forbidden",
+      "viewport": "mobile",
+      "sha256": "6c3b12ab7a9a9bb59d9cd142a92f392b2dd8d8d3df69aaa752d58d8f43cd60c7"
+    },
+    {
+      "file": "system_status/system-status-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-status-server-error",
+      "viewport": "desktop-wide",
+      "sha256": "53006fe184e344970205233564517c89a95facde34aa2587818d9ec4b65721e8"
+    },
+    {
+      "file": "system_status/system-status-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-status-server-error",
+      "viewport": "desktop",
+      "sha256": "27708c9520498092d1de262cc30e8ca3c07e17d12b9bb3f9b072960b36f71d07"
+    },
+    {
+      "file": "system_status/system-status-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-status-server-error",
+      "viewport": "laptop",
+      "sha256": "95d735c673123e6b45f5f6aff0386af12c9aa38b76cb6f2f8320b32e8c646198"
+    },
+    {
+      "file": "system_status/system-status-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-status-server-error",
+      "viewport": "tablet",
+      "sha256": "c7e6b19655ff85412540defbc0b04db2b686343610f13d678de7d818655e244f"
+    },
+    {
+      "file": "system_status/system-status-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-status-server-error",
+      "viewport": "mobile",
+      "sha256": "6c3b12ab7a9a9bb59d9cd142a92f392b2dd8d8d3df69aaa752d58d8f43cd60c7"
+    }
+  ]
+}

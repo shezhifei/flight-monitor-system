@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "solver_version": "dispatch_solver_ortools_wasm_strict_pdf_v3",
+  "artifact_version": "v9.14-bridge.2",
+  "runtime_manifest_path": "/frontend/vendor/ortools/runtime-manifest.json",
+  "upstream": {
+    "repository": "google/or-tools",
+    "tag": "v9.14",
+    "commit_sha": "0d60e8afe450ec817f510aae965ab8898310cb41",
+    "source_url": "https://github.com/google/or-tools/releases/download/v9.14/or-tools-9.14.tar.gz",
+    "source_sha256": "6af83f7d373084c1221c875a3000f53ecdd1f253336648ef87e0aeef408facd7"
+  },
+  "toolchain": {
+    "emsdk": "3.1.74",
+    "cmake": "3.30.5",
+    "ninja": "1.12.1"
+  },
+  "release": {
+    "repository": "shezhifei/flight-monitor-system",
+    "tag": "frontend-ortools-cpsat-official-v9.14-bridge.2"
+  },
+  "assets": {
+    "js": {
+      "url": "https://github.com/shezhifei/flight-monitor-system/releases/download/frontend-ortools-cpsat-official-v9.14-bridge.2/dispatch_replan_solver.js",
+      "sha256": null
+    },
+    "wasm": {
+      "url": "https://github.com/shezhifei/flight-monitor-system/releases/download/frontend-ortools-cpsat-official-v9.14-bridge.2/dispatch_replan_solver.wasm",
+      "sha256": null
+    },
+    "manifest": {
+      "url": "https://github.com/shezhifei/flight-monitor-system/releases/download/frontend-ortools-cpsat-official-v9.14-bridge.2/manifest.json",
+      "sha256": null
+    },
+    "sha256sums": {
+      "url": "https://github.com/shezhifei/flight-monitor-system/releases/download/frontend-ortools-cpsat-official-v9.14-bridge.2/SHA256SUMS",
+      "sha256": null
+    },
+    "licenses": {
+      "url": "https://github.com/shezhifei/flight-monitor-system/releases/download/frontend-ortools-cpsat-official-v9.14-bridge.2/LICENSES.tar.gz",
+      "sha256": null
+    }
+  }
+}

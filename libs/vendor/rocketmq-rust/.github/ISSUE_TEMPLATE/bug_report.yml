@@ -1,0 +1,81 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Bug Report
+title: "[Bug🐛] "
+description: Report a bug to help us improve
+labels: [ "bug🐛" ]
+body:
+  - type: checkboxes
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: This is a bug, not a question (use Discussions for questions)
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: Your runtime environment
+      placeholder: |
+        - OS: Ubuntu 22.04 / Windows 11 / macOS 14
+        - RocketMQ Rust: v0.3.0 / main branch / commit abc123
+        - Rust: 1.75.0
+      value: |
+        - OS: 
+        - RocketMQ Rust: 
+        - Rust: 
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Bug Description
+      description: What happened?
+      placeholder: Clear and concise description of the bug
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Start broker with config...
+        2. Send message with...
+        3. Observe error...
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Expected vs Actual
+      placeholder: |
+        **Expected:** Should send successfully
+        **Actual:** Connection timeout error
+
+  - type: textarea
+    attributes:
+      label: Logs/Screenshots
+      description: Relevant logs, error messages, or screenshots
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Additional context
+      placeholder: Add any other context about the problem here

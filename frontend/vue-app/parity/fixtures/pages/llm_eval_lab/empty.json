@@ -1,0 +1,27 @@
+{
+  "scenario": "llm-eval-lab-empty",
+  "routes": [
+    {
+      "id": "llm-eval-jobs-empty",
+      "method": "GET",
+      "pathname": "/api/v2/ai/eval/jobs",
+      "query": {
+        "limit": [
+          "30"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": []
+          },
+          "message": "评测任务列表获取成功"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

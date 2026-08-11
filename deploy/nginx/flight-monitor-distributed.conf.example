@@ -1,0 +1,85 @@
+upstream flight_monitor_api_cluster {
+    least_conn;
+    server 10.0.0.11:8000 max_fails=3 fail_timeout=10s;
+    server 10.0.0.12:8000 max_fails=3 fail_timeout=10s;
+    keepalive 64;
+}
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+server {
+    listen 80;
+    server_name flight-monitor.example.com;
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name flight-monitor.example.com;
+
+    ssl_certificate /etc/nginx/tls/fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    server_tokens off;
+    client_max_body_size 32m;
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), geolocation=(), microphone=()" always;
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'none'; img-src 'self' data: blob: https:; font-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: wss:" always;
+    proxy_hide_header Server;
+    proxy_hide_header X-Powered-By;
+
+    location / {
+        proxy_pass http://flight_monitor_api_cluster;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+    }
+
+    # SSE endpoints must disable proxy buffering to avoid delayed delivery.
+    location ~ ^/api/v2/.+/stream(?:/.*)?$ {
+        proxy_pass http://flight_monitor_api_cluster;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        gzip off;
+        chunked_transfer_encoding off;
+        add_header X-Accel-Buffering no;
+    }
+
+    location = /api/v2/health/ping {
+        proxy_pass http://flight_monitor_api_cluster;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        access_log off;
+    }
+
+    # Block public scrape of Prometheus metrics at the edge.
+    # Prometheus should scrape rust-api:8080/metrics on the internal network only.
+    location = /metrics {
+        return 404;
+    }
+
+    location = /api/v2/metrics {
+        return 404;
+    }
+}

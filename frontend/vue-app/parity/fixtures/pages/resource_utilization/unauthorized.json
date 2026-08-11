@@ -1,0 +1,74 @@
+{
+  "scenario": "resource-utilization-unauthorized",
+  "routes": [
+    {
+      "id": "util-summary-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "util-stands-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "util-teams-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "util-equipment-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

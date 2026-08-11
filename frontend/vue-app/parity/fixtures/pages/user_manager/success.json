@@ -1,0 +1,199 @@
+{
+  "scenario": "user-manager-success",
+  "capture": {
+    "expected_panels": ["#section-users", "#usersTableBody"],
+    "regions": [{ "id": "users-workspace", "selector": "#section-users" }],
+    "blocked_interactions": [{
+      "id": "create-user-dialog",
+      "reason": "The current Rust auth list endpoints return ApiResponse envelopes while the legacy page treats users, roles, and permissions as arrays; the add-user dialog cannot be treated as valid evidence before that DTO drift is corrected.",
+      "source": "html/user_manager.html#openAddUserModal"
+    }]
+  },
+  "expected_legacy_errors": [
+    "permissions.filter is not a function",
+    "roles.filter is not a function",
+    "users.filter is not a function"
+  ],
+  "coverage_note": "Legacy user_manager treats /auth/users|/roles|/permissions JSON as bare arrays; current Rust routes return ApiResponse envelopes, so list rendering throws before the demo fallback path. Fixtures keep the Rust envelope shape.",
+  "routes": [
+    {
+      "id": "user-manager-templates-success",
+      "method": "GET",
+      "pathname": "/api/v2/auth/admin/permission-templates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "template-ops-view",
+              "name": "运行只读模板",
+              "code": "OPS_READONLY",
+              "description": "运行态只读权限集合",
+              "permissions": [
+                "flight:read",
+                "dispatch:view",
+                "team:view"
+              ],
+              "is_system": true,
+              "category": "operations",
+              "display_order": 10,
+              "is_active": true,
+              "created_at": "2026-05-01T00:00:00Z",
+              "updated_at": "2026-07-01T00:00:00Z"
+            }
+          ],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-permissions-success",
+      "method": "GET",
+      "pathname": "/api/v2/auth/permissions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "permission-flight-read",
+              "name": "flight:read",
+              "description": "查看航班信息",
+              "is_active": true,
+              "created_at": "2026-01-01T00:00:00Z",
+              "updated_at": "2026-01-01T00:00:00Z"
+            },
+            {
+              "id": "permission-dispatch-view",
+              "name": "dispatch:view",
+              "description": "查看调度信息",
+              "is_active": true,
+              "created_at": "2026-01-01T00:00:00Z",
+              "updated_at": "2026-01-01T00:00:00Z"
+            }
+          ],
+          "message": "权限列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-roles-success",
+      "method": "GET",
+      "pathname": "/api/v2/auth/roles",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "role-operations-manager",
+              "name": "operations_manager",
+              "description": "运行值班经理",
+              "permissions": [
+                "flight:read",
+                "dispatch:view",
+                "team:view"
+              ],
+              "is_active": true,
+              "is_system": true,
+              "created_at": "2026-01-01T00:00:00Z",
+              "updated_at": "2026-07-01T00:00:00Z",
+              "user_count": 3
+            }
+          ],
+          "message": "角色列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-users-success",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "00000000-0000-4000-8000-000000000003",
+              "username": "ops_manager",
+              "email": "ops.manager@example.test",
+              "is_active": true,
+              "is_verified": true,
+              "is_admin": false,
+              "created_at": "2026-05-10T00:00:00Z",
+              "last_login_at": "2026-07-14T02:00:00Z",
+              "roles": [
+                "operations_manager"
+              ],
+              "permissions": [
+                "flight:read",
+                "dispatch:view",
+                "team:view"
+              ],
+              "display_name": "李调度",
+              "effective_operator_name": "李调度",
+              "effective_operator_label": "李调度 · 运行控制中心",
+              "operator_context_type": "department",
+              "operator_context_id": "department-occ",
+              "department": "运行控制中心",
+              "job_level": 7,
+              "job_title": "值班经理",
+              "permission_version": 6
+            }
+          ],
+          "message": "用户列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-departments-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "department-occ",
+              "name": "运行控制中心",
+              "code": "OCC",
+              "description": "机场运行控制",
+              "manager_id": "00000000-0000-4000-8000-000000000003",
+              "terminal": "T1",
+              "created_at": "2026-01-01T00:00:00Z",
+              "updated_at": "2026-07-01T00:00:00Z",
+              "is_active": true
+            }
+          ],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

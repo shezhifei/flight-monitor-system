@@ -1,0 +1,8 @@
+{
+  "page": "label_manager",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success"
+  ]
+}

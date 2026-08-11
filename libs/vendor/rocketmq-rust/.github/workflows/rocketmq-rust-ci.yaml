@@ -1,0 +1,218 @@
+name: RocketMQ Rust CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'rocketmq-doc/**'
+      - 'rocketmq-website/**'
+      - 'docker/**'
+      - 'resources/**'
+      - 'distribution/**'
+      - 'rocketmq-dashboard/rocketmq-dashboard-gpui/**'
+      - 'rocketmq-dashboard/rocketmq-dashboard-tauri/**'
+      - 'rocketmq-dashboard/README*.md'
+      - 'rocketmq-example/**'
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'rocketmq-doc/**'
+      - 'rocketmq-website/**'
+      - 'docker/**'
+      - 'resources/**'
+      - 'distribution/**'
+      - 'rocketmq-dashboard/rocketmq-dashboard-gpui/**'
+      - 'rocketmq-dashboard/rocketmq-dashboard-tauri/**'
+      - 'rocketmq-dashboard/README*.md'
+      - 'rocketmq-example/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+  CI: true
+  CARGO_PROFILE_DEV_DEBUG: "false"
+  CARGO_PROFILE_TEST_DEBUG: "false"
+  CARGO_PROFILE_DEV_OPT_LEVEL: 1
+  CARGO_PROFILE_DEV_OVERFLOW_CHECKS: "false"
+  # ===== RocksDB / build cache =====
+  CARGO_TARGET_DIR: target
+  ROCKSDB_DISABLE_JEMALLOC: 1
+
+jobs:
+  # =========================
+  # Format + Clippy + Shear
+  # =========================
+  check:
+    name: Check (fmt + clippy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm libclang-dev \
+            cmake make ninja-build pkg-config \
+            protobuf-compiler \
+            libsnappy-dev liblz4-dev libzstd-dev zlib1g-dev \
+            libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev
+
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+          LIBCLANG_DIR=$(ls -d /usr/lib/llvm-*/lib | head -n 1)
+          echo "LIBCLANG_PATH=$LIBCLANG_DIR" >> $GITHUB_ENV
+
+      - name: Set up Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust + RocksDB
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rocketmq-rust-ubuntu
+          workspaces: |
+            .
+          env-vars: |
+            CC
+            CXX
+            LIBCLANG_PATH
+            ROCKSDB_DISABLE_JEMALLOC
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (all features)
+        run: cargo clippy --workspace --no-deps --all-targets --all-features -- -D warnings
+
+  # =========================
+  # Build + Test
+  # =========================
+  build-test:
+    name: Build & Test (${{ matrix.os }})
+    needs: check
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------- Ubuntu ----------
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm libclang-dev \
+            cmake make ninja-build pkg-config \
+            protobuf-compiler \
+            libsnappy-dev liblz4-dev libzstd-dev zlib1g-dev \
+            libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev
+
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+          LIBCLANG_DIR=$(ls -d /usr/lib/llvm-*/lib | head -n 1)
+          echo "LIBCLANG_PATH=$LIBCLANG_DIR" >> $GITHUB_ENV
+
+      # ---------- macOS ----------
+      - name: Install system dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew update
+          brew install cmake protobuf snappy lz4 zstd
+
+      # ---------- Windows ----------
+      - name: Install system dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install cmake ninja protoc -y
+
+      - name: Set up Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache Rust + RocksDB
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rocketmq-rust-${{ matrix.os }}
+          workspaces: |
+            .
+          env-vars: |
+            CC
+            CXX
+            LIBCLANG_PATH
+            ROCKSDB_DISABLE_JEMALLOC
+
+      - name: Build (all features)
+        run: cargo build --workspace --all-features
+
+      - name: Test (all features)
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo test --workspace --all-features
+
+  # =========================
+  # Coverage (Ubuntu only)
+  # =========================
+  coverage:
+    name: Code Coverage
+    needs: check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm libclang-dev \
+            cmake make ninja-build pkg-config \
+            protobuf-compiler \
+            libsnappy-dev liblz4-dev libzstd-dev zlib1g-dev \
+            libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev
+
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+          LIBCLANG_DIR=$(ls -d /usr/lib/llvm-*/lib | head -n 1)
+          echo "LIBCLANG_PATH=$LIBCLANG_DIR" >> $GITHUB_ENV
+
+      - name: Set up Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache Rust + RocksDB
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rocketmq-rust-coverage
+          workspaces: |
+            .
+          env-vars: |
+            CC
+            CXX
+            LIBCLANG_PATH
+            ROCKSDB_DISABLE_JEMALLOC
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate coverage (all features)
+        run: cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: false
+          verbose: true

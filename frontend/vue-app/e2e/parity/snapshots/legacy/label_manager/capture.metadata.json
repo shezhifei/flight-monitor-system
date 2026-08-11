@@ -1,0 +1,385 @@
+{
+  "schema_version": 1,
+  "page": "label_manager",
+  "legacy_html": "html/label_manager.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/label_manager.html",
+      "sha256": "782f46c352f8314f4fb6579d3c641d0a6a721467bc5655733cb774a546c20afd"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/components/breadcrumb.js",
+      "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+    },
+    {
+      "path": "js/components/header.js",
+      "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "3c53710827662edcd96755a20c1c4e4e289e86ba31099d6521f75f96e408358e",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/label_manager/manifest.json",
+      "sha256": "633b1e3eb81cd3e720578f3fd2cafe8162e6ebb3a6b3586ab1c59a2921bd3297"
+    },
+    {
+      "path": "parity/fixtures/pages/label_manager/success.json",
+      "sha256": "1619a0079319de12ff398575d5db1901a3324b19aef39ef72196233a75efe812"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "label-manager-success",
+      "fixture": "label-manager-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [
+        "/frontend/assets/label_manager-DT-ZFJuv.css",
+        "/frontend/assets/label_manager-CmYjAVmh.js",
+        "status of 404 (Not Found)"
+      ],
+      "approved_exception_ids": [
+        "legacy-label-manager-build-assets-missing"
+      ],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "label-management",
+          "reason": "The archived CSS and JavaScript bundles referenced by label_manager.html are missing, leaving the application host empty and all management interactions unavailable.",
+          "source": "html/label_manager.html#app"
+        }
+      ]
+    }
+  ],
+  "captures": [
+    {
+      "file": "label_manager/label-manager-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "label-manager-success",
+      "theme": "light",
+      "scenario": "label-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79",
+      "observed_resource_failures": [
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: HTTP 404",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "bbd36374124623b22cae6110daea601ebc2dbc9cc15148d9ef02e77a51762574"
+    },
+    {
+      "file": "label_manager/label-manager-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "label-manager-success",
+      "theme": "light",
+      "scenario": "label-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79",
+      "observed_resource_failures": [
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: HTTP 404",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "8a66fed50a7cee7235e955a5f932d93226b552c1562b37ef2415ecd44f3cd955"
+    },
+    {
+      "file": "label_manager/label-manager-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "label-manager-success",
+      "theme": "light",
+      "scenario": "label-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79",
+      "observed_resource_failures": [
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: HTTP 404",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "2d0c6350686e62ad4f4bcaea54d72f403103bc5289be41b4dce6a2ab6d759261"
+    },
+    {
+      "file": "label_manager/label-manager-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "label-manager-success",
+      "theme": "light",
+      "scenario": "label-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79",
+      "observed_resource_failures": [
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: HTTP 404",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d84234c4e6392ae6262c84c7a4a697b175c98a8deeac82ad4cf6bd8052730df1"
+    },
+    {
+      "file": "label_manager/label-manager-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "label-manager-success",
+      "theme": "light",
+      "scenario": "label-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79",
+      "observed_resource_failures": [
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: HTTP 404",
+        "GET /frontend/assets/label_manager-CmYjAVmh.js: net::ERR_ABORTED",
+        "GET /frontend/assets/label_manager-DT-ZFJuv.css: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "c9640f694cd9fe77ba1e367a5969046cb136d05cc3a9a0c3e54c4712c28652bc"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "label-manager-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "label-manager-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "label-manager-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "label-manager-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "label-manager-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1747 @@
+{
+  "schema_version": 1,
+  "page": "flowable_modeler",
+  "legacy_html": "html/flowable_modeler.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+  "source_files": [
+    {
+      "path": "css/admin-layout.css",
+      "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+    },
+    {
+      "path": "css/admin-page.css",
+      "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+    },
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/flowable_modeler.html",
+      "sha256": "94cadb500524473971a96c11d83ea9b498af76e069b357bfbc7f648b427cacb3"
+    },
+    {
+      "path": "icons/ai.svg",
+      "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+    },
+    {
+      "path": "icons/clock.svg",
+      "sha256": "28b710f51a70ce69e9beefd2f6eaca66bdfdedaf2a688182183d102afa464411"
+    },
+    {
+      "path": "icons/edit.svg",
+      "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "icons/logout.svg",
+      "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+    },
+    {
+      "path": "icons/ok.svg",
+      "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+    },
+    {
+      "path": "icons/refresh.svg",
+      "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+    },
+    {
+      "path": "icons/save.svg",
+      "sha256": "23f941e822f81f6ab0268f1831a91c7b2bf1190a2e5c1603c22a91eb03fce304"
+    },
+    {
+      "path": "icons/settings.svg",
+      "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+    },
+    {
+      "path": "js/ai_entry_loader.js",
+      "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/security/dompurify.min.js",
+      "sha256": "c3d1c163c700071ad546390cb92a36c31cd6aceaad1bf77c4ef6eb9d845f1976"
+    },
+    {
+      "path": "js/security/safe-markdown.js",
+      "sha256": "6456227326e8827b3d2523e55178643c1fdf0f8a1984231070cb3374db576574"
+    },
+    {
+      "path": "static/ai/manifest.json",
+      "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+    },
+    {
+      "path": "vendor/css/bpmn-embedded.css",
+      "sha256": "28ee993466dd75dbbe50e761b69e9bf5c481408c47090bf878a8e86056bd45f8"
+    },
+    {
+      "path": "vendor/css/bpmn-js.css",
+      "sha256": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d"
+    },
+    {
+      "path": "vendor/css/diagram-js.css",
+      "sha256": "9aa83050d07b65ef6e11588afbcab82527974881a08af61461d163ceb5ab8468"
+    },
+    {
+      "path": "vendor/font/bpmn.eot",
+      "sha256": "9178281a0695f79ff8bff8eca529231b67f896dc1c12c8dbaaad24b32dd3fc07"
+    },
+    {
+      "path": "vendor/font/bpmn.svg",
+      "sha256": "b366faf39f6bcc48f10b10f2860e5ebe57091cb2a15beeed8a0977e24560bbba"
+    },
+    {
+      "path": "vendor/js/bpmn-modeler.development.js",
+      "sha256": "fccc61581a21173c1bd556733c517803235abe8c3aa1bfa12632e08a7e1ce12e"
+    },
+    {
+      "path": "vendor/js/marked.min.js",
+      "sha256": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "45d6c7b4a21b09f6aecfeee019d474aaf8902f854c6aed4b1a0105dd34c2915f",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/flowable_modeler/empty.json",
+      "sha256": "87ed55ba6a354104904355344f7a0b63b173913e0432aa5ad49727537eda958d"
+    },
+    {
+      "path": "parity/fixtures/pages/flowable_modeler/forbidden.json",
+      "sha256": "05afa1bacb12dd350d84ef5f9af4617e8979178735df0733e50a8507bf502661"
+    },
+    {
+      "path": "parity/fixtures/pages/flowable_modeler/manifest.json",
+      "sha256": "169ea3a52d13612475c3c419e959fdd4d988a24af3bd81b0e562bc7eb25cf70e"
+    },
+    {
+      "path": "parity/fixtures/pages/flowable_modeler/success.json",
+      "sha256": "9f9b8b9b546b8590e3686416f4cae79b77bb66aee3f00ac27e764b4927b32f7d"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "flowable_modeler-success",
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".main-content",
+        "#emptyState"
+      ],
+      "regions": [
+        {
+          "id": "modeler-workspace",
+          "selector": ".main-content"
+        }
+      ],
+      "interactions": [
+        {
+          "id": "create-case-dialog",
+          "actions": [
+            {
+              "type": "click",
+              "selector": "button[onclick='showCreateCaseModal()']"
+            }
+          ],
+          "expectedPanels": [
+            "#createCaseModal.active"
+          ],
+          "regions": [
+            {
+              "id": "create-case-dialog",
+              "selector": "#createCaseModal .create-case-modal"
+            }
+          ],
+          "captureFullPage": false
+        }
+      ],
+      "blocked_interactions": []
+    },
+    {
+      "id": "flowable_modeler-empty",
+      "fixture": "flowable_modeler-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "flowable_modeler-forbidden",
+      "fixture": "flowable_modeler-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "flowable_modeler/flowable_modeler-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e7d3ad1eabd680cb76d27d9abffabaec6bcacaef85ab776a9d7643a32feec9f4"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--modeler-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "modeler-workspace",
+      "selector": ".main-content",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "143cd82ef12609e82b501bc1cae8cf4ff430430b1a8fbc7561244e0cb3a79585"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--create-case-dialog--create-case-dialog--desktop-wide.png",
+      "kind": "region",
+      "region": "create-case-dialog",
+      "selector": "#createCaseModal .create-case-modal",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": "create-case-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateCaseModal()']"
+        }
+      ],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "55b93940fac3079b28c9a0abdec1f917309921a022652595b8f4cb0a83e304be"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6cd4ebeccbaf7a88c6fbfdb483d3359a51c14102e2ba1217661d5f34081f250e"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--modeler-workspace--desktop.png",
+      "kind": "region",
+      "region": "modeler-workspace",
+      "selector": ".main-content",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "32b9a64c17bf29b46431474ee7e60f371b4ccfcec41d8c69f4024e71d927be61"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--create-case-dialog--create-case-dialog--desktop.png",
+      "kind": "region",
+      "region": "create-case-dialog",
+      "selector": "#createCaseModal .create-case-modal",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": "create-case-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateCaseModal()']"
+        }
+      ],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3da8dfb0a76e3052a22a400fd45d191b47a3d0abc7b335ebb9c7331c692bb3cf"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0ea9f2d80d766eb3e7af107ca22962de601d266700b214027c38b6260d924032"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--modeler-workspace--laptop.png",
+      "kind": "region",
+      "region": "modeler-workspace",
+      "selector": ".main-content",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f7a7b065254f34f9afaa1d8c5bc50d8548615835e46ed8f598f12bea4e8cbb5c"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--create-case-dialog--create-case-dialog--laptop.png",
+      "kind": "region",
+      "region": "create-case-dialog",
+      "selector": "#createCaseModal .create-case-modal",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": "create-case-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateCaseModal()']"
+        }
+      ],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "27bb0a862206e55c87b6fffe5578e27fb34eb39163de037502e4f72424c29b55"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "10e72b89338774dbdd5b6abd431d051ac1075f3f8b27dc6f6c39ebf2bdc23dd6"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--modeler-workspace--tablet.png",
+      "kind": "region",
+      "region": "modeler-workspace",
+      "selector": ".main-content",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "58b58a06b2e6ff85092e618613f618ade4684029156d1666963cf16120ea6805"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--create-case-dialog--create-case-dialog--tablet.png",
+      "kind": "region",
+      "region": "create-case-dialog",
+      "selector": "#createCaseModal .create-case-modal",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": "create-case-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateCaseModal()']"
+        }
+      ],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "bb64e8a08a8144fdf883d42728c269c502e6813f8e846930feb95e119478b556"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "24b0edb531e93238c90dd55997ed14a7b67296a050150c4519d14aaa241a3db7"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--modeler-workspace--mobile.png",
+      "kind": "region",
+      "region": "modeler-workspace",
+      "selector": ".main-content",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a29b2245f3b0ae13e138cea781fe1baaac6eabb9267f23e4700467e180a9ec7d"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-success--create-case-dialog--create-case-dialog--mobile.png",
+      "kind": "region",
+      "region": "create-case-dialog",
+      "selector": "#createCaseModal .create-case-modal",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flowable_modeler-success",
+      "theme": "light",
+      "scenario": "flowable_modeler-success",
+      "state": "create-case-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateCaseModal()']"
+        }
+      ],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "24795c36027e2df7eb7853df34bd4f38931812fcf0f870e982921612e6aa0faf"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flowable_modeler-empty",
+      "theme": "light",
+      "scenario": "flowable_modeler-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e7d3ad1eabd680cb76d27d9abffabaec6bcacaef85ab776a9d7643a32feec9f4"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flowable_modeler-empty",
+      "theme": "light",
+      "scenario": "flowable_modeler-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6cd4ebeccbaf7a88c6fbfdb483d3359a51c14102e2ba1217661d5f34081f250e"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-empty",
+      "theme": "light",
+      "scenario": "flowable_modeler-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0ea9f2d80d766eb3e7af107ca22962de601d266700b214027c38b6260d924032"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-empty",
+      "theme": "light",
+      "scenario": "flowable_modeler-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "10e72b89338774dbdd5b6abd431d051ac1075f3f8b27dc6f6c39ebf2bdc23dd6"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flowable_modeler-empty",
+      "theme": "light",
+      "scenario": "flowable_modeler-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "24b0edb531e93238c90dd55997ed14a7b67296a050150c4519d14aaa241a3db7"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flowable_modeler-forbidden",
+      "theme": "light",
+      "scenario": "flowable_modeler-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e7d3ad1eabd680cb76d27d9abffabaec6bcacaef85ab776a9d7643a32feec9f4"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flowable_modeler-forbidden",
+      "theme": "light",
+      "scenario": "flowable_modeler-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6cd4ebeccbaf7a88c6fbfdb483d3359a51c14102e2ba1217661d5f34081f250e"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-forbidden",
+      "theme": "light",
+      "scenario": "flowable_modeler-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0ea9f2d80d766eb3e7af107ca22962de601d266700b214027c38b6260d924032"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flowable_modeler-forbidden",
+      "theme": "light",
+      "scenario": "flowable_modeler-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "10e72b89338774dbdd5b6abd431d051ac1075f3f8b27dc6f6c39ebf2bdc23dd6"
+    },
+    {
+      "file": "flowable_modeler/flowable_modeler-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flowable_modeler-forbidden",
+      "theme": "light",
+      "scenario": "flowable_modeler-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "24b0edb531e93238c90dd55997ed14a7b67296a050150c4519d14aaa241a3db7"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "flowable_modeler-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flowable_modeler-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

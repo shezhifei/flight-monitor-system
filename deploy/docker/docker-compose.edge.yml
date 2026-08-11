@@ -1,0 +1,231 @@
+name: flight-monitor-edge
+
+# Edge deployment profile — minimal resource footprint.
+# Target: 2-4 core CPU, 4-8GB RAM
+#
+# Modes:
+#   - Core only (no AI):    docker compose -f docker-compose.edge.yml up -d
+#   - With AI sidecar:      AI_ENABLED=1 docker compose -f docker-compose.edge.yml up -d
+#
+# Resource budget:
+#   Core only:  ~672MB  (Rust 256MB + PG 256MB + Redis 128MB + Nginx 32MB)
+#   With AI:    ~1600MB (above + Python AI Sidecar 512MB + Flowable 512MB)
+
+x-edge-common-env: &edge-common-env
+  APP_ENVIRONMENT: production
+  APP_DISTRIBUTED_MODE: "true"
+  REDIS_REQUIRED: "true"
+  LOCAL_RUNTIME_OVERRIDES_ENABLED: "false"
+  VAULT_RENDERED_ENV_FILE: /run/flight-monitor/vault/runtime.env
+  SSE_DISTRIBUTED_ENABLED: "true"
+  SYSTEM_CONFIG_BACKEND: postgres
+  SYSTEM_CONFIG_TABLE: ${SYSTEM_CONFIG_TABLE:-system_config}
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: ${DB_NAME:-flight_monitor_dev}
+  DB_USER: ${DB_USER:-postgres}
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_DB: ${REDIS_DB:-0}
+  LOG_FORMAT: json
+  MOBILE_UPLOAD_STORAGE_ROOT: /shared/mobile_uploads
+
+x-runtime-env-file: &runtime-env-file
+  - ${FMS_RUNTIME_ENV_FILE:?FMS_RUNTIME_ENV_FILE is required}
+
+x-rust-image: &rust-image
+  build:
+    context: ../..
+    dockerfile: Dockerfile.rust
+  image: flight-monitor-rust:edge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - flight_monitor.seed_default_admin=${SEED_DEFAULT_ADMIN:-false}
+      - -c
+      - max_replication_slots=2
+      - -c
+      - max_wal_senders=2
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=256MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - max_connections=50
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../scripts/database/setup_postgresql.sql:/docker-entrypoint-initdb.d/10-setup.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    command:
+      - sh
+      - -c
+      - redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-lru --requirepass "$${REDIS_PASSWORD}"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - internal
+
+  config-seed:
+    <<: *rust-image
+    restart: "no"
+    env_file: *runtime-env-file
+    environment:
+      <<: *edge-common-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ${VAULT_RENDERED_ENV_FILE:?VAULT_RENDERED_ENV_FILE is required}:/run/flight-monitor/vault/runtime.env:ro
+    command:
+      - sh
+      - -c
+      - 'echo "Config seed: relying on existing DB state for edge deploy"'
+    networks:
+      - internal
+
+  rust-api:
+    <<: *rust-image
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    ports:
+      - "127.0.0.1:${RUST_API_HOST_PORT:-8080}:8080"
+    environment:
+      <<: *edge-common-env
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:?TRUSTED_PROXY_CIDRS is required}
+      APP_RUNTIME_ROLE: api
+      API_HOST: 0.0.0.0
+      API_PORT: "8080"
+      RUST_LOG: ${RUST_LOG:-info}
+      RUST_BACKTRACE: "1"
+      MALLOC_ARENA_MAX: ${MALLOC_ARENA_MAX:-2}
+      AI_SIDECAR_URL: ${AI_SIDECAR_URL:-http://ai-sidecar:9000}
+      AI_SIDECAR_TIMEOUT_SECS: ${AI_SIDECAR_TIMEOUT_SECS:-30}
+      DB_POOL_MAX_CONNECTIONS: ${DB_POOL_MAX_CONNECTIONS:-4}
+      DB_POOL_MIN_CONNECTIONS: ${DB_POOL_MIN_CONNECTIONS:-2}
+      DB_POOL_ACQUIRE_TIMEOUT_SECS: ${DB_POOL_ACQUIRE_TIMEOUT_SECS:-30}
+      DB_POOL_IDLE_TIMEOUT_SECS: ${DB_POOL_IDLE_TIMEOUT_SECS:-300}
+      DB_POOL_MAX_LIFETIME_SECS: ${DB_POOL_MAX_LIFETIME_SECS:-1800}
+      SSE_MAX_CONNECTIONS: ${SSE_MAX_CONNECTIONS:-100}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      config-seed:
+        condition: service_completed_successfully
+    volumes:
+      - ${VAULT_RENDERED_ENV_FILE:?VAULT_RENDERED_ENV_FILE is required}:/run/flight-monitor/vault/runtime.env:ro
+      - shared_uploads:/shared/mobile_uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/v2/health/ping > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - internal
+
+  ai-sidecar:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.rust
+      target: runtime
+    image: flight-monitor-system:edge
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    profiles:
+      - ai
+    environment:
+      <<: *edge-common-env
+      APP_RUNTIME_ROLE: api
+      API_HOST: 0.0.0.0
+      API_PORT: "9000"
+      AI_ONLY_MODE: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ${VAULT_RENDERED_ENV_FILE:?VAULT_RENDERED_ENV_FILE is required}:/run/flight-monitor/vault/runtime.env:ro
+      - shared_uploads:/shared/mobile_uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/internal/ai/v1/health > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      rust-api:
+        condition: service_healthy
+    ports:
+      - ${NGINX_PORT:-80}:80
+    volumes:
+      - ./nginx/edge.conf:/etc/nginx/conf.d/default.conf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - internal
+
+networks:
+  internal:
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  shared_uploads:

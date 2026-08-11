@@ -1,0 +1,51 @@
+{
+  "scenario": "nl-query-unauthorized",
+  "routes": [
+    {
+      "id": "nl-query-suggestions-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/ai/nl-query/suggestions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "nl-query-events-unauthorized",
+      "pathname": "/api/v2/ai/events/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "nl-query-events-unauthorized-1",
+          "event": "ai_execution",
+          "data": {
+            "event_type": "ai_execution",
+            "payload": {
+              "run_id": "run-unauthorized",
+              "status": "failed",
+              "message": "登录状态已失效"
+            },
+            "emitted_at": "2026-07-14T02:30:00Z"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "page": "llm_eval_lab",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "unauthorized",
+    "forbidden",
+    "server-error"
+  ]
+}

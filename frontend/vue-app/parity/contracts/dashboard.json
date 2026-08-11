@@ -1,0 +1,1506 @@
+{
+  "contractVersion": 1,
+  "page": "dashboard",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/dashboard.html",
+    "htmlSha256": "815bdfcc39cdc1e40952a3351365c7d84d83ac4f85d596d4e9522eac08f6366c",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/ai_entry_loader.js",
+        "archivePath": "js/ai_entry_loader.js",
+        "exists": true,
+        "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/empty_error.js",
+        "archivePath": "js/components/empty_error.js",
+        "exists": true,
+        "sha256": "551ad745f4221a0647e2a0d19bd54cd526eb8e849a78f9a632e913dcc112575a"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/header.js",
+        "archivePath": "js/components/header.js",
+        "exists": true,
+        "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/loading.js",
+        "archivePath": "js/components/loading.js",
+        "exists": true,
+        "sha256": "e02174c70738bd7d8d0a53fc58d3efdf2c51e4fe3200f61f393fb18b404538af"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/toast.js",
+        "archivePath": "js/components/toast.js",
+        "exists": true,
+        "sha256": "7d1a0b132fe9043d6b616f1f2adb07963f8c4b0823f750d41a77655725f97df5"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/dashboard_frontline_workbench.js",
+        "archivePath": "js/dashboard_frontline_workbench.js",
+        "exists": true,
+        "sha256": "417b979e98719bbc2d9b3c79bba2cbb4f41e7ba1f6340299c5ee09c1b262464a"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/dashboard_handover.js",
+        "archivePath": "js/dashboard_handover.js",
+        "exists": true,
+        "sha256": "76ca681010455ad2f8f2d4e1551fccba4161792e6254412514702654604b48c7"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/dashboard_frontline_workbench.css",
+        "archivePath": "css/dashboard_frontline_workbench.css",
+        "exists": true,
+        "sha256": "b61bbae1466978aeec22a93b3c82e01ddb62df1658d342ba11a64c5e1fd94679"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/dashboard_handover.css",
+        "archivePath": "css/dashboard_handover.css",
+        "exists": true,
+        "sha256": "8279a39f7b7a8beea93bad350f69d6f673a5aa5f9a626010875701464f2c189e"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "dynamic",
+        "reference": "/frontend/static/ai/${path}",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/activity.svg",
+        "archivePath": "icons/activity.svg",
+        "exists": true,
+        "sha256": "3a8193d9b7d8af78684605f18363455b9c15cc8cd59a8380a9503556224506f7"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ai.svg",
+        "archivePath": "icons/ai.svg",
+        "exists": true,
+        "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/bar_chart.svg",
+        "archivePath": "icons/bar_chart.svg",
+        "exists": true,
+        "sha256": "3af98cce83c1e1408755e6e39cf7760c97cbb797509478141d4320ebc1ac031c"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/detail.svg",
+        "archivePath": "icons/detail.svg",
+        "exists": true,
+        "sha256": "32240a9ff68eaf9bead993e13f3328c3ed4cda1a3ed11dc371589982e8892234"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/edit.svg",
+        "archivePath": "icons/edit.svg",
+        "exists": true,
+        "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/messages.svg",
+        "archivePath": "icons/messages.svg",
+        "exists": true,
+        "sha256": "41ea89efd02edf53adc55da7873bc3d5de1adb20c85314f7cd093f2bca94d0c2"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/refresh.svg",
+        "archivePath": "icons/refresh.svg",
+        "exists": true,
+        "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/settings.svg",
+        "archivePath": "icons/settings.svg",
+        "exists": true,
+        "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/users.svg",
+        "archivePath": "icons/users.svg",
+        "exists": true,
+        "sha256": "79e8c659734e79f182c457a7773907e8468b4da76b98cef123fc2a8f3df5b26a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/static/ai/manifest.json",
+        "archivePath": "static/ai/manifest.json",
+        "exists": true,
+        "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+      }
+    ],
+    "sourceHash": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > header",
+        "tag": "header",
+        "role": "banner",
+        "text": "工作台",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "Dashboard 交接班抽屉",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "当前值班人",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "待我签收",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(3)",
+        "tag": "section",
+        "role": null,
+        "text": "我发起的交接",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4)",
+        "tag": "section",
+        "role": null,
+        "text": "发起新交接",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > div > h1",
+        "level": 1,
+        "text": "工作台"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(1) > h1",
+        "level": 1,
+        "text": "欢迎回来, 基线管理员 · 系统管理员"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "交接班"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "当前值班人"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > h3",
+        "level": 3,
+        "text": "待我签收"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > h3",
+        "level": 3,
+        "text": "我发起的交接"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "发起新交接"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(2) > div:nth-of-type(1) > h4",
+        "level": 4,
+        "text": "系统草稿"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(4) > div > h4",
+        "level": 4,
+        "text": "人工补充条目"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#unifiedHeaderLogout",
+        "tag": "button",
+        "type": "button",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(1) > label > input",
+        "tag": "input",
+        "type": "checkbox",
+        "text": "on",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(3) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "立即补传",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(1) > div > button",
+        "tag": "button",
+        "type": "button",
+        "text": "打开交接",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(5) > article > div:nth-of-type(5) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "button",
+        "text": "接收任务",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(5) > article > div:nth-of-type(5) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "button",
+        "text": "异常首报",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(5) > article > div:nth-of-type(5) > button:nth-of-type(3)",
+        "tag": "button",
+        "type": "button",
+        "text": "到场",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "交接班 在 Dashboard 内完成交班、条目确认、整单签收与当前值班人切换。 待我签收1 我发起未完成1 当前值班人基线管理员 · 系统管理员 当前身份基线管理员 · 系统管理员 打开交接班抽屉 →",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > span > button",
+        "tag": "button",
+        "type": "button",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(1) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "×",
+        "name": null,
+        "ariaLabel": "关闭交接班抽屉",
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(1) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "刷新",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverOperatorName",
+        "tag": "input",
+        "type": "",
+        "text": "基线管理员",
+        "name": "operator_name",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > form > div:nth-of-type(2) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "submit",
+        "text": "切换当前值班人",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > form > div:nth-of-type(2) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "button",
+        "text": "恢复账号默认姓名",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(2) > div:nth-of-type(2) > div > ul > li > div:nth-of-type(1) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "确认条目",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(3) > div:nth-of-type(2) > div > div:nth-of-type(1) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "提交交接",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverShiftDate",
+        "tag": "input",
+        "type": "date",
+        "text": "2026-07-14",
+        "name": "shift_date",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverShiftCode",
+        "tag": "input",
+        "type": "",
+        "text": "例如：DAY / NIGHT",
+        "name": "shift_code",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverCandidate",
+        "tag": "select",
+        "type": "",
+        "text": "请选择接班岗位账号基线运行员 · 运行员",
+        "name": "to_user_id",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverRisk",
+        "tag": "select",
+        "type": "",
+        "text": "低风险中风险高风险关键风险",
+        "name": "risk_level",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverSummary",
+        "tag": "textarea",
+        "type": "",
+        "text": "仅补充系统草稿未覆盖的风险说明，限 200 字。",
+        "name": "summary",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(4) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "新增条目",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(6) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "submit",
+        "text": "创建交接草稿",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(6) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "button",
+        "text": "重置表单",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "交接班 在 Dashboard 内完成交班、条目确认、整单签收与当前值班人切换。 待我签收0 我发起未完成0 当前值班人基线管理员 · 系统管理员 当前身份基线管理员 · 系统管理员 打开交接班抽屉 →",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#dashboardHandoverCandidate",
+        "tag": "select",
+        "type": "",
+        "text": "暂无可选岗位账号",
+        "name": "to_user_id",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(5) > article > div:nth-of-type(5) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "button",
+        "text": "异常首报",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(5) > article > div:nth-of-type(5) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "button",
+        "text": "关键确认后完工",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "交接班 在 Dashboard 内完成交班、条目确认、整单签收与当前值班人切换。 待我签收0 我发起未完成1 当前值班人基线管理员 · 系统管理员 当前身份基线管理员 · 系统管理员 打开交接班抽屉 →",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(1) > label",
+        "text": "忙时模式",
+        "for": null
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > form > div:nth-of-type(1) > div > label",
+        "text": "当前值班人姓名",
+        "for": "dashboardHandoverOperatorName"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(1) > div:nth-of-type(1) > label",
+        "text": "班次日期",
+        "for": "dashboardHandoverShiftDate"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(1) > div:nth-of-type(2) > label",
+        "text": "班次代码",
+        "for": "dashboardHandoverShiftCode"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(1) > div:nth-of-type(3) > label",
+        "text": "接班岗位账号",
+        "for": "dashboardHandoverCandidate"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(1) > div:nth-of-type(4) > label",
+        "text": "风险等级",
+        "for": "dashboardHandoverRisk"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(1) > div:nth-of-type(5) > label",
+        "text": "风险说明",
+        "for": "dashboardHandoverSummary"
+      }
+    ],
+    "forms": [
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > form",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#dashboardHandoverOperatorName",
+          "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > form > div:nth-of-type(2) > button:nth-of-type(1)",
+          "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(1) > form > div:nth-of-type(2) > button:nth-of-type(2)"
+        ]
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#dashboardHandoverShiftDate",
+          "#dashboardHandoverShiftCode",
+          "#dashboardHandoverCandidate",
+          "#dashboardHandoverRisk",
+          "#dashboardHandoverSummary",
+          "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(4) > button",
+          "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(6) > button:nth-of-type(1)",
+          "body > div:nth-of-type(4) > aside > div:nth-of-type(2) > section:nth-of-type(4) > form > div:nth-of-type(6) > button:nth-of-type(2)"
+        ]
+      }
+    ],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a",
+        "text": "航班监控",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(1) > div:nth-of-type(6) > a",
+        "text": "打开派工中心 →",
+        "href": "/frontend/html/dispatch_board.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > section:nth-of-type(2) > div:nth-of-type(1) > a",
+        "text": "进入派工中心 →",
+        "href": "/frontend/html/dispatch_board.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(1)",
+        "text": "实时航班监控 全景视图查看所有航班动态、登机口变更及即时延误预警。 进入模块 →",
+        "href": "/frontend/html/flight_monitor.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(2)",
+        "text": "航班导入中心 管理航班数据导入、批次状态和错误回放。 进入模块 →",
+        "href": "/frontend/html/flight_imports.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(3)",
+        "text": "用户管理 管理账号生命周期、角色授权及组织架构。 进入模块 →",
+        "href": "/frontend/html/user_manager.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(4)",
+        "text": "AI 中心 AI 实体配置、实时监控与 LLM 评测实验室。 进入模块 →",
+        "href": "/frontend/html/ai_config_center.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(5)",
+        "text": "AI 监控大屏 实时观察 AI Agent 运行态势与执行质量指标。 进入模块 →",
+        "href": "/frontend/html/ai_monitor.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(6)",
+        "text": "LLM 评测实验室 模型对比、评测任务和效果回归分析。 进入模块 →",
+        "href": "/frontend/html/llm_eval_lab.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(7)",
+        "text": "自然语言查询 用自然语言查询航班、异常与运行统计结果。 进入模块 →",
+        "href": "/frontend/html/nl_query.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(8)",
+        "text": "异常监控中心 集中查看异常告警、升级状态并进行处置确认。 进入模块 →",
+        "href": "/frontend/html/anomaly_monitor.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(9)",
+        "text": "数据分析 KPI 仪表盘、准点率趋势与运行复盘报表。 进入模块 →",
+        "href": "/frontend/html/kpi_dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(10)",
+        "text": "运行复盘报告 查看与导出运行复盘摘要及关键指标。 进入模块 →",
+        "href": "/frontend/html/operations_review_report.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(11)",
+        "text": "指挥中心大屏 汇聚航班、异常与派工态势，适配值班席位实时决策。 进入模块 →",
+        "href": "/frontend/html/command_center.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(12)",
+        "text": "系统管理 系统运行状态监控、功能开关配置与全局参数。 进入模块 →",
+        "href": "/frontend/html/system_status.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(13)",
+        "text": "系统开关配置 管理系统功能开关、策略阈值和实验参数。 进入模块 →",
+        "href": "/frontend/html/system_flags.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(14)",
+        "text": "流程管理 Flowable 业务流程编排。 进入模块 →",
+        "href": "/frontend/html/flowable_modeler.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(15)",
+        "text": "标签管理 维护航班标签模板，支持航班级和航段级标签。 进入模块 →",
+        "href": "/frontend/html/label_manager.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(16)",
+        "text": "派工中心 甘特调度台、任务分配与资源利用率分析。 进入模块 →",
+        "href": "/frontend/html/dispatch_board.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(17)",
+        "text": "资源利用率 查看派工资源利用率、效率分布与趋势变化。 进入模块 →",
+        "href": "/frontend/html/resource_utilization.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(18)",
+        "text": "派工规则中心 配置调度规则、资质约束与仿真策略。 进入模块 →",
+        "href": "/frontend/html/dispatch_rule_center.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(2) > a:nth-of-type(19)",
+        "text": "派工资源 统一管理班组、成员、设备及类型配置。 进入模块 →",
+        "href": "/frontend/html/resource_manager.html"
+      }
+    ],
+    "stableSelectors": [
+      "#dashboard-ai-widget-root",
+      "#dashboardHandoverCandidate",
+      "#dashboardHandoverOperatorName",
+      "#dashboardHandoverRisk",
+      "#dashboardHandoverRoot",
+      "#dashboardHandoverShiftCode",
+      "#dashboardHandoverShiftDate",
+      "#dashboardHandoverSummary",
+      "#fms-parity-contract-determinism",
+      "#moduleGrid",
+      "#navbar-host",
+      "#unifiedHeaderLogout",
+      "#welcomeName"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "dashboard-success",
+      "fixture": "parity/fixtures/pages/dashboard/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::dashboard_admin_ai",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_accepted_orders_v1:00000000-0000-4000-8000-000000000001",
+          "value": "[]"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "fm_frontline_action_queue_v1::probe",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_action_queue_v1::probe",
+          "value": "1"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_workbench_cache_v1",
+          "value": "{\"user_id\":\"00000000-0000-4000-8000-000000000001\",\"generated_at\":\"2026-07-14T02:30:00Z\",\"my_orders\":[{\"order_id\":\"dispatch-order-5101\",\"flight_id\":\"MU5101\",\"task_type\":\"登机口保障\",\"status\":\"assigned\",\"terminal\":\"T1\",\"stand_id\":\"112\",\"gate\":\"A12\",\"planned_start_time\":\"2026-07-14T02:35:00Z\",\"planned_end_time\":\"2026-07-14T03:05:00Z\",\"actual_start_time\":null,\"assignment_deadline\":\"2026-07-14T02:40:00Z\",\"supervisor_notified\":true,\"next_primary_action\":\"arrive\",\"arrival_verification_needed\":true,\"verification_status\":\"pending_verification\",\"soft_followup_required\":false}],\"order_counts\":{\"pending\":0,\"assigned\":1,\"in_progress\":0,\"completed\":0,\"cancelled\":0,\"total\":1},\"pending_shift_handover_count\":1,\"notification_unread_count\":2,\"chat_unread_total\":1,\"pending_sync_action_count\":0,\"channel_recommendation\":{\"push\":true,\"sse\":true,\"in_app\":true},\"next_primary_action\":\"arrive\",\"arrival_verification_needed\":true,\"soft_followups_count\":1,\"critical_alerts\":[{\"notification_id\":\"notification-5101\",\"title\":\"MU5101 保障节点即将超时\",\"severity\":\"critical\",\"category\":\"dispatch\",\"related_entity_type\":\"dispatch_order\",\"related_entity_id\":\"dispatch-order-5101\",\"created_at\":\"2026-07-14T02:28:00Z\"}],\"handover_draft_summary\":{\"generated_item_count\":2,\"mandatory_count\":1,\"titles\":[\"MU5101 到场待补核\",\"交接关键风险\"]}}"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_workbench_cache_v1",
+          "value": "{\"user_id\":\"00000000-0000-4000-8000-000000000001\",\"generated_at\":\"2026-07-14T02:30:00Z\",\"my_orders\":[{\"order_id\":\"dispatch-order-5101\",\"flight_id\":\"MU5101\",\"task_type\":\"登机口保障\",\"status\":\"assigned\",\"terminal\":\"T1\",\"stand_id\":\"112\",\"gate\":\"A12\",\"planned_start_time\":\"2026-07-14T02:35:00Z\",\"planned_end_time\":\"2026-07-14T03:05:00Z\",\"actual_start_time\":null,\"assignment_deadline\":\"2026-07-14T02:40:00Z\",\"supervisor_notified\":true,\"next_primary_action\":\"arrive\",\"arrival_verification_needed\":true,\"verification_status\":\"pending_verification\",\"soft_followup_required\":false}],\"order_counts\":{\"pending\":0,\"assigned\":1,\"in_progress\":0,\"completed\":0,\"cancelled\":0,\"total\":1},\"pending_shift_handover_count\":1}"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_web_client_id",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "fm_web_client_id::probe",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_web_client_id::probe",
+          "value": "1"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/ai/events/stream?token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "fixtureId": "dashboard-ai-events-success",
+          "eventTypes": [
+            "ai_execution"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "dashboard-empty",
+      "fixture": "parity/fixtures/pages/dashboard/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::dashboard_admin_ai",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_accepted_orders_v1:00000000-0000-4000-8000-000000000001",
+          "value": "[]"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "fm_frontline_action_queue_v1::probe",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_action_queue_v1::probe",
+          "value": "1"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_workbench_cache_v1",
+          "value": "{\"user_id\":\"00000000-0000-4000-8000-000000000001\",\"generated_at\":\"2026-07-14T02:30:00Z\",\"my_orders\":[],\"order_counts\":{\"pending\":0,\"assigned\":0,\"in_progress\":0,\"completed\":0,\"cancelled\":0,\"total\":0},\"pending_shift_handover_count\":0,\"notification_unread_count\":0,\"chat_unread_total\":0,\"pending_sync_action_count\":0,\"channel_recommendation\":{\"push\":false,\"sse\":true,\"in_app\":true},\"next_primary_action\":\"view\",\"arrival_verification_needed\":false,\"soft_followups_count\":0,\"critical_alerts\":[],\"handover_draft_summary\":{\"generated_item_count\":0,\"mandatory_count\":0,\"titles\":[],\"items\":[]}}"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_workbench_cache_v1",
+          "value": "{\"user_id\":\"00000000-0000-4000-8000-000000000001\",\"generated_at\":\"2026-07-14T02:30:00Z\",\"my_orders\":[],\"order_counts\":{\"pending\":0,\"assigned\":0,\"in_progress\":0,\"completed\":0,\"cancelled\":0,\"total\":0},\"pending_shift_handover_count\":0}"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_web_client_id",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "fm_web_client_id::probe",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_web_client_id::probe",
+          "value": "1"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/ai/events/stream?token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "fixtureId": "dashboard-ai-events-empty",
+          "eventTypes": [
+            "ai_execution"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "dashboard-partial",
+      "fixture": "parity/fixtures/pages/dashboard/partial.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::dashboard_admin_ai",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_accepted_orders_v1:00000000-0000-4000-8000-000000000001",
+          "value": "[]"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "fm_frontline_action_queue_v1::probe",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_action_queue_v1::probe",
+          "value": "1"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_workbench_cache_v1",
+          "value": "{\"user_id\":\"00000000-0000-4000-8000-000000000001\",\"generated_at\":\"2026-07-14T02:29:00Z\",\"my_orders\":[{\"order_id\":\"dispatch-order-5102\",\"flight_id\":\"MU5102\",\"task_type\":\"机位保障\",\"status\":\"in_progress\",\"terminal\":\"T1\",\"stand_id\":\"116\",\"gate\":null,\"planned_start_time\":\"2026-07-14T02:10:00Z\",\"planned_end_time\":\"2026-07-14T02:50:00Z\",\"actual_start_time\":\"2026-07-14T02:18:00Z\",\"assignment_deadline\":\"2026-07-14T02:15:00Z\",\"supervisor_notified\":false,\"next_primary_action\":\"complete\",\"arrival_verification_needed\":false,\"verification_status\":\"verified\",\"soft_followup_required\":true}],\"order_counts\":{\"pending\":0,\"assigned\":0,\"in_progress\":1,\"completed\":0,\"cancelled\":0,\"total\":1},\"pending_shift_handover_count\":0,\"notification_unread_count\":0,\"chat_unread_total\":0,\"pending_sync_action_count\":0,\"channel_recommendation\":{\"push\":false,\"sse\":true,\"in_app\":true},\"next_primary_action\":\"complete\",\"arrival_verification_needed\":false,\"soft_followups_count\":1,\"critical_alerts\":[],\"handover_draft_summary\":{\"generated_item_count\":1,\"mandatory_count\":0,\"titles\":[\"延迟数据源恢复后补充\"],\"items\":[]},\"degraded_sources\":[{\"source\":\"notification\",\"reason\":\"fixture partial response\"}]}"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_frontline_workbench_cache_v1",
+          "value": "{\"user_id\":\"00000000-0000-4000-8000-000000000001\",\"generated_at\":\"2026-07-14T02:29:00Z\",\"my_orders\":[{\"order_id\":\"dispatch-order-5102\",\"flight_id\":\"MU5102\",\"task_type\":\"机位保障\",\"status\":\"in_progress\",\"terminal\":\"T1\",\"stand_id\":\"116\",\"gate\":null,\"planned_start_time\":\"2026-07-14T02:10:00Z\",\"planned_end_time\":\"2026-07-14T02:50:00Z\",\"actual_start_time\":\"2026-07-14T02:18:00Z\",\"assignment_deadline\":\"2026-07-14T02:15:00Z\",\"supervisor_notified\":false,\"next_primary_action\":\"complete\",\"arrival_verification_needed\":false,\"verification_status\":\"verified\",\"soft_followup_required\":true}],\"order_counts\":{\"pending\":0,\"assigned\":0,\"in_progress\":1,\"completed\":0,\"cancelled\":0,\"total\":1},\"pending_shift_handover_count\":0}"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_web_client_id",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "fm_web_client_id::probe",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "fm_web_client_id::probe",
+          "value": "1"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/ai/events/stream?token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "fixtureId": "dashboard-ai-events-partial",
+          "eventTypes": [
+            "ai_execution"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    }
+  ],
+  "approvedExceptions": []
+}

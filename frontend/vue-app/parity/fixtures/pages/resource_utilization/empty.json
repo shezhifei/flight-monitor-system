@@ -1,0 +1,59 @@
+{
+  "scenario": "resource-utilization-empty",
+  "routes": [
+    {
+      "id": "util-summary-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "window_start": "2026-07-13T14:30:00+00:00",
+          "window_end": "2026-07-14T02:30:00+00:00",
+          "stand_utilization_rate": 0,
+          "team_utilization_rate": 0,
+          "equipment_utilization_rate": 0,
+          "stand_count": 0,
+          "team_count": 0,
+          "equipment_count": 0
+        }
+      }
+    },
+    {
+      "id": "util-stands-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "id": "util-teams-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "id": "util-equipment-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ],
+  "sse_streams": []
+}

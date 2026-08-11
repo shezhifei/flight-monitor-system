@@ -1,0 +1,526 @@
+{
+  "scenario": "dashboard-success",
+  "routes": [
+    {
+      "id": "dashboard-workbench-success",
+      "method": "GET",
+      "pathname": "/api/v2/dashboard/workbench",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_at": "2026-07-14T02:30:00Z",
+            "user_context": {
+              "user_id": "00000000-0000-4000-8000-000000000001",
+              "username": "parity_admin",
+              "department": "运行控制中心",
+              "is_admin": true,
+              "permissions": ["*"]
+            },
+            "role_hint": "operations_admin",
+            "attention_items": [
+              {
+                "id": "attention-dashboard-1",
+                "title": "MU5101 到场待补核",
+                "priority": "high",
+                "status": "pending",
+                "source": "dispatch",
+                "source_id": "dispatch-order-5101",
+                "owner_id": "00000000-0000-4000-8000-000000000001",
+                "due_at": "2026-07-14T02:45:00Z",
+                "updated_at": "2026-07-14T02:30:00Z",
+                "recommended_action": "复核到场时间"
+              }
+            ],
+            "risk_summary": {
+              "unresolved_anomalies": 2,
+              "high_risk_flights": 1,
+              "dispatch_conflicts": 1,
+              "stale_data_indicators": [],
+              "high_risk_flight_refs": [
+                {
+                  "flight_id": "flight-mu5101",
+                  "anomaly_id": "anomaly-mu5101",
+                  "severity": "high",
+                  "title": "MU5101 到场保障风险",
+                  "detected_at": "2026-07-14T02:25:00Z"
+                }
+              ],
+              "dispatch_conflict_refs": []
+            },
+            "recent_changes": [
+              {
+                "id": "change-dashboard-1",
+                "title": "MU5101 保障节点更新",
+                "source": "dispatch",
+                "changed_at": "2026-07-14T02:28:00Z",
+                "severity": "info",
+                "entity_id": "dispatch-order-5101"
+              }
+            ],
+            "quick_links": [
+              {
+                "id": "flight",
+                "label": "航班监控",
+                "href": "/frontend/flight_monitor.html",
+                "module": "flight",
+                "intent": "inspect_flight_risk"
+              },
+              {
+                "id": "dispatch",
+                "label": "派工调度",
+                "href": "/frontend/dispatch_board.html",
+                "module": "dispatch",
+                "intent": "resolve_dispatch_work"
+              },
+              {
+                "id": "system",
+                "label": "系统状态",
+                "href": "/frontend/system_status.html",
+                "module": "system",
+                "intent": "inspect_runtime_health"
+              }
+            ],
+            "module_status": [
+              { "module": "flight", "status": "healthy", "detail": "航班数据正常" },
+              { "module": "dispatch", "status": "degraded", "detail": "存在 1 项派工冲突" }
+            ],
+            "degraded_sources": []
+          },
+          "message": "dashboard workbench loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-burden-metrics-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/burden-metrics",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_at": "2026-07-14T02:30:00Z",
+            "blocked_completion_count": 1,
+            "soft_completion_count": 2,
+            "pending_arrival_verification_count": 1,
+            "issue_reported_counts": {
+              "text": 3,
+              "photo": 1,
+              "voice": 1
+            },
+            "open_soft_followups": 1,
+            "open_arrival_verifications": 1,
+            "raw_counters": {
+              "dispatch.order.complete.blocked": 1,
+              "dispatch.order.complete.soft": 2,
+              "dispatch.order.arrival.pending_verification": 1
+            }
+          },
+          "message": "dispatch burden metrics loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-followup-queue-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/followup-queue",
+      "query": {
+        "assignee": [
+          "00000000-0000-4000-8000-000000000001"
+        ],
+        "limit": [
+          "20"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_at": "2026-07-14T02:30:00Z",
+            "assignee": "00000000-0000-4000-8000-000000000001",
+            "total": 1,
+            "pending_verification_count": 1,
+            "soft_followup_count": 0,
+            "items": [
+              {
+                "todo_id": "todo-arrival-5101",
+                "title": "MU5101 到场待补核",
+                "description": "请班组长复核到场时间",
+                "status": "pending",
+                "priority": "high",
+                "due_date": "2026-07-14T02:45:00Z",
+                "assigned_to": "00000000-0000-4000-8000-000000000001",
+                "source_type": "dispatch_arrival_verification",
+                "source_id": "dispatch-order-5101",
+                "tags": [
+                  "arrival",
+                  "verification"
+                ],
+                "followup_kind": "arrival_verification"
+              }
+            ]
+          },
+          "message": "dispatch follow-up queue loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-mobile-workbench-deferred-success",
+      "method": "GET",
+      "pathname": "/api/v2/mobile/workbench",
+      "query": {
+        "fields": [
+          "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+        ],
+        "max_orders": [
+          "8"
+        ],
+        "pending_sync_action_count": [
+          "0"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "notification_unread_count": 2,
+            "chat_unread_total": 1,
+            "pending_sync_action_count": 0,
+            "channel_recommendation": {
+              "push": true,
+              "sse": true,
+              "in_app": true
+            },
+            "next_primary_action": "arrive",
+            "arrival_verification_needed": true,
+            "soft_followups_count": 1,
+            "critical_alerts": [
+              {
+                "notification_id": "notification-5101",
+                "title": "MU5101 保障节点即将超时",
+                "severity": "critical",
+                "category": "dispatch",
+                "related_entity_type": "dispatch_order",
+                "related_entity_id": "dispatch-order-5101",
+                "created_at": "2026-07-14T02:28:00Z"
+              }
+            ],
+            "handover_draft_summary": {
+              "generated_item_count": 2,
+              "mandatory_count": 1,
+              "titles": [
+                "MU5101 到场待补核",
+                "交接关键风险"
+              ]
+            }
+          },
+          "message": "mobile workbench loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-mobile-workbench-core-success",
+      "method": "GET",
+      "pathname": "/api/v2/mobile/workbench",
+      "query": {
+        "fields": [
+          "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+        ],
+        "max_orders": [
+          "8"
+        ],
+        "pending_sync_action_count": [
+          "0"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "user_id": "00000000-0000-4000-8000-000000000001",
+            "generated_at": "2026-07-14T02:30:00Z",
+            "my_orders": [
+              {
+                "order_id": "dispatch-order-5101",
+                "flight_id": "MU5101",
+                "task_type": "登机口保障",
+                "status": "assigned",
+                "terminal": "T1",
+                "stand_id": "112",
+                "gate": "A12",
+                "planned_start_time": "2026-07-14T02:35:00Z",
+                "planned_end_time": "2026-07-14T03:05:00Z",
+                "actual_start_time": null,
+                "assignment_deadline": "2026-07-14T02:40:00Z",
+                "supervisor_notified": true,
+                "next_primary_action": "arrive",
+                "arrival_verification_needed": true,
+                "verification_status": "pending_verification",
+                "soft_followup_required": false
+              }
+            ],
+            "order_counts": {
+              "pending": 0,
+              "assigned": 1,
+              "in_progress": 0,
+              "completed": 0,
+              "cancelled": 0,
+              "total": 1
+            },
+            "pending_shift_handover_count": 1
+          },
+          "message": "mobile workbench loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-outgoing-handovers-success",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers",
+      "query": {
+        "from_user_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ],
+        "limit": [
+          "20"
+        ],
+        "offset": [
+          "0"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "handover_id": "handover-outgoing-1",
+            "shift_date": "2026-07-14",
+            "shift_code": "DAY",
+            "from_user_id": "00000000-0000-4000-8000-000000000001",
+            "to_user_id": "00000000-0000-4000-8000-000000000002",
+            "from_operator_name": "基线管理员",
+            "from_operator_job_title": "系统管理员",
+            "from_operator_label": "基线管理员 · 系统管理员",
+            "to_operator_name": "基线运行员",
+            "to_operator_job_title": "运行员",
+            "to_operator_label": "基线运行员 · 运行员",
+            "status": "draft",
+            "summary": "MU5101 保障节点需持续关注",
+            "risk_level": "high",
+            "signed_at": null,
+            "submitted_at": null,
+            "created_at": "2026-07-14T02:20:00Z",
+            "updated_at": "2026-07-14T02:25:00Z",
+            "items": [
+              {
+                "item_id": "handover-item-outgoing-1",
+                "handover_id": "handover-outgoing-1",
+                "item_type": "risk_note",
+                "title": "确认 MU5101 保障资源",
+                "detail": "登机口 A12，02:45 前复核",
+                "owner_user_id": "00000000-0000-4000-8000-000000000002",
+                "due_at": "2026-07-14T02:45:00Z",
+                "is_mandatory": true,
+                "acknowledged": false,
+                "acknowledged_at": null,
+                "acknowledged_by": null,
+                "created_at": "2026-07-14T02:20:00Z",
+                "updated_at": "2026-07-14T02:25:00Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dashboard-incoming-handovers-success",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers",
+      "query": {
+        "limit": [
+          "20"
+        ],
+        "offset": [
+          "0"
+        ],
+        "to_user_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "handover_id": "handover-incoming-1",
+            "shift_date": "2026-07-14",
+            "shift_code": "NIGHT",
+            "from_user_id": "00000000-0000-4000-8000-000000000002",
+            "to_user_id": "00000000-0000-4000-8000-000000000001",
+            "from_operator_name": "基线运行员",
+            "from_operator_job_title": "运行员",
+            "from_operator_label": "基线运行员 · 运行员",
+            "to_operator_name": "基线管理员",
+            "to_operator_job_title": "系统管理员",
+            "to_operator_label": "基线管理员 · 系统管理员",
+            "status": "pending",
+            "summary": "夜班交接待确认",
+            "risk_level": "medium",
+            "signed_at": null,
+            "submitted_at": "2026-07-14T02:15:00Z",
+            "created_at": "2026-07-14T02:10:00Z",
+            "updated_at": "2026-07-14T02:15:00Z",
+            "items": [
+              {
+                "item_id": "handover-item-incoming-1",
+                "handover_id": "handover-incoming-1",
+                "item_type": "pending_task",
+                "title": "复核早班首波航班",
+                "detail": "关注 MU5101 登机口保障",
+                "owner_user_id": "00000000-0000-4000-8000-000000000001",
+                "due_at": "2026-07-14T03:00:00Z",
+                "is_mandatory": true,
+                "acknowledged": false,
+                "acknowledged_at": null,
+                "acknowledged_by": null,
+                "created_at": "2026-07-14T02:10:00Z",
+                "updated_at": "2026-07-14T02:15:00Z"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dashboard-handover-candidates-success",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers/candidates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "user_id": "00000000-0000-4000-8000-000000000002",
+            "username": "parity_operator",
+            "display_name": "基线运行员",
+            "job_title": "运行员",
+            "display_label": "基线运行员 · 运行员"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dashboard-system-draft-preview-success",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers/system-draft-preview",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_item_count": 2,
+            "mandatory_count": 1,
+            "titles": [
+              "MU5101 到场待补核",
+              "交接关键风险"
+            ],
+            "items": [
+              {
+                "item_type": "pending_task",
+                "title": "MU5101 到场待补核",
+                "detail": "请接班岗位复核到场时间",
+                "owner_user_id": "00000000-0000-4000-8000-000000000002",
+                "due_at": "2026-07-14T02:45:00Z",
+                "is_mandatory": true
+              },
+              {
+                "item_type": "risk_note",
+                "title": "交接关键风险",
+                "detail": "保障节点存在延误风险",
+                "owner_user_id": null,
+                "due_at": null,
+                "is_mandatory": false
+              }
+            ]
+          },
+          "message": "Shift handover system draft preview loaded",
+          "timestamp": "2026-07-14T02:30:00Z"
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "dashboard-ai-events-success",
+      "pathname": "/api/v2/ai/events/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "dashboard-ai-event-success-1",
+          "event": "ai_execution",
+          "data": {
+            "event": "tool_end",
+            "execution_id": "execution-dashboard-1",
+            "tool_name": "dispatch_risk_summary",
+            "status": "succeeded",
+            "message": "MU5101 风险摘要已更新"
+          }
+        }
+      ]
+    }
+  ],
+  "capture": {
+    "expected_panels": [
+      "#moduleGrid",
+      ".dashboard-handover-card"
+    ],
+    "regions": [
+      {
+        "id": "module-grid",
+        "selector": "#moduleGrid"
+      }
+    ],
+    "interactions": [
+      {
+        "id": "handover-drawer",
+        "actions": [
+          {
+            "type": "click",
+            "selector": ".dashboard-handover-card"
+          }
+        ],
+        "expected_panels": [
+          "body.dashboard-handover-open .dashboard-handover-drawer[aria-hidden='false']"
+        ],
+        "regions": [
+          {
+            "id": "handover-drawer",
+            "selector": ".dashboard-handover-drawer"
+          }
+        ]
+      }
+    ]
+  }
+}

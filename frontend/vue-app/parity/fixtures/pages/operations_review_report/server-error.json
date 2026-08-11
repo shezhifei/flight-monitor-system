@@ -1,0 +1,141 @@
+{
+  "scenario": "operations-review-report-server-error",
+  "routes": [
+    {
+      "id": "ops-flight-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/flights/updates/recent",
+      "query": {
+        "limit": [
+          "500"
+        ],
+        "minutes": [
+          "360"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "航班更新加载失败"
+          }
+        }
+      }
+    },
+    {
+      "id": "ops-anomaly-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "query": {
+        "end_date": [
+          "2026-07-14T02:30:00.000Z"
+        ],
+        "limit": [
+          "300"
+        ],
+        "offset": [
+          "0"
+        ],
+        "start_date": [
+          "2026-07-13T20:30:00.000Z"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "异常列表加载失败"
+          }
+        }
+      }
+    },
+    {
+      "id": "ops-conflicts-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/conflicts",
+      "query": {
+        "limit": [
+          "200"
+        ],
+        "window_end": [
+          "2026-07-14T02:30:00.000Z"
+        ],
+        "window_start": [
+          "2026-07-13T20:30:00.000Z"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "调度冲突加载失败"
+          }
+        }
+      }
+    },
+    {
+      "id": "ops-compare-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/compare",
+      "query": {
+        "base_end_date": [
+          "2026-07-14"
+        ],
+        "base_start_date": [
+          "2026-07-08"
+        ],
+        "compare_end_date": [
+          "2026-07-07"
+        ],
+        "compare_start_date": [
+          "2026-07-01"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "KPI 对比加载失败"
+          }
+        }
+      }
+    },
+    {
+      "id": "ops-trend-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/trend-with-anomalies",
+      "query": {
+        "days": [
+          "14"
+        ],
+        "metric": [
+          "on_time_rate"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "KPI 趋势加载失败"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

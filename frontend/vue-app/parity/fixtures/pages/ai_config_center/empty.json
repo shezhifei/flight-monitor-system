@@ -1,0 +1,64 @@
+{
+  "scenario": "ai_config_center-empty",
+  "routes": [
+    {
+      "id": "ai-config-entities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/entities",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "entities": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-models-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/models",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "models": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-tools-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "ai-config-tool-categories-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools/categories",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "categories": []
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

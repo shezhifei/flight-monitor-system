@@ -1,0 +1,91 @@
+{
+  "scenario": "anomaly_monitor-forbidden",
+  "routes": [
+    {
+      "id": "anomaly-list-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "query": {
+        "limit": [
+          "100"
+        ]
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/anomalies"
+          }
+        }
+      }
+    },
+    {
+      "id": "anomaly-stats-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies/stats",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/anomalies/stats"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "anomaly-stream-success",
+      "pathname": "/api/v2/anomalies/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "anomaly-event-1",
+          "event": "initial",
+          "data": {
+            "items": [
+              {
+                "anomaly_id": "anomaly-5101",
+                "flight_id": "flight-mu5101",
+                "flight_number": "MU5101",
+                "anomaly_type": "service_node_timeout",
+                "severity": "high",
+                "status": "open",
+                "escalation_level": 1,
+                "title": "登机保障节点即将超时",
+                "description": "登机节点剩余 15 分钟",
+                "detected_at": "2026-07-14T02:26:00Z",
+                "acknowledged_at": null,
+                "resolved_at": null,
+                "created_at": "2026-07-14T02:26:00Z",
+                "updated_at": "2026-07-14T02:28:00Z"
+              }
+            ],
+            "total": 1
+          }
+        },
+        {
+          "id": "anomaly-event-2",
+          "event": "anomaly_updated",
+          "data": {
+            "anomaly_id": "anomaly-5101",
+            "status": "open",
+            "updated_at": "2026-07-14T02:30:05Z"
+          }
+        }
+      ]
+    }
+  ]
+}

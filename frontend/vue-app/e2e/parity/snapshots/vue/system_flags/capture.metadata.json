@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "page": "system_flags",
+  "target": "vue",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "captures": [
+    {
+      "file": "system_flags/system-flags-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-flags-success",
+      "viewport": "desktop-wide",
+      "sha256": "facb0165ee49eb3feb44ee1df696d4c08335071aa3385f80ccb79fac1a8b426a"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "scenario": "system-flags-success",
+      "viewport": "desktop-wide",
+      "sha256": "96302afa46e5508ce00c21706a6da003614b53950c61a7d014111e5c1e3d74cb"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-success",
+      "viewport": "desktop",
+      "sha256": "9015a4fca6346ecba11a907c1d1890f64a54709ebf9ef65a3f767b505ab6a297"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--desktop.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "scenario": "system-flags-success",
+      "viewport": "desktop",
+      "sha256": "ef78cab603d0a05c8e28ecbaebc59deb0e178e09ef0990d248d8a451204208b7"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-success",
+      "viewport": "laptop",
+      "sha256": "e5307a5c11a5e4f91bb8f530e902730cf64a802a01e5b4692d18efbcd9c7956d"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--laptop.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "scenario": "system-flags-success",
+      "viewport": "laptop",
+      "sha256": "a7f093e5a0c006ebb149dda5b0ce32bc502f04b7fb07c4bfbd0d637574ec0eba"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-flags-success",
+      "viewport": "tablet",
+      "sha256": "54da7c4cd0791d2172159d60572c5fe0bcebd5f4b06a2098ba4251e13744d05c"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--tablet.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "scenario": "system-flags-success",
+      "viewport": "tablet",
+      "sha256": "7674d0037b97542a3345d157e52186531cdc6eb8d742e94617c25e59837dbc5a"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-flags-success",
+      "viewport": "mobile",
+      "sha256": "9449ee9e06e2f00581bdc692b268d1196195b2df744271da922fe84376ea5b6b"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--mobile.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "scenario": "system-flags-success",
+      "viewport": "mobile",
+      "sha256": "ede8f14cd4859ba4b1206ec77145bf66f2069feda99acc46f9258916dc09f33f"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-flags-empty",
+      "viewport": "desktop-wide",
+      "sha256": "40838544627852dacf4fbc4036b895ba75498a2bad19f3cc372357b1e11c4143"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-empty",
+      "viewport": "desktop",
+      "sha256": "0edc4bfb56e37f3e203c8b4781469fcbc0fe9d26d65a892b6624f9b659fed067"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-empty",
+      "viewport": "laptop",
+      "sha256": "790a92181a98f02f22f4382cb5bec6e90fbeb913de16686c9c9a0df9ca021512"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-flags-empty",
+      "viewport": "tablet",
+      "sha256": "9e7a34eb63b6205a08ff3c402cdef6448a70ad8eb3f33628722c1320e68405ae"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-flags-empty",
+      "viewport": "mobile",
+      "sha256": "debe3a344d9c7f716f689e1e6e62db094bb47ebbbc23d741917ff560b47694f5"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-flags-unauthorized",
+      "viewport": "desktop-wide",
+      "sha256": "07139adedc84bcaa526992005c9b7992fa9c7aa1dd1de26bcb58be2ea3a6751b"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-unauthorized",
+      "viewport": "desktop",
+      "sha256": "91d81c24af98986cf59d22823e181935c6a606f2399d0103f8acb0e0065f5c4a"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-unauthorized",
+      "viewport": "laptop",
+      "sha256": "42d1063ee9ffa769215c19b74277c8ac35996b7cfd66779da0257f00577d0dd7"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-flags-unauthorized",
+      "viewport": "tablet",
+      "sha256": "5771eed6f6a40a13c749c32d0f5f29e9d076c117c311d78134f46736752e6a3e"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-flags-unauthorized",
+      "viewport": "mobile",
+      "sha256": "d6df477fc0bdac35497489e7793d50ceea1058251a545b3c96de9c22b106d1d5"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-flags-forbidden",
+      "viewport": "desktop-wide",
+      "sha256": "e09d1ccb17d13cf6f06903746c284749f5e53016b8723950033d063a67496df1"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-forbidden",
+      "viewport": "desktop",
+      "sha256": "62cc2350ee8580f81598f576f6c5ef32bd96be35ce5bb1c6ebdbb4af17ca9390"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-forbidden",
+      "viewport": "laptop",
+      "sha256": "d3c8307468e816ab6851368fca96981a68b6ce6a832bbe8640ec9af5a54599c8"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-flags-forbidden",
+      "viewport": "tablet",
+      "sha256": "b4f78bd7b8475e7d22b77ad1301d0b1731011e5c193363e9538236d38990ba6f"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-flags-forbidden",
+      "viewport": "mobile",
+      "sha256": "4f570177faa5cae3aa60a037d5b6c3d42e10fa6e3985e4fcb8d29f00e4fc2928"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "system-flags-server-error",
+      "viewport": "desktop-wide",
+      "sha256": "dc8623951d3e2b1fa9e387711a41fee9b85cf2cf9c0e298142c8508c54588d77"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-server-error",
+      "viewport": "desktop",
+      "sha256": "bcc1e0cd8d5ad09fa5882bb277badec4bdb116086f029c0470085956c37031d8"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "system-flags-server-error",
+      "viewport": "laptop",
+      "sha256": "ead91f045b3c1dcb18ae65cb8285df2d47dde7d91326e8df84a163487eb79734"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "system-flags-server-error",
+      "viewport": "tablet",
+      "sha256": "5f2386ed3b912641fc2ce0447d6ee7026c051c7a077f4fd04963296bad194a3f"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "system-flags-server-error",
+      "viewport": "mobile",
+      "sha256": "4f570177faa5cae3aa60a037d5b6c3d42e10fa6e3985e4fcb8d29f00e4fc2928"
+    }
+  ]
+}

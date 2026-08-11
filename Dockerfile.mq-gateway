@@ -1,0 +1,50 @@
+FROM rust:1.86-bookworm AS rocketmq-deps
+WORKDIR /app/vendor/rocketmq-rust
+COPY libs/vendor/rocketmq-rust/Cargo.toml libs/vendor/rocketmq-rust/Cargo.lock ./
+RUN mkdir -p src && echo "" > src/lib.rs && cargo build --release 2>/dev/null || true
+
+FROM rocketmq-deps AS rocketmq-builder
+COPY libs/vendor/rocketmq-rust ./
+RUN touch src/lib.rs && cargo build --release -p rocketmq-namesrv -p rocketmq-broker
+
+FROM rust:1.86-bookworm AS gateway-deps
+WORKDIR /app
+COPY libs/vendor/rocketmq-rust/Cargo.toml libs/vendor/rocketmq-rust/Cargo.lock libs/vendor/rocketmq-rust/
+COPY services/mq-gateway/Cargo.toml services/mq-gateway/Cargo.lock services/mq-gateway/
+RUN cd services/mq-gateway && mkdir -p src && echo "fn main() {}" > src/main.rs && cargo build --release --features rocketmq-backend 2>/dev/null || true
+
+FROM gateway-deps AS gateway-builder
+COPY libs/vendor/rocketmq-rust libs/vendor/rocketmq-rust
+COPY services/mq-gateway services/mq-gateway
+WORKDIR /app/services/mq-gateway
+RUN touch src/main.rs && cargo build --release --features rocketmq-backend
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends bash ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 1000 mq \
+    && useradd --uid 1000 --gid mq --shell /bin/bash --create-home mq
+WORKDIR /app
+COPY LICENSE NOTICE /app/
+
+FROM runtime AS namesrv
+COPY --from=rocketmq-builder /app/vendor/rocketmq-rust/target/release/rocketmq-namesrv-rust /usr/local/bin/rocketmq-namesrv-rust
+RUN chown mq:mq /usr/local/bin/rocketmq-namesrv-rust
+EXPOSE 9876
+USER mq
+CMD ["rocketmq-namesrv-rust"]
+
+FROM runtime AS broker
+COPY --from=rocketmq-builder /app/vendor/rocketmq-rust/target/release/rocketmq-broker-rust /usr/local/bin/rocketmq-broker-rust
+RUN chown mq:mq /usr/local/bin/rocketmq-broker-rust
+EXPOSE 10911
+USER mq
+CMD ["rocketmq-broker-rust"]
+
+FROM runtime AS mq-gateway
+COPY --from=gateway-builder /app/services/mq-gateway/target/release/fms-mq-gateway /usr/local/bin/fms-mq-gateway
+RUN chown mq:mq /usr/local/bin/fms-mq-gateway
+EXPOSE 8097
+USER mq
+CMD ["fms-mq-gateway"]

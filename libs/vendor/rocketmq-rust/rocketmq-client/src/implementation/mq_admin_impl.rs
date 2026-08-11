@@ -1,0 +1,153 @@
+// Copyright 2023 The RocketMQ Rust Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use rocketmq_common::common::boundary_type::BoundaryType;
+use rocketmq_common::common::message::message_queue::MessageQueue;
+use rocketmq_error::RocketMQError;
+use rocketmq_remoting::protocol::namespace_util::NamespaceUtil;
+use rocketmq_rust::ArcMut;
+
+use crate::base::client_config::ClientConfig;
+use crate::factory::mq_client_instance;
+use crate::factory::mq_client_instance::MQClientInstance;
+use crate::implementation::mq_client_api_impl::MQClientAPIImpl;
+
+pub struct MQAdminImpl {
+    timeout_millis: u64,
+    client: Option<ArcMut<MQClientInstance>>,
+}
+
+impl MQAdminImpl {
+    pub fn new() -> Self {
+        MQAdminImpl {
+            timeout_millis: 60000,
+            client: None,
+        }
+    }
+
+    pub fn set_client(&mut self, client: ArcMut<MQClientInstance>) {
+        self.client = Some(client);
+    }
+}
+
+impl MQAdminImpl {
+    pub fn parse_publish_message_queues(
+        &mut self,
+        message_queue_array: &[MessageQueue],
+        client_config: &mut ClientConfig,
+    ) -> Vec<MessageQueue> {
+        let mut message_queues = Vec::new();
+        for message_queue in message_queue_array {
+            let user_topic = NamespaceUtil::without_namespace_with_namespace(
+                message_queue.topic_str(),
+                client_config.get_namespace().unwrap_or_default().as_str(),
+            );
+
+            let message_queue =
+                MessageQueue::from_parts(user_topic, message_queue.broker_name(), message_queue.queue_id());
+            message_queues.push(message_queue);
+        }
+        message_queues
+    }
+
+    pub async fn fetch_publish_message_queues(
+        &mut self,
+        topic: &str,
+        mq_client_api_impl: ArcMut<MQClientAPIImpl>,
+        client_config: &mut ClientConfig,
+    ) -> rocketmq_error::RocketMQResult<Vec<MessageQueue>> {
+        let topic_route_data = mq_client_api_impl
+            .get_topic_route_info_from_name_server_detail(topic, self.timeout_millis, true)
+            .await?;
+        if let Some(mut topic_route_data) = topic_route_data {
+            let topic_publish_info =
+                mq_client_instance::topic_route_data2topic_publish_info(topic, &mut topic_route_data);
+            if topic_publish_info.ok() {
+                return Ok(self.parse_publish_message_queues(&topic_publish_info.message_queue_list, client_config));
+            }
+        }
+        Err(mq_client_err!(format!(
+            "Unknow why, Can not find Message Queue for this topic, {}",
+            topic
+        )))
+    }
+
+    /// Queries the maximum offset of the given message queue from the broker.
+    ///
+    /// Retries the broker address lookup via the name server when it is not cached locally.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the broker address cannot be resolved or the remote call fails.
+    pub async fn max_offset(&mut self, mq: &MessageQueue) -> rocketmq_error::RocketMQResult<i64> {
+        let client = self
+            .client
+            .as_mut()
+            .ok_or_else(|| RocketMQError::not_initialized("MQClientInstance"))?;
+        let broker_name = client.get_broker_name_from_message_queue(mq).await;
+        let mut broker_addr = client.find_broker_address_in_publish(broker_name.as_ref());
+        if broker_addr.is_none() {
+            client.update_topic_route_info_from_name_server_topic(mq.topic()).await;
+            let broker_name = client.get_broker_name_from_message_queue(mq).await;
+            broker_addr = client.find_broker_address_in_publish(broker_name.as_ref());
+        }
+        if let Some(ref broker_addr) = broker_addr {
+            return client
+                .mq_client_api_impl
+                .as_mut()
+                .ok_or_else(|| RocketMQError::not_initialized("MQClientAPIImpl"))?
+                .get_max_offset(broker_addr, mq, self.timeout_millis)
+                .await;
+        }
+        Err(mq_client_err!(format!("The broker[{}] not exist", mq.broker_name())))
+    }
+
+    /// Searches for the queue offset whose store timestamp is closest to `timestamp`.
+    ///
+    /// Defaults to [`BoundaryType::Lower`], returning the earliest offset whose store
+    /// timestamp is greater than or equal to `timestamp`, matching the behaviour of
+    /// `MQAdminImpl.searchOffset(MessageQueue, long)` in the Java implementation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the broker address cannot be resolved or the remote call fails.
+    pub async fn search_offset(&mut self, mq: &MessageQueue, timestamp: u64) -> rocketmq_error::RocketMQResult<i64> {
+        let client = self
+            .client
+            .as_mut()
+            .ok_or_else(|| RocketMQError::not_initialized("MQClientInstance"))?;
+        let broker_name = client.get_broker_name_from_message_queue(mq).await;
+        let mut broker_addr = client.find_broker_address_in_publish(broker_name.as_ref());
+        if broker_addr.is_none() {
+            client.update_topic_route_info_from_name_server_topic(mq.topic()).await;
+            let broker_name = client.get_broker_name_from_message_queue(mq).await;
+            broker_addr = client.find_broker_address_in_publish(broker_name.as_ref());
+        }
+        if let Some(ref broker_addr) = broker_addr {
+            return client
+                .mq_client_api_impl
+                .as_mut()
+                .ok_or_else(|| RocketMQError::not_initialized("MQClientAPIImpl"))?
+                .search_offset_by_timestamp(
+                    broker_addr,
+                    mq,
+                    timestamp as i64,
+                    BoundaryType::Lower,
+                    self.timeout_millis,
+                )
+                .await;
+        }
+        Err(mq_client_err!(format!("The broker[{}] not exist", mq.broker_name())))
+    }
+}

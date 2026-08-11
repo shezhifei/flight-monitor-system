@@ -1,0 +1,91 @@
+{
+  "scenario": "resource-utilization-partial",
+  "routes": [
+    {
+      "id": "util-summary-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "window_start": "2026-07-13T14:30:00+00:00",
+          "window_end": "2026-07-14T02:30:00+00:00",
+          "stand_utilization_rate": 0.805,
+          "team_utilization_rate": 0.755,
+          "equipment_utilization_rate": 0.73,
+          "stand_count": 2,
+          "team_count": 2,
+          "equipment_count": 2
+        }
+      }
+    },
+    {
+      "id": "util-stands-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "stand_id": "stand-a12",
+            "stand_code": "A12",
+            "occupied_minutes": 648,
+            "utilization_rate": 0.9
+          },
+          {
+            "stand_id": "stand-b06",
+            "stand_code": "B06",
+            "occupied_minutes": 511.2,
+            "utilization_rate": 0.71
+          }
+        ]
+      }
+    },
+    {
+      "id": "util-teams-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "team_id": "team-ground-01",
+            "order_count": 9,
+            "occupied_minutes": 612,
+            "utilization_rate": 0.85
+          },
+          {
+            "team_id": "team-ground-02",
+            "order_count": 6,
+            "occupied_minutes": 475.2,
+            "utilization_rate": 0.66
+          }
+        ]
+      }
+    },
+    {
+      "id": "util-equipment-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "设备利用率暂时不可用"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

@@ -1,0 +1,1 @@
+"""AI sidecar host entrypoints."""

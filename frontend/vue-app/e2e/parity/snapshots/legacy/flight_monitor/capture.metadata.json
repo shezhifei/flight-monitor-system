@@ -1,0 +1,2590 @@
+{
+  "schema_version": 1,
+  "page": "flight_monitor",
+  "legacy_html": "html/flight_monitor.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/flight_monitor.html",
+      "sha256": "46a97bdfee08e17617109ea99357dab96aaaee389cc285213cff92c075f9ec74"
+    },
+    {
+      "path": "icons/ai.svg",
+      "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+    },
+    {
+      "path": "icons/bar_chart.svg",
+      "sha256": "3af98cce83c1e1408755e6e39cf7760c97cbb797509478141d4320ebc1ac031c"
+    },
+    {
+      "path": "icons/cancel.svg",
+      "sha256": "6e92e51c51cf9b4defabbd7dd1686b87131c5e8153974fc711781633f142c77e"
+    },
+    {
+      "path": "icons/clock.svg",
+      "sha256": "28b710f51a70ce69e9beefd2f6eaca66bdfdedaf2a688182183d102afa464411"
+    },
+    {
+      "path": "icons/connection.svg",
+      "sha256": "716bb5044602b317503d0061ecbbba310b4b5cae54fa0421aaae667a8906ee5b"
+    },
+    {
+      "path": "icons/edit.svg",
+      "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "icons/messages.svg",
+      "sha256": "41ea89efd02edf53adc55da7873bc3d5de1adb20c85314f7cd093f2bca94d0c2"
+    },
+    {
+      "path": "icons/ok.svg",
+      "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+    },
+    {
+      "path": "icons/settings.svg",
+      "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+    },
+    {
+      "path": "js/ai_entry_loader.js",
+      "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/business_timeline.js",
+      "sha256": "f68d32f8f00823e02acdff669c74196c5eed90ebfd9e0cbbbfaf9123caa21dfa"
+    },
+    {
+      "path": "js/dispatch_chat_panel.js",
+      "sha256": "ab6a7fbf560defcd65d79abe35f181b9e0dce6d2c1cd59f0c830a987cf54cff2"
+    },
+    {
+      "path": "js/flight_monitor.js",
+      "sha256": "8a8f7a9d89cfeadd17d46da31e17d1ce1f86e31d44e59792a420ac368621c5c4"
+    },
+    {
+      "path": "js/flight_monitor/data.js",
+      "sha256": "d5e3e01176f1212716d30e6e687f0e38c74c2e54916f7db4f516c3f5e855397d"
+    },
+    {
+      "path": "js/flight_monitor/render.js",
+      "sha256": "cce0a0b4d00eda952c515091759ca1e20deab58f78a837b0a2995779601078a9"
+    },
+    {
+      "path": "js/flight_monitor/stream.js",
+      "sha256": "5e107c027e1859d4844d154c06bf47fa086b7ed4e0638440ba411f6c491cb8e7"
+    },
+    {
+      "path": "js/sse_hub.js",
+      "sha256": "c0f7d07c398c941eac0ccee0d62a44c66713cca6f1de93678a5f166e6a3d6517"
+    },
+    {
+      "path": "static/ai/manifest.json",
+      "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+    },
+    {
+      "path": "vendor/js/echarts.min.js",
+      "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "6981bccfabbbecfe7b209b8fd0fe3651b259c25838cd7777a33d120f1bb9f06e",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/flight_monitor/empty.json",
+      "sha256": "c02c2159256d72e1015bf09cf283c76d6b045e420202e8815178961d2c4ed41f"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_monitor/manifest.json",
+      "sha256": "ee1ca8e7f54d94181774970180cd6a0a86c95060c58c7e2c7c1ade17643a19da"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_monitor/partial.json",
+      "sha256": "b5f235754a160b61466eb44cf8072120c09941c44372d5ff57dc7d56745b8131"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_monitor/success.json",
+      "sha256": "77a9be407ddc0369bc8b7b88906d7bd44ccb73a85fcaa6a54b365834388c1658"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "flight_monitor-success",
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#flightList",
+        ".flight-detail-panel"
+      ],
+      "regions": [
+        {
+          "id": "flight-workspace",
+          "selector": ".container"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "flight-detail",
+          "reason": "The strict success DTO is accepted without browser errors, but the legacy renderer creates no .flight-item, so a detail selection cannot be triggered until the wire-contract drift is corrected.",
+          "source": "js/flight_monitor.js#selectFlight"
+        }
+      ]
+    },
+    {
+      "id": "flight_monitor-empty",
+      "fixture": "flight_monitor-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "flight_monitor-partial",
+      "fixture": "flight_monitor-partial",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "flight_monitor/flight_monitor-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "269fd21e0759552b2981109cb821c1758ae1fd31b1a76f9b783a71bc3ee65d4c"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--flight-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "flight-workspace",
+      "selector": ".container",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "269fd21e0759552b2981109cb821c1758ae1fd31b1a76f9b783a71bc3ee65d4c"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "59b35d12fcfe1dd743ea29ceb90a38803bf895b336ea405f931569fdd0cec8e7"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--flight-workspace--desktop.png",
+      "kind": "region",
+      "region": "flight-workspace",
+      "selector": ".container",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "59b35d12fcfe1dd743ea29ceb90a38803bf895b336ea405f931569fdd0cec8e7"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dec348471d90845b912b0e4c98d6df1097254c1bf2d7872069978337787c4712"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--flight-workspace--laptop.png",
+      "kind": "region",
+      "region": "flight-workspace",
+      "selector": ".container",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dec348471d90845b912b0e4c98d6df1097254c1bf2d7872069978337787c4712"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "90ccc80d827ebc1c7a3c870af44e21a3b326c5268b0264c1716ab14584fc92a0"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--flight-workspace--tablet.png",
+      "kind": "region",
+      "region": "flight-workspace",
+      "selector": ".container",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "90ccc80d827ebc1c7a3c870af44e21a3b326c5268b0264c1716ab14584fc92a0"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ffe91ebdcc29faf64834f9f47f7603134798512748ca8b7155cf69678c62ec2d"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-success--flight-workspace--mobile.png",
+      "kind": "region",
+      "region": "flight-workspace",
+      "selector": ".container",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_monitor-success",
+      "theme": "light",
+      "scenario": "flight_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ffe91ebdcc29faf64834f9f47f7603134798512748ca8b7155cf69678c62ec2d"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_monitor-empty",
+      "theme": "light",
+      "scenario": "flight_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "49267ce010a34363acfc613c190018264570011533da4b713798f8eca48847f4"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_monitor-empty",
+      "theme": "light",
+      "scenario": "flight_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c707505e315839977368b7e397ec2ed0422e1fec26e0d41db5b3fad4ab81d3e1"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_monitor-empty",
+      "theme": "light",
+      "scenario": "flight_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "09106f301058799887d3fe3088c178cecc12ae6e5a21c7c8f5184b02f8308296"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_monitor-empty",
+      "theme": "light",
+      "scenario": "flight_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "03c81260fb055970f207bbf93c6df4f23020d441fa402c631d9d7ca283239c99"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_monitor-empty",
+      "theme": "light",
+      "scenario": "flight_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3c7feb9fc8876ead8e5da21e62e74c28c26f9d61b5c777fcc2e2e235d5bc861c"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_monitor-partial",
+      "theme": "light",
+      "scenario": "flight_monitor-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "269fd21e0759552b2981109cb821c1758ae1fd31b1a76f9b783a71bc3ee65d4c"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_monitor-partial",
+      "theme": "light",
+      "scenario": "flight_monitor-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "59b35d12fcfe1dd743ea29ceb90a38803bf895b336ea405f931569fdd0cec8e7"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_monitor-partial",
+      "theme": "light",
+      "scenario": "flight_monitor-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dec348471d90845b912b0e4c98d6df1097254c1bf2d7872069978337787c4712"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_monitor-partial",
+      "theme": "light",
+      "scenario": "flight_monitor-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "90ccc80d827ebc1c7a3c870af44e21a3b326c5268b0264c1716ab14584fc92a0"
+    },
+    {
+      "file": "flight_monitor/flight_monitor-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_monitor-partial",
+      "theme": "light",
+      "scenario": "flight_monitor-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ffe91ebdcc29faf64834f9f47f7603134798512748ca8b7155cf69678c62ec2d"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "flight_monitor-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-partial",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-partial",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-partial",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-partial",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_monitor-partial",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

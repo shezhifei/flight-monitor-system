@@ -1,0 +1,1477 @@
+{
+  "schema_version": 1,
+  "page": "anomaly_monitor",
+  "legacy_html": "html/anomaly_monitor.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "css/workspace_unified_theme.css",
+      "sha256": "b63af6b73b8630f37f426c436b8ecfb74efdee47d010bd7092053d822527383b"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/anomaly_monitor.html",
+      "sha256": "3eaeff3e1b70c16a40ef40f88d4d7615895061dcbeec597b1b81423bc201b0ce"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "a11b6d16043a6493b0394457569086521d1f38ae46b207d7d0b88fb51aa6eb1e",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/anomaly_monitor/empty.json",
+      "sha256": "ce1906374f2360dadc85113eb323c09ac53b66588059748b9de4fa955e381ca3"
+    },
+    {
+      "path": "parity/fixtures/pages/anomaly_monitor/forbidden.json",
+      "sha256": "e26d88b56776df7d71cabeeb9fe866d37f22ab1f7803890c740ba5e0a82fa6c5"
+    },
+    {
+      "path": "parity/fixtures/pages/anomaly_monitor/manifest.json",
+      "sha256": "fb425f6e0965126e42ad780c113b3dc6906949eaf326cd0251bf47c82c78991b"
+    },
+    {
+      "path": "parity/fixtures/pages/anomaly_monitor/success.json",
+      "sha256": "4142b58c69bc69d74d0f95f6a0e05d057f2facc4c6e4666ded118eda66d336dd"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "anomaly_monitor-success",
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#statsGrid",
+        "#tableBody"
+      ],
+      "regions": [
+        {
+          "id": "anomaly-summary",
+          "selector": "#statsGrid"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "anomaly_monitor-empty",
+      "fixture": "anomaly_monitor-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "anomaly_monitor-forbidden",
+      "fixture": "anomaly_monitor-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c8628b70e618018bf47ad95b2bef4a476a1db520209b44700fc0a81623e84886"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--anomaly-summary--desktop-wide.png",
+      "kind": "region",
+      "region": "anomaly-summary",
+      "selector": "#statsGrid",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3db5a3709711ca587fc1f91f4b165cc278d550c199960031b4bb2861842f35b2"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5c7dec1bac67cc46226c126d08714fbda91b5efd7deca65d2e985f00a23b09bd"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--anomaly-summary--desktop.png",
+      "kind": "region",
+      "region": "anomaly-summary",
+      "selector": "#statsGrid",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dbec7792a1c20240004503ba7e185f2514bc55634bb13e0ad5bfcf9b585b89ec"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "61998fd4c241b4aa38bdca0adb95b3229c8ca3f3fc20d8cf21a3ca87db5911ba"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--anomaly-summary--laptop.png",
+      "kind": "region",
+      "region": "anomaly-summary",
+      "selector": "#statsGrid",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "add6cb20910181a9fac2be55a5bfe9d4f2ddb2d00b453ae4c9b54df0c19f2fcd"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8578425b4cf7ddc0cf540429331f20769331975ee509f267bbccbc7dfa80b23c"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--anomaly-summary--tablet.png",
+      "kind": "region",
+      "region": "anomaly-summary",
+      "selector": "#statsGrid",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "986511ba5ed7d559cdb1864208e78898a2c0cb89ae39db82b830bffe1dbf12ea"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "18e80192b18d9309ebd97eefb72bfcaa47439601990c94dcf36ecf071a3ef371"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-success--anomaly-summary--mobile.png",
+      "kind": "region",
+      "region": "anomaly-summary",
+      "selector": "#statsGrid",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "anomaly_monitor-success",
+      "theme": "light",
+      "scenario": "anomaly_monitor-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "9c2b0be33dc30877cd9742c87815afe272d95380027dad2a8f501e10e1507370"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "anomaly_monitor-empty",
+      "theme": "light",
+      "scenario": "anomaly_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ca25d3bdab0548bc42ebe235fc10ab21a2e67a573881d75ab5f48eaeb5df112b"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "anomaly_monitor-empty",
+      "theme": "light",
+      "scenario": "anomaly_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2ba1b6d65b197e87b2dfcdf80760e7e3c2b3bb069ca8a7364ce124bd7013377b"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-empty",
+      "theme": "light",
+      "scenario": "anomaly_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "81eff85faf2b9ab9fb229e8212c7d6ba031d06908f5f069342cdc8ca94412750"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-empty",
+      "theme": "light",
+      "scenario": "anomaly_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "64625592f80f5a7f7b3cc0dcf0fd171f9a2842fb7bf224add3ec3386691e6a45"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "anomaly_monitor-empty",
+      "theme": "light",
+      "scenario": "anomaly_monitor-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "05b595de19f1e57c04d1cf4271bcb3722754f84884f106da93c6246b3e424d33"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "anomaly_monitor-forbidden",
+      "theme": "light",
+      "scenario": "anomaly_monitor-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "22596908179f51713645f059141a63c6cac94a0ea98184f2431a391ee63d8e82"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "anomaly_monitor-forbidden",
+      "theme": "light",
+      "scenario": "anomaly_monitor-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b27104e2930565463d02fe5628e342416744bd8a7d48992f92fdb3a7ec339964"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-forbidden",
+      "theme": "light",
+      "scenario": "anomaly_monitor-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5a8a6734e837e4b0a0ef4f87440f24fbbf7091cc08db8eab4399986ec4846417"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "anomaly_monitor-forbidden",
+      "theme": "light",
+      "scenario": "anomaly_monitor-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c7516e8608e07ea599b6a2bbf8cc7999208aa1685d384616cfc2b08b68d91bb5"
+    },
+    {
+      "file": "anomaly_monitor/anomaly_monitor-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "anomaly_monitor-forbidden",
+      "theme": "light",
+      "scenario": "anomaly_monitor-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "52695f20a9c92ac1118b255dd3aa8b782cd693e6473ec04e30008c447907d860",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5c69720d66f509e3cfdc50368d101248ae4e7347ef310f58c13f46e20720d82f"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "anomaly_monitor-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "anomaly_monitor-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "100"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

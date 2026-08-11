@@ -1,0 +1,35 @@
+// Copyright 2023 The RocketMQ Rust Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use crate::base::dispatch_request::DispatchRequest;
+
+pub trait CommitLogDispatcher: Send + Sync + 'static {
+    fn dispatch(&self, dispatch_request: &mut DispatchRequest);
+
+    /// Dispatch a batch of requests. Default implementation calls dispatch for each request.
+    /// Implementers can override this for batch optimizations.
+    fn dispatch_batch(&self, dispatch_requests: &mut [DispatchRequest]) {
+        for request in dispatch_requests.iter_mut() {
+            self.dispatch(request);
+        }
+    }
+
+    /// Returns the highest persisted CommitLog offset this dispatcher has already processed.
+    ///
+    /// The returned offset is used as a recovery/reput lower bound. `None` means the dispatcher
+    /// has no persisted progress to contribute.
+    fn dispatch_progress_offset(&self, _commit_log_min_offset: i64) -> Option<i64> {
+        None
+    }
+}

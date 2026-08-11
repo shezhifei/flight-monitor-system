@@ -1,0 +1,500 @@
+name: flight-monitor-distributed
+
+x-app-common-env: &app-common-env
+  APP_ENVIRONMENT: production
+  APP_DISTRIBUTED_MODE: "true"
+  REDIS_REQUIRED: "true"
+  LOCAL_RUNTIME_OVERRIDES_ENABLED: "false"
+  VAULT_RENDERED_ENV_FILE: /run/flight-monitor/vault/runtime.env
+  SSE_DISTRIBUTED_ENABLED: "true"
+  SYSTEM_CONFIG_BACKEND: postgres
+  SYSTEM_CONFIG_TABLE: ${SYSTEM_CONFIG_TABLE:-system_config}
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: ${DB_NAME:-flight_monitor_dev}
+  DB_USER: ${DB_USER:-postgres}
+  DB_REPLICATION_HOST: ${DB_REPLICATION_HOST:-postgres}
+  DB_REPLICATION_PORT: ${DB_REPLICATION_PORT:-5432}
+  DB_REPLICATION_NAME: ${DB_REPLICATION_NAME:-flight_monitor_dev}
+  DB_REPLICATION_USER: ${DB_REPLICATION_USER:-fm_replicator}
+  EVENTS_OUTBOX_ENABLED: ${EVENTS_OUTBOX_ENABLED:-true}
+  ROCKETMQ_NAME_SERVER_ADDR: ${ROCKETMQ_NAME_SERVER_ADDR:-rocketmq-namesrv:9876}
+  MQ_GATEWAY_URL: ${MQ_GATEWAY_URL:-http://mq-gateway:8097}
+  EVENTS_DOMAIN_TOPIC: ${EVENTS_DOMAIN_TOPIC:-fms_domain_events}
+  REALTIME_TOPIC: ${REALTIME_TOPIC:-fms_realtime}
+  DIAGNOSTIC_TOPIC: ${DIAGNOSTIC_TOPIC:-fms_diagnostics}
+  EVENTS_SUBSCRIBER_CONSUMER_GROUP: ${EVENTS_SUBSCRIBER_CONSUMER_GROUP:-domain_event_processors}
+  EVENTS_OUTBOX_BASE_BACKOFF_SECONDS: ${EVENTS_OUTBOX_BASE_BACKOFF_SECONDS:-2}
+  EVENTS_OUTBOX_RETRY_RECOVERY_INTERVAL_SECONDS: ${EVENTS_OUTBOX_RETRY_RECOVERY_INTERVAL_SECONDS:-30}
+  EVENTS_OUTBOX_RETRY_RECOVERY_BATCH_SIZE: ${EVENTS_OUTBOX_RETRY_RECOVERY_BATCH_SIZE:-200}
+  EVENTS_OUTBOX_CDC_PUBLICATION_NAME: ${EVENTS_OUTBOX_CDC_PUBLICATION_NAME:-fms_domain_event_outbox_pub}
+  EVENTS_OUTBOX_CDC_SLOT_NAME: ${EVENTS_OUTBOX_CDC_SLOT_NAME:-fms_domain_event_outbox_slot}
+  EVENTS_OUTBOX_CDC_APPLICATION_NAME: ${EVENTS_OUTBOX_CDC_APPLICATION_NAME:-flight-monitor-cdc-relay}
+  EVENTS_OUTBOX_CDC_STATUS_INTERVAL_SECONDS: ${EVENTS_OUTBOX_CDC_STATUS_INTERVAL_SECONDS:-10}
+  EVENTS_OUTBOX_CDC_RECONNECT_BACKOFF_SECONDS: ${EVENTS_OUTBOX_CDC_RECONNECT_BACKOFF_SECONDS:-5}
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_DB: ${REDIS_DB:-0}
+  FLOWABLE_API_URL: ${FLOWABLE_API_URL:-http://flowable:8080/flowable-rest/service}
+  LOG_FORMAT: ${LOG_FORMAT:-json}
+  MOBILE_UPLOAD_STORAGE_ROOT: /shared/mobile_uploads
+
+x-runtime-env-file: &runtime-env-file
+  - ${FMS_RUNTIME_ENV_FILE:?FMS_RUNTIME_ENV_FILE is required}
+
+x-rust-image: &rust-image
+  build:
+    context: ../..
+    dockerfile: Dockerfile.rust
+  image: flight-monitor-rust:docker-desktop
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    # synchronous_commit=remote_apply + synchronous_standby_names makes commits wait
+    # until postgres-standby (application_name=fm-pg-standby-01) has applied the WAL.
+    # NOTE: writes BLOCK if the standby is disconnected. For async HA (no blocking)
+    # switch to `synchronous_commit=on` and drop `synchronous_standby_names`.
+    command: ["postgres", "-c", "wal_level=logical", "-c", "flight_monitor.seed_default_admin=${SEED_DEFAULT_ADMIN:-false}", "-c", "flight_monitor.replication_password=${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4", "-c", "synchronous_commit=remote_apply", "-c", "synchronous_standby_names=fm-pg-standby-01"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../scripts/database/setup_postgresql.sql:/docker-entrypoint-initdb.d/10-setup.sql:ro
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    networks:
+      - internal
+
+  # P1e: streaming read replica of `postgres`. On first start (empty volume) it
+  # runs pg_basebackup against the primary, writes primary_conninfo with
+  # application_name=fm-pg-standby-01 (matches primary's synchronous_standby_names)
+  # and creates standby.signal so PostgreSQL starts in hot-standby mode.
+  postgres-standby:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    environment:
+      DB_REPLICATION_USER: ${DB_REPLICATION_USER:-fm_replicator}
+      DB_REPLICATION_PASSWORD: ${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        if [ ! -s "$$PGDATA/PG_VERSION" ]; then
+          echo "[standby] bootstrapping from primary via pg_basebackup"
+          until pg_isready -h postgres -p 5432 -U "$$DB_REPLICATION_USER"; do echo "[standby] waiting for primary"; sleep 2; done
+          mkdir -p "$$PGDATA"; chown postgres:postgres "$$PGDATA"; chmod 700 "$$PGDATA"
+          export PGPASSWORD="$$DB_REPLICATION_PASSWORD"
+          gosu postgres pg_basebackup -h postgres -p 5432 -U "$$DB_REPLICATION_USER" -D "$$PGDATA" -Fp -Xs -P -R
+          echo "primary_conninfo = 'host=postgres port=5432 user=$$DB_REPLICATION_USER password=$$DB_REPLICATION_PASSWORD application_name=fm-pg-standby-01 sslmode=prefer'" >> "$$PGDATA/postgresql.auto.conf"
+          touch "$$PGDATA/standby.signal"; chown postgres:postgres "$$PGDATA/standby.signal"
+        fi
+        exec docker-entrypoint.sh postgres -c hot_standby=on -c wal_level=logical -c max_wal_senders=10 -c max_replication_slots=10
+    volumes:
+      - postgres_standby_data:/var/lib/postgresql/data
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1 -p 5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - redis_data:/data
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - internal
+
+  rocketmq-namesrv:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.mq-gateway
+      target: namesrv
+    image: flight-monitor-rocketmq-namesrv:docker-desktop
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${ROCKETMQ_NAMESRV_HOST_PORT:-9876}:9876"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/127.0.0.1/9876'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+    networks:
+      - internal
+
+  # P1g: second name server (own container listening on 9877 internally so the
+  # namesrv address list has two distinct endpoints).
+  rocketmq-namesrv-2:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.mq-gateway
+      target: namesrv
+    image: flight-monitor-rocketmq-namesrv:docker-desktop
+    restart: unless-stopped
+    command: ["rocketmq-namesrv-rust", "--listenPort", "9877"]
+    ports:
+      - "127.0.0.1:${ROCKETMQ_NAMESRV2_HOST_PORT:-9877}:9877"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/127.0.0.1/9877'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+    networks:
+      - internal
+
+  rocketmq-broker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.mq-gateway
+      target: broker
+    image: flight-monitor-rocketmq-broker:docker-desktop
+    restart: unless-stopped
+    # The Rust broker reads the name server list from NAMESRV_ADDR / -n. Cluster
+    # name, brokerName, brokerId and brokerRole are configured via a broker.toml
+    # (-c configFile); the *_BROKER_* env vars below document the intended MASTER
+    # role for this node (no config file is mounted, so defaults apply).
+    environment:
+      ROCKETMQ_NAME_SERVER_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      NAMESRV_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      BROKER_CLUSTER_NAME: ${ROCKETMQ_CLUSTER_NAME:-fms_cluster}
+      BROKER_NAME: fms-broker-a
+      BROKER_ID: "0"
+      BROKER_ROLE: ASYNC_MASTER
+      HA_ENABLE: "true"
+    command: ["rocketmq-broker-rust", "-n", "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"]
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+      rocketmq-namesrv-2:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ROCKETMQ_BROKER_HOST_PORT:-10911}:10911"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/127.0.0.1/10911'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging: *default-logging
+    networks:
+      - internal
+
+  # P1g: second broker for the same cluster. Intended as the slave/replica of
+  # fms-broker-a (brokerId=1, SLAVE). Same caveat: brokerName/brokerId/brokerRole
+  # require a broker.toml to take effect in this Rust broker build.
+  rocketmq-broker-2:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.mq-gateway
+      target: broker
+    image: flight-monitor-rocketmq-broker:docker-desktop
+    restart: unless-stopped
+    environment:
+      ROCKETMQ_NAME_SERVER_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      NAMESRV_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      BROKER_CLUSTER_NAME: ${ROCKETMQ_CLUSTER_NAME:-fms_cluster}
+      BROKER_NAME: fms-broker-a
+      BROKER_ID: "1"
+      BROKER_ROLE: SLAVE
+      HA_ENABLE: "true"
+    command: ["rocketmq-broker-rust", "-n", "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"]
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+      rocketmq-namesrv-2:
+        condition: service_healthy
+      rocketmq-broker:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ROCKETMQ_BROKER2_HOST_PORT:-10921}:10911"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec '</dev/tcp/127.0.0.1/10911'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging: *default-logging
+    networks:
+      - internal
+
+  mq-gateway:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.mq-gateway
+      target: mq-gateway
+    image: flight-monitor-mq-gateway:docker-desktop
+    restart: unless-stopped
+    environment:
+      ROCKETMQ_NAME_SERVER_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      NAMESRV_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      MQ_GATEWAY_HOST: 0.0.0.0
+      MQ_GATEWAY_PORT: "8097"
+      MQ_GATEWAY_PRODUCER_GROUP: fms_mq_gateway
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+      rocketmq-namesrv-2:
+        condition: service_healthy
+      rocketmq-broker:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${MQ_GATEWAY_HOST_PORT:-8097}:8097"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8097/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging: *default-logging
+    networks:
+      - internal
+
+  rust-api:
+    <<: *rust-image
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    # Default 18080 avoids clashing with a local `cargo run` / debug fms-server on 8080 (Windows often has both LISTENING).
+    ports:
+      - "127.0.0.1:${RUST_API_HOST_PORT:-18080}:8080"
+    environment:
+      <<: *app-common-env
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:?TRUSTED_PROXY_CIDRS is required}
+      APP_RUNTIME_ROLE: api
+      API_HOST: 0.0.0.0
+      API_PORT: "8080"
+      MALLOC_ARENA_MAX: ${MALLOC_ARENA_MAX:-2}
+      # Keep the distributed validation stack aligned with edge-safe Rust defaults.
+      DB_POOL_MAX_CONNECTIONS: ${DB_POOL_MAX_CONNECTIONS:-4}
+      DB_POOL_MIN_CONNECTIONS: ${DB_POOL_MIN_CONNECTIONS:-2}
+      DB_POOL_ACQUIRE_TIMEOUT_SECS: ${DB_POOL_ACQUIRE_TIMEOUT_SECS:-30}
+      DB_POOL_IDLE_TIMEOUT_SECS: ${DB_POOL_IDLE_TIMEOUT_SECS:-300}
+      DB_POOL_MAX_LIFETIME_SECS: ${DB_POOL_MAX_LIFETIME_SECS:-1800}
+      SSE_MAX_CONNECTIONS: ${SSE_MAX_CONNECTIONS:-100}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mq-gateway:
+        condition: service_healthy
+    volumes:
+      - ${VAULT_RENDERED_ENV_FILE:?VAULT_RENDERED_ENV_FILE is required}:/run/flight-monitor/vault/runtime.env:ro
+      - shared_uploads:/shared/mobile_uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/v2/health/ping > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+    networks:
+      - internal
+
+  flowable-db-bootstrap:
+    image: postgres:16
+    restart: "no"
+    env_file: *runtime-env-file
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+    command:
+      - sh
+      - /scripts/bootstrap_flowable_database.sh
+    volumes:
+      - ../../scripts/database/bootstrap_flowable_database.sh:/scripts/bootstrap_flowable_database.sh:ro
+      - ../../scripts/database/bootstrap_flowable_database.sql:/scripts/bootstrap_flowable_database.sql:ro
+    logging: *default-logging
+    networks:
+      - internal
+
+  flowable:
+    image: tomcat:11.0.18-jre21-temurin
+    restart: unless-stopped
+    env_file: *runtime-env-file
+    depends_on:
+      flowable-db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      JAVA_OPTS: ${FLOWABLE_JAVA_OPTS:--Xms512m -Xmx1024m}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      FLOWABLE_REST_APP_CREATE_DEMO_DEFINITIONS: "false"
+      FLOWABLE_REST_APP_ADMIN_USER_ID: ${FLOWABLE_ADMIN_USER:-rest-admin}
+    ports:
+      - "127.0.0.1:${FLOWABLE_HOST_PORT:-8082}:8080"
+    volumes:
+      - ../../tomcat/lib/postgresql-42.7.8.jar:/usr/local/tomcat/lib/postgresql-42.7.8.jar:ro
+      - ../../tomcat/webapps/flowable-rest.war:/usr/local/tomcat/webapps/flowable-rest.war:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/flowable-rest/actuator/health > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging: *default-logging
+    networks:
+      - internal
+
+  # P1h: Vault raft HA pair. node_id comes from VAULT_RAFT_NODE_ID; each node
+  # advertises its own service name via VAULT_API_ADDR / VAULT_CLUSTER_ADDR while
+  # sharing the same vault.hcl (which lists both peers in retry_join).
+  vault:
+    image: hashicorp/vault:1.21
+    restart: unless-stopped
+    user: "0:0"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_LOCAL_CONFIG: ""
+      VAULT_RAFT_NODE_ID: vault-node-1
+      VAULT_API_ADDR: https://vault:8200
+      VAULT_CLUSTER_ADDR: https://vault:8201
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - mkdir -p /vault/data /vault/logs && chown -R vault:vault /vault/data /vault/logs && exec su-exec vault vault server -config=/vault/config/vault.hcl
+    volumes:
+      - ../vault/config/vault.hcl:/vault/config/vault.hcl:ro
+      - ../vault/certs:/vault/certs:ro
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+    healthcheck:
+      test: ["CMD-SHELL", "VAULT_ADDR=https://127.0.0.1:8200 VAULT_SKIP_VERIFY=true vault status || test $$? -eq 2"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+    networks:
+      - internal
+
+  vault-02:
+    image: hashicorp/vault:1.21
+    restart: unless-stopped
+    user: "0:0"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_LOCAL_CONFIG: ""
+      VAULT_RAFT_NODE_ID: vault-node-2
+      VAULT_API_ADDR: https://vault-02:8200
+      VAULT_CLUSTER_ADDR: https://vault-02:8201
+    depends_on:
+      vault:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - mkdir -p /vault/data /vault/logs && chown -R vault:vault /vault/data /vault/logs && exec su-exec vault vault server -config=/vault/config/vault.hcl
+    volumes:
+      - ../vault/config/vault.hcl:/vault/config/vault.hcl:ro
+      - ../vault/certs:/vault/certs:ro
+      - vault_data_2:/vault/data
+      - vault_logs_2:/vault/logs
+    healthcheck:
+      test: ["CMD-SHELL", "VAULT_ADDR=https://127.0.0.1:8200 VAULT_SKIP_VERIFY=true vault status || test $$? -eq 2"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+    networks:
+      - internal
+
+networks:
+  internal:
+    internal: true
+
+volumes:
+  postgres_data:
+  postgres_standby_data:
+  redis_data:
+  shared_uploads:
+  vault_data:
+  vault_logs:
+  vault_data_2:
+  vault_logs_2:

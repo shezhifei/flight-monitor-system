@@ -1,0 +1,188 @@
+syntax = "proto3";
+
+package transport.v1;
+
+message BusinessCase {
+  string case_id = 1;
+  string case_type = 2;
+  string description = 3;
+  string flight_id = 4;
+  string flight_no = 5;
+  string status = 6;
+  string created_at = 7;
+  string created_by = 8;
+  string updated_by = 9;
+  string finished_at = 10;
+  string cancelled_at = 11;
+  string stand = 12;
+  string gate = 13;
+  repeated string log = 14;
+  string context_json = 15;
+  string case_type_name = 16;
+}
+
+message Flight {
+  reserved 5, 6, 7, 8, 9, 10, 11, 12, 14, 27, 31, 32, 33, 34, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54;
+  string flight_id = 1;
+  string flight_number = 2;
+  string airline_code = 3;
+  string registration = 4;
+  string aircraft_type_detail = 13;
+  string status = 15;
+  string scheduled_departure = 16;
+  string scheduled_arrival = 17;
+  string estimated_departure = 18;
+  string estimated_arrival = 19;
+  string actual_departure = 20;
+  string actual_arrival = 21;
+  string stand = 22;
+  string gate = 23;
+  string terminal = 24;
+  string position = 25;
+  string baggage_carousel = 26;
+  bool has_boarding_restriction = 28;
+  bool is_quick_turnaround = 29;
+  bool is_commercial_signed = 30;
+  string created_at = 35;
+  string updated_at = 36;
+  int32 version = 37;
+  string flight_remarks = 55;
+  string load_planning_remarks = 56;
+  string aircraft_maintenance_remarks = 57;
+  string aircraft_check_remarks = 58;
+  repeated BusinessCase business_cases = 59;
+  string created_by = 60;
+  string updated_by = 61;
+  string inbound_leg_json = 62;
+  string outbound_leg_json = 63;
+  string anomaly_summary_json = 64;
+  string cobt_time = 65;
+  string codt = 66;
+  string on_blocks_time = 67;
+  string cabin_door_open_time = 68;
+  string deboarding_complete_time = 69;
+  string cleaning_start_time = 70;
+  string cleaning_end_time = 71;
+  string boarding_allowed_time = 72;
+  string start_boarding_time = 73;
+  string passenger_ready_time = 74;
+  string end_boarding_time = 75;
+  string cabin_door_close_time = 76;
+  string cargo_door_close_time = 77;
+  string loading_complete_time = 78;
+  string off_blocks_time = 79;
+}
+
+message FlightsListEnvelope {
+  bool success = 1;
+  string message = 2;
+  repeated Flight flights = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message DispatchProfile {
+  string id = 1;
+  string name = 2;
+}
+
+message DispatchStatusCount {
+  string status = 1;
+  int32 count = 2;
+}
+
+message DispatchStatusOrderEntry {
+  string order_id = 1;
+  string flight_id = 2;
+  string flight_no = 3;
+  string task_type_name = 4;
+  string status = 5;
+  string label = 6;
+  string start_time = 7;
+  string end_time = 8;
+  string focus_item_id = 9;
+}
+
+message DispatchStatusOrdersBucket {
+  string status = 1;
+  repeated DispatchStatusOrderEntry orders = 2;
+}
+
+message DispatchLane {
+  string id = 1;
+  string label = 2;
+  int32 index = 3;
+  int32 subtrack_count = 4;
+  int32 item_count = 5;
+  string resource_type = 6;
+  string resource_id = 7;
+  string resource_label = 8;
+}
+
+message DispatchTimelineItem {
+  string id = 1;
+  string order_id = 2;
+  string flight_id = 3;
+  string flight_no = 4;
+  string task_type = 5;
+  string task_type_name = 6;
+  string status = 7;
+  string start_time = 8;
+  string end_time = 9;
+  string lane_id = 10;
+  string lane_label = 11;
+  int32 lane_index = 12;
+  int32 lane_subtrack = 13;
+  int32 lane_subtrack_count = 14;
+  string team_id = 15;
+  string team_name = 16;
+  string individual_user_id = 17;
+  string individual_username = 18;
+  string stand_id = 19;
+  string stand_code = 20;
+  string terminal = 21;
+  string source = 22;
+  string dispatch_type = 23;
+  repeated DispatchProfile members = 24;
+  repeated DispatchProfile equipments = 25;
+  repeated string member_names = 26;
+  repeated string equipment_codes = 27;
+  string label = 28;
+  bool is_flight_summary = 29;
+  repeated string related_order_ids = 30;
+  repeated string related_orders_json = 31;
+  string focus_user_id = 32;
+  string focus_user_name = 33;
+  string focus_equipment_id = 34;
+  string focus_equipment_code = 35;
+  string department_rule_version = 36;
+  string crew_requirement_snapshot_json = 37;
+  string task_crew_json = 38;
+  string qualification_gap_json = 39;
+  string publication_state = 40;
+  string lock_level = 41;
+  string availability_reason = 42;
+  string conflict_reason = 43;
+}
+
+message DispatchTimelineEnvelope {
+  string view_mode = 1;
+  bool is_admin = 2;
+  string window_start = 3;
+  string window_end = 4;
+  string generated_at = 5;
+  repeated DispatchStatusCount status_counts = 6;
+  repeated DispatchStatusOrdersBucket status_orders = 7;
+  repeated DispatchLane lanes = 8;
+  repeated DispatchTimelineItem items = 9;
+}
+
+message FlightStreamFrame {
+  string type = 1;
+  string flight_id = 2;
+  repeated string changed_fields = 3;
+  repeated Flight flights = 4;
+  Flight flight = 5;
+  string timestamp = 6;
+  string new_status = 7;
+}

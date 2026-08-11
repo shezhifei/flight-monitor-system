@@ -1,0 +1,1124 @@
+{
+  "contractVersion": 1,
+  "page": "flight_monitor",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/flight_monitor.html",
+    "htmlSha256": "46a97bdfee08e17617109ea99357dab96aaaee389cc285213cff92c075f9ec74",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/ai_entry_loader.js",
+        "archivePath": "js/ai_entry_loader.js",
+        "exists": true,
+        "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js?v=15",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/business_timeline.js?v=15",
+        "archivePath": "js/business_timeline.js",
+        "exists": true,
+        "sha256": "f68d32f8f00823e02acdff669c74196c5eed90ebfd9e0cbbbfaf9123caa21dfa"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/dispatch_chat_panel.js?v=1",
+        "archivePath": "js/dispatch_chat_panel.js",
+        "exists": true,
+        "sha256": "ab6a7fbf560defcd65d79abe35f181b9e0dce6d2c1cd59f0c830a987cf54cff2"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/flight_monitor.js?v=58",
+        "archivePath": "js/flight_monitor.js",
+        "exists": true,
+        "sha256": "8a8f7a9d89cfeadd17d46da31e17d1ce1f86e31d44e59792a420ac368621c5c4"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/flight_monitor/data.js?v=2",
+        "archivePath": "js/flight_monitor/data.js",
+        "exists": true,
+        "sha256": "d5e3e01176f1212716d30e6e687f0e38c74c2e54916f7db4f516c3f5e855397d"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/flight_monitor/render.js",
+        "archivePath": "js/flight_monitor/render.js",
+        "exists": true,
+        "sha256": "cce0a0b4d00eda952c515091759ca1e20deab58f78a837b0a2995779601078a9"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/flight_monitor/stream.js?v=3",
+        "archivePath": "js/flight_monitor/stream.js",
+        "exists": true,
+        "sha256": "5e107c027e1859d4844d154c06bf47fa086b7ed4e0638440ba411f6c491cb8e7"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/sse_hub.js",
+        "archivePath": "js/sse_hub.js",
+        "exists": true,
+        "sha256": "c0f7d07c398c941eac0ccee0d62a44c66713cca6f1de93678a5f166e6a3d6517"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css?v=35",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "dynamic",
+        "reference": "/frontend/static/ai/${path}",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ai.svg",
+        "archivePath": "icons/ai.svg",
+        "exists": true,
+        "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/bar_chart.svg",
+        "archivePath": "icons/bar_chart.svg",
+        "exists": true,
+        "sha256": "3af98cce83c1e1408755e6e39cf7760c97cbb797509478141d4320ebc1ac031c"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/cancel.svg",
+        "archivePath": "icons/cancel.svg",
+        "exists": true,
+        "sha256": "6e92e51c51cf9b4defabbd7dd1686b87131c5e8153974fc711781633f142c77e"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/clock.svg",
+        "archivePath": "icons/clock.svg",
+        "exists": true,
+        "sha256": "28b710f51a70ce69e9beefd2f6eaca66bdfdedaf2a688182183d102afa464411"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/connection.svg",
+        "archivePath": "icons/connection.svg",
+        "exists": true,
+        "sha256": "716bb5044602b317503d0061ecbbba310b4b5cae54fa0421aaae667a8906ee5b"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/edit.svg",
+        "archivePath": "icons/edit.svg",
+        "exists": true,
+        "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/messages.svg",
+        "archivePath": "icons/messages.svg",
+        "exists": true,
+        "sha256": "41ea89efd02edf53adc55da7873bc3d5de1adb20c85314f7cd093f2bca94d0c2"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ok.svg",
+        "archivePath": "icons/ok.svg",
+        "exists": true,
+        "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/settings.svg",
+        "archivePath": "icons/settings.svg",
+        "exists": true,
+        "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/static/ai/manifest.json",
+        "archivePath": "static/ai/manifest.json",
+        "exists": true,
+        "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "sourceHash": "5e9351ccc826bdd4f283edc8c0c4c90e0df8ba59bd88058aaf9b4c5b83a6a851"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(3) > div:nth-of-type(1)",
+        "tag": "div",
+        "role": "region",
+        "text": "实时航班列表",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div:nth-of-type(3)",
+        "tag": "div",
+        "role": "region",
+        "text": "航班详情",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(12) > div > div:nth-of-type(2) > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "群列表",
+        "visible": false
+      },
+      {
+        "selector": "body > div:nth-of-type(12) > div > div:nth-of-type(2) > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "群消息",
+        "visible": false
+      }
+    ],
+    "headings": [],
+    "controls": [
+      {
+        "selector": "#refreshBtn",
+        "tag": "button",
+        "type": "",
+        "text": "刷新数据",
+        "name": null,
+        "ariaLabel": "刷新航班数据",
+        "disabled": false
+      },
+      {
+        "selector": "#viewCardBtn",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": "卡片视图",
+        "disabled": false
+      },
+      {
+        "selector": "#viewTableBtn",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": "表格视图",
+        "disabled": false
+      },
+      {
+        "selector": "#searchInput",
+        "tag": "input",
+        "type": "text",
+        "text": "搜索航班号、目的地、状态等...",
+        "name": null,
+        "ariaLabel": "搜索航班",
+        "disabled": false
+      },
+      {
+        "selector": "#searchOptionsToggle",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": "展开搜索选项",
+        "disabled": false
+      },
+      {
+        "selector": "#searchBtn",
+        "tag": "button",
+        "type": "",
+        "text": "搜索",
+        "name": null,
+        "ariaLabel": "执行搜索",
+        "disabled": false
+      },
+      {
+        "selector": "#businessFilterToggle",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": "展开筛选",
+        "disabled": false
+      },
+      {
+        "selector": "#focusSelectedFlightBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "定位选中航班",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#clearAllFiltersBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "清空筛选",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#updateBadge",
+        "tag": "button",
+        "type": "button",
+        "text": "消息 0",
+        "name": null,
+        "ariaLabel": "打开更新消息面板",
+        "disabled": false
+      },
+      {
+        "selector": "#openDispatchChatBadgeBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "航班群聊",
+        "name": null,
+        "ariaLabel": "打开航班保障群聊",
+        "disabled": false
+      },
+      {
+        "selector": "#dispatchNotifyBadgeBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "调度通知",
+        "name": null,
+        "ariaLabel": "打开调度通知中心",
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(13) > div > button",
+        "tag": "button",
+        "type": "button",
+        "text": "AI 对话",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [
+      {
+        "selector": "#eventCreationForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#eventType",
+          "#eventStatus",
+          "#triggerReason",
+          "#eventDescription",
+          "#boundFlightSelection",
+          "#stand_no",
+          "#gate_no",
+          "#cancelEventBtn",
+          "#submitEventBtn"
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "selector": "#flightTable",
+        "columns": []
+      }
+    ],
+    "tabs": [],
+    "dialogs": [
+      {
+        "selector": "#eventCreationModal",
+        "title": "创建新业务事项",
+        "visible": false
+      },
+      {
+        "selector": "#columnConfigModal",
+        "title": "列配置",
+        "visible": false
+      },
+      {
+        "selector": "#updatePanel",
+        "title": "",
+        "visible": false
+      },
+      {
+        "selector": "#remarkEditModal",
+        "title": "编辑备注",
+        "visible": false
+      },
+      {
+        "selector": "#timeEditModal",
+        "title": "修改时间",
+        "visible": false
+      },
+      {
+        "selector": "#dispatchChatModal",
+        "title": "航班保障群聊",
+        "visible": false
+      }
+    ],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > a",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#aiDiagnoseBtn",
+      "#aircraftBodyFilter",
+      "#alertCountBadge",
+      "#alertFlightList",
+      "#alertPoolContainer",
+      "#anomalyFilter",
+      "#anomalyFilterCount",
+      "#ariaAnnouncer",
+      "#boundFlightSelection",
+      "#businessFilterBar",
+      "#businessFilterToggle",
+      "#cancelBtn",
+      "#cancelEventBtn",
+      "#clearAllFiltersBtn",
+      "#clearSearchBtn",
+      "#closeColumnConfig",
+      "#closeDetailDrawerBtn",
+      "#closeUpdatePanelBtn",
+      "#columnConfigList",
+      "#columnConfigModal",
+      "#columnConfigTitle",
+      "#commercialSignedFilter",
+      "#connectionStatusPill",
+      "#ctxConfigColumns",
+      "#ctxModify",
+      "#ctxRevoke",
+      "#delayFilter",
+      "#delayFilterCount",
+      "#dispatchChatAtAllToggle",
+      "#dispatchChatCloseBtn",
+      "#dispatchChatModal",
+      "#dispatchChatTitle",
+      "#dispatchNotifyBadgeBtn",
+      "#editBtn",
+      "#editControls",
+      "#eventCreationForm",
+      "#eventCreationModal",
+      "#eventCreationTitle",
+      "#eventDescription",
+      "#eventDescriptionLabel",
+      "#eventStatus",
+      "#eventType",
+      "#flight-ai-root",
+      "#flightDetail",
+      "#flightList",
+      "#flightResultPill",
+      "#flightTable",
+      "#flightTableBody",
+      "#flightTableContainer",
+      "#floatingBadgeStack",
+      "#fms-parity-contract-determinism",
+      "#focusSelectedFlightBtn",
+      "#gate_no",
+      "#globalLoader",
+      "#headerContextMenu",
+      "#lastUpdated",
+      "#openAnomalyBadgeBtn",
+      "#openAnomalyBadgeCount",
+      "#openDispatchChatBadgeBtn",
+      "#openFlightChatBadgeBtn",
+      "#quickTurnFilter",
+      "#quickTurnFilterCount",
+      "#refreshBtn",
+      "#remarkEditModal",
+      "#remarkEditTitle",
+      "#remarkInput",
+      "#resetBusinessFiltersBtn",
+      "#resetColumnsBtn",
+      "#resizer",
+      "#saveBtn",
+      "#saveColumnsBtn",
+      "#saveRemarkBtn",
+      "#saveTimeBtn",
+      "#searchAircraftType",
+      "#searchBtn",
+      "#searchDestination",
+      "#searchDestinationName",
+      "#searchFlightNo",
+      "#searchFlightType",
+      "#searchGate",
+      "#searchInput",
+      "#searchMission",
+      "#searchOptions",
+      "#searchOptionsPanel",
+      "#searchOptionsToggle",
+      "#searchOrigin",
+      "#searchOriginName",
+      "#searchStand",
+      "#searchStatus",
+      "#stand_no",
+      "#submitEventBtn",
+      "#tableScrollHint",
+      "#timeContextMenu",
+      "#timeEditModal",
+      "#timeInput",
+      "#timeModalTitle",
+      "#triggerReason",
+      "#triggerReasonGroup",
+      "#updateBadge",
+      "#updateCount",
+      "#updatePanel",
+      "#updatePanelContent",
+      "#updatePanelTitle",
+      "#viewCardBtn",
+      "#viewGlider",
+      "#viewTableBtn",
+      "#vipFilter",
+      "#vipFilterCount"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "flight_monitor-success",
+      "fixture": "parity/fixtures/pages/flight_monitor/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "flightMonitorView",
+          "value": "card"
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "flight-monitor-global-stream-success",
+          "eventTypes": [
+            "anomaly_updated",
+            "flight_updated"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "flight_monitor-empty",
+      "fixture": "parity/fixtures/pages/flight_monitor/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "flightMonitorView",
+          "value": "card"
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "flight-monitor-global-stream-success",
+          "eventTypes": [
+            "global_status"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "flight_monitor-partial",
+      "fixture": "parity/fixtures/pages/flight_monitor/partial.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/labels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "100"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "unread_only": [
+              "true"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/notifications/sent-receipt-groups",
+          "query": {
+            "limit": [
+              "50"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "set",
+          "key": "flightMonitorView",
+          "value": "card"
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "flight-monitor-global-stream-success",
+          "eventTypes": [
+            "anomaly_updated",
+            "flight_updated"
+          ]
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

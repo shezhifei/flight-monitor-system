@@ -1,0 +1,74 @@
+{
+  "scenario": "resource-utilization-server-error",
+  "routes": [
+    {
+      "id": "util-summary-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "资源利用率服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "util-stands-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "资源利用率服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "util-teams-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "资源利用率服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "util-equipment-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "资源利用率服务暂时不可用"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

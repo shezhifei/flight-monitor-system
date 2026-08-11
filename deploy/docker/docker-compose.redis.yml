@@ -1,0 +1,26 @@
+name: flight-monitor-redis
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: flight-monitor-redis
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - redis-server --appendonly yes --save 60 1000 --requirepass "$${REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    ports:
+      - "127.0.0.1:${HOST_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  redis_data:
+    name: flight-monitor-redis-data

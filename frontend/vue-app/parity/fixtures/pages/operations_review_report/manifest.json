@@ -1,0 +1,12 @@
+{
+  "page": "operations_review_report",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "partial",
+    "unauthorized",
+    "server-error"
+  ]
+}

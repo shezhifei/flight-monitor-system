@@ -1,0 +1,224 @@
+{
+  "scenario": "command_center-empty",
+  "routes": [
+    {
+      "id": "command-airport-context-success",
+      "method": "GET",
+      "pathname": "/api/v2/system/airport-context",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "code": "PVG",
+          "display_name": "上海浦东国际机场",
+          "name_aliases": [
+            "浦东机场",
+            "上海浦东"
+          ]
+        }
+      }
+    },
+    {
+      "id": "command-flights-success",
+      "method": "GET",
+      "pathname": "/api/v2/flights",
+      "query": {
+        "page": [
+          "1"
+        ],
+        "page_size": [
+          "500"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "command-kpi-snapshot-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/snapshot",
+      "query": {
+        "time_range": [
+          "today"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "time_range": "today",
+            "turnaround_time_avg_minutes": null,
+            "turnaround_time_p90_minutes": null,
+            "on_time_departure_rate": null,
+            "on_time_arrival_rate": null,
+            "service_node_compliance_rate": null,
+            "equipment_utilization_rate": null,
+            "abnormal_flight_ratio": null,
+            "calculated_at": "2026-07-14T02:30:00Z",
+            "hourly_flight_volume": [],
+            "turnaround_distribution": []
+          }
+        }
+      }
+    },
+    {
+      "id": "command-anomaly-stats-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies/stats",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "total": 0,
+            "open": 0,
+            "acknowledged": 0,
+            "resolved": 0,
+            "critical": 0,
+            "escalated": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "command-anomaly-list-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "query": {
+        "limit": [
+          "40"
+        ],
+        "offset": [
+          "0"
+        ],
+        "status": [
+          "open"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [],
+            "total": 0,
+            "limit": 40,
+            "offset": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "command-dispatch-timeline-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/timeline",
+      "query": {
+        "view_mode": [
+          "flight"
+        ],
+        "window_end": [
+          "2026-07-14T08:30:00.000Z"
+        ],
+        "window_start": [
+          "2026-07-14T01:30:00.000Z"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [],
+            "total": 0,
+            "status_counts": {
+              "pending": 0,
+              "in_progress": 0,
+              "completed": 0,
+              "cancelled": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "command-dispatch-conflicts-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/conflicts",
+      "query": {
+        "limit": [
+          "200"
+        ],
+        "window_end": [
+          "2026-07-14T08:30:00.000Z"
+        ],
+        "window_start": [
+          "2026-07-14T01:30:00.000Z"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [],
+            "total": 0,
+            "summary": {
+              "total": 0,
+              "critical": 0,
+              "warning": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "command-health-ping-success",
+      "method": "GET",
+      "pathname": "/api/v2/system/runtime/health/ping",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "healthy",
+          "service": "api-server",
+          "checked_at": "2026-07-14T02:30:00Z",
+          "latency_ms": 8
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "command-global-stream-success",
+      "pathname": "/api/v2/sse/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ],
+        "topics": [
+          "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+        ]
+      },
+      "events": [
+        {
+          "id": "command_center-empty-1",
+          "event": "global_status",
+          "data": {
+            "items": [],
+            "generated_at": "2026-07-14T02:30:05Z"
+          }
+        }
+      ]
+    }
+  ]
+}

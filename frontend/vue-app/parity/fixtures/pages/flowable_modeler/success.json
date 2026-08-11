@@ -1,0 +1,128 @@
+{
+  "scenario": "flowable_modeler-success",
+  "routes": [
+    {
+      "id": "flowable-capabilities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/capabilities",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "ai_ready": true,
+            "ai_execute_permission": true,
+            "ai_chat_permission": true,
+            "missing_reasons": []
+          }
+        }
+      }
+    },
+    {
+      "id": "flowable-case-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/business-case-types",
+      "query": {
+        "active_only": [
+          "false"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "flowable-statuses-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/business-case-statuses",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "code": "draft",
+              "label": "草稿",
+              "terminal": false,
+              "sort_order": 10
+            },
+            {
+              "code": "processing",
+              "label": "处理中",
+              "terminal": false,
+              "sort_order": 20
+            },
+            {
+              "code": "resolved",
+              "label": "已解决",
+              "terminal": true,
+              "sort_order": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flowable-departments-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "include_inactive": [
+          "false"
+        ],
+        "page": [
+          "1"
+        ],
+        "page_size": [
+          "200"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    }
+  ],
+  "sse_streams": [],
+  "capture": {
+    "expected_panels": [
+      ".main-content",
+      "#emptyState"
+    ],
+    "regions": [
+      {
+        "id": "modeler-workspace",
+        "selector": ".main-content"
+      }
+    ],
+    "interactions": [
+      {
+        "id": "create-case-dialog",
+        "actions": [
+          {
+            "type": "click",
+            "selector": "button[onclick='showCreateCaseModal()']"
+          }
+        ],
+        "expected_panels": [
+          "#createCaseModal.active"
+        ],
+        "regions": [
+          {
+            "id": "create-case-dialog",
+            "selector": "#createCaseModal .create-case-modal"
+          }
+        ]
+      }
+    ]
+  }
+}

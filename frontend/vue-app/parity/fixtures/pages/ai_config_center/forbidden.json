@@ -1,0 +1,70 @@
+{
+  "scenario": "ai_config_center-forbidden",
+  "routes": [
+    {
+      "id": "ai-config-entities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/entities",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/ai/entities"
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-models-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/models",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/ai/models"
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-tools-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/ai/tools"
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-tool-categories-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools/categories",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/ai/tools/categories"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

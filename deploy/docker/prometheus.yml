@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: flight-monitor
+
+rule_files:
+  - /etc/prometheus/rules/fms-slo-alerts.yml
+
+scrape_configs:
+  # Rust API backend. Container service name is `rust-api`, listening on 8080 internally.
+  # Primary metrics path is /metrics. NOTE: the API also exposes metrics at the
+  # alternate path /api/v2/metrics — if /metrics ever returns 404, switch to /api/v2/metrics.
+  - job_name: fms-rust-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - rust-api:8080
+        labels:
+          service: rust-api
+
+  # Python AI sidecar. Running on port 9000 inside the `ai-sidecar` container.
+  - job_name: fms-ai-sidecar
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ai-sidecar:9000
+        labels:
+          service: ai-sidecar
+
+  # Vault telemetry metrics (optional). honor_labels keeps Vault's own labels.
+  - job_name: fms-vault
+    honor_labels: true
+    metrics_path: /v1/sys/metrics
+    params:
+      format:
+        - prometheus
+    static_configs:
+      - targets:
+          - vault:8200
+        labels:
+          service: vault

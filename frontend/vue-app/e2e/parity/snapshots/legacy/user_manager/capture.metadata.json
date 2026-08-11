@@ -1,0 +1,2844 @@
+{
+  "schema_version": 1,
+  "page": "user_manager",
+  "legacy_html": "html/user_manager.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+  "source_files": [
+    {
+      "path": "css/admin-layout.css",
+      "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+    },
+    {
+      "path": "css/admin-page.css",
+      "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+    },
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/user_manager.html",
+      "sha256": "bfc22fc82c7d69d7521ab12b169ffbed446b8edcf780a5e596574d5c9093617c"
+    },
+    {
+      "path": "icons/add.svg",
+      "sha256": "8fbdc6f17bb127314b24e7b87d57cfca8b8d8cb7e4851ff63cdd2006452f0374"
+    },
+    {
+      "path": "icons/cancel.svg",
+      "sha256": "6e92e51c51cf9b4defabbd7dd1686b87131c5e8153974fc711781633f142c77e"
+    },
+    {
+      "path": "icons/detail.svg",
+      "sha256": "32240a9ff68eaf9bead993e13f3328c3ed4cda1a3ed11dc371589982e8892234"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "icons/lock.svg",
+      "sha256": "c27ac920989fe9fee64903aeff4cc41ccea545e06bf2b4746b007b17d2339f49"
+    },
+    {
+      "path": "icons/logout.svg",
+      "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+    },
+    {
+      "path": "icons/password_unvisible.svg",
+      "sha256": "19941ef9f9054cdab0c61b5d17eb35ecf88bae301e8a0b949c3caf78e68d299c"
+    },
+    {
+      "path": "icons/password_visible.svg",
+      "sha256": "8e9412ce80411e9f2c0bb856ee942ee3c9e7b4ddc5b782eecb3a9cd02d372f36"
+    },
+    {
+      "path": "icons/refresh.svg",
+      "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+    },
+    {
+      "path": "icons/search.svg",
+      "sha256": "4e7d43bfc247f4f2401be97397f972999342a041b41f4e6595a89ae3ee053103"
+    },
+    {
+      "path": "icons/security.svg",
+      "sha256": "3fecf1dabf1c5fdeb795286a7c0b9d54380cc3346eea724d2ae382554f92a702"
+    },
+    {
+      "path": "icons/users.svg",
+      "sha256": "79e8c659734e79f182c457a7773907e8468b4da76b98cef123fc2a8f3df5b26a"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "1e79fa2d9c731a18fa4730f6086cb0c5f1246dae7c7941866c84245b09f57d67",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/user_manager/empty.json",
+      "sha256": "2aba5bef99fe29cad0cdae9234006f53f7a160c8e902fde601e89691c1599350"
+    },
+    {
+      "path": "parity/fixtures/pages/user_manager/forbidden.json",
+      "sha256": "eb6a6f0254386fb6d847413e2812f17d2f076ee6efdede47fce7d3139ea66957"
+    },
+    {
+      "path": "parity/fixtures/pages/user_manager/manifest.json",
+      "sha256": "0cef52149c6bce498d88ebdd56866e5e27a2d70f27f592f6ab37c8c0bc5ec52c"
+    },
+    {
+      "path": "parity/fixtures/pages/user_manager/partial.json",
+      "sha256": "8f2d35ce5cdeb89b134b37f0f897f78869ff2c5280b44d756e90e5f2c0bef296"
+    },
+    {
+      "path": "parity/fixtures/pages/user_manager/server-error.json",
+      "sha256": "701d7eec20a6aeae32a0b8d9e3a64770ff9a83b8f91575f18956bda90b65f7d1"
+    },
+    {
+      "path": "parity/fixtures/pages/user_manager/success.json",
+      "sha256": "c8cbb584eb504ba8392b4c474cfc5a520d800a34743362de0c912806ed39051c"
+    },
+    {
+      "path": "parity/fixtures/pages/user_manager/unauthorized.json",
+      "sha256": "00d22836eb16f2d9c60cb0e9289ca7878ca7497ff83a7372d1f97430f8218115"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "user-manager-success",
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [
+        "permissions.filter is not a function",
+        "roles.filter is not a function",
+        "users.filter is not a function"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#section-users",
+        "#usersTableBody"
+      ],
+      "regions": [
+        {
+          "id": "users-workspace",
+          "selector": "#section-users"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "create-user-dialog",
+          "reason": "The current Rust auth list endpoints return ApiResponse envelopes while the legacy page treats users, roles, and permissions as arrays; the add-user dialog cannot be treated as valid evidence before that DTO drift is corrected.",
+          "source": "html/user_manager.html#openAddUserModal"
+        }
+      ]
+    },
+    {
+      "id": "user-manager-empty",
+      "fixture": "user-manager-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [
+        "permissions.filter is not a function",
+        "roles.filter is not a function",
+        "users.filter is not a function"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "user-manager-partial",
+      "fixture": "user-manager-partial",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "permissions.filter is not a function",
+        "roles.filter is not a function",
+        "users.filter is not a function"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "user-manager-unauthorized",
+      "fixture": "user-manager-unauthorized",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "user-manager-forbidden",
+      "fixture": "user-manager-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "Failed to load departments"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "user-manager-server-error",
+      "fixture": "user-manager-server-error",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "Failed to load departments"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "user_manager/user-manager-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b36d3ded657266477bc40020c9cfd04ffaf5d3800657c6f8107c93bc8731c3f5"
+    },
+    {
+      "file": "user_manager/user-manager-success--users-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "users-workspace",
+      "selector": "#section-users",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "239a9c73d98c46abc4f43de9660acfa6e290480964fc2b0f207aad4130fc667f"
+    },
+    {
+      "file": "user_manager/user-manager-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "391be90d16772388f17fcacb08193fbd8a0c750b8e8d12aa52224de00a74e92f"
+    },
+    {
+      "file": "user_manager/user-manager-success--users-workspace--desktop.png",
+      "kind": "region",
+      "region": "users-workspace",
+      "selector": "#section-users",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "14c228803591d6f2cd52f5392c2f4333cc37031d65749b24d31128b2c8f9a2e3"
+    },
+    {
+      "file": "user_manager/user-manager-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c258bccdd01e819fe364c21574af495e49c4cf3b95ca88830bb06e9beaaaf93d"
+    },
+    {
+      "file": "user_manager/user-manager-success--users-workspace--laptop.png",
+      "kind": "region",
+      "region": "users-workspace",
+      "selector": "#section-users",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "15e51e876f125b11fd30476255f408c18ee485fd21fecdf12c97d5eef020a437"
+    },
+    {
+      "file": "user_manager/user-manager-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a626d86a15bd86c44e70c6f66e9b820cfeebbe4b70a274acb33f38a71c1c8167"
+    },
+    {
+      "file": "user_manager/user-manager-success--users-workspace--tablet.png",
+      "kind": "region",
+      "region": "users-workspace",
+      "selector": "#section-users",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "eb66fc23de012c091cf0d7d3f6f03fee7aa2f65a34e3e3fc9f32e876afa09b22"
+    },
+    {
+      "file": "user_manager/user-manager-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f8d20cd48ea6307dcae824f91578b2e86e0aae6cee857e177c42a64c47d9bec"
+    },
+    {
+      "file": "user_manager/user-manager-success--users-workspace--mobile.png",
+      "kind": "region",
+      "region": "users-workspace",
+      "selector": "#section-users",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-success",
+      "theme": "light",
+      "scenario": "user-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4ea674afc1c8d339351c9990db824a0123cde9e715a075ebb4b0a30a51ba50dd"
+    },
+    {
+      "file": "user_manager/user-manager-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-empty",
+      "theme": "light",
+      "scenario": "user-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b36d3ded657266477bc40020c9cfd04ffaf5d3800657c6f8107c93bc8731c3f5"
+    },
+    {
+      "file": "user_manager/user-manager-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-empty",
+      "theme": "light",
+      "scenario": "user-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "391be90d16772388f17fcacb08193fbd8a0c750b8e8d12aa52224de00a74e92f"
+    },
+    {
+      "file": "user_manager/user-manager-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-empty",
+      "theme": "light",
+      "scenario": "user-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c258bccdd01e819fe364c21574af495e49c4cf3b95ca88830bb06e9beaaaf93d"
+    },
+    {
+      "file": "user_manager/user-manager-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-empty",
+      "theme": "light",
+      "scenario": "user-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a626d86a15bd86c44e70c6f66e9b820cfeebbe4b70a274acb33f38a71c1c8167"
+    },
+    {
+      "file": "user_manager/user-manager-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-empty",
+      "theme": "light",
+      "scenario": "user-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f8d20cd48ea6307dcae824f91578b2e86e0aae6cee857e177c42a64c47d9bec"
+    },
+    {
+      "file": "user_manager/user-manager-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-partial",
+      "theme": "light",
+      "scenario": "user-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b36d3ded657266477bc40020c9cfd04ffaf5d3800657c6f8107c93bc8731c3f5"
+    },
+    {
+      "file": "user_manager/user-manager-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-partial",
+      "theme": "light",
+      "scenario": "user-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "391be90d16772388f17fcacb08193fbd8a0c750b8e8d12aa52224de00a74e92f"
+    },
+    {
+      "file": "user_manager/user-manager-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-partial",
+      "theme": "light",
+      "scenario": "user-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c258bccdd01e819fe364c21574af495e49c4cf3b95ca88830bb06e9beaaaf93d"
+    },
+    {
+      "file": "user_manager/user-manager-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-partial",
+      "theme": "light",
+      "scenario": "user-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a626d86a15bd86c44e70c6f66e9b820cfeebbe4b70a274acb33f38a71c1c8167"
+    },
+    {
+      "file": "user_manager/user-manager-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-partial",
+      "theme": "light",
+      "scenario": "user-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f8d20cd48ea6307dcae824f91578b2e86e0aae6cee857e177c42a64c47d9bec"
+    },
+    {
+      "file": "user_manager/user-manager-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-unauthorized",
+      "theme": "light",
+      "scenario": "user-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/roles: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/permissions: net::ERR_ABORTED",
+        "GET /api/v2/reference/departments: net::ERR_ABORTED",
+        "GET /api/v2/auth/admin/permission-templates: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "user_manager/user-manager-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-unauthorized",
+      "theme": "light",
+      "scenario": "user-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/roles: net::ERR_ABORTED",
+        "GET /api/v2/auth/permissions: net::ERR_ABORTED",
+        "GET /api/v2/reference/departments: net::ERR_ABORTED",
+        "GET /api/v2/auth/admin/permission-templates: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "user_manager/user-manager-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-unauthorized",
+      "theme": "light",
+      "scenario": "user-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/permissions: net::ERR_ABORTED",
+        "GET /api/v2/reference/departments: net::ERR_ABORTED",
+        "GET /api/v2/auth/roles: net::ERR_ABORTED",
+        "GET /api/v2/auth/admin/permission-templates: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "user_manager/user-manager-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-unauthorized",
+      "theme": "light",
+      "scenario": "user-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/roles: net::ERR_ABORTED",
+        "GET /api/v2/reference/departments: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/admin/permission-templates: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /api/v2/auth/permissions: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "user_manager/user-manager-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-unauthorized",
+      "theme": "light",
+      "scenario": "user-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /api/v2/reference/departments: net::ERR_ABORTED",
+        "GET /api/v2/auth/roles: net::ERR_ABORTED",
+        "GET /api/v2/auth/permissions: net::ERR_ABORTED",
+        "GET /api/v2/auth/admin/permission-templates: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "user_manager/user-manager-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-forbidden",
+      "theme": "light",
+      "scenario": "user-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b36d3ded657266477bc40020c9cfd04ffaf5d3800657c6f8107c93bc8731c3f5"
+    },
+    {
+      "file": "user_manager/user-manager-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-forbidden",
+      "theme": "light",
+      "scenario": "user-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "391be90d16772388f17fcacb08193fbd8a0c750b8e8d12aa52224de00a74e92f"
+    },
+    {
+      "file": "user_manager/user-manager-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-forbidden",
+      "theme": "light",
+      "scenario": "user-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c258bccdd01e819fe364c21574af495e49c4cf3b95ca88830bb06e9beaaaf93d"
+    },
+    {
+      "file": "user_manager/user-manager-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-forbidden",
+      "theme": "light",
+      "scenario": "user-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a626d86a15bd86c44e70c6f66e9b820cfeebbe4b70a274acb33f38a71c1c8167"
+    },
+    {
+      "file": "user_manager/user-manager-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-forbidden",
+      "theme": "light",
+      "scenario": "user-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f8d20cd48ea6307dcae824f91578b2e86e0aae6cee857e177c42a64c47d9bec"
+    },
+    {
+      "file": "user_manager/user-manager-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "user-manager-server-error",
+      "theme": "light",
+      "scenario": "user-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b36d3ded657266477bc40020c9cfd04ffaf5d3800657c6f8107c93bc8731c3f5"
+    },
+    {
+      "file": "user_manager/user-manager-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "user-manager-server-error",
+      "theme": "light",
+      "scenario": "user-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "391be90d16772388f17fcacb08193fbd8a0c750b8e8d12aa52224de00a74e92f"
+    },
+    {
+      "file": "user_manager/user-manager-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "user-manager-server-error",
+      "theme": "light",
+      "scenario": "user-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c258bccdd01e819fe364c21574af495e49c4cf3b95ca88830bb06e9beaaaf93d"
+    },
+    {
+      "file": "user_manager/user-manager-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "user-manager-server-error",
+      "theme": "light",
+      "scenario": "user-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a626d86a15bd86c44e70c6f66e9b820cfeebbe4b70a274acb33f38a71c1c8167"
+    },
+    {
+      "file": "user_manager/user-manager-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "user-manager-server-error",
+      "theme": "light",
+      "scenario": "user-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f8d20cd48ea6307dcae824f91578b2e86e0aae6cee857e177c42a64c47d9bec"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "user-manager-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-partial",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-partial",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-partial",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-partial",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-partial",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-unauthorized",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-unauthorized",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-unauthorized",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-unauthorized",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-unauthorized",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-server-error",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-server-error",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-server-error",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-server-error",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "user-manager-server-error",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1123 @@
+@import 'antd/dist/reset.css';
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('../assets/fonts/DMSans-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('../assets/fonts/DMSans-Italic-Variable.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../assets/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../assets/fonts/JetBrainsMono-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500 600;
+  font-display: swap;
+}
+
+/* ============================================================
+   Flight Monitor AI – Global Design System
+   Industrial Minimalist × Glassmorphism × Geek Aesthetic
+   ============================================================ */
+
+/* ---------- Design Tokens ---------- */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --ai-bg: #0e1117;
+  --ai-bg-subtle: #161b22;
+  --ai-surface: rgba(255, 255, 255, 0.04);
+  --ai-surface-raised: rgba(255, 255, 255, 0.07);
+  --ai-surface-overlay: rgba(22, 27, 34, 0.85);
+
+  /* Borders */
+  --ai-border: rgba(255, 255, 255, 0.08);
+  --ai-border-strong: rgba(255, 255, 255, 0.15);
+
+  /* Text */
+  --ai-text: #e6edf3;
+  --ai-text-heading: #f0f6fc;
+  --ai-muted: #8b949e;
+
+  /* Accent – Vivid Blue-Purple */
+  --ai-brand: #6366f1;
+  --ai-brand-glow: rgba(99, 102, 241, 0.35);
+  --ai-brand-soft: rgba(99, 102, 241, 0.12);
+
+  /* Semantic */
+  --ai-success: #22c55e;
+  --ai-success-glow: rgba(34, 197, 94, 0.25);
+  --ai-warning: #f59e0b;
+  --ai-warning-glow: rgba(245, 158, 11, 0.25);
+  --ai-danger: #ef4444;
+  --ai-danger-glow: rgba(239, 68, 68, 0.25);
+
+  /* Typography */
+  --ai-font-display: 'DM Sans', 'MiSans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --ai-font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Depth */
+  --ai-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --ai-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --ai-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --ai-radius: 12px;
+  --ai-radius-sm: 8px;
+
+  /* Z-index scale */
+  --ai-z-base: 0;
+  --ai-z-content: 10;
+  --ai-z-sticky: 20;
+  --ai-z-overlay: 50;
+
+  /* Motion */
+  --ai-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ai-duration-fast: 150ms;
+  --ai-duration: 200ms;
+  --ai-duration-slow: 350ms;
+}
+
+/* ---------- Body ---------- */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* ---------- Root Containers ---------- */
+#ai-react-root,
+#dashboard-ai-widget-root,
+#flight-ai-root,
+#dispatch-ai-root,
+#flowable-ai-root {
+  position: relative;
+  z-index: var(--ai-z-content);
+}
+
+/* ---------- Page Shell (AI dark theme container) ---------- */
+.ai-page-shell {
+  width: 100%;
+  padding: 20px 28px;
+  box-sizing: border-box;
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  min-height: 100vh;
+  position: relative;
+  font-family: var(--ai-font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle grid texture scoped to AI pages */
+.ai-page-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.ai-page-shell>* {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Glass Card ---------- */
+.ai-page-card {
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  border-radius: var(--ai-radius);
+  box-shadow: var(--ai-shadow-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color var(--ai-duration) var(--ai-ease),
+    box-shadow var(--ai-duration) var(--ai-ease);
+}
+
+.ai-page-card:hover {
+  border-color: var(--ai-border-strong);
+}
+
+/* ---------- Toolbar ---------- */
+.ai-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* ---------- Two Column Layout (responsive) ---------- */
+.ai-layout-two-col {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .ai-layout-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Responsive Grids ---------- */
+.ai-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.ai-grid-auto-lg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ---------- Chat Immersive Layout ---------- */
+.ai-chat-immersive {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 220px);
+}
+
+.ai-chat-immersive__messages {
+  flex: 1 1 0;
+  min-height: 300px;
+  overflow: auto;
+  padding: 12px 0;
+}
+
+.ai-chat-immersive__input {
+  flex: 0 0 auto;
+  padding-top: 12px;
+}
+
+/* ---------- Split Panel (e.g. events + approval) ---------- */
+.ai-split-panel {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .ai-split-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Navigation Bar ---------- */
+.ai-page-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-page-nav__link {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  padding: 10px 16px;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--ai-radius-sm);
+  background: var(--ai-surface);
+  color: var(--ai-muted);
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all var(--ai-duration-fast) var(--ai-ease);
+}
+
+.ai-page-nav__link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ai-brand);
+  opacity: 0;
+  transform: scaleY(0);
+  transition: all var(--ai-duration) var(--ai-ease);
+}
+
+.ai-page-nav__link:hover {
+  color: var(--ai-text);
+  background: var(--ai-surface-raised);
+  border-color: var(--ai-border-strong);
+}
+
+.ai-page-nav__link.is-active {
+  color: var(--ai-text);
+  border-color: var(--ai-brand);
+  background: var(--ai-brand-soft);
+}
+
+.ai-page-nav__link.is-active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.ai-page-nav__label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: inherit;
+  line-height: 1.4;
+}
+
+.ai-page-nav__desc {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--ai-muted);
+  line-height: 1.5;
+  max-width: 180px;
+}
+
+@media (max-width: 768px) {
+  .ai-page-nav__link {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------- Status Indicators ---------- */
+.ai-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  vertical-align: middle;
+  box-shadow: 0 0 6px 1px currentColor;
+}
+
+.ai-status-dot--ok {
+  color: var(--ai-success);
+  background: var(--ai-success);
+}
+
+.ai-status-dot--warn {
+  color: var(--ai-warning);
+  background: var(--ai-warning);
+}
+
+.ai-status-dot--error {
+  color: var(--ai-danger);
+  background: var(--ai-danger);
+}
+
+/* Pulse animation for urgent items */
+@keyframes ai-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.ai-pulse {
+  animation: ai-pulse 2s ease-in-out infinite;
+}
+
+/* ---------- Staggered Reveal ---------- */
+@keyframes ai-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-reveal {
+  animation: ai-reveal var(--ai-duration-slow) var(--ai-ease) both;
+}
+
+.ai-reveal-1 {
+  animation-delay: 50ms;
+}
+
+.ai-reveal-2 {
+  animation-delay: 100ms;
+}
+
+.ai-reveal-3 {
+  animation-delay: 150ms;
+}
+
+.ai-reveal-4 {
+  animation-delay: 200ms;
+}
+
+/* ---------- Glow Border (for AI generating state) ---------- */
+@keyframes ai-glow-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.ai-glow-border {
+  position: relative;
+}
+
+.ai-glow-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--ai-brand) 25%,
+      var(--ai-success) 50%,
+      var(--ai-brand) 75%,
+      transparent 100%);
+  background-size: 200% 100%;
+  animation: ai-glow-flow 3s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---------- Stat Card (for monitor dashboard) ---------- */
+.ai-stat-card {
+  padding: 20px;
+  border-radius: var(--ai-radius);
+  background: var(--ai-surface);
+  border: 1px solid var(--ai-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all var(--ai-duration) var(--ai-ease);
+}
+
+.ai-stat-card:hover {
+  border-color: var(--ai-border-strong);
+  box-shadow: var(--ai-shadow-md);
+}
+
+.ai-stat-card__value {
+  font-family: var(--ai-font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ai-text-heading);
+}
+
+.ai-stat-card__label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ai-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Floating Island (for sidebar entity list, etc.) ---------- */
+.ai-island-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-island-item {
+  position: relative;
+  padding: 10px 14px;
+  border-radius: var(--ai-radius-sm);
+  background: transparent;
+  color: var(--ai-muted);
+  cursor: pointer;
+  transition: all var(--ai-duration-fast) var(--ai-ease);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ai-island-item:hover {
+  color: var(--ai-text);
+  background: var(--ai-surface-raised);
+}
+
+.ai-island-item.is-active {
+  color: var(--ai-text-heading);
+  background: var(--ai-brand-soft);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.ai-island-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ai-brand);
+}
+
+/* ---------- Alert Card (for approval queue) ---------- */
+.ai-alert-card {
+  padding: 14px 16px;
+  border-radius: var(--ai-radius-sm);
+  border: 1px solid var(--ai-warning-glow);
+  background: rgba(245, 158, 11, 0.06);
+  transition: all var(--ai-duration) var(--ai-ease);
+}
+
+.ai-alert-card:hover {
+  border-color: var(--ai-warning);
+  box-shadow: 0 0 20px var(--ai-warning-glow);
+}
+
+.ai-alert-card--danger {
+  border-color: var(--ai-danger-glow);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.ai-alert-card--danger:hover {
+  border-color: var(--ai-danger);
+  box-shadow: 0 0 20px var(--ai-danger-glow);
+}
+
+/* ---------- Monospace Log Stream ---------- */
+.ai-log-stream {
+  font-family: var(--ai-font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ai-muted);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--ai-radius-sm);
+  padding: 12px 16px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---------- Utility: Muted / Mono ---------- */
+.ai-muted {
+  color: var(--ai-muted);
+}
+
+.ai-mono {
+  font-family: var(--ai-font-mono);
+}
+
+/* ---------- Entry Host ---------- */
+.fm-entry-host {
+  position: relative;
+}
+
+.fm-entry-shell {
+  position: relative;
+}
+
+.fm-entry-shell--page {
+  min-height: 100%;
+}
+
+.fm-entry-shell--widget,
+.fm-entry-shell--drawer,
+.fm-entry-shell--modal {
+  isolation: isolate;
+}
+
+/* ==========================================================
+   Ant Design 6 – Dark Mode Overrides
+   SCOPED to .ai-page-shell so Dashboard is not affected.
+   Portaled drawers with page-specific chrome use a dedicated root class.
+   ========================================================== */
+
+/* ---- Card ---- */
+.ai-page-shell .ant-card {
+  background: var(--ai-surface) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-card-head {
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text-heading) !important;
+  background: transparent !important;
+}
+
+.ai-page-shell .ant-card-body {
+  color: var(--ai-text);
+}
+
+/* ---- Table (BRUTE FORCE dark override) ---- */
+.ai-page-shell .ant-table-wrapper.ant-table-wrapper,
+.ai-page-shell .ant-table-wrapper .ant-table,
+.ai-page-shell .ant-table.ant-table {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+}
+
+.ai-page-shell .ant-table-wrapper .ant-table-container,
+.ai-page-shell .ant-table-container.ant-table-container,
+.ai-page-shell .ant-table-wrapper .ant-table-content,
+.ai-page-shell .ant-table-content.ant-table-content {
+  background: #161b22 !important;
+}
+
+.ai-page-shell .ant-table-thead>tr>th,
+.ai-page-shell .ant-table-thead>tr>td,
+.ai-page-shell .ant-table-thead>tr>th.ant-table-cell,
+.ai-page-shell .ant-table-thead>tr>td.ant-table-cell {
+  background: #1c2129 !important;
+  color: #8b949e !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.ai-page-shell .ant-table-tbody>tr>td,
+.ai-page-shell .ant-table-tbody>tr>td.ant-table-cell,
+.ai-page-shell .ant-table-tbody>tr.ant-table-row>td {
+  background: #161b22 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e6edf3 !important;
+}
+
+.ai-page-shell .ant-table-tbody>tr:hover>td,
+.ai-page-shell .ant-table-tbody>tr.ant-table-row:hover>td {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Table empty state */
+.ai-page-shell .ant-table-placeholder,
+.ai-page-shell .ant-table-placeholder>td,
+.ai-page-shell .ant-table-tbody>tr.ant-table-placeholder>td {
+  background: #161b22 !important;
+  color: #8b949e !important;
+}
+
+.ai-page-shell .ant-empty {
+  color: #8b949e !important;
+}
+
+.ai-page-shell .ant-empty-description {
+  color: #8b949e !important;
+}
+
+.ai-page-shell .ant-empty-image svg {
+  fill: #8b949e;
+  opacity: 0.4;
+}
+
+.ai-page-shell .ant-empty-image .ant-empty-img-simple-path {
+  fill: #1c2129 !important;
+}
+
+.ai-page-shell .ant-empty-image .ant-empty-img-simple-ellipse {
+  fill: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Table footer, summary */
+.ai-page-shell .ant-table-footer,
+.ai-page-shell .ant-table-summary {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ai-page-shell .ant-table-cell-fix-left,
+.ai-page-shell .ant-table-cell-fix-right {
+  background: #161b22 !important;
+}
+
+.ai-page-shell .ant-table-thead .ant-table-cell-fix-left,
+.ai-page-shell .ant-table-thead .ant-table-cell-fix-right {
+  background: #1c2129 !important;
+}
+
+/* Table pagination */
+.ai-page-shell .ant-pagination .ant-pagination-item a {
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-pagination .ant-pagination-item-active {
+  border-color: var(--ai-brand) !important;
+}
+
+.ai-page-shell .ant-pagination .ant-pagination-item-active a {
+  color: var(--ai-brand) !important;
+}
+
+/* ---- Tabs ---- */
+.ai-page-shell .ant-tabs-tab {
+  color: var(--ai-muted) !important;
+  font-weight: 500;
+}
+
+.ai-page-shell .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--ai-brand) !important;
+}
+
+.ai-page-shell .ant-tabs-ink-bar {
+  background: var(--ai-brand) !important;
+}
+
+.ai-page-shell .ant-tabs-nav::before {
+  border-color: var(--ai-border) !important;
+}
+
+/* ---- Form Labels ---- */
+.ai-page-shell .ant-form-item-label>label,
+.ai-eval-lab-drawer .ant-form-item-label>label {
+  color: var(--ai-muted) !important;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-page-shell .ant-form-item-required::before,
+.ai-eval-lab-drawer .ant-form-item-required::before {
+  color: var(--ai-danger) !important;
+}
+
+/* ---- Inputs ---- */
+.ai-page-shell .ant-input,
+.ai-page-shell .ant-input-password .ant-input,
+.ai-page-shell .ant-input-number,
+.ai-page-shell .ant-input-number-input,
+.ai-page-shell .ant-select-selector,
+.ai-page-shell .ant-input-affix-wrapper,
+.ai-page-shell .ant-input-textarea textarea,
+.ai-eval-lab-drawer .ant-input,
+.ai-eval-lab-drawer .ant-input-password .ant-input,
+.ai-eval-lab-drawer .ant-input-number,
+.ai-eval-lab-drawer .ant-input-number-input,
+.ai-eval-lab-drawer .ant-select-selector,
+.ai-eval-lab-drawer .ant-input-affix-wrapper,
+.ai-eval-lab-drawer .ant-input-textarea textarea {
+  background: var(--ai-bg-subtle) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text) !important;
+  -webkit-text-fill-color: var(--ai-text) !important;
+  transition: all var(--ai-duration-fast) var(--ai-ease);
+}
+
+.ai-page-shell .ant-input::placeholder,
+.ai-page-shell .ant-input-number-input::placeholder,
+.ai-page-shell .ant-input-textarea textarea::placeholder,
+.ai-eval-lab-drawer .ant-input::placeholder,
+.ai-eval-lab-drawer .ant-input-number-input::placeholder,
+.ai-eval-lab-drawer .ant-input-textarea textarea::placeholder {
+  color: rgba(139, 148, 158, 0.5) !important;
+  -webkit-text-fill-color: rgba(139, 148, 158, 0.5) !important;
+}
+
+.ai-page-shell .ant-input:focus,
+.ai-page-shell .ant-input:hover,
+.ai-page-shell .ant-input-focused,
+.ai-page-shell .ant-input-number:focus,
+.ai-page-shell .ant-input-number:hover,
+.ai-page-shell .ant-input-number-focused,
+.ai-page-shell .ant-input-affix-wrapper:focus,
+.ai-page-shell .ant-input-affix-wrapper:hover,
+.ai-page-shell .ant-input-affix-wrapper-focused,
+.ai-page-shell .ant-select-focused .ant-select-selector,
+.ai-page-shell .ant-select-selector:hover,
+.ai-eval-lab-drawer .ant-input:focus,
+.ai-eval-lab-drawer .ant-input:hover,
+.ai-eval-lab-drawer .ant-input-focused,
+.ai-eval-lab-drawer .ant-input-number:focus,
+.ai-eval-lab-drawer .ant-input-number:hover,
+.ai-eval-lab-drawer .ant-input-number-focused,
+.ai-eval-lab-drawer .ant-input-affix-wrapper:focus,
+.ai-eval-lab-drawer .ant-input-affix-wrapper:hover,
+.ai-eval-lab-drawer .ant-input-affix-wrapper-focused,
+.ai-eval-lab-drawer .ant-select-focused .ant-select-selector,
+.ai-eval-lab-drawer .ant-select-selector:hover {
+  border-color: var(--ai-brand) !important;
+  box-shadow: 0 0 0 2px var(--ai-brand-glow) !important;
+}
+
+.ai-page-shell .ant-input-number-handler-wrap,
+.ai-eval-lab-drawer .ant-input-number-handler-wrap {
+  background: var(--ai-bg-subtle) !important;
+  border-color: var(--ai-border) !important;
+}
+
+.ai-page-shell .ant-input-number-handler,
+.ai-eval-lab-drawer .ant-input-number-handler {
+  border-color: var(--ai-border) !important;
+  color: var(--ai-muted) !important;
+}
+
+.ai-page-shell .ant-input-number-handler:hover,
+.ai-eval-lab-drawer .ant-input-number-handler:hover {
+  color: var(--ai-brand) !important;
+}
+
+.ai-page-shell .ant-input-password-icon,
+.ai-page-shell .ant-input-suffix,
+.ai-eval-lab-drawer .ant-input-password-icon,
+.ai-eval-lab-drawer .ant-input-suffix {
+  color: var(--ai-muted) !important;
+}
+
+/* ---- Select ---- */
+.ai-page-shell .ant-select-selection-item,
+.ai-eval-lab-drawer .ant-select-selection-item {
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-select-selection-placeholder,
+.ai-eval-lab-drawer .ant-select-selection-placeholder {
+  color: rgba(139, 148, 158, 0.5) !important;
+}
+
+.ai-page-shell .ant-select-arrow,
+.ai-eval-lab-drawer .ant-select-arrow {
+  color: var(--ai-muted) !important;
+}
+
+/* Select dropdown is portaled, so keep global for it */
+.ant-select-dropdown {
+  background: var(--ai-bg-subtle) !important;
+  border: 1px solid var(--ai-border) !important;
+  box-shadow: var(--ai-shadow-lg) !important;
+}
+
+.ant-select-item {
+  color: var(--ai-text) !important;
+}
+
+.ant-select-item-option-active,
+.ant-select-item-option-selected {
+  background: var(--ai-surface-raised) !important;
+}
+
+/* ---- Buttons ---- */
+.ai-page-shell .ant-btn-default {
+  background: var(--ai-surface-raised) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-btn-default:hover {
+  border-color: var(--ai-brand) !important;
+  color: var(--ai-brand) !important;
+}
+
+.ai-page-shell .ant-btn-primary {
+  background: var(--ai-brand) !important;
+  border-color: var(--ai-brand) !important;
+  box-shadow: 0 0 12px var(--ai-brand-glow);
+}
+
+.ai-page-shell .ant-btn-primary:hover {
+  background: #818cf8 !important;
+  box-shadow: 0 0 20px var(--ai-brand-glow);
+}
+
+.ai-page-shell .ant-btn-text {
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-btn-text:hover {
+  background: var(--ai-surface-raised) !important;
+}
+
+/* ---- List ---- */
+.ai-page-shell .ant-list-bordered {
+  border-color: var(--ai-border) !important;
+}
+
+.ai-page-shell .ant-list-item {
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-list-item-meta-title,
+.ai-page-shell .ant-list-item-meta-description {
+  color: var(--ai-text) !important;
+}
+
+/* ---- Alert ---- */
+.ai-page-shell .ant-alert {
+  border-radius: var(--ai-radius-sm);
+}
+
+.ai-page-shell .ant-alert-info {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+.ai-page-shell .ant-alert-info .ant-alert-message {
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-alert-info .ant-alert-icon {
+  color: var(--ai-brand) !important;
+}
+
+/* ---- Badge ---- */
+.ai-page-shell .ant-badge-count {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Statistic ---- */
+.ai-page-shell .ant-statistic-title {
+  color: var(--ai-muted) !important;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ai-page-shell .ant-statistic-content {
+  color: var(--ai-text-heading) !important;
+  font-family: var(--ai-font-mono);
+}
+
+/* ---- Tag ---- */
+.ai-page-shell .ant-tag {
+  border-radius: 4px;
+  font-family: var(--ai-font-mono);
+  font-size: 11px;
+}
+
+/* ---- Typography ---- */
+.ai-page-shell .ant-typography {
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-typography.ant-typography-secondary {
+  color: var(--ai-muted) !important;
+}
+
+.ai-page-shell h1.ant-typography,
+.ai-page-shell h2.ant-typography,
+.ai-page-shell h3.ant-typography,
+.ai-page-shell h4.ant-typography,
+.ai-page-shell h5.ant-typography {
+  color: var(--ai-text-heading) !important;
+  font-family: var(--ai-font-display);
+}
+
+/* ---- Checkbox ---- */
+.ai-page-shell .ant-checkbox-wrapper {
+  color: var(--ai-text) !important;
+}
+
+.ai-page-shell .ant-checkbox-inner {
+  background: var(--ai-bg-subtle) !important;
+  border-color: var(--ai-border) !important;
+}
+
+.ai-page-shell .ant-checkbox-checked .ant-checkbox-inner {
+  background: var(--ai-brand) !important;
+  border-color: var(--ai-brand) !important;
+}
+
+/* ---- Collapse ---- */
+.ai-page-shell .ant-collapse {
+  background: var(--ai-surface) !important;
+  border-color: var(--ai-border) !important;
+}
+
+.ai-page-shell .ant-collapse-header {
+  color: var(--ai-muted) !important;
+}
+
+.ai-page-shell .ant-collapse-content {
+  background: transparent !important;
+  border-color: var(--ai-border) !important;
+}
+
+/* ---- Drawer & Modal (portaled, use global) ---- */
+.ant-drawer-content {
+  background: var(--ai-bg-subtle) !important;
+  color: var(--ai-text) !important;
+}
+
+.ant-drawer-header {
+  background: var(--ai-bg-subtle) !important;
+  border-color: var(--ai-border) !important;
+}
+
+.ant-drawer-title {
+  color: var(--ai-text-heading) !important;
+}
+
+.ant-drawer-close {
+  color: var(--ai-muted) !important;
+}
+
+.ant-modal-content {
+  background: var(--ai-bg-subtle) !important;
+  color: var(--ai-text) !important;
+}
+
+.ant-modal-header {
+  background: var(--ai-bg-subtle) !important;
+  border-color: var(--ai-border) !important;
+}
+
+.ant-modal-title {
+  color: var(--ai-text-heading) !important;
+}
+
+/* ---- Progress ---- */
+.ai-page-shell .ant-progress-text {
+  color: var(--ai-text) !important;
+}
+
+/* ---- Pre-formatted blocks ---- */
+.ai-page-shell pre {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid var(--ai-border);
+  border-radius: var(--ai-radius-sm);
+  padding: 12px 16px;
+  color: var(--ai-success) !important;
+  font-family: var(--ai-font-mono);
+  font-size: 12px;
+  overflow: auto;
+}
+
+/* ================================================================
+   Light Mode Override — responds to Vue theme toggle via data-theme
+   ================================================================ */
+[data-theme="light"] .ai-page-shell {
+  --ai-bg: #f8fafc;
+  --ai-bg-subtle: #ffffff;
+  --ai-surface: rgba(255, 255, 255, 0.96);
+  --ai-surface-raised: #ffffff;
+  --ai-surface-overlay: rgba(255, 255, 255, 0.92);
+  --ai-border: rgba(15, 23, 42, 0.1);
+  --ai-border-strong: rgba(15, 23, 42, 0.18);
+  --ai-text: #0f172a;
+  --ai-text-heading: #0f172a;
+  --ai-muted: #64748b;
+  --ai-brand: #6366f1;
+  --ai-brand-glow: rgba(99, 102, 241, 0.15);
+  --ai-brand-soft: rgba(99, 102, 241, 0.1);
+  --ai-success: #1ea971;
+  --ai-success-glow: rgba(30, 169, 113, 0.15);
+  --ai-warning: #f08a00;
+  --ai-warning-glow: rgba(240, 138, 0, 0.15);
+  --ai-danger: #d93d4f;
+  --ai-danger-glow: rgba(217, 61, 79, 0.15);
+  --ai-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --ai-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --ai-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+  color-scheme: light;
+}
+
+/* Ant Design light overrides */
+[data-theme="light"] .ai-page-shell .ant-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .ai-page-shell .ant-card-head {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .ai-page-shell .ant-table {
+  color: #0f172a;
+}
+
+[data-theme="light"] .ai-page-shell .ant-table-thead > tr > th {
+  background: #f8fafc;
+  color: #475569;
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .ai-page-shell .ant-table-tbody > tr > td {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .ai-page-shell .ant-table-tbody > tr:hover > td {
+  background: rgba(99, 102, 241, 0.04);
+}
+
+[data-theme="light"] .ai-page-shell .ant-input,
+[data-theme="light"] .ai-page-shell .ant-select-selector {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+}
+
+[data-theme="light"] .ai-page-shell .ant-tabs-tab {
+  color: #475569;
+}
+
+[data-theme="light"] .ai-page-shell .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #6366f1;
+}
+
+[data-theme="light"] .ai-page-shell .ant-btn-primary {
+  background: #6366f1;
+}
+
+[data-theme="light"] .ai-page-shell .ant-modal-content {
+  background: #ffffff;
+}
+
+[data-theme="light"] .ai-page-shell .ant-modal-header {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .ai-page-shell .ant-drawer-content {
+  background: #ffffff;
+}
+
+[data-theme="light"] .ai-page-shell .ant-select-dropdown {
+  background: #ffffff;
+}
+
+[data-theme="light"] .ai-page-shell .ant-dropdown-menu {
+  background: #ffffff;
+}
+
+[data-theme="light"] .ai-page-shell .ant-tag {
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="light"] .ai-page-shell pre {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #0f172a !important;
+}

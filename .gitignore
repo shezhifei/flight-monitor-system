@@ -1,0 +1,207 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+/dist/
+wheels/
+*.egg-info
+.python-version
+.pytest_cache/
+.coverage
+.omo/
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+.vs/
+venv/
+ENV/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.*.ctmpl
+deploy/docker/.vault/
+deploy/vault/approle/*.role_id
+deploy/vault/approle/*.secret_id
+deploy/vault/.runtime/
+deploy/vault/bootstrap.secrets.env
+deploy/vault/data/
+config/runtime_overrides.yaml
+services/config/runtime_overrides.yaml
+services/config/app_config.yaml
+
+# IDE and Editor settings
+.trae/
+.vscode/
+.idea/
+.roo/
+AGENTS.md
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+
+# AI coding agents / local tooling (do not commit)
+.agent/
+.agents/
+.claude/
+.codex/
+.grok/
+.omo/
+.opencode/
+.playwright-mcp/
+.qoder/
+.qwen/
+.shared/
+.workbuddy/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+logs/
+*.log
+.codex-logs/
+.runtime/
+.tools/
+.tmp/
+tmp/
+.run_server.pid
+artifacts/
+main_modif.txt
+test_write_permission.txt
+test_out.txt
+test2_out.txt
+ortools-search.json
+
+# Rust build artifacts (services)
+**/target/
+**/Cargo.lock
+!services/api-server/Cargo.lock
+!services/mq-gateway/Cargo.lock
+!libs/rust-sse/Cargo.lock
+!libs/vendor/**/Cargo.lock
+
+# Database and Cache
+dump.rdb
+*.rdb
+data/
+!android/app/src/main/java/com/flightmonitor/mobile/data/
+!android/app/src/main/java/com/flightmonitor/mobile/data/*.kt
+tomcat/work/
+tomcat/temp/
+tomcat/logs/
+tomcat/webapps/
+
+# Deployment and Docker
+.dockerignore
+
+# Binary files and compiled artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.pyd
+*.jar
+!android/gradle/wrapper/gradle-wrapper.jar
+tomcat/lib/
+
+# Node.js
+node_modules/
+.npm/
+.yarn/
+.pnp.*
+.yarnrc.yml
+
+# Frontend build output
+*.tsbuildinfo
+frontend/ai-react/dist/
+frontend/ai-react/.vite/
+frontend/ai-react/.npm/
+frontend/static/ai/
+frontend/vue-app/dist/
+frontend/dist/
+frontend/wasm_src/target/
+
+# Redis
+Redis/
+
+# Tomcat
+tomcat/
+
+# Local development
+.codeartsdoer
+.sisyphus/
+legacy-backend/
+
+# Maturin cache
+.maturin/
+
+# Local TLS certificates (development only)
+certs/*.crt
+certs/*.key
+
+# Demo runtime artifacts
+scripts/demo/.runtime/
+
+# Python package artifacts
+*.egg
+*.whl
+dist/
+build/
+
+# Test files
+test*.json
+test*.txt
+
+# Backup directories
+**/backup/
+**/backups/
+
+# Generated VM seed disk images
+deploy/hyperv/cloud-init-seeds/*.vhdx
+
+# Android build artifacts
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# Vault executable
+vault.exe
+
+# Local / historical documentation (not the product baseline)
+# Tracked baseline lives in README, QUICK_START, CLAUDE.md and the exceptions below.
+docs/superpowers/
+docs/analysis/
+docs/fixtures/
+docs/releases/
+docs/runbooks/
+docs/ux_analysis/
+docs/*.md
+!docs/SOURCE_OF_TRUTH.md
+!docs/SYSTEM_MANUAL.md
+!docs/API_ROUTE_SNAPSHOT.md
+!docs/DEPLOYMENT.md
+!docs/DOCUMENTATION_WORKFLOW.md
+!docs/GLOSSARY.md
+
+# Ops notes: keep only long-lived ones
+docs/operations/*
+!docs/operations/frontend-parity-audit.md
+!docs/operations/dispatch-overrun-warning.md
+
+# Plans: keep only the tech-debt master plan
+docs/plans/*
+!docs/plans/2026-06-29-tech-debt-sweep-master-plan.md
+
+# One-off root reports
+AI_RUNTIME_P2_RC_FINAL_REPORT.md

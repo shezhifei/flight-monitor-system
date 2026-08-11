@@ -1,0 +1,95 @@
+{
+  "scenario": "resource-manager-empty",
+  "routes": [
+    {
+      "id": "resource-users-empty",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "users 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-equipmentTypes-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "equipmentTypes 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-equipment-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "equipment 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-teamTypes-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/team-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "teamTypes 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-teams-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/teams",
+      "query": {
+        "include_inactive": [
+          "false"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "teams 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

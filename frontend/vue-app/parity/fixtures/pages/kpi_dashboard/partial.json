@@ -1,0 +1,137 @@
+{
+  "scenario": "kpi_dashboard-partial",
+  "routes": [
+    {
+      "id": "kpi-service-nodes-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/service-nodes",
+      "query": {
+        "date": [
+          "2026-07-14"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [
+            {
+              "node": "登机",
+              "rate": 0.97,
+              "completed": 97,
+              "total": 100
+            },
+            {
+              "node": "行李装载",
+              "rate": 0.93,
+              "completed": 93,
+              "total": 100
+            }
+          ],
+          "date": "2026-07-14"
+        }
+      }
+    },
+    {
+      "id": "kpi-snapshot-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/snapshot",
+      "query": {
+        "time_range": [
+          "today"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "time_range": "today",
+            "turnaround_time_avg_minutes": 42.5,
+            "turnaround_time_p90_minutes": 56,
+            "on_time_departure_rate": 0.92,
+            "on_time_arrival_rate": 0.91,
+            "service_node_compliance_rate": 0.95,
+            "equipment_utilization_rate": 0.78,
+            "abnormal_flight_ratio": 0.03,
+            "calculated_at": "2026-07-14T02:30:00Z",
+            "hourly_flight_volume": [
+              {
+                "hour": 0,
+                "count": 5
+              },
+              {
+                "hour": 1,
+                "count": 8
+              },
+              {
+                "hour": 2,
+                "count": 12
+              }
+            ],
+            "turnaround_distribution": [
+              {
+                "bucket": "<30",
+                "count": 3
+              },
+              {
+                "bucket": "30-45",
+                "count": 8
+              },
+              {
+                "bucket": "45-60",
+                "count": 4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "kpi-trend-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/trend",
+      "query": {
+        "days": [
+          "7"
+        ],
+        "metric": [
+          "on_time_rate"
+        ]
+      },
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "Deterministic partial failure for /api/v2/kpi/trend"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "kpi-stream-success",
+      "pathname": "/api/v2/kpi/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "kpi-event-1",
+          "event": "kpi_updated",
+          "data": {
+            "time_range": "today",
+            "calculated_at": "2026-07-14T02:30:05Z"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/anomalies/stats",
+  "body": {
+    "success": true,
+    "data": {
+      "total": 0,
+      "open": 0,
+      "acknowledged": 0,
+      "resolved": 0,
+      "critical": 0,
+      "escalated": 0
+    }
+  },
+  "source": "anomaly_monitor/empty.json"
+}

@@ -1,0 +1,187 @@
+{
+  "scenario": "system-status-partial",
+  "routes": [
+    {
+      "id": "health-partial",
+      "method": "GET",
+      "pathname": "/api/v2/health",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "status": "degraded",
+          "database": {
+            "flights": 128
+          },
+          "errors_count": 1,
+          "recent_errors": [
+            {
+              "error_id": "error-20260714-001",
+              "timestamp": "2026-07-14T02:24:00Z",
+              "error_type": "SSE_RECONNECT",
+              "severity": "medium",
+              "message": "客户端已自动重连",
+              "emitted_at_ms": 1783995840000
+            }
+          ],
+          "buffer_status": {
+            "total_connections": 7,
+            "max_connections": 1000,
+            "status": "active",
+            "topics": {
+              "flight_updates": 3,
+              "global_status": 2,
+              "status_changes": 2
+            }
+          },
+          "services": {
+            "api_server": {
+              "status": "healthy",
+              "detail": "API 服务在线",
+              "uptime_seconds": 86400
+            },
+            "postgres": {
+              "status": "healthy",
+              "detail": "连接池正常"
+            },
+            "redis": {
+              "status": "degraded",
+              "detail": "使用内存回退"
+            },
+            "auth": {
+              "status": "healthy",
+              "detail": "认证服务正常"
+            }
+          },
+          "runtime": {
+            "started_at": "2026-07-13T02:30:00Z",
+            "uptime_seconds": 86400,
+            "uptime_human": "1d",
+            "timestamp": "2026-07-14T02:30:00Z"
+          }
+        }
+      }
+    },
+    {
+      "id": "health-performance-partial",
+      "method": "GET",
+      "pathname": "/api/v2/health/performance",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "性能指标暂时不可用"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "system-status-stream-partial",
+      "pathname": "/api/v2/health/stream/status",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "status-partial-connected",
+          "event": "connected",
+          "data": {
+            "status": "connected",
+            "timestamp": "2026-07-14T02:30:00Z"
+          }
+        },
+        {
+          "id": "status-partial-heartbeat",
+          "event": "heartbeat",
+          "data": {
+            "timestamp": "2026-07-14T02:30:01Z"
+          }
+        },
+        {
+          "id": "status-partial-snapshot",
+          "event": "system_status",
+          "data": {
+            "success": true,
+            "status": "degraded",
+            "database": {
+              "flights": 128
+            },
+            "errors_count": 1,
+            "recent_errors": [
+              {
+                "error_id": "error-20260714-001",
+                "timestamp": "2026-07-14T02:24:00Z",
+                "error_type": "SSE_RECONNECT",
+                "severity": "medium",
+                "message": "客户端已自动重连",
+                "emitted_at_ms": 1783995840000
+              }
+            ],
+            "buffer_status": {
+              "total_connections": 7,
+              "max_connections": 1000,
+              "status": "active",
+              "topics": {
+                "flight_updates": 3,
+                "global_status": 2,
+                "status_changes": 2
+              }
+            },
+            "services": {
+              "api_server": {
+                "status": "healthy",
+                "detail": "API 服务在线",
+                "uptime_seconds": 86400
+              },
+              "postgres": {
+                "status": "healthy",
+                "detail": "连接池正常"
+              },
+              "redis": {
+                "status": "healthy",
+                "detail": "延迟 2.4 ms"
+              },
+              "auth": {
+                "status": "healthy",
+                "detail": "认证服务正常"
+              }
+            },
+            "runtime": {
+              "started_at": "2026-07-13T02:30:00Z",
+              "uptime_seconds": 86400,
+              "uptime_human": "1d",
+              "timestamp": "2026-07-14T02:30:00Z"
+            }
+          }
+        },
+        {
+          "id": "status-partial-error",
+          "event": "error_log",
+          "data": {
+            "error_event": {
+              "error_id": "error-partial-stream",
+              "timestamp": "2026-07-14T02:30:02Z",
+              "error_type": "PARITY_CHECK",
+              "severity": "low",
+              "message": "确定性实时日志样本",
+              "emitted_at_ms": 1783996202000
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

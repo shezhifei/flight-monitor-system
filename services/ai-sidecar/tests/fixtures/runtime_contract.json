@@ -1,0 +1,118 @@
+{
+  "_comment": "Shared Rust/Python contract fixture. EXHAUSTIVE by design: every optional and nested contract field is populated so that both sides' round-trip tests exercise the full field set. Do not edit manually without updating both sides AND docs/architecture/AI_CONTRACT_VERSIONING.md. Fields intentionally excluded (Python-internal, never on the wire): EnvelopeRequester.permissions, ContextEnvelope.conversation_history.",
+  "context_envelope": {
+    "contract_version": "ai-runtime.v1",
+    "job_id": "job_fixture_001",
+    "run_id": "run_fixture_001",
+    "correlation_id": "corr_fixture",
+    "requester": {
+      "user_id": "user_1",
+      "roles": ["ai:chat", "flight:write"],
+      "department_id": "ops-1",
+      "permission_version": "7"
+    },
+    "ontology": {
+      "version": "flight-ops.v1",
+      "allowed_object_types": ["Flight"],
+      "allowed_actions": ["Flight.add_note"],
+      "risk_ceiling": "medium"
+    },
+    "context": {
+      "objects": [
+        {
+          "object_type": "Flight",
+          "object_id": "FL123",
+          "version": 3,
+          "data": {
+            "flight_number": "CA1234",
+            "status": "scheduled"
+          }
+        },
+        {
+          "object_type": "Flight",
+          "object_id": "FL456",
+          "version": 1,
+          "data": {
+            "flight_number": "CA5678",
+            "status": "scheduled"
+          }
+        }
+      ],
+      "relations": [
+        {
+          "from_type": "Flight",
+          "from_id": "FL123",
+          "to_type": "Flight",
+          "to_id": "FL456",
+          "relation_type": "depends_on"
+        }
+      ],
+      "evidence": [
+        {
+          "source": "ai_query.v_flights",
+          "object_type": "Flight",
+          "object_id": "FL123",
+          "retrieved_at": "2026-06-02T00:00:00Z"
+        }
+      ],
+      "limits": {"max_objects": 10, "max_tokens": 4096, "redaction": "none"}
+    },
+    "task": {
+      "task_type": "nl_query",
+      "user_message": "给航班 CA1234 添加备注: Fixture note"
+    }
+  },
+  "ai_structured_output": {
+    "contract_version": "ai-structured-output.v1",
+    "run_id": "run_fixture_001",
+    "status": "succeeded",
+    "answer": "已为航班 CA1234 添加备注: Fixture note。",
+    "reasoning_steps": [
+      {
+        "step": "validate_envelope",
+        "summary": "Validated job_id=job_fixture_001, run_id=run_fixture_001, user=user_1"
+      },
+      {
+        "step": "classify_intent",
+        "summary": "Classified intent as add_note (添加备注)"
+      },
+      {
+        "step": "assemble_context",
+        "summary": "Loaded 2 object(s), 1 allowed action(s)"
+      }
+    ],
+    "evidence": [
+      {
+        "object_type": "Flight",
+        "object_id": "FL123",
+        "source": "ai_query.v_flights",
+        "field": "flight_number"
+      }
+    ],
+    "proposals": [
+      {
+        "proposal_id": "prop_fixture_001",
+        "object_type": "Flight",
+        "object_id": "FL123",
+        "action_name": "add_note",
+        "arguments": {
+          "note_content": "Fixture note"
+        },
+        "risk_level": "low",
+        "confidence": 0.85,
+        "reasoning": "User message requests adding a note to the flight",
+        "requires_approval": false
+      }
+    ],
+    "limitations": ["Only the first matching flight was considered"],
+    "metrics": {
+      "model": "fake-llm-v1",
+      "duration_ms": 42
+    },
+    "token_usage": {
+      "prompt_tokens": 64,
+      "completion_tokens": 16,
+      "total_tokens": 80
+    }
+  }
+}

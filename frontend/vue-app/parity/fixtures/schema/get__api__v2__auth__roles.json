@@ -1,0 +1,28 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/auth/roles",
+  "body": {
+    "success": true,
+    "data": [
+      {
+        "id": "role-operations-manager",
+        "name": "operations_manager",
+        "description": "运行值班经理",
+        "permissions": [
+          "flight:read",
+          "dispatch:view",
+          "team:view"
+        ],
+        "is_active": true,
+        "is_system": true,
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-07-01T00:00:00Z",
+        "user_count": 3
+      }
+    ],
+    "message": "角色列表获取成功",
+    "error": null,
+    "request_id": "parity-request-001"
+  },
+  "source": "user_manager/success.json"
+}

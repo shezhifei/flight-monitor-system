@@ -1,0 +1,281 @@
+{
+  "scenario": "dashboard-empty",
+  "routes": [
+    {
+      "id": "dashboard-workbench-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dashboard/workbench",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_at": "2026-07-14T02:30:00Z",
+            "user_context": {
+              "user_id": "00000000-0000-4000-8000-000000000001",
+              "username": "parity_admin",
+              "department": "运行控制中心",
+              "is_admin": true,
+              "permissions": ["*"]
+            },
+            "role_hint": "operations_admin",
+            "attention_items": [],
+            "risk_summary": {
+              "unresolved_anomalies": 0,
+              "high_risk_flights": 0,
+              "dispatch_conflicts": 0,
+              "stale_data_indicators": [],
+              "high_risk_flight_refs": [],
+              "dispatch_conflict_refs": []
+            },
+            "recent_changes": [],
+            "quick_links": [],
+            "module_status": [],
+            "degraded_sources": []
+          },
+          "message": "dashboard workbench loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-burden-metrics-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/burden-metrics",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_at": "2026-07-14T02:30:00Z",
+            "blocked_completion_count": 0,
+            "soft_completion_count": 0,
+            "pending_arrival_verification_count": 0,
+            "issue_reported_counts": {
+              "text": 0,
+              "photo": 0,
+              "voice": 0
+            },
+            "open_soft_followups": 0,
+            "open_arrival_verifications": 0,
+            "raw_counters": {}
+          },
+          "message": "dispatch burden metrics loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-followup-queue-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/followup-queue",
+      "query": {
+        "assignee": [
+          "00000000-0000-4000-8000-000000000001"
+        ],
+        "limit": [
+          "20"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_at": "2026-07-14T02:30:00Z",
+            "assignee": "00000000-0000-4000-8000-000000000001",
+            "total": 0,
+            "pending_verification_count": 0,
+            "soft_followup_count": 0,
+            "items": []
+          },
+          "message": "dispatch follow-up queue loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-mobile-workbench-deferred-empty",
+      "method": "GET",
+      "pathname": "/api/v2/mobile/workbench",
+      "query": {
+        "fields": [
+          "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+        ],
+        "max_orders": [
+          "8"
+        ],
+        "pending_sync_action_count": [
+          "0"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "notification_unread_count": 0,
+            "chat_unread_total": 0,
+            "pending_sync_action_count": 0,
+            "channel_recommendation": {
+              "push": false,
+              "sse": true,
+              "in_app": true
+            },
+            "next_primary_action": "view",
+            "arrival_verification_needed": false,
+            "soft_followups_count": 0,
+            "critical_alerts": [],
+            "handover_draft_summary": {
+              "generated_item_count": 0,
+              "mandatory_count": 0,
+              "titles": [],
+              "items": []
+            }
+          },
+          "message": "mobile workbench loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-mobile-workbench-core-empty",
+      "method": "GET",
+      "pathname": "/api/v2/mobile/workbench",
+      "query": {
+        "fields": [
+          "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+        ],
+        "max_orders": [
+          "8"
+        ],
+        "pending_sync_action_count": [
+          "0"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "user_id": "00000000-0000-4000-8000-000000000001",
+            "generated_at": "2026-07-14T02:30:00Z",
+            "my_orders": [],
+            "order_counts": {
+              "pending": 0,
+              "assigned": 0,
+              "in_progress": 0,
+              "completed": 0,
+              "cancelled": 0,
+              "total": 0
+            },
+            "pending_shift_handover_count": 0
+          },
+          "message": "mobile workbench loaded"
+        }
+      }
+    },
+    {
+      "id": "dashboard-outgoing-handovers-empty",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers",
+      "query": {
+        "from_user_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ],
+        "limit": [
+          "20"
+        ],
+        "offset": [
+          "0"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "id": "dashboard-incoming-handovers-empty",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers",
+      "query": {
+        "limit": [
+          "20"
+        ],
+        "offset": [
+          "0"
+        ],
+        "to_user_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "id": "dashboard-handover-candidates-empty",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers/candidates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "id": "dashboard-system-draft-preview-empty",
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers/system-draft-preview",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "generated_item_count": 0,
+            "mandatory_count": 0,
+            "titles": [],
+            "items": []
+          },
+          "message": "Shift handover system draft preview loaded",
+          "timestamp": "2026-07-14T02:30:00Z"
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "dashboard-ai-events-empty",
+      "pathname": "/api/v2/ai/events/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "dashboard-ai-event-empty-1",
+          "event": "ai_execution",
+          "data": {
+            "event": "idle",
+            "status": "idle",
+            "message": "当前没有执行中的 AI 任务"
+          }
+        }
+      ]
+    }
+  ]
+}

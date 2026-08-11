@@ -1,0 +1,692 @@
+{
+  "contractVersion": 1,
+  "page": "dispatch_rule_center",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/dispatch_rule_center.html",
+    "htmlSha256": "da6a5c40f74553292d621a1a7a8279bab8b307286eb1412f8531279b047c403e",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/dispatch_rule_center.js?v=2",
+        "archivePath": "js/dispatch_rule_center.js",
+        "exists": true,
+        "sha256": "5a29438591dbf32bec167c5f56168345d87fa488fb679a5dfdb27e0b3c511746"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css?v=31",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      },
+      {
+        "kind": "external",
+        "reference": "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "external",
+        "reference": "https://fonts.googleapis.com",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "external",
+        "reference": "https://fonts.gstatic.com",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      }
+    ],
+    "sourceHash": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "#stepNav",
+        "tag": "nav",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-task-driven",
+        "tag": "section",
+        "role": null,
+        "text": "登机保障 boarding",
+        "visible": true
+      },
+      {
+        "selector": "#panel-generation",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-adjustment",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-requirements",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-turnaround",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-preview",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-manual",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#panel-task-driven",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div > div:nth-of-type(1) > div:nth-of-type(1) > h1",
+        "level": 1,
+        "text": "派工规则配置工作台"
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > h3",
+        "level": 3,
+        "text": "登机保障 boarding"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#backToBoardBtn",
+        "tag": "button",
+        "type": "",
+        "text": "返回调度台",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#departmentSelect",
+        "tag": "select",
+        "type": "",
+        "text": "请选择科室全部科室运行控制中心",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#reloadDepartmentBtn",
+        "tag": "button",
+        "type": "",
+        "text": "加载科室配置",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#tdSearchInput",
+        "tag": "input",
+        "type": "text",
+        "text": "搜索任务类型…",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#tdAddTaskTypeBtn",
+        "tag": "button",
+        "type": "",
+        "text": "＋ 新增",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(1) > div:nth-of-type(3) > button",
+        "tag": "button",
+        "type": "",
+        "text": "登机保障 1",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#tdDelTaskTypeBtn",
+        "tag": "button",
+        "type": "",
+        "text": "删除作业类型",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "触发规则 (1)",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "调整规则 (0)",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(3)",
+        "tag": "button",
+        "type": "",
+        "text": "资质与设备 (0)",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(4)",
+        "tag": "button",
+        "type": "",
+        "text": "过站约束 (0)",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2) > button:nth-of-type(5)",
+        "tag": "button",
+        "type": "",
+        "text": "工具",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(3) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "✎",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(3) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "✕",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div > div:nth-of-type(3) > div > section:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(3) > button",
+        "tag": "button",
+        "type": "",
+        "text": "+ 新增触发规则",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#departmentSelect",
+        "tag": "select",
+        "type": "",
+        "text": "请选择科室全部科室",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#departmentSelect",
+        "tag": "select",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [
+      {
+        "selector": "body > div > div:nth-of-type(2) > div:nth-of-type(1) > label",
+        "text": "当前科室 请选择科室全部科室运行控制中心",
+        "for": null
+      },
+      {
+        "selector": "body > div > div:nth-of-type(2) > div:nth-of-type(1) > label",
+        "text": "当前科室 请选择科室全部科室",
+        "for": null
+      },
+      {
+        "selector": "body > div > div:nth-of-type(2) > div:nth-of-type(1) > label",
+        "text": "当前科室",
+        "for": null
+      }
+    ],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div > div:nth-of-type(1) > div:nth-of-type(2) > a",
+        "text": "返回工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#backToBoardBtn",
+      "#departmentSelect",
+      "#fms-parity-contract-determinism",
+      "#globalStatus",
+      "#panel-adjustment",
+      "#panel-generation",
+      "#panel-manual",
+      "#panel-preview",
+      "#panel-requirements",
+      "#panel-task-driven",
+      "#panel-turnaround",
+      "#reloadDepartmentBtn",
+      "#ruleCenterUser",
+      "#stepNav",
+      "#taskTypeDetail",
+      "#taskTypeListInner",
+      "#tdAddTaskTypeBtn",
+      "#tdCreateTaskTypeForm",
+      "#tdDelTaskTypeBtn",
+      "#tdGenStatus",
+      "#tdSearchInput",
+      "#tdTabContent",
+      "#ttCreateCancel",
+      "#ttCreateCode",
+      "#ttCreateDept",
+      "#ttCreateName",
+      "#ttCreateSubmit"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "dispatch_rule_center-success",
+      "fixture": "parity/fixtures/pages/dispatch_rule_center/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/teams",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "dispatch_rule_center-empty",
+      "fixture": "parity/fixtures/pages/dispatch_rule_center/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "dispatch_rule_center-forbidden",
+      "fixture": "parity/fixtures/pages/dispatch_rule_center/forbidden.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        403
+      ],
+      "expectedLegacyErrors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

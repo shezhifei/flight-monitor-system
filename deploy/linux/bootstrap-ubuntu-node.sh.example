@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get -y full-upgrade
+apt-get -y install \
+  curl \
+  wget \
+  vim \
+  git \
+  unzip \
+  htop \
+  jq \
+  net-tools \
+  dnsutils \
+  ca-certificates \
+  gnupg \
+  lsb-release \
+  software-properties-common \
+  ufw
+
+timedatectl set-timezone Asia/Shanghai
+
+mkdir -p /opt/flight-monitor-system
+mkdir -p /srv/flight-monitor/shared/mobile_uploads
+mkdir -p /etc/flight-monitor
+
+ufw allow OpenSSH
+ufw --force enable
+
+echo "Bootstrap completed"
+

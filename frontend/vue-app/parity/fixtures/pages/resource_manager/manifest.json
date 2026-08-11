@@ -1,0 +1,13 @@
+{
+  "page": "resource_manager",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "partial",
+    "unauthorized",
+    "forbidden",
+    "server-error"
+  ]
+}

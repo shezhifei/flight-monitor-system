@@ -1,0 +1,23 @@
+{
+  "scenario": "label-manager-success",
+  "capture": {
+    "expected_panels": ["body"],
+    "regions": [],
+    "blocked_interactions": [{
+      "id": "label-management",
+      "reason": "The archived CSS and JavaScript bundles referenced by label_manager.html are missing, leaving the application host empty and all management interactions unavailable.",
+      "source": "html/label_manager.html#app"
+    }]
+  },
+  "routes": [],
+  "sse_streams": [],
+  "expected_legacy_errors": [
+    "/frontend/assets/label_manager-DT-ZFJuv.css",
+    "/frontend/assets/label_manager-CmYjAVmh.js",
+    "status of 404 (Not Found)"
+  ],
+  "approved_exception_ids": [
+    "legacy-label-manager-build-assets-missing"
+  ],
+  "coverage_note": "The ignored legacy archive is missing the label manager build assets; the baseline preserves the resulting broken surface instead of fabricating bundles."
+}

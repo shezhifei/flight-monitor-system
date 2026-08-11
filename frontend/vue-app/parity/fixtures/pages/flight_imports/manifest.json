@@ -1,0 +1,11 @@
+{
+  "page": "flight_imports",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "unauthorized",
+    "forbidden",
+    "server-error"
+  ]
+}

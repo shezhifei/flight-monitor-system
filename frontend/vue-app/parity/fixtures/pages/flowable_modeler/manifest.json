@@ -1,0 +1,10 @@
+{
+  "page": "flowable_modeler",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "forbidden"
+  ]
+}

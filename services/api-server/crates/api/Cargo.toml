@@ -1,0 +1,72 @@
+[package]
+name = "fms-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+fms-domain = { path = "../domain" }
+fms-application = { path = "../application" }
+fms-runtime = { path = "../runtime" }
+
+# Web framework
+actix-web = { workspace = true }
+actix-cors = { workspace = true }
+actix-files = { workspace = true }
+actix-multipart = { workspace = true }
+actix-ws = { workspace = true }
+
+tokio = { workspace = true }
+dashmap = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+prost = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Utilities
+chrono = { workspace = true }
+uuid = { workspace = true }
+ulid = { workspace = true }
+thiserror = { workspace = true }
+jsonwebtoken = { workspace = true }
+futures-core = "0.3"
+futures-util = "0.3"
+futures = "0.3"
+tokio-stream = { version = "0.1", features = ["sync"] }
+reqwest = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+async-stream = "0.3.6"
+async-trait = { workspace = true }
+once_cell = "1.20"
+utoipa = { workspace = true }
+metrics = "0.24"
+metrics-exporter-prometheus = "0.15"
+arc-swap = "1.9"
+rand = { workspace = true }
+
+[features]
+sse-load-tools = []
+
+[[bin]]
+name = "sse_load_harness"
+path = "src/bin/sse_load_harness.rs"
+required-features = ["sse-load-tools"]
+
+[[bin]]
+name = "sse_load_client"
+path = "src/bin/sse_load_client.rs"
+required-features = ["sse-load-tools"]
+
+[dev-dependencies]
+serde_urlencoded = "0.7"
+fms-infrastructure = { path = "../infrastructure" }
+sqlx = { workspace = true }

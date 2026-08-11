@@ -1,0 +1,56 @@
+# Copyright 2023 The RocketMQ Rust Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+[package]
+name                   = "rocketmq-admin-cli"
+version.workspace      = true
+authors.workspace      = true
+edition                = "2024"
+homepage.workspace     = true
+repository.workspace   = true
+license.workspace      = true
+keywords               = ["rocketmq", "cli", "admin", "messaging", "rocketmq-rust"]
+categories             = ["command-line-utilities", "development-tools"]
+readme                 = "README.md"
+description            = "Command-line interface for managing RocketMQ-Rust and Apache RocketMQ clusters"
+rust-version.workspace = true
+
+[dependencies]
+rocketmq-admin-core = { path = "../rocketmq-admin-core", features = ["rocksdb-export"] }
+rocketmq-common     = { workspace = true }
+rocketmq-error      = { workspace = true }
+rocketmq-remoting   = { workspace = true }
+rocketmq-rust       = { workspace = true }
+
+bytes = { workspace = true }
+cheetah-string = { workspace = true }
+chrono = "0.4"
+clap = { version = "4.6.1", features = ["derive"] }
+clap_complete = "4.6"
+colored = "3.1"
+dialoguer = "0.12"
+futures = "0.3.32"
+indicatif = "0.18"
+regex = "1.12.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+tabled = { version = "0.20.0", features = ["derive"] }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[[bin]]
+name = "rocketmq-admin-cli"
+path = "src/main.rs"

@@ -1,0 +1,1229 @@
+{
+  "schema_version": 1,
+  "page": "ai_config_center",
+  "legacy_html": "html/ai_config_center.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/ai_config_center.html",
+      "sha256": "f846b7400fe704cddee27d02be170c3818fbd49c067848d7223b5e7ac8c158e3"
+    },
+    {
+      "path": "js/ai_entry_loader.js",
+      "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/components/breadcrumb.js",
+      "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+    },
+    {
+      "path": "js/components/header.js",
+      "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+    },
+    {
+      "path": "static/ai/manifest.json",
+      "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "e358773262678dfa4550080a8f8a645c748e035c584fac7ca267b8b271abcac0",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/ai_config_center/empty.json",
+      "sha256": "984e927ef63ce1ac3501770069e5b170c3edb525c72155405f0645769d4f13e0"
+    },
+    {
+      "path": "parity/fixtures/pages/ai_config_center/forbidden.json",
+      "sha256": "1554e93c312f40e014805651760529dd6dc4bbfb02f7ed4bd862f962d47fab65"
+    },
+    {
+      "path": "parity/fixtures/pages/ai_config_center/manifest.json",
+      "sha256": "9e934bcccd431042e9a9ad2dd04ec1e3e716abb04a50abf51b81fb50b9b1eb25"
+    },
+    {
+      "path": "parity/fixtures/pages/ai_config_center/success.json",
+      "sha256": "92e94fdd883ddb55a4ec98425f73269441ad65b1da5498cf26c6ebd0e90b8885"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "ai_config_center-success",
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#ai-react-root"
+      ],
+      "regions": [
+        {
+          "id": "ai-config-workspace",
+          "selector": "#ai-react-root"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "ai_config_center-empty",
+      "fixture": "ai_config_center-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "ai_config_center-forbidden",
+      "fixture": "ai_config_center-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "ai_config_center/ai_config_center-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5c3545124979e412a3016d5fb03023a66a5c5570ed5806ef352405d40e71a7a0"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--ai-config-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "ai-config-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e54ec158683d18a0a529e87fa6897c2b5305711689015e98407997710de9b117"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "56e45d66e1277908af02af31d49e611008baff9286f301109c4e7c7341359336"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--ai-config-workspace--desktop.png",
+      "kind": "region",
+      "region": "ai-config-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "02feda890a1163f25fa9b90f4483e226b4708305ae440ee43b694de20cd871c0"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6c887b3eee0b4704e07bf47fba5b14c7ae95973e415ace671e439a528ec3a869"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--ai-config-workspace--laptop.png",
+      "kind": "region",
+      "region": "ai-config-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "437e9d1cbffa8e5089c420b45356d5265fe30f7d7cbf466e2637eae1acf2ebcc"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d6454bc5b92819747aa6e84a70063ecaf24abd241d486c891a303695c0dc217b"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--ai-config-workspace--tablet.png",
+      "kind": "region",
+      "region": "ai-config-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b21fc83935a39e507bb5ffb32db15977bef5b6d72f71f6ec23a81da4a5224931"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4cf5c50833e54e5c74b55bb91a7d99f32e88ece0518c2ae4f9415546b50311d4"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-success--ai-config-workspace--mobile.png",
+      "kind": "region",
+      "region": "ai-config-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "ai_config_center-success",
+      "theme": "light",
+      "scenario": "ai_config_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "895f45d116885eaf985662cf9ab7b6bde09c0b2000e14713405342c19a23d18d"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "ai_config_center-empty",
+      "theme": "light",
+      "scenario": "ai_config_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5c3545124979e412a3016d5fb03023a66a5c5570ed5806ef352405d40e71a7a0"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "ai_config_center-empty",
+      "theme": "light",
+      "scenario": "ai_config_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "56e45d66e1277908af02af31d49e611008baff9286f301109c4e7c7341359336"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "ai_config_center-empty",
+      "theme": "light",
+      "scenario": "ai_config_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6c887b3eee0b4704e07bf47fba5b14c7ae95973e415ace671e439a528ec3a869"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "ai_config_center-empty",
+      "theme": "light",
+      "scenario": "ai_config_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d6454bc5b92819747aa6e84a70063ecaf24abd241d486c891a303695c0dc217b"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "ai_config_center-empty",
+      "theme": "light",
+      "scenario": "ai_config_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4cf5c50833e54e5c74b55bb91a7d99f32e88ece0518c2ae4f9415546b50311d4"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "ai_config_center-forbidden",
+      "theme": "light",
+      "scenario": "ai_config_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "23af858c78f0302648430faf1ba72d892fc65e20a47e8d94d43f473080149c8a"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "ai_config_center-forbidden",
+      "theme": "light",
+      "scenario": "ai_config_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "93974e9bf6fcbbeaa19accf240ab0c34a5d11ef2421b9f98c20ed2fe3af1cf24"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "ai_config_center-forbidden",
+      "theme": "light",
+      "scenario": "ai_config_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d36a112b6b415f9d0d247410a679e73deaa2d9e1d0ef5767312b60ebeebf4f10"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "ai_config_center-forbidden",
+      "theme": "light",
+      "scenario": "ai_config_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "31adaaa1f20a0f1caee76cab644e29fd406f8623412f3c874b56cf1054fcf7ba"
+    },
+    {
+      "file": "ai_config_center/ai_config_center-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "ai_config_center-forbidden",
+      "theme": "light",
+      "scenario": "ai_config_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "be7766f1c278aee303c351690ac599c5cd78fae4c0dea0fef3198d142f2873f2",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d12c5b71ba647508a4ac9e9b7661919487274a2386746dce2f44c467334637c8"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "ai_config_center-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "ai_config_center-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/entities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/models",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/tools/categories",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "page": "dispatch_board",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success"
+  ]
+}

@@ -1,0 +1,663 @@
+{
+  "contractVersion": 1,
+  "page": "kpi_dashboard",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/kpi_dashboard.html",
+    "htmlSha256": "0ad973ca543193f97be59b426be54186259fc31689306a8bde5bbce28e684684",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/kpi_dashboard_enhanced.css?v=2",
+        "archivePath": "css/kpi_dashboard_enhanced.css",
+        "exists": true,
+        "sha256": "0a226bb892b8ad75365a40c3c6fca31bd7bac04e8aaec652a8ad00279a8f1c14"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/workspace_unified_theme.css?v=4",
+        "archivePath": "css/workspace_unified_theme.css",
+        "exists": true,
+        "sha256": "b63af6b73b8630f37f426c436b8ecfb74efdee47d010bd7092053d822527383b"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "sourceHash": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div > header",
+        "tag": "header",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div > header > div > nav",
+        "tag": "nav",
+        "role": null,
+        "text": "分析导航",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "KPI 诊断台",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "3 秒判断",
+        "visible": true
+      },
+      {
+        "selector": "#kpiGrid",
+        "tag": "section",
+        "role": null,
+        "text": "目标差趋势",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div > section:nth-of-type(1) > div:nth-of-type(1) > h2",
+        "level": 2,
+        "text": "KPI 诊断台"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(2) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "3 秒判断"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > article:nth-of-type(1) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "目标差趋势"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > article:nth-of-type(2) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "时间压力"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > article:nth-of-type(3) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "尾部拖累"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > article:nth-of-type(4) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "节点拖累"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#timeRange",
+        "tag": "select",
+        "type": "",
+        "text": "今日 本周 本月 自定义",
+        "name": null,
+        "ariaLabel": "时间范围",
+        "disabled": false
+      },
+      {
+        "selector": "#refreshBtn",
+        "tag": "button",
+        "type": "",
+        "text": "更新数据",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#logoutBtn",
+        "tag": "button",
+        "type": "",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div > header > div > a",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div > header > div > nav > a:nth-of-type(1)",
+        "text": "KPI",
+        "href": "/frontend/html/kpi_dashboard.html"
+      },
+      {
+        "selector": "body > div > header > div > nav > a:nth-of-type(2)",
+        "text": "运行复盘",
+        "href": "/frontend/html/operations_review_report.html"
+      }
+    ],
+    "stableSelectors": [
+      "#abnormalInsightText",
+      "#abnormalRatio",
+      "#customRangeGroup",
+      "#decisionAttainment",
+      "#decisionNextStep",
+      "#decisionSource",
+      "#distributionBars",
+      "#distributionMeta",
+      "#endDate",
+      "#equipmentInsightText",
+      "#equipmentRate",
+      "#fms-parity-contract-determinism",
+      "#hourlyBars",
+      "#hourlyMeta",
+      "#kpiGrid",
+      "#logoutBtn",
+      "#nodePressureLead",
+      "#nodePressureSupport",
+      "#nodesSummaryText",
+      "#p90Turnaround",
+      "#refreshBtn",
+      "#scoreDepartureNote",
+      "#scoreDepartureValue",
+      "#scoreGapNote",
+      "#scoreGapValue",
+      "#scoreServiceNote",
+      "#scoreServiceValue",
+      "#scoreTurnNote",
+      "#scoreTurnValue",
+      "#serviceNodes",
+      "#snapshotTime",
+      "#startDate",
+      "#tailPressureLead",
+      "#tailPressureSupport",
+      "#timePressureLead",
+      "#timePressureSupport",
+      "#timeRange",
+      "#trendBars",
+      "#trendBoardLead",
+      "#trendBoardSupport",
+      "#trendDeltaBadge",
+      "#trendMeta",
+      "#turnaroundInsightText",
+      "#verdictLead",
+      "#verdictStateChip",
+      "#verdictSupport"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "kpi_dashboard-success",
+      "fixture": "parity/fixtures/pages/kpi_dashboard/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::kpi-dashboard",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/kpi/stream?token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "fixtureId": "kpi-stream-success",
+          "eventTypes": [
+            "kpi_updated"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "kpi_dashboard-empty",
+      "fixture": "parity/fixtures/pages/kpi_dashboard/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::kpi-dashboard",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/kpi/stream?token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "fixtureId": "kpi-stream-success",
+          "eventTypes": [
+            "kpi_updated"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "kpi_dashboard-partial",
+      "fixture": "parity/fixtures/pages/kpi_dashboard/partial.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::kpi-dashboard",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/kpi/stream?token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "fixtureId": "kpi-stream-success",
+          "eventTypes": [
+            "kpi_updated"
+          ]
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

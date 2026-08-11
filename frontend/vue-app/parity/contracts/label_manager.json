@@ -1,0 +1,245 @@
+{
+  "contractVersion": 1,
+  "page": "label_manager",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/label_manager.html",
+    "htmlSha256": "782f46c352f8314f4fb6579d3c641d0a6a721467bc5655733cb774a546c20afd",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/assets/label_manager-CmYjAVmh.js",
+        "archivePath": "assets/label_manager-CmYjAVmh.js",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/breadcrumb.js",
+        "archivePath": "js/components/breadcrumb.js",
+        "exists": true,
+        "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/header.js",
+        "archivePath": "js/components/header.js",
+        "exists": true,
+        "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/assets/label_manager-DT-ZFJuv.css",
+        "archivePath": "assets/label_manager-DT-ZFJuv.css",
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      }
+    ],
+    "sourceHash": "0d83cc24969e68297b3ffb4fa87b9d51bfedbde2c30ded5f08df36ab88d5df79"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > header",
+        "tag": "header",
+        "role": "banner",
+        "text": "标签管理",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > nav",
+        "tag": "nav",
+        "role": null,
+        "text": "面包屑导航",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > div > h1",
+        "level": 1,
+        "text": "标签管理"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#unifiedHeaderLogout",
+        "tag": "button",
+        "type": "button",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(1)",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(2)",
+        "text": "航班监控",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > nav > ol > li:nth-of-type(1) > a",
+        "text": "工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#app",
+      "#breadcrumb-host",
+      "#fms-parity-contract-determinism",
+      "#header-host",
+      "#unifiedHeaderLogout"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "label_manager-success",
+      "fixture": "parity/fixtures/pages/label_manager/success.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [
+        "/frontend/assets/label_manager-CmYjAVmh.js",
+        "/frontend/assets/label_manager-DT-ZFJuv.css",
+        "status of 404 (Not Found)"
+      ],
+      "apiRequests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Refused to apply style from '<legacy-origin>/frontend/assets/label_manager-DT-ZFJuv.css' because its MIME type ('text/plain') is not a supported stylesheet MIME type, and strict MIME checking is enabled."
+      ]
+    }
+  ],
+  "approvedExceptions": [
+    "legacy-label-manager-build-assets-missing"
+  ]
+}

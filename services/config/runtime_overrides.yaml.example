@@ -1,0 +1,17 @@
+# Local-only runtime overrides template.
+# Copy to services/config/runtime_overrides.yaml and fill real values locally.
+# Never commit services/config/runtime_overrides.yaml (it is gitignored).
+
+site:
+  airport:
+    code: SZX
+    display_name: 深圳
+    name_aliases:
+      - 深圳
+      - 深圳宝安
+
+# anthropic:
+#   auth:
+#     token: __REPLACE_WITH_ANTHROPIC_OR_GATEWAY_TOKEN__
+#   base:
+#     url: https://agentrouter.org

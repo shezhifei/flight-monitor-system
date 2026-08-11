@@ -1,0 +1,39 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/system/flags",
+  "body": {
+    "success": true,
+    "data": {
+      "flags": [
+        {
+          "path": "feature_flags.dispatch_chat_v1.enabled",
+          "value": true,
+          "type": "boolean",
+          "category": "feature_flags",
+          "label": "Enabled",
+          "description": "Configuration for feature_flags.dispatch_chat_v1.enabled",
+          "masked": false
+        },
+        {
+          "path": "auth.access_token_expire_minutes",
+          "value": 30,
+          "type": "number",
+          "category": "auth",
+          "label": "Access Token Expire Minutes",
+          "description": "Configuration for auth.access_token_expire_minutes",
+          "masked": false
+        },
+        {
+          "path": "database.password",
+          "value": "***REDACTED***",
+          "type": "string",
+          "category": "database",
+          "label": "Password",
+          "description": "Configuration for database.password",
+          "masked": true
+        }
+      ]
+    }
+  },
+  "source": "system_flags/success.json"
+}

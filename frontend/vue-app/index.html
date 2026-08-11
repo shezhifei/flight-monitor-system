@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="0; url=/frontend/dashboard.html" />
+    <script>
+      (function () {
+        var t = localStorage.getItem('fms-theme');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+      // SPA-safe fallback: if meta refresh is suppressed (some sandboxes / tests), JS still redirects.
+      try { window.location.replace('/frontend/dashboard.html'); } catch (e) {}
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flight Monitor</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      [data-theme='dark'] body { background: #0f172a; color: #e2e8f0; }
+      .redirect-card {
+        max-width: 420px;
+        padding: 28px 32px;
+        border-radius: 14px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+        text-align: center;
+      }
+      [data-theme='dark'] .redirect-card {
+        background: rgba(15, 23, 42, 0.85);
+        border-color: rgba(148, 163, 184, 0.25);
+      }
+      .redirect-title {
+        margin: 0 0 8px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .redirect-link {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 8px 18px;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .redirect-link:hover { background: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <main class="redirect-card" role="main">
+      <h1 class="redirect-title">正在跳转到工作台</h1>
+      <p>请稍候。如果浏览器未自动跳转，请点击下方链接进入工作台。</p>
+      <a class="redirect-link" href="/frontend/dashboard.html">进入工作台</a>
+    </main>
+  </body>
+</html>

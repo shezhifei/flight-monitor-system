@@ -1,0 +1,192 @@
+{
+  "scenario": "flight_monitor-empty",
+  "routes": [
+    {
+      "id": "flight-monitor-capabilities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/capabilities",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "ai_ready": true,
+            "ai_execute_permission": true,
+            "ai_chat_permission": true,
+            "missing_reasons": []
+          }
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-business-case-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/business-case-types",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-flights-success",
+      "method": "GET",
+      "pathname": "/api/v2/flights",
+      "query": {
+        "page": [
+          "1"
+        ],
+        "page_size": [
+          "500"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-labels-success",
+      "method": "GET",
+      "pathname": "/api/v2/labels",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-notification-history-success",
+      "method": "GET",
+      "pathname": "/api/v2/notifications",
+      "query": {
+        "limit": [
+          "100"
+        ],
+        "offset": [
+          "0"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "total": 0,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-unread-notifications-success",
+      "method": "GET",
+      "pathname": "/api/v2/notifications",
+      "query": {
+        "limit": [
+          "50"
+        ],
+        "unread_only": [
+          "true"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "total": 0,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-sent-receipts-success",
+      "method": "GET",
+      "pathname": "/api/v2/notifications/sent-receipt-groups",
+      "query": {
+        "limit": [
+          "50"
+        ],
+        "offset": [
+          "0"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "total": 0,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-statuses-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/business-case-statuses",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-airport-context-success",
+      "method": "GET",
+      "pathname": "/api/v2/system/airport-context",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "code": "PVG",
+          "display_name": "上海浦东国际机场",
+          "name_aliases": [
+            "浦东机场",
+            "上海浦东"
+          ]
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "flight-monitor-global-stream-success",
+      "pathname": "/api/v2/sse/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ],
+        "topics": [
+          "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+        ]
+      },
+      "events": [
+        {
+          "id": "flight_monitor-empty-1",
+          "event": "global_status",
+          "data": {
+            "items": [],
+            "generated_at": "2026-07-14T02:30:05Z"
+          }
+        }
+      ]
+    }
+  ]
+}

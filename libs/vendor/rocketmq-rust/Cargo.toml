@@ -1,0 +1,123 @@
+# Copyright 2023 The RocketMQ Rust Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+[workspace]
+members = [
+  "rocketmq",
+  "rocketmq-auth",
+  "rocketmq-broker",
+  "rocketmq-client",
+  "rocketmq-common",
+  "rocketmq-controller",
+  "rocketmq-error",
+  "rocketmq-filter",
+  "rocketmq-macros",
+  "rocketmq-namesrv",
+  "rocketmq-proxy",
+  "rocketmq-remoting",
+  "rocketmq-runtime",
+  "rocketmq-store",
+  "rocketmq-tools/rocketmq-admin/rocketmq-admin-cli",
+  "rocketmq-tools/rocketmq-admin/rocketmq-admin-core",
+  "rocketmq-tools/rocketmq-admin/rocketmq-admin-tui",
+  "rocketmq-tools/rocketmq-store-inspect",
+  "rocketmq-dashboard/rocketmq-dashboard-common",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.8.0"
+authors = ["mxsm <mxsm@apache.org>"]
+edition = "2021"
+homepage = "https://github.com/mxsm/rocketmq-rust"
+repository = "https://github.com/mxsm/rocketmq-rust"
+license = "MIT OR Apache-2.0"
+keywords = [
+  "apache-rocketmq",
+  "rocketmq-rust",
+  "rocketmq-rs",
+  "rust",
+  "rocketmq-client",
+]
+categories = ["asynchronous", "network-programming", "development-tools"]
+readme = "README.md"
+description = """
+Unofficial Rust implementation of Apache RocketMQ
+"""
+rust-version = "1.85.0"
+[workspace.dependencies]
+rocketmq-common      = { version = "0.8.0", path = "./rocketmq-common" }
+rocketmq-runtime     = { version = "0.8.0", path = "./rocketmq-runtime" }
+rocketmq-macros      = { version = "0.8.0", path = "./rocketmq-macros" }
+rocketmq-rust        = { version = "0.8.0", path = "./rocketmq" }
+rocketmq-filter      = { version = "0.8.0", path = "./rocketmq-filter" }
+rocketmq-store       = { version = "0.8.0", path = "./rocketmq-store", default-features = true }
+rocketmq-remoting    = { version = "0.8.0", path = "./rocketmq-remoting" }
+rocketmq-client-rust = { version = "0.8.0", path = "./rocketmq-client" }
+rocketmq-broker      = { version = "0.8.0", path = "./rocketmq-broker" }
+rocketmq-error       = { version = "0.8.0", path = "./rocketmq-error" }
+rocketmq-auth        = { version = "0.8.0", path = "./rocketmq-auth" }
+rocketmq-controller  = { version = "0.8.0", path = "./rocketmq-controller" }
+rocketmq-namesrv     = { version = "0.8.0", path = "./rocketmq-namesrv" }
+
+tokio        = { version = "1.52", features = ["full"] }
+tokio-util   = { version = "0.7.18", features = ["full"] }
+tokio-stream = { version = "0.1.18", features = ["full"] }
+
+tracing            = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["time"] }
+tracing-appender   = "0.2.5"
+
+thiserror = "2.0.18"
+
+
+#serde
+serde              = { version = "1.0", features = ["derive"] }
+serde_json         = "1.0"
+serde_yaml         = "0.9"
+serde_json_any_key = "2.1.0"
+anyhow             = "1.0.102"
+bytes              = "1.11.1"
+rand               = "0.10.1"
+num_cpus           = "1.17"
+
+config = "0.15.22"
+
+parking_lot   = "0.12"
+dirs          = "6.0"
+trait-variant = "0.1.2"
+
+mockall = "0.14.0"
+cfg-if  = "1.0.4"
+
+sysinfo = "0.38.4"
+uuid = { version = "1.23.1", features = [
+  "v4",                # Lets you generate random UUIDs
+  "fast-rng",          # Use a faster (but still sufficiently random) RNG
+  "macro-diagnostics",
+] }
+
+
+futures = "0.3"
+
+cheetah-string = { version = "1.0.1", features = ["serde", "bytes", "simd"] }
+
+flate2   = "1.1.9"
+dashmap  = "6.1.0"
+strum    = { version = "0.28.0", features = ["derive"] }
+smallvec = "1.13"
+
+opentelemetry     = { version = "0.31", features = ["metrics"] }
+opentelemetry_sdk = { version = "0.31", features = ["metrics", "rt-tokio"] }

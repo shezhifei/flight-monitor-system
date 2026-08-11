@@ -1,0 +1,16 @@
+{
+  "scenario": "flight_imports-forbidden",
+  "auth_role": "readonly",
+  "capture": {
+    "expected_panels": [".import-shell", ".upload-box"],
+    "regions": [{ "id": "import-workspace", "selector": ".import-shell" }],
+    "blocked_interactions": [{
+      "id": "file-preview",
+      "reason": "Preview requires a real multipart upload; the read-only role scenario only models shell access under limited permissions and does not fabricate preview_id responses.",
+      "source": "html/flight_imports.html#previewBtn"
+    }]
+  },
+  "routes": [],
+  "sse_streams": [],
+  "coverage_note": "Legacy flight_imports only gates on authentication at initial render; read-only role is still allowed to open the upload shell. Commit/preview permission enforcement is deferred to explicit upload actions."
+}

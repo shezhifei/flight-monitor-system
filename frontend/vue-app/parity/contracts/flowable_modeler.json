@@ -1,0 +1,769 @@
+{
+  "contractVersion": 1,
+  "page": "flowable_modeler",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/flowable_modeler.html",
+    "htmlSha256": "94cadb500524473971a96c11d83ea9b498af76e069b357bfbc7f648b427cacb3",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/ai_entry_loader.js",
+        "archivePath": "js/ai_entry_loader.js",
+        "exists": true,
+        "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/security/dompurify.min.js",
+        "archivePath": "js/security/dompurify.min.js",
+        "exists": true,
+        "sha256": "c3d1c163c700071ad546390cb92a36c31cd6aceaad1bf77c4ef6eb9d845f1976"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/security/safe-markdown.js",
+        "archivePath": "js/security/safe-markdown.js",
+        "exists": true,
+        "sha256": "6456227326e8827b3d2523e55178643c1fdf0f8a1984231070cb3374db576574"
+      },
+      {
+        "kind": "script",
+        "reference": "../vendor/js/bpmn-modeler.development.js",
+        "archivePath": "vendor/js/bpmn-modeler.development.js",
+        "exists": true,
+        "sha256": "fccc61581a21173c1bd556733c517803235abe8c3aa1bfa12632e08a7e1ce12e"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/marked.min.js",
+        "archivePath": "vendor/js/marked.min.js",
+        "exists": true,
+        "sha256": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-layout.css",
+        "archivePath": "css/admin-layout.css",
+        "exists": true,
+        "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-page.css",
+        "archivePath": "css/admin-page.css",
+        "exists": true,
+        "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "../vendor/css/bpmn-embedded.css",
+        "archivePath": "vendor/css/bpmn-embedded.css",
+        "exists": true,
+        "sha256": "28ee993466dd75dbbe50e761b69e9bf5c481408c47090bf878a8e86056bd45f8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "../vendor/css/bpmn-js.css",
+        "archivePath": "vendor/css/bpmn-js.css",
+        "exists": true,
+        "sha256": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "../vendor/css/diagram-js.css",
+        "archivePath": "vendor/css/diagram-js.css",
+        "exists": true,
+        "sha256": "9aa83050d07b65ef6e11588afbcab82527974881a08af61461d163ceb5ab8468"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "dynamic",
+        "reference": "/frontend/static/ai/${path}",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ai.svg",
+        "archivePath": "icons/ai.svg",
+        "exists": true,
+        "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/clock.svg",
+        "archivePath": "icons/clock.svg",
+        "exists": true,
+        "sha256": "28b710f51a70ce69e9beefd2f6eaca66bdfdedaf2a688182183d102afa464411"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/edit.svg",
+        "archivePath": "icons/edit.svg",
+        "exists": true,
+        "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/logout.svg",
+        "archivePath": "icons/logout.svg",
+        "exists": true,
+        "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ok.svg",
+        "archivePath": "icons/ok.svg",
+        "exists": true,
+        "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/refresh.svg",
+        "archivePath": "icons/refresh.svg",
+        "exists": true,
+        "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/save.svg",
+        "archivePath": "icons/save.svg",
+        "exists": true,
+        "sha256": "23f941e822f81f6ab0268f1831a91c7b2bf1190a2e5c1603c22a91eb03fce304"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/settings.svg",
+        "archivePath": "icons/settings.svg",
+        "exists": true,
+        "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/static/ai/manifest.json",
+        "archivePath": "static/ai/manifest.json",
+        "exists": true,
+        "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+      },
+      {
+        "kind": "asset",
+        "reference": "../vendor/css/bpmn-embedded.css",
+        "archivePath": "vendor/css/bpmn-embedded.css",
+        "exists": true,
+        "sha256": "28ee993466dd75dbbe50e761b69e9bf5c481408c47090bf878a8e86056bd45f8"
+      },
+      {
+        "kind": "asset",
+        "reference": "../vendor/css/bpmn-js.css",
+        "archivePath": "vendor/css/bpmn-js.css",
+        "exists": true,
+        "sha256": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d"
+      },
+      {
+        "kind": "asset",
+        "reference": "../vendor/css/diagram-js.css",
+        "archivePath": "vendor/css/diagram-js.css",
+        "exists": true,
+        "sha256": "9aa83050d07b65ef6e11588afbcab82527974881a08af61461d163ceb5ab8468"
+      },
+      {
+        "kind": "asset",
+        "reference": "../font/bpmn.eot?16406289",
+        "archivePath": "vendor/font/bpmn.eot",
+        "exists": true,
+        "sha256": "9178281a0695f79ff8bff8eca529231b67f896dc1c12c8dbaaad24b32dd3fc07"
+      },
+      {
+        "kind": "asset",
+        "reference": "../font/bpmn.svg?16406289#bpmn",
+        "archivePath": "vendor/font/bpmn.svg",
+        "exists": true,
+        "sha256": "b366faf39f6bcc48f10b10f2860e5ebe57091cb2a15beeed8a0977e24560bbba"
+      },
+      {
+        "kind": "asset",
+        "reference": "../vendor/js/bpmn-modeler.development.js",
+        "archivePath": "vendor/js/bpmn-modeler.development.js",
+        "exists": true,
+        "sha256": "fccc61581a21173c1bd556733c517803235abe8c3aa1bfa12632e08a7e1ce12e"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/marked.min.js",
+        "archivePath": "vendor/js/marked.min.js",
+        "exists": true,
+        "sha256": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c"
+      }
+    ],
+    "sourceHash": "b4996ad15a1d9b1b650922be35b9fa82b0b8d581a4d479f829bbbd7d0a3e0696"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main",
+        "tag": "main",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div:nth-of-type(2) > header",
+        "tag": "header",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div:nth-of-type(2) > div > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#processDraftPanel",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      }
+    ],
+    "headings": [],
+    "controls": [
+      {
+        "selector": "#scopeSelect",
+        "tag": "select",
+        "type": "",
+        "text": "当前部门 · 运行控制中心 通用",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#searchInput",
+        "tag": "input",
+        "type": "text",
+        "text": "搜索业务事项...",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "",
+        "text": "+",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(3) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > div > button",
+        "tag": "button",
+        "type": "button",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [
+      {
+        "selector": "#createCaseForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#createCaseCode",
+          "#createCaseName",
+          "#createCaseScope",
+          "body > div:nth-of-type(3) > div > form > div:nth-of-type(2) > button:nth-of-type(1)",
+          "body > div:nth-of-type(3) > div > form > div:nth-of-type(2) > button:nth-of-type(2)"
+        ]
+      }
+    ],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [
+      {
+        "selector": "body > div:nth-of-type(3) > div",
+        "title": "",
+        "visible": false
+      },
+      {
+        "selector": "#draftAssistantModal",
+        "title": "流程对话助手",
+        "visible": false
+      }
+    ],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(3) > div:nth-of-type(2) > a",
+        "text": "返回工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#bpmn-canvas",
+      "#caseDescription",
+      "#caseTypeInput",
+      "#clearDraftAssistantBtn",
+      "#closeDraftAssistantBtn",
+      "#connectionStatus",
+      "#contextVariableList",
+      "#createCaseCode",
+      "#createCaseDepartmentDisplay",
+      "#createCaseError",
+      "#createCaseForm",
+      "#createCaseModal",
+      "#createCaseModalTitle",
+      "#createCaseName",
+      "#createCaseScope",
+      "#createCaseScopeHint",
+      "#diagramCode",
+      "#diagramName",
+      "#diagramScope",
+      "#downloadBtn",
+      "#draftAssistantCapabilityHint",
+      "#draftAssistantInput",
+      "#draftAssistantMessages",
+      "#draftAssistantModal",
+      "#draftAssistantModeMeta",
+      "#draftAssistantTitle",
+      "#draftLocale",
+      "#draftProcessKey",
+      "#draftProcessName",
+      "#draftSourceFile",
+      "#editorContainer",
+      "#emptyState",
+      "#eventList",
+      "#extraInfoFieldsInput",
+      "#flightContextPolicyInput",
+      "#flightFieldsInput",
+      "#flowable-ai-root",
+      "#fms-parity-contract-determinism",
+      "#generateDraftBtn",
+      "#loadingOverlay",
+      "#openDraftAssistantBtn",
+      "#openDraftAssistantFab",
+      "#panelHeader",
+      "#panelHeaderBadge",
+      "#panelHeaderTitle",
+      "#processDraftDisabledTip",
+      "#processDraftMeta",
+      "#processDraftPanel",
+      "#processDraftSummary",
+      "#processDraftWarnings",
+      "#regenerateDraftAssistantBtn",
+      "#saveBtn",
+      "#scopeOptionDepartment",
+      "#scopeSelect",
+      "#searchInput",
+      "#selectedNodeRulePanel",
+      "#sendDraftAssistantBtn",
+      "#templateCodeInput",
+      "#toastContainer",
+      "#userAvatar",
+      "#userName",
+      "#userRole",
+      "#versionList"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "flowable_modeler-success",
+      "fixture": "parity/fixtures/pages/flowable_modeler/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "flowable_modeler-empty",
+      "fixture": "parity/fixtures/pages/flowable_modeler/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "flowable_modeler-forbidden",
+      "fixture": "parity/fixtures/pages/flowable_modeler/forbidden.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        403
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/capabilities",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/business-case-types",
+          "query": {
+            "active_only": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/business-case-statuses",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "include_inactive": [
+              "false"
+            ],
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "加载业务事项状态元数据失败 Error: HTTP 403 at loadBusinessCaseStatusMetadata (<legacy-origin>/frontend/html/flowable_modeler.html:2900:27) at async HTMLDocument.<anonymous> (<legacy-origin>/frontend/html/flowable_modeler.html:2943:13)",
+        "加载科室主数据失败 Error: HTTP 403 at loadReferenceDepartments (<legacy-origin>/frontend/html/flowable_modeler.html:2840:31) at async HTMLDocument.<anonymous> (<legacy-origin>/frontend/html/flowable_modeler.html:2944:13)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

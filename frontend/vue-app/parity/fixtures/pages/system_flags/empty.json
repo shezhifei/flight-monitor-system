@@ -1,0 +1,22 @@
+{
+  "scenario": "system-flags-empty",
+  "routes": [
+    {
+      "id": "system-flags-empty",
+      "method": "GET",
+      "pathname": "/api/v2/system/flags",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "flags": []
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

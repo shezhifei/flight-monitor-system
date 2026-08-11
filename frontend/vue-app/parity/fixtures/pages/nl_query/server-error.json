@@ -1,0 +1,51 @@
+{
+  "scenario": "nl-query-server-error",
+  "routes": [
+    {
+      "id": "nl-query-suggestions-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/ai/nl-query/suggestions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "自然语言查询建议服务暂时不可用"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "nl-query-events-server-error",
+      "pathname": "/api/v2/ai/events/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "nl-query-server-error-1",
+          "event": "ai_execution",
+          "data": {
+            "event_type": "ai_execution",
+            "payload": {
+              "run_id": "run-server-error",
+              "status": "failed",
+              "message": "AI 运行时不可用"
+            },
+            "emitted_at": "2026-07-14T02:30:00Z"
+          }
+        }
+      ]
+    }
+  ]
+}

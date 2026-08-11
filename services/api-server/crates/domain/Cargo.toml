@@ -1,0 +1,22 @@
+[package]
+name = "fms-domain"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+proptest = { workspace = true }
+tokio = { workspace = true }
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+validator = { workspace = true }
+ulid = { workspace = true }
+async-trait = { workspace = true }
+trait-variant = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }

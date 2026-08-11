@@ -1,0 +1,146 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+CI = ROOT / ".github/workflows/ci.yml"
+NIGHTLY = ROOT / ".github/workflows/nightly.yml"
+
+
+def _section(lines: list[str], start: str, stop_prefixes: tuple[str, ...]) -> str:
+    start_index = next(i for i, line in enumerate(lines) if line == start)
+    for index in range(start_index + 1, len(lines)):
+        if any(lines[index].startswith(prefix) for prefix in stop_prefixes):
+            return "\n".join(lines[start_index:index])
+    return "\n".join(lines[start_index:])
+
+
+def _ci_lines() -> list[str]:
+    return CI.read_text(encoding="utf-8").splitlines()
+
+
+def _nightly_lines() -> list[str]:
+    return NIGHTLY.read_text(encoding="utf-8").splitlines()
+
+
+def test_ci_targets_repository_base_branch():
+    triggers = _section(_ci_lines(), "on:", ("env:", "jobs:"))
+
+    assert triggers.count("branches: [master]") == 2
+    assert "branches: [main]" not in triggers
+
+
+def test_ci_runs_architecture_boundary_guards():
+    rust_job = _section(_ci_lines(), "  rust-api:", ("  mq-gateway:", "  python-sidecar:", "  architecture-docs:", "  vue-frontend:"))
+
+    assert "working-directory: services/api-server" in rust_job
+    assert "- name: Architecture boundary guard" in rust_job
+    assert "cargo test -p fms-api --test layer_boundary_guard" in rust_job
+    assert "cargo test -p fms-application --test application_boundary_inventory" in rust_job
+
+
+def test_ci_runs_architecture_docs_consistency_tests():
+    docs_job = _section(_ci_lines(), "  architecture-docs:", ("  vue-frontend:", "  docker-compose-validate:"))
+
+    assert "actions/setup-python@v5" in docs_job
+    assert "python-version: \"3.12\"" in docs_job
+    assert "- name: Install dependencies" in docs_job
+    assert "python -m pip install pytest" in docs_job
+    assert "- name: Test architecture docs" in docs_job
+    assert "tests/tools/test_architecture_docs_consistency.py" in docs_job
+    assert "tests/tools/test_docs_no_stale_references.py" in docs_job
+    assert "tests/tools/test_ci_architecture_guardrails.py" in docs_job
+    assert "tests/tools/test_schema_baseline_consistency.py" in docs_job
+    assert "tests/tools/test_observability_alerting_config.py" in docs_job
+    assert "tests/tools/test_deploy_security_guardrails.py" in docs_job
+
+
+def test_compose_validation_supplies_required_interpolation_environment():
+    compose_job = _section(_ci_lines(), "  docker-compose-validate:", ("  integration-test:",))
+
+    assert "FMS_RUNTIME_ENV_FILE: /dev/null" in compose_job
+    assert "VAULT_RENDERED_ENV_FILE: /dev/null" in compose_job
+    assert "DB_REPLICATION_PASSWORD: rep_ci_password" in compose_job
+
+
+def test_integration_compose_binds_loopback_and_requires_passwords():
+    integration = (ROOT / "deploy/docker/docker-compose.integration.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}" in integration
+    assert "REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}" in integration
+    assert "${DB_PASSWORD:-" not in integration
+    assert "${REDIS_PASSWORD:-" not in integration
+
+    for mapping in (
+        "127.0.0.1:5432:5432",
+        "127.0.0.1:6379:6379",
+        "127.0.0.1:9876:9876",
+        "127.0.0.1:10911:10911",
+        "127.0.0.1:8097:8097",
+        "127.0.0.1:18443:8080",
+    ):
+        assert mapping in integration, f"integration host port must be loopback: {mapping}"
+
+    # Unbound host ports like "5432:5432" are forbidden.
+    for line in integration.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("- "):
+            continue
+        if ":" not in stripped or "127.0.0.1:" in stripped:
+            continue
+        port_part = stripped.lstrip("- ").strip().strip('"').strip("'")
+        if port_part.count(":") == 1 and port_part.replace(":", "").isdigit():
+            raise AssertionError(f"integration host port must bind 127.0.0.1: {stripped}")
+
+
+def test_integration_stack_preserves_diagnostics_and_teardown_environment():
+    integration_job = _section(_ci_lines(), "  integration-test:", ("  e2e-integration:",))
+
+    assert "- name: Capture integration stack diagnostics" in integration_job
+    assert "docker compose -f deploy/docker/docker-compose.distributed.yml" in integration_job
+    assert "ps -a" in integration_job
+    for service in ("rocketmq-namesrv", "rocketmq-namesrv-2", "rocketmq-broker", "mq-gateway"):
+        assert service in integration_job
+    assert integration_job.count("FMS_RUNTIME_ENV_FILE: /dev/null") == 3
+    assert integration_job.count("VAULT_RENDERED_ENV_FILE: /dev/null") == 3
+    # Explicit secrets required after removing weak compose defaults.
+    assert integration_job.count("DB_PASSWORD: ci_explicit_db_password_not_for_prod") == 3
+    assert integration_job.count("DB_PASSWORD: postgres") == 0
+    assert "DB_PASSWORD: password" not in integration_job
+    assert integration_job.count("REDIS_PASSWORD: redis_ci_password") == 3
+    assert integration_job.count("TRUSTED_PROXY_CIDRS: 127.0.0.1/32") >= 1
+
+
+def test_e2e_compose_runs_from_repository_root_with_matching_environment():
+    e2e_job = _section(_ci_lines(), "  e2e-integration:", ())
+
+    assert e2e_job.count("working-directory: ${{ github.workspace }}") == 2
+    assert e2e_job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
+    assert e2e_job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
+
+
+def test_nightly_installs_mutation_tool_and_supplies_compose_environment():
+    nightly_lines = _nightly_lines()
+    mutation_job = _section(nightly_lines, "  mutation-test:", ("  performance-baseline:",))
+    performance_job = _section(nightly_lines, "  performance-baseline:", ("  chaos-test:",))
+    chaos_job = _section(nightly_lines, "  chaos-test:", ())
+
+    assert mutation_job.index("- name: Install cargo-mutants") < mutation_job.index("- name: Run mutation pilot")
+    assert "cargo install cargo-mutants --locked" in mutation_job
+    for job in (performance_job, chaos_job):
+        assert "- name: Generate minimal runtime env for stack" in job
+        assert job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
+        assert job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
+
+
+def test_frontend_audit_remains_blocking_at_high_severity():
+    frontend_job = _section(_ci_lines(), "  vue-frontend:", ("  docker-compose-validate:",))
+
+    assert "run: npm audit --audit-level=high" in frontend_job
+    assert "continue-on-error" not in frontend_job
+
+
+def test_architecture_contract_documents_are_tracked_inputs():
+    assert (ROOT / "docs/API_ROUTE_SNAPSHOT.md").is_file()
+    assert (ROOT / "docs/plans/2026-06-29-tech-debt-sweep-master-plan.md").is_file()

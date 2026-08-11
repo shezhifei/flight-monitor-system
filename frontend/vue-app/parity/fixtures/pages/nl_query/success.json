@@ -1,0 +1,64 @@
+{
+  "scenario": "nl-query-success",
+  "capture": {
+    "expected_panels": ["#ai-react-root"],
+    "regions": [{ "id": "nl-query-workspace", "selector": "#ai-react-root" }]
+  },
+  "routes": [
+    {
+      "id": "nl-query-suggestions-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/nl-query/suggestions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "suggestions": [
+              {
+                "label": "延误航班",
+                "text": "查询未来两小时预计延误的航班"
+              },
+              {
+                "label": "机位冲突",
+                "text": "列出当前机位冲突及影响航班"
+              }
+            ]
+          },
+          "message": "查询建议获取成功"
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "nl-query-events-success",
+      "pathname": "/api/v2/ai/events/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "nl-query-success-1",
+          "event": "ai_execution",
+          "data": {
+            "event_type": "ai_execution",
+            "payload": {
+              "run_id": "run-success",
+              "status": "idle",
+              "message": "NL Query 实时通道已连接"
+            },
+            "emitted_at": "2026-07-14T02:30:00Z"
+          }
+        }
+      ]
+    }
+  ]
+}

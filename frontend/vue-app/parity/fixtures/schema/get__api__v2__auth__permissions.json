@@ -1,0 +1,29 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/auth/permissions",
+  "body": {
+    "success": true,
+    "data": [
+      {
+        "id": "permission-flight-read",
+        "name": "flight:read",
+        "description": "查看航班信息",
+        "is_active": true,
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "permission-dispatch-view",
+        "name": "dispatch:view",
+        "description": "查看调度信息",
+        "is_active": true,
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "message": "权限列表获取成功",
+    "error": null,
+    "request_id": "parity-request-001"
+  },
+  "source": "user_manager/success.json"
+}

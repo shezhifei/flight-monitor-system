@@ -1,0 +1,371 @@
+/* ================================================================
+   Dual-Theme Design Token System
+   Switched via [data-theme="light|dark"] on <html>
+   ================================================================ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* ---- Workspace Surfaces ---- */
+  --ws-bg: #edf2f8;
+  --ws-bg-soft: #f6f8fc;
+  --ws-surface: rgba(255, 255, 255, 0.94);
+  --ws-surface-strong: #ffffff;
+  --ws-surface-muted: #f7f9fd;
+  --ws-border: rgba(16, 35, 63, 0.13);
+  --ws-border-strong: rgba(16, 35, 63, 0.2);
+
+  /* ---- Workspace Text ---- */
+  --ws-text: #11233f;
+  --ws-text-subtle: #5b6b83;
+  --ws-text-muted: #7a889d;
+
+  /* ---- Workspace Accent ---- */
+  --ws-primary: #0a7cff;
+  --ws-primary-strong: #0066d6;
+  --ws-success: #1ea971;
+  --ws-warn: #f08a00;
+  --ws-danger: #d93d4f;
+
+  /* ---- Workspace Depth ---- */
+  --ws-shadow-sm: 0 1px 3px rgba(17, 35, 63, 0.06);
+  --ws-shadow-md: 0 6px 20px rgba(17, 35, 63, 0.08);
+
+  /* ---- Workspace Shape ---- */
+  --ws-radius-xs: 6px;
+  --ws-radius-sm: 8px;
+  --ws-radius-md: 10px;
+  --ws-radius-lg: 12px;
+  --ws-radius-xl: 16px;
+
+  /* ---- Workspace Spacing ---- */
+  --ws-space-1: 4px;
+  --ws-space-2: 8px;
+  --ws-space-3: 12px;
+  --ws-space-4: 16px;
+  --ws-space-5: 20px;
+  --ws-control-h: 36px;
+
+  /* ---- Data Hub Signal Colors ---- */
+  --dh-signal-critical: #d93d4f;
+  --dh-signal-critical-soft: rgba(217, 61, 79, 0.12);
+  --dh-signal-warn: #f08a00;
+  --dh-signal-warn-soft: rgba(240, 138, 0, 0.12);
+  --dh-signal-ok: #1ea971;
+  --dh-signal-ok-soft: rgba(30, 169, 113, 0.12);
+  --dh-signal-accent: #0a7cff;
+  --dh-signal-accent-soft: rgba(10, 124, 255, 0.1);
+  --dh-font-display: var(--font-display, "MiSans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+
+  /* ---- Admin Surfaces ---- */
+  --admin-bg: linear-gradient(180deg, #f7f9fc 0%, #f3f5f9 100%);
+  --admin-sidebar-bg: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,248,252,0.96) 100%);
+  --admin-card-bg: rgba(255, 255, 255, 0.96);
+  --admin-border: rgba(15, 23, 42, 0.08);
+  --admin-text: #1D1D1F;
+  --admin-text-subtle: #5f6368;
+  --admin-text-muted: #8b9097;
+
+  /* ---- NL Query Surfaces ---- */
+  --nl-bg: #f8fafc;
+  --nl-bg-soft: #f1f5f9;
+  --nl-surface: rgba(255, 255, 255, 0.96);
+  --nl-surface-raised: #ffffff;
+  --nl-surface-muted: #f1f5f9;
+  --nl-border: rgba(15, 23, 42, 0.1);
+  --nl-border-strong: rgba(15, 23, 42, 0.18);
+  --nl-border-focus: rgba(10, 124, 255, 0.5);
+  --nl-text: #0f172a;
+  --nl-text-subtle: #475569;
+  --nl-text-muted: #94a3b8;
+  --nl-success: #1ea971;
+  --nl-warning: #f08a00;
+  --nl-danger: #d93d4f;
+  --nl-info: #0a7cff;
+
+  /* ---- Global Backgrounds ---- */
+  --bg-app: #FFFFFF;
+  --bg-page: #F8FAFC;
+
+  /* ---- Table Row Status (aligned with legacy tables.css) ---- */
+  --tbl-row-scheduled: #FFFFFF;
+  --tbl-row-arrived: #E3F2FD;
+  --tbl-row-boarding: #ECEFF1;
+  --tbl-row-boarding-ended: #E8F5E9;
+  --tbl-row-departed: #F5F5F5;
+  --tbl-row-next-arrived: #F5F5F5;
+  --tbl-row-delayed: #FCE4EC;
+  --tbl-row-ended: #F2F2F7;
+  --tbl-row-cancelled: #F5F5F5;
+  --tbl-row-cancelled-stripe: #E0E0E0;
+  --tbl-row-checkin-end: #E0F7FA;
+  --tbl-row-prev-departed: #FFF8E1;
+  --tbl-row-boarding-urge: #ECEFF1;
+  --tbl-row-vip: rgba(255, 59, 48, 0.06);
+
+  /* ---- Flight Monitor Status Banner ---- */
+  --fm-banner-danger-bg: rgba(217, 61, 79, 0.1);
+  --fm-banner-danger-border: rgba(217, 61, 79, 0.38);
+  --fm-banner-danger-text: #a02133;
+  --fm-banner-info-bg: rgba(10, 124, 255, 0.08);
+  --fm-banner-info-border: rgba(10, 124, 255, 0.32);
+  --fm-banner-info-text: #0b5bcc;
+  --fm-banner-warning-bg: rgba(240, 138, 0, 0.1);
+  --fm-banner-warning-border: rgba(240, 138, 0, 0.36);
+  --fm-banner-warning-text: #9a5b00;
+
+  /* ---- Status Pill Colors ---- */
+  --status-bg-scheduled: #E3F2FD;
+  --status-text-scheduled: #1565C0;
+  --status-bg-boarding: #FFF3E0;
+  --status-text-boarding: #EF6C00;
+  --status-bg-boarding-ended: #FBE9E7;
+  --status-text-boarding-ended: #D84315;
+  --status-bg-departed: #E8F5E9;
+  --status-text-departed: #2E7D32;
+  --status-bg-delayed: #FFEBEE;
+  --status-text-delayed: #C62828;
+  --status-bg-arrived: #F5F5F5;
+  --status-text-arrived: #616161;
+  --status-bg-cancelled: #ECEFF1;
+  --status-text-cancelled: #546E7A;
+  --status-bg-prev-departed: #E3F2FD;
+  --status-text-prev-departed: #1976D2;
+  --status-bg-checkin-end: #FFF8E1;
+  --status-text-checkin-end: #F57C00;
+  --status-bg-boarding-urge: #FFEBEE;
+  --status-text-boarding-urge: #D32F2F;
+  --status-bg-next-arrived: #E0F2F1;
+  --status-text-next-arrived: #00796B;
+
+  /* ---- Table Surface ---- */
+  --tbl-header-bg: rgba(245, 245, 247, 0.95);
+  --tbl-header-border: rgba(0, 0, 0, 0.15);
+  --tbl-cell-border: rgba(0, 0, 0, 0.08);
+  --tbl-zebra-stripe: rgba(0, 0, 0, 0.02);
+  --tbl-hover-bg: rgba(0, 0, 0, 0.04);
+  --tbl-scroll-thumb: rgba(0, 0, 0, 0.15);
+  --tbl-scroll-thumb-hover: rgba(0, 0, 0, 0.25);
+
+  /* ---- Shared additions (P0-1) ---- */
+  --text-inverse: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-hover: #f3f4f6;
+  --color-border: #e5e7eb;
+  --color-bg-secondary: #f3f4f6;
+  --color-bg-hover: #e5e7eb;
+  --bg-subtle: #eef2f7;
+  --bg-table-head: #f5f5f7;
+}
+
+/* ================================================================
+   Dark Mode — Midnight Blue
+   ================================================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---- Workspace Surfaces ---- */
+  --ws-bg: #050b14;
+  --ws-bg-soft: #0a1220;
+  --ws-surface: rgba(11, 20, 34, 0.92);
+  --ws-surface-strong: rgba(11, 20, 34, 0.98);
+  --ws-surface-muted: rgba(14, 25, 42, 0.86);
+  --ws-border: rgba(100, 140, 190, 0.14);
+  --ws-border-strong: rgba(110, 155, 210, 0.18);
+
+  /* ---- Workspace Text ---- */
+  --ws-text: #e8f0fa;
+  --ws-text-subtle: #8ba3c0;
+  --ws-text-muted: #6f86a3;
+
+  /* ---- Workspace Accent ---- */
+  --ws-primary: #3daeff;
+  --ws-primary-strong: #1490f0;
+  --ws-success: #2ec47e;
+  --ws-warn: #f0a030;
+  --ws-danger: #ef5350;
+
+  /* ---- Workspace Depth ---- */
+  --ws-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.36);
+  --ws-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.32);
+
+  /* ---- Workspace Shape ---- */
+  --ws-radius-xs: 6px;
+  --ws-radius-sm: 10px;
+  --ws-radius-md: 14px;
+  --ws-radius-lg: 18px;
+  --ws-radius-xl: 22px;
+
+  /* ---- Workspace Spacing ---- */
+  --ws-space-1: 4px;
+  --ws-space-2: 8px;
+  --ws-space-3: 14px;
+  --ws-space-4: 18px;
+  --ws-space-5: 22px;
+  --ws-control-h: 36px;
+
+  /* ---- Data Hub Signal Colors ---- */
+  --dh-signal-critical: #ef5350;
+  --dh-signal-critical-soft: rgba(239, 83, 80, 0.14);
+  --dh-signal-warn: #f0a030;
+  --dh-signal-warn-soft: rgba(240, 160, 48, 0.14);
+  --dh-signal-ok: #2ec47e;
+  --dh-signal-ok-soft: rgba(46, 196, 126, 0.14);
+  --dh-signal-accent: #4db8ff;
+  --dh-signal-accent-soft: rgba(77, 184, 255, 0.12);
+  --dh-font-display: var(--font-display, "MiSans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+
+  /* ---- Admin Surfaces ---- */
+  --admin-bg: linear-gradient(180deg, #0f151c 0%, #121922 100%);
+  --admin-sidebar-bg: linear-gradient(180deg, rgba(17,24,31,0.98) 0%, rgba(14,20,28,0.96) 100%);
+  --admin-card-bg: rgba(17, 24, 31, 0.96);
+  --admin-border: rgba(100, 140, 190, 0.11);
+  --admin-text: #e8f0fa;
+  --admin-text-subtle: #8298b5;
+  --admin-text-muted: #627a97;
+
+  /* ---- NL Query Surfaces ---- */
+  --nl-bg: #0b1119;
+  --nl-bg-soft: #121a26;
+  --nl-surface: rgba(20, 31, 45, 0.9);
+  --nl-surface-raised: rgba(24, 38, 56, 0.96);
+  --nl-surface-muted: rgba(14, 23, 34, 0.96);
+  --nl-border: rgba(154, 179, 210, 0.2);
+  --nl-border-strong: rgba(171, 198, 232, 0.34);
+  --nl-border-focus: rgba(104, 170, 255, 0.62);
+  --nl-text: #e5edf7;
+  --nl-text-subtle: #b1bece;
+  --nl-text-muted: #8795a8;
+  --nl-success: #47c790;
+  --nl-warning: #f3b363;
+  --nl-danger: #ec767f;
+  --nl-info: #6baeff;
+
+  /* ---- Global Backgrounds ---- */
+  --bg-app: #050b14;
+  --bg-page: #0b1015;
+
+  /* ---- Table Row Status (dark counterparts of legacy palette) ---- */
+  --tbl-row-scheduled: rgba(100, 140, 190, 0.04);
+  --tbl-row-arrived: rgba(77, 184, 255, 0.1);
+  --tbl-row-boarding: rgba(100, 140, 190, 0.12);
+  --tbl-row-boarding-ended: rgba(46, 196, 126, 0.1);
+  --tbl-row-departed: rgba(100, 140, 190, 0.07);
+  --tbl-row-next-arrived: rgba(100, 140, 190, 0.07);
+  --tbl-row-delayed: rgba(239, 83, 80, 0.09);
+  --tbl-row-ended: rgba(100, 140, 190, 0.06);
+  --tbl-row-cancelled: rgba(100, 140, 190, 0.05);
+  --tbl-row-cancelled-stripe: rgba(100, 140, 190, 0.14);
+  --tbl-row-checkin-end: rgba(45, 212, 191, 0.09);
+  --tbl-row-prev-departed: rgba(240, 160, 48, 0.1);
+  --tbl-row-boarding-urge: rgba(100, 140, 190, 0.12);
+  --tbl-row-vip: rgba(239, 83, 80, 0.04);
+
+  /* ---- Flight Monitor Status Banner ---- */
+  --fm-banner-danger-bg: rgba(239, 83, 80, 0.14);
+  --fm-banner-danger-border: rgba(239, 83, 80, 0.42);
+  --fm-banner-danger-text: #ff8a80;
+  --fm-banner-info-bg: rgba(61, 174, 255, 0.12);
+  --fm-banner-info-border: rgba(61, 174, 255, 0.38);
+  --fm-banner-info-text: #7ec4ff;
+  --fm-banner-warning-bg: rgba(240, 160, 48, 0.13);
+  --fm-banner-warning-border: rgba(240, 160, 48, 0.4);
+  --fm-banner-warning-text: #f5be6a;
+
+  /* ---- Status Pill Colors ---- */
+  --status-bg-scheduled: rgba(10, 124, 255, 0.15);
+  --status-text-scheduled: #4db8ff;
+  --status-bg-boarding: rgba(240, 160, 48, 0.15);
+  --status-text-boarding: #f0a030;
+  --status-bg-boarding-ended: rgba(239, 83, 80, 0.12);
+  --status-text-boarding-ended: #ef5350;
+  --status-bg-departed: rgba(46, 196, 126, 0.15);
+  --status-text-departed: #2ec47e;
+  --status-bg-delayed: rgba(239, 83, 80, 0.15);
+  --status-text-delayed: #ef5350;
+  --status-bg-arrived: rgba(100, 140, 190, 0.12);
+  --status-text-arrived: #8298b5;
+  --status-bg-cancelled: rgba(100, 140, 190, 0.08);
+  --status-text-cancelled: #627a97;
+  --status-bg-prev-departed: rgba(10, 124, 255, 0.12);
+  --status-text-prev-departed: #4db8ff;
+  --status-bg-checkin-end: rgba(240, 160, 48, 0.12);
+  --status-text-checkin-end: #f0a030;
+  --status-bg-boarding-urge: rgba(239, 83, 80, 0.12);
+  --status-text-boarding-urge: #ef5350;
+  --status-bg-next-arrived: rgba(46, 196, 126, 0.12);
+  --status-text-next-arrived: #2ec47e;
+
+  /* ---- Table Surface ---- */
+  --tbl-header-bg: rgba(14, 25, 42, 0.95);
+  --tbl-header-border: rgba(100, 140, 190, 0.15);
+  --tbl-cell-border: rgba(100, 140, 190, 0.08);
+  --tbl-zebra-stripe: rgba(100, 140, 190, 0.03);
+  --tbl-hover-bg: rgba(100, 140, 190, 0.06);
+  --tbl-scroll-thumb: rgba(100, 140, 190, 0.15);
+  --tbl-scroll-thumb-hover: rgba(100, 140, 190, 0.25);
+
+  /* ---- Legacy Apple Variables: Dark Mappings (P0-1) ---- */
+  --system-blue: #3daeff;
+  --system-blue-hover: #1490f0;
+  --system-blue-subtle: rgba(61, 174, 255, 0.12);
+  --focus-ring-blue: rgba(61, 174, 255, 0.18);
+  --focus-ring-red: rgba(239, 83, 80, 0.18);
+  --focus-outline-blue: rgba(61, 174, 255, 0.4);
+  --error-bg-subtle: rgba(239, 83, 80, 0.12);
+  --error-bg-faint: rgba(239, 83, 80, 0.06);
+  --error-border-subtle: rgba(239, 83, 80, 0.4);
+  --success-bg-subtle: rgba(46, 196, 126, 0.12);
+  --success-border-subtle: rgba(46, 196, 126, 0.4);
+  --system-blue-shadow: rgba(61, 174, 255, 0.35);
+  --system-purple: #bf8af2;
+  --system-green: #2ec47e;
+  --system-orange: #f0a030;
+  --system-red: #ef5350;
+  --system-gray: #8298b5;
+  --system-gray2: #627a97;
+  --system-gray6: #16212f;
+  --bg-sidebar: #0a1220;
+  --bg-card: rgba(11, 20, 34, 0.98);
+  --bg-input: rgba(100, 140, 190, 0.12);
+  --bg-modal: rgba(8, 15, 26, 0.82);
+  --text-primary: #e8f0fa;
+  --text-secondary: #8298b5;
+  --text-tertiary: #627a97;
+  --text-inverse: #ffffff;
+  --bg-secondary: #16212f;
+  --bg-hover: rgba(100, 140, 190, 0.12);
+  --color-border: rgba(100, 140, 190, 0.15);
+  --color-bg-secondary: #16212f;
+  --color-bg-hover: rgba(100, 140, 190, 0.12);
+  --bg-subtle: #121a26;
+  --bg-table-head: rgba(14, 25, 42, 0.6);
+  --border-light: rgba(100, 140, 190, 0.11);
+  --border-focus: rgba(61, 174, 255, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.42);
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.4);
+  --shadow-heavy: rgba(0, 0, 0, 0.5);
+  --status-bg-ended: rgba(100, 140, 190, 0.12);
+  --status-text-ended: #8298b5;
+  --status-pending: #f0a030;
+  --status-assigned: #3daeff;
+  --status-progress: #2dd4bf;
+  --status-completed: #2ec47e;
+  --status-cancelled: #627a97;
+  --status-alert: #ef5350;
+  --status-lock: #8298b5;
+  --secondary-color: #8f8ae6;
+  --info-color: #64d2ff;
+  --glass-bg: rgba(17, 25, 39, 0.9);
+  --glass-blur: blur(20px);
+  --glass-border: rgba(100, 140, 190, 0.16);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --view-glider-bg: rgba(68, 82, 108, 0.95);
+  --gradient-professional: linear-gradient(180deg, rgba(71, 85, 105, 0.96) 0%, rgba(51, 65, 85, 0.96) 100%);
+  --gradient-anomaly: linear-gradient(160deg, rgba(185, 28, 28, 0.96) 0%, rgba(194, 65, 12, 0.96) 68%, rgba(127, 29, 29, 0.96) 100%);
+  --gradient-anomaly-high: linear-gradient(160deg, rgba(194, 65, 12, 0.96) 0%, rgba(234, 88, 12, 0.96) 70%, rgba(154, 52, 18, 0.96) 100%);
+}

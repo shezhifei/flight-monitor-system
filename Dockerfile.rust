@@ -1,0 +1,81 @@
+# ============================================================
+# Rust 后端 — multi-stage Docker 构建
+# ============================================================
+
+# Stage 1: 构建
+FROM rust:1-slim AS builder
+
+ARG DEBIAN_MIRROR=deb.debian.org
+RUN sed -i "s/deb.debian.org/${DEBIAN_MIRROR}/g" /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        make \
+        perl \
+        pkg-config \
+        libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# 先复制 Cargo 文件以利用 Docker 缓存
+COPY services/api-server/Cargo.toml services/api-server/Cargo.lock ./
+COPY services/api-server/crates/domain/Cargo.toml crates/domain/Cargo.toml
+COPY services/api-server/crates/infrastructure/Cargo.toml crates/infrastructure/Cargo.toml
+COPY services/api-server/crates/application/Cargo.toml crates/application/Cargo.toml
+COPY services/api-server/crates/api/Cargo.toml crates/api/Cargo.toml
+COPY services/api-server/crates/server/Cargo.toml crates/server/Cargo.toml
+
+# 创建占位 src 以编译依赖
+RUN mkdir -p crates/domain/src && echo "" > crates/domain/src/lib.rs \
+    && mkdir -p crates/infrastructure/src && echo "" > crates/infrastructure/src/lib.rs \
+    && mkdir -p crates/application/src && echo "" > crates/application/src/lib.rs \
+    && mkdir -p crates/api/src && echo "" > crates/api/src/lib.rs \
+    && mkdir -p crates/server/src && echo 'fn main() {}' > crates/server/src/main.rs
+
+RUN cargo build --release 2>/dev/null || true
+
+# 复制真实源码
+COPY services/api-server/crates crates/
+
+# 触发重编译
+RUN touch crates/*/src/lib.rs crates/server/src/main.rs
+RUN cargo build --release
+
+# Stage 2: 运行（须与 rust:1-slim 构建阶段的 glibc 主版本一致；bookworm 过旧会报 GLIBC_2.38）
+FROM debian:trixie-slim AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        libpq5 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --shell /bin/bash --create-home app
+
+WORKDIR /app
+
+# 复制二进制
+COPY --from=builder /build/target/release/fms-server /app/fms-server
+
+# 复制开源许可文件，便于镜像分发合规
+COPY LICENSE NOTICE /app/
+
+# 复制前端静态资源（.dockerignore 已排除源码与开发依赖）
+COPY frontend /app/frontend
+
+# 复制配置
+COPY config /app/config
+
+# 设置文件权限
+RUN chown -R app:app /app
+
+EXPOSE 8080
+
+ENV RUST_LOG=info,sqlx=warn,hyper=warn
+ENV API_HOST=0.0.0.0
+ENV API_PORT=8080
+
+USER app
+
+CMD ["/app/fms-server"]

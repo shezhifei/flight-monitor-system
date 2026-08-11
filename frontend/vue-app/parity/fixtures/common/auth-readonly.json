@@ -1,0 +1,29 @@
+{
+  "id": "00000000-0000-4000-8000-000000000003",
+  "username": "parity_readonly",
+  "email": "parity.readonly@example.test",
+  "is_active": true,
+  "is_verified": true,
+  "is_admin": false,
+  "created_at": "2026-01-03T00:00:00Z",
+  "last_login_at": "2026-07-14T02:15:00Z",
+  "roles": ["operations_viewer"],
+  "permissions": [
+    "flight:read",
+    "dispatch:read",
+    "dispatch:view",
+    "team:view",
+    "equipment:view",
+    "anomaly:read",
+    "system.config_read"
+  ],
+  "display_name": "基线只读用户",
+  "effective_operator_name": "基线只读用户",
+  "effective_operator_label": "基线只读用户 · 运行观察员",
+  "operator_context_type": "user",
+  "operator_context_id": "00000000-0000-4000-8000-000000000003",
+  "department": "运行质量部",
+  "job_level": 3,
+  "job_title": "运行观察员",
+  "permission_version": 4
+}

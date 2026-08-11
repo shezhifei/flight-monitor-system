@@ -1,0 +1,27 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/dispatch/team-types",
+  "body": {
+    "success": true,
+    "data": [
+      {
+        "id": "team-type-driver",
+        "name": "特车驾驶班组",
+        "department_id": "dept-ground",
+        "code": "DRV",
+        "description": "负责特种车辆驾驶",
+        "color": "#1677ff",
+        "is_driver_type": true,
+        "task_types": [
+          "aircraft_tow"
+        ],
+        "created_at": "2026-06-01T00:00:00Z",
+        "is_active": true
+      }
+    ],
+    "message": "班组类型列表获取成功",
+    "error": null,
+    "request_id": "parity-request-001"
+  },
+  "source": "resource_manager/success.json"
+}

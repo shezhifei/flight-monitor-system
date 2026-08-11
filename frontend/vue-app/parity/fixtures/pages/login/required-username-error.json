@@ -1,0 +1,11 @@
+{
+  "scenario": "login-required-username-error",
+  "ui_state": {
+    "username": "",
+    "password": "",
+    "password_visible": false,
+    "validation_error": "请输入用户名"
+  },
+  "routes": [],
+  "sse_streams": []
+}

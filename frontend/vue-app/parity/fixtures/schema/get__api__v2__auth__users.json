@@ -1,0 +1,40 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/auth/users",
+  "body": {
+    "success": true,
+    "data": [
+      {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "username": "ops_manager",
+        "email": "ops.manager@example.test",
+        "is_active": true,
+        "is_verified": true,
+        "is_admin": false,
+        "created_at": "2026-05-10T00:00:00Z",
+        "last_login_at": "2026-07-14T02:00:00Z",
+        "roles": [
+          "operations_manager"
+        ],
+        "permissions": [
+          "flight:read",
+          "dispatch:view",
+          "team:view"
+        ],
+        "display_name": "李调度",
+        "effective_operator_name": "李调度",
+        "effective_operator_label": "李调度 · 运行控制中心",
+        "operator_context_type": "department",
+        "operator_context_id": "department-occ",
+        "department": "运行控制中心",
+        "job_level": 7,
+        "job_title": "值班经理",
+        "permission_version": 6
+      }
+    ],
+    "message": "用户列表获取成功",
+    "error": null,
+    "request_id": "parity-request-001"
+  },
+  "source": "user_manager/success.json"
+}

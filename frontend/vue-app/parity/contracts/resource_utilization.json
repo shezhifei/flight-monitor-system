@@ -1,0 +1,784 @@
+{
+  "contractVersion": 1,
+  "page": "resource_utilization",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/resource_utilization.html",
+    "htmlSha256": "01613e1b74620f38ee6f1c9eb98ac3e1f653349cea84bf1143bc2a710baa05dd",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/resource_utilization_dashboard.css?v=2",
+        "archivePath": "css/resource_utilization_dashboard.css",
+        "exists": true,
+        "sha256": "4bb67c0a8f524b21dd5f984fb360c347b38857f57e03a2c52c7dbd4c41f8e0f4"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/workspace_unified_theme.css?v=4",
+        "archivePath": "css/workspace_unified_theme.css",
+        "exists": true,
+        "sha256": "b63af6b73b8630f37f426c436b8ecfb74efdee47d010bd7092053d822527383b"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "sourceHash": "02cd9d0f273a716b705145db8c222ff307528af13ba16debc4fd5c972941852c"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div > header",
+        "tag": "header",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div > header > div:nth-of-type(1) > nav",
+        "tag": "nav",
+        "role": null,
+        "text": "资源导航",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "主瓶颈: 机位 | 系统性吃紧 | 均值 81% | 峰值 90%",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3)",
+        "tag": "section",
+        "role": null,
+        "text": "对象排序",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "判断与动作",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "当前最需处理",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "立即动作",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(3)",
+        "tag": "section",
+        "role": null,
+        "text": "复查节奏",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(4)",
+        "tag": "section",
+        "role": null,
+        "text": "负载口径",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "资源瓶颈台",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "#resourceHeadlineLead",
+        "level": 2,
+        "text": "主瓶颈: 机位 | 系统性吃紧 | 均值 81% | 峰值 90%"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > div > article > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "对象排序"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > div > div > article:nth-of-type(1) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "维度对比"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > div > div > article:nth-of-type(2) > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "瓶颈形态"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(1) > div > h2",
+        "level": 2,
+        "text": "判断与动作"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(1) > h3",
+        "level": 3,
+        "text": "当前最需处理"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(2) > h3",
+        "level": 3,
+        "text": "立即动作"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(3) > h3",
+        "level": 3,
+        "text": "复查节奏"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > div:nth-of-type(2) > section:nth-of-type(4) > h3",
+        "level": 3,
+        "text": "负载口径"
+      },
+      {
+        "selector": "#resourceHeadlineLead",
+        "level": 2,
+        "text": "资源瓶颈台"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#refreshBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "刷新",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#logoutBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "退出登录",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div > header > div:nth-of-type(1) > a",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div > header > div:nth-of-type(1) > nav > a:nth-of-type(1)",
+        "text": "甘特调度",
+        "href": "/frontend/html/dispatch_board.html"
+      },
+      {
+        "selector": "body > div > header > div:nth-of-type(1) > nav > a:nth-of-type(2)",
+        "text": "资源利用率",
+        "href": "/frontend/html/resource_utilization.html"
+      }
+    ],
+    "stableSelectors": [
+      "#actionSummaryList",
+      "#bottleneckLeaderboard",
+      "#cadenceList",
+      "#dimensionComparisonList",
+      "#dimensionPanelMeta",
+      "#dimensionRadarChart",
+      "#fms-parity-contract-determinism",
+      "#lastUpdated",
+      "#leaderboardMeta",
+      "#logoutBtn",
+      "#metricBottleneckDimension",
+      "#metricBottleneckSub",
+      "#metricHeadroom",
+      "#metricHeadroomSub",
+      "#metricOverloaded",
+      "#metricOverloadedSub",
+      "#metricPeakRate",
+      "#metricPeakSub",
+      "#patternBarChart",
+      "#patternPanelMeta",
+      "#pressurePatternList",
+      "#refreshBtn",
+      "#resourceCadenceChip",
+      "#resourceHeadlineLead",
+      "#resourceRiskLead",
+      "#resourceRiskSupport",
+      "#resourceSidebarMeta",
+      "#resourceStateChip"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "resource_utilization-success",
+      "fixture": "parity/fixtures/pages/resource_utilization/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "resource_utilization-empty",
+      "fixture": "parity/fixtures/pages/resource_utilization/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "resource_utilization-partial",
+      "fixture": "parity/fixtures/pages/resource_utilization/partial.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    {
+      "id": "resource_utilization-unauthorized",
+      "fixture": "parity/fixtures/pages/resource_utilization/unauthorized.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        401
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [
+        {
+          "kind": "navigation",
+          "from": "<legacy-origin>/frontend/html/resource_utilization.html",
+          "to": "<legacy-origin>/frontend/html/login.html"
+        }
+      ],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "id": "resource_utilization-forbidden",
+      "fixture": "parity/fixtures/pages/resource_utilization/forbidden.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        403
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ]
+    },
+    {
+      "id": "resource_utilization-server-error",
+      "fixture": "parity/fixtures/pages/resource_utilization/server-error.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

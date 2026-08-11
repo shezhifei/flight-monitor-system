@@ -1,0 +1,23 @@
+{
+  "scenario": "system-flags-forbidden",
+  "routes": [
+    {
+      "id": "system-flags-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/system/flags",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少权限: system:config"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

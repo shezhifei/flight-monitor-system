@@ -1,0 +1,95 @@
+{
+  "scenario": "user-manager-unauthorized",
+  "routes": [
+    {
+      "id": "user-manager-templates-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/auth/admin/permission-templates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-permissions-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/auth/permissions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-roles-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/auth/roles",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-users-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-departments-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

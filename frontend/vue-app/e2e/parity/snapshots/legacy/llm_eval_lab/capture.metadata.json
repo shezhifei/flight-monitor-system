@@ -1,0 +1,1605 @@
+{
+  "schema_version": 1,
+  "page": "llm_eval_lab",
+  "legacy_html": "html/llm_eval_lab.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/llm_eval_lab.html",
+      "sha256": "27e2e8c97e36b10ce0d75cd299398e38395354f09e6c654e3d59bc79ffedb20b"
+    },
+    {
+      "path": "js/ai_entry_loader.js",
+      "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/components/breadcrumb.js",
+      "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+    },
+    {
+      "path": "js/components/header.js",
+      "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+    },
+    {
+      "path": "static/ai/manifest.json",
+      "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "f63c24a7b6a22ce6ed8b2216a9661d83c635c3a1f10dcd0d1327591cfb3abe08",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/llm_eval_lab/empty.json",
+      "sha256": "9b06c143e40f00348264645c7db3e7aca33135f13e0722a736392010e79c5094"
+    },
+    {
+      "path": "parity/fixtures/pages/llm_eval_lab/forbidden.json",
+      "sha256": "b6276793e28bc75188f28d824338497b80b48069ef6969fb8284b979516506d5"
+    },
+    {
+      "path": "parity/fixtures/pages/llm_eval_lab/manifest.json",
+      "sha256": "50d1c546b95237dbd46efe927507645050e33f12151fede500be4b970636db35"
+    },
+    {
+      "path": "parity/fixtures/pages/llm_eval_lab/server-error.json",
+      "sha256": "29b00e24c66ce0689cbfce60e5dda2261349e5dd744d172487d1845201308a3e"
+    },
+    {
+      "path": "parity/fixtures/pages/llm_eval_lab/success.json",
+      "sha256": "f43c99d4209ab301f5456a800c37fc038b352bf058113fe355c8a8fa9a3d01fc"
+    },
+    {
+      "path": "parity/fixtures/pages/llm_eval_lab/unauthorized.json",
+      "sha256": "bc476a2c73dbe7457fb73ed813b9a143a3775fc6d91e6256256c6daa28757bb8"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "llm-eval-lab-success",
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#ai-react-root"
+      ],
+      "regions": [
+        {
+          "id": "llm-eval-workspace",
+          "selector": "#ai-react-root"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "llm-eval-lab-empty",
+      "fixture": "llm-eval-lab-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "llm-eval-lab-unauthorized",
+      "fixture": "llm-eval-lab-unauthorized",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "llm-eval-lab-forbidden",
+      "fixture": "llm-eval-lab-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "llm-eval-lab-server-error",
+      "fixture": "llm-eval-lab-server-error",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ee263257d8b11a2899250571137f36688610a1b9f7f7b0c5430f0905b578f42e"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--llm-eval-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "llm-eval-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "9a181e60f06e884e00a973d168c5f87e5f1ef01d39d3946828bae4e7416b487c"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "279d6cd528cbe08ee9c9a8f7dff6eccfaa6a71ee9557ed756743d67803f2465e"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--llm-eval-workspace--desktop.png",
+      "kind": "region",
+      "region": "llm-eval-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "01e59535f3d784e6ff484a52be117385207d85bbe1f5c032f047df17ffa6af91"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "208b054eaa6d15d28592ee40ab0a818beb517fcf97d940253695151cf02e4aaa"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--llm-eval-workspace--laptop.png",
+      "kind": "region",
+      "region": "llm-eval-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4d0f8783f6a2fef23ad7920fa9c87b0a8cf8bd3bbdeb5ff313d3d534e231c1ab"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "36bf5a9833ff5007e4da07f97f6e7344522a633ef9e4ed2bbb437f8755f8576b"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--llm-eval-workspace--tablet.png",
+      "kind": "region",
+      "region": "llm-eval-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "00d3768a867ce479d88d061815ed255a9b964e608791487f379eff6c68f908f1"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "94ef05150605be071c6fb3812111490d6b880883b2c5d44bb65799b5285e8c20"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-success--llm-eval-workspace--mobile.png",
+      "kind": "region",
+      "region": "llm-eval-workspace",
+      "selector": "#ai-react-root",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "llm-eval-lab-success",
+      "theme": "light",
+      "scenario": "llm-eval-lab-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ef2712225fb7c22df83e8b0ea1b8b19eba179957f0bbb9f07a9cf9cf57dfdb9e"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "llm-eval-lab-empty",
+      "theme": "light",
+      "scenario": "llm-eval-lab-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6a0a39c5a407a426fdb2cd272088bb6a4d8000e6f1a7c5a008df4381763ea615"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "llm-eval-lab-empty",
+      "theme": "light",
+      "scenario": "llm-eval-lab-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2a251d055a37b7ab87e65100e2e810dd8ea7ac56e8f4851327bb4a1393bacf09"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-empty",
+      "theme": "light",
+      "scenario": "llm-eval-lab-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6d16fcd32f1ea03fc4fde6c026bc41ac32f4a1373de749d7ef802da1e12037f2"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-empty",
+      "theme": "light",
+      "scenario": "llm-eval-lab-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d555ab0f10d8851cf9a63a72661ec78c9ab210bdc8d0ca28963342d331ed9817"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "llm-eval-lab-empty",
+      "theme": "light",
+      "scenario": "llm-eval-lab-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "942891765da3fdd4acf999255bdad232de35c06e44a021527f1fbc9046d96655"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "llm-eval-lab-unauthorized",
+      "theme": "light",
+      "scenario": "llm-eval-lab-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED",
+        "GET /frontend/static/ai/assets/DMSans-Variable-OkNhvBry.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "llm-eval-lab-unauthorized",
+      "theme": "light",
+      "scenario": "llm-eval-lab-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-unauthorized",
+      "theme": "light",
+      "scenario": "llm-eval-lab-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/static/ai/assets/DMSans-Variable-OkNhvBry.ttf: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-unauthorized",
+      "theme": "light",
+      "scenario": "llm-eval-lab-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/static/ai/assets/DMSans-Variable-OkNhvBry.ttf: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "llm-eval-lab-unauthorized",
+      "theme": "light",
+      "scenario": "llm-eval-lab-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED",
+        "GET /frontend/static/ai/assets/DMSans-Variable-OkNhvBry.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "llm-eval-lab-forbidden",
+      "theme": "light",
+      "scenario": "llm-eval-lab-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "91b30e22d33cf1814b32b796e496d746c438f105c7bc771b3da96ae77a0f9861"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "llm-eval-lab-forbidden",
+      "theme": "light",
+      "scenario": "llm-eval-lab-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5b043170647d0d0d98b8d7bfc92b97394b0e20f17ead9d9b022ecfa81cbaa72f"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-forbidden",
+      "theme": "light",
+      "scenario": "llm-eval-lab-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6937c73dc52f4cedaa07bd9ec6156e9b9f0ec72d99c9eada27ceb23779cbc883"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-forbidden",
+      "theme": "light",
+      "scenario": "llm-eval-lab-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "730f38d00527a3929bf0075945f49fa50347fa632d35698c9218e2b81b029037"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "llm-eval-lab-forbidden",
+      "theme": "light",
+      "scenario": "llm-eval-lab-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "915cacd4f8056710cda60f3bf73de14631f20681e9ad6b597c7d90b2a030754c"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "llm-eval-lab-server-error",
+      "theme": "light",
+      "scenario": "llm-eval-lab-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ca94770aab8dd0e670137c54a9959877c53716b1626517439c57cce11a2d0eb5"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "llm-eval-lab-server-error",
+      "theme": "light",
+      "scenario": "llm-eval-lab-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "05b56826481e26d1a001bf918ae9475911f9091db8e3fdec655104a1a8653cf5"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-server-error",
+      "theme": "light",
+      "scenario": "llm-eval-lab-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "798af8562bad12868d604a9118d0dd64dbc708ffe07de5662976884946fae388"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "llm-eval-lab-server-error",
+      "theme": "light",
+      "scenario": "llm-eval-lab-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6d281ce3caa5d10c2677afd2d1fb13d593aee02f7cd729c331df72fd8b7d14b1"
+    },
+    {
+      "file": "llm_eval_lab/llm-eval-lab-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "llm-eval-lab-server-error",
+      "theme": "light",
+      "scenario": "llm-eval-lab-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6593767cabc67d444ac9eae8673252c06f051bf307044b52afe16fa3f9bae6ed"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "llm-eval-lab-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-unauthorized",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-unauthorized",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-unauthorized",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-unauthorized",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-unauthorized",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-server-error",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-server-error",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-server-error",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-server-error",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "llm-eval-lab-server-error",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

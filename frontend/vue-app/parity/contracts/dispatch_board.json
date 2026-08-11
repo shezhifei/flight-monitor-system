@@ -1,0 +1,1176 @@
+{
+  "contractVersion": 1,
+  "page": "dispatch_board",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/dispatch_board.html",
+    "htmlSha256": "3a5155ff21cedec07bc58068640918f624c20f32ae9ea94481b754f3ae049370",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/ai_entry_loader.js",
+        "archivePath": "js/ai_entry_loader.js",
+        "exists": true,
+        "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/breadcrumb.js",
+        "archivePath": "js/components/breadcrumb.js",
+        "exists": true,
+        "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/empty_error.js",
+        "archivePath": "js/components/empty_error.js",
+        "exists": true,
+        "sha256": "551ad745f4221a0647e2a0d19bd54cd526eb8e849a78f9a632e913dcc112575a"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/header.js",
+        "archivePath": "js/components/header.js",
+        "exists": true,
+        "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/loading.js",
+        "archivePath": "js/components/loading.js",
+        "exists": true,
+        "sha256": "e02174c70738bd7d8d0a53fc58d3efdf2c51e4fe3200f61f393fb18b404538af"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/toast.js",
+        "archivePath": "js/components/toast.js",
+        "exists": true,
+        "sha256": "7d1a0b132fe9043d6b616f1f2adb07963f8c4b0823f750d41a77655725f97df5"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/dispatch_board_gantt.js?v=3",
+        "archivePath": "js/dispatch_board_gantt.js",
+        "exists": true,
+        "sha256": "0ace53a1f2c320b3d8a4c00162c1b6940fb856c0e68090881f247ccd1be0eaca"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/security/dompurify.min.js",
+        "archivePath": "js/security/dompurify.min.js",
+        "exists": true,
+        "sha256": "c3d1c163c700071ad546390cb92a36c31cd6aceaad1bf77c4ef6eb9d845f1976"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/security/safe-markdown.js",
+        "archivePath": "js/security/safe-markdown.js",
+        "exists": true,
+        "sha256": "6456227326e8827b3d2523e55178643c1fdf0f8a1984231070cb3374db576574"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/sse_hub.js",
+        "archivePath": "js/sse_hub.js",
+        "exists": true,
+        "sha256": "c0f7d07c398c941eac0ccee0d62a44c66713cca6f1de93678a5f166e6a3d6517"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/marked.min.js",
+        "archivePath": "vendor/js/marked.min.js",
+        "exists": true,
+        "sha256": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css?v=31",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/page-tabs.css",
+        "archivePath": "css/page-tabs.css",
+        "exists": true,
+        "sha256": "2164895c36f72ffc7eaeeab65d8b5a7c09e595b99faa19bab148ca9d35a05e3a"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "dynamic",
+        "reference": "/frontend/static/ai/${path}",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/messages.svg",
+        "archivePath": "icons/messages.svg",
+        "exists": true,
+        "sha256": "41ea89efd02edf53adc55da7873bc3d5de1adb20c85314f7cd093f2bca94d0c2"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/settings.svg",
+        "archivePath": "icons/settings.svg",
+        "exists": true,
+        "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/static/ai/manifest.json",
+        "archivePath": "static/ai/manifest.json",
+        "exists": true,
+        "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/marked.min.js",
+        "archivePath": "vendor/js/marked.min.js",
+        "exists": true,
+        "sha256": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c"
+      }
+    ],
+    "sourceHash": "f688156b024878a71f700998528041bd73287b49345ae068dda3c3b9f686d61a"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > header",
+        "tag": "header",
+        "role": "banner",
+        "text": "派工中心",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > nav",
+        "tag": "nav",
+        "role": null,
+        "text": "面包屑导航",
+        "visible": true
+      },
+      {
+        "selector": "body > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "实时派工时间线",
+        "visible": true
+      },
+      {
+        "selector": "#opsDock",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "#statusPanel",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "#detailDrawer",
+        "tag": "aside",
+        "role": null,
+        "text": "详情",
+        "visible": true
+      },
+      {
+        "selector": "#aiDrawer",
+        "tag": "aside",
+        "role": null,
+        "text": "智能派工与冲突重排",
+        "visible": true
+      },
+      {
+        "selector": "#assistantPanel",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "#conflictPanel",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": false
+      },
+      {
+        "selector": "#chatDrawer",
+        "tag": "aside",
+        "role": null,
+        "text": "航班保障群聊",
+        "visible": true
+      },
+      {
+        "selector": "body > aside:nth-of-type(4) > div:nth-of-type(2) > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > aside:nth-of-type(4) > div:nth-of-type(2) > div > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "#toastRegion",
+        "tag": "section",
+        "role": null,
+        "text": "系统通知",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > div:nth-of-type(1) > h1",
+        "level": 1,
+        "text": "派工中心"
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(3) > h1",
+        "level": 1,
+        "text": "实时派工时间线"
+      },
+      {
+        "selector": "#detailTitle",
+        "level": 3,
+        "text": "详情"
+      },
+      {
+        "selector": "body > aside:nth-of-type(3) > div:nth-of-type(1) > h3",
+        "level": 3,
+        "text": "智能派工与冲突重排"
+      },
+      {
+        "selector": "body > aside:nth-of-type(4) > div:nth-of-type(1) > h3",
+        "level": 3,
+        "text": "航班保障群聊"
+      },
+      {
+        "selector": "#guideTitle",
+        "level": 3,
+        "text": "派工甘特调度台 - 快速上手"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(2) > div:nth-of-type(1) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "规则中心",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#unifiedHeaderLogout",
+        "tag": "button",
+        "type": "button",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#timelineSearchInput",
+        "tag": "input",
+        "type": "text",
+        "text": "搜索航班号/任务名",
+        "name": null,
+        "ariaLabel": "搜索航班号或任务名",
+        "disabled": false
+      },
+      {
+        "selector": "#timelineSearchBtn",
+        "tag": "button",
+        "type": "",
+        "text": "定位",
+        "name": null,
+        "ariaLabel": "搜索并定位任务",
+        "disabled": false
+      },
+      {
+        "selector": "#timelineSearchNextBtn",
+        "tag": "button",
+        "type": "",
+        "text": "下一个",
+        "name": null,
+        "ariaLabel": "定位下一个匹配",
+        "disabled": true
+      },
+      {
+        "selector": "#openAiFloatingBtn",
+        "tag": "button",
+        "type": "",
+        "text": "智能派工",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#openStatusFloatingBtn",
+        "tag": "button",
+        "type": "",
+        "text": "派工状态",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#openChatFloatingBtn",
+        "tag": "button",
+        "type": "",
+        "text": "群聊 0",
+        "name": null,
+        "ariaLabel": "打开群聊抽屉",
+        "disabled": false
+      },
+      {
+        "selector": "#backToNowFloatingBtn",
+        "tag": "button",
+        "type": "",
+        "text": "当前时间",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#openGuideBtn",
+        "tag": "button",
+        "type": "",
+        "text": "新手引导",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#opsMenuToggle",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": "调度设置菜单",
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(1) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "航班",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(1) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "班组",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(1) > button:nth-of-type(3)",
+        "tag": "button",
+        "type": "",
+        "text": "员工",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(1) > button:nth-of-type(4)",
+        "tag": "button",
+        "type": "",
+        "text": "设备",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(2) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "button",
+        "text": "全部航站楼",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(2) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "button",
+        "text": "T1",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(2) > button:nth-of-type(3)",
+        "tag": "button",
+        "type": "button",
+        "text": "T2",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#backToNowBtn",
+        "tag": "button",
+        "type": "",
+        "text": "回到当前时间",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#refreshBtn",
+        "tag": "button",
+        "type": "",
+        "text": "刷新",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#settingRefreshInterval",
+        "tag": "select",
+        "type": "",
+        "text": "5 秒 10 秒 15 秒 30 秒 60 秒",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#settingCornerFade",
+        "tag": "input",
+        "type": "checkbox",
+        "text": "on",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#settingSafetyGateFilter",
+        "tag": "select",
+        "type": "",
+        "text": "全部任务 仅清单阻断 仅清单待补齐 仅清单就绪",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#settingsApplyBtn",
+        "tag": "button",
+        "type": "",
+        "text": "应用设置",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#ganttLegendMoreBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "i",
+        "name": null,
+        "ariaLabel": "打开完整图例说明",
+        "disabled": false
+      },
+      {
+        "selector": "#openChatCornerBadgeBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "航班群聊 0",
+        "name": null,
+        "ariaLabel": "打开航班保障群聊",
+        "disabled": false
+      },
+      {
+        "selector": "#statusPanelClose",
+        "tag": "button",
+        "type": "",
+        "text": "×",
+        "name": null,
+        "ariaLabel": "关闭状态定位器",
+        "disabled": false
+      },
+      {
+        "selector": "#statusFilterBlockedBtn",
+        "tag": "button",
+        "type": "",
+        "text": "一键筛阻断",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#statusShowAllBtn",
+        "tag": "button",
+        "type": "",
+        "text": "显示全部",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#statusSelectAllBtn",
+        "tag": "button",
+        "type": "",
+        "text": "全选本列",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#statusBatchOpenBtn",
+        "tag": "button",
+        "type": "",
+        "text": "批量处理",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#detailCloseBtn",
+        "tag": "button",
+        "type": "",
+        "text": "×",
+        "name": null,
+        "ariaLabel": "关闭详情",
+        "disabled": false
+      },
+      {
+        "selector": "#aiCloseBtn",
+        "tag": "button",
+        "type": "",
+        "text": "×",
+        "name": null,
+        "ariaLabel": "关闭智能派工助手",
+        "disabled": false
+      },
+      {
+        "selector": "body > aside:nth-of-type(3) > div:nth-of-type(2) > div > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "智能建议",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > aside:nth-of-type(3) > div:nth-of-type(2) > div > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "冲突治理",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#aiStreamToggle",
+        "tag": "input",
+        "type": "checkbox",
+        "text": "on",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#aiObjective",
+        "tag": "select",
+        "type": "",
+        "text": "优先清空待派工 优先消解资源冲突 优先均衡负载 优先预防延误",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#aiGenerateBtn",
+        "tag": "button",
+        "type": "",
+        "text": "生成建议",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#analyticsModeTeamBtn",
+        "tag": "button",
+        "type": "",
+        "text": "班组",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#analyticsModeEmployeeBtn",
+        "tag": "button",
+        "type": "",
+        "text": "个人",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#analyticsRefreshBtn",
+        "tag": "button",
+        "type": "",
+        "text": "刷新分析",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#chatCloseBtn",
+        "tag": "button",
+        "type": "",
+        "text": "×",
+        "name": null,
+        "ariaLabel": "关闭群聊抽屉",
+        "disabled": false
+      },
+      {
+        "selector": "#chatAtAllToggle",
+        "tag": "input",
+        "type": "checkbox",
+        "text": "on",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": true
+      },
+      {
+        "selector": "#chatInput",
+        "tag": "textarea",
+        "type": "",
+        "text": "输入消息，Enter 发送，Ctrl+Enter 换行",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": true
+      },
+      {
+        "selector": "#chatSendBtn",
+        "tag": "button",
+        "type": "",
+        "text": "发送",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": true
+      },
+      {
+        "selector": "#guideDontShow",
+        "tag": "input",
+        "type": "checkbox",
+        "text": "on",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#guideCloseBtn",
+        "tag": "button",
+        "type": "",
+        "text": "开始使用",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(5) > div > span > button",
+        "tag": "button",
+        "type": "button",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > section:nth-of-type(2) > article > div > div > button",
+        "tag": "button",
+        "type": "button",
+        "text": "×",
+        "name": null,
+        "ariaLabel": "关闭通知",
+        "disabled": false
+      }
+    ],
+    "labels": [
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(4) > label",
+        "text": "自动刷新间隔",
+        "for": "settingRefreshInterval"
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(5) > label",
+        "text": "角落信息自动淡出",
+        "for": "settingCornerFade"
+      },
+      {
+        "selector": "body > section:nth-of-type(1) > div:nth-of-type(1) > aside > div:nth-of-type(4) > div > div:nth-of-type(6) > label",
+        "text": "安全门禁筛选",
+        "for": "settingSafetyGateFilter"
+      },
+      {
+        "selector": "body > aside:nth-of-type(3) > div:nth-of-type(2) > section:nth-of-type(1) > label",
+        "text": "实时 AI 推送",
+        "for": "aiStreamToggle"
+      },
+      {
+        "selector": "body > aside:nth-of-type(4) > div:nth-of-type(2) > div > section:nth-of-type(2) > div:nth-of-type(4) > label",
+        "text": "@全体",
+        "for": "chatAtAllToggle"
+      },
+      {
+        "selector": "body > div:nth-of-type(4) > div > div > label",
+        "text": "下次不再提示",
+        "for": null
+      }
+    ],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [
+      {
+        "selector": "body > div:nth-of-type(4) > div",
+        "title": "派工甘特调度台 - 快速上手",
+        "visible": true
+      }
+    ],
+    "drawers": [
+      {
+        "selector": "#detailDrawer",
+        "title": "详情",
+        "visible": true
+      },
+      {
+        "selector": "#aiDrawer",
+        "title": "智能派工与冲突重排",
+        "visible": true
+      },
+      {
+        "selector": "#chatDrawer",
+        "title": "航班保障群聊",
+        "visible": true
+      }
+    ],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(1)",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(2)",
+        "text": "航班监控",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > div:nth-of-type(2) > div > a:nth-of-type(1)",
+        "text": "甘特调度台",
+        "href": "/frontend/html/dispatch_board.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > div:nth-of-type(2) > div > a:nth-of-type(2)",
+        "text": "资源利用率",
+        "href": "/frontend/html/resource_utilization.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > nav > ol > li:nth-of-type(1) > a",
+        "text": "工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#aiCloseBtn",
+      "#aiDrawer",
+      "#aiDrawerTabs",
+      "#aiGenerateBtn",
+      "#aiMetrics",
+      "#aiObjective",
+      "#aiStreamToggle",
+      "#aiSuggestionList",
+      "#analyticsBalanceScore",
+      "#analyticsBreakdownList",
+      "#analyticsConflictRate",
+      "#analyticsDataHint",
+      "#analyticsIdleRate",
+      "#analyticsMetrics",
+      "#analyticsModeEmployeeBtn",
+      "#analyticsModeTeamBtn",
+      "#analyticsOntimeRate",
+      "#analyticsRefreshBtn",
+      "#analyticsReplanRate",
+      "#analyticsResponseMinutes",
+      "#analyticsTrendChart",
+      "#analyticsTrendHint",
+      "#assistantPanel",
+      "#backToNowBtn",
+      "#backToNowFloatingBtn",
+      "#backdrop",
+      "#breadcrumb-host",
+      "#chatActiveSubtitle",
+      "#chatActiveTitle",
+      "#chatArchivePill",
+      "#chatAtAllToggle",
+      "#chatCloseBtn",
+      "#chatComposer",
+      "#chatCornerUnreadBadge",
+      "#chatDrawer",
+      "#chatEmptyTip",
+      "#chatGroupList",
+      "#chatGroupMeta",
+      "#chatInput",
+      "#chatInputCount",
+      "#chatMessageList",
+      "#chatReadonlyTip",
+      "#chatSendBtn",
+      "#chatUnreadBadge",
+      "#conflictDataHint",
+      "#conflictList",
+      "#conflictMetricHigh",
+      "#conflictMetricOrders",
+      "#conflictMetricTotal",
+      "#conflictMetrics",
+      "#conflictPanel",
+      "#conflictQueryInput",
+      "#conflictRefreshBtn",
+      "#conflictSeverityFilter",
+      "#conflictTypeFilter",
+      "#cornerInfo",
+      "#detailActions",
+      "#detailCloseBtn",
+      "#detailContent",
+      "#detailDrawer",
+      "#detailTitle",
+      "#dispatch-ai-root",
+      "#fms-parity-contract-determinism",
+      "#ganttChart",
+      "#ganttLegendMoreBtn",
+      "#ganttLegendOverlay",
+      "#ganttLegendPopover",
+      "#ganttStage",
+      "#guideCloseBtn",
+      "#guideDontShow",
+      "#guideModal",
+      "#guideTitle",
+      "#header-host",
+      "#metricConflicts",
+      "#metricHeavy",
+      "#metricPending",
+      "#openAiFloatingBtn",
+      "#openChatCornerBadgeBtn",
+      "#openChatFloatingBtn",
+      "#openGuideBtn",
+      "#openStatusFloatingBtn",
+      "#opsDock",
+      "#opsMenu",
+      "#opsMenuToggle",
+      "#quickActions",
+      "#refreshBtn",
+      "#replanApplyBtn",
+      "#replanClearBtn",
+      "#replanHint",
+      "#replanMaxSuggestions",
+      "#replanPreviewBtn",
+      "#replanStrategy",
+      "#replanSuggestionList",
+      "#resourceFocusBar",
+      "#resourceFocusClearBtn",
+      "#resourceFocusText",
+      "#scenarioChangedCount",
+      "#scenarioClearBtn",
+      "#scenarioConflictCount",
+      "#scenarioDelayInput",
+      "#scenarioDelayedCount",
+      "#scenarioEquipmentInput",
+      "#scenarioFrozenInput",
+      "#scenarioHint",
+      "#scenarioImpactedCount",
+      "#scenarioManualConfirmation",
+      "#scenarioMetrics",
+      "#scenarioPreviewBtn",
+      "#scenarioResultList",
+      "#scenarioRiskLevel",
+      "#scenarioStandInput",
+      "#settingCornerFade",
+      "#settingRefreshInterval",
+      "#settingSafetyGateFilter",
+      "#settingsApplyBtn",
+      "#statusBatchOpenBtn",
+      "#statusCounts",
+      "#statusFilterBlockedBtn",
+      "#statusListTip",
+      "#statusOrderList",
+      "#statusPanel",
+      "#statusPanelClose",
+      "#statusSelectAllBtn",
+      "#statusSelectionSummary",
+      "#statusShowAllBtn",
+      "#statusToolbar",
+      "#terminalGroup",
+      "#timelineSearchBtn",
+      "#timelineSearchInput",
+      "#timelineSearchMeta",
+      "#timelineSearchNextBtn",
+      "#timelineSearchResults",
+      "#timelineSearchWrap",
+      "#toastRegion",
+      "#unifiedHeaderLogout",
+      "#viewModeHint",
+      "#viewTabGroup",
+      "#windowLabel"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "dispatch_board-success",
+      "fixture": "parity/fixtures/pages/dispatch_board/success.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [
+        "Cannot read properties of undefined (reading 'raw')"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/timeline",
+          "query": {
+            "view_mode": [
+              "flight"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/collaboration/groups",
+          "query": {
+            "limit": [
+              "120"
+            ],
+            "offset": [
+              "0"
+            ],
+            "status": [
+              "all"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/stands",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/dispatch-orders/safety-checklist/progress",
+          "query": {},
+          "body": {
+            "orders": [
+              {
+                "dispatch_order_id": "order-boarding-1",
+                "task_type": "boarding"
+              },
+              {
+                "dispatch_order_id": "order-cleaning-1",
+                "task_type": "cabin_cleaning"
+              }
+            ]
+          }
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "dispatch-board-sse-stream-success",
+          "eventTypes": [
+            "global_status"
+          ]
+        }
+      ],
+      "consoleErrors": [
+        "加载时间线失败: TypeError: Cannot read properties of undefined (reading 'raw') at renderDispatchItem (<legacy-origin>/frontend/js/dispatch_board_gantt.js?v=3:3204:37) at <legacy-origin>/frontend/vendor/js/echarts.min.js:45:681433 at t._add (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:676779) at t._performRestAdd (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:225303) at t._executeOneToOne (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:224440) at t.execute (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:224006) at e.render (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:676947) at t.progress (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:167296) at t._doProgress (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:135755) at t.perform (<legacy-origin>/frontend/vendor/js/echarts.min.js:45:135327)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

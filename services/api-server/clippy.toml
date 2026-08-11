@@ -1,0 +1,18 @@
+# clippy configuration for Flight Monitor System
+# See: https://doc.rust-lang.org/clippy/configuration.html
+
+# Warn on unwrap in non-test code (allow in tests)
+# Note: clippy::unwrap_used is allow-by-default; enable via #![warn(clippy::unwrap_used)] per crate
+# or use cargo clippy -- -W clippy::unwrap_used
+
+# Cognitive complexity threshold (default 25)
+cognitive-complexity-threshold = 30
+
+# Maximum lines in a single function body
+too-many-lines-threshold = 300
+
+# Maximum number of function arguments
+too-many-arguments-threshold = 10
+
+# Type complexity threshold
+type-complexity-threshold = 350

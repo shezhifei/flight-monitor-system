@@ -1,0 +1,115 @@
+[project]
+name = "ai-sidecar"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    # HTTP / app
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "starlette>=0.37",
+    "pydantic>=2.6",
+    "python-multipart>=0.0.9",
+    "sse-starlette>=2.0",
+    # Observability
+    "prometheus-client>=0.20",
+    "structlog>=24.0",
+    "psutil>=5.9",
+    # Data / IO
+    "httpx>=0.27",
+    "requests>=2.31",
+    "orjson>=3.10",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+    # Auth / crypto
+    "PyJWT>=2.8",
+    "cryptography>=42.0",
+    "bcrypt>=4.1",
+    # Databases
+    "asyncpg>=0.29",
+    "psycopg[binary,pool]>=3.1",
+    "redis>=5.0",
+    # AI / LLM stack (actually imported by runtime)
+    "openai>=1.40",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "langgraph>=0.2",
+    "tiktoken>=0.7",
+    # Domain utilities used by tools/services
+    "cachetools>=5.3",
+    "deepdiff>=7.0",
+    "jsonschema>=4.22",
+    "tenacity>=8.2",
+    "typing-extensions>=4.10",
+    "python-ulid>=2.0",
+    "xxhash>=3.4",
+    "ortools>=9.10",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["src.application.*", "src.infrastructure.ai.*"]
+strict = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "SIM",
+    "RUF",
+    "E722",
+    "BLE001",
+]
+ignore = [
+    "E501",
+    "B008",
+    "SIM108",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["E", "F841"]
+"src/di/container.py" = ["F821"]
+"src/domain/exceptions/base.py" = ["N818"]
+"src/domain/exceptions/business.py" = ["N802"]
+"src/domain/exceptions/infrastructure.py" = ["N818"]
+"src/domain/exceptions/validation.py" = ["N802"]
+"src/infrastructure/ai/graph/nodes.py" = ["N818"]
+"src/infrastructure/ai/langchain_adapter/tools.py" = ["N818"]
+"src/infrastructure/ai/runtime_service/__init__.py" = ["F401"]
+"src/infrastructure/ai/todo_agent_executor.py" = ["F405"]
+"src/infrastructure/ai/todo_agent_executor/__init__.py" = ["F401"]
+"src/infrastructure/ai/tools/mq_gate.py" = ["N818"]

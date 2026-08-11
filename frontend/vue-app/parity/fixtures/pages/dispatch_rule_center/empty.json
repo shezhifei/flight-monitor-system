@@ -1,0 +1,45 @@
+{
+  "scenario": "dispatch_rule_center-empty",
+  "routes": [
+    {
+      "id": "dispatch-rule-equipment-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/equipment-types",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-task-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/task-types",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-departments-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

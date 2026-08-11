@@ -1,0 +1,21 @@
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071",
+    "RUSTSEC-2025-0134",
+]
+
+[RUSTSEC-2023-0071]
+reason = "通过 sqlx-mysql 间接引入，本项目仅使用 PostgreSQL；该漏洞为 RSA 计时侧信道攻击，在 PostgreSQL 场景下无实际风险；等待 sqlx 上游修复"
+notes = [
+    "sqlx 0.8.x 版本强制依赖所有数据库驱动",
+    "项目实际只使用 PostgreSQL",
+    "RSA 漏洞影响的是 MySQL 协议加密，不影响 PostgreSQL",
+]
+
+[RUSTSEC-2025-0134]
+reason = "rustls-pemfile 已停止维护，但目前无安全漏洞；等待上游迁移到 rustls-pki-types"
+notes = [
+    "rustls-pemfile 2.2.0 是最后一个版本",
+    "新版本功能已迁移到 rustls-pki-types",
+    "当前版本无已知安全漏洞，仅标记为 unmaintained",
+]

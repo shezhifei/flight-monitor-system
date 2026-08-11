@@ -1,0 +1,1419 @@
+{
+  "schema_version": 1,
+  "page": "dispatch_rule_center",
+  "legacy_html": "html/dispatch_rule_center.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/dispatch_rule_center.html",
+      "sha256": "da6a5c40f74553292d621a1a7a8279bab8b307286eb1412f8531279b047c403e"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/dispatch_rule_center.js",
+      "sha256": "5a29438591dbf32bec167c5f56168345d87fa488fb679a5dfdb27e0b3c511746"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "29894892fdc5aed3d090f79c5a5e85d31438941b65eb8cd3c43fe2a8e5d65eb7",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/dispatch_rule_center/empty.json",
+      "sha256": "b20a090695c79e8a75d19b327e31671222baea0db561141b31903d00bbf91112"
+    },
+    {
+      "path": "parity/fixtures/pages/dispatch_rule_center/forbidden.json",
+      "sha256": "46b0ab1fe3227f2c7ba1a4ba787b9cb78508a2226039498dfb765b15190d23fe"
+    },
+    {
+      "path": "parity/fixtures/pages/dispatch_rule_center/manifest.json",
+      "sha256": "3826660132560ddb69fece53eeedef968ac57d99de5a8aabaee417799c1f9e61"
+    },
+    {
+      "path": "parity/fixtures/pages/dispatch_rule_center/success.json",
+      "sha256": "d85cb7d1ed646567eaf7c134b863d9f79fb279f0e4e5baa4585642c5c718aeec"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "dispatch_rule_center-success",
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#panel-task-driven"
+      ],
+      "regions": [
+        {
+          "id": "rule-workspace",
+          "selector": "#panel-task-driven"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "dispatch_rule_center-empty",
+      "fixture": "dispatch_rule_center-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "dispatch_rule_center-forbidden",
+      "fixture": "dispatch_rule_center-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "342f73be30dec6c9859420f5fb765db65496edea361af71115fffe396bcf9a92"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--rule-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "rule-workspace",
+      "selector": "#panel-task-driven",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "62ed46afd98363117982184ade0b137d0a880e16aea01fcef7fce50e2e1908c0"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b39ddc34934641340b5537b7e735fb6ecb157d68b4e80decb69b47b052e5ae04"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--rule-workspace--desktop.png",
+      "kind": "region",
+      "region": "rule-workspace",
+      "selector": "#panel-task-driven",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7099863bf5f590d5081af47b70c0cde5136d678d7b8379e61146bf891a968813"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5fe6ca06e7bdbcec485c81902914c950fab4eea93e1863f947e4109d039becc5"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--rule-workspace--laptop.png",
+      "kind": "region",
+      "region": "rule-workspace",
+      "selector": "#panel-task-driven",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8ede782237828dd91c7e69b0160dc0356cd686d7436afff99e9c243fc622a822"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dc9b8122d23bee290c8f2911cf1502f2941135ce8691fb86a7941032ebebfd1b"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--rule-workspace--tablet.png",
+      "kind": "region",
+      "region": "rule-workspace",
+      "selector": "#panel-task-driven",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "767026a099decd810eaebeca8ba6487d5c09499d9f70a50726290b9fd17d8017"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a41d8310ea95bdfbc4d68c4ea201aa487bcaee5dd7c4ec788b039d8c92f4f77b"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-success--rule-workspace--mobile.png",
+      "kind": "region",
+      "region": "rule-workspace",
+      "selector": "#panel-task-driven",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dispatch_rule_center-success",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0df299a2e5f66889cea6c90fb11466b0ab0c46df40b48a05cd3e418cee54ddb6"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dispatch_rule_center-empty",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d1effa9e83d63ffb1c2323072640a89c7a8f8cb88e2f3a81ed2c9cf7bca7a64e"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dispatch_rule_center-empty",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "002ffca8294ea0a61dab89b272e802a1cc55597dd2e409bfaabeba71d799f52b"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-empty",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0ad91094673caab6e3883c6566f7a691830949a423af76785c2c921f88c7a66b"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-empty",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "270d0fcb3ee9ce7d7b4b02b5fd9272bf93227e0134e607dc94f67bcd2d56e6b7"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dispatch_rule_center-empty",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3811276a591c5e2bcfa6644e08b7bcf3b0874cf78c5a53abab23d00c9dd937f2"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dispatch_rule_center-forbidden",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "sha256": "a3319739ad6fa3cc83c416bcf621cccb91126be32a80389d7681bd9590b5937c"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dispatch_rule_center-forbidden",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "sha256": "7a4a83b6b927737a6da92d502d1e88f2afc142a7a0c4ed8efdf4ba785bb2b784"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-forbidden",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "sha256": "bed07d994775a788bb9167cfbb35d7578fc2040f5161d167ea8e3b3b47bb0d9e"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dispatch_rule_center-forbidden",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "sha256": "85fcf424fd772864b69d35fcd35468ce332abe54c8eed35e68445555592d4575"
+    },
+    {
+      "file": "dispatch_rule_center/dispatch_rule_center-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dispatch_rule_center-forbidden",
+      "theme": "light",
+      "scenario": "dispatch_rule_center-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "cf11c4c9449b2f4414f8590fdf6181da5f7516b4643f814fe90e118e9f4ac0df",
+      "observed_resource_failures": [],
+      "observed_page_errors": [
+        "Parity administrator permission denied for /api/v2/reference/departments"
+      ],
+      "sha256": "32feb54538f2127feb54a882887cc91f2cb27018aecfc3b1fafc3c15bffe4db0"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "dispatch_rule_center-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/teams",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/teams",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/teams",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/teams",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/teams",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dispatch_rule_center-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/task-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/resources/equipment-types",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

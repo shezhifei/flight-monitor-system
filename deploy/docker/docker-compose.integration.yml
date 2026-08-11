@@ -1,0 +1,49 @@
+name: flight-monitor-integration
+
+# Minimal override used by CI integration/e2e jobs.
+# The distributed compose keeps postgres & redis on an internal-only network
+# (no host ports). These CI jobs run tests on the CI host and must reach those
+# services, so we re-declare the relevant services and ADD host port mappings.
+# Compose merges these service definitions across files (arrays are appended),
+# so we only add ports here and never touch docker-compose.distributed.yml.
+#
+# Host ports are loopback-only (127.0.0.1) so CI/local runners can connect
+# without exposing integration DB/Redis/MQ to the broader network.
+# DB_PASSWORD / REDIS_PASSWORD have no weak defaults — fail fast if missing.
+# CI workflows must supply explicit values (see .github/workflows/ci.yml).
+
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-flight_monitor_dev}
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  rocketmq-namesrv:
+    ports:
+      - "127.0.0.1:9876:9876"
+
+  rocketmq-broker:
+    ports:
+      - "127.0.0.1:10911:10911"
+
+  mq-gateway:
+    ports:
+      - "127.0.0.1:8097:8097"
+
+  rust-api:
+    ports:
+      - "127.0.0.1:18443:8080"
+
+# Declare the replica volume referenced by the distributed compose so that
+# `docker compose config` resolves cleanly across all compose versions.
+volumes:
+  postgres_standby_data:

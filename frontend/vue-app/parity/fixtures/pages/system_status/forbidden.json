@@ -1,0 +1,93 @@
+{
+  "scenario": "system-status-forbidden",
+  "routes": [
+    {
+      "id": "health-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/health",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少权限: system:config"
+          }
+        }
+      }
+    },
+    {
+      "id": "health-performance-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/health/performance",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少权限: system:config"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "system-status-stream-forbidden",
+      "pathname": "/api/v2/health/stream/status",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "status-forbidden-connected",
+          "event": "connected",
+          "data": {
+            "status": "connected",
+            "timestamp": "2026-07-14T02:30:00Z"
+          }
+        },
+        {
+          "id": "status-forbidden-heartbeat",
+          "event": "heartbeat",
+          "data": {
+            "timestamp": "2026-07-14T02:30:01Z"
+          }
+        },
+        {
+          "id": "status-forbidden-snapshot",
+          "event": "system_status",
+          "data": {
+            "success": false,
+            "status": "forbidden",
+            "message": "缺少权限: system:config"
+          }
+        },
+        {
+          "id": "status-forbidden-error",
+          "event": "error_log",
+          "data": {
+            "error_event": {
+              "error_id": "error-forbidden-stream",
+              "timestamp": "2026-07-14T02:30:02Z",
+              "error_type": "PARITY_CHECK",
+              "severity": "low",
+              "message": "确定性实时日志样本",
+              "emitted_at_ms": 1783996202000
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "scenario": "resource-manager-partial",
+  "expected_legacy_errors": [
+    "加载设备失败: Error: 请求失败"
+  ],
+  "routes": [
+    {
+      "id": "resource-users-partial",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-equipmentTypes-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-equipment-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "设备目录暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-teamTypes-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/team-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "resource-teams-partial",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/teams",
+      "query": {
+        "include_inactive": [
+          "false"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

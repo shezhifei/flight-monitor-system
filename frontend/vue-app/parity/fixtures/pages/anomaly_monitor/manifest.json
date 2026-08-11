@@ -1,0 +1,10 @@
+{
+  "page": "anomaly_monitor",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "forbidden"
+  ]
+}

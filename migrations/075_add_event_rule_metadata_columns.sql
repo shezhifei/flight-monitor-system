@@ -1,0 +1,11 @@
+
+ALTER TABLE IF EXISTS dispatch_order_adjustment_rules
+    ADD COLUMN IF NOT EXISTS name VARCHAR(120) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS description TEXT,
+    ADD COLUMN IF NOT EXISTS created_by VARCHAR(100);
+
+ALTER TABLE IF EXISTS event_driven_dispatch_generation_rules
+    ADD COLUMN IF NOT EXISTS name VARCHAR(120) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS description TEXT,
+    ADD COLUMN IF NOT EXISTS created_by VARCHAR(100);
+

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+  <script>
+  (function(){
+    var t=localStorage.getItem('fms-theme');
+    if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+    document.documentElement.setAttribute('data-theme',t);
+    document.documentElement.style.colorScheme=t;
+    try{
+      var q=new URLSearchParams(location.search);
+      if(q.get('embed')==='1'||q.get('shell')==='1'||window.self!==window.top){
+        document.documentElement.classList.add('workspace-embed');
+      }
+    }catch(e){}
+  })();
+</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  </head>
+  <body class="flight-monitor-page">
+    <div id="app"></div>
+    <script type="module" src="/src/entries/flight_monitor.ts"></script>
+  </body>
+</html>

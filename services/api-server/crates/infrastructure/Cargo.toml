@@ -1,0 +1,63 @@
+[package]
+name = "fms-infrastructure"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+fms-domain = { path = "../domain" }
+fms-runtime = { path = "../runtime" }
+
+# Async
+tokio = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+
+# Redis
+redis = { workspace = true }
+bb8 = "0.9"
+bb8-redis = "0.21"
+
+# Auth / Security
+jsonwebtoken = { workspace = true }
+bcrypt = { workspace = true }
+
+# HTTP client (Flowable, external APIs)
+reqwest = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+prost = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+dotenvy = { workspace = true }
+
+# Utilities
+chrono = { workspace = true }
+uuid = { workspace = true }
+ulid = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+regex = { workspace = true }
+dashmap = { workspace = true }
+parking_lot = { workspace = true }
+rand = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+async-trait = { workspace = true }
+trait-variant = { workspace = true }
+
+# RocketMQ (vendored)
+rocketmq-client-rust = { workspace = true }
+rocketmq-common = { workspace = true }
+rocketmq-error = { workspace = true }
+
+# Metrics (recording macros; recorder installed by the server crate)
+metrics = "0.24"

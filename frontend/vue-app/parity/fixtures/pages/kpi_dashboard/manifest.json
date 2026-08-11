@@ -1,0 +1,10 @@
+{
+  "page": "kpi_dashboard",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "empty",
+    "partial"
+  ]
+}

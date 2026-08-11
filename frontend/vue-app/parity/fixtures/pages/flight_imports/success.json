@@ -1,0 +1,15 @@
+{
+  "scenario": "flight_imports-success",
+  "capture": {
+    "expected_panels": [".import-shell", ".upload-box"],
+    "regions": [{ "id": "import-workspace", "selector": ".import-shell" }],
+    "blocked_interactions": [{
+      "id": "file-preview",
+      "reason": "Preview requires a real multipart upload and commit requires the returned dynamic preview_id; neither operation is fabricated by the initial-render fixture.",
+      "source": "html/flight_imports.html#previewBtn"
+    }]
+  },
+  "routes": [],
+  "sse_streams": [],
+  "coverage_note": "Initial render performs authentication only; preview and commit require an explicit uploaded file and are not fabricated in this scenario."
+}

@@ -1,0 +1,291 @@
+{
+  "contractVersion": 1,
+  "page": "login",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/login.html",
+    "htmlSha256": "5e8818e896688bfa1b66cf1c3f5b55dba2445d8e9a9e609d67628ede670b7d74",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/forbidden.svg",
+        "archivePath": "icons/forbidden.svg",
+        "exists": true,
+        "sha256": "20a95668317d2bd1ce392f78bb23fe627e99026f90dc1cf1b3d0a6973df4281a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ok.svg",
+        "archivePath": "icons/ok.svg",
+        "exists": true,
+        "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/password_unvisible.svg",
+        "archivePath": "icons/password_unvisible.svg",
+        "exists": true,
+        "sha256": "19941ef9f9054cdab0c61b5d17eb35ecf88bae301e8a0b949c3caf78e68d299c"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/password_visible.svg",
+        "archivePath": "icons/password_visible.svg",
+        "exists": true,
+        "sha256": "8e9412ce80411e9f2c0bb856ee942ee3c9e7b4ddc5b782eecb3a9cd02d372f36"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/plane.svg",
+        "archivePath": "icons/plane.svg",
+        "exists": true,
+        "sha256": "f20703f7608dac886ace3f62fb3260efe9c64c4d2509bd9f04fd95a68b34f53d"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/images/index-pic-01.jpg",
+        "archivePath": "images/index-pic-01.jpg",
+        "exists": true,
+        "sha256": "951952ed49dd8f49e9ba089a5dba2cb9dd365006a79c3b533b7777204ff8b094"
+      }
+    ],
+    "sourceHash": "0232618c6c40a203e3840e7f9950f83563499cfe40fe6efdf9fd2d5f43fc0909"
+  },
+  "surface": {
+    "regions": [],
+    "headings": [
+      {
+        "selector": "body > div > div > h1",
+        "level": 1,
+        "text": "航班监控系统"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#username",
+        "tag": "input",
+        "type": "text",
+        "text": "请输入用户名",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#password",
+        "tag": "input",
+        "type": "password",
+        "text": "请输入密码",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#passwordToggleBtn",
+        "tag": "button",
+        "type": "button",
+        "text": "",
+        "name": null,
+        "ariaLabel": "显示密码",
+        "disabled": false
+      },
+      {
+        "selector": "#rememberMe",
+        "tag": "input",
+        "type": "checkbox",
+        "text": "on",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#loginBtn",
+        "tag": "button",
+        "type": "submit",
+        "text": "登录",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [
+      {
+        "selector": "body > div > div > form > div:nth-of-type(1) > label",
+        "text": "用户名",
+        "for": "username"
+      },
+      {
+        "selector": "body > div > div > form > div:nth-of-type(2) > label",
+        "text": "密码",
+        "for": "password"
+      },
+      {
+        "selector": "body > div > div > form > div:nth-of-type(3) > label",
+        "text": "记住我",
+        "for": null
+      }
+    ],
+    "forms": [
+      {
+        "selector": "#loginForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#username",
+          "#password",
+          "#passwordToggleBtn",
+          "#rememberMe",
+          "#loginBtn"
+        ]
+      }
+    ],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "#forgotPasswordLink",
+        "text": "忘记密码？",
+        "href": "#"
+      },
+      {
+        "selector": "#contactAdminLink",
+        "text": "联系管理员",
+        "href": "#"
+      }
+    ],
+    "stableSelectors": [
+      "#contactAdminLink",
+      "#errorMessage",
+      "#fms-parity-contract-determinism",
+      "#forgotPasswordLink",
+      "#loginBtn",
+      "#loginForm",
+      "#password",
+      "#passwordToggleBtn",
+      "#rememberMe",
+      "#successMessage",
+      "#username"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "login-default",
+      "fixture": "parity/fixtures/pages/login/default.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "login-required-username-error",
+      "fixture": "parity/fixtures/pages/login/required-username-error.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "login-password-visible",
+      "fixture": "parity/fixtures/pages/login/password-visible.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    }
+  ],
+  "approvedExceptions": []
+}

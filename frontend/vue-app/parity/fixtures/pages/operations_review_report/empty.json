@@ -1,0 +1,159 @@
+{
+  "scenario": "operations-review-report-empty",
+  "routes": [
+    {
+      "id": "ops-flight-empty",
+      "method": "GET",
+      "pathname": "/api/v2/flights/updates/recent",
+      "query": {
+        "limit": [
+          "500"
+        ],
+        "minutes": [
+          "360"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "获取到 0 条最近更新",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "ops-anomaly-empty",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "query": {
+        "end_date": [
+          "2026-07-14T02:30:00.000Z"
+        ],
+        "limit": [
+          "300"
+        ],
+        "offset": [
+          "0"
+        ],
+        "start_date": [
+          "2026-07-13T20:30:00.000Z"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [],
+            "total": 0
+          },
+          "message": "异常列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "ops-conflicts-empty",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/conflicts",
+      "query": {
+        "limit": [
+          "200"
+        ],
+        "window_end": [
+          "2026-07-14T02:30:00.000Z"
+        ],
+        "window_start": [
+          "2026-07-13T20:30:00.000Z"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "has_conflicts": false,
+            "conflict_count": 0,
+            "conflicts": []
+          },
+          "message": "冲突列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "ops-compare-empty",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/compare",
+      "query": {
+        "base_end_date": [
+          "2026-07-14"
+        ],
+        "base_start_date": [
+          "2026-07-08"
+        ],
+        "compare_end_date": [
+          "2026-07-07"
+        ],
+        "compare_start_date": [
+          "2026-07-01"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "base_range": {
+              "start_date": "2026-07-08",
+              "end_date": "2026-07-14"
+            },
+            "compare_range": {
+              "start_date": "2026-07-01",
+              "end_date": "2026-07-07"
+            },
+            "metrics": {}
+          },
+          "message": "KPI comparison fetched"
+        }
+      }
+    },
+    {
+      "id": "ops-trend-empty",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/trend-with-anomalies",
+      "query": {
+        "days": [
+          "14"
+        ],
+        "metric": [
+          "on_time_rate"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "metric": "on_time_rate",
+            "days": 14,
+            "items": [],
+            "anomaly_total": 0
+          },
+          "message": "KPI trend with anomaly overlay fetched"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

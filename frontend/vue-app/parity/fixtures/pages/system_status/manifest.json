@@ -1,0 +1,12 @@
+{
+  "page": "system_status",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "success",
+    "partial",
+    "unauthorized",
+    "forbidden",
+    "server-error"
+  ]
+}

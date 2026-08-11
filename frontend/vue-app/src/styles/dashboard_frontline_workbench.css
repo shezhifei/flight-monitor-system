@@ -1,0 +1,534 @@
+.dashboard-frontline-card,
+.dashboard-frontline-burden-card {
+    cursor: default;
+}
+
+.dashboard-frontline-card {
+    grid-column: span 2;
+    grid-row: span 2;
+    gap: 18px;
+}
+
+.dashboard-frontline-card.is-busy-mode {
+    background:
+        linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(248, 250, 252, 0.95)),
+        #ffffff;
+    border-color: rgba(14, 165, 233, 0.28);
+}
+
+.dashboard-frontline-burden-card {
+    grid-column: span 2;
+    min-height: 160px;
+    gap: 16px;
+}
+
+.dashboard-frontline-header,
+.dashboard-frontline-card-head,
+.dashboard-frontline-burden-head,
+.dashboard-frontline-modal-head,
+.dashboard-frontline-modal-footer,
+.dashboard-frontline-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dashboard-frontline-header {
+    align-items: flex-start;
+}
+
+.dashboard-frontline-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dashboard-frontline-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--status-progress);
+    font-weight: 700;
+}
+
+.dashboard-frontline-subtitle,
+.dashboard-frontline-caption,
+.dashboard-frontline-note,
+.dashboard-frontline-empty,
+.dashboard-frontline-modal-note,
+.dashboard-frontline-task-meta,
+.dashboard-frontline-task-window,
+.dashboard-frontline-task-note,
+.dashboard-frontline-risk-text,
+.dashboard-frontline-sync-message,
+.dashboard-frontline-burden-subtitle,
+.dashboard-frontline-burden-meta,
+.dashboard-frontline-queue-empty {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.dashboard-frontline-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+}
+
+.dashboard-frontline-toggle input {
+    margin: 0;
+}
+
+.dashboard-frontline-overview,
+.dashboard-frontline-burden-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.dashboard-frontline-overview {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dashboard-frontline-burden-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-frontline-metric,
+.dashboard-frontline-burden-metric {
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dashboard-frontline-metric-label,
+.dashboard-frontline-burden-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.dashboard-frontline-metric-value,
+.dashboard-frontline-burden-value {
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dashboard-frontline-syncbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-page);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+}
+
+.dashboard-frontline-sync-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.dashboard-frontline-pill,
+.dashboard-frontline-status,
+.dashboard-frontline-risk-badge,
+.dashboard-frontline-alert-badge,
+.dashboard-frontline-queue-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
+
+.dashboard-frontline-pill {
+    background: rgba(14, 165, 233, 0.12);
+    color: var(--status-text-prev-departed);
+}
+
+.dashboard-frontline-status.is-online {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--status-text-next-arrived);
+}
+
+.dashboard-frontline-status.is-offline {
+    background: rgba(249, 115, 22, 0.12);
+    color: var(--ws-warn);
+}
+
+.dashboard-frontline-alerts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dashboard-frontline-alerts[hidden],
+.dashboard-frontline-modal-root[hidden] {
+    display: none !important;
+}
+
+.dashboard-frontline-alert-list,
+.dashboard-frontline-queue-list,
+.dashboard-frontline-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dashboard-frontline-task-list {
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.dashboard-frontline-task-list::-webkit-scrollbar {
+    width: 6px;
+}
+.dashboard-frontline-task-list::-webkit-scrollbar-thumb {
+    background: var(--bg-input);
+    border-radius: 4px;
+}
+.dashboard-frontline-task-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dashboard-frontline-alert-item,
+.dashboard-frontline-queue-item,
+.dashboard-frontline-task {
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    background: var(--bg-card);
+}
+
+.dashboard-frontline-alert-item,
+.dashboard-frontline-queue-item {
+    padding: 12px 14px;
+}
+
+.dashboard-frontline-task {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dashboard-frontline-task.is-pending-sync {
+    border-color: rgba(249, 115, 22, 0.32);
+    background: linear-gradient(135deg, var(--dh-signal-warn-soft), var(--bg-card));
+}
+
+.dashboard-frontline-task-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dashboard-frontline-task-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dashboard-frontline-task-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.dashboard-frontline-task-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dashboard-frontline-task-window {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--bg-page);
+    border: 1px dashed var(--border-light);
+}
+
+.dashboard-frontline-task-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dashboard-frontline-btn,
+.dashboard-frontline-btn-secondary,
+.dashboard-frontline-btn-ghost,
+.dashboard-frontline-btn-danger {
+    appearance: none;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.dashboard-frontline-btn:hover,
+.dashboard-frontline-btn-secondary:hover,
+.dashboard-frontline-btn-ghost:hover,
+.dashboard-frontline-btn-danger:hover {
+    transform: translateY(-1px);
+}
+
+.dashboard-frontline-btn:disabled,
+.dashboard-frontline-btn-secondary:disabled,
+.dashboard-frontline-btn-ghost:disabled,
+.dashboard-frontline-btn-danger:disabled {
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.55;
+}
+
+.dashboard-frontline-btn {
+    background: #0f172a;
+    color: var(--text-inverse);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-frontline-btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.dashboard-frontline-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.dashboard-frontline-btn-danger {
+    background: var(--error-bg-subtle);
+    color: var(--ws-danger);
+}
+
+.dashboard-frontline-card.is-busy-mode .dashboard-frontline-task-meta,
+.dashboard-frontline-card.is-busy-mode .dashboard-frontline-task-window,
+.dashboard-frontline-card.is-busy-mode .dashboard-frontline-note,
+.dashboard-frontline-card.is-busy-mode .dashboard-frontline-caption {
+    display: none;
+}
+
+.dashboard-frontline-card.is-busy-mode .dashboard-frontline-task {
+    gap: 10px;
+}
+
+.dashboard-frontline-risk-list,
+.dashboard-frontline-queue-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dashboard-frontline-risk-badge.is-critical,
+.dashboard-frontline-alert-badge.is-critical {
+    background: var(--error-bg-subtle);
+    color: var(--ws-danger);
+}
+
+.dashboard-frontline-risk-badge.is-warning {
+    background: rgba(249, 115, 22, 0.12);
+    color: #c2410c;
+}
+
+.dashboard-frontline-risk-badge.is-muted,
+.dashboard-frontline-alert-badge {
+    background: rgba(51, 65, 85, 0.08);
+    color: var(--text-secondary);
+}
+
+.dashboard-frontline-card-link,
+.dashboard-frontline-burden-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dashboard-frontline-modal-root {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+}
+
+.dashboard-frontline-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.dashboard-frontline-modal {
+    position: relative;
+    width: min(720px, calc(100vw - 32px));
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+    margin: 20px auto;
+    background: var(--bg-card);
+    border-radius: 18px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+    padding: 22px;
+}
+
+.dashboard-frontline-modal-body,
+.dashboard-frontline-field-list,
+.dashboard-frontline-critical-list,
+.dashboard-frontline-checklist-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.dashboard-frontline-field,
+.dashboard-frontline-critical-item,
+.dashboard-frontline-checklist-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dashboard-frontline-field label,
+.dashboard-frontline-critical-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dashboard-frontline-field input,
+.dashboard-frontline-field textarea,
+.dashboard-frontline-field select,
+.dashboard-frontline-critical-item input,
+.dashboard-frontline-critical-item select {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-card);
+}
+
+.dashboard-frontline-field textarea,
+.dashboard-frontline-critical-item textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.dashboard-frontline-critical-item {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--bg-page);
+}
+
+.dashboard-frontline-critical-controls {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 12px;
+}
+
+.dashboard-frontline-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.dashboard-frontline-message {
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    display: none;
+}
+
+.dashboard-frontline-message.is-visible {
+    display: block;
+}
+
+.dashboard-frontline-message.is-info {
+    background: rgba(14, 165, 233, 0.12);
+    color: var(--status-text-prev-departed);
+}
+
+.dashboard-frontline-message.is-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--status-text-next-arrived);
+}
+
+.dashboard-frontline-message.is-error {
+    background: var(--error-bg-subtle);
+    color: var(--ws-danger);
+}
+
+@media (max-width: 1200px) {
+    .dashboard-frontline-overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .dashboard-frontline-card,
+    .dashboard-frontline-burden-card {
+        grid-column: span 2;
+        grid-row: span 1;
+    }
+
+    .dashboard-frontline-burden-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-frontline-card,
+    .dashboard-frontline-burden-card {
+        grid-column: span 1;
+    }
+
+    .dashboard-frontline-overview,
+    .dashboard-frontline-burden-grid,
+    .dashboard-frontline-critical-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-frontline-syncbar,
+    .dashboard-frontline-header,
+    .dashboard-frontline-task-head,
+    .dashboard-frontline-modal-head,
+    .dashboard-frontline-modal-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

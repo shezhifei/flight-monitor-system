@@ -1,0 +1,107 @@
+<#
+.SYNOPSIS
+    Run FlightBatchCellUpdateService PostgreSQL integration tests against flight_monitor_test.
+
+.DESCRIPTION
+    Reads DB_HOST / DB_PORT / DB_USER / DB_PASSWORD from the project root .env,
+    sets TEST_DATABASE_URL (never printed), and runs ignored integration tests.
+
+.PARAMETER DatabaseName
+    Target database. Default: flight_monitor_test (never flight_monitor_dev).
+
+.EXAMPLE
+    .\scripts\dev\run_flight_batch_cell_db_tests.ps1
+#>
+
+param(
+    [string]$DatabaseName = "flight_monitor_test"
+)
+
+$ErrorActionPreference = "Stop"
+
+if ($DatabaseName -eq "flight_monitor_dev") {
+    Write-Error "REFUSED: Do not run integration tests against flight_monitor_dev."
+    exit 1
+}
+
+$projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path))
+$envFile = Join-Path $projectRoot ".env"
+if (-not (Test-Path $envFile)) {
+    Write-Error ".env file not found at $envFile"
+    exit 1
+}
+
+$dbHost = "localhost"
+$dbPort = "5432"
+$dbUser = ""
+$dbPassword = ""
+
+foreach ($line in Get-Content $envFile) {
+    $line = $line.Trim()
+    if ($line -match "^#" -or $line -eq "") { continue }
+    if ($line -match "^DB_HOST\s*=\s*(.+)$") { $dbHost = $Matches[1].Trim().Trim('"').Trim("'") }
+    if ($line -match "^DB_PORT\s*=\s*(.+)$") { $dbPort = $Matches[1].Trim().Trim('"').Trim("'") }
+    if ($line -match "^DB_USER\s*=\s*(.+)$") { $dbUser = $Matches[1].Trim().Trim('"').Trim("'") }
+    if ($line -match "^DB_PASSWORD\s*=\s*(.+)$") { $dbPassword = $Matches[1].Trim().Trim('"').Trim("'") }
+}
+
+if (-not $dbUser -or -not $dbPassword) {
+    Write-Error "DB_USER / DB_PASSWORD must be set in .env"
+    exit 1
+}
+
+$testUrl = "postgres://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${DatabaseName}"
+Write-Host "=== Flight batch-cells DB tests ===" -ForegroundColor Cyan
+Write-Host "Database: $DatabaseName"
+Write-Host "Host: ${dbHost}:${dbPort}"
+Write-Host "User: $dbUser"
+Write-Host "(Connection string is NOT printed)" -ForegroundColor DarkGray
+
+$env:PGPASSWORD = $dbPassword
+try {
+    $psql = "psql"
+    if (Test-Path "C:\Program Files\PostgreSQL\18\bin\psql.exe") {
+        $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+    }
+    foreach ($relation in @(
+        "flights",
+        "domain_event_outbox",
+        "flight_dispatch_timeline_events",
+        "flight_runtime_list_projection",
+        "notifications"
+    )) {
+        $status = & $psql -h $dbHost -p $dbPort -U $dbUser -d $DatabaseName -tAc "SELECT CASE WHEN to_regclass('public.$relation') IS NULL THEN 'missing' ELSE 'present' END;"
+        if (($status | Select-Object -Last 1).ToString().Trim() -ne "present") {
+            throw "Missing required relation public.$relation in $DatabaseName"
+        }
+    }
+
+    foreach ($column in @(
+        "recipient_username_snapshot",
+        "recipient_display_name_snapshot",
+        "recipient_department_snapshot",
+        "recipient_job_title_snapshot"
+    )) {
+        $status = & $psql -h $dbHost -p $dbPort -U $dbUser -d $DatabaseName -tAc "SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = '$column') THEN 'present' ELSE 'missing' END;"
+        if (($status | Select-Object -Last 1).ToString().Trim() -ne "present") {
+            throw "Missing required column public.notifications.$column in $DatabaseName. Apply migrations/100_add_notification_recipient_snapshot_columns.sql to the test database."
+        }
+    }
+}
+finally {
+    Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
+}
+
+$env:TEST_DATABASE_URL = $testUrl
+$apiServer = Join-Path $projectRoot "services\api-server"
+Push-Location $apiServer
+try {
+    cargo test -p fms-application --test flight_batch_cell_update_integration -- --ignored --nocapture
+    $code = $LASTEXITCODE
+}
+finally {
+    Pop-Location
+    Remove-Item Env:\TEST_DATABASE_URL -ErrorAction SilentlyContinue
+}
+
+exit $code

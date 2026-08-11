@@ -1,0 +1,565 @@
+{
+  "contractVersion": 1,
+  "page": "llm_eval_lab",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/llm_eval_lab.html",
+    "htmlSha256": "27e2e8c97e36b10ce0d75cd299398e38395354f09e6c654e3d59bc79ffedb20b",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/ai_entry_loader.js",
+        "archivePath": "js/ai_entry_loader.js",
+        "exists": true,
+        "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/breadcrumb.js",
+        "archivePath": "js/components/breadcrumb.js",
+        "exists": true,
+        "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/header.js",
+        "archivePath": "js/components/header.js",
+        "exists": true,
+        "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "dynamic",
+        "reference": "/frontend/static/ai/${path}",
+        "archivePath": null,
+        "exists": false,
+        "sha256": null
+      },
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/static/ai/manifest.json",
+        "archivePath": "static/ai/manifest.json",
+        "exists": true,
+        "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+      }
+    ],
+    "sourceHash": "53cfb38627f2898c5e9a7f65667f1ad1b5e7d3c25eea7d88c6f04fb882f87862"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > header",
+        "tag": "header",
+        "role": "banner",
+        "text": "LLM 评测实验室",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > nav",
+        "tag": "nav",
+        "role": null,
+        "text": "面包屑导航",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > div > h1",
+        "level": 1,
+        "text": "LLM 评测实验室"
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "LLM 评测"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#unifiedHeaderLogout",
+        "tag": "button",
+        "type": "button",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(1) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "创建任务",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "刷新",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(3) > div > div > div > div > div > div > div > div > div > table > tbody > tr > td:nth-of-type(4) > div > div:nth-of-type(1) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "查看",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(3) > div > div > div > div > div > div > div > div > div > table > tbody > tr > td:nth-of-type(4) > div > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "button",
+        "text": "取消",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(3) > div > div > div > div > div > div > div > div > div > table",
+        "columns": [
+          "Job ID",
+          "状态",
+          "创建时间",
+          "操作"
+        ]
+      }
+    ],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(1)",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(2)",
+        "text": "航班监控",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(2) > nav > ol > li:nth-of-type(1) > a",
+        "text": "工作台",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(1) > a",
+        "text": "实体配置管理实体、模型与工具权限",
+        "href": "/frontend/html/ai_config_center.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > a",
+        "text": "实时监控查看执行事件、审批队列与运行指标",
+        "href": "/frontend/html/ai_monitor.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(3) > a",
+        "text": "LLM 评测创建评测任务并比较模型配置",
+        "href": "/frontend/html/llm_eval_lab.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(3) > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(4) > a",
+        "text": "自然语言查询面向业务查询的对话式分析入口",
+        "href": "/frontend/html/nl_query.html"
+      }
+    ],
+    "stableSelectors": [
+      "#ai-react-root",
+      "#breadcrumb-host",
+      "#fms-parity-contract-determinism",
+      "#header-host",
+      "#unifiedHeaderLogout"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "llm_eval_lab-success",
+      "fixture": "parity/fixtures/pages/llm_eval_lab/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "llm_eval_lab-empty",
+      "fixture": "parity/fixtures/pages/llm_eval_lab/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "llm_eval_lab-unauthorized",
+      "fixture": "parity/fixtures/pages/llm_eval_lab/unauthorized.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        401
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [
+        {
+          "kind": "navigation",
+          "from": "<legacy-origin>/frontend/html/llm_eval_lab.html",
+          "to": "<legacy-origin>/frontend/html/login.html"
+        }
+      ],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "id": "llm_eval_lab-forbidden",
+      "fixture": "parity/fixtures/pages/llm_eval_lab/forbidden.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        403
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ]
+    },
+    {
+      "id": "llm_eval_lab-server-error",
+      "fixture": "parity/fixtures/pages/llm_eval_lab/server-error.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/eval/jobs",
+          "query": {
+            "limit": [
+              "30"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

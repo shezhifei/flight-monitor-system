@@ -1,0 +1,625 @@
+/* --- Admin Page Primitives --- */
+:is(.admin-container, .admin-layout, .main-container) .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn:hover {
+    transform: translateY(-1px);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-primary {
+    background: linear-gradient(180deg, #1888ff 0%, var(--system-blue) 100%);
+    color: var(--text-inverse);
+    box-shadow: 0 10px 20px var(--focus-ring-blue);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-primary:hover {
+    background: linear-gradient(180deg, #2b92ff 0%, #0a80ff 100%);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-secondary {
+    background: var(--admin-card-bg);
+    color: var(--admin-text);
+    border-color: var(--admin-border);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.03);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-secondary:hover {
+    background: var(--admin-card-bg);
+    border-color: var(--ws-primary-strong);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-danger {
+    background: rgba(239, 83, 80, 0.08);
+    color: var(--ws-danger);
+    border-color: rgba(239, 83, 80, 0.14);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-success {
+    background: rgba(46, 196, 126, 0.12);
+    color: var(--ws-success);
+    border-color: rgba(46, 196, 126, 0.18);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-sm {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .section-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .search-group {
+    position: relative;
+    width: 320px;
+    min-width: 280px;
+    flex-shrink: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--admin-text-subtle);
+    z-index: 1;
+    line-height: 0;
+}
+
+/* 统一放大镜：一律用 icons/search.svg，禁止字符图标乱方向/乱大小 */
+:is(.admin-container, .admin-layout, .main-container) .search-icon .svg-icon,
+:is(.admin-container, .admin-layout, .main-container) .search-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+    display: block;
+    flex-shrink: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .search-input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    padding: 0 14px 0 44px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.2;
+    background: var(--admin-card-bg);
+    color: var(--admin-text);
+    transition: all 0.2s ease;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .search-input::placeholder {
+    color: var(--admin-text-muted);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .search-input:hover,
+:is(.admin-container, .admin-layout, .main-container) .filter-select:hover {
+    border-color: var(--admin-border);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .search-input:focus-visible,
+:is(.admin-container, .admin-layout, .main-container) .filter-select:focus-visible,
+:is(.admin-container, .admin-layout, .main-container) textarea:focus-visible,
+:is(.admin-container, .admin-layout, .main-container) input[type="text"]:focus-visible,
+:is(.admin-container, .admin-layout, .main-container) input[type="file"]:focus-visible,
+:is(.admin-container, .admin-layout, .main-container) select:focus-visible {
+    outline: 2px solid var(--ws-primary);
+    outline-offset: 2px;
+    background: var(--admin-card-bg);
+    border-color: var(--ws-primary);
+    box-shadow: 0 0 0 4px var(--focus-ring-blue);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .filter-select {
+    box-sizing: border-box;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    padding: 0 36px 0 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.2;
+    background: var(--admin-card-bg);
+    color: var(--admin-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23717b8a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .stat-card {
+    background: var(--admin-card-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+    padding: 18px 20px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .stat-label {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--admin-text-subtle);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .stat-value {
+    margin-top: 8px;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--admin-text);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .table-container {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--admin-card-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .table-container th,
+:is(.admin-container, .admin-layout, .main-container) .table-container td {
+    padding: 14px 16px;
+    white-space: nowrap;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--admin-border);
+    color: var(--admin-text);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .table-container th {
+    background: var(--admin-sidebar-bg);
+    color: var(--admin-text-subtle);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .table-container tbody tr:last-child td {
+    border-bottom: none;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .table-container th:last-child,
+:is(.admin-container, .admin-layout, .main-container) .table-container td:last-child {
+    text-align: right;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+    padding: 8px 0 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .pagination-info {
+    font-size: 12px;
+    color: var(--admin-text-subtle);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .pagination-controls {
+    display: flex;
+    gap: 8px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .badge-success {
+    background: rgba(46, 196, 126, 0.14);
+    color: var(--ws-success);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .badge-warning {
+    background: rgba(240, 160, 48, 0.14);
+    color: var(--ws-warn);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .badge-danger {
+    background: rgba(239, 83, 80, 0.12);
+    color: var(--ws-danger);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .badge-info {
+    background: var(--system-blue-subtle);
+    color: var(--ws-primary);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .panel {
+    background: var(--admin-card-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 16px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .sidebar-home-link {
+    flex: 1;
+    justify-content: flex-start;
+    margin-bottom: 0;
+    /* Match legacy admin-page.css hard-coded wash (not --admin-border 0.08). */
+    background: rgba(15, 23, 42, 0.03);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .sidebar-home-link:hover {
+    background: rgba(15, 23, 42, 0.06);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .sidebar-section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* --- Master-detail + left overview list (派工规则 / 流程设计) --- */
+
+:is(.admin-container, .admin-layout, .main-container) .admin-master-detail {
+    display: grid;
+    grid-template-columns: var(--admin-md-list-width, 260px) minmax(0, 1fr);
+    gap: 16px;
+    min-height: 420px;
+    align-items: stretch;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-master-detail__list {
+    padding: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-master-detail__detail {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+/* 工具栏内：保持与其它 admin 搜索同宽 */
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-tools:not(.is-compact) .admin-overview-tools__search {
+    flex: 0 1 auto;
+    width: 320px;
+    min-width: 280px;
+}
+
+/* 侧栏紧凑：占满剩余宽度 */
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-tools.is-compact .admin-overview-tools__search {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-tools.is-compact .search-input {
+    min-height: 36px;
+    padding-left: 40px;
+    font-size: 13px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-tools.is-compact .search-icon {
+    left: 12px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-tools__create-icon {
+    box-sizing: border-box;
+    width: 36px;
+    min-width: 36px;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-list.is-compact {
+    gap: 4px;
+    margin-top: 6px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 2px 4px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-list.is-compact .admin-overview-item {
+    padding: 0;
+    border-radius: 8px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item:hover {
+    background: var(--ws-surface-muted, var(--bg-hover, rgba(15, 23, 42, 0.04)));
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item.active {
+    background: var(--system-blue-subtle);
+    border-color: var(--focus-ring-blue, var(--border-focus, rgba(10, 132, 255, 0.35)));
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item.deprecated {
+    opacity: 0.62;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px 10px;
+    color: var(--admin-text, var(--text-primary));
+    font: inherit;
+    border-radius: 8px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__title {
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.3;
+    color: inherit;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--ws-danger, var(--system-red));
+    border: 1px solid color-mix(in srgb, var(--ws-danger, var(--system-red)) 55%, transparent);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__meta {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--admin-text-muted, var(--text-tertiary, var(--system-gray2)));
+    line-height: 1.3;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__desc {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--admin-text-subtle, var(--text-tertiary));
+    line-height: 1.35;
+    margin-top: 1px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    padding-right: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+}
+
+/* 悬停 / 选中 / 键盘焦点时露出操作，避免一排大红「删除」 */
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item:hover .admin-overview-item__actions,
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item.active .admin-overview-item__actions,
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item:focus-within .admin-overview-item__actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn {
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--admin-text-muted, var(--text-tertiary));
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn:hover:not(:disabled) {
+    background: rgba(239, 83, 80, 0.1);
+    color: var(--ws-danger, var(--system-red));
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn:focus-visible {
+    outline: 2px solid var(--ws-primary);
+    outline-offset: 1px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn .svg-icon,
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+    display: block;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__times {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
+    display: block;
+    transform: translateY(-0.5px);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item__restore:hover:not(:disabled) {
+    background: rgba(46, 196, 126, 0.12);
+    color: var(--ws-success, var(--system-green));
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-empty {
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--admin-text-muted, var(--system-gray2));
+    font-size: 13px;
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-empty.is-error {
+    color: var(--ws-danger, var(--system-red));
+}
+
+/* Sidebar embedding: list fills remaining height under tools */
+:is(.admin-container, .admin-layout, .main-container) .admin-sidebar .admin-overview-list {
+    flex: 1;
+    min-height: 0;
+}
+
+@media (max-width: 1280px) {
+    :is(.admin-container, .admin-layout, .main-container) .search-group {
+        width: 280px;
+        min-width: 240px;
+    }
+
+    :is(.admin-container, .admin-layout, .main-container) .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+
+@media (max-width: 1024px) {
+    :is(.admin-container, .admin-layout, .main-container) .section-toolbar,
+    :is(.admin-container, .admin-layout, .main-container) .pagination {
+        align-items: stretch;
+    }
+
+    :is(.admin-container, .admin-layout, .main-container) .search-group {
+        width: 100%;
+        min-width: 0;
+    }
+
+    :is(.admin-container, .admin-layout, .main-container) .admin-master-detail {
+        grid-template-columns: 1fr;
+    }
+}

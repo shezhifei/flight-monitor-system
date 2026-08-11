@@ -1,0 +1,91 @@
+{
+  "scenario": "ai_config_center-success",
+  "capture": {
+    "expected_panels": ["#ai-react-root"],
+    "regions": [{ "id": "ai-config-workspace", "selector": "#ai-react-root" }]
+  },
+  "routes": [
+    {
+      "id": "ai-config-entities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/entities",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "entities": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-models-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/models",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "models": [
+              {
+                "id": "model-gpt-4o-mini",
+                "model": "gpt-4o-mini",
+                "provider": "openai",
+                "enabled": true,
+                "input_modalities": [
+                  "text"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "ai-config-tools-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "name": "flight_lookup",
+              "category": "operations",
+              "description": "查询航班状态",
+              "enabled": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ai-config-tool-categories-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools/categories",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "categories": [
+              {
+                "code": "operations",
+                "name": "运行工具",
+                "sort_order": 10
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

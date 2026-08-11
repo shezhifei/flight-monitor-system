@@ -1,0 +1,114 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/server",
+    "crates/api",
+    "crates/application",
+    "crates/domain",
+    "crates/infrastructure",
+    "crates/runtime",
+    "benches",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Flight Monitor Team"]
+license = "Apache-2.0"
+
+[workspace.dependencies]
+# -- Async runtime --
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "net", "io-util", "fs"] }
+
+# -- Web framework --
+actix-web = "4"
+actix-rt = "2"
+actix-cors = "0.7"
+actix-files = "0.6"
+actix-multipart = "0.7"
+actix-ws = "0.3"
+rustls = "0.23"
+rustls-pemfile = "2"
+
+# -- Serialization --
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+prost = "0.13"
+
+# -- Database --
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid", "json", "migrate", "macros"] }
+pgwire-replication = { version = "0.3", default-features = false, features = ["tls-rustls", "scram"] }
+
+# -- Redis --
+redis = { version = "0.29", features = ["tokio-comp", "connection-manager", "streams", "sentinel"] }
+
+# -- Auth & Security --
+jsonwebtoken = "9"
+bcrypt = "0.16"
+argon2 = "0.5"
+
+# -- Validation --
+validator = { version = "0.19", features = ["derive"] }
+
+# -- Error handling --
+thiserror = "2"
+anyhow = "1"
+
+# -- Logging / Tracing --
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+
+# -- Configuration --
+config = "0.14"
+dotenvy = "0.15"
+
+# -- HTTP client --
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "multipart"] }
+lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "hostname", "pool"] }
+
+# -- AI --
+async-openai = "0.25"
+tiktoken-rs = "0.6"
+
+# -- Utilities --
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+ulid = "1"
+regex = "1"
+roxmltree = "0.20"
+dashmap = "6"
+parking_lot = "0.12"
+rand = "0.8"
+lru = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+ts-rs = { version = "9", features = ["chrono"] }
+async-trait = "0.1"
+trait-variant = "0.1"
+
+# -- Testing --
+proptest = "1"
+
+# -- OpenAPI / Swagger --
+utoipa = { version = "5", features = ["actix_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
+
+# -- RocketMQ (vendored) --
+rocketmq-client-rust = { path = "../../libs/vendor/rocketmq-rust/rocketmq-client" }
+rocketmq-common = { path = "../../libs/vendor/rocketmq-rust/rocketmq-common" }
+rocketmq-error = { path = "../../libs/vendor/rocketmq-rust/rocketmq-error" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+incremental = false
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1
+codegen-units = 16

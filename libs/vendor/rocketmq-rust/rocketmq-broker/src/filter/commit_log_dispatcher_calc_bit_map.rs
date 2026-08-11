@@ -1,0 +1,160 @@
+// Copyright 2023 The RocketMQ Rust Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use std::sync::Arc;
+use std::time::Instant;
+
+use rocketmq_common::common::broker::broker_config::BrokerConfig;
+use rocketmq_filter::utils::bits_array::BitsArray;
+use rocketmq_store::base::commit_log_dispatcher::CommitLogDispatcher;
+use rocketmq_store::base::dispatch_request::DispatchRequest;
+use tracing::debug;
+use tracing::error;
+use tracing::warn;
+
+use crate::filter::manager::consumer_filter_manager::ConsumerFilterManager;
+use crate::filter::message_evaluation_context::MessageEvaluationContext;
+
+pub struct CommitLogDispatcherCalcBitMap {
+    broker_config: Arc<BrokerConfig>,
+    consumer_filter_manager: ConsumerFilterManager,
+}
+
+impl CommitLogDispatcherCalcBitMap {
+    pub fn new(broker_config: Arc<BrokerConfig>, consumer_filter_manager: ConsumerFilterManager) -> Self {
+        Self {
+            broker_config,
+            consumer_filter_manager,
+        }
+    }
+}
+
+impl CommitLogDispatcher for CommitLogDispatcherCalcBitMap {
+    fn dispatch(&self, request: &mut DispatchRequest) {
+        if !self.broker_config.enable_calc_filter_bit_map {
+            return;
+        }
+
+        // Main logic
+        let filter_datas = self.consumer_filter_manager.get(&request.topic);
+        if filter_datas.is_none() || filter_datas.as_ref().unwrap().is_empty() {
+            return;
+        }
+        let filter_datas = filter_datas.unwrap();
+        let mut filter_bit_map = BitsArray::create(self.consumer_filter_manager.bloom_filter().unwrap().m() as usize);
+
+        let start_time = Instant::now();
+        for filter_data in filter_datas.iter() {
+            if filter_data.compiled_expression().is_none() {
+                error!(
+                    "[BUG] Consumer in filter manager has no compiled expression! {:?}",
+                    filter_data
+                );
+                continue;
+            }
+            if filter_data.bloom_filter_data().is_none() {
+                error!("[BUG] Consumer in filter manager has no bloom data! {:?}", filter_data);
+                continue;
+            }
+
+            let context = MessageEvaluationContext::new(request.properties_map.as_ref());
+            let ret = filter_data.compiled_expression().as_ref().unwrap().evaluate(&context);
+
+            debug!(
+                "Result of Calc bit map: ret={:?}, data={:?}, props={:?}, offset={}",
+                ret, filter_data, request.properties_map, request.commit_log_offset
+            );
+
+            // eval true
+            if let Ok(rocketmq_filter::expression::Value::Boolean(true)) = ret {
+                let _ = self
+                    .consumer_filter_manager
+                    .bloom_filter()
+                    .unwrap()
+                    .hash_to(filter_data.bloom_filter_data().unwrap(), &mut filter_bit_map);
+            }
+        }
+
+        request.bit_map = Some(filter_bit_map.bytes().to_vec());
+
+        let elapsed = start_time.elapsed().as_millis();
+        if elapsed >= 1 {
+            warn!(
+                "Spend {} ms to calc bit map, consumerNum={}, topic={}",
+                elapsed,
+                filter_datas.len(),
+                request.topic
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
+    use cheetah_string::CheetahString;
+    use rocketmq_common::common::filter::expression_type::ExpressionType;
+    use rocketmq_remoting::protocol::heartbeat::subscription_data::SubscriptionData;
+    use rocketmq_store::base::dispatch_request::DispatchRequest;
+
+    use super::*;
+    use crate::filter::manager::consumer_filter_manager::ConsumerFilterManager;
+    use rocketmq_store::config::message_store_config::MessageStoreConfig;
+
+    #[test]
+    fn dispatch_sets_bitmap_for_matching_sql_filter() {
+        let broker_config = Arc::new(BrokerConfig {
+            enable_calc_filter_bit_map: true,
+            ..BrokerConfig::default()
+        });
+        let manager = ConsumerFilterManager::new(broker_config.clone(), Arc::new(MessageStoreConfig::default()));
+        let subscriptions = HashSet::from([SubscriptionData {
+            topic: CheetahString::from_slice("TopicTest"),
+            sub_string: CheetahString::from_slice("color = 'blue'"),
+            expression_type: CheetahString::from_static_str(ExpressionType::SQL92),
+            sub_version: 1,
+            ..Default::default()
+        }]);
+        manager.register("GroupTest", &subscriptions);
+
+        let dispatcher = CommitLogDispatcherCalcBitMap::new(broker_config, manager.clone());
+        let mut request = DispatchRequest {
+            topic: CheetahString::from_slice("TopicTest"),
+            properties_map: Some(HashMap::from([(
+                CheetahString::from_slice("color"),
+                CheetahString::from_slice("blue"),
+            )])),
+            ..Default::default()
+        };
+
+        dispatcher.dispatch(&mut request);
+
+        let filter_data = manager
+            .get_consumer_filter_data(
+                &CheetahString::from_slice("TopicTest"),
+                &CheetahString::from_slice("GroupTest"),
+            )
+            .unwrap();
+        let bits =
+            rocketmq_filter::utils::bits_array::BitsArray::from_bytes(request.bit_map.as_ref().unwrap()).unwrap();
+
+        assert!(manager
+            .bloom_filter()
+            .unwrap()
+            .is_hit(filter_data.bloom_filter_data().unwrap(), &bits)
+            .unwrap());
+    }
+}

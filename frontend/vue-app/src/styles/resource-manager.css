@@ -1,0 +1,79 @@
+/* 资源管理：壳层 / 搜索 / 表格 / 按钮 一律走 admin-layout + admin-page。
+ * 本文件仅保留工具栏单行布局等少量页面扩展。
+ */
+
+.admin-container button.nav-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+/*
+ * 搜索 + 筛选 + 主按钮：单行同高并列（对齐标签管理 label-toolbar）。
+ * 覆盖 admin-page 默认 flex-wrap: wrap，避免筛选项掉到第二行。
+ */
+.resource-manager-page .section-toolbar {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.resource-manager-page .section-toolbar .filter-group {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.resource-manager-page .section-toolbar .search-group {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 140px;
+  max-width: 320px;
+}
+
+.resource-manager-page .section-toolbar .filter-select {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 112px;
+  max-width: 160px;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.2;
+}
+
+.resource-manager-page .section-toolbar > .btn {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .resource-manager-page .section-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .resource-manager-page .section-toolbar .filter-group {
+    flex: 1 1 100%;
+  }
+
+  .resource-manager-page .section-toolbar .search-group {
+    max-width: none;
+  }
+
+  .resource-manager-page .section-toolbar > .btn {
+    margin-left: auto;
+  }
+}

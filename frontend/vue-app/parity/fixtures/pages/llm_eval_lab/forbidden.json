@@ -1,0 +1,27 @@
+{
+  "scenario": "llm-eval-lab-forbidden",
+  "routes": [
+    {
+      "id": "llm-eval-jobs-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/ai/eval/jobs",
+      "query": {
+        "limit": [
+          "30"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少权限: ai:chat"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

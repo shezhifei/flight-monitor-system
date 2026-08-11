@@ -1,0 +1,1644 @@
+{
+  "schema_version": 1,
+  "page": "kpi_dashboard",
+  "legacy_html": "html/kpi_dashboard.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/kpi_dashboard_enhanced.css",
+      "sha256": "0a226bb892b8ad75365a40c3c6fca31bd7bac04e8aaec652a8ad00279a8f1c14"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "css/workspace_unified_theme.css",
+      "sha256": "b63af6b73b8630f37f426c436b8ecfb74efdee47d010bd7092053d822527383b"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/kpi_dashboard.html",
+      "sha256": "0ad973ca543193f97be59b426be54186259fc31689306a8bde5bbce28e684684"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "vendor/js/echarts.min.js",
+      "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "99a60b6758871de23fdbcf8e7ea2ec94ed1573ebaa92a7420fe2ec69d6e67dcd",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/kpi_dashboard/empty.json",
+      "sha256": "45315963a08637a0227275592aa03e4789d0dfbaf22f91adb23aa71782276fd0"
+    },
+    {
+      "path": "parity/fixtures/pages/kpi_dashboard/manifest.json",
+      "sha256": "e62d30a86e56cae798f45d80b277105d5ffd32043ea39f6a8e56677224d4b8f7"
+    },
+    {
+      "path": "parity/fixtures/pages/kpi_dashboard/partial.json",
+      "sha256": "f1946e4955d8f5f7cec3f2d9161783bb3e3bfa91ed502fc8c06adf0467b6837c"
+    },
+    {
+      "path": "parity/fixtures/pages/kpi_dashboard/success.json",
+      "sha256": "631ab8bd321ba2d1db59f096d7bab6fae6d15b37c4f9ee58fe64db3d40908427"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "kpi_dashboard-success",
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#kpiGrid",
+        "#trendBars"
+      ],
+      "regions": [
+        {
+          "id": "kpi-diagnostics",
+          "selector": "#kpiGrid"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "kpi_dashboard-empty",
+      "fixture": "kpi_dashboard-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "kpi_dashboard-partial",
+      "fixture": "kpi_dashboard-partial",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ab30a22c1f0023971323351fc631a422c6b6b43a273c4ddfe1dfcff0c02956d1"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--kpi-diagnostics--desktop-wide.png",
+      "kind": "region",
+      "region": "kpi-diagnostics",
+      "selector": "#kpiGrid",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "08e2dbba53f0145c61768ef77d97d0efe8c30111ba68de60ae1aec66dfc73625"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d73e2fc73acbf4848fd185f31a7d1802370a811c5e7fcc10dbfd60c718077e30"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--kpi-diagnostics--desktop.png",
+      "kind": "region",
+      "region": "kpi-diagnostics",
+      "selector": "#kpiGrid",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "157a7665275155884e0e286ac8406c38f0ad01fed095b021e22047a1d913db47"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e7434c214a64b3734277ed47f2c9096a95bb8d30877c7ce60ebab4787222373e"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--kpi-diagnostics--laptop.png",
+      "kind": "region",
+      "region": "kpi-diagnostics",
+      "selector": "#kpiGrid",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "1548c9b6a7f35021e73dee864a857b4dd2a192b94a34c77f0e7ffc56ac56119e"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d4400c71275ef239eb83d45fc0224abd0db4ee2cd4310cef626ccbfe1f32d988"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--kpi-diagnostics--tablet.png",
+      "kind": "region",
+      "region": "kpi-diagnostics",
+      "selector": "#kpiGrid",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "da80c8e0979e4f76632006410f4a4e02a42b259f04e17a3fc213a87faa54161e"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4f7ab153acdb431573272b6824897ae1b48388e4b30ff9cfa389d1b24925c853"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-success--kpi-diagnostics--mobile.png",
+      "kind": "region",
+      "region": "kpi-diagnostics",
+      "selector": "#kpiGrid",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "kpi_dashboard-success",
+      "theme": "light",
+      "scenario": "kpi_dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3ed3730f08b78e7c906938195d271816f4829dba848cf5878afa54d54736be9a"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "kpi_dashboard-empty",
+      "theme": "light",
+      "scenario": "kpi_dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2d1f5da0d4647ac8df116344bf431d73f84626fe2dbd104ad139d4aaf872de39"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "kpi_dashboard-empty",
+      "theme": "light",
+      "scenario": "kpi_dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "57c0d336892715e9e6aa11d2d881836667f1fc7ac3a56fda6fef4ddebadf4867"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-empty",
+      "theme": "light",
+      "scenario": "kpi_dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "6e358f9edd8792afc9f0220be6a2c2adb46e962aef1ffa3c2eb70fb5feff9bea"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-empty",
+      "theme": "light",
+      "scenario": "kpi_dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "28fc12a87abced97a37ad4cf072d11447ce9fe340733a1dc908bbc8ce2ea20d9"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "kpi_dashboard-empty",
+      "theme": "light",
+      "scenario": "kpi_dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "239f6ae28572408fe41c8c509b60369849af87c4403603214e34911729bb7d9e"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "kpi_dashboard-partial",
+      "theme": "light",
+      "scenario": "kpi_dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cff785ade46d05e02ef5c6c422c22f8b85de2e1185a3a803139f44c1a2f82cd5"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "kpi_dashboard-partial",
+      "theme": "light",
+      "scenario": "kpi_dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f2e59ace7b2d5ff1a652ea7605aff3f082507c48b92015612117cbe019441d60"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-partial",
+      "theme": "light",
+      "scenario": "kpi_dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2ea3ad90e16dccfaa1c5fb93ed54ce9a00834a69d74eb37cf7728d759f670d00"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "kpi_dashboard-partial",
+      "theme": "light",
+      "scenario": "kpi_dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f39652b66adc4bce287f3742166fb0a6650c913d15a764153ee797b8cf48667"
+    },
+    {
+      "file": "kpi_dashboard/kpi_dashboard-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "kpi_dashboard-partial",
+      "theme": "light",
+      "scenario": "kpi_dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "a0d391e311ab62405ee7da9241562634a3b7e43b9c29096d0d1fdffa89ad3996",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b22e02a14b377c124786067d1f26e823bfefccd5b64228b7ee52a1b3d5b3182a"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "kpi_dashboard-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-partial",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-partial",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-partial",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-partial",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "kpi_dashboard-partial",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/trend",
+          "query": {
+            "days": [
+              "7"
+            ],
+            "metric": [
+              "on_time_rate"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/service-nodes",
+          "query": {
+            "date": [
+              "2026-07-14"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

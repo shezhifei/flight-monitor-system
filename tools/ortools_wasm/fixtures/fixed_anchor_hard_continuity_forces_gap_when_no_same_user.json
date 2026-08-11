@@ -1,0 +1,189 @@
+{
+  "request": {
+    "cluster_id": "fixture-fixed-anchor-hard-continuity-forces-gap",
+    "model_version": "dispatch_wasm_pdf_full_model_v2",
+    "solver_version": "dispatch_solver_ortools_wasm_strict_pdf_v3",
+    "objective_config": {
+      "timeout_ms": 10000
+    },
+    "optimizable_orders": [
+      {
+        "order_id": "order-out",
+        "flight_id": "flight-turn",
+        "status": "pending",
+        "conflict_state": "gap",
+        "order_class": "unassigned",
+        "planned_start_time": "2026-01-01T09:20:00Z",
+        "planned_end_time": "2026-01-01T09:30:00Z",
+        "earliest_start_time": "2026-01-01T09:20:00Z",
+        "latest_start_time": "2026-01-01T09:20:00Z",
+        "sla_deadline_time": "2026-01-01T09:20:00Z",
+        "duration_minutes": 10,
+        "required_start_time": "2026-01-01T09:20:00Z",
+        "stand_id": "stand-out",
+        "current_assignment": {
+          "assignee_type": null,
+          "team_id": null,
+          "individual_user_id": null,
+          "member_user_ids": [],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": []
+          }
+        },
+        "baseline_assignment": {
+          "assignee_type": null,
+          "team_id": null,
+          "individual_user_id": null,
+          "member_user_ids": [],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": []
+          },
+          "personnel_slot_assignments": [],
+          "equipment_slot_assignments": []
+        },
+        "personnel_slots": [
+          {
+            "slot_code": "lead",
+            "qualification_code": "svc",
+            "qualification_level_code": "L1",
+            "candidate_user_ids": ["user-2"],
+            "baseline_user_id": null,
+            "scarcity_cost": 0
+          }
+        ],
+        "equipment_slots": []
+      }
+    ],
+    "fixed_anchor_orders": [
+      {
+        "order_id": "order-in",
+        "flight_id": "flight-turn",
+        "status": "assigned",
+        "conflict_state": "none",
+        "order_class": "locked",
+        "is_fixed_anchor": true,
+        "planned_start_time": "2026-01-01T09:00:00Z",
+        "planned_end_time": "2026-01-01T09:10:00Z",
+        "earliest_start_time": "2026-01-01T09:00:00Z",
+        "latest_start_time": "2026-01-01T09:00:00Z",
+        "sla_deadline_time": "2026-01-01T09:00:00Z",
+        "duration_minutes": 10,
+        "required_start_time": "2026-01-01T09:00:00Z",
+        "stand_id": "stand-in",
+        "current_assignment": {
+          "assignee_type": "individual",
+          "team_id": "team-1",
+          "individual_user_id": "user-1",
+          "member_user_ids": ["user-1"],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": [
+              {
+                "user_id": "user-1",
+                "username": "User 1",
+                "slot_code": "lead",
+                "qualification_code": "svc",
+                "qualification_level_code": "L1"
+              }
+            ]
+          }
+        },
+        "baseline_assignment": {
+          "assignee_type": "individual",
+          "team_id": "team-1",
+          "individual_user_id": "user-1",
+          "member_user_ids": ["user-1"],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": [
+              {
+                "user_id": "user-1",
+                "username": "User 1",
+                "slot_code": "lead",
+                "qualification_code": "svc",
+                "qualification_level_code": "L1"
+              }
+            ]
+          },
+          "personnel_slot_assignments": [
+            {
+              "slot_code": "lead",
+              "user_id": "user-1",
+              "username": "User 1",
+              "qualification_code": "svc",
+              "qualification_level_code": "L1"
+            }
+          ],
+          "equipment_slot_assignments": []
+        },
+        "personnel_slots": [
+          {
+            "slot_code": "lead",
+            "qualification_code": "svc",
+            "qualification_level_code": "L1",
+            "candidate_user_ids": ["user-1"],
+            "baseline_user_id": "user-1",
+            "scarcity_cost": 0
+          }
+        ],
+        "equipment_slots": []
+      }
+    ],
+    "employee_anchor_states": [],
+    "equipment_anchor_states": [],
+    "employee_free_windows": [
+      {
+        "resource_type": "employee",
+        "resource_id": "user-2",
+        "window_start": "2026-01-01T09:15:00Z",
+        "window_end": "2026-01-01T10:00:00Z"
+      }
+    ],
+    "equipment_free_windows": [],
+    "resource_travel_edges": [
+      {
+        "resource_type": "employee",
+        "resource_id": "user-2",
+        "from_node": "order:order-in",
+        "to_node": "order:order-out",
+        "travel_minutes": 0
+      },
+      {
+        "resource_type": "employee",
+        "resource_id": "user-2",
+        "from_node": "order:order-out",
+        "to_node": "order:order-in",
+        "travel_minutes": 0
+      }
+    ],
+    "turnaround_pairs": [
+      {
+        "pair_key": "turn-hard-gap",
+        "inbound_order_id": "order-in",
+        "outbound_order_id": "order-out",
+        "slot_pairs": [
+          {
+            "inbound_slot_code": "lead",
+            "outbound_slot_code": "lead"
+          }
+        ],
+        "inbound_slot_code": "lead",
+        "outbound_slot_code": "lead",
+        "tightness_penalty": 1000,
+        "hard_continuity_required": true,
+        "continuity_penalty_weight": 1000
+      }
+    ]
+  },
+  "equals": {
+    "solver_run_metadata.solve_status": "OPTIMAL",
+    "objective_breakdown.slot_gap": 1,
+    "continuity_decisions.length": 1,
+    "continuity_decisions.0.satisfied": true,
+    "order_results.length": 0,
+    "personnel_slot_assignments.length": 1,
+    "personnel_slot_assignments.0.user_id": null
+  }
+}

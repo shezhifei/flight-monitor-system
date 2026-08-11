@@ -1,0 +1,23 @@
+{
+  "scenario": "system-flags-unauthorized",
+  "routes": [
+    {
+      "id": "system-flags-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/system/flags",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

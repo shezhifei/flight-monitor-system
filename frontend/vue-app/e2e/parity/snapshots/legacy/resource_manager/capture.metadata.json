@@ -1,0 +1,3044 @@
+{
+  "schema_version": 1,
+  "page": "resource_manager",
+  "legacy_html": "html/resource_manager.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+  "source_files": [
+    {
+      "path": "css/admin-layout.css",
+      "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+    },
+    {
+      "path": "css/admin-page.css",
+      "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+    },
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/resource_manager.html",
+      "sha256": "6f05b98ffb22e11ef89784e4312a4c1a41fb13e90503d20b404c0de2557710e8"
+    },
+    {
+      "path": "icons/add.svg",
+      "sha256": "8fbdc6f17bb127314b24e7b87d57cfca8b8d8cb7e4851ff63cdd2006452f0374"
+    },
+    {
+      "path": "icons/cancel.svg",
+      "sha256": "6e92e51c51cf9b4defabbd7dd1686b87131c5e8153974fc711781633f142c77e"
+    },
+    {
+      "path": "icons/crown.svg",
+      "sha256": "91ae07c763d417c72507d1e519915b7270c881ab49fc9ec3dc7566a8219ddc9c"
+    },
+    {
+      "path": "icons/delete.svg",
+      "sha256": "6f556a19724780157a00afea09845a8212b6035ec4804546c98be52d3f2b3e9b"
+    },
+    {
+      "path": "icons/detail.svg",
+      "sha256": "32240a9ff68eaf9bead993e13f3328c3ed4cda1a3ed11dc371589982e8892234"
+    },
+    {
+      "path": "icons/edit.svg",
+      "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+    },
+    {
+      "path": "icons/fail.svg",
+      "sha256": "cb383d8b98936ab4040a3749e99265b27faadc1a27f72d2efc2cdbd24ff5a8b9"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "icons/logout.svg",
+      "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+    },
+    {
+      "path": "icons/ok.svg",
+      "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+    },
+    {
+      "path": "icons/plane.svg",
+      "sha256": "f20703f7608dac886ace3f62fb3260efe9c64c4d2509bd9f04fd95a68b34f53d"
+    },
+    {
+      "path": "icons/refresh.svg",
+      "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+    },
+    {
+      "path": "icons/search.svg",
+      "sha256": "4e7d43bfc247f4f2401be97397f972999342a041b41f4e6595a89ae3ee053103"
+    },
+    {
+      "path": "icons/settings.svg",
+      "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+    },
+    {
+      "path": "icons/users.svg",
+      "sha256": "79e8c659734e79f182c457a7773907e8468b4da76b98cef123fc2a8f3df5b26a"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "d26efbb06bf3d5374b462633d45da8f6ad1eaf5686da87b1814dbd7edd346193",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/resource_manager/empty.json",
+      "sha256": "f73276b61eb8b35b99e9ca8199e077bb7f6537b3eabd51e3e3f4b2da3395726b"
+    },
+    {
+      "path": "parity/fixtures/pages/resource_manager/forbidden.json",
+      "sha256": "e9585b56a53a123e2237c5e74745c44b2891b1aea5c863484228f460c03cc64d"
+    },
+    {
+      "path": "parity/fixtures/pages/resource_manager/manifest.json",
+      "sha256": "3067e7c40a56c0400c86641888ace86af3ae7416d17f79c87eaacaa43dc94e9c"
+    },
+    {
+      "path": "parity/fixtures/pages/resource_manager/partial.json",
+      "sha256": "a3765b8be06b3ec926b7d9d15b3d989c3a41af583dec11663790f0456185e938"
+    },
+    {
+      "path": "parity/fixtures/pages/resource_manager/server-error.json",
+      "sha256": "eb1a68eb7228e83d6d2d26085634b9575cd51885227be180c30515c1c0a9518a"
+    },
+    {
+      "path": "parity/fixtures/pages/resource_manager/success.json",
+      "sha256": "472b5655cec8130d5e9277b0cd02962f408dd767592f22cf2359850d3e9e1acd"
+    },
+    {
+      "path": "parity/fixtures/pages/resource_manager/unauthorized.json",
+      "sha256": "3f1ce17dba777370977b5a22f5aefce6a2a941a9ade0b93bbb04e08a96ba8166"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "resource-manager-success",
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#teams-section.active",
+        "#teams-table-body"
+      ],
+      "regions": [
+        {
+          "id": "teams-section",
+          "selector": "#teams-section"
+        }
+      ],
+      "interactions": [
+        {
+          "id": "create-team-dialog",
+          "actions": [
+            {
+              "type": "click",
+              "selector": "button[onclick='showCreateTeamModal()']"
+            }
+          ],
+          "expectedPanels": [
+            "#team-modal.show"
+          ],
+          "regions": [
+            {
+              "id": "create-team-dialog",
+              "selector": "#team-modal > .modal"
+            }
+          ],
+          "captureFullPage": false
+        }
+      ],
+      "blocked_interactions": []
+    },
+    {
+      "id": "resource-manager-empty",
+      "fixture": "resource-manager-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "resource-manager-partial",
+      "fixture": "resource-manager-partial",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "加载设备失败: Error: 请求失败"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "resource-manager-unauthorized",
+      "fixture": "resource-manager-unauthorized",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "加载班组失败: Error: 登录已过期",
+        "加载班组类型失败: Error: 登录已过期",
+        "加载用户列表失败: Error: 登录已过期",
+        "加载设备失败: Error: 登录已过期",
+        "加载设备类型失败: Error: 登录已过期"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "resource-manager-forbidden",
+      "fixture": "resource-manager-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "加载班组失败: Error: 请求失败",
+        "加载班组类型失败: Error: 请求失败",
+        "加载用户列表失败: Error: 请求失败",
+        "加载设备失败: Error: 请求失败",
+        "加载设备类型失败: Error: 请求失败"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "resource-manager-server-error",
+      "fixture": "resource-manager-server-error",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "加载班组失败: Error: 请求失败",
+        "加载班组类型失败: Error: 请求失败",
+        "加载用户列表失败: Error: 请求失败",
+        "加载设备失败: Error: 请求失败",
+        "加载设备类型失败: Error: 请求失败"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "resource_manager/resource-manager-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8d46470cf4b5f5858f5a80cebd4ed9a252967805da3ef0a7c1422f58ffa39a78"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--teams-section--desktop-wide.png",
+      "kind": "region",
+      "region": "teams-section",
+      "selector": "#teams-section",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7dfebfec6983de5eeef574b78cef41a273d52d83ae8b873d3071a9599995a69d"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--create-team-dialog--create-team-dialog--desktop-wide.png",
+      "kind": "region",
+      "region": "create-team-dialog",
+      "selector": "#team-modal > .modal",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": "create-team-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateTeamModal()']"
+        }
+      ],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3e7350fca755aecb521e1606c84e17510024b314ece96ceb963a681b8355eeca"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "68a8abd6f44c087f269f469d4ff372565e7b21aa1837398a5b8e9b68e88dbc0d"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--teams-section--desktop.png",
+      "kind": "region",
+      "region": "teams-section",
+      "selector": "#teams-section",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5381de6d25f7ea8c02c6a086e8826364b51a26080b4eb86d42198d13b9afffd8"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--create-team-dialog--create-team-dialog--desktop.png",
+      "kind": "region",
+      "region": "create-team-dialog",
+      "selector": "#team-modal > .modal",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": "create-team-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateTeamModal()']"
+        }
+      ],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8311483e8ab4cdf3d87006255072a0b99cf8937923008506cb3985b05fb93ed7"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ff10a89b84a8819b2972a7c6865cfa7641d50ff989369de0318e88280e3b8f8d"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--teams-section--laptop.png",
+      "kind": "region",
+      "region": "teams-section",
+      "selector": "#teams-section",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "94fe9f6073bb62bece517dd106ccb631087695232df4db9862062837d84040f5"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--create-team-dialog--create-team-dialog--laptop.png",
+      "kind": "region",
+      "region": "create-team-dialog",
+      "selector": "#team-modal > .modal",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": "create-team-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateTeamModal()']"
+        }
+      ],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3d0a9bc891a703df18a1b47d1eb899d71b0ca042ab70612e462721ec2f37494e"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d588116d214283a1f42058b2d4664cc6f29afc120b9705b9cd5bdc8f011cc5e0"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--teams-section--tablet.png",
+      "kind": "region",
+      "region": "teams-section",
+      "selector": "#teams-section",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "fb37ff284357ec4fa08c71a986833e4b887347cb4f2063abe787af05297d7cca"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--create-team-dialog--create-team-dialog--tablet.png",
+      "kind": "region",
+      "region": "create-team-dialog",
+      "selector": "#team-modal > .modal",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": "create-team-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateTeamModal()']"
+        }
+      ],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3cda3c1eb1aba20136da614e220173ab3e46f459f47f61854488f52478511c95"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cdf9ce74aa56b9e15073899e386ca1db056d64b0d24a1d50749f6c1aa5d1ff6b"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--teams-section--mobile.png",
+      "kind": "region",
+      "region": "teams-section",
+      "selector": "#teams-section",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "139c442697356b6a71d9658fb3317a3c85f2320637ee973aa7d3cfd27cced8fa"
+    },
+    {
+      "file": "resource_manager/resource-manager-success--create-team-dialog--create-team-dialog--mobile.png",
+      "kind": "region",
+      "region": "create-team-dialog",
+      "selector": "#team-modal > .modal",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-success",
+      "theme": "light",
+      "scenario": "resource-manager-success",
+      "state": "create-team-dialog",
+      "actions": [
+        {
+          "type": "click",
+          "selector": "button[onclick='showCreateTeamModal()']"
+        }
+      ],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b5b0059efa97e49df8d5ecc86f268c55cc17386a48d6b1505e503addc0c6a9cb"
+    },
+    {
+      "file": "resource_manager/resource-manager-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-empty",
+      "theme": "light",
+      "scenario": "resource-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "184eb6c7d9527eebc20890dfd9f8c630875d0fbdd78b33e77bc15ec464dbac7c"
+    },
+    {
+      "file": "resource_manager/resource-manager-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-empty",
+      "theme": "light",
+      "scenario": "resource-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cc09433e0892ef4e01af47e4978f8199da7636a78c097ecb604124f4766574b6"
+    },
+    {
+      "file": "resource_manager/resource-manager-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-empty",
+      "theme": "light",
+      "scenario": "resource-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0b2833e1b88707f4c5112e52409ef86e8ef4ef198de0ec1a9e63bbdf7d50460a"
+    },
+    {
+      "file": "resource_manager/resource-manager-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-empty",
+      "theme": "light",
+      "scenario": "resource-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5349e465fe07a2bb21230d022d28c0a52c10baf53e0549ec3398f801ee2dcf14"
+    },
+    {
+      "file": "resource_manager/resource-manager-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-empty",
+      "theme": "light",
+      "scenario": "resource-manager-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c25be7bafaabc9660df6d9629cd0633510b01207f14c4d42649658fff85ed05d"
+    },
+    {
+      "file": "resource_manager/resource-manager-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-partial",
+      "theme": "light",
+      "scenario": "resource-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d2bf4e7b4b4d46ae0e60d100e3a66a651db3351c24909df8a1b28067367a9fa5"
+    },
+    {
+      "file": "resource_manager/resource-manager-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-partial",
+      "theme": "light",
+      "scenario": "resource-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f86e672c215691a234bb577e37e1258fecf88dd2fb8a48c31877c0f53160c93b"
+    },
+    {
+      "file": "resource_manager/resource-manager-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-partial",
+      "theme": "light",
+      "scenario": "resource-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e5bdb829d862bcdae93a1f23609219ff493afd659fb18b7839836e8fb5b43cb6"
+    },
+    {
+      "file": "resource_manager/resource-manager-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-partial",
+      "theme": "light",
+      "scenario": "resource-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a38f0095c1e46be5975cde2e33deadc0bb98847909e3c985c59c13200db471dc"
+    },
+    {
+      "file": "resource_manager/resource-manager-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-partial",
+      "theme": "light",
+      "scenario": "resource-manager-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f66cb3ea1f38bd637e97bc551bb5b850592cda797e725fcb759f34f37cc64d77"
+    },
+    {
+      "file": "resource_manager/resource-manager-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-unauthorized",
+      "theme": "light",
+      "scenario": "resource-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/teams: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment-types: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/team-types: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "resource_manager/resource-manager-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-unauthorized",
+      "theme": "light",
+      "scenario": "resource-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment-types: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/teams: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/team-types: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "resource_manager/resource-manager-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-unauthorized",
+      "theme": "light",
+      "scenario": "resource-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/team-types: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/teams: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment-types: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "resource_manager/resource-manager-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-unauthorized",
+      "theme": "light",
+      "scenario": "resource-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/team-types: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/teams: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment-types: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "resource_manager/resource-manager-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-unauthorized",
+      "theme": "light",
+      "scenario": "resource-manager-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /frontend/html/login.html: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/team-types: net::ERR_ABORTED",
+        "GET /api/v2/auth/users: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/equipment-types: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/dispatch/teams: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "resource_manager/resource-manager-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-forbidden",
+      "theme": "light",
+      "scenario": "resource-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3736ce412665cfbabc6bed8195cc6d93260f509569a7c9372947c646965010fc"
+    },
+    {
+      "file": "resource_manager/resource-manager-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-forbidden",
+      "theme": "light",
+      "scenario": "resource-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7106ab433f9ef4355d1a1e25f67fe39db72681b840afee15b172301baa0d0cfc"
+    },
+    {
+      "file": "resource_manager/resource-manager-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-forbidden",
+      "theme": "light",
+      "scenario": "resource-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "61ad39b51895251d5b85f046adf2d97424915f6d4d8260304506de201a76e204"
+    },
+    {
+      "file": "resource_manager/resource-manager-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-forbidden",
+      "theme": "light",
+      "scenario": "resource-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e3ef481efde8625a36c1e3d04b225907d55b75bb3ded355d3f6a6de14174cfee"
+    },
+    {
+      "file": "resource_manager/resource-manager-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-forbidden",
+      "theme": "light",
+      "scenario": "resource-manager-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4d6c6c237f34800490085e93643e3416f268e9b46f7d379bb4d17225332ea7e2"
+    },
+    {
+      "file": "resource_manager/resource-manager-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "resource-manager-server-error",
+      "theme": "light",
+      "scenario": "resource-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3736ce412665cfbabc6bed8195cc6d93260f509569a7c9372947c646965010fc"
+    },
+    {
+      "file": "resource_manager/resource-manager-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "resource-manager-server-error",
+      "theme": "light",
+      "scenario": "resource-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7106ab433f9ef4355d1a1e25f67fe39db72681b840afee15b172301baa0d0cfc"
+    },
+    {
+      "file": "resource_manager/resource-manager-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "resource-manager-server-error",
+      "theme": "light",
+      "scenario": "resource-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "61ad39b51895251d5b85f046adf2d97424915f6d4d8260304506de201a76e204"
+    },
+    {
+      "file": "resource_manager/resource-manager-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "resource-manager-server-error",
+      "theme": "light",
+      "scenario": "resource-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e3ef481efde8625a36c1e3d04b225907d55b75bb3ded355d3f6a6de14174cfee"
+    },
+    {
+      "file": "resource_manager/resource-manager-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "resource-manager-server-error",
+      "theme": "light",
+      "scenario": "resource-manager-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "9849114260d86a66614a8310a426de97fedeb2996cdbe8a7b21933866e19dd63",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4d6c6c237f34800490085e93643e3416f268e9b46f7d379bb4d17225332ea7e2"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "resource-manager-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-partial",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-partial",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-partial",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-partial",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-partial",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-unauthorized",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-unauthorized",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-unauthorized",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-unauthorized",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-unauthorized",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-server-error",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-server-error",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-server-error",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-server-error",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "resource-manager-server-error",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/team-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment-types",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/teams",
+          "query": {
+            "include_inactive": [
+              "false"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch/equipment",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+//! PostgreSQL 部门仓储实现。
+
+use async_trait::async_trait;
+use sqlx::{PgPool, Postgres, QueryBuilder, Row};
+
+use fms_domain::error::DomainError;
+use fms_domain::models::dispatch::Department;
+use fms_domain::ports::dispatch_repository::DepartmentRepository;
+
+pub struct PgDepartmentRepository {
+    pool: PgPool,
+}
+
+impl PgDepartmentRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl DepartmentRepository for PgDepartmentRepository {
+    async fn save(&self, dept: &Department) -> Result<Department, DomainError> {
+        sqlx::query(
+            r#"
+            INSERT INTO departments (
+                id, name, code, description, manager_id, terminal, is_active
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                code = EXCLUDED.code,
+                description = EXCLUDED.description,
+                manager_id = EXCLUDED.manager_id,
+                terminal = EXCLUDED.terminal,
+                is_active = EXCLUDED.is_active,
+                updated_at = CURRENT_TIMESTAMP
+            "#,
+        )
+        .bind(&dept.id)
+        .bind(&dept.name)
+        .bind(&dept.code)
+        .bind(&dept.description)
+        .bind(&dept.manager_id)
+        .bind(&dept.terminal)
+        .bind(dept.is_active)
+        .execute(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        self.find_by_id(&dept.id)
+            .await?
+            .ok_or_else(|| DomainError::Internal("department save returned no row".into()))
+    }
+
+    async fn find_by_id(&self, id: &str) -> Result<Option<Department>, DomainError> {
+        let row = sqlx::query(
+            r#"
+            SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active
+            FROM departments
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(row.map(|item| row_to_department(&item)))
+    }
+
+    async fn find_by_name(&self, name: &str) -> Result<Option<Department>, DomainError> {
+        let row = sqlx::query(
+            r#"
+            SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active
+            FROM departments
+            WHERE name = $1
+            LIMIT 1
+            "#,
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(row.map(|item| row_to_department(&item)))
+    }
+
+    async fn find_all(&self, include_inactive: bool, limit: i64, offset: i64) -> Result<Vec<Department>, DomainError> {
+        let mut builder = QueryBuilder::<Postgres>::new(
+            "SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active FROM departments WHERE 1=1",
+        );
+        if !include_inactive {
+            builder.push(" AND is_active = TRUE");
+        }
+        builder
+            .push(" ORDER BY name LIMIT ")
+            .push_bind(limit.max(1))
+            .push(" OFFSET ")
+            .push_bind(offset.max(0));
+
+        let rows = builder
+            .build()
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(rows.iter().map(row_to_department).collect())
+    }
+
+    async fn has_dependencies(&self, department_id: &str) -> Result<bool, DomainError> {
+        let checks = [
+            ("team_types", "department_id"),
+            ("department_qualification_catalog", "department_id"),
+            ("department_qualification_levels", "department_id"),
+            ("qualification_grants", "department_id"),
+            ("department_task_type_requirement_versions", "department_id"),
+            ("task_types", "default_department_id"),
+            ("department_flight_generation_rules", "department_id"),
+            ("department_generation_adjustment_rules", "department_id"),
+            ("dispatch_temporary_task_templates", "department_id"),
+            ("dispatch_orders", "department_id"),
+        ];
+
+        for (table_name, column_name) in checks {
+            let sql = format!("SELECT 1 FROM {table_name} WHERE {column_name} = $1 LIMIT 1");
+            let row = sqlx::query(&sql)
+                .bind(department_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|err| DomainError::Internal(err.to_string()))?;
+            if row.is_some() {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    async fn delete_permanently(&self, department_id: &str) -> Result<bool, DomainError> {
+        let result = sqlx::query("DELETE FROM departments WHERE id = $1")
+            .bind(department_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(result.rows_affected() > 0)
+    }
+}
+
+fn row_to_department(row: &sqlx::postgres::PgRow) -> Department {
+    Department {
+        id: row.get("id"),
+        name: row.get("name"),
+        code: row.get("code"),
+        description: row.get("description"),
+        manager_id: row.get("manager_id"),
+        terminal: row.get("terminal"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+        is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+    }
+}

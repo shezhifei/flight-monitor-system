@@ -1,0 +1,5 @@
+FROM flight-monitor-system:docker-desktop
+USER root
+RUN pip install pytest pytest-asyncio httpx requests redis "psycopg[binary]"
+USER app
+CMD ["python", "-m", "pytest", "tests/contract_tests/test_write_path_side_effect_contracts.py", "-v"]

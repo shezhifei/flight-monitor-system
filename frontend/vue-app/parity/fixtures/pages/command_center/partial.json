@@ -1,0 +1,340 @@
+{
+  "scenario": "command_center-partial",
+  "routes": [
+    {
+      "id": "command-airport-context-success",
+      "method": "GET",
+      "pathname": "/api/v2/system/airport-context",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "code": "PVG",
+          "display_name": "上海浦东国际机场",
+          "name_aliases": [
+            "浦东机场",
+            "上海浦东"
+          ]
+        }
+      }
+    },
+    {
+      "id": "command-flights-success",
+      "method": "GET",
+      "pathname": "/api/v2/flights",
+      "query": {
+        "page": [
+          "1"
+        ],
+        "page_size": [
+          "500"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "flight_id": "flight-mu5101",
+              "flight_number": "MU5101",
+              "airline_code": "MU",
+              "registration": "B-2026",
+              "aircraft_type_detail": "A320",
+              "status": "boarding",
+              "scheduled_departure": "2026-07-14T03:00:00Z",
+              "scheduled_arrival": "2026-07-14T05:15:00Z",
+              "estimated_departure": "2026-07-14T03:10:00Z",
+              "estimated_arrival": "2026-07-14T05:25:00Z",
+              "actual_departure": null,
+              "actual_arrival": null,
+              "stand": "A12",
+              "gate": "12",
+              "terminal": "T1",
+              "position": "A12",
+              "baggage_carousel": null,
+              "has_boarding_restriction": false,
+              "is_quick_turnaround": true,
+              "is_commercial_signed": false,
+              "inbound_leg": {
+                "flight_number": "MU5100",
+                "origin_airport": "SHA",
+                "destination_airport": "PVG",
+                "scheduled_time": "2026-07-14T01:30:00Z",
+                "estimated_time": "2026-07-14T01:35:00Z",
+                "actual_time": null
+              },
+              "outbound_leg": {
+                "flight_number": "MU5101",
+                "origin_airport": "PVG",
+                "destination_airport": "PEK",
+                "scheduled_time": "2026-07-14T03:00:00Z",
+                "estimated_time": "2026-07-14T03:10:00Z",
+                "actual_time": null
+              },
+              "anomaly_summary": {
+                "total": 1,
+                "open": 1,
+                "critical": 0,
+                "highest_severity": "high"
+              },
+              "business_cases": [],
+              "created_at": "2026-07-14T01:00:00Z",
+              "updated_at": "2026-07-14T02:28:00Z",
+              "version": 7,
+              "flight_remarks": "重点保障",
+              "load_planning_remarks": null,
+              "aircraft_maintenance_remarks": null,
+              "aircraft_check_remarks": null,
+              "cobt_time": "2026-07-14T03:05:00Z",
+              "codt": "2026-07-14T03:10:00Z",
+              "labels": [
+                "priority"
+              ],
+              "boarding_allowed_time": "2026-07-14T02:15:00Z",
+              "start_boarding_time": "2026-07-14T02:25:00Z",
+              "end_boarding_time": null,
+              "on_blocks_time": null,
+              "off_blocks_time": null,
+              "created_by": "parity_admin",
+              "updated_by": "parity_operator"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "command-kpi-snapshot-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/snapshot",
+      "query": {
+        "time_range": [
+          "today"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "time_range": "today",
+            "turnaround_time_avg_minutes": 42.5,
+            "turnaround_time_p90_minutes": 56,
+            "on_time_departure_rate": 0.92,
+            "on_time_arrival_rate": 0.91,
+            "service_node_compliance_rate": 0.96,
+            "equipment_utilization_rate": 0.78,
+            "abnormal_flight_ratio": 0.03,
+            "calculated_at": "2026-07-14T02:30:00Z",
+            "hourly_flight_volume": [
+              {
+                "hour": 2,
+                "count": 12
+              },
+              {
+                "hour": 3,
+                "count": 18
+              }
+            ],
+            "turnaround_distribution": [
+              {
+                "bucket": "30-45",
+                "count": 8
+              },
+              {
+                "bucket": "45-60",
+                "count": 4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "command-anomaly-stats-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies/stats",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "total": 1,
+            "open": 1,
+            "acknowledged": 0,
+            "resolved": 0,
+            "critical": 0,
+            "escalated": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "command-anomaly-list-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "query": {
+        "limit": [
+          "40"
+        ],
+        "offset": [
+          "0"
+        ],
+        "status": [
+          "open"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [
+              {
+                "anomaly_id": "anomaly-5101",
+                "flight_id": "flight-mu5101",
+                "flight_number": "MU5101",
+                "anomaly_type": "service_node_timeout",
+                "severity": "high",
+                "status": "open",
+                "escalation_level": 1,
+                "title": "登机保障节点即将超时",
+                "description": "登机节点剩余 15 分钟",
+                "detected_at": "2026-07-14T02:26:00Z",
+                "acknowledged_at": null,
+                "resolved_at": null,
+                "created_at": "2026-07-14T02:26:00Z",
+                "updated_at": "2026-07-14T02:28:00Z"
+              }
+            ],
+            "total": 1,
+            "limit": 40,
+            "offset": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "command-dispatch-timeline-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/timeline",
+      "query": {
+        "view_mode": [
+          "flight"
+        ],
+        "window_end": [
+          "2026-07-14T08:30:00.000Z"
+        ],
+        "window_start": [
+          "2026-07-14T01:30:00.000Z"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [
+              {
+                "order_id": "order-5101",
+                "flight_id": "flight-mu5101",
+                "task_type": "boarding",
+                "status": "in_progress",
+                "planned_start": "2026-07-14T02:15:00Z",
+                "planned_end": "2026-07-14T02:50:00Z",
+                "assignee_name": "登机保障一组"
+              }
+            ],
+            "total": 1,
+            "status_counts": {
+              "pending": 0,
+              "in_progress": 1,
+              "completed": 0,
+              "cancelled": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "command-dispatch-conflicts-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/conflicts",
+      "query": {
+        "limit": [
+          "200"
+        ],
+        "window_end": [
+          "2026-07-14T08:30:00.000Z"
+        ],
+        "window_start": [
+          "2026-07-14T01:30:00.000Z"
+        ]
+      },
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "Deterministic partial failure for /api/v2/dispatch-orders/conflicts"
+          }
+        }
+      }
+    },
+    {
+      "id": "command-health-ping-success",
+      "method": "GET",
+      "pathname": "/api/v2/system/runtime/health/ping",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "healthy",
+          "service": "api-server",
+          "checked_at": "2026-07-14T02:30:00Z",
+          "latency_ms": 8
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "command-global-stream-success",
+      "pathname": "/api/v2/sse/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ],
+        "topics": [
+          "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+        ]
+      },
+      "events": [
+        {
+          "id": "command-event-1",
+          "event": "flight_updated",
+          "data": {
+            "flight_id": "flight-mu5101",
+            "patch": {
+              "status": "boarding"
+            },
+            "updated_at": "2026-07-14T02:30:05Z"
+          }
+        },
+        {
+          "id": "command-event-2",
+          "event": "anomaly_updated",
+          "data": {
+            "anomaly_id": "anomaly-5101",
+            "status": "open"
+          }
+        }
+      ]
+    }
+  ]
+}

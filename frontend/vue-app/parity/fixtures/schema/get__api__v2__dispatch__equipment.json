@@ -1,0 +1,33 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/dispatch/equipment",
+  "body": {
+    "success": true,
+    "data": [
+      {
+        "id": "equipment-tug-01",
+        "code": "TUG-01",
+        "equipment_type_id": "equipment-type-tug",
+        "name": "一号牵引车",
+        "license_plate": "粤A·FMS01",
+        "terminal": "T1",
+        "status": "available",
+        "current_position": {
+          "lat": 22.639,
+          "lng": 113.811
+        },
+        "current_stand_id": "stand-a12",
+        "last_position_update": "2026-07-14T02:25:00Z",
+        "next_maintenance_date": "2026-08-01",
+        "current_dispatch_id": null,
+        "created_at": "2026-06-01T00:00:00Z",
+        "is_active": true,
+        "equipment_type_name": "牵引车"
+      }
+    ],
+    "message": "设备列表获取成功",
+    "error": null,
+    "request_id": "parity-request-001"
+  },
+  "source": "resource_manager/success.json"
+}

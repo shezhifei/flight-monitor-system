@@ -1,0 +1,71 @@
+{
+  "scenario": "anomaly_monitor-empty",
+  "routes": [
+    {
+      "id": "anomaly-list-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "query": {
+        "limit": [
+          "100"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [],
+            "total": 0,
+            "limit": 100,
+            "offset": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "anomaly-stats-success",
+      "method": "GET",
+      "pathname": "/api/v2/anomalies/stats",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "total": 0,
+            "open": 0,
+            "acknowledged": 0,
+            "resolved": 0,
+            "critical": 0,
+            "escalated": 0
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "anomaly-stream-success",
+      "pathname": "/api/v2/anomalies/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "anomaly-empty-1",
+          "event": "initial",
+          "data": {
+            "items": [],
+            "total": 0
+          }
+        }
+      ]
+    }
+  ]
+}

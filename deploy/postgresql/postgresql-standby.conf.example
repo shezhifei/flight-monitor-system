@@ -1,0 +1,37 @@
+# PostgreSQL streaming standby configuration (P1e)
+#
+# Apply on the standby node AFTER bootstrapping its data directory with
+# `bootstrap-standby.sh.example` (pg_basebackup -R). That script already writes
+# `primary_conninfo` into postgresql.auto.conf and creates `standby.signal`.
+# This file documents the equivalent settings for a manually configured standby.
+#
+# IMPORTANT: a standby is only recognized as a standby if a `standby.signal`
+# (PostgreSQL >= 12) file exists in the data directory. Without it PostgreSQL
+# starts as a normal primary. (`recovery.signal` triggers point-in-time recovery
+# instead of streaming replication.)
+
+listen_addresses = '*'
+port = 5432
+
+# Must be >= primary's setting so the standby can itself become a primary on
+# promotion and keep the same replication capabilities.
+wal_level = logical
+max_wal_senders = 10
+max_replication_slots = 10
+
+# Allow read-only queries while replaying WAL from the primary.
+hot_standby = on
+
+# Streaming connection to the primary. Replace <PRIMARY_HOST> with the primary
+# host (in Docker: `postgres`) and supply the password from the environment /
+# secret store (do NOT hardcode). The `fm_replicator` REPLICATION role is
+# provisioned by scripts/database/setup_postgresql.sql on the primary.
+#   password=<from-env: DB_REPLICATION_PASSWORD>
+primary_conninfo = 'host=<PRIMARY_HOST> port=5432 user=fm_replicator password=<from-env> sslmode=prefer application_name=fm-pg-standby-01'
+
+# Optional: bind to a physical replication slot created on the primary so the
+# primary retains WAL for this standby.
+# primary_slot_name = 'fm_pg_standby_01'
+
+# On promotion the standby stops replaying and becomes writable. Trigger with
+# SELECT pg_promote();  (or pg_ctl promote). See docs/DEPLOYMENT.md failover.

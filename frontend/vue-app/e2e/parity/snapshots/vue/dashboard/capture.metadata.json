@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "page": "dashboard",
+  "target": "vue",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "captures": [
+    {
+      "file": "dashboard/dashboard-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "dashboard-success",
+      "viewport": "desktop-wide",
+      "sha256": "caa2054f78d1a5baf2b8f90fd0f92e5d1ccd8c1722170b0691feba57ebbe7a7f"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--desktop-wide.png",
+      "kind": "region",
+      "region": "module-grid",
+      "scenario": "dashboard-success",
+      "viewport": "desktop-wide",
+      "sha256": "9bf3942fbf80bec4b52d9985196a70c980f5650854eedebcc46617dffc236950"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "dashboard-success",
+      "viewport": "desktop",
+      "sha256": "72ea0de4c4f99e4798fec0ebcc349202bc94dcd869837605055e483dfd40ab64"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--desktop.png",
+      "kind": "region",
+      "region": "module-grid",
+      "scenario": "dashboard-success",
+      "viewport": "desktop",
+      "sha256": "fc25e81d23440b3733249927ead9d752ac8bc0263a402c68296ffc3efb2093e0"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "dashboard-success",
+      "viewport": "laptop",
+      "sha256": "7da1ef727ffdab7e77fb88224a04ed06433757f998f057a4b99b018d5264b566"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--laptop.png",
+      "kind": "region",
+      "region": "module-grid",
+      "scenario": "dashboard-success",
+      "viewport": "laptop",
+      "sha256": "589f499d647b02e5def3cb12456513293fb2701b85bf88113e4dbf640b979518"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "dashboard-success",
+      "viewport": "tablet",
+      "sha256": "24bfd7fae2ee05420fc5a07daeaaeeb6a6aadf238c1d1e85c4b10b01e837066f"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--tablet.png",
+      "kind": "region",
+      "region": "module-grid",
+      "scenario": "dashboard-success",
+      "viewport": "tablet",
+      "sha256": "0f337f157f8e831ef4361afa37623a10bd056a5c80cc48d8e77935974ed347f5"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "dashboard-success",
+      "viewport": "mobile",
+      "sha256": "8d7ebce1b3552c9dfeb9967523cf4f8e347caabbe6d4daf26c779b081bf1fb02"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--mobile.png",
+      "kind": "region",
+      "region": "module-grid",
+      "scenario": "dashboard-success",
+      "viewport": "mobile",
+      "sha256": "799fc52852e8266edd029ca518d141f95422af2e9ebe0ff42a9990ce1f1fd213"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "dashboard-empty",
+      "viewport": "desktop-wide",
+      "sha256": "c93b5bc82aa59fbcff2d3aafd42f99f3e0e376d5864a670cc88c7ff466c9644b"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "dashboard-empty",
+      "viewport": "desktop",
+      "sha256": "9120b510975b700c0676b9cfd96f65d524daf636e24212cb88581209fcae3da4"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "dashboard-empty",
+      "viewport": "laptop",
+      "sha256": "12c7afc540cc3a268527dca0f91e9bb56b03a753bafef94e8fb48c518b92748f"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "dashboard-empty",
+      "viewport": "tablet",
+      "sha256": "ca4a7db5747367ad991d4bb5733170136fdb4c4caf775024f0dbf81a351ca5a6"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "dashboard-empty",
+      "viewport": "mobile",
+      "sha256": "f443eecaa582ce4ab01a6596e66e52bb39c8f198665ec13cfdc461ac12b33730"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "scenario": "dashboard-partial",
+      "viewport": "desktop-wide",
+      "sha256": "92a507d8475969ba888ef9218d1b15c01dcbacf2f893c1f8cac85ff742032fd0"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "scenario": "dashboard-partial",
+      "viewport": "desktop",
+      "sha256": "0fd930afa1aa0af8aeb88716e0c9c6601b5f86704833dc221a28bdcc2295176f"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "scenario": "dashboard-partial",
+      "viewport": "laptop",
+      "sha256": "3069b8228ec58997293b70ce56283103491947693a384e0e36204034905136cf"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "scenario": "dashboard-partial",
+      "viewport": "tablet",
+      "sha256": "90e99c5551b396780d70fbc59e5e40b12a050263de9427f06299df4c15fea469"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "scenario": "dashboard-partial",
+      "viewport": "mobile",
+      "sha256": "86476f48e2e2de1588b162b4900ebb96d83de061a69c297127392756256cc70e"
+    }
+  ]
+}

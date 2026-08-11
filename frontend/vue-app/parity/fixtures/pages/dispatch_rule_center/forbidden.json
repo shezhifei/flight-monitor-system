@@ -1,0 +1,57 @@
+{
+  "scenario": "dispatch_rule_center-forbidden",
+  "routes": [
+    {
+      "id": "dispatch-rule-equipment-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/equipment-types",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/dispatch/resources/equipment-types"
+          }
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-task-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/task-types",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/dispatch/task-types"
+          }
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-departments-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/reference/departments"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [],
+  "expected_legacy_errors": [
+    "Parity administrator permission denied for /api/v2/reference/departments"
+  ]
+}

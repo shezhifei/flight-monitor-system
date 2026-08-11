@@ -1,0 +1,29 @@
+{
+  "method": "GET",
+  "pathname": "/api/v2/auth/admin/permission-templates",
+  "body": {
+    "success": true,
+    "data": [
+      {
+        "id": "template-ops-view",
+        "name": "运行只读模板",
+        "code": "OPS_READONLY",
+        "description": "运行态只读权限集合",
+        "permissions": [
+          "flight:read",
+          "dispatch:view",
+          "team:view"
+        ],
+        "is_system": true,
+        "category": "operations",
+        "display_order": 10,
+        "is_active": true,
+        "created_at": "2026-05-01T00:00:00Z",
+        "updated_at": "2026-07-01T00:00:00Z"
+      }
+    ],
+    "error": null,
+    "request_id": "parity-request-001"
+  },
+  "source": "user_manager/success.json"
+}

@@ -1,0 +1,311 @@
+{
+  "scenario": "flight_monitor-partial",
+  "routes": [
+    {
+      "id": "flight-monitor-capabilities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/capabilities",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "ai_ready": true,
+            "ai_execute_permission": true,
+            "ai_chat_permission": true,
+            "missing_reasons": []
+          }
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-business-case-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/business-case-types",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "code": "flight_delay",
+              "name": "航班延误",
+              "description": "航班延误处置事项",
+              "visibility_scope": "department",
+              "is_active": true,
+              "created_at": "2026-07-01T00:00:00Z",
+              "updated_at": "2026-07-14T00:00:00Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-flights-success",
+      "method": "GET",
+      "pathname": "/api/v2/flights",
+      "query": {
+        "page": [
+          "1"
+        ],
+        "page_size": [
+          "500"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "flight_id": "flight-mu5101",
+              "flight_number": "MU5101",
+              "airline_code": "MU",
+              "registration": "B-2026",
+              "aircraft_type_detail": "A320",
+              "status": "boarding",
+              "scheduled_departure": "2026-07-14T03:00:00Z",
+              "scheduled_arrival": "2026-07-14T05:15:00Z",
+              "estimated_departure": "2026-07-14T03:10:00Z",
+              "estimated_arrival": "2026-07-14T05:25:00Z",
+              "actual_departure": null,
+              "actual_arrival": null,
+              "stand": "A12",
+              "gate": "12",
+              "terminal": "T1",
+              "position": "A12",
+              "baggage_carousel": null,
+              "has_boarding_restriction": false,
+              "is_quick_turnaround": true,
+              "is_commercial_signed": false,
+              "inbound_leg": {
+                "flight_number": "MU5100",
+                "origin_airport": "SHA",
+                "destination_airport": "PVG",
+                "scheduled_time": "2026-07-14T01:30:00Z",
+                "estimated_time": "2026-07-14T01:35:00Z",
+                "actual_time": null
+              },
+              "outbound_leg": {
+                "flight_number": "MU5101",
+                "origin_airport": "PVG",
+                "destination_airport": "PEK",
+                "scheduled_time": "2026-07-14T03:00:00Z",
+                "estimated_time": "2026-07-14T03:10:00Z",
+                "actual_time": null
+              },
+              "anomaly_summary": {
+                "total": 1,
+                "open": 1,
+                "critical": 0,
+                "highest_severity": "high"
+              },
+              "business_cases": [],
+              "created_at": "2026-07-14T01:00:00Z",
+              "updated_at": "2026-07-14T02:28:00Z",
+              "version": 7,
+              "flight_remarks": "重点保障",
+              "load_planning_remarks": null,
+              "aircraft_maintenance_remarks": null,
+              "aircraft_check_remarks": null,
+              "cobt_time": "2026-07-14T03:05:00Z",
+              "codt": "2026-07-14T03:10:00Z",
+              "labels": [
+                "priority"
+              ],
+              "boarding_allowed_time": "2026-07-14T02:15:00Z",
+              "start_boarding_time": "2026-07-14T02:25:00Z",
+              "end_boarding_time": null,
+              "on_blocks_time": null,
+              "off_blocks_time": null,
+              "created_by": "parity_admin",
+              "updated_by": "parity_operator"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-labels-success",
+      "method": "GET",
+      "pathname": "/api/v2/labels",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "label-priority",
+              "code": "priority",
+              "name": "重点保障",
+              "color": "#F59E0B",
+              "description": "重点保障航班",
+              "is_active": true,
+              "sort_order": 10,
+              "created_at": "2026-07-01T00:00:00Z",
+              "updated_at": "2026-07-14T00:00:00Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-notification-history-success",
+      "method": "GET",
+      "pathname": "/api/v2/notifications",
+      "query": {
+        "limit": [
+          "100"
+        ],
+        "offset": [
+          "0"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "total": 0,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-unread-notifications-success",
+      "method": "GET",
+      "pathname": "/api/v2/notifications",
+      "query": {
+        "limit": [
+          "50"
+        ],
+        "unread_only": [
+          "true"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "total": 0,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-sent-receipts-success",
+      "method": "GET",
+      "pathname": "/api/v2/notifications/sent-receipt-groups",
+      "query": {
+        "limit": [
+          "50"
+        ],
+        "offset": [
+          "0"
+        ]
+      },
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "Deterministic partial failure for /api/v2/notifications/sent-receipt-groups"
+          }
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-statuses-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/business-case-statuses",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "code": "draft",
+              "label": "草稿",
+              "terminal": false,
+              "sort_order": 10
+            },
+            {
+              "code": "processing",
+              "label": "处理中",
+              "terminal": false,
+              "sort_order": 20
+            },
+            {
+              "code": "resolved",
+              "label": "已解决",
+              "terminal": true,
+              "sort_order": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flight-monitor-airport-context-success",
+      "method": "GET",
+      "pathname": "/api/v2/system/airport-context",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "code": "PVG",
+          "display_name": "上海浦东国际机场",
+          "name_aliases": [
+            "浦东机场",
+            "上海浦东"
+          ]
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "flight-monitor-global-stream-success",
+      "pathname": "/api/v2/sse/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ],
+        "topics": [
+          "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+        ]
+      },
+      "events": [
+        {
+          "id": "flight-event-1",
+          "event": "flight_updated",
+          "data": {
+            "flight_id": "flight-mu5101",
+            "patch": {
+              "estimated_departure": "2026-07-14T03:10:00Z"
+            },
+            "updated_at": "2026-07-14T02:30:05Z"
+          }
+        },
+        {
+          "id": "flight-event-2",
+          "event": "anomaly_updated",
+          "data": {
+            "anomaly_id": "anomaly-5101",
+            "flight_id": "flight-mu5101",
+            "status": "open"
+          }
+        }
+      ]
+    }
+  ]
+}

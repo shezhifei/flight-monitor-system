@@ -1,0 +1,27 @@
+name: flight-monitor-vault
+
+services:
+  vault:
+    image: hashicorp/vault:1.21
+    restart: unless-stopped
+    user: "0:0"
+    entrypoint:
+      - /bin/sh
+      - -c
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_LOCAL_CONFIG: ""
+    command:
+      - mkdir -p /vault/data /vault/logs && chown -R vault:vault /vault/data /vault/logs && exec su-exec vault vault server -config=/vault/config/vault.hcl
+    ports:
+      - "127.0.0.1:${VAULT_HOST_PORT:-8200}:8200"
+    volumes:
+      - ./config/vault.hcl:/vault/config/vault.hcl:ro
+      - ./certs:/vault/certs:ro
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+
+volumes:
+  vault_data:
+  vault_logs:

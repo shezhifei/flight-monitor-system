@@ -1,0 +1,200 @@
+{
+  "scenario": "dispatch_rule_center-success",
+  "capture": {
+    "expected_panels": ["#panel-task-driven"],
+    "regions": [{ "id": "rule-workspace", "selector": "#panel-task-driven" }]
+  },
+  "routes": [
+    {
+      "id": "dispatch-rule-equipment-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/equipment-types",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "code": "tractor",
+              "name": "牵引车",
+              "description": "航空器牵引保障设备",
+              "is_active": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-task-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/task-types",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "code": "boarding",
+              "name": "登机保障",
+              "default_department_id": "dept-ops",
+              "is_active": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-departments-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "dept-ops",
+              "code": "OCC",
+              "name": "运行控制中心",
+              "department_name": "运行控制中心",
+              "terminal": null,
+              "is_active": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-qualifications-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-qualification-levels-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-generation-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "rule_id": "rule-boarding-1",
+              "rule_name": "登机前保障",
+              "department_id": "dept-ops",
+              "task_type": "boarding",
+              "leg_scope": "outbound",
+              "status": "active",
+              "generation_anchor_type": "scheduled_time",
+              "start_offset_minutes": -45,
+              "duration_minutes": 35,
+              "publication_state": "published",
+              "publish_trigger_mode": "time",
+              "publish_offset_minutes": -60,
+              "conditions": {}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-adjustments-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-requirement-versions-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-temporary-templates-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+      "query": {},
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-teams-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/teams",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    },
+    {
+      "id": "dispatch-rule-equipment-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/equipment",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": []
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

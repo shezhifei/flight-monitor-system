@@ -1,0 +1,119 @@
+# Copyright 2023 The RocketMQ Rust Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+[package]
+name                 = "rocketmq-controller"
+version.workspace    = true
+authors.workspace    = true
+edition.workspace    = true
+homepage.workspace   = true
+repository.workspace = true
+license.workspace    = true
+readme               = "README.md"
+description          = "RocketMQ Controller Module - High Availability Raft-based Controller"
+keywords             = ["rocketmq", "controller", "raft", "distributed", "messaging"]
+categories           = ["network-programming", "asynchronous"]
+
+[dependencies]
+# Internal dependencies (rocketmq-rust modules)
+rocketmq-common   = { workspace = true }
+rocketmq-error    = { workspace = true }
+rocketmq-remoting = { workspace = true }
+rocketmq-runtime  = { workspace = true }
+rocketmq-rust     = { workspace = true }
+
+# Core async runtime
+tokio      = { workspace = true }
+tokio-util = { workspace = true }
+
+# Raft consensus algorithm  - MIGRATING TO OPENRAFT
+# Old raft for legacy code (temporary until migration completes)
+raft     = { version = "0.7.0", git = "https://github.com/tikv/raft-rs.git", rev = "1fd05e0" }
+protobuf = "2.28"
+# New openraft implementation
+openraft = { version = "0.10.0", git = "https://github.com/databendlabs/openraft.git", rev = "a90c841", features = [
+  "serde",
+  "tokio-rt",
+] }
+slog = { version = "2.7", features = [
+  "max_level_trace",
+  "release_max_level_info",
+] }
+
+# gRPC networking
+tonic       = { version = "0.14.5", features = ["transport", "codegen"] }
+tonic-prost = "0.14"
+
+# Serialization
+serde      = { workspace = true }
+serde_json = { workspace = true }
+
+# Networking and protocols
+bytes        = { workspace = true }
+prost        = "0.14"
+futures      = "0.3"
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+cheetah-string = { workspace = true }
+
+clap   = { version = "4.6.1", features = ["derive"] }
+config = { workspace = true }
+
+
+# Concurrent data structures
+dashmap     = { workspace = true }
+parking_lot = { workspace = true }
+anyhow      = { workspace = true }
+
+# Logging and tracing
+tracing = { workspace = true }
+
+# Metrics and observability
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-otlp = { version = "0.31", features = [
+  "grpc-tonic",
+  "metrics",
+], optional = true }
+
+# Async trait support
+async-trait = "0.1"
+
+# Storage backends
+rocksdb = { version = "0.24", optional = true }
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-prost-build = "0.14.5"
+
+[dev-dependencies]
+criterion          = { version = "0.8", features = ["async_tokio"] }
+tempfile           = "3.27"
+tracing-subscriber = { workspace = true }
+
+[[bench]]
+name    = "controller_bench"
+harness = false
+
+[features]
+default         = ["storage-file"]
+storage-rocksdb = ["rocksdb"]
+storage-file    = []
+metrics         = ["opentelemetry-otlp"]
+debug           = []
+
+[[bin]]
+name = "rocketmq-controller-rust"
+path = "src/bin/controller_bootstrap.rs"

@@ -1,0 +1,303 @@
+{
+  "ai_config_center": {
+    "functional": [
+      "ai_config_center-success"
+    ],
+    "api": [
+      "ai_config_center-success"
+    ],
+    "realtime": [
+      "ai_config_center-success"
+    ],
+    "accessibility": [
+      "ai_config_center-success"
+    ]
+  },
+  "ai_monitor": {
+    "functional": [
+      "ai_monitor-success"
+    ],
+    "api": [
+      "ai_monitor-success"
+    ],
+    "realtime": [
+      "ai_monitor-success"
+    ],
+    "accessibility": [
+      "ai_monitor-success"
+    ]
+  },
+  "anomaly_monitor": {
+    "functional": [
+      "anomaly_monitor-success"
+    ],
+    "api": [
+      "anomaly_monitor-success"
+    ],
+    "realtime": [
+      "anomaly_monitor-success"
+    ],
+    "accessibility": [
+      "anomaly_monitor-success"
+    ]
+  },
+  "command_center": {
+    "functional": [
+      "command_center-success"
+    ],
+    "api": [
+      "command_center-success"
+    ],
+    "realtime": [
+      "command_center-success"
+    ],
+    "accessibility": [
+      "command_center-success"
+    ]
+  },
+  "dashboard": {
+    "functional": [
+      "dashboard-success"
+    ],
+    "api": [
+      "dashboard-success"
+    ],
+    "realtime": [
+      "dashboard-success"
+    ],
+    "accessibility": [
+      "dashboard-success"
+    ]
+  },
+  "dispatch_board": {
+    "functional": [
+      "dispatch_board-success"
+    ],
+    "api": [
+      "dispatch_board-success"
+    ],
+    "realtime": [
+      "dispatch_board-success"
+    ],
+    "accessibility": [
+      "dispatch_board-success"
+    ]
+  },
+  "dispatch_rule_center": {
+    "functional": [
+      "dispatch_rule_center-success"
+    ],
+    "api": [
+      "dispatch_rule_center-success"
+    ],
+    "realtime": [
+      "dispatch_rule_center-success"
+    ],
+    "accessibility": [
+      "dispatch_rule_center-success"
+    ]
+  },
+  "flight_imports": {
+    "functional": [
+      "flight_imports-success"
+    ],
+    "api": [
+      "flight_imports-success"
+    ],
+    "realtime": [
+      "flight_imports-success"
+    ],
+    "accessibility": [
+      "flight_imports-success"
+    ]
+  },
+  "flight_monitor": {
+    "functional": [
+      "flight_monitor-success"
+    ],
+    "api": [
+      "flight_monitor-success"
+    ],
+    "realtime": [
+      "flight_monitor-success"
+    ],
+    "accessibility": [
+      "flight_monitor-success"
+    ]
+  },
+  "flowable_modeler": {
+    "functional": [
+      "flowable_modeler-success",
+      "flowable_modeler-empty"
+    ],
+    "api": [
+      "flowable_modeler-success",
+      "flowable_modeler-empty"
+    ],
+    "realtime": [
+      "flowable_modeler-success"
+    ],
+    "accessibility": [
+      "flowable_modeler-success"
+    ]
+  },
+  "kpi_dashboard": {
+    "functional": [
+      "kpi_dashboard-success"
+    ],
+    "api": [
+      "kpi_dashboard-success"
+    ],
+    "realtime": [
+      "kpi_dashboard-success"
+    ],
+    "accessibility": [
+      "kpi_dashboard-success"
+    ]
+  },
+  "label_manager": {
+    "functional": [
+      "label_manager-success"
+    ],
+    "api": [
+      "label_manager-success"
+    ],
+    "realtime": [
+      "label_manager-success"
+    ],
+    "accessibility": [
+      "label_manager-success"
+    ]
+  },
+  "llm_eval_lab": {
+    "functional": [
+      "llm_eval_lab-success"
+    ],
+    "api": [
+      "llm_eval_lab-success"
+    ],
+    "realtime": [
+      "llm_eval_lab-success"
+    ],
+    "accessibility": [
+      "llm_eval_lab-success"
+    ]
+  },
+  "login": {
+    "functional": [
+      "login-default",
+      "login-required-username-error",
+      "login-password-visible"
+    ],
+    "api": [
+      "login-default",
+      "login-required-username-error"
+    ],
+    "realtime": [
+      "login-default"
+    ],
+    "accessibility": [
+      "login-required-username-error"
+    ]
+  },
+  "nl_query": {
+    "functional": [
+      "nl_query-success"
+    ],
+    "api": [
+      "nl_query-success"
+    ],
+    "realtime": [
+      "nl_query-success"
+    ],
+    "accessibility": [
+      "nl_query-success"
+    ]
+  },
+  "operations_review_report": {
+    "functional": [
+      "operations_review_report-success"
+    ],
+    "api": [
+      "operations_review_report-success"
+    ],
+    "realtime": [
+      "operations_review_report-success"
+    ],
+    "accessibility": [
+      "operations_review_report-success"
+    ]
+  },
+  "resource_manager": {
+    "functional": [
+      "resource_manager-success"
+    ],
+    "api": [
+      "resource_manager-success"
+    ],
+    "realtime": [
+      "resource_manager-success"
+    ],
+    "accessibility": [
+      "resource_manager-success"
+    ]
+  },
+  "resource_utilization": {
+    "functional": [
+      "resource_utilization-success"
+    ],
+    "api": [
+      "resource_utilization-success"
+    ],
+    "realtime": [
+      "resource_utilization-success"
+    ],
+    "accessibility": [
+      "resource_utilization-success"
+    ]
+  },
+  "system_flags": {
+    "functional": [
+      "system_flags-success",
+      "system_flags-unauthorized"
+    ],
+    "api": [
+      "system_flags-success",
+      "system_flags-unauthorized"
+    ],
+    "realtime": [
+      "system_flags-success"
+    ],
+    "accessibility": [
+      "system_flags-success"
+    ]
+  },
+  "system_status": {
+    "functional": [
+      "system_status-success"
+    ],
+    "api": [
+      "system_status-success"
+    ],
+    "realtime": [
+      "system_status-success"
+    ],
+    "accessibility": [
+      "system_status-success"
+    ]
+  },
+  "user_manager": {
+    "functional": [
+      "user_manager-success"
+    ],
+    "api": [
+      "user_manager-success"
+    ],
+    "realtime": [
+      "user_manager-success"
+    ],
+    "accessibility": [
+      "user_manager-success"
+    ]
+  }
+}

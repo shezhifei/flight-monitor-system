@@ -1,0 +1,1518 @@
+{
+  "schema_version": 1,
+  "page": "flight_imports",
+  "legacy_html": "html/flight_imports.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+  "source_files": [
+    {
+      "path": "css/admin-layout.css",
+      "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+    },
+    {
+      "path": "css/admin-page.css",
+      "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+    },
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/flight_imports.html",
+      "sha256": "43488147ac4f290a14ab0c61436ad6dad843d3ad6598bdaf6fe1c42a23f6a9e7"
+    },
+    {
+      "path": "icons/fast.svg",
+      "sha256": "69143303a9bff721ebca6c927dd196ba9c5967cafa0cc1e8605a9f372f82459f"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "icons/logout.svg",
+      "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "af9c2fbaedeeaaafe477edd2b94c4c616a6cf049ce0d37de90913f84f9d00995",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/flight_imports/forbidden.json",
+      "sha256": "ac6f5d3d942aaaa458e08efd8ccc9b9602cf404779f101a73a89267430ce0c34"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_imports/manifest.json",
+      "sha256": "334c74a0d1747b83ce5caf0b083ce6e39d42223699e7b7afb01c03cab9b207cc"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_imports/server-error.json",
+      "sha256": "3bda36d027eb49b6140351c98955f138007114d880b677f65ecf694535af547f"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_imports/success.json",
+      "sha256": "9c50becb643ba899aa8a88d9db013fba6cacf7f2c86aac50f12b92193a8b6f8d"
+    },
+    {
+      "path": "parity/fixtures/pages/flight_imports/unauthorized.json",
+      "sha256": "5e884791d80ab9bc9b57e3649bd0c2ba7f29633966f49cc9810a559f5e9b1094"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "flight_imports-success",
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".import-shell",
+        ".upload-box"
+      ],
+      "regions": [
+        {
+          "id": "import-workspace",
+          "selector": ".import-shell"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "file-preview",
+          "reason": "Preview requires a real multipart upload and commit requires the returned dynamic preview_id; neither operation is fabricated by the initial-render fixture.",
+          "source": "html/flight_imports.html#previewBtn"
+        }
+      ]
+    },
+    {
+      "id": "flight_imports-unauthorized",
+      "fixture": "flight_imports-unauthorized",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "status of 401 (Unauthorized)"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "upload-after-auth-failure",
+          "reason": "Auth.requireAuthAsync fails closed when /api/v2/auth/me returns 401, so the import shell does not bind upload handlers.",
+          "source": "html/flight_imports.html#DOMContentLoaded"
+        }
+      ]
+    },
+    {
+      "id": "flight_imports-forbidden",
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "auth_role": "readonly",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".import-shell",
+        ".upload-box"
+      ],
+      "regions": [
+        {
+          "id": "import-workspace",
+          "selector": ".import-shell"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "file-preview",
+          "reason": "Preview requires a real multipart upload; the read-only role scenario only models shell access under limited permissions and does not fabricate preview_id responses.",
+          "source": "html/flight_imports.html#previewBtn"
+        }
+      ]
+    },
+    {
+      "id": "flight_imports-server-error",
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [
+        "status of 500 (Internal Server Error)"
+      ],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        ".import-shell",
+        ".upload-box"
+      ],
+      "regions": [
+        {
+          "id": "import-workspace",
+          "selector": ".import-shell"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": [
+        {
+          "id": "file-preview",
+          "reason": "Preview requires a real multipart upload; server-error only models /auth/me failure and does not invent preview endpoints.",
+          "source": "html/flight_imports.html#previewBtn"
+        }
+      ]
+    }
+  ],
+  "captures": [
+    {
+      "file": "flight_imports/flight_imports-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "fb635426a0b8d1add22677a2766953ce33555a0c8f9afb1014fbb6683b8cb816"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--import-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "fc6c7c388b620f868c62062a0e10a4714111e79edad2ffe0c46b2570605b1700"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "392358a95380fb7385f660a32f5868a87098f98073ac220d1081cc819dbed479"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--import-workspace--desktop.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "aee72574f7825f2e5d2a7f23602ad63769f107032b73aed801b449ba3c7a5ce7"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0e02b2858f71a1be770e45dd96e9959dbfc479c221b04b3b67df7a0e3800160a"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--import-workspace--laptop.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "29f232432574de6a13e48b0caf018ed993cf04e68db2ffa5edcb088f27550ca9"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "06f6eb6814feb3ef5fb4ce8b0d675d6bd17ca4e58f3e9534d968da23d3c84d9e"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--import-workspace--tablet.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dd5d7e060603f98c68873f5392aa22048c40eb6e433c33f06eb21d1f996271db"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7c23486cf2579d9fe771cd95e1f30266839af6cb10e944a3506e63f4728b6c87"
+    },
+    {
+      "file": "flight_imports/flight_imports-success--import-workspace--mobile.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-success",
+      "theme": "light",
+      "scenario": "flight_imports-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "99202ff47b86070d8283def0168e2bb1c1e86a8e87c3260bf2816a1028d3c754"
+    },
+    {
+      "file": "flight_imports/flight_imports-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-unauthorized",
+      "theme": "light",
+      "scenario": "flight_imports-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/me: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "flight_imports/flight_imports-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-unauthorized",
+      "theme": "light",
+      "scenario": "flight_imports-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [
+        "GET /api/v2/auth/me: net::ERR_ABORTED",
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "flight_imports/flight_imports-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-unauthorized",
+      "theme": "light",
+      "scenario": "flight_imports-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/me: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "flight_imports/flight_imports-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-unauthorized",
+      "theme": "light",
+      "scenario": "flight_imports-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/me: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "flight_imports/flight_imports-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-unauthorized",
+      "theme": "light",
+      "scenario": "flight_imports-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /api/v2/auth/me: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f13d0c9002f96ced7e0d69bb33ed3bdad32e8941894bd7aeba77f987a410ceb4"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--import-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "fc6c7c388b620f868c62062a0e10a4714111e79edad2ffe0c46b2570605b1700"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f65fb741c297e1c7f3faee6ab0c03fbbc1c1b172c4e79dedfb496f28a27d70e7"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--import-workspace--desktop.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "aee72574f7825f2e5d2a7f23602ad63769f107032b73aed801b449ba3c7a5ce7"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "d8f3fde52ef77e3644403f012d106225459eda1071cc3e65dbe4d190fd598330"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--import-workspace--laptop.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "29f232432574de6a13e48b0caf018ed993cf04e68db2ffa5edcb088f27550ca9"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cfb78165a13b2df29d5f2685bd1997c13287d60c4d43d8deba7b45b3908d069f"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--import-workspace--tablet.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dd5d7e060603f98c68873f5392aa22048c40eb6e433c33f06eb21d1f996271db"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8d694780bce250d2d317e0956ccf66aa0cfed8177bfbae7d7e40cce4eca5a956"
+    },
+    {
+      "file": "flight_imports/flight_imports-forbidden--import-workspace--mobile.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-forbidden",
+      "theme": "light",
+      "scenario": "flight_imports-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "99202ff47b86070d8283def0168e2bb1c1e86a8e87c3260bf2816a1028d3c754"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b1765ba6fdc144a348adc3c1a02f433fc37a3b5d0260988aaa21d6ce9c77228d"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--import-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "fc6c7c388b620f868c62062a0e10a4714111e79edad2ffe0c46b2570605b1700"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "9d799a66f898babe624241f14abedc83cabff7ae76d151f98f92440d48fcb3b1"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--import-workspace--desktop.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "aee72574f7825f2e5d2a7f23602ad63769f107032b73aed801b449ba3c7a5ce7"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7e9a9c652542170d929cca1e1c72d706e452b9567acd78ae4f3efe6a434c5e89"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--import-workspace--laptop.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "29f232432574de6a13e48b0caf018ed993cf04e68db2ffa5edcb088f27550ca9"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3f6c6c9cfe5d02f7936db420e49d9a6ca9aa9b7ab7ea919d6ab5bed97dfb0b20"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--import-workspace--tablet.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dd5d7e060603f98c68873f5392aa22048c40eb6e433c33f06eb21d1f996271db"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "13c23137f7f89c25b3bb323ac8c13da7da2ebfdb7621e5fc5faac0eab97a43b1"
+    },
+    {
+      "file": "flight_imports/flight_imports-server-error--import-workspace--mobile.png",
+      "kind": "region",
+      "region": "import-workspace",
+      "selector": ".import-shell",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "flight_imports-server-error",
+      "theme": "light",
+      "scenario": "flight_imports-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "f7387afea94571e966fef57abe0a8ca07577bac668b74f28d4e08deb1cb6ba8e",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "99202ff47b86070d8283def0168e2bb1c1e86a8e87c3260bf2816a1028d3c754"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "flight_imports-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-unauthorized",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-unauthorized",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-unauthorized",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-unauthorized",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-unauthorized",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-server-error",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-server-error",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-server-error",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-server-error",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "flight_imports-server-error",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

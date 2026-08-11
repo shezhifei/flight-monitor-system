@@ -1,0 +1,9 @@
+/* legacy_sync.css — Gantt-specific tokens only */
+:root {
+  --gantt-chart-height: 400px;
+}
+
+#app {
+  height: 100%;
+}
+

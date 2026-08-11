@@ -1,0 +1,76 @@
+{
+  "scenario": "llm-eval-lab-success",
+  "capture": {
+    "expected_panels": ["#ai-react-root"],
+    "regions": [{ "id": "llm-eval-workspace", "selector": "#ai-react-root" }]
+  },
+  "routes": [
+    {
+      "id": "llm-eval-jobs-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/eval/jobs",
+      "query": {
+        "limit": [
+          "30"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [
+              {
+                "job_id": "eval-job-20260714-001",
+                "status": "completed",
+                "created_at": "2026-07-14T02:05:00Z",
+                "started_at": "2026-07-14T02:05:05Z",
+                "finished_at": "2026-07-14T02:07:30Z",
+                "suite": "quick",
+                "options": {
+                  "profile_concurrency": 2,
+                  "case_concurrency": 2,
+                  "enable_tool_routing": true
+                },
+                "progress": {
+                  "total_attempts": 12,
+                  "completed_attempts": 12,
+                  "percentage": 100
+                },
+                "ranking": [
+                  {
+                    "profile_id": "profile-primary",
+                    "rank": 1,
+                    "score": 0.93
+                  }
+                ],
+                "error_message": null,
+                "profiles": [
+                  {
+                    "profile_id": "profile-primary",
+                    "name": "主模型",
+                    "model": "gpt-parity",
+                    "status": "completed",
+                    "progress": {
+                      "total_attempts": 6,
+                      "completed_attempts": 6,
+                      "percentage": 100
+                    },
+                    "metrics": {
+                      "accuracy": 0.93,
+                      "latency_p95_ms": 820
+                    },
+                    "error_message": null
+                  }
+                ]
+              }
+            ]
+          },
+          "message": "评测任务列表获取成功"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

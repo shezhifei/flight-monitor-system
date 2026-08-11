@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PRIMARY_HOST="${PRIMARY_HOST:-172.16.10.30}"
+PRIMARY_PORT="${PRIMARY_PORT:-5432}"
+REPLICATION_USER="${REPLICATION_USER:-replicator}"
+PG_VERSION="${PG_VERSION:-16}"
+DATA_DIR="${DATA_DIR:-/var/lib/postgresql/${PG_VERSION}/main}"
+
+systemctl stop "postgresql@${PG_VERSION}-main" || systemctl stop postgresql || true
+
+rm -rf "${DATA_DIR}"
+mkdir -p "${DATA_DIR}"
+chown -R postgres:postgres "${DATA_DIR}"
+
+export PGPASSWORD="${REPLICATION_PASSWORD:?REPLICATION_PASSWORD is required}"
+sudo -u postgres pg_basebackup \
+  -h "${PRIMARY_HOST}" \
+  -p "${PRIMARY_PORT}" \
+  -U "${REPLICATION_USER}" \
+  -D "${DATA_DIR}" \
+  -Fp -Xs -P -R
+
+cat >> "${DATA_DIR}/postgresql.auto.conf" <<EOF
+primary_conninfo = 'host=${PRIMARY_HOST} port=${PRIMARY_PORT} user=${REPLICATION_USER} password=${REPLICATION_PASSWORD} application_name=fm-pg-standby-01'
+hot_standby = on
+EOF
+
+touch "${DATA_DIR}/standby.signal"
+chown postgres:postgres "${DATA_DIR}/standby.signal"
+chown postgres:postgres "${DATA_DIR}/postgresql.auto.conf"
+
+systemctl start postgresql
+systemctl enable postgresql
+
+echo "Standby bootstrap completed"
+

@@ -1,0 +1,73 @@
+"""
+服务接口定义
+
+定义基础设施层可依赖的应用层服务接口。
+"""
+
+from typing import Any, Protocol
+
+
+class FlightServiceInterface(Protocol):
+    """航班服务接口"""
+
+    async def get_flight_by_id(self, flight_id: str) -> Any | None: ...
+
+    async def search_flights(self, criteria: dict[str, Any]) -> list[Any]: ...
+
+
+class TodoServiceInterface(Protocol):
+    """待办事项服务接口"""
+
+    async def get_todo(self, todo_id: Any) -> Any | None: ...
+
+    async def create_todo(self, command: Any) -> Any: ...
+
+    async def update_todo(self, command: Any) -> bool: ...
+
+    async def complete_todo(self, command: Any) -> bool: ...
+
+    async def cancel_todo(self, command: Any) -> bool: ...
+
+    async def assign_todo(self, command: Any) -> bool: ...
+
+    async def update_progress(self, command: Any) -> bool: ...
+
+    async def list_todos(self, options: Any) -> list[Any]: ...
+
+    async def search_todos(self, query: str, options: Any) -> list[Any]: ...
+
+    async def get_todo_stats(self, criteria: dict[str, Any]) -> Any: ...
+
+    async def get_overdue_todos(self, options: Any) -> list[Any]: ...
+
+    async def get_due_today_todos(self, options: Any) -> list[Any]: ...
+
+    async def get_high_priority_todos(self, options: Any) -> list[Any]: ...
+
+
+class BusinessCaseServiceInterface(Protocol):
+    """业务事项服务接口"""
+
+    async def create_business_case(self, case_data: Any, created_by: str) -> dict[str, Any]: ...
+
+    async def get_business_cases(
+        self, flight_id: str | None = None, case_type: str | None = None, status: str | None = None
+    ) -> list[dict[str, Any]]: ...
+
+    async def get_business_case_by_id(self, case_id: str) -> dict[str, Any]: ...
+
+    async def update_business_case(self, case_id: str, case_data: Any, updated_by: str) -> dict[str, Any]: ...
+
+    async def update_business_case_status(self, case_id: str, status: str, updated_by: str) -> dict[str, Any]: ...
+
+    async def append_business_case(
+        self,
+        case_id: str,
+        append_data: Any,
+        *,
+        user: Any,
+        context_type: str | None = None,
+        context_id: str | None = None,
+    ) -> dict[str, Any]: ...
+
+    async def delete_business_case(self, case_id: str) -> dict[str, Any]: ...

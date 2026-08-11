@@ -1,0 +1,3095 @@
+{
+  "schema_version": 1,
+  "page": "dashboard",
+  "legacy_html": "html/dashboard.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+  "source_files": [
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/dashboard_frontline_workbench.css",
+      "sha256": "b61bbae1466978aeec22a93b3c82e01ddb62df1658d342ba11a64c5e1fd94679"
+    },
+    {
+      "path": "css/dashboard_handover.css",
+      "sha256": "8279a39f7b7a8beea93bad350f69d6f673a5aa5f9a626010875701464f2c189e"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/dashboard.html",
+      "sha256": "815bdfcc39cdc1e40952a3351365c7d84d83ac4f85d596d4e9522eac08f6366c"
+    },
+    {
+      "path": "icons/activity.svg",
+      "sha256": "3a8193d9b7d8af78684605f18363455b9c15cc8cd59a8380a9503556224506f7"
+    },
+    {
+      "path": "icons/ai.svg",
+      "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+    },
+    {
+      "path": "icons/bar_chart.svg",
+      "sha256": "3af98cce83c1e1408755e6e39cf7760c97cbb797509478141d4320ebc1ac031c"
+    },
+    {
+      "path": "icons/detail.svg",
+      "sha256": "32240a9ff68eaf9bead993e13f3328c3ed4cda1a3ed11dc371589982e8892234"
+    },
+    {
+      "path": "icons/edit.svg",
+      "sha256": "150f74ef44584edf1e37e14d6a4be2d8ccded89c64765ba99283e401681e1d86"
+    },
+    {
+      "path": "icons/messages.svg",
+      "sha256": "41ea89efd02edf53adc55da7873bc3d5de1adb20c85314f7cd093f2bca94d0c2"
+    },
+    {
+      "path": "icons/refresh.svg",
+      "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+    },
+    {
+      "path": "icons/settings.svg",
+      "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+    },
+    {
+      "path": "icons/users.svg",
+      "sha256": "79e8c659734e79f182c457a7773907e8468b4da76b98cef123fc2a8f3df5b26a"
+    },
+    {
+      "path": "js/ai_entry_loader.js",
+      "sha256": "2500f7654a4b75a31b67e65cfe1abc94de3ea68586860ba509df3be3755e2e95"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    },
+    {
+      "path": "js/components/empty_error.js",
+      "sha256": "551ad745f4221a0647e2a0d19bd54cd526eb8e849a78f9a632e913dcc112575a"
+    },
+    {
+      "path": "js/components/header.js",
+      "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+    },
+    {
+      "path": "js/components/loading.js",
+      "sha256": "e02174c70738bd7d8d0a53fc58d3efdf2c51e4fe3200f61f393fb18b404538af"
+    },
+    {
+      "path": "js/components/toast.js",
+      "sha256": "7d1a0b132fe9043d6b616f1f2adb07963f8c4b0823f750d41a77655725f97df5"
+    },
+    {
+      "path": "js/dashboard_frontline_workbench.js",
+      "sha256": "417b979e98719bbc2d9b3c79bba2cbb4f41e7ba1f6340299c5ee09c1b262464a"
+    },
+    {
+      "path": "js/dashboard_handover.js",
+      "sha256": "76ca681010455ad2f8f2d4e1551fccba4161792e6254412514702654604b48c7"
+    },
+    {
+      "path": "static/ai/manifest.json",
+      "sha256": "dea1e911eb6f9ecfe842096cb6264856ee59e9fd3eb8b7659f5227643deac1f7"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "137705ceed38bd6ec3f6f7176ae8af526e811e2553f53905a5094333b266b6d8",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/dashboard/empty.json",
+      "sha256": "d4c1228bf97ef1e4e51b489976344b83bf0fe93b93965639fc01dbfd38b7c54d"
+    },
+    {
+      "path": "parity/fixtures/pages/dashboard/manifest.json",
+      "sha256": "cc80d47675f77685c5fc9f63c831fb266ae305cf2d94e267f47a25d528f594da"
+    },
+    {
+      "path": "parity/fixtures/pages/dashboard/partial.json",
+      "sha256": "47118e4999ec5fe9864b729f5c9b5ded93f852fd0b02c712dafcb0c989acc346"
+    },
+    {
+      "path": "parity/fixtures/pages/dashboard/success.json",
+      "sha256": "a9b59f5e5e097229c589a33fcf55a3a8b5cbff47acd4bad30d27fb212087bd49"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "dashboard-success",
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#moduleGrid",
+        ".dashboard-handover-card"
+      ],
+      "regions": [
+        {
+          "id": "module-grid",
+          "selector": "#moduleGrid"
+        }
+      ],
+      "interactions": [
+        {
+          "id": "handover-drawer",
+          "actions": [
+            {
+              "type": "click",
+              "selector": ".dashboard-handover-card"
+            }
+          ],
+          "expectedPanels": [
+            "body.dashboard-handover-open .dashboard-handover-drawer[aria-hidden='false']"
+          ],
+          "regions": [
+            {
+              "id": "handover-drawer",
+              "selector": ".dashboard-handover-drawer"
+            }
+          ],
+          "captureFullPage": false
+        }
+      ],
+      "blocked_interactions": []
+    },
+    {
+      "id": "dashboard-empty",
+      "fixture": "dashboard-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "dashboard-partial",
+      "fixture": "dashboard-partial",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "dashboard/dashboard-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b88b25f50e7474de67bef566706f77084dcda6985d21a6b2beddcaf852cd2772"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--desktop-wide.png",
+      "kind": "region",
+      "region": "module-grid",
+      "selector": "#moduleGrid",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0ade1eba98b85a9105ba3477464a8b47a2f8b69cbe8510dc834f57cadd08873c"
+    },
+    {
+      "file": "dashboard/dashboard-success--handover-drawer--handover-drawer--desktop-wide.png",
+      "kind": "region",
+      "region": "handover-drawer",
+      "selector": ".dashboard-handover-drawer",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": "handover-drawer",
+      "actions": [
+        {
+          "type": "click",
+          "selector": ".dashboard-handover-card"
+        }
+      ],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "db494235c7b0ad54979a17ae1e49015c5804da0ec3f28aef72c9e70f919631f1"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f068497ffe5ec600122bb333b03b75d8d4f234eb0b4dc736441bb5dccae6d585"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--desktop.png",
+      "kind": "region",
+      "region": "module-grid",
+      "selector": "#moduleGrid",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f56f20808f5242be7a19d970418f9222e718f365e26dd6002d002dbc664b204d"
+    },
+    {
+      "file": "dashboard/dashboard-success--handover-drawer--handover-drawer--desktop.png",
+      "kind": "region",
+      "region": "handover-drawer",
+      "selector": ".dashboard-handover-drawer",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": "handover-drawer",
+      "actions": [
+        {
+          "type": "click",
+          "selector": ".dashboard-handover-card"
+        }
+      ],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0356c6d5f12c1709eb8ffd83db73c5784fd81323da0daa009d0415cfe0aa92e1"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "53088ff340c58d6169a28550751625d7b64ca4e5129ad55fc23752ca450e0274"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--laptop.png",
+      "kind": "region",
+      "region": "module-grid",
+      "selector": "#moduleGrid",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e83556236c3e421452a75835c86920350cad61450196357a775b1c4a462d0fa8"
+    },
+    {
+      "file": "dashboard/dashboard-success--handover-drawer--handover-drawer--laptop.png",
+      "kind": "region",
+      "region": "handover-drawer",
+      "selector": ".dashboard-handover-drawer",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": "handover-drawer",
+      "actions": [
+        {
+          "type": "click",
+          "selector": ".dashboard-handover-card"
+        }
+      ],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "25562f481c1a6e0dd5bbe9a377c6ea26452f9fc82987246b199b01e29b25147f"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "baf3f2caf3f6d775e06493be0390a202b2e9894bdedf69d3cdc99d1d02f445c4"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--tablet.png",
+      "kind": "region",
+      "region": "module-grid",
+      "selector": "#moduleGrid",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "7eb02b2ea9d4e0477629898adf8e86355f80753c270bc0505d30a39a154e24dc"
+    },
+    {
+      "file": "dashboard/dashboard-success--handover-drawer--handover-drawer--tablet.png",
+      "kind": "region",
+      "region": "handover-drawer",
+      "selector": ".dashboard-handover-drawer",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": "handover-drawer",
+      "actions": [
+        {
+          "type": "click",
+          "selector": ".dashboard-handover-card"
+        }
+      ],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ee012590e08210df6fa20e0840fdfa01d54fcd9e35c60ee304ae471402228160"
+    },
+    {
+      "file": "dashboard/dashboard-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "72ccdc1b6110de74298a480db440ed11d77fbd8f5707ead358acdc959f16f94f"
+    },
+    {
+      "file": "dashboard/dashboard-success--module-grid--mobile.png",
+      "kind": "region",
+      "region": "module-grid",
+      "selector": "#moduleGrid",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "43e112e4d749daa2d06d7ac217fb6d35ec9cb395fe2959ac100978315ccc78fd"
+    },
+    {
+      "file": "dashboard/dashboard-success--handover-drawer--handover-drawer--mobile.png",
+      "kind": "region",
+      "region": "handover-drawer",
+      "selector": ".dashboard-handover-drawer",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dashboard-success",
+      "theme": "light",
+      "scenario": "dashboard-success",
+      "state": "handover-drawer",
+      "actions": [
+        {
+          "type": "click",
+          "selector": ".dashboard-handover-card"
+        }
+      ],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a8a803d648af0da74fab442c840cf9c3917a55601ea6755ea46538ccccf3109c"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dashboard-empty",
+      "theme": "light",
+      "scenario": "dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "2aa90c65d6559fb9d478c67c3e847a9ffb61a2926dc20c97e7a7e7a30dfa8d08"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dashboard-empty",
+      "theme": "light",
+      "scenario": "dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0ee6c4247a67c608f6c7c498fdd8a1fdc37a12ceed4831165549c0a036df35e4"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dashboard-empty",
+      "theme": "light",
+      "scenario": "dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dc4d481fa191cedf34ee2f32a162b901faf6145bd914d91eb96f12313acf8713"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dashboard-empty",
+      "theme": "light",
+      "scenario": "dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cddccda2bfb5aa02afec7b404afa11eac7795919e752b0a7f3ca6a0c745eadbd"
+    },
+    {
+      "file": "dashboard/dashboard-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dashboard-empty",
+      "theme": "light",
+      "scenario": "dashboard-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "4586abbaab75a3821786bb74b6d34a74c28bc0802a8b1a28ba4eddc9bc175a48"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "dashboard-partial",
+      "theme": "light",
+      "scenario": "dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "76b8741d4d52a02aac5526a92ce2f96a6a996ebf8fe4c3e3b80c1a23f6580659"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "dashboard-partial",
+      "theme": "light",
+      "scenario": "dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "80214f6860f5c567a00dc8196a574bd9730e82c22010c312bc6b90a793d158fd"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "dashboard-partial",
+      "theme": "light",
+      "scenario": "dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "e8ad7b4ee2a8d096920f317f36aca76b3d58c6c268f43a880285447c4908f9ef"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "dashboard-partial",
+      "theme": "light",
+      "scenario": "dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "521fc2e9de1db56334a4172b22336e0f975ffbdd26f4748ba8135f7b87b42b2d"
+    },
+    {
+      "file": "dashboard/dashboard-partial--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "dashboard-partial",
+      "theme": "light",
+      "scenario": "dashboard-partial",
+      "state": null,
+      "actions": [],
+      "source_sha256": "ef8fa90ceb44a8ac3c2a3be6a7d1af7ffd921a1e2320dd0f849f16d31667c1ec",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cb5e18938556cbf4adc6a2f009b3b4db4bec64b39ab51dcad5fe8253b23a30db"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "dashboard-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-partial",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-partial",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-partial",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-partial",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "dashboard-partial",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ],
+            "to_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers",
+          "query": {
+            "from_user_id": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ],
+            "offset": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/candidates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/shift-handovers/system-draft-preview",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/burden-metrics",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/followup-queue",
+          "query": {
+            "assignee": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "limit": [
+              "20"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "user_id,generated_at,my_orders,order_counts,pending_shift_handover_count"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/mobile/workbench",
+          "query": {
+            "fields": [
+              "notification_unread_count,chat_unread_total,pending_sync_action_count,channel_recommendation,next_primary_action,arrival_verification_needed,soft_followups_count,critical_alerts,handover_draft_summary"
+            ],
+            "max_orders": [
+              "8"
+            ],
+            "pending_sync_action_count": [
+              "0"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/ai/events/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ]
+          },
+          "body": null
+        }
+      ]
+    }
+  ]
+}

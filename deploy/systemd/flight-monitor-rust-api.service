@@ -1,0 +1,37 @@
+[Unit]
+Description=Flight Monitor Rust API (Edge)
+After=network.target postgresql.service redis.service
+Wants=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/flight-monitor-system
+EnvironmentFile=/etc/flight-monitor/rust-api.env
+EnvironmentFile=-/run/flight-monitor/rust-api.runtime.env
+ExecStartPre=/usr/bin/mkdir -p /run/flight-monitor
+ExecStartPre=/opt/flight-monitor-system/.venv/bin/python /opt/flight-monitor-system/scripts/vault/bootstrap_runtime_env.py --base-env /etc/flight-monitor/rust-api.env --template /opt/flight-monitor-system/deploy/vault/templates/rust-api.env.ctmpl --rendered-env /run/flight-monitor/rust-api.vault.env --runtime-env /run/flight-monitor/rust-api.runtime.env --agent-config /run/flight-monitor/rust-api.vault-agent.hcl --mode local
+ExecStart=/opt/flight-monitor-system/fms-server
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+LimitNOFILE=65536
+LimitNPROC=4096
+
+MemoryMax=256M
+MemoryHigh=224M
+
+User=flight-monitor
+Group=flight-monitor
+
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/shared /var/log/flight-monitor /run/flight-monitor
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

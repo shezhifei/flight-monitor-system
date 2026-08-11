@@ -1,0 +1,102 @@
+{
+  "scenario": "resource-manager-forbidden",
+  "expected_legacy_errors": [
+    "加载班组失败: Error: 请求失败",
+    "加载班组类型失败: Error: 请求失败",
+    "加载用户列表失败: Error: 请求失败",
+    "加载设备失败: Error: 请求失败",
+    "加载设备类型失败: Error: 请求失败"
+  ],
+  "routes": [
+    {
+      "id": "resource-users-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少资源查看权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-equipmentTypes-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少资源查看权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-equipment-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少资源查看权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-teamTypes-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/team-types",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少资源查看权限"
+          }
+        }
+      }
+    },
+    {
+      "id": "resource-teams-forbidden",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/teams",
+      "query": {
+        "include_inactive": [
+          "false"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "缺少资源查看权限"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

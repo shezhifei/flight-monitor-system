@@ -1,0 +1,14 @@
+listen_addresses = '*'
+port = 5432
+max_connections = 300
+shared_buffers = 4GB
+effective_cache_size = 12GB
+maintenance_work_mem = 1GB
+wal_level = logical
+max_wal_senders = 10
+max_replication_slots = 10
+hot_standby = on
+wal_keep_size = 4GB
+archive_mode = on
+archive_command = 'test ! -f /var/lib/postgresql/wal_archive/%f && cp %p /var/lib/postgresql/wal_archive/%f'
+synchronous_commit = on

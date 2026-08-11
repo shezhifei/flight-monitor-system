@@ -1,0 +1,27 @@
+{
+  "scenario": "llm-eval-lab-server-error",
+  "routes": [
+    {
+      "id": "llm-eval-jobs-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/ai/eval/jobs",
+      "query": {
+        "limit": [
+          "30"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "评测任务服务暂时不可用"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

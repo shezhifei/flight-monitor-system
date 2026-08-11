@@ -1,0 +1,96 @@
+{
+  "scenario": "kpi_dashboard-empty",
+  "routes": [
+    {
+      "id": "kpi-service-nodes-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/service-nodes",
+      "query": {
+        "date": [
+          "2026-07-14"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "date": "2026-07-14"
+        }
+      }
+    },
+    {
+      "id": "kpi-snapshot-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/snapshot",
+      "query": {
+        "time_range": [
+          "today"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "time_range": "today",
+            "turnaround_time_avg_minutes": null,
+            "turnaround_time_p90_minutes": null,
+            "on_time_departure_rate": null,
+            "on_time_arrival_rate": null,
+            "service_node_compliance_rate": null,
+            "equipment_utilization_rate": null,
+            "abnormal_flight_ratio": null,
+            "calculated_at": "2026-07-14T02:30:00Z",
+            "hourly_flight_volume": [],
+            "turnaround_distribution": []
+          }
+        }
+      }
+    },
+    {
+      "id": "kpi-trend-success",
+      "method": "GET",
+      "pathname": "/api/v2/kpi/trend",
+      "query": {
+        "days": [
+          "7"
+        ],
+        "metric": [
+          "on_time_rate"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "metric": "on_time_rate",
+          "days": 7
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "kpi-stream-success",
+      "pathname": "/api/v2/kpi/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ]
+      },
+      "events": [
+        {
+          "id": "kpi_dashboard-empty-1",
+          "event": "kpi_updated",
+          "data": {
+            "items": [],
+            "generated_at": "2026-07-14T02:30:05Z"
+          }
+        }
+      ]
+    }
+  ]
+}

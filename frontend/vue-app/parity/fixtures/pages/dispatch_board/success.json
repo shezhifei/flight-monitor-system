@@ -1,0 +1,265 @@
+{
+  "scenario": "dispatch_board-success",
+  "capture": {
+    "expected_panels": [".gantt-shell", "#ganttStage"],
+    "regions": [{ "id": "gantt-workspace", "selector": ".gantt-shell" }],
+    "blocked_interactions": [{
+      "id": "dispatch-drawers-and-mutations",
+      "reason": "Initial-render baseline covers timeline load only; detail drawers, batch mutation, and replan require separate interaction scenarios.",
+      "source": "html/dispatch_board.html"
+    }]
+  },
+  "routes": [
+    {
+      "id": "dispatch-board-stands-success",
+      "method": "GET",
+      "pathname": "/api/v2/stands",
+      "query": {
+        "include_inactive": ["false"]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [
+            {
+              "id": "stand-a12",
+              "code": "A12",
+              "name": "机位 A12",
+              "terminal": "T1",
+              "area": "A",
+              "position": { "lat": 31.143, "lng": 121.805 },
+              "stand_type": "contact",
+              "size_category": "C",
+              "is_active": true
+            },
+            {
+              "id": "stand-b08",
+              "code": "B08",
+              "name": "机位 B08",
+              "terminal": "T2",
+              "area": "B",
+              "position": { "lat": 31.145, "lng": 121.81 },
+              "stand_type": "remote",
+              "size_category": "C",
+              "is_active": true
+            }
+          ],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "dispatch-board-timeline-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/timeline",
+      "query": {
+        "view_mode": ["flight"],
+        "window_end": ["2026-07-14T08:30:00.000Z"],
+        "window_start": ["2026-07-14T01:30:00.000Z"]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "view_mode": "flight",
+            "is_admin": true,
+            "window_start": "2026-07-14T01:30:00.000Z",
+            "window_end": "2026-07-14T08:30:00.000Z",
+            "generated_at": "2026-07-14T02:30:00.000Z",
+            "status_counts": {
+              "pending": 0,
+              "assigned": 1,
+              "in_progress": 1,
+              "completed": 0,
+              "cancelled": 0
+            },
+            "lanes": [
+              {
+                "id": "lane-flight-mu5101",
+                "label": "MU5101",
+                "index": 0,
+                "subtrack_count": 1,
+                "item_count": 2
+              }
+            ],
+            "items": [
+              {
+                "id": "order-boarding-1",
+                "order_id": "order-boarding-1",
+                "flight_id": "flight-mu5101",
+                "flight_no": "MU5101",
+                "task_type": "boarding",
+                "task_type_name": "登机保障",
+                "status": "in_progress",
+                "start_time": "2026-07-14T02:40:00.000Z",
+                "end_time": "2026-07-14T03:10:00.000Z",
+                "planned_start_time": "2026-07-14T02:40:00.000Z",
+                "planned_end_time": "2026-07-14T03:10:00.000Z",
+                "actual_start_time": "2026-07-14T02:42:00.000Z",
+                "actual_end_time": null,
+                "lane_id": "lane-flight-mu5101",
+                "lane_label": "MU5101",
+                "team_id": "team-cabin-1",
+                "team_name": "客舱一组",
+                "stand_id": "stand-a12",
+                "stand_code": "A12",
+                "gate": "12",
+                "terminal": "T1",
+                "source": "auto",
+                "dispatch_type": "standard",
+                "label": "MU5101 · 登机保障",
+                "is_flight_summary": false,
+                "related_order_ids": [],
+                "members": [],
+                "equipment_codes": []
+              },
+              {
+                "id": "order-cleaning-1",
+                "order_id": "order-cleaning-1",
+                "flight_id": "flight-mu5101",
+                "flight_no": "MU5101",
+                "task_type": "cabin_cleaning",
+                "task_type_name": "客舱清洁",
+                "status": "assigned",
+                "start_time": "2026-07-14T03:15:00.000Z",
+                "end_time": "2026-07-14T03:45:00.000Z",
+                "planned_start_time": "2026-07-14T03:15:00.000Z",
+                "planned_end_time": "2026-07-14T03:45:00.000Z",
+                "actual_start_time": null,
+                "actual_end_time": null,
+                "lane_id": "lane-flight-mu5101",
+                "lane_label": "MU5101",
+                "team_id": "team-clean-2",
+                "team_name": "清洁二组",
+                "stand_id": "stand-a12",
+                "stand_code": "A12",
+                "gate": "12",
+                "terminal": "T1",
+                "source": "auto",
+                "dispatch_type": "standard",
+                "label": "MU5101 · 客舱清洁",
+                "is_flight_summary": false,
+                "related_order_ids": [],
+                "members": [],
+                "equipment_codes": []
+              }
+            ]
+          },
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "dispatch-board-collaboration-groups-success",
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/collaboration/groups",
+      "query": {
+        "limit": ["120"],
+        "offset": ["0"],
+        "status": ["all"]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [],
+            "total": 0
+          },
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "dispatch-board-safety-progress-success",
+      "method": "POST",
+      "pathname": "/api/v2/dispatch-orders/safety-checklist/progress",
+      "query": {},
+      "requestBody": {
+        "orders": [
+          {
+            "dispatch_order_id": "order-boarding-1",
+            "task_type": "boarding"
+          },
+          {
+            "dispatch_order_id": "order-cleaning-1",
+            "task_type": "cabin_cleaning"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": {
+            "items": [
+              {
+                "dispatch_order_id": "order-boarding-1",
+                "task_type": "boarding",
+                "enforced": true,
+                "ready": true,
+                "required_total": 2,
+                "required_done": 2,
+                "blocked_reason": null
+              },
+              {
+                "dispatch_order_id": "order-cleaning-1",
+                "task_type": "cabin_cleaning",
+                "enforced": true,
+                "ready": false,
+                "required_total": 1,
+                "required_done": 0,
+                "blocked_reason": "等待登机完成"
+              }
+            ]
+          },
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    }
+  ],
+  "sse_streams": [
+    {
+      "id": "dispatch-board-sse-stream-success",
+      "pathname": "/api/v2/sse/stream",
+      "query": {
+        "client_instance_id": [
+          "mrk19xs0-11365b80a5caef14"
+        ],
+        "token": [
+          "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+        ],
+        "topics": [
+          "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+        ]
+      },
+      "events": [
+        {
+          "id": "dispatch-board-sse-1",
+          "event": "global_status",
+          "data": {
+            "event_type": "global_status",
+            "payload": {
+              "status": "healthy",
+              "message": "parity stream connected"
+            },
+            "emitted_at": "2026-07-14T02:30:00Z"
+          }
+        }
+      ]
+    }
+  ],
+  "expected_legacy_errors": [
+    "Cannot read properties of undefined (reading 'raw')"
+  ],
+  "coverage_note": "Archive dispatch_board_gantt.js missing paren and missing showToast shim were repaired in the local legacy archive so timeline fixtures can execute. ECharts custom-series still expects params.data.raw on some item shapes; that residual archive rendering edge is recorded as an expected error until the series encoder is aligned."
+}

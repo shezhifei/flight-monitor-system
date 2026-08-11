@@ -1,0 +1,1594 @@
+{
+  "generated_from": "parity/fixtures/pages",
+  "count": 64,
+  "routes": [
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/capabilities",
+      "body": {
+        "success": true,
+        "data": {
+          "ai_ready": true,
+          "ai_execute_permission": true,
+          "ai_chat_permission": true,
+          "missing_reasons": []
+        }
+      },
+      "source": "ai_monitor/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/entities",
+      "body": {
+        "success": true,
+        "data": {
+          "entities": []
+        }
+      },
+      "source": "ai_config_center/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/eval/jobs",
+      "body": {
+        "success": true,
+        "data": {
+          "items": [
+            {
+              "job_id": "eval-job-20260714-001",
+              "status": "completed",
+              "created_at": "2026-07-14T02:05:00Z",
+              "started_at": "2026-07-14T02:05:05Z",
+              "finished_at": "2026-07-14T02:07:30Z",
+              "suite": "quick",
+              "options": {
+                "profile_concurrency": 2,
+                "case_concurrency": 2,
+                "enable_tool_routing": true
+              },
+              "progress": {
+                "total_attempts": 12,
+                "completed_attempts": 12,
+                "percentage": 100
+              },
+              "ranking": [
+                {
+                  "profile_id": "profile-primary",
+                  "rank": 1,
+                  "score": 0.93
+                }
+              ],
+              "error_message": null,
+              "profiles": [
+                {
+                  "profile_id": "profile-primary",
+                  "name": "主模型",
+                  "model": "gpt-parity",
+                  "status": "completed",
+                  "progress": {
+                    "total_attempts": 6,
+                    "completed_attempts": 6,
+                    "percentage": 100
+                  },
+                  "metrics": {
+                    "accuracy": 0.93,
+                    "latency_p95_ms": 820
+                  },
+                  "error_message": null
+                }
+              ]
+            }
+          ]
+        },
+        "message": "评测任务列表获取成功"
+      },
+      "source": "llm_eval_lab/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/jobs",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "job_id": "job-5101",
+            "job_type": "flight_risk",
+            "status": "succeeded",
+            "created_at": "2026-07-14T02:20:00Z",
+            "updated_at": "2026-07-14T02:21:00Z"
+          }
+        ]
+      },
+      "source": "ai_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/jobs/stats",
+      "body": {
+        "success": true,
+        "data": {
+          "total": 1,
+          "pending": 0,
+          "running": 0,
+          "succeeded": 1,
+          "failed": 0
+        }
+      },
+      "source": "ai_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/metrics/execution-visibility",
+      "body": {
+        "success": true,
+        "data": {
+          "executions_total": 12,
+          "visible_total": 12,
+          "hidden_total": 0,
+          "generated_at": "2026-07-14T02:30:00Z"
+        }
+      },
+      "source": "ai_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/metrics/query-routing",
+      "body": {
+        "success": true,
+        "data": {
+          "requests_total": 24,
+          "routed_total": 24,
+          "fallback_total": 0,
+          "generated_at": "2026-07-14T02:30:00Z"
+        }
+      },
+      "source": "ai_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/metrics/report-schema",
+      "body": {
+        "success": true,
+        "data": {
+          "valid_total": 8,
+          "invalid_total": 0,
+          "validation_rate": 1,
+          "generated_at": "2026-07-14T02:30:00Z"
+        }
+      },
+      "source": "ai_monitor/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/models",
+      "body": {
+        "success": true,
+        "data": {
+          "models": [
+            {
+              "id": "model-gpt-4o-mini",
+              "model": "gpt-4o-mini",
+              "provider": "openai",
+              "enabled": true,
+              "input_modalities": [
+                "text"
+              ]
+            }
+          ]
+        }
+      },
+      "source": "ai_config_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/nl-query/suggestions",
+      "body": {
+        "success": true,
+        "data": {
+          "suggestions": [
+            {
+              "label": "延误航班",
+              "text": "查询未来两小时预计延误的航班"
+            },
+            {
+              "label": "机位冲突",
+              "text": "列出当前机位冲突及影响航班"
+            }
+          ]
+        },
+        "message": "查询建议获取成功"
+      },
+      "source": "nl_query/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/pending-actions",
+      "body": {
+        "success": true,
+        "data": {
+          "items": [],
+          "total": 0,
+          "total_count": 0,
+          "pagination": {
+            "limit": 200,
+            "offset": 0,
+            "has_more": false
+          }
+        }
+      },
+      "source": "ai_monitor/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/proposals/stats",
+      "body": {
+        "success": true,
+        "data": {
+          "total": 3,
+          "pending": 0,
+          "approved": 2,
+          "rejected": 1,
+          "executed": 2
+        }
+      },
+      "source": "ai_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "name": "flight_lookup",
+            "category": "operations",
+            "description": "查询航班状态",
+            "enabled": true
+          }
+        ]
+      },
+      "source": "ai_config_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/ai/tools/categories",
+      "body": {
+        "success": true,
+        "data": {
+          "categories": [
+            {
+              "code": "operations",
+              "name": "运行工具",
+              "sort_order": 10
+            }
+          ]
+        }
+      },
+      "source": "ai_config_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/anomalies",
+      "body": {
+        "success": true,
+        "data": {
+          "items": [
+            {
+              "anomaly_id": "anomaly-mu5101-001",
+              "flight_id": "flight-mu5101",
+              "anomaly_type": "turnaround_delay",
+              "severity": "high",
+              "status": "open",
+              "title": "MU5101 保障节点延误",
+              "description": "登机准备较计划晚 12 分钟",
+              "detected_at": "2026-07-14T02:22:00Z",
+              "resolved_at": null,
+              "escalation_level": 1,
+              "last_escalated_at": null,
+              "linked_todo_id": null,
+              "rule_id": "rule-turnaround-delay",
+              "context_data": {
+                "delay_minutes": 12
+              },
+              "created_at": "2026-07-14T02:22:00Z",
+              "updated_at": "2026-07-14T02:22:00Z"
+            }
+          ],
+          "total": 1
+        },
+        "message": "异常列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "operations_review_report/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/anomalies/stats",
+      "body": {
+        "success": true,
+        "data": {
+          "total": 0,
+          "open": 0,
+          "acknowledged": 0,
+          "resolved": 0,
+          "critical": 0,
+          "escalated": 0
+        }
+      },
+      "source": "anomaly_monitor/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/auth/admin/permission-templates",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "template-ops-view",
+            "name": "运行只读模板",
+            "code": "OPS_READONLY",
+            "description": "运行态只读权限集合",
+            "permissions": [
+              "flight:read",
+              "dispatch:view",
+              "team:view"
+            ],
+            "is_system": true,
+            "category": "operations",
+            "display_order": 10,
+            "is_active": true,
+            "created_at": "2026-05-01T00:00:00Z",
+            "updated_at": "2026-07-01T00:00:00Z"
+          }
+        ],
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "user_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/auth/permissions",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "permission-flight-read",
+            "name": "flight:read",
+            "description": "查看航班信息",
+            "is_active": true,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": "permission-dispatch-view",
+            "name": "dispatch:view",
+            "description": "查看调度信息",
+            "is_active": true,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z"
+          }
+        ],
+        "message": "权限列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "user_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/auth/roles",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "role-operations-manager",
+            "name": "operations_manager",
+            "description": "运行值班经理",
+            "permissions": [
+              "flight:read",
+              "dispatch:view",
+              "team:view"
+            ],
+            "is_active": true,
+            "is_system": true,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-07-01T00:00:00Z",
+            "user_count": 3
+          }
+        ],
+        "message": "角色列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "user_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "username": "ops_manager",
+            "email": "ops.manager@example.test",
+            "is_active": true,
+            "is_verified": true,
+            "is_admin": false,
+            "created_at": "2026-05-10T00:00:00Z",
+            "last_login_at": "2026-07-14T02:00:00Z",
+            "roles": [
+              "operations_manager"
+            ],
+            "permissions": [
+              "flight:read",
+              "dispatch:view",
+              "team:view"
+            ],
+            "display_name": "李调度",
+            "effective_operator_name": "李调度",
+            "effective_operator_label": "李调度 · 运行控制中心",
+            "operator_context_type": "department",
+            "operator_context_id": "department-occ",
+            "department": "运行控制中心",
+            "job_level": 7,
+            "job_title": "值班经理",
+            "permission_version": 6
+          }
+        ],
+        "message": "用户列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "user_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/business-case-types",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "code": "flight_delay",
+            "name": "航班延误",
+            "description": "航班延误处置事项",
+            "visibility_scope": "department",
+            "is_active": true,
+            "created_at": "2026-07-01T00:00:00Z",
+            "updated_at": "2026-07-14T00:00:00Z"
+          }
+        ]
+      },
+      "source": "flight_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/burden-metrics",
+      "body": {
+        "success": true,
+        "data": {
+          "generated_at": "2026-07-14T02:30:00Z",
+          "blocked_completion_count": 1,
+          "soft_completion_count": 2,
+          "pending_arrival_verification_count": 1,
+          "issue_reported_counts": {
+            "text": 3,
+            "photo": 1,
+            "voice": 1
+          },
+          "open_soft_followups": 1,
+          "open_arrival_verifications": 1,
+          "raw_counters": {
+            "dispatch.order.complete.blocked": 1,
+            "dispatch.order.complete.soft": 2,
+            "dispatch.order.arrival.pending_verification": 1
+          }
+        },
+        "message": "dispatch burden metrics loaded"
+      },
+      "source": "dashboard/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/conflicts",
+      "body": {
+        "success": true,
+        "data": {
+          "has_conflicts": true,
+          "conflict_count": 1,
+          "conflicts": [
+            {
+              "conflict_id": "conflict-stand-a12-001",
+              "conflict_type": "stand_overlap",
+              "severity": "high",
+              "resource_id": "stand-a12",
+              "resource_name": "A12",
+              "flight_ids": [
+                "flight-mu5101",
+                "flight-ca1832"
+              ],
+              "window_start": "2026-07-14T02:15:00Z",
+              "window_end": "2026-07-14T02:55:00Z",
+              "message": "A12 机位占用时间重叠"
+            }
+          ]
+        },
+        "message": "冲突列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "operations_review_report/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/followup-queue",
+      "body": {
+        "success": true,
+        "data": {
+          "generated_at": "2026-07-14T02:30:00Z",
+          "assignee": "00000000-0000-4000-8000-000000000001",
+          "total": 1,
+          "pending_verification_count": 1,
+          "soft_followup_count": 0,
+          "items": [
+            {
+              "todo_id": "todo-arrival-5101",
+              "title": "MU5101 到场待补核",
+              "description": "请班组长复核到场时间",
+              "status": "pending",
+              "priority": "high",
+              "due_date": "2026-07-14T02:45:00Z",
+              "assigned_to": "00000000-0000-4000-8000-000000000001",
+              "source_type": "dispatch_arrival_verification",
+              "source_id": "dispatch-order-5101",
+              "tags": [
+                "arrival",
+                "verification"
+              ],
+              "followup_kind": "arrival_verification"
+            }
+          ]
+        },
+        "message": "dispatch follow-up queue loaded"
+      },
+      "source": "dashboard/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch-orders/timeline",
+      "body": {
+        "success": true,
+        "data": {
+          "items": [
+            {
+              "order_id": "order-5101",
+              "flight_id": "flight-mu5101",
+              "task_type": "boarding",
+              "status": "in_progress",
+              "planned_start": "2026-07-14T02:15:00Z",
+              "planned_end": "2026-07-14T02:50:00Z",
+              "assignee_name": "登机保障一组"
+            }
+          ],
+          "total": 1,
+          "status_counts": {
+            "pending": 0,
+            "in_progress": 1,
+            "completed": 0,
+            "cancelled": 0
+          }
+        }
+      },
+      "source": "command_center/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+      "body": [
+        {
+          "equipment_id": "equipment-tug-01",
+          "equipment_name": "一号牵引车",
+          "occupied_minutes": 590.4,
+          "utilization_rate": 0.82
+        },
+        {
+          "equipment_id": "equipment-bus-02",
+          "equipment_name": "二号摆渡车",
+          "occupied_minutes": 460.8,
+          "utilization_rate": 0.64
+        }
+      ],
+      "source": "resource_utilization/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/stands",
+      "body": [
+        {
+          "stand_id": "stand-a12",
+          "stand_code": "A12",
+          "occupied_minutes": 648,
+          "utilization_rate": 0.9
+        },
+        {
+          "stand_id": "stand-b06",
+          "stand_code": "B06",
+          "occupied_minutes": 511.2,
+          "utilization_rate": 0.71
+        }
+      ],
+      "source": "resource_utilization/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/summary",
+      "body": {
+        "window_start": "2026-07-13T14:30:00+00:00",
+        "window_end": "2026-07-14T02:30:00+00:00",
+        "stand_utilization_rate": 0.805,
+        "team_utilization_rate": 0.755,
+        "equipment_utilization_rate": 0.73,
+        "stand_count": 2,
+        "team_count": 2,
+        "equipment_count": 2
+      },
+      "source": "resource_utilization/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/analytics/resource-utilization/teams",
+      "body": [
+        {
+          "team_id": "team-ground-01",
+          "order_count": 9,
+          "occupied_minutes": 612,
+          "utilization_rate": 0.85
+        },
+        {
+          "team_id": "team-ground-02",
+          "order_count": 6,
+          "occupied_minutes": 475.2,
+          "utilization_rate": 0.66
+        }
+      ],
+      "source": "resource_utilization/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "equipment-tug-01",
+            "code": "TUG-01",
+            "equipment_type_id": "equipment-type-tug",
+            "name": "一号牵引车",
+            "license_plate": "粤A·FMS01",
+            "terminal": "T1",
+            "status": "available",
+            "current_position": {
+              "lat": 22.639,
+              "lng": 113.811
+            },
+            "current_stand_id": "stand-a12",
+            "last_position_update": "2026-07-14T02:25:00Z",
+            "next_maintenance_date": "2026-08-01",
+            "current_dispatch_id": null,
+            "created_at": "2026-06-01T00:00:00Z",
+            "is_active": true,
+            "equipment_type_name": "牵引车"
+          }
+        ],
+        "message": "设备列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "resource_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/equipment-types",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "equipment-type-tug",
+            "name": "牵引车",
+            "code": "TUG",
+            "category": "vehicle",
+            "requires_driver": true,
+            "driver_team_type_id": "team-type-driver",
+            "icon": "tractor",
+            "description": "航空器牵引设备",
+            "created_at": "2026-06-01T00:00:00Z",
+            "is_active": true
+          }
+        ],
+        "message": "设备类型列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "resource_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/equipment",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/equipment-types",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "code": "tractor",
+            "name": "牵引车",
+            "description": "航空器牵引保障设备",
+            "is_active": true
+          }
+        ]
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/resources/teams",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/flight-generation-rules",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "rule_id": "rule-boarding-1",
+            "rule_name": "登机前保障",
+            "department_id": "dept-ops",
+            "task_type": "boarding",
+            "leg_scope": "outbound",
+            "status": "active",
+            "generation_anchor_type": "scheduled_time",
+            "start_offset_minutes": -45,
+            "duration_minutes": 35,
+            "publication_state": "published",
+            "publish_trigger_mode": "time",
+            "publish_offset_minutes": -60,
+            "conditions": {}
+          }
+        ]
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/generation-adjustment-rules",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualification-levels",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/qualifications",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/task-type-requirements/versions",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/rules/departments/dept-ops/temporary-task-templates",
+      "body": {
+        "success": true,
+        "data": []
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/task-types",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "code": "boarding",
+            "name": "登机保障",
+            "default_department_id": "dept-ops",
+            "is_active": true
+          }
+        ]
+      },
+      "source": "dispatch_rule_center/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/team-types",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "team-type-driver",
+            "name": "特车驾驶班组",
+            "department_id": "dept-ground",
+            "code": "DRV",
+            "description": "负责特种车辆驾驶",
+            "color": "#1677ff",
+            "is_driver_type": true,
+            "task_types": [
+              "aircraft_tow"
+            ],
+            "created_at": "2026-06-01T00:00:00Z",
+            "is_active": true
+          }
+        ],
+        "message": "班组类型列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "resource_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/dispatch/teams",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "team-ground-01",
+            "name": "地服一组",
+            "team_type_id": "team-type-driver",
+            "code": "GROUND-01",
+            "leader_id": "00000000-0000-4000-8000-000000000002",
+            "terminal": "T1",
+            "current_status": "available",
+            "current_position": {
+              "lat": 22.638,
+              "lng": 113.812
+            },
+            "current_stand_id": "stand-a12",
+            "last_position_update": "2026-07-14T02:24:00Z",
+            "created_at": "2026-06-01T00:00:00Z",
+            "is_active": true,
+            "member_count": 3,
+            "members": []
+          }
+        ],
+        "message": "班组列表获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "resource_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/flights",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "flight_id": "flight-mu5101",
+            "flight_number": "MU5101",
+            "airline_code": "MU",
+            "registration": "B-2026",
+            "aircraft_type_detail": "A320",
+            "status": "boarding",
+            "scheduled_departure": "2026-07-14T03:00:00Z",
+            "scheduled_arrival": "2026-07-14T05:15:00Z",
+            "estimated_departure": "2026-07-14T03:10:00Z",
+            "estimated_arrival": "2026-07-14T05:25:00Z",
+            "actual_departure": null,
+            "actual_arrival": null,
+            "stand": "A12",
+            "gate": "12",
+            "terminal": "T1",
+            "position": "A12",
+            "baggage_carousel": null,
+            "has_boarding_restriction": false,
+            "is_quick_turnaround": true,
+            "is_commercial_signed": false,
+            "inbound_leg": {
+              "flight_number": "MU5100",
+              "origin_airport": "SHA",
+              "destination_airport": "PVG",
+              "scheduled_time": "2026-07-14T01:30:00Z",
+              "estimated_time": "2026-07-14T01:35:00Z",
+              "actual_time": null
+            },
+            "outbound_leg": {
+              "flight_number": "MU5101",
+              "origin_airport": "PVG",
+              "destination_airport": "PEK",
+              "scheduled_time": "2026-07-14T03:00:00Z",
+              "estimated_time": "2026-07-14T03:10:00Z",
+              "actual_time": null
+            },
+            "anomaly_summary": {
+              "total": 1,
+              "open": 1,
+              "critical": 0,
+              "highest_severity": "high"
+            },
+            "business_cases": [],
+            "created_at": "2026-07-14T01:00:00Z",
+            "updated_at": "2026-07-14T02:28:00Z",
+            "version": 7,
+            "flight_remarks": "重点保障",
+            "load_planning_remarks": null,
+            "aircraft_maintenance_remarks": null,
+            "aircraft_check_remarks": null,
+            "cobt_time": "2026-07-14T03:05:00Z",
+            "codt": "2026-07-14T03:10:00Z",
+            "labels": [
+              "priority"
+            ],
+            "boarding_allowed_time": "2026-07-14T02:15:00Z",
+            "start_boarding_time": "2026-07-14T02:25:00Z",
+            "end_boarding_time": null,
+            "on_blocks_time": null,
+            "off_blocks_time": null,
+            "created_by": "parity_admin",
+            "updated_by": "parity_operator"
+          }
+        ]
+      },
+      "source": "command_center/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/flights/updates/recent",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "entity_type": "flight",
+            "entity_id": "flight-mu5101",
+            "operation": "update",
+            "action": "update",
+            "changes": {
+              "fields": [
+                "gate"
+              ],
+              "old": {
+                "gate": "A10"
+              },
+              "new": {
+                "gate": "A12"
+              }
+            },
+            "user_id": "parity_admin",
+            "trace_id": "trace-parity-001",
+            "timestamp": "2026-07-14T02:20:00Z",
+            "created_at": "2026-07-14T02:20:00Z"
+          }
+        ],
+        "message": "获取到 1 条最近更新",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "operations_review_report/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/health",
+      "body": {
+        "success": true,
+        "status": "healthy",
+        "database": {
+          "flights": 128
+        },
+        "errors_count": 1,
+        "recent_errors": [
+          {
+            "error_id": "error-20260714-001",
+            "timestamp": "2026-07-14T02:24:00Z",
+            "error_type": "SSE_RECONNECT",
+            "severity": "medium",
+            "message": "客户端已自动重连",
+            "emitted_at_ms": 1783995840000
+          }
+        ],
+        "buffer_status": {
+          "total_connections": 7,
+          "max_connections": 1000,
+          "status": "active",
+          "topics": {
+            "flight_updates": 3,
+            "global_status": 2,
+            "status_changes": 2
+          }
+        },
+        "services": {
+          "api_server": {
+            "status": "healthy",
+            "detail": "API 服务在线",
+            "uptime_seconds": 86400
+          },
+          "postgres": {
+            "status": "healthy",
+            "detail": "连接池正常"
+          },
+          "redis": {
+            "status": "healthy",
+            "detail": "延迟 2.4 ms"
+          },
+          "auth": {
+            "status": "healthy",
+            "detail": "认证服务正常"
+          }
+        },
+        "runtime": {
+          "started_at": "2026-07-13T02:30:00Z",
+          "uptime_seconds": 86400,
+          "uptime_human": "1d",
+          "timestamp": "2026-07-14T02:30:00Z"
+        }
+      },
+      "source": "system_status/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/health/performance",
+      "body": {
+        "success": true,
+        "data": {
+          "db_pool": {
+            "active": 4,
+            "idle": 12,
+            "max": 20,
+            "usage_pct": 20
+          },
+          "redis": {
+            "latency_ms": 2.4,
+            "connected": true
+          },
+          "sse": {
+            "connections": 7,
+            "max": 1000,
+            "usage_pct": 0.7
+          },
+          "requests": {
+            "p50": 18,
+            "p95": 74,
+            "p99": 120,
+            "avg": 29,
+            "count": 2400
+          },
+          "auth": {
+            "login_success": 38,
+            "login_failure": 2,
+            "login_total": 40,
+            "login_success_rate_pct": 95,
+            "refresh_success": 51,
+            "refresh_failure": 1,
+            "refresh_total": 52,
+            "refresh_success_rate_pct": 98.1,
+            "session_lost": 0,
+            "logout_total": 7,
+            "heartbeat_total": 930
+          },
+          "notification_delivery": {
+            "push_attempts": 12,
+            "push_success": 12,
+            "push_success_rate_pct": 100,
+            "sse_attempts": 170,
+            "sse_success": 168,
+            "sse_success_rate_pct": 98.8,
+            "external_attempts": 0,
+            "external_success": 0,
+            "in_app_attempts": 64,
+            "in_app_success": 64,
+            "backfill_pending": 0
+          },
+          "mobile_realtime": {
+            "sse_reconnects": 3
+          },
+          "timestamp": 1783996200
+        },
+        "message": "性能指标获取成功",
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "system_status/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/kpi/compare",
+      "body": {
+        "success": true,
+        "data": {
+          "base_range": {
+            "start_date": "2026-07-08",
+            "end_date": "2026-07-14"
+          },
+          "compare_range": {
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-07"
+          },
+          "metrics": {
+            "avg_turnaround_minutes": {
+              "base": 43.2,
+              "compare": 45.1,
+              "delta": 1.9,
+              "change_rate": 0.04398
+            },
+            "on_time_departure_rate": {
+              "base": 0.91,
+              "compare": 0.88,
+              "delta": -0.03,
+              "change_rate": -0.03297
+            },
+            "service_node_compliance_rate": {
+              "base": 0.94,
+              "compare": 0.92,
+              "delta": -0.02,
+              "change_rate": -0.02128
+            }
+          }
+        },
+        "message": "KPI comparison fetched"
+      },
+      "source": "operations_review_report/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/kpi/service-nodes",
+      "body": {
+        "items": [
+          {
+            "node": "登机",
+            "rate": 0.97,
+            "completed": 97,
+            "total": 100
+          },
+          {
+            "node": "行李装载",
+            "rate": 0.93,
+            "completed": 93,
+            "total": 100
+          }
+        ],
+        "date": "2026-07-14"
+      },
+      "source": "kpi_dashboard/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/kpi/snapshot",
+      "body": {
+        "success": true,
+        "data": {
+          "time_range": "today",
+          "turnaround_time_avg_minutes": 42.5,
+          "turnaround_time_p90_minutes": 56,
+          "on_time_departure_rate": 0.92,
+          "on_time_arrival_rate": 0.91,
+          "service_node_compliance_rate": 0.95,
+          "equipment_utilization_rate": 0.78,
+          "abnormal_flight_ratio": 0.03,
+          "calculated_at": "2026-07-14T02:30:00Z",
+          "hourly_flight_volume": [
+            {
+              "hour": 0,
+              "count": 5
+            },
+            {
+              "hour": 1,
+              "count": 8
+            },
+            {
+              "hour": 2,
+              "count": 12
+            }
+          ],
+          "turnaround_distribution": [
+            {
+              "bucket": "<30",
+              "count": 3
+            },
+            {
+              "bucket": "30-45",
+              "count": 8
+            },
+            {
+              "bucket": "45-60",
+              "count": 4
+            }
+          ]
+        }
+      },
+      "source": "kpi_dashboard/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/kpi/trend",
+      "body": {
+        "items": [
+          {
+            "date": "2026-07-08",
+            "value": 0.89
+          },
+          {
+            "date": "2026-07-09",
+            "value": 0.9
+          },
+          {
+            "date": "2026-07-10",
+            "value": 0.91
+          },
+          {
+            "date": "2026-07-11",
+            "value": 0.92
+          },
+          {
+            "date": "2026-07-12",
+            "value": 0.915
+          },
+          {
+            "date": "2026-07-13",
+            "value": 0.925
+          },
+          {
+            "date": "2026-07-14",
+            "value": 0.92
+          }
+        ],
+        "metric": "on_time_rate",
+        "days": 7
+      },
+      "source": "kpi_dashboard/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/kpi/trend-with-anomalies",
+      "body": {
+        "success": true,
+        "data": {
+          "metric": "on_time_rate",
+          "days": 14,
+          "items": [
+            {
+              "date": "2026-07-13",
+              "value": 0.89,
+              "anomaly_count": 3
+            },
+            {
+              "date": "2026-07-14",
+              "value": 0.91,
+              "anomaly_count": 1
+            }
+          ],
+          "anomaly_total": 4
+        },
+        "message": "KPI trend with anomaly overlay fetched"
+      },
+      "source": "operations_review_report/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/labels",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "label-priority",
+            "code": "priority",
+            "name": "重点保障",
+            "color": "#F59E0B",
+            "description": "重点保障航班",
+            "is_active": true,
+            "sort_order": 10,
+            "created_at": "2026-07-01T00:00:00Z",
+            "updated_at": "2026-07-14T00:00:00Z"
+          }
+        ]
+      },
+      "source": "flight_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/mobile/workbench",
+      "body": {
+        "success": true,
+        "data": {
+          "user_id": "00000000-0000-4000-8000-000000000001",
+          "generated_at": "2026-07-14T02:29:00Z",
+          "my_orders": [
+            {
+              "order_id": "dispatch-order-5102",
+              "flight_id": "MU5102",
+              "task_type": "机位保障",
+              "status": "in_progress",
+              "terminal": "T1",
+              "stand_id": "116",
+              "gate": null,
+              "planned_start_time": "2026-07-14T02:10:00Z",
+              "planned_end_time": "2026-07-14T02:50:00Z",
+              "actual_start_time": "2026-07-14T02:18:00Z",
+              "assignment_deadline": "2026-07-14T02:15:00Z",
+              "supervisor_notified": false,
+              "next_primary_action": "complete",
+              "arrival_verification_needed": false,
+              "verification_status": "verified",
+              "soft_followup_required": true
+            }
+          ],
+          "order_counts": {
+            "pending": 0,
+            "assigned": 0,
+            "in_progress": 1,
+            "completed": 0,
+            "cancelled": 0,
+            "total": 1
+          },
+          "pending_shift_handover_count": 0
+        },
+        "message": "mobile workbench loaded"
+      },
+      "source": "dashboard/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/notifications",
+      "body": {
+        "items": [],
+        "total": 0,
+        "limit": 100,
+        "offset": 0
+      },
+      "source": "flight_monitor/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/notifications/sent-receipt-groups",
+      "body": {
+        "items": [],
+        "total": 0,
+        "limit": 50,
+        "offset": 0
+      },
+      "source": "flight_monitor/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/reference/business-case-statuses",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "code": "draft",
+            "label": "草稿",
+            "terminal": false,
+            "sort_order": 10
+          },
+          {
+            "code": "processing",
+            "label": "处理中",
+            "terminal": false,
+            "sort_order": 20
+          },
+          {
+            "code": "resolved",
+            "label": "已解决",
+            "terminal": true,
+            "sort_order": 30
+          }
+        ]
+      },
+      "source": "flight_monitor/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "department-occ",
+            "name": "运行控制中心",
+            "code": "OCC",
+            "description": "机场运行控制",
+            "manager_id": "00000000-0000-4000-8000-000000000003",
+            "terminal": "T1",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-07-01T00:00:00Z",
+            "is_active": true
+          }
+        ],
+        "error": null,
+        "request_id": "parity-request-001"
+      },
+      "source": "user_manager/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers",
+      "body": [
+        {
+          "handover_id": "handover-incoming-1",
+          "shift_date": "2026-07-14",
+          "shift_code": "NIGHT",
+          "from_user_id": "00000000-0000-4000-8000-000000000002",
+          "to_user_id": "00000000-0000-4000-8000-000000000001",
+          "from_operator_name": "基线运行员",
+          "from_operator_job_title": "运行员",
+          "from_operator_label": "基线运行员 · 运行员",
+          "to_operator_name": "基线管理员",
+          "to_operator_job_title": "系统管理员",
+          "to_operator_label": "基线管理员 · 系统管理员",
+          "status": "pending",
+          "summary": "夜班交接待确认",
+          "risk_level": "medium",
+          "signed_at": null,
+          "submitted_at": "2026-07-14T02:15:00Z",
+          "created_at": "2026-07-14T02:10:00Z",
+          "updated_at": "2026-07-14T02:15:00Z",
+          "items": [
+            {
+              "item_id": "handover-item-incoming-1",
+              "handover_id": "handover-incoming-1",
+              "item_type": "pending_task",
+              "title": "复核早班首波航班",
+              "detail": "关注 MU5101 登机口保障",
+              "owner_user_id": "00000000-0000-4000-8000-000000000001",
+              "due_at": "2026-07-14T03:00:00Z",
+              "is_mandatory": true,
+              "acknowledged": false,
+              "acknowledged_at": null,
+              "acknowledged_by": null,
+              "created_at": "2026-07-14T02:10:00Z",
+              "updated_at": "2026-07-14T02:15:00Z"
+            }
+          ]
+        }
+      ],
+      "source": "dashboard/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers/candidates",
+      "body": [
+        {
+          "user_id": "00000000-0000-4000-8000-000000000002",
+          "username": "parity_operator",
+          "display_name": "基线运行员",
+          "job_title": "运行员",
+          "display_label": "基线运行员 · 运行员"
+        }
+      ],
+      "source": "dashboard/partial.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/shift-handovers/system-draft-preview",
+      "body": {
+        "success": true,
+        "data": {
+          "generated_item_count": 2,
+          "mandatory_count": 1,
+          "titles": [
+            "MU5101 到场待补核",
+            "交接关键风险"
+          ],
+          "items": [
+            {
+              "item_type": "pending_task",
+              "title": "MU5101 到场待补核",
+              "detail": "请接班岗位复核到场时间",
+              "owner_user_id": "00000000-0000-4000-8000-000000000002",
+              "due_at": "2026-07-14T02:45:00Z",
+              "is_mandatory": true
+            },
+            {
+              "item_type": "risk_note",
+              "title": "交接关键风险",
+              "detail": "保障节点存在延误风险",
+              "owner_user_id": null,
+              "due_at": null,
+              "is_mandatory": false
+            }
+          ]
+        },
+        "message": "Shift handover system draft preview loaded",
+        "timestamp": "2026-07-14T02:30:00Z"
+      },
+      "source": "dashboard/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/system/airport-context",
+      "body": {
+        "code": "PVG",
+        "display_name": "上海浦东国际机场",
+        "name_aliases": [
+          "浦东机场",
+          "上海浦东"
+        ]
+      },
+      "source": "command_center/empty.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/system/flags",
+      "body": {
+        "success": true,
+        "data": {
+          "flags": [
+            {
+              "path": "feature_flags.dispatch_chat_v1.enabled",
+              "value": true,
+              "type": "boolean",
+              "category": "feature_flags",
+              "label": "Enabled",
+              "description": "Configuration for feature_flags.dispatch_chat_v1.enabled",
+              "masked": false
+            },
+            {
+              "path": "auth.access_token_expire_minutes",
+              "value": 30,
+              "type": "number",
+              "category": "auth",
+              "label": "Access Token Expire Minutes",
+              "description": "Configuration for auth.access_token_expire_minutes",
+              "masked": false
+            },
+            {
+              "path": "database.password",
+              "value": "***REDACTED***",
+              "type": "string",
+              "category": "database",
+              "label": "Password",
+              "description": "Configuration for database.password",
+              "masked": true
+            }
+          ]
+        }
+      },
+      "source": "system_flags/success.json"
+    },
+    {
+      "method": "GET",
+      "pathname": "/api/v2/system/runtime/health/ping",
+      "body": {
+        "status": "healthy",
+        "service": "api-server",
+        "checked_at": "2026-07-14T02:30:00Z",
+        "latency_ms": 8
+      },
+      "source": "command_center/empty.json"
+    }
+  ]
+}

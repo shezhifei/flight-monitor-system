@@ -1,0 +1,25 @@
+[package]
+name = "fms-benches"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+criterion = "0.5"
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+fms-domain = { path = "../crates/domain" }
+serde_json.workspace = true
+chrono.workspace = true
+ulid = "1"
+prost.workspace = true
+sqlx = { workspace = true }
+
+[[bench]]
+name = "repository_benchmarks"
+harness = false
+path = "src/repository_benchmarks.rs"
+
+[[bench]]
+name = "parsing_benchmarks"
+harness = false
+path = "src/parsing_benchmarks.rs"

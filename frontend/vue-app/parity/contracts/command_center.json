@@ -1,0 +1,978 @@
+{
+  "contractVersion": 1,
+  "page": "command_center",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/command_center.html",
+    "htmlSha256": "9369b8818e630c5f22870031af1168341f13cfeecf5845b603a7738af8181ca9",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/command_center_screen.js",
+        "archivePath": "js/command_center_screen.js",
+        "exists": true,
+        "sha256": "7a207d2369481c0c2be8e86ad95c9074efab30f31a4a59514e7d6ec930ac19d3"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/breadcrumb.js",
+        "archivePath": "js/components/breadcrumb.js",
+        "exists": true,
+        "sha256": "ac5ad1f6bf1a2f5593e9c4968b735351a8ac16f9ca5bee8c13e6d37f8d6c284d"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/empty_error.js",
+        "archivePath": "js/components/empty_error.js",
+        "exists": true,
+        "sha256": "551ad745f4221a0647e2a0d19bd54cd526eb8e849a78f9a632e913dcc112575a"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/header.js",
+        "archivePath": "js/components/header.js",
+        "exists": true,
+        "sha256": "53b7d2cb876f8b05b53296bd1d5c39e4fd3b7924071dca77b1e852f19ba11861"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/loading.js",
+        "archivePath": "js/components/loading.js",
+        "exists": true,
+        "sha256": "e02174c70738bd7d8d0a53fc58d3efdf2c51e4fe3200f61f393fb18b404538af"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/components/toast.js",
+        "archivePath": "js/components/toast.js",
+        "exists": true,
+        "sha256": "7d1a0b132fe9043d6b616f1f2adb07963f8c4b0823f750d41a77655725f97df5"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/js/sse_hub.js",
+        "archivePath": "js/sse_hub.js",
+        "exists": true,
+        "sha256": "c0f7d07c398c941eac0ccee0d62a44c66713cca6f1de93678a5f166e6a3d6517"
+      },
+      {
+        "kind": "script",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/command_center_dashboard.css?v=2",
+        "archivePath": "css/command_center_dashboard.css",
+        "exists": true,
+        "sha256": "e853171cb355ef17e8df11bbcff8671cd150c2b8fdb72be9524a9c0799f32c92"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/workspace_unified_theme.css?v=4",
+        "archivePath": "css/workspace_unified_theme.css",
+        "exists": true,
+        "sha256": "b63af6b73b8630f37f426c436b8ecfb74efdee47d010bd7092053d822527383b"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/vendor/js/echarts.min.js",
+        "archivePath": "vendor/js/echarts.min.js",
+        "exists": true,
+        "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+      }
+    ],
+    "sourceHash": "d6a3c8dc5d41d595ff48004f2866e11d42aa8d9f4138e681004830cc5a18d30e"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div > div:nth-of-type(1) > header",
+        "tag": "header",
+        "role": "banner",
+        "text": "指挥中心",
+        "visible": true
+      },
+      {
+        "selector": "body > div > div:nth-of-type(2) > nav",
+        "tag": "nav",
+        "role": null,
+        "text": "面包屑导航",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(1)",
+        "tag": "section",
+        "role": null,
+        "text": "先判断是否失稳，再锁定未来 60 分钟动作对象",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(2)",
+        "tag": "section",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3)",
+        "tag": "section",
+        "role": null,
+        "text": "行动优先队列",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "未来窗口离港压力",
+        "visible": true
+      },
+      {
+        "selector": "body > div > section:nth-of-type(4)",
+        "tag": "section",
+        "role": null,
+        "text": "实时证据流",
+        "visible": true
+      },
+      {
+        "selector": "body > div > footer",
+        "tag": "footer",
+        "role": null,
+        "text": "",
+        "visible": true
+      }
+    ],
+    "headings": [
+      {
+        "selector": "body > div > div:nth-of-type(1) > header > div:nth-of-type(1) > div > h1",
+        "level": 1,
+        "text": "指挥中心"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(1) > div:nth-of-type(1) > h2",
+        "level": 2,
+        "text": "先判断是否失稳，再锁定未来 60 分钟动作对象"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > article > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "行动优先队列"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > article:nth-of-type(1) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "未来窗口离港压力"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > article:nth-of-type(2) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "异常热区"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > article:nth-of-type(3) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "调度负载断面"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(3) > aside > article:nth-of-type(4) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "航站楼压力"
+      },
+      {
+        "selector": "body > div > section:nth-of-type(4) > div:nth-of-type(1) > div > h3",
+        "level": 3,
+        "text": "实时证据流"
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#unifiedHeaderLogout",
+        "tag": "button",
+        "type": "button",
+        "text": "退出",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#windowHoursSelect",
+        "tag": "select",
+        "type": "",
+        "text": "未来 2h 未来 6h 未来 12h",
+        "name": null,
+        "ariaLabel": "窗口时长",
+        "disabled": false
+      },
+      {
+        "selector": "#refreshIntervalSelect",
+        "tag": "select",
+        "type": "",
+        "text": "15s 刷新 30s 刷新 60s 刷新",
+        "name": null,
+        "ariaLabel": "刷新间隔",
+        "disabled": false
+      },
+      {
+        "selector": "#refreshNowBtn",
+        "tag": "button",
+        "type": "",
+        "text": "刷新",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#toggleRefreshBtn",
+        "tag": "button",
+        "type": "",
+        "text": "暂停",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#clearEventsBtn",
+        "tag": "button",
+        "type": "",
+        "text": "清空证据流",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#fullScreenBtn",
+        "tag": "button",
+        "type": "",
+        "text": "全屏",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(1)",
+        "text": "",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div > div:nth-of-type(1) > header > div:nth-of-type(1) > a:nth-of-type(2)",
+        "text": "航班监控",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div > div:nth-of-type(2) > nav > ol > li:nth-of-type(1) > a",
+        "text": "工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#breadcrumb-host",
+      "#clearEventsBtn",
+      "#decisionQueueList",
+      "#decisionQueueMeta",
+      "#dispatchSummaryList",
+      "#dispatchWindowMeta",
+      "#eventFeedList",
+      "#eventFeedMeta",
+      "#fms-parity-contract-determinism",
+      "#footerNoticeText",
+      "#footerWindowText",
+      "#fullScreenBtn",
+      "#header-host",
+      "#metricAutoRefreshSub",
+      "#metricDecisionCount",
+      "#metricDecisionCountSub",
+      "#metricDelayPressure",
+      "#metricDelayPressureSub",
+      "#metricDispatchBlockers",
+      "#metricDispatchBlockersSub",
+      "#metricLastRefresh",
+      "#metricOpenAnomalies",
+      "#metricOpenAnomaliesSub",
+      "#metricRiskFlights",
+      "#metricRiskFlightsSub",
+      "#metricSystemHealth",
+      "#metricSystemHealthSub",
+      "#nowClock",
+      "#nowDate",
+      "#operatorText",
+      "#opsVerdictChip",
+      "#opsVerdictDetail",
+      "#opsVerdictMeta",
+      "#opsVerdictTitle",
+      "#refreshIntervalSelect",
+      "#refreshNowBtn",
+      "#riskHeatmapMeta",
+      "#standHeatmapChart",
+      "#terminalLoadList",
+      "#terminalLoadMeta",
+      "#toggleRefreshBtn",
+      "#unifiedHeaderLogout",
+      "#unifiedStreamChip",
+      "#windowHoursSelect",
+      "#windowPressureList",
+      "#windowPressureMeta"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "command_center-success",
+      "fixture": "parity/fixtures/pages/command_center/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "40"
+            ],
+            "offset": [
+              "0"
+            ],
+            "status": [
+              "open"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/timeline",
+          "query": {
+            "view_mode": [
+              "flight"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/runtime/health/ping",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "command-global-stream-success",
+          "eventTypes": [
+            "anomaly_updated",
+            "flight_updated"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "command_center-empty",
+      "fixture": "parity/fixtures/pages/command_center/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "40"
+            ],
+            "offset": [
+              "0"
+            ],
+            "status": [
+              "open"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/timeline",
+          "query": {
+            "view_mode": [
+              "flight"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/runtime/health/ping",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "command-global-stream-success",
+          "eventTypes": [
+            "global_status"
+          ]
+        }
+      ],
+      "consoleErrors": []
+    },
+    {
+      "id": "command_center-partial",
+      "fixture": "parity/fixtures/pages/command_center/partial.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies",
+          "query": {
+            "limit": [
+              "40"
+            ],
+            "offset": [
+              "0"
+            ],
+            "status": [
+              "open"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/anomalies/stats",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/conflicts",
+          "query": {
+            "limit": [
+              "200"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/dispatch-orders/timeline",
+          "query": {
+            "view_mode": [
+              "flight"
+            ],
+            "window_end": [
+              "2026-07-14T08:30:00.000Z"
+            ],
+            "window_start": [
+              "2026-07-14T01:30:00.000Z"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/flights",
+          "query": {
+            "page": [
+              "1"
+            ],
+            "page_size": [
+              "500"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/kpi/snapshot",
+          "query": {
+            "time_range": [
+              "today"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/airport-context",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/runtime/health/ping",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "sessionStorage",
+          "operation": "set",
+          "key": "fm_client_instance_id::sse_hub_global",
+          "value": "mrk19xs0-11365b80a5caef14"
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [
+        {
+          "url": "/api/v2/sse/stream?topics=flights%2Cflight_status_changes%2Canomaly_alerts%2Cai_execution%2Ckpi_updated%2Cglobal_status%2Csystem_alerts%2Cerror_events%2Csmart_monitor%2Cbusiness_cases&token=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture&client_instance_id=mrk19xs0-11365b80a5caef14",
+          "pathname": "/api/v2/sse/stream",
+          "query": {
+            "client_instance_id": [
+              "mrk19xs0-11365b80a5caef14"
+            ],
+            "token": [
+              "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJ1c2VybmFtZSI6InBhcml0eV9hZG1pbiIsImVtYWlsIjoicGFyaXR5LmFkbWluQGV4YW1wbGUudGVzdCIsImlzX2FkbWluIjp0cnVlLCJwZXJtaXNzaW9ucyI6WyIqIl0sImRlcGFydG1lbnQiOiLov5DooYzmjqfliLbkuK3lv4MiLCJwdiI6NywiaWF0IjoxNzgzOTk2MjAwLCJleHAiOjE3ODM5OTk4MDAsImlzcyI6ImZtcy1wYXJpdHktZml4dHVyZSIsImF1ZCI6ImZtcy13ZWIiLCJ0eXBlIjoiYWNjZXNzIn0.fixture"
+            ],
+            "topics": [
+              "flights,flight_status_changes,anomaly_alerts,ai_execution,kpi_updated,global_status,system_alerts,error_events,smart_monitor,business_cases"
+            ]
+          },
+          "fixtureId": "command-global-stream-success",
+          "eventTypes": [
+            "anomaly_updated",
+            "flight_updated"
+          ]
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

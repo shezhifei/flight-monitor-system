@@ -1,0 +1,49 @@
+groups:
+  - name: fms-slo
+    interval: 30s
+    rules:
+      - alert: FmsApiAvailabilityLow
+        expr: |
+          sum(rate(fms_http_requests_total[5m])) > 0
+          and
+          (
+            1 - (
+              sum(rate(fms_http_requests_total{status=~"5.."}[5m]))
+              /
+              sum(rate(fms_http_requests_total[5m]))
+            )
+          ) < 0.995
+        for: 10m
+        labels:
+          severity: critical
+          service: rust-api
+        annotations:
+          summary: FMS API availability is below 99.5%
+          description: The five-minute API success ratio has remained below the availability SLO for 10 minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmsapiavailabilitylow
+
+      - alert: FmsWriteLatencyHigh
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum(rate(fms_http_request_duration_seconds_bucket{route=~"POST .*|PUT .*|DELETE .*"}[5m])) by (le)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: rust-api
+        annotations:
+          summary: FMS API write p99 latency is above two seconds
+          description: Mutating API requests have exceeded the write-latency SLO for 10 minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmswritelatencyhigh
+
+      - alert: FmsOutboxBacklogHigh
+        expr: sum(fms_outbox_pending_events) >= 100
+        for: 5m
+        labels:
+          severity: critical
+          service: rust-api
+        annotations:
+          summary: FMS outbox backlog is above the operational limit
+          description: At least 100 unpublished outbox events have remained pending for five minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmsoutboxbackloghigh

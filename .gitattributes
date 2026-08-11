@@ -1,0 +1,28 @@
+# 设置默认换行符为 LF（仓库统一使用）
+* text=auto eol=lf
+
+# 开源许可与治理文件保持稳定 LF
+LICENSE text eol=lf
+NOTICE text eol=lf
+CONTRIBUTING.md text eol=lf
+SECURITY.md text eol=lf
+
+# Windows批处理文件保持CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件不做转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary

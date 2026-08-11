@@ -1,0 +1,10 @@
+{
+  "page": "login",
+  "fixture_version": 1,
+  "status": "seeded",
+  "scenarios": [
+    "default",
+    "required-username-error",
+    "password-visible"
+  ]
+}

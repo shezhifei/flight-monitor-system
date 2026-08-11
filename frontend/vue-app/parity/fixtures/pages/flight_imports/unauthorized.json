@@ -1,0 +1,36 @@
+{
+  "scenario": "flight_imports-unauthorized",
+  "capture": {
+    "expected_panels": ["body"],
+    "regions": [],
+    "blocked_interactions": [{
+      "id": "upload-after-auth-failure",
+      "reason": "Auth.requireAuthAsync fails closed when /api/v2/auth/me returns 401, so the import shell does not bind upload handlers.",
+      "source": "html/flight_imports.html#DOMContentLoaded"
+    }]
+  },
+  "routes": [
+    {
+      "id": "flight-imports-auth-me-unauthorized",
+      "method": "GET",
+      "pathname": "/api/v2/auth/me",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 401,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_401",
+            "message": "登录状态已失效"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": [],
+  "expected_legacy_errors": [
+    "status of 401 (Unauthorized)"
+  ],
+  "coverage_note": "Initial protected navigation only issues auth/me; unauthorized captures the fail-closed bootstrap path without fabricating preview/commit."
+}

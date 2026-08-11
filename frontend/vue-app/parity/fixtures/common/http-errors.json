@@ -1,0 +1,75 @@
+[
+  {
+    "status": 401,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "HTTP_401",
+        "message": "认证失败",
+        "details": null,
+        "timestamp": "2026-07-14T02:30:00Z",
+        "type": "authentication_error"
+      }
+    }
+  },
+  {
+    "status": 403,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "HTTP_403",
+        "message": "权限不足",
+        "details": null,
+        "timestamp": "2026-07-14T02:30:00Z",
+        "type": "authorization_error"
+      }
+    }
+  },
+  {
+    "status": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "HTTP_409",
+        "message": "资源版本冲突",
+        "details": null,
+        "timestamp": "2026-07-14T02:30:00Z",
+        "type": "http_error"
+      }
+    }
+  },
+  {
+    "status": 422,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "HTTP_422",
+        "message": "输入验证失败",
+        "details": [
+          {
+            "type": "value_error",
+            "loc": ["body", "field"],
+            "msg": "字段值无效",
+            "input": null
+          }
+        ],
+        "timestamp": "2026-07-14T02:30:00Z",
+        "type": "validation_error"
+      }
+    }
+  },
+  {
+    "status": 500,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "HTTP_500",
+        "message": "内部服务错误",
+        "details": null,
+        "timestamp": "2026-07-14T02:30:00Z",
+        "type": "http_error",
+        "kind": "unknown"
+      }
+    }
+  }
+]

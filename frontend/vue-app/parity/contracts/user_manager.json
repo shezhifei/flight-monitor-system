@@ -1,0 +1,1090 @@
+{
+  "contractVersion": 1,
+  "page": "user_manager",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/user_manager.html",
+    "htmlSha256": "bfc22fc82c7d69d7521ab12b169ffbed446b8edcf780a5e596574d5c9093617c",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-layout.css",
+        "archivePath": "css/admin-layout.css",
+        "exists": true,
+        "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-page.css",
+        "archivePath": "css/admin-page.css",
+        "exists": true,
+        "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "apple-theme.css?v=1",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/add.svg",
+        "archivePath": "icons/add.svg",
+        "exists": true,
+        "sha256": "8fbdc6f17bb127314b24e7b87d57cfca8b8d8cb7e4851ff63cdd2006452f0374"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/cancel.svg",
+        "archivePath": "icons/cancel.svg",
+        "exists": true,
+        "sha256": "6e92e51c51cf9b4defabbd7dd1686b87131c5e8153974fc711781633f142c77e"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/detail.svg",
+        "archivePath": "icons/detail.svg",
+        "exists": true,
+        "sha256": "32240a9ff68eaf9bead993e13f3328c3ed4cda1a3ed11dc371589982e8892234"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/lock.svg",
+        "archivePath": "icons/lock.svg",
+        "exists": true,
+        "sha256": "c27ac920989fe9fee64903aeff4cc41ccea545e06bf2b4746b007b17d2339f49"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/logout.svg",
+        "archivePath": "icons/logout.svg",
+        "exists": true,
+        "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/password_unvisible.svg",
+        "archivePath": "icons/password_unvisible.svg",
+        "exists": true,
+        "sha256": "19941ef9f9054cdab0c61b5d17eb35ecf88bae301e8a0b949c3caf78e68d299c"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/password_visible.svg",
+        "archivePath": "icons/password_visible.svg",
+        "exists": true,
+        "sha256": "8e9412ce80411e9f2c0bb856ee942ee3c9e7b4ddc5b782eecb3a9cd02d372f36"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/refresh.svg",
+        "archivePath": "icons/refresh.svg",
+        "exists": true,
+        "sha256": "17bab5ebf2ed196c7ff0714274c2cdd3e10c2f007cab3a26503355005a54eb57"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/search.svg",
+        "archivePath": "icons/search.svg",
+        "exists": true,
+        "sha256": "4e7d43bfc247f4f2401be97397f972999342a041b41f4e6595a89ae3ee053103"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/security.svg",
+        "archivePath": "icons/security.svg",
+        "exists": true,
+        "sha256": "3fecf1dabf1c5fdeb795286a7c0b9d54380cc3346eea724d2ae382554f92a702"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/users.svg",
+        "archivePath": "icons/users.svg",
+        "exists": true,
+        "sha256": "79e8c659734e79f182c457a7773907e8468b4da76b98cef123fc2a8f3df5b26a"
+      }
+    ],
+    "sourceHash": "6a333ef8f3cbc255f22cf46cc38ddb68fda2893e0728c0f22cadf4d5225e34af"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main",
+        "tag": "main",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > header",
+        "tag": "header",
+        "role": null,
+        "text": "",
+        "visible": true
+      }
+    ],
+    "headings": [],
+    "controls": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(3) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > header > div:nth-of-type(2) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "刷新",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#addBtn",
+        "tag": "button",
+        "type": "",
+        "text": "添加用户",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#userSearch",
+        "tag": "input",
+        "type": "text",
+        "text": "搜索用户名或邮箱...",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(1) > div:nth-of-type(2) > table > tbody > tr:nth-of-type(1) > td:nth-of-type(6) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "编辑",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(1) > div:nth-of-type(2) > table > tbody > tr:nth-of-type(1) > td:nth-of-type(6) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "删除",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(1) > div:nth-of-type(2) > table > tbody > tr:nth-of-type(2) > td:nth-of-type(6) > button:nth-of-type(1)",
+        "tag": "button",
+        "type": "",
+        "text": "编辑",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(1) > div:nth-of-type(2) > table > tbody > tr:nth-of-type(2) > td:nth-of-type(6) > button:nth-of-type(2)",
+        "tag": "button",
+        "type": "",
+        "text": "删除",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#userPrevBtn",
+        "tag": "button",
+        "type": "",
+        "text": "上一页",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": true
+      },
+      {
+        "selector": "#userNextBtn",
+        "tag": "button",
+        "type": "",
+        "text": "下一页",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": true
+      }
+    ],
+    "labels": [],
+    "forms": [
+      {
+        "selector": "#userForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#userId",
+          "#userUsername",
+          "#userEmail",
+          "#userPassword",
+          "#togglePassword",
+          "#userDepartment",
+          "#userJobLevel",
+          "#userJobTitle",
+          "#userIsAdmin",
+          "#userIsActive"
+        ]
+      },
+      {
+        "selector": "#roleForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#roleId",
+          "#roleName",
+          "#roleDescription",
+          "#roleTemplateSelect",
+          "body > div:nth-of-type(3) > div > div:nth-of-type(2) > form > div:nth-of-type(3) > div > button:nth-of-type(1)",
+          "body > div:nth-of-type(3) > div > div:nth-of-type(2) > form > div:nth-of-type(3) > div > button:nth-of-type(2)",
+          "body > div:nth-of-type(3) > div > div:nth-of-type(2) > form > div:nth-of-type(3) > div > button:nth-of-type(3)"
+        ]
+      },
+      {
+        "selector": "#templateForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#templateId",
+          "#templateName",
+          "#templateCode",
+          "#templateCategory",
+          "#templateDescription"
+        ]
+      },
+      {
+        "selector": "#labelForm",
+        "method": "GET",
+        "action": "",
+        "fields": [
+          "#labelId",
+          "#labelCode",
+          "#labelName",
+          "#labelColorPicker",
+          "#labelColorText",
+          "#labelIcon",
+          "#labelScope",
+          "#labelIsActive"
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(1) > div:nth-of-type(2) > table",
+        "columns": [
+          "用户名",
+          "邮箱",
+          "角色",
+          "状态",
+          "上次登录",
+          "操作"
+        ]
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(2) > div:nth-of-type(2) > table",
+        "columns": [
+          "角色名称",
+          "描述",
+          "权限数量",
+          "用户数量",
+          "类型",
+          "操作"
+        ]
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(3) > div:nth-of-type(2) > table",
+        "columns": [
+          "权限代码",
+          "描述",
+          "状态"
+        ]
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(4) > div:nth-of-type(2) > table",
+        "columns": [
+          "模板名称",
+          "模板代码",
+          "分类",
+          "权限数量",
+          "类型",
+          "操作"
+        ]
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div > div:nth-of-type(5) > div:nth-of-type(2) > table",
+        "columns": [
+          "颜色",
+          "代码",
+          "名称",
+          "范围",
+          "类型",
+          "状态",
+          "操作"
+        ]
+      }
+    ],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(3) > div:nth-of-type(2) > a",
+        "text": "返回工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#addBtn",
+      "#fms-parity-contract-determinism",
+      "#labelActiveGroup",
+      "#labelCategoryFilter",
+      "#labelCode",
+      "#labelColorPicker",
+      "#labelColorText",
+      "#labelForm",
+      "#labelIcon",
+      "#labelId",
+      "#labelIsActive",
+      "#labelModal",
+      "#labelModalTitle",
+      "#labelName",
+      "#labelSaveBtn",
+      "#labelScope",
+      "#labelScopeFilter",
+      "#labelSearch",
+      "#labelsTableBody",
+      "#pageSubtitle",
+      "#pageTitle",
+      "#passwordGroup",
+      "#permissionCheckboxes",
+      "#permissionSearch",
+      "#permissionsTableBody",
+      "#roleCheckboxes",
+      "#roleDescription",
+      "#roleForm",
+      "#roleId",
+      "#roleModal",
+      "#roleModalTitle",
+      "#roleName",
+      "#roleSearch",
+      "#roleTemplateSelect",
+      "#rolesTableBody",
+      "#section-labels",
+      "#section-permissions",
+      "#section-roles",
+      "#section-templates",
+      "#section-users",
+      "#templateCategory",
+      "#templateCode",
+      "#templateDescription",
+      "#templateForm",
+      "#templateId",
+      "#templateModal",
+      "#templateModalTitle",
+      "#templateName",
+      "#templatePermissionCheckboxes",
+      "#templateSearch",
+      "#templatesTableBody",
+      "#toastContainer",
+      "#togglePassword",
+      "#userAvatar",
+      "#userDepartment",
+      "#userDepartmentOptions",
+      "#userEmail",
+      "#userForm",
+      "#userId",
+      "#userIsActive",
+      "#userIsAdmin",
+      "#userJobLevel",
+      "#userJobTitle",
+      "#userModal",
+      "#userModalTitle",
+      "#userName",
+      "#userNextBtn",
+      "#userPaginationInfo",
+      "#userPassword",
+      "#userPrevBtn",
+      "#userRole",
+      "#userSearch",
+      "#userUsername",
+      "#usersTableBody"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "user_manager-success",
+      "fixture": "parity/fixtures/pages/user_manager/success.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [
+        "permissions.filter is not a function",
+        "roles.filter is not a function",
+        "users.filter is not a function"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Error loading permissions: TypeError: permissions.filter is not a function at renderPermissions (<legacy-origin>/frontend/html/user_manager.html:1303:42) at loadPermissions (<legacy-origin>/frontend/html/user_manager.html:1131:17)",
+        "Error loading roles: TypeError: roles.filter is not a function at renderRoles (<legacy-origin>/frontend/html/user_manager.html:1278:36) at loadRoles (<legacy-origin>/frontend/html/user_manager.html:1118:17)",
+        "Error loading users: TypeError: users.filter is not a function at renderUsers (<legacy-origin>/frontend/html/user_manager.html:1246:36) at loadUsers (<legacy-origin>/frontend/html/user_manager.html:1103:17) at async Promise.all (index 0) at async refreshUserDirectoryData (<legacy-origin>/frontend/html/user_manager.html:1236:13)"
+      ]
+    },
+    {
+      "id": "user_manager-empty",
+      "fixture": "parity/fixtures/pages/user_manager/empty.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [
+        "permissions.filter is not a function",
+        "roles.filter is not a function",
+        "users.filter is not a function"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Error loading permissions: TypeError: permissions.filter is not a function at renderPermissions (<legacy-origin>/frontend/html/user_manager.html:1303:42) at loadPermissions (<legacy-origin>/frontend/html/user_manager.html:1131:17)",
+        "Error loading roles: TypeError: roles.filter is not a function at renderRoles (<legacy-origin>/frontend/html/user_manager.html:1278:36) at loadRoles (<legacy-origin>/frontend/html/user_manager.html:1118:17)",
+        "Error loading users: TypeError: users.filter is not a function at renderUsers (<legacy-origin>/frontend/html/user_manager.html:1246:36) at loadUsers (<legacy-origin>/frontend/html/user_manager.html:1103:17) at async Promise.all (index 0) at async refreshUserDirectoryData (<legacy-origin>/frontend/html/user_manager.html:1236:13)"
+      ]
+    },
+    {
+      "id": "user_manager-partial",
+      "fixture": "parity/fixtures/pages/user_manager/partial.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [
+        "permissions.filter is not a function",
+        "roles.filter is not a function",
+        "users.filter is not a function"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Error loading permissions: TypeError: permissions.filter is not a function at renderPermissions (<legacy-origin>/frontend/html/user_manager.html:1303:42) at loadPermissions (<legacy-origin>/frontend/html/user_manager.html:1131:17)",
+        "Error loading roles: TypeError: roles.filter is not a function at renderRoles (<legacy-origin>/frontend/html/user_manager.html:1278:36) at loadRoles (<legacy-origin>/frontend/html/user_manager.html:1118:17)",
+        "Error loading users: TypeError: users.filter is not a function at renderUsers (<legacy-origin>/frontend/html/user_manager.html:1246:36) at loadUsers (<legacy-origin>/frontend/html/user_manager.html:1103:17) at async Promise.all (index 0) at async refreshUserDirectoryData (<legacy-origin>/frontend/html/user_manager.html:1236:13)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    {
+      "id": "user_manager-unauthorized",
+      "fixture": "parity/fixtures/pages/user_manager/unauthorized.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        401
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [
+        {
+          "kind": "navigation",
+          "from": "<legacy-origin>/frontend/html/user_manager.html",
+          "to": "<legacy-origin>/frontend/html/login.html"
+        }
+      ],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Error loading department suggestions: TypeError: Failed to fetch at Object.authenticatedFetch [as fetch] (<legacy-origin>/frontend/js/auth.js:885:32) at async loadDepartmentSuggestions (<legacy-origin>/frontend/html/user_manager.html:1204:36) at async Promise.all (index 1) at async refreshUserDirectoryData (<legacy-origin>/frontend/html/user_manager.html:1236:13)",
+        "Error loading permissions: TypeError: Failed to fetch at Object.authenticatedFetch [as fetch] (<legacy-origin>/frontend/js/auth.js:885:32) at async loadPermissions (<legacy-origin>/frontend/html/user_manager.html:1128:34)",
+        "Error loading roles: TypeError: Failed to fetch at Object.authenticatedFetch [as fetch] (<legacy-origin>/frontend/js/auth.js:885:32) at async loadRoles (<legacy-origin>/frontend/html/user_manager.html:1115:34)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load templates: TypeError: Failed to fetch at Object.authenticatedFetch [as fetch] (<legacy-origin>/frontend/js/auth.js:885:32) at async loadTemplates (<legacy-origin>/frontend/html/user_manager.html:1595:29)"
+      ]
+    },
+    {
+      "id": "user_manager-forbidden",
+      "fixture": "parity/fixtures/pages/user_manager/forbidden.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        403
+      ],
+      "expectedLegacyErrors": [
+        "Failed to load departments"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Error loading department suggestions: Error: Failed to load departments at loadDepartmentSuggestions (<legacy-origin>/frontend/html/user_manager.html:1206:27) at async Promise.all (index 1) at async refreshUserDirectoryData (<legacy-origin>/frontend/html/user_manager.html:1236:13)",
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ]
+    },
+    {
+      "id": "user_manager-server-error",
+      "fixture": "parity/fixtures/pages/user_manager/server-error.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [
+        "Failed to load departments"
+      ],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/admin/permission-templates",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/permissions",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/roles",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/users",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/reference/departments",
+          "query": {
+            "page_size": [
+              "200"
+            ]
+          },
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Error loading department suggestions: Error: Failed to load departments at loadDepartmentSuggestions (<legacy-origin>/frontend/html/user_manager.html:1206:27) at async Promise.all (index 1) at async refreshUserDirectoryData (<legacy-origin>/frontend/html/user_manager.html:1236:13)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

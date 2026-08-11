@@ -1,0 +1,11 @@
+{
+  "scenario": "login-default",
+  "ui_state": {
+    "username": "",
+    "password": "",
+    "password_visible": false,
+    "validation_error": null
+  },
+  "routes": [],
+  "sse_streams": []
+}

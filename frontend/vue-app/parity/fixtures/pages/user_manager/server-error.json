@@ -1,0 +1,98 @@
+{
+  "scenario": "user-manager-server-error",
+  "expected_legacy_errors": [
+    "Failed to load departments"
+  ],
+  "routes": [
+    {
+      "id": "user-manager-templates-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/auth/admin/permission-templates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "用户与权限目录服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-permissions-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/auth/permissions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "用户与权限目录服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-roles-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/auth/roles",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "用户与权限目录服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-users-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "用户与权限目录服务暂时不可用"
+          }
+        }
+      }
+    },
+    {
+      "id": "user-manager-departments-server-error",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 500,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_500",
+            "message": "用户与权限目录服务暂时不可用"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

@@ -1,0 +1,634 @@
+{
+  "contractVersion": 1,
+  "page": "system_flags",
+  "generatedAt": "2026-07-14T02:30:00.000Z",
+  "source": {
+    "html": "html/system_flags.html",
+    "htmlSha256": "3a59111618978b520390e53a8dc40145e2418d0a31a6f14ca1f9f60dd2782ebc",
+    "scripts": [
+      {
+        "kind": "script",
+        "reference": "/frontend/js/auth.js",
+        "archivePath": "js/auth.js",
+        "exists": true,
+        "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+      }
+    ],
+    "stylesheets": [
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-layout.css",
+        "archivePath": "css/admin-layout.css",
+        "exists": true,
+        "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/admin-page.css",
+        "archivePath": "css/admin-page.css",
+        "exists": true,
+        "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/apple-theme.css",
+        "archivePath": "css/apple-theme.css",
+        "exists": true,
+        "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "base.css?v=1",
+        "archivePath": "css/base.css",
+        "exists": true,
+        "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "components.css?v=5",
+        "archivePath": "css/components.css",
+        "exists": true,
+        "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "layout.css?v=1",
+        "archivePath": "css/layout.css",
+        "exists": true,
+        "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "/frontend/css/main.css",
+        "archivePath": "css/main.css",
+        "exists": true,
+        "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "tables.css?v=1",
+        "archivePath": "css/tables.css",
+        "exists": true,
+        "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+      },
+      {
+        "kind": "stylesheet",
+        "reference": "variables.css?v=1",
+        "archivePath": "css/variables.css",
+        "exists": true,
+        "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+      }
+    ],
+    "assets": [
+      {
+        "kind": "asset",
+        "reference": "/favicon.ico",
+        "archivePath": "favicon.ico",
+        "exists": true,
+        "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/fonts/MiSansVF.ttf",
+        "archivePath": "fonts/MiSansVF.ttf",
+        "exists": true,
+        "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ai.svg",
+        "archivePath": "icons/ai.svg",
+        "exists": true,
+        "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/bar_chart.svg",
+        "archivePath": "icons/bar_chart.svg",
+        "exists": true,
+        "sha256": "3af98cce83c1e1408755e6e39cf7760c97cbb797509478141d4320ebc1ac031c"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/clock.svg",
+        "archivePath": "icons/clock.svg",
+        "exists": true,
+        "sha256": "28b710f51a70ce69e9beefd2f6eaca66bdfdedaf2a688182183d102afa464411"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/connection.svg",
+        "archivePath": "icons/connection.svg",
+        "exists": true,
+        "sha256": "716bb5044602b317503d0061ecbbba310b4b5cae54fa0421aaae667a8906ee5b"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/fail.svg",
+        "archivePath": "icons/fail.svg",
+        "exists": true,
+        "sha256": "cb383d8b98936ab4040a3749e99265b27faadc1a27f72d2efc2cdbd24ff5a8b9"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/fast.svg",
+        "archivePath": "icons/fast.svg",
+        "exists": true,
+        "sha256": "69143303a9bff721ebca6c927dd196ba9c5967cafa0cc1e8605a9f372f82459f"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/folder.svg",
+        "archivePath": "icons/folder.svg",
+        "exists": true,
+        "sha256": "808ad391bf34144aaf50edb48fdc80ea70a55a275f04303798e59958105380a6"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/forbidden.svg",
+        "archivePath": "icons/forbidden.svg",
+        "exists": true,
+        "sha256": "20a95668317d2bd1ce392f78bb23fe627e99026f90dc1cf1b3d0a6973df4281a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/home.svg",
+        "archivePath": "icons/home.svg",
+        "exists": true,
+        "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/logout.svg",
+        "archivePath": "icons/logout.svg",
+        "exists": true,
+        "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/ok.svg",
+        "archivePath": "icons/ok.svg",
+        "exists": true,
+        "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/plane.svg",
+        "archivePath": "icons/plane.svg",
+        "exists": true,
+        "sha256": "f20703f7608dac886ace3f62fb3260efe9c64c4d2509bd9f04fd95a68b34f53d"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/search.svg",
+        "archivePath": "icons/search.svg",
+        "exists": true,
+        "sha256": "4e7d43bfc247f4f2401be97397f972999342a041b41f4e6595a89ae3ee053103"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/settings.svg",
+        "archivePath": "icons/settings.svg",
+        "exists": true,
+        "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/storage.svg",
+        "archivePath": "icons/storage.svg",
+        "exists": true,
+        "sha256": "08d0854ab2fe1b59f712dc3e85cda7b9efc6ad804f2748e8618a2c3659ad90e7"
+      },
+      {
+        "kind": "asset",
+        "reference": "/frontend/icons/upload.svg",
+        "archivePath": "icons/upload.svg",
+        "exists": true,
+        "sha256": "47ee24acecb4ab4000a0a9899c6eafa2512abdd1267b30ca16005886f8cfa218"
+      }
+    ],
+    "sourceHash": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca"
+  },
+  "surface": {
+    "regions": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside",
+        "tag": "aside",
+        "role": null,
+        "text": "",
+        "visible": true
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main",
+        "tag": "main",
+        "role": null,
+        "text": "",
+        "visible": true
+      }
+    ],
+    "headings": [],
+    "controls": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(3) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "",
+        "text": "",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div:nth-of-type(1) > div:nth-of-type(2) > button",
+        "tag": "button",
+        "type": "",
+        "text": "导出配置",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "#search-box",
+        "tag": "input",
+        "type": "text",
+        "text": "搜索配置项 (Key or Name)...",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div:nth-of-type(3) > div:nth-of-type(2) > div > div > div:nth-of-type(1) > div:nth-of-type(2) > select",
+        "tag": "select",
+        "type": "",
+        "text": "已启用 (Enabled) 已禁用 (Disabled)",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div:nth-of-type(3) > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div:nth-of-type(2) > input",
+        "tag": "input",
+        "type": "text",
+        "text": "30",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > main > div:nth-of-type(3) > div:nth-of-type(2) > div > div > div:nth-of-type(3) > div:nth-of-type(2) > input",
+        "tag": "input",
+        "type": "password",
+        "text": "••••••••",
+        "name": null,
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "labels": [],
+    "forms": [],
+    "tables": [],
+    "tabs": [],
+    "dialogs": [],
+    "drawers": [],
+    "links": [
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(1) > div:nth-of-type(1) > a",
+        "text": "系统管理",
+        "href": "/frontend/html/dashboard.html"
+      },
+      {
+        "selector": "body > div:nth-of-type(1) > aside > div:nth-of-type(3) > div:nth-of-type(2) > a",
+        "text": "返回工作台",
+        "href": "/frontend/html/dashboard.html"
+      }
+    ],
+    "stableSelectors": [
+      "#content-area",
+      "#flags-list",
+      "#fms-parity-contract-determinism",
+      "#nav-list",
+      "#pageTitle",
+      "#search-box",
+      "#toastContainer",
+      "#userAvatar",
+      "#userName",
+      "#userRole"
+    ],
+    "permissionRules": []
+  },
+  "scenarios": [
+    {
+      "id": "system_flags-success",
+      "fixture": "parity/fixtures/pages/system_flags/success.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "system_flags-empty",
+      "fixture": "parity/fixtures/pages/system_flags/empty.json",
+      "captureStatus": "rendered",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "system_flags-unauthorized",
+      "fixture": "parity/fixtures/pages/system_flags/unauthorized.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        401
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [],
+      "urlChanges": [
+        {
+          "kind": "navigation",
+          "from": "<legacy-origin>/frontend/html/system_flags.html",
+          "to": "<legacy-origin>/frontend/html/login.html"
+        }
+      ],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ]
+    },
+    {
+      "id": "system_flags-forbidden",
+      "fixture": "parity/fixtures/pages/system_flags/forbidden.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        403
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ]
+    },
+    {
+      "id": "system_flags-server-error",
+      "fixture": "parity/fixtures/pages/system_flags/server-error.json",
+      "captureStatus": "rendered-with-errors",
+      "coverageGaps": [],
+      "expectedHttpStatuses": [
+        500
+      ],
+      "expectedLegacyErrors": [],
+      "apiRequests": [
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ],
+      "fixtureGaps": [],
+      "storageMutations": [
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token",
+          "value": null
+        },
+        {
+          "storage": "localStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        },
+        {
+          "storage": "sessionStorage",
+          "operation": "remove",
+          "key": "sse_token_expires_at",
+          "value": null
+        }
+      ],
+      "urlChanges": [],
+      "sseSubscriptions": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    }
+  ],
+  "approvedExceptions": []
+}

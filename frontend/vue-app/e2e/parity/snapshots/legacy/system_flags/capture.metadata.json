@@ -1,0 +1,1709 @@
+{
+  "schema_version": 1,
+  "page": "system_flags",
+  "legacy_html": "html/system_flags.html",
+  "fixture_manifest_status": "seeded",
+  "captured_at": "2026-07-14T02:30:00.000Z",
+  "browser": {
+    "engine": "chromium",
+    "version": "148.0.7778.96"
+  },
+  "deterministic_environment": {
+    "timezone": "Asia/Singapore",
+    "locale": "zh-CN",
+    "color_scheme": "light",
+    "device_scale_factor": 1,
+    "reduced_motion": true,
+    "service_workers": "blocked",
+    "fonts": "document.fonts.ready",
+    "timestamps": "fixed-clock",
+    "performance_clock": "fixed-monotonic-clock",
+    "random_values": "seeded",
+    "animations": "disabled",
+    "caret": "hidden"
+  },
+  "required_viewports": [
+    {
+      "id": "desktop-wide",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "laptop",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "id": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+  "source_files": [
+    {
+      "path": "css/admin-layout.css",
+      "sha256": "a7abe00c290cc7a82784b1a85ec7c1a0899cd265d1fd538f5a0f4064d73174a7"
+    },
+    {
+      "path": "css/admin-page.css",
+      "sha256": "b0e6a887c542b10b60774a96cf22318249ebc0993011e490afe2ab34ffe84f59"
+    },
+    {
+      "path": "css/apple-theme.css",
+      "sha256": "b33cf1ee765c85974ed580e5ed1ea85352aae95816f382f7144db85789ac75ca"
+    },
+    {
+      "path": "css/base.css",
+      "sha256": "5197772ff8732400ef82607a98d90fe695a5ef051df6803a437b0d5757989b7b"
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "5c2a62f1b8345711d42ecba48c09270217ca6d9067a30d239bd42f16159cb801"
+    },
+    {
+      "path": "css/layout.css",
+      "sha256": "7818d06ff0e0a071a83f3fd1ecdce5b65c427f8ef2ec0bfb1eb843f20a83a7ea"
+    },
+    {
+      "path": "css/main.css",
+      "sha256": "c7b8424c7eb36b650e5c2c307734517f124cd8c41aedbf52ada28d7b7090df40"
+    },
+    {
+      "path": "css/tables.css",
+      "sha256": "f592ebf55a5cfb25b8a6dd2ed787ef10fd87c484bf079450d80ce2441bc39da8"
+    },
+    {
+      "path": "css/variables.css",
+      "sha256": "1e788c83d371ce2156f5b460e52c1f6c31d3de834f7bed9181c5f1e617390473"
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "aa425edb055b4261cf0bed6c7ce3075fedcf863d09439cb853ccb7e9af90dff0"
+    },
+    {
+      "path": "fonts/MiSansVF.ttf",
+      "sha256": "0ddef90648998900175cfdca9a6f087a2544c182f130b0ad4f7e94a03a115e79"
+    },
+    {
+      "path": "html/system_flags.html",
+      "sha256": "3a59111618978b520390e53a8dc40145e2418d0a31a6f14ca1f9f60dd2782ebc"
+    },
+    {
+      "path": "icons/ai.svg",
+      "sha256": "49fb4f7293a153191955c3dbacd1b8d385e65701257a42e71a41e83ba8234e15"
+    },
+    {
+      "path": "icons/bar_chart.svg",
+      "sha256": "3af98cce83c1e1408755e6e39cf7760c97cbb797509478141d4320ebc1ac031c"
+    },
+    {
+      "path": "icons/clock.svg",
+      "sha256": "28b710f51a70ce69e9beefd2f6eaca66bdfdedaf2a688182183d102afa464411"
+    },
+    {
+      "path": "icons/connection.svg",
+      "sha256": "716bb5044602b317503d0061ecbbba310b4b5cae54fa0421aaae667a8906ee5b"
+    },
+    {
+      "path": "icons/fail.svg",
+      "sha256": "cb383d8b98936ab4040a3749e99265b27faadc1a27f72d2efc2cdbd24ff5a8b9"
+    },
+    {
+      "path": "icons/fast.svg",
+      "sha256": "69143303a9bff721ebca6c927dd196ba9c5967cafa0cc1e8605a9f372f82459f"
+    },
+    {
+      "path": "icons/folder.svg",
+      "sha256": "808ad391bf34144aaf50edb48fdc80ea70a55a275f04303798e59958105380a6"
+    },
+    {
+      "path": "icons/forbidden.svg",
+      "sha256": "20a95668317d2bd1ce392f78bb23fe627e99026f90dc1cf1b3d0a6973df4281a"
+    },
+    {
+      "path": "icons/home.svg",
+      "sha256": "d6141a127fa9fbded97a9e87bb97cb69401b06c409a2983f66e42a772cbc4785"
+    },
+    {
+      "path": "icons/logout.svg",
+      "sha256": "bc1b02b4a2c1f0dee74bd27df4ccad0e114191460ce22537edea7f26b00a1764"
+    },
+    {
+      "path": "icons/ok.svg",
+      "sha256": "35153cdd3f5edf2f679fe5a95e42f125b9aa5c371bbbfc41081e300c4c097e28"
+    },
+    {
+      "path": "icons/plane.svg",
+      "sha256": "f20703f7608dac886ace3f62fb3260efe9c64c4d2509bd9f04fd95a68b34f53d"
+    },
+    {
+      "path": "icons/search.svg",
+      "sha256": "4e7d43bfc247f4f2401be97397f972999342a041b41f4e6595a89ae3ee053103"
+    },
+    {
+      "path": "icons/settings.svg",
+      "sha256": "c944be4d84fb15b9727449de691fecce1c1d0ab450ffb96d4f1c430fcd87268a"
+    },
+    {
+      "path": "icons/storage.svg",
+      "sha256": "08d0854ab2fe1b59f712dc3e85cda7b9efc6ad804f2748e8618a2c3659ad90e7"
+    },
+    {
+      "path": "icons/upload.svg",
+      "sha256": "47ee24acecb4ab4000a0a9899c6eafa2512abdd1267b30ca16005886f8cfa218"
+    },
+    {
+      "path": "js/auth.js",
+      "sha256": "553a94b78bb6fd65fc2ee6aa9afe716b02dc3ab44080ee6de304e90744b404bd"
+    }
+  ],
+  "capture_harness_sha256": "10c6827614b5db1bbac46efec07ba74bf32c16a5a9f7985e3fca9801c1154500",
+  "capture_harness_files": [
+    {
+      "path": "scripts/parity/capture-actions.mjs",
+      "sha256": "bccf1f4db873d8bef1707edfa8845685202768bdad91d4b1ce07bf3c89079aaf"
+    },
+    {
+      "path": "scripts/parity/capture-legacy-snapshots.mjs",
+      "sha256": "2a7dd0f475fd530c3887ccc2b3ee66ae1b115a26003eb9e92d92d11d9f92f7e5"
+    },
+    {
+      "path": "scripts/parity/legacy-root.mjs",
+      "sha256": "b6ba3180280c13dff1f77cff8393f063354bae423f620270fa5a78ba920bd8bb"
+    },
+    {
+      "path": "scripts/parity/legacy-source-graph.mjs",
+      "sha256": "a0eceab0ece777ede953796ad18a15e4981ebb783e5d2bae186a72f7bdd12414"
+    },
+    {
+      "path": "scripts/parity/serve-legacy.mjs",
+      "sha256": "7069501028ec75c470511247531f230103d084442a68553a8e6f629196bc8543"
+    }
+  ],
+  "fixture_sha256": "ddcb3d8276130ebb2e05c3f991536766ef05cc00035d27a4691e6896f11d96fc",
+  "fixture_files": [
+    {
+      "path": "parity/fixtures/pages/system_flags/empty.json",
+      "sha256": "efdb01e93f419451cc8d774808b9081e9a95afbda604a8fe7356da962748d365"
+    },
+    {
+      "path": "parity/fixtures/pages/system_flags/forbidden.json",
+      "sha256": "f1693952e356f5d6c8f98c33d09aa6ff9acf36feb3334ba737e7f8a1b7ec514a"
+    },
+    {
+      "path": "parity/fixtures/pages/system_flags/manifest.json",
+      "sha256": "912c282d25938917270b37db8ca1265fd217c801f75a6a696d7752cd70761345"
+    },
+    {
+      "path": "parity/fixtures/pages/system_flags/server-error.json",
+      "sha256": "1c9c6bf66e819b08c5a583ba59cea90b95e5b71063e743e95867354d9d66698b"
+    },
+    {
+      "path": "parity/fixtures/pages/system_flags/success.json",
+      "sha256": "44873fd2a2e6b0211b9aa7267be29e6a2346922db8a1ccf2ee62993233ba6599"
+    },
+    {
+      "path": "parity/fixtures/pages/system_flags/unauthorized.json",
+      "sha256": "aa2a0051765fd9d416ca3c411ef4aba875905463c06cad1ae67776f5999d6405"
+    }
+  ],
+  "baseline_observations": [],
+  "scenarios": [
+    {
+      "id": "system-flags-success",
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "#content-area",
+        "#flags-list"
+      ],
+      "regions": [
+        {
+          "id": "flags-workspace",
+          "selector": "#content-area"
+        }
+      ],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "system-flags-empty",
+      "fixture": "system-flags-empty",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": false,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "system-flags-unauthorized",
+      "fixture": "system-flags-unauthorized",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "system-flags-forbidden",
+      "fixture": "system-flags-forbidden",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    },
+    {
+      "id": "system-flags-server-error",
+      "fixture": "system-flags-server-error",
+      "theme": "light",
+      "auth_role": "admin",
+      "expects_error_response": true,
+      "approved_legacy_errors": [],
+      "approved_exception_ids": [],
+      "expected_panels": [
+        "body"
+      ],
+      "regions": [],
+      "interactions": [],
+      "blocked_interactions": []
+    }
+  ],
+  "captures": [
+    {
+      "file": "system_flags/system-flags-success--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "57ebe15d731205bea810fe6e6c80ad6fddaad075da46bba7999511900fdcb722"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--desktop-wide.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "selector": "#content-area",
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "96302afa46e5508ce00c21706a6da003614b53950c61a7d014111e5c1e3d74cb"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "0c9980bc12b5c3ce3c826f2bde9e096ac2cd68df83fc465aa347974ea15723ac"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--desktop.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "selector": "#content-area",
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "93bf507334f133285251f7e42c03aeb6ff4690240a572feea96759c2b5d98c25"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "b307d4983a08d9af3322825c033a4217f3990f8ecb33ab9f8bf498b5c02008c7"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--laptop.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "selector": "#content-area",
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "f2d4b9dbcb58714ed57b8dce06479d82e605d87811d7ac6d585dcce697836b58"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "9cdcbb6c8bb70a5abe2f507ed775f678c974ef3cba0f3532105da677932a7201"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--tablet.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "selector": "#content-area",
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8730174c4aea74d5fc1f45242846f6c6d7b3ea617798987e913f8be0864e97c7"
+    },
+    {
+      "file": "system_flags/system-flags-success--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "c5b799a5e62305095e9438690bac78f9b3e8b8aa2f3dd4568c623d7811a73bec"
+    },
+    {
+      "file": "system_flags/system-flags-success--flags-workspace--mobile.png",
+      "kind": "region",
+      "region": "flags-workspace",
+      "selector": "#content-area",
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "system-flags-success",
+      "theme": "light",
+      "scenario": "system-flags-success",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "dad77f45f9ee120fce63260d524b7ed9be1179dc61981d1e7544da32d905f81b"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "system-flags-empty",
+      "theme": "light",
+      "scenario": "system-flags-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "cdef6f13e9b2de8d3370b891045d89d38f5f6d7712fb35db0eca185b93964e3a"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "system-flags-empty",
+      "theme": "light",
+      "scenario": "system-flags-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "5730540a3b3e1ec9d8af4eb21e02c3053b048d223822499959b12f20e8c4225a"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "system-flags-empty",
+      "theme": "light",
+      "scenario": "system-flags-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "44b2458fd874e5925f384831657b814e564f8423d10f452b5c2519375d880569"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "system-flags-empty",
+      "theme": "light",
+      "scenario": "system-flags-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "ed083921e1fc824d10e823d3cf4485f1644f59d2ce32aa4d96bd82e6e8d3b252"
+    },
+    {
+      "file": "system_flags/system-flags-empty--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "system-flags-empty",
+      "theme": "light",
+      "scenario": "system-flags-empty",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "60998e493815bdff5e1e350b0172bbe5fccd095e3d1729f7b886ceae77982f31"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "system-flags-unauthorized",
+      "theme": "light",
+      "scenario": "system-flags-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "05f3184aa4412fc90fc393c61189f93f4ad3256c64cf0710445e23a70bd64f7c"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "system-flags-unauthorized",
+      "theme": "light",
+      "scenario": "system-flags-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "d5b9d98288919ffc3716a2a9a14fcb80ddf1d20ac684691f1049688faa2ae166"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "system-flags-unauthorized",
+      "theme": "light",
+      "scenario": "system-flags-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "b308dd7ec7a4e3f8e2847de329dae29e3f02af565959fa6db467a64b762bcd73"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "system-flags-unauthorized",
+      "theme": "light",
+      "scenario": "system-flags-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "9ab633da5245dcfd001b5a00938bf33baa773c0f54b783c5164e34c5de354ee8"
+    },
+    {
+      "file": "system_flags/system-flags-unauthorized--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "system-flags-unauthorized",
+      "theme": "light",
+      "scenario": "system-flags-unauthorized",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [
+        "POST /api/v2/auth/heartbeat: net::ERR_ABORTED",
+        "GET /frontend/fonts/MiSansVF.ttf: net::ERR_ABORTED"
+      ],
+      "observed_page_errors": [],
+      "sha256": "1ea73fd4b425d288e2d236006da8028f4534b7138b0dd1dbc79305af7be722d2"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "system-flags-forbidden",
+      "theme": "light",
+      "scenario": "system-flags-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "219b499964c52013232a9c77eccff63fc50240f8ea8663177ed728f0b82b81f6"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "system-flags-forbidden",
+      "theme": "light",
+      "scenario": "system-flags-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "61f723abd4e4af97cbf323007a0bb1e9eb9a0733f4f148e3c3f5f042df185e9f"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "system-flags-forbidden",
+      "theme": "light",
+      "scenario": "system-flags-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8170d07794220b0dfbc9f73ddf48cb35e125c1ae94af2eb5f589d3106dcaa0b2"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "system-flags-forbidden",
+      "theme": "light",
+      "scenario": "system-flags-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3e5298bbb311de73aa3541745ece61781bb8034e8753d029335ff506f85f1fb4"
+    },
+    {
+      "file": "system_flags/system-flags-forbidden--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "system-flags-forbidden",
+      "theme": "light",
+      "scenario": "system-flags-forbidden",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a5fc116172cef110717546eeb59929302c30ad575e72adcfd907d38f9cd0bffc"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--desktop-wide.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop-wide",
+        "width": 1920,
+        "height": 1080
+      },
+      "fixture": "system-flags-server-error",
+      "theme": "light",
+      "scenario": "system-flags-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "219b499964c52013232a9c77eccff63fc50240f8ea8663177ed728f0b82b81f6"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--desktop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "fixture": "system-flags-server-error",
+      "theme": "light",
+      "scenario": "system-flags-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "61f723abd4e4af97cbf323007a0bb1e9eb9a0733f4f148e3c3f5f042df185e9f"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--laptop.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "laptop",
+        "width": 1366,
+        "height": 768
+      },
+      "fixture": "system-flags-server-error",
+      "theme": "light",
+      "scenario": "system-flags-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "8170d07794220b0dfbc9f73ddf48cb35e125c1ae94af2eb5f589d3106dcaa0b2"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--tablet.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "tablet",
+        "width": 1024,
+        "height": 768
+      },
+      "fixture": "system-flags-server-error",
+      "theme": "light",
+      "scenario": "system-flags-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "3e5298bbb311de73aa3541745ece61781bb8034e8753d029335ff506f85f1fb4"
+    },
+    {
+      "file": "system_flags/system-flags-server-error--full-page--mobile.png",
+      "kind": "full-page",
+      "region": null,
+      "viewport": {
+        "id": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "fixture": "system-flags-server-error",
+      "theme": "light",
+      "scenario": "system-flags-server-error",
+      "state": null,
+      "actions": [],
+      "source_sha256": "c37971e8d2befa32a0158aa1c8a79b407f3e4540ef8965aeeb6c03646f32acca",
+      "observed_resource_failures": [],
+      "observed_page_errors": [],
+      "sha256": "a5fc116172cef110717546eeb59929302c30ad575e72adcfd907d38f9cd0bffc"
+    }
+  ],
+  "request_evidence": [
+    {
+      "scenario": "system-flags-success",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-success",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-success",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-success",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-success",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-empty",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-empty",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-empty",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-empty",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-empty",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-unauthorized",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-unauthorized",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-unauthorized",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-unauthorized",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-unauthorized",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-forbidden",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-forbidden",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-forbidden",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-forbidden",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-forbidden",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-server-error",
+      "viewport": "desktop-wide",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-server-error",
+      "viewport": "desktop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-server-error",
+      "viewport": "laptop",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-server-error",
+      "viewport": "tablet",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    },
+    {
+      "scenario": "system-flags-server-error",
+      "viewport": "mobile",
+      "requests": [
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/heartbeat",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "POST",
+          "pathname": "/api/v2/auth/sse-token",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/auth/me",
+          "query": {},
+          "body": null
+        },
+        {
+          "method": "GET",
+          "pathname": "/api/v2/system/flags",
+          "query": {},
+          "body": null
+        }
+      ]
+    }
+  ]
+}

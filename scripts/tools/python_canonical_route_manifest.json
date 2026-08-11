@@ -1,0 +1,2078 @@
+[
+  {
+    "path": "/api/v2/ai/capabilities",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/chains/from-template",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/chains/templates",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/chains/{root_todo_id}/status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/connection/test",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities/{entity_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities/{entity_id}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities/{entity_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities/{entity_id}/prompt",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities/{entity_id}/prompt",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/entities/{entity_id}/tools",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/eval/jobs",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/eval/jobs",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/eval/jobs/{job_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/eval/jobs/{job_id}/cancel",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/eval/jobs/{job_id}/compare",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/executions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/executions/{run_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/executions/{run_id}/cancel",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/generate_plan",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/metrics/execution-visibility",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/metrics/query-routing",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/metrics/report-schema",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/metrics/todo-graph-pilot",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/models",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/nl-query",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/nl-query/conversations",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/nl-query/conversations/{conversation_id}/messages",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/nl-query/followup",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/nl-query/suggestions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/nl-query/{conversation_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/batch-approve",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/batch-reject",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/{action_id}/approve",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/{action_id}/approve-with-modification",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/{action_id}/diff",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/{action_id}/reject",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/pending-actions/{action_id}/result",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/rate-limit/status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/registry/initialize",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/registry/status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/todos/{todo_id}/execute",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/todos/{todo_id}/execute-tree",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/tools",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/tools/categories",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/tools/execute",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/v2/batch/{entity_id}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/v2/entities",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/ai/v2/entities/{entity_id}/status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/rules",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/rules",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/rules/{rule_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/stats",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/{anomaly_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/{anomaly_id}/acknowledge",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/anomalies/{anomaly_id}/resolve",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/archive/flights",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/archive/flights/{flight_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/archive/stats",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/archive/trigger",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin-only",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin/permission-templates",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin/permission-templates",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin/permission-templates/{template_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin/permission-templates/{template_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin/permission-templates/{template_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/admin/roles/{role_id}/apply-template",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/assign-role",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/change-password",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/force-offline/{user_id}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/heartbeat",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/kick-user/{user_id}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/login",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/logout",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/me",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/me/operator-context",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/me/profile",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/online-history",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/online-status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/online-users",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/permissions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/protected",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/refresh",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/register",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/roles",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/roles",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/roles/{role_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/roles/{role_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/roles/{role_id}/permissions",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/roles/{role_id}/permissions/{permission}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/sse-token",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/user-status/{user_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/users",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/users/{user_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/users/{user_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/auth/users/{user_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/business-case-types",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/business-case-types",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/business-case-types/{code}/bpmn",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/business-case-types/{code}/status",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases/{case_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases/{case_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases/{case_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases/{case_id}/appends",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases/{case_id}/appends/{append_id}/acknowledge",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/business-cases/{case_id}/status",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/auto",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/batch",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/batch-publish-drafts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/burden-metrics",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/cascade-preview",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/conflicts",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/followup-queue",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/generate-drafts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/mobile/sync/actions",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/my/assigned",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/optimal",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/publish",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/replan",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/replan-apply",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/replan-snapshot",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/safety-checklist/progress",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/safety-checklist/templates/{task_type}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/safety-checklist/templates/{task_type}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/timeline",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/validate",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/accept",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/cancel",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/checkin",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/checkout",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/complete",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/eta-report",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/publish",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/report-issue",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/safety-checklist",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/safety-checklist/batch-submit",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/safety-checklist/items/{item_code}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/start",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch-orders/{order_id}/timeline",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/breakdown",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/resource-utilization/equipment",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/resource-utilization/stands",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/resource-utilization/summary",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/resource-utilization/teams",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/summary",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/analytics/trend",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/flights/{flight_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/flights/{flight_id}/events",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/flights/{flight_id}/stakeholders",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/groups",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/groups/by-flight/{flight_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/groups/{group_id}/messages",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/groups/{group_id}/messages",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/groups/{group_id}/read",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/orders/{order_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/collaboration/orders/{order_id}/events",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment-types",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment-types",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment/{equipment_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment/{equipment_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment/{equipment_id}/position",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/equipment/{equipment_id}/status",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/stands",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/stands",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/stands/{stand_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/team-types",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/team-types",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/team-types/{team_type_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}/members",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}/members",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}/members/{user_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}/position",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/resources/teams/{team_id}/status",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/flight-generation-rules",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/flight-generation-rules",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/flight-generation-rules/{rule_id}/delete",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/generation-adjustment-rules",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/generation-adjustment-rules",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/qualification-grants",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/qualification-grants",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/qualification-levels",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/qualification-levels",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/qualifications",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/qualifications",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/task-type-requirements/drafts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/task-type-requirements/publish",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/task-type-requirements/versions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/temporary-task-templates",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/departments/{department_id}/temporary-task-templates",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/preview",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/rules/validate",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/scenarios/preview",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/availability",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/exceptions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/exceptions",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/instances",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/instances",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/templates",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/schedule/templates",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/task-types",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/task-types",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/dispatch/task-types/{task_type_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/flights",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/search",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/updates/recent",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}/dispatch-timeline",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}/dispatch-timeline/events",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}/dispatch-timeline/events/{timeline_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}/event-journey",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}/history",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/flights/{flight_id}/history-report",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/health/ping",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/kpi/baseline-compare",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/kpi/compare",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/kpi/service-nodes",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/kpi/snapshot",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/kpi/trend",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/kpi/trend-with-anomalies",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/labels",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/labels",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/labels/flights/{flight_id}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/labels/flights/{flight_id}/legs/{leg_type}",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/labels/flights/{flight_id}/legs/{leg_type}/{code}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/labels/flights/{flight_id}/{code}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/labels/{label_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/labels/{label_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/devices/register",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/devices/{device_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/devices/{device_id}/heartbeat",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/operations/events",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/uploads",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/uploads/{upload_id}/content",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/mobile/workbench",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/dispatch/online-users",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/dispatch/send",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/preferences",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/preferences",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/read-all",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/receipt-groups/{receipt_group_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/sent-receipt-groups",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/unread-count",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/{notification_id}/ack",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/{notification_id}/read",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/notifications/{notification_id}/receipts",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/reference/business-case-types",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/reference/departments",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/reference/departments/{department_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shadow/diffs",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shadow/health",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shadow/stats",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers/candidates",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers/system-draft-preview",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers/{handover_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers/{handover_id}/ack",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers/{handover_id}/items/{item_id}/ack",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/shift-handovers/{handover_id}/submit",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/sse/stream",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/airport-context",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/alert/test",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flags",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flags",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flags/export",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flight-imports/preview",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flight-imports/{preview_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flight-imports/{preview_id}/commit",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/system/flight-imports/{preview_id}/result",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/health",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/online-status/service-status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/health",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/health/error_report",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/health/errors",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/health/errors/clear",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/health/performance",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/health/ping",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/streaming/buffer-status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/runtime/streaming/sse-stats",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/scheduler/bulk-update",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/system/scheduler/flight-sync/status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/scheduler/flight-sync/trigger",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/system/scheduler/status",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/system/scheduler/trigger-check",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/todos",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/todos",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/agent-context/metrics",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/stats",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/{todo_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/{todo_id}",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/{todo_id}/assign",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/{todo_id}/cancel",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/{todo_id}/complete",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/todos/{todo_id}/progress",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/verification/compare",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/verification/health",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/verification/stats",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/definitions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/definitions/drafts/assistant-chat",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/definitions/drafts/assistant-chat/stream",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/definitions/drafts/from-file",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/definitions/{process_definition_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/definitions/{process_definition_id}/xml",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/deployments",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/deployments",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/deployments/{deployment_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/health",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/history/instances",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/history/tasks",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/with-subprocess",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/{process_instance_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/{process_instance_id}",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/{process_instance_id}/executions",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/{process_instance_id}/subprocess-result",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/{process_instance_id}/variables",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/instances/{process_instance_id}/variables",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/integrations/dispatch/pending",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/integrations/dispatch/trigger",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/integrations/dispatch/{dispatch_order_id}/assign",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/integrations/dispatch/{dispatch_order_id}/recommendations",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/tasks",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/tasks/{task_id}",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/tasks/{task_id}/claim",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/tasks/{task_id}/complete",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "path": "/api/v2/workflows/tasks/{task_id}/unclaim",
+    "methods": [
+      "POST"
+    ]
+  }
+]

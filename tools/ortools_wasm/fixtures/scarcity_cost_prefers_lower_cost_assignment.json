@@ -1,0 +1,148 @@
+{
+  "request": {
+    "cluster_id": "fixture-scarcity-cost-prefers-lower-cost",
+    "model_version": "dispatch_wasm_pdf_full_model_v2",
+    "solver_version": "dispatch_solver_ortools_wasm_strict_pdf_v3",
+    "objective_config": {
+      "timeout_ms": 10000,
+      "average_workload_target": 1
+    },
+    "optimizable_orders": [
+      {
+        "order_id": "order-common",
+        "flight_id": "flight-scarcity",
+        "status": "pending",
+        "conflict_state": "gap",
+        "order_class": "unassigned",
+        "planned_start_time": "2026-01-01T09:00:00Z",
+        "planned_end_time": "2026-01-01T09:10:00Z",
+        "earliest_start_time": "2026-01-01T09:00:00Z",
+        "latest_start_time": "2026-01-01T09:00:00Z",
+        "sla_deadline_time": "2026-01-01T09:00:00Z",
+        "duration_minutes": 10,
+        "stand_id": "stand-common",
+        "current_assignment": {
+          "assignee_type": null,
+          "team_id": null,
+          "individual_user_id": null,
+          "member_user_ids": [],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": []
+          }
+        },
+        "baseline_assignment": {
+          "assignee_type": null,
+          "team_id": null,
+          "individual_user_id": null,
+          "member_user_ids": [],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": []
+          },
+          "personnel_slot_assignments": [],
+          "equipment_slot_assignments": []
+        },
+        "personnel_slots": [
+          {
+            "slot_code": "lead",
+            "qualification_code": "svc",
+            "qualification_level_code": "L1",
+            "candidate_user_ids": ["user-1"],
+            "baseline_user_id": null,
+            "workload_weight": 1,
+            "scarcity_cost": 1
+          }
+        ],
+        "equipment_slots": []
+      },
+      {
+        "order_id": "order-rare",
+        "flight_id": "flight-scarcity",
+        "status": "pending",
+        "conflict_state": "gap",
+        "order_class": "unassigned",
+        "planned_start_time": "2026-01-01T09:00:00Z",
+        "planned_end_time": "2026-01-01T09:10:00Z",
+        "earliest_start_time": "2026-01-01T09:00:00Z",
+        "latest_start_time": "2026-01-01T09:00:00Z",
+        "sla_deadline_time": "2026-01-01T09:00:00Z",
+        "duration_minutes": 10,
+        "stand_id": "stand-rare",
+        "current_assignment": {
+          "assignee_type": null,
+          "team_id": null,
+          "individual_user_id": null,
+          "member_user_ids": [],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": []
+          }
+        },
+        "baseline_assignment": {
+          "assignee_type": null,
+          "team_id": null,
+          "individual_user_id": null,
+          "member_user_ids": [],
+          "equipment_ids": [],
+          "task_crew": {
+            "members": []
+          },
+          "personnel_slot_assignments": [],
+          "equipment_slot_assignments": []
+        },
+        "personnel_slots": [
+          {
+            "slot_code": "lead",
+            "qualification_code": "svc",
+            "qualification_level_code": "L1",
+            "candidate_user_ids": ["user-1"],
+            "baseline_user_id": null,
+            "workload_weight": 1,
+            "scarcity_cost": 5
+          }
+        ],
+        "equipment_slots": []
+      }
+    ],
+    "fixed_anchor_orders": [],
+    "employee_anchor_states": [],
+    "equipment_anchor_states": [],
+    "employee_free_windows": [
+      {
+        "resource_type": "employee",
+        "resource_id": "user-1",
+        "window_start": "2026-01-01T08:50:00Z",
+        "window_end": "2026-01-01T10:00:00Z"
+      }
+    ],
+    "equipment_free_windows": [],
+    "resource_travel_edges": [
+      {
+        "resource_type": "employee",
+        "resource_id": "user-1",
+        "from_node": "order:order-common",
+        "to_node": "order:order-rare",
+        "travel_minutes": 20
+      },
+      {
+        "resource_type": "employee",
+        "resource_id": "user-1",
+        "from_node": "order:order-rare",
+        "to_node": "order:order-common",
+        "travel_minutes": 20
+      }
+    ],
+    "turnaround_pairs": []
+  },
+  "equals": {
+    "solver_run_metadata.solve_status": "OPTIMAL",
+    "objective_breakdown.slot_gap": 1,
+    "objective_breakdown.scarcity_cost": 1,
+    "gap_summary.unassigned_unplanned_order_ids.0": "order-rare",
+    "order_results.length": 1,
+    "order_results.0.dispatch_order_id": "order-common",
+    "order_results.0.objective_breakdown.scarcity_cost": 1,
+    "order_results.0.gap_summary.slot_gap_count": 0
+  }
+}

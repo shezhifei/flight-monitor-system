@@ -1,0 +1,33 @@
+{
+  "_comment": "Single source of truth for the cross-language AI runtime contract FIELD SETS. Both the Rust and Python contract tests assert against this file so that adding/removing a field on either side fails CI until this manifest (and the exhaustive fixture runtime_contract.json) are consciously updated. See docs/architecture/AI_CONTRACT_VERSIONING.md. 'python_internal_fields' are declared on the Python pydantic models but are deliberately NOT part of the wire contract (Rust never emits or consumes them); the Python introspection test subtracts them before comparing to 'types'.",
+  "context_envelope_contract": {
+    "version": "ai-runtime.v1",
+    "types": {
+      "ContextEnvelope": ["contract_version", "job_id", "run_id", "correlation_id", "requester", "ontology", "context", "task"],
+      "EnvelopeRequester": ["user_id", "roles", "department_id", "permission_version"],
+      "EnvelopeOntology": ["version", "allowed_object_types", "allowed_actions", "risk_ceiling"],
+      "EnvelopeContext": ["objects", "relations", "evidence", "limits"],
+      "EnvelopeObject": ["object_type", "object_id", "version", "data"],
+      "EnvelopeRelation": ["from_type", "from_id", "to_type", "to_id", "relation_type"],
+      "EnvelopeEvidence": ["source", "object_type", "object_id", "retrieved_at"],
+      "EnvelopeLimits": ["max_objects", "max_tokens", "redaction"],
+      "EnvelopeTask": ["task_type", "user_message"]
+    },
+    "python_internal_fields": {
+      "ContextEnvelope": ["conversation_history"],
+      "EnvelopeRequester": ["permissions"]
+    }
+  },
+  "structured_output_contract": {
+    "version": "ai-structured-output.v1",
+    "types": {
+      "AiStructuredOutput": ["contract_version", "run_id", "status", "answer", "reasoning_steps", "evidence", "proposals", "limitations", "metrics", "token_usage"],
+      "ReasoningStep": ["step", "summary"],
+      "OutputEvidence": ["object_type", "object_id", "field", "source"],
+      "OutputProposal": ["proposal_id", "object_type", "object_id", "action_name", "arguments", "risk_level", "confidence", "reasoning", "requires_approval"],
+      "OutputMetrics": ["model", "duration_ms"],
+      "TokenUsage": ["prompt_tokens", "completion_tokens", "total_tokens"]
+    },
+    "python_internal_fields": {}
+  }
+}

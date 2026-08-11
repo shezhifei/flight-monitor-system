@@ -1,0 +1,99 @@
+{
+  "scenario": "user-manager-empty",
+  "expected_legacy_errors": [
+    "permissions.filter is not a function",
+    "roles.filter is not a function",
+    "users.filter is not a function"
+  ],
+  "coverage_note": "Empty list envelopes still fail legacy array assumptions for users/roles/permissions.",
+  "routes": [
+    {
+      "id": "user-manager-templates-empty",
+      "method": "GET",
+      "pathname": "/api/v2/auth/admin/permission-templates",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-permissions-empty",
+      "method": "GET",
+      "pathname": "/api/v2/auth/permissions",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "permissions 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-roles-empty",
+      "method": "GET",
+      "pathname": "/api/v2/auth/roles",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "roles 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-users-empty",
+      "method": "GET",
+      "pathname": "/api/v2/auth/users",
+      "query": {},
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "message": "users 列表获取成功",
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    },
+    {
+      "id": "user-manager-departments-empty",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "page_size": [
+          "200"
+        ]
+      },
+      "requestBody": null,
+      "response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": [],
+          "error": null,
+          "request_id": "parity-request-001"
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}

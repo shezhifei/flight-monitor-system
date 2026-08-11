@@ -1,0 +1,112 @@
+version: "3.9"
+
+# Local Redis HA lab stack. Host ports are loopback-only.
+# REDIS_PASSWORD must be supplied explicitly (no weak default).
+
+services:
+  redis-node-1:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}" --masterauth "$${REDIS_PASSWORD}" --replica-announce-ip redis-node-1
+    ports:
+      - "127.0.0.1:6381:6379"
+    networks: [redis-ha]
+
+  redis-node-2:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}" --masterauth "$${REDIS_PASSWORD}" --replicaof redis-node-1 6379 --replica-announce-ip redis-node-2
+    ports:
+      - "127.0.0.1:6382:6379"
+    depends_on: [redis-node-1]
+    networks: [redis-ha]
+
+  redis-node-3:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}" --masterauth "$${REDIS_PASSWORD}" --replicaof redis-node-1 6379 --replica-announce-ip redis-node-3
+    ports:
+      - "127.0.0.1:6383:6379"
+    depends_on: [redis-node-1]
+    networks: [redis-ha]
+
+  sentinel-1:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - |
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel resolve-hostnames yes
+        sentinel monitor mymaster redis-node-1 6379 2
+        sentinel auth-pass mymaster $${REDIS_PASSWORD}
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        EOF
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "127.0.0.1:26379:26379"
+    depends_on: [redis-node-1, redis-node-2, redis-node-3]
+    networks: [redis-ha]
+
+  sentinel-2:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - |
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel resolve-hostnames yes
+        sentinel monitor mymaster redis-node-1 6379 2
+        sentinel auth-pass mymaster $${REDIS_PASSWORD}
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        EOF
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "127.0.0.1:26380:26379"
+    depends_on: [redis-node-1, redis-node-2, redis-node-3]
+    networks: [redis-ha]
+
+  sentinel-3:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - |
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel resolve-hostnames yes
+        sentinel monitor mymaster redis-node-1 6379 2
+        sentinel auth-pass mymaster $${REDIS_PASSWORD}
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        EOF
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "127.0.0.1:26381:26379"
+    depends_on: [redis-node-1, redis-node-2, redis-node-3]
+    networks: [redis-ha]
+
+networks:
+  redis-ha:

@@ -1,0 +1,84 @@
+{
+  "scenario": "flowable_modeler-forbidden",
+  "routes": [
+    {
+      "id": "flowable-capabilities-success",
+      "method": "GET",
+      "pathname": "/api/v2/ai/capabilities",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/ai/capabilities"
+          }
+        }
+      }
+    },
+    {
+      "id": "flowable-case-types-success",
+      "method": "GET",
+      "pathname": "/api/v2/business-case-types",
+      "query": {
+        "active_only": [
+          "false"
+        ]
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/business-case-types"
+          }
+        }
+      }
+    },
+    {
+      "id": "flowable-statuses-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/business-case-statuses",
+      "query": {},
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/reference/business-case-statuses"
+          }
+        }
+      }
+    },
+    {
+      "id": "flowable-departments-success",
+      "method": "GET",
+      "pathname": "/api/v2/reference/departments",
+      "query": {
+        "include_inactive": [
+          "false"
+        ],
+        "page": [
+          "1"
+        ],
+        "page_size": [
+          "200"
+        ]
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "success": false,
+          "error": {
+            "code": "HTTP_403",
+            "message": "Parity administrator permission denied for /api/v2/reference/departments"
+          }
+        }
+      }
+    }
+  ],
+  "sse_streams": []
+}
