@@ -108,6 +108,8 @@ const detailItems = computed(() => {
     tabindex="0"
   >
     <FlightDetailHeader
+      :flight-id="flight?.flight_id ?? null"
+      :registration="flight?.registration ?? null"
       @close-drawer="emit('close-drawer')"
     />
 

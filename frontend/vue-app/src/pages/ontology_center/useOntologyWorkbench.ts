@@ -18,6 +18,12 @@ import type {
 } from './types';
 import { idField } from './types';
 
+const ONTOLOGY_TABS: OntologyTabId[] = ['views', 'reassign', 'resources', 'suggestions', 'links'];
+
+function isOntologyTab(value: string): value is OntologyTabId {
+  return (ONTOLOGY_TABS as string[]).includes(value);
+}
+
 export function useOntologyWorkbench() {
   const api = useApi();
   const auth = useAuth();
@@ -120,6 +126,41 @@ export function useOntologyWorkbench() {
       gateForm.registration = key;
       reassignForm.new_registration = key;
     }
+  }
+
+  /**
+   * Deep-link bootstrap from `?flight=` / `?registration=` / `?tab=`.
+   * Prefer flight over registration when both are present.
+   * Returns true when a context key was applied (caller should load view).
+   */
+  function applyUrlBootstrap(search = typeof window !== 'undefined' ? window.location.search : ''): boolean {
+    const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+    const tab = (params.get('tab') || '').trim();
+    if (tab && isOntologyTab(tab)) {
+      activeTab.value = tab;
+    }
+
+    const flight = (params.get('flight') || params.get('flight_id') || '').trim();
+    const registration = (params.get('registration') || params.get('reg') || '').trim();
+    if (flight) {
+      contextMode.value = 'flight';
+      contextKey.value = flight;
+      fillFromContext();
+      return true;
+    }
+    if (registration) {
+      contextMode.value = 'aircraft';
+      contextKey.value = registration;
+      fillFromContext();
+      return true;
+    }
+    return false;
+  }
+
+  async function bootstrapFromUrl(search?: string): Promise<boolean> {
+    if (!applyUrlBootstrap(search)) return false;
+    await loadContextView();
+    return true;
   }
 
   async function loadContextView() {
@@ -745,6 +786,8 @@ export function useOntologyWorkbench() {
     canReject,
     loadContextView,
     loadSuggestions,
+    applyUrlBootstrap,
+    bootstrapFromUrl,
     submitReassign,
     submitAllocateStand,
     submitAllocateGate,

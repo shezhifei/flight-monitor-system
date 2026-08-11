@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import { useOntologyWorkbench } from './useOntologyWorkbench';
@@ -37,6 +38,7 @@ const {
   canConfirm,
   loadContextView,
   loadSuggestions,
+  bootstrapFromUrl,
   submitReassign,
   submitAllocateStand,
   submitAllocateGate,
@@ -56,6 +58,10 @@ const {
   runAutoScan,
   confirmDrafts,
 } = useOntologyWorkbench();
+
+onMounted(() => {
+  void bootstrapFromUrl();
+});
 
 const tabs: { id: OntologyTabId; label: string }[] = [
   { id: 'views', label: '资源视图' },

@@ -1,12 +1,29 @@
 <script setup lang="ts">
-import { inject } from 'vue';
+import { computed, inject } from 'vue';
 import { flightBusinessCaseKey } from '../../../composables/useFlightBusinessCases';
+import { ontologyCenterUrl } from '../../../shared/page-routes';
+
+const props = defineProps<{
+  flightId?: string | null;
+  registration?: string | null;
+}>();
 
 const emit = defineEmits<{
   (e: 'close-drawer'): void;
 }>();
 
 const ctx = inject(flightBusinessCaseKey)!;
+
+const ontologyHref = computed(() =>
+  ontologyCenterUrl({
+    flightId: props.flightId,
+    registration: props.registration,
+  }),
+);
+
+const canOpenOntology = computed(
+  () => Boolean(String(props.flightId || '').trim() || String(props.registration || '').trim()),
+);
 </script>
 
 <template>
@@ -30,6 +47,18 @@ const ctx = inject(flightBusinessCaseKey)!;
         role="group"
         aria-label="编辑控件"
       >
+        <a
+          v-if="canOpenOntology"
+          id="openOntologyCenterBtn"
+          class="btn btn-secondary"
+          :href="ontologyHref"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="在本体资源台打开本航班/机号"
+          data-testid="open-ontology-center"
+        >
+          本体资源
+        </a>
         <button
           id="aiDiagnoseBtn"
           type="button"

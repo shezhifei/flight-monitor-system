@@ -47,3 +47,25 @@ export type PageKey = keyof typeof PAGE_ROUTES;
 export function pageUrl(key: PageKey): string {
   return PAGE_ROUTES[key];
 }
+
+/**
+ * Ontology Center deep-link.
+ * Query: `flight` (preferred) and/or `registration`, optional `tab`.
+ * Example: `/frontend/ontology_center.html?flight=FL…&tab=resources`
+ */
+export function ontologyCenterUrl(opts: {
+  flightId?: string | null;
+  registration?: string | null;
+  tab?: string | null;
+} = {}): string {
+  const base = PAGE_ROUTES.ontology_center;
+  const q = new URLSearchParams();
+  const flight = String(opts.flightId ?? '').trim();
+  const registration = String(opts.registration ?? '').trim();
+  const tab = String(opts.tab ?? '').trim();
+  if (flight) q.set('flight', flight);
+  if (registration) q.set('registration', registration);
+  if (tab) q.set('tab', tab);
+  const qs = q.toString();
+  return qs ? `${base}?${qs}` : base;
+}

@@ -111,6 +111,7 @@ server/di/flight.rs  (装配 OntologyService)
 | 集成测试 | ✅（`ontology_v1_integration`，需 `TEST_DATABASE_URL`） |
 | 前端资源台 | ✅ `/frontend/ontology_center.html`（工作区模块「本体」） |
 | 前端 AAR（Adjust/Release） | ✅ 占用/分配列表 + PATCH/release |
+| 航班详情深链 | ✅ `?flight=` / `?registration=` / `?tab=` + 详情「本体资源」 |
 | Playwright e2e | ✅ `e2e/ontology_center.spec.ts` |
 
 ### 集成测试

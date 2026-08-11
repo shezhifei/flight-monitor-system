@@ -277,6 +277,18 @@ test.describe('Ontology Center', () => {
     await expect(page.getByRole('button', { name: '加载资源视图' })).toBeEnabled();
   });
 
+  test('deep-link ?flight=&tab= auto-loads resource view and tab', async ({ page }) => {
+    await installSessionRoutes(page, PARITY_ADMIN);
+    await installOntologyRoutes(page);
+    await page.goto(`${ONTOLOGY_URL}?flight=FL_E2E_001&tab=resources`);
+
+    await expect(page.getByRole('heading', { name: '本体资源台' })).toBeVisible();
+    // context key filled and flight view loaded via bootstrap
+    await expect(page.getByPlaceholder('例如 FL…')).toHaveValue('FL_E2E_001');
+    await expect(page.getByRole('heading', { name: /正式机位/ })).toBeVisible();
+    await expect(page.getByTestId('active-occupations').getByText('occ-1')).toBeVisible();
+  });
+
   test('loads flight resource view and shows plan stand/gate', async ({ page }) => {
     await openOntologyCenter(page);
 
