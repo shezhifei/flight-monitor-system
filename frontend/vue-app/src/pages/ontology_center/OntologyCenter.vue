@@ -215,12 +215,12 @@ function countLabel(n: number | undefined): string {
         </p>
         <div class="ontology-grid-2">
           <div class="ontology-field">
-            <label>航班 ID</label>
-            <input v-model="reassignForm.flight_id" type="text" placeholder="flight_id" />
+            <label for="reassign-flight-id">航班 ID</label>
+            <input id="reassign-flight-id" v-model="reassignForm.flight_id" type="text" placeholder="flight_id" />
           </div>
           <div class="ontology-field">
-            <label>新机号（原样）</label>
-            <input v-model="reassignForm.new_registration" type="text" placeholder="B-xxxx" />
+            <label for="reassign-registration">新机号（原样）</label>
+            <input id="reassign-registration" v-model="reassignForm.new_registration" type="text" placeholder="B-xxxx" />
           </div>
         </div>
         <div class="ontology-actions">
@@ -246,35 +246,35 @@ function countLabel(n: number | undefined): string {
             <h3>分配机位</h3>
             <div class="ontology-grid-2">
               <div class="ontology-field">
-                <label>机号</label>
-                <input v-model="standForm.registration" type="text" />
+                <label for="stand-registration">机号</label>
+                <input id="stand-registration" v-model="standForm.registration" type="text" />
               </div>
               <div class="ontology-field">
-                <label>机位</label>
-                <input v-model="standForm.stand_code" type="text" />
+                <label for="stand-code">机位</label>
+                <input id="stand-code" v-model="standForm.stand_code" type="text" />
               </div>
               <div class="ontology-field">
-                <label>开始</label>
-                <input v-model="standForm.starts_at" type="datetime-local" />
+                <label for="stand-starts">开始</label>
+                <input id="stand-starts" v-model="standForm.starts_at" type="datetime-local" />
               </div>
               <div class="ontology-field">
-                <label>结束</label>
-                <input v-model="standForm.ends_at" type="datetime-local" />
+                <label for="stand-ends">结束</label>
+                <input id="stand-ends" v-model="standForm.ends_at" type="datetime-local" />
               </div>
               <div class="ontology-field">
-                <label>类型</label>
-                <select v-model="standForm.kind">
+                <label for="stand-kind">类型</label>
+                <select id="stand-kind" v-model="standForm.kind">
                   <option value="normal">normal</option>
                   <option value="moving">moving</option>
                 </select>
               </div>
               <div class="ontology-field">
-                <label>拖曳目标机位</label>
-                <input v-model="standForm.moving_to_stand" type="text" :disabled="standForm.kind !== 'moving'" />
+                <label for="stand-moving-to">拖曳目标机位</label>
+                <input id="stand-moving-to" v-model="standForm.moving_to_stand" type="text" :disabled="standForm.kind !== 'moving'" />
               </div>
               <div class="ontology-field">
-                <label>关联航班（可选）</label>
-                <input v-model="standForm.flight_id" type="text" />
+                <label for="stand-flight-id">关联航班（可选）</label>
+                <input id="stand-flight-id" v-model="standForm.flight_id" type="text" />
               </div>
               <label class="ontology-check">
                 <input v-model="standForm.sync_flight_plan" type="checkbox" />
@@ -297,24 +297,24 @@ function countLabel(n: number | undefined): string {
             <h3>分配登机口</h3>
             <div class="ontology-grid-2">
               <div class="ontology-field">
-                <label>机号</label>
-                <input v-model="gateForm.registration" type="text" />
+                <label for="gate-registration">机号</label>
+                <input id="gate-registration" v-model="gateForm.registration" type="text" />
               </div>
               <div class="ontology-field">
-                <label>登机口</label>
-                <input v-model="gateForm.gate_code" type="text" />
+                <label for="gate-code">登机口</label>
+                <input id="gate-code" v-model="gateForm.gate_code" type="text" />
               </div>
               <div class="ontology-field">
-                <label>开始</label>
-                <input v-model="gateForm.starts_at" type="datetime-local" />
+                <label for="gate-starts">开始</label>
+                <input id="gate-starts" v-model="gateForm.starts_at" type="datetime-local" />
               </div>
               <div class="ontology-field">
-                <label>结束</label>
-                <input v-model="gateForm.ends_at" type="datetime-local" />
+                <label for="gate-ends">结束</label>
+                <input id="gate-ends" v-model="gateForm.ends_at" type="datetime-local" />
               </div>
               <div class="ontology-field">
-                <label>关联航班（可选）</label>
-                <input v-model="gateForm.flight_id" type="text" />
+                <label for="gate-flight-id">关联航班（可选）</label>
+                <input id="gate-flight-id" v-model="gateForm.flight_id" type="text" />
               </div>
               <label class="ontology-check">
                 <input v-model="gateForm.sync_flight_plan" type="checkbox" />
