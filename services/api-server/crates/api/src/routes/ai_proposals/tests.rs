@@ -1,7 +1,7 @@
 use super::*;
 use crate::middleware::jwt::JwtSecret;
 use crate::test_support::{
-    ai_run_event_types, cleanup_outbox_by_aggregate_id, cleanup_test_user, cleanup_todo_by_id, ensure_test_user,
+    ai_run_event_types, cleanup_outbox_by_aggregate_id, cleanup_todo_by_id, ensure_test_user,
     insert_idempotent_conflict_proposal, outbox_count_by_aggregate_id, outbox_count_by_event_type,
     proposal_status_by_id, todo_count_by_source, todo_exists_by_source, todo_exists_by_source_id,
     todo_title_by_source_id,
@@ -74,6 +74,10 @@ impl Drop for EnvGuard {
         }
     }
 }
+
+// 多个 DB smoke 测试会并行读写 FMS_AI_PROPOSAL_EXECUTION_ENABLED 等进程级环境变量，
+// 互相覆盖会导致 flaky，用静态锁串行化环境变量相关段落。
+static SMOKE_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 fn make_jwt(permissions: &[&str], department_id: Option<&str>) -> String {
     use chrono::Utc;
@@ -549,10 +553,12 @@ async fn build_test_executor(
     };
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
-    let flight_service = Arc::new(FlightService::new(flight_repo));
+    let flight_service = Arc::new(FlightService::new(flight_repo.clone()).with_transactional_repository(flight_repo));
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-    let dispatch_service = Arc::new(DispatchService::new(dispatch_order_repo));
+    let dispatch_service = Arc::new(
+        DispatchService::new(dispatch_order_repo.clone()).with_transactional_repos(dispatch_order_repo, None),
+    );
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -565,8 +571,12 @@ async fn build_test_executor(
     let notification_collaboration_repo_port: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo.clone();
+    let notification_tx_repo_port: Arc<
+        dyn fms_application::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
+    > = notification_repo.clone();
     let notification_service = Arc::new(
         NotificationService::new(notification_repo_port, notification_pref_repo_port)
+            .with_transactional_repository(notification_tx_repo_port)
             .with_collaboration_repo(notification_collaboration_repo_port)
             .with_metrics_recorder(Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>)
             .with_delivery_publisher(
@@ -578,21 +588,28 @@ async fn build_test_executor(
     );
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-    let anomaly_service = Arc::new(AnomalyService::new(anomaly_repo));
+    let anomaly_service = Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
 
     let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-    let todo_service = Arc::new(TodoService::new(todo_repo));
+    let todo_tx_repo: Arc<dyn fms_application::sqlx_transactional_repositories::SqlxTodoTransactionalRepository> =
+        todo_repo.clone();
+    let todo_service = Arc::new(TodoService::new(todo_repo).with_transactional_repository(todo_tx_repo));
 
+    let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
+    let business_case_tx_repo: Arc<
+        dyn fms_application::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
+    > = business_case_pg_repo.clone();
     let business_case_repo: Arc<dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync> =
-        Arc::new(PgBusinessCaseRepository::new(pool.clone()));
+        business_case_pg_repo;
     let business_case_collaboration_repo: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
     let business_case_service = Arc::new(
         BusinessCaseService::new(business_case_repo)
+            .with_transactional_repository(business_case_tx_repo)
             .with_event_publisher(Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>)
             .with_dispatch_chat_repository(business_case_collaboration_repo),
     );
@@ -620,7 +637,7 @@ async fn test_execute_proposal_success() {
     // Clean up previous test runs if any
     let _ = cleanup_todo_by_id(&pool, "TD_API_SUCCESS").await;
     let _ = cleanup_outbox_by_aggregate_id(&pool, "TD_API_SUCCESS").await;
-    let _ = cleanup_test_user(&pool).await;
+    // 不删除共享 tester 用户：并行 smoke 测试都依赖它，ensure_test_user 幂等即可。
 
     // Insert tester user to satisfy foreign keys
     ensure_test_user(&pool).await.unwrap();
@@ -664,7 +681,7 @@ async fn test_execute_proposal_success() {
         after_preview: Some(json!({"title": "Test Todo from API"})),
         constraint_results: None,
     };
-    service.validate_proposal(val_req).await.expect("validate proposal");
+    let validated = service.validate_proposal(val_req).await.expect("validate proposal");
 
     let app = test::init_service(
         App::new()
@@ -676,16 +693,20 @@ async fn test_execute_proposal_success() {
 
     let approver_token = make_jwt(&["*"], None);
 
-    // Approve proposal
-    let approve_req = test::TestRequest::post()
-        .uri(&format!("/api/v2/ai/proposals/{}/approve", proposal.proposal_id))
-        .insert_header(("Authorization", format!("Bearer {approver_token}")))
-        .set_json(json!({}))
-        .to_request();
-    let approve_resp = test::call_service(&app, approve_req).await;
-    assert_eq!(approve_resp.status(), StatusCode::OK);
+    // Approve proposal（Todo.create 低风险经 schema 驱动策略在 validate 后自动批准，
+    // 此时重复 approve 会 409，仅在 Pending 时显式审批）
+    if validated.status == ActionProposalStatus::Pending {
+        let approve_req = test::TestRequest::post()
+            .uri(&format!("/api/v2/ai/proposals/{}/approve", proposal.proposal_id))
+            .insert_header(("Authorization", format!("Bearer {approver_token}")))
+            .set_json(json!({}))
+            .to_request();
+        let approve_resp = test::call_service(&app, approve_req).await;
+        assert_eq!(approve_resp.status(), StatusCode::OK);
+    }
 
     // Enable proposal execution via environment flag and execute
+    let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let executor_token = make_jwt(&["*"], None);
     let exec_req = test::TestRequest::post()
@@ -846,6 +867,7 @@ async fn api_proposal_smoke_happy_path_todo_create_execute() {
     save_smoke_proposal(&pool, &proposal).await;
 
     // Set execution env vars
+    let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::set("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
     let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
@@ -939,6 +961,7 @@ async fn api_proposal_smoke_execution_disabled_returns_conflict() {
         .unwrap();
 
     // Execution DISABLED
+    let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "false");
     let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
@@ -1003,6 +1026,7 @@ async fn api_proposal_smoke_permission_denied_returns_403() {
     let proposal = smoke_todo_create_proposal(&proposal_id, &object_id, &correlation_id);
     save_smoke_proposal(&pool, &proposal).await;
 
+    let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::set("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
     let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
@@ -1066,6 +1090,7 @@ async fn api_proposal_smoke_readiness_not_ready_blocks_execute() {
     save_smoke_proposal(&pool, &proposal).await;
 
     // Execution enabled but NO staging override → readiness fails
+    let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::remove("FMS_AI_EXECUTION_READINESS_OVERRIDE");
     let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");

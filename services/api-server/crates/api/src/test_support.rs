@@ -823,9 +823,10 @@ pub(crate) async fn cleanup_proposal_by_id(pool: &sqlx::PgPool, proposal_id: &st
 /// Insert the canonical `test_user` row used to satisfy foreign keys, using
 /// `ON CONFLICT (id) DO NOTHING` so it is safe to call repeatedly.
 pub(crate) async fn ensure_test_user(pool: &sqlx::PgPool) -> sqlx::Result<()> {
+    // 不指定冲突目标：既容忍历史残留的 username='tester' 行，也容忍并行测试的 username 唯一约束竞争。
     sqlx::query(
         "INSERT INTO users (id, username, email, password_hash, is_active, is_verified) \
-         VALUES ($1, $2, $3, $4, TRUE, TRUE) ON CONFLICT (id) DO NOTHING",
+         VALUES ($1, $2, $3, $4, TRUE, TRUE) ON CONFLICT DO NOTHING",
     )
     .bind("test_user")
     .bind("tester")

@@ -371,10 +371,12 @@ mod tests {
             pg_todo_repository::PgTodoRepository,
         };
 
-        let flight_svc = Arc::new(FlightService::new(Arc::new(PgFlightRepository::new(pool.clone()))));
-        let dispatch_svc = Arc::new(DispatchService::new(Arc::new(PgDispatchOrderRepository::new(
-            pool.clone(),
-        ))));
+        let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
+        let flight_svc = Arc::new(FlightService::new(flight_repo.clone()).with_transactional_repository(flight_repo));
+        let dispatch_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
+        let dispatch_svc = Arc::new(
+            DispatchService::new(dispatch_repo.clone()).with_transactional_repos(dispatch_repo, None),
+        );
         let notif_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
         let notif_repo_port: Arc<dyn fms_domain::ports::notification_repository::NotificationRepository + Send + Sync> =
@@ -385,9 +387,13 @@ mod tests {
         let collab_repo_port: Arc<
             dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
         > = collab_repo.clone();
+        let notif_tx_repo_port: Arc<
+            dyn crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
+        > = notif_repo.clone();
         let notif_svc: Arc<ConcreteNotificationService> =
             Arc::new(
                 NotificationService::new(notif_repo_port, notif_pref_repo_port)
+                    .with_transactional_repository(notif_tx_repo_port)
                     .with_collaboration_repo(collab_repo_port)
                     .with_metrics_recorder(
                         Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>
@@ -399,20 +405,31 @@ mod tests {
                         Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>
                     ),
             );
-        let anomaly_svc = Arc::new(AnomalyService::new(Arc::new(PgAnomalyRepository::new(pool.clone()))));
+        let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
+        let anomaly_svc = Arc::new(
+            AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo),
+        );
         let label_svc = Arc::new(LabelService::new(
             Arc::new(PgLabelRepository::new(pool.clone())),
             Arc::new(NoopBroadcaster),
         ));
-        let todo_svc = Arc::new(TodoService::new(Arc::new(PgTodoRepository::new(pool.clone()))));
+        let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
+        let todo_tx_repo: Arc<dyn crate::sqlx_transactional_repositories::SqlxTodoTransactionalRepository> =
+            todo_repo.clone();
+        let todo_svc = Arc::new(TodoService::new(todo_repo).with_transactional_repository(todo_tx_repo));
+        let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
+        let business_case_tx_repo: Arc<
+            dyn crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
+        > = business_case_pg_repo.clone();
         let business_case_repo_port: Arc<
             dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync,
-        > = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
+        > = business_case_pg_repo;
         let business_case_collab_repo_port: Arc<
             dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
         > = collab_repo;
         let bc_svc = Arc::new(
             BusinessCaseService::new(business_case_repo_port)
+                .with_transactional_repository(business_case_tx_repo)
                 .with_event_publisher(Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>)
                 .with_dispatch_chat_repository(business_case_collab_repo_port),
         );
@@ -508,6 +525,10 @@ mod tests {
 
     // ── Staging Smoke Tests ────────────────────────────────────────────
 
+    // 三个 smoke 测试都会读写 FMS_AI_PROPOSAL_EXECUTION_ENABLED 等进程级环境变量，
+    // 并行执行会互相覆盖导致 flaky，用静态锁串行化环境变量相关段落。
+    static SMOKE_ENV_LOCK: Mutex<()> = Mutex::new(());
+
     #[tokio::test]
     #[ignore = "requires TEST_DATABASE_URL — run via scripts/dev/run_aip_staging_smoke.ps1"]
     async fn staging_smoke_todo_create_executes_end_to_end() {
@@ -534,6 +555,7 @@ mod tests {
         // Persist the approved proposal to DB
         service.test_repository().unwrap().save(&proposal).await.unwrap();
 
+        let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
         // Set env vars for execution
         std::env::set_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
         std::env::set_var("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
@@ -625,6 +647,7 @@ mod tests {
         .await
         .unwrap();
 
+        let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
         // Execution DISABLED
         std::env::set_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "false");
         std::env::remove_var("FMS_AI_EXECUTION_READINESS_OVERRIDE");
@@ -727,6 +750,7 @@ mod tests {
         .await
         .unwrap();
 
+        let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
         // Execution enabled but NO staging override → readiness fails
         std::env::set_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
         std::env::remove_var("FMS_AI_EXECUTION_READINESS_OVERRIDE");
@@ -801,5 +825,471 @@ mod tests {
     fn execution_allowlist_allows_listed_action() {
         let allowlist = ExecutionAllowlist::parse("Todo.create");
         assert!(allowlist.allows("Todo", "create"));
+    }
+
+    // ── Phase 4（契约 §4.4/§4.5）：proposal 管线消费 schema 的接线用例 ──────────
+
+    fn generate_request_for(
+        job_id: &str,
+        object_type: &str,
+        object_id: &str,
+        action_name: &str,
+        arguments: serde_json::Value,
+        permissions: &[&str],
+    ) -> GenerateProposalRequest {
+        GenerateProposalRequest {
+            job_id: job_id.to_string(),
+            run_id: "run_1".to_string(),
+            ontology_version: Some("flight-ops.v1".to_string()),
+            object_type: object_type.to_string(),
+            object_id: object_id.to_string(),
+            action_name: action_name.to_string(),
+            arguments,
+            reasoning: Some("test proposal".to_string()),
+            confidence: Some(0.9),
+            requester_user_id: Some("requester_1".to_string()),
+            requester_user_roles: permissions.iter().map(|item| item.to_string()).collect(),
+            requester_department_id: Some("ops-1".to_string()),
+            correlation_id: Some("corr_1".to_string()),
+            idempotency_key: None,
+            expected_object_version: None,
+            risk_level: None,
+            approval_policy: None,
+            required_permissions: None,
+        }
+    }
+
+    fn schema_risk_policy(def: &fms_domain::models::ai_ontology::OntologyActionDef) -> (RiskLevel, ApprovalPolicy) {
+        let risk = match def.risk_level.as_str() {
+            "critical" => RiskLevel::Critical,
+            "high" => RiskLevel::High,
+            "medium" => RiskLevel::Medium,
+            _ => RiskLevel::Low,
+        };
+        let declared_policy = match def.approval_policy.as_str() {
+            "require_supervisor_approval" => ApprovalPolicy::RequireSupervisorApproval,
+            "require_flowable_approval" => ApprovalPolicy::RequireFlowableApproval,
+            "require_approval" => ApprovalPolicy::RequireApproval,
+            _ => ApprovalPolicy::AutoExecute,
+        };
+        // 契约 §4.5：风险等级对审批策略的归一化（与 service 的 normalize_policy_for_risk 一致）。
+        let policy = match risk {
+            RiskLevel::Critical => {
+                if declared_policy == ApprovalPolicy::RequireFlowableApproval {
+                    ApprovalPolicy::RequireFlowableApproval
+                } else {
+                    ApprovalPolicy::RequireSupervisorApproval
+                }
+            }
+            RiskLevel::High => {
+                if matches!(
+                    declared_policy,
+                    ApprovalPolicy::RequireSupervisorApproval | ApprovalPolicy::RequireFlowableApproval
+                ) {
+                    declared_policy
+                } else {
+                    ApprovalPolicy::RequireApproval
+                }
+            }
+            RiskLevel::Medium => {
+                if declared_policy == ApprovalPolicy::RequireFlowableApproval {
+                    ApprovalPolicy::RequireFlowableApproval
+                } else {
+                    ApprovalPolicy::RequireApproval
+                }
+            }
+            RiskLevel::Low => declared_policy,
+        };
+        (risk, policy)
+    }
+
+    // 契约 §4.4：每个 schema 动作的 proposal 必须携带 schema 声明的
+    // 风险等级、审批策略与权限（单一事实来源，不得硬编码漂移）。
+    #[tokio::test]
+    async fn generated_proposals_carry_schema_risk_policy_and_permissions_for_every_action() {
+        let schema = fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema();
+        let service = AiActionProposalService::new();
+        let mut checked = 0usize;
+
+        for (object_type, object) in &schema.objects {
+            for (action_name, def) in &object.actions {
+                checked += 1;
+                let perms: Vec<&str> = def.required_permissions.iter().map(|item| item.as_str()).collect();
+                let request = generate_request_for(
+                    &format!("job_schema_{checked}"),
+                    object_type,
+                    "obj_1",
+                    action_name,
+                    json!({}),
+                    &perms,
+                );
+                let proposal = service
+                    .generate_proposal(request)
+                    .await
+                    .unwrap_or_else(|e| panic!("{object_type}.{action_name} should generate: {e}"));
+
+                let (expected_risk, expected_policy) = schema_risk_policy(def);
+                assert_eq!(
+                    proposal.required_permissions, def.required_permissions,
+                    "{object_type}.{action_name} permissions must come from schema"
+                );
+                assert_eq!(
+                    proposal.risk_level, expected_risk,
+                    "{object_type}.{action_name} risk must come from schema"
+                );
+                assert_eq!(
+                    proposal.approval_policy, expected_policy,
+                    "{object_type}.{action_name} approval policy must come from schema"
+                );
+            }
+        }
+
+        assert!(checked >= 30, "expected the full flight-ops.v1 action set, got {checked}");
+    }
+
+    // 契约 §4.4：每个 write 动作在无权限时必须被拒绝（禁止绕过资源权限）。
+    #[tokio::test]
+    async fn every_schema_write_action_is_forbidden_without_permissions() {
+        let schema = fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema();
+        let service = AiActionProposalService::new();
+        let mut checked = 0usize;
+
+        for (object_type, object) in &schema.objects {
+            for (action_name, def) in &object.actions {
+                if def.category != "write" {
+                    continue;
+                }
+                checked += 1;
+                assert!(
+                    !def.required_permissions.is_empty(),
+                    "{object_type}.{action_name} write action must declare required permissions"
+                );
+                let request = generate_request_for(
+                    &format!("job_forbid_{checked}"),
+                    object_type,
+                    "obj_1",
+                    action_name,
+                    json!({}),
+                    &[],
+                );
+                let result = service.generate_proposal(request).await;
+                assert!(
+                    matches!(result, Err(AiActionProposalError::Forbidden(_))),
+                    "{object_type}.{action_name} must be forbidden without permissions, got {:?}",
+                    result
+                );
+            }
+        }
+
+        assert!(checked >= 10, "expected at least the 10 contract write actions, got {checked}");
+    }
+
+    // 契约 §4.5：过期 proposal 不能审批也不能执行。
+    #[tokio::test]
+    async fn expired_proposal_cannot_be_approved_or_executed() {
+        use crate::services::in_memory_ai_proposal_repository::InMemoryAiProposalRepository;
+        use chrono::Utc;
+        use fms_domain::models::ai_proposal::AiActionProposal;
+        use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
+
+        let repo = Arc::new(InMemoryAiProposalRepository::new());
+        let service = AiActionProposalService::new().with_repository(repo.clone());
+
+        // 过期且停在 Pending：审批必须被拒。
+        let mut pending = AiActionProposal::new(
+            "prop_expired_pending",
+            "job_expired",
+            "run_expired",
+            "Flight",
+            "flt_1",
+            "change_stand",
+            json!({"new_stand_id": "S02", "reason": "conflict"}),
+        )
+        .with_expires_at(Utc::now() - chrono::Duration::minutes(1));
+        pending.required_permissions = vec!["flight:write".to_string()];
+        pending.transition_to(ActionProposalStatus::Validating).expect("to validating");
+        pending.transition_to(ActionProposalStatus::Pending).expect("to pending");
+        repo.save(&pending).await.expect("persist pending proposal");
+
+        let approve_result = service
+            .approve_proposal(ApproveProposalRequest {
+                proposal_id: pending.proposal_id.clone(),
+                approver_id: "approver_1".to_string(),
+                approver_permissions: vec!["flight:write".to_string()],
+                approver_department_id: None,
+                modified_arguments: None,
+            })
+            .await;
+        assert!(
+            matches!(approve_result, Err(AiActionProposalError::Conflict(ref msg)) if msg.contains("expired")),
+            "expected expired conflict on approve, got {:?}",
+            approve_result
+        );
+
+        // 过期且已 Approved：执行必须被拒。
+        let mut approved = AiActionProposal::new(
+            "prop_expired_approved",
+            "job_expired",
+            "run_expired",
+            "Flight",
+            "flt_1",
+            "change_stand",
+            json!({"new_stand_id": "S02", "reason": "conflict"}),
+        )
+        .with_expires_at(Utc::now() - chrono::Duration::minutes(1));
+        approved.required_permissions = vec!["flight:write".to_string()];
+        approved.transition_to(ActionProposalStatus::Validating).expect("to validating");
+        approved.transition_to(ActionProposalStatus::Pending).expect("to pending");
+        approved.approve("approver_1").expect("approve");
+        repo.save(&approved).await.expect("persist approved proposal");
+
+        let execute_result = service
+            .execute_proposal(ExecuteProposalRequest {
+                proposal_id: approved.proposal_id.clone(),
+                executor_id: "executor_1".to_string(),
+                executor_permissions: vec!["flight:write".to_string()],
+                executor_department_id: None,
+            })
+            .await;
+        assert!(
+            matches!(execute_result, Err(AiActionProposalError::Conflict(ref msg)) if msg.contains("expired")),
+            "expected expired conflict on execute, got {:?}",
+            execute_result
+        );
+    }
+
+    // 契约 §4.3：同一 idempotency key 已执行过的动作不得重复执行。
+    #[tokio::test]
+    async fn execute_proposal_rejects_duplicate_idempotency_key() {
+        use crate::services::in_memory_ai_proposal_repository::InMemoryAiProposalRepository;
+        use fms_domain::models::ai_proposal::AiActionProposal;
+        use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
+
+        let repo = Arc::new(InMemoryAiProposalRepository::new());
+
+        // 预置一条已执行、携带同一幂等键的 proposal。
+        let mut executed = AiActionProposal::new(
+            "prop_dup_first",
+            "job_dup",
+            "run_dup",
+            "Todo",
+            "TD_DUP",
+            "create",
+            json!({"title": "first"}),
+        )
+        .with_metadata(json!({"idempotency_key": "dup_key_1"}));
+        executed.required_permissions = vec!["todo:write".to_string()];
+        executed.transition_to(ActionProposalStatus::Validating).expect("to validating");
+        executed.transition_to(ActionProposalStatus::Pending).expect("to pending");
+        executed.approve("approver_1").expect("approve");
+        executed.transition_to(ActionProposalStatus::Executing).expect("to executing");
+        executed.mark_executed("executor_1", json!({}));
+        repo.save(&executed).await.expect("persist executed proposal");
+
+        let service = AiActionProposalService::new()
+            .with_repository(repo.clone())
+            .with_proposal_execution_enabled_for_test(true);
+
+        let mut request = generate_request_for(
+            "job_dup",
+            "Todo",
+            "TD_DUP",
+            "create",
+            json!({"title": "second"}),
+            &["todo:write"],
+        );
+        request.idempotency_key = Some("dup_key_1".to_string());
+        let proposal = service.generate_proposal(request).await.expect("generate duplicate proposal");
+
+        let proposal = service
+            .validate_proposal(ValidateProposalRequest {
+                proposal_id: proposal.proposal_id.clone(),
+                before_snapshot: Some(json!({})),
+                after_preview: Some(json!({})),
+                constraint_results: None,
+            })
+            .await
+            .expect("proposal should validate");
+
+        // 低风险动作 validate 后可能已自动批准，仅当仍处 Pending 时才显式审批。
+        let proposal = if proposal.status == ActionProposalStatus::Pending {
+            service
+                .approve_proposal(ApproveProposalRequest {
+                    proposal_id: proposal.proposal_id.clone(),
+                    approver_id: "approver_1".to_string(),
+                    approver_permissions: vec!["todo:write".to_string()],
+                    approver_department_id: None,
+                    modified_arguments: None,
+                })
+                .await
+                .expect("proposal should approve")
+        } else {
+            proposal
+        };
+
+        let result = service
+            .execute_proposal(ExecuteProposalRequest {
+                proposal_id: proposal.proposal_id,
+                executor_id: "executor_1".to_string(),
+                executor_permissions: vec!["todo:write".to_string()],
+                executor_department_id: None,
+            })
+            .await;
+        assert!(
+            matches!(result, Err(AiActionProposalError::Conflict(ref msg)) if msg.contains("already been executed")),
+            "expected duplicate idempotency conflict, got {:?}",
+            result
+        );
+    }
+
+    // 契约 §4.3：执行前重验对象版本，版本不一致必须拒绝执行。
+    #[tokio::test]
+    async fn execute_proposal_rejects_flight_version_conflict() {
+        use crate::services::ontology_read_action_service::tests::FakeFlightRepo;
+
+        let flight_repo = Arc::new(FakeFlightRepo::default());
+        flight_repo.flights.lock().unwrap().push(versioned_flight("flt_1", 2));
+
+        let service = AiActionProposalService::new()
+            .with_proposal_execution_enabled_for_test(true)
+            .with_flight_repository(flight_repo);
+
+        let mut request = generate_request_for(
+            "job_version",
+            "Flight",
+            "flt_1",
+            "change_stand",
+            json!({"new_stand_id": "S02", "reason": "conflict"}),
+            &["flight:write"],
+        );
+        request.expected_object_version = Some(1);
+
+        let proposal = service.generate_proposal(request).await.expect("generate proposal");
+        let proposal = service
+            .validate_proposal(ValidateProposalRequest {
+                proposal_id: proposal.proposal_id.clone(),
+                before_snapshot: Some(json!({"stand": "S01"})),
+                after_preview: Some(json!({"stand": "S02"})),
+                constraint_results: None,
+            })
+            .await
+            .expect("proposal should validate");
+        let proposal = service
+            .approve_proposal(ApproveProposalRequest {
+                proposal_id: proposal.proposal_id.clone(),
+                approver_id: "approver_1".to_string(),
+                approver_permissions: vec!["flight:write".to_string()],
+                approver_department_id: None,
+                modified_arguments: None,
+            })
+            .await
+            .expect("proposal should approve");
+
+        let result = service
+            .execute_proposal(ExecuteProposalRequest {
+                proposal_id: proposal.proposal_id,
+                executor_id: "executor_1".to_string(),
+                executor_permissions: vec!["flight:write".to_string()],
+                executor_department_id: None,
+            })
+            .await;
+        assert!(
+            matches!(result, Err(AiActionProposalError::Conflict(ref msg)) if msg.contains("version mismatch")),
+            "expected version conflict, got {:?}",
+            result
+        );
+    }
+
+    // 拒绝是终态：被拒绝的 proposal 不得再被执行。
+    #[tokio::test]
+    async fn rejected_proposal_cannot_be_executed() {
+        let service = AiActionProposalService::new();
+        let proposal = service
+            .generate_proposal(generate_request(
+                "change_stand",
+                json!({"new_stand_id": "S02", "reason": "conflict"}),
+                &["flight:write"],
+            ))
+            .await
+            .expect("generate proposal");
+        let proposal = service
+            .validate_proposal(ValidateProposalRequest {
+                proposal_id: proposal.proposal_id.clone(),
+                before_snapshot: Some(json!({})),
+                after_preview: Some(json!({})),
+                constraint_results: None,
+            })
+            .await
+            .expect("proposal should validate");
+
+        let rejected = service
+            .reject_proposal(crate::services::ai_action_proposal_service::RejectProposalRequest {
+                proposal_id: proposal.proposal_id.clone(),
+                rejecter_id: "rejecter_1".to_string(),
+                reason: "not needed".to_string(),
+            })
+            .await
+            .expect("proposal should reject");
+        assert_eq!(rejected.status, ActionProposalStatus::Rejected);
+
+        let result = service
+            .execute_proposal(ExecuteProposalRequest {
+                proposal_id: proposal.proposal_id,
+                executor_id: "executor_1".to_string(),
+                executor_permissions: vec!["flight:write".to_string()],
+                executor_department_id: None,
+            })
+            .await;
+        assert!(
+            matches!(result, Err(AiActionProposalError::Conflict(_))),
+            "expected conflict executing rejected proposal, got {:?}",
+            result
+        );
+    }
+
+    fn versioned_flight(flight_id: &str, version: i32) -> fms_domain::models::flight::Flight {
+        use fms_domain::models::flight::Flight;
+        use fms_domain::models::value_objects::{FlightId, FlightNumber, FlightStatus};
+
+        let now = chrono::Utc::now();
+        Flight {
+            flight_id: FlightId::from(flight_id),
+            airline_code: Some("CZ".to_string()),
+            flight_number: Some(FlightNumber::from("CZ3000")),
+            registration: None,
+            aircraft_type_detail: None,
+            stand: None,
+            gate: None,
+            terminal: None,
+            position: None,
+            baggage_carousel: None,
+            scheduled_departure: Some(now),
+            scheduled_arrival: Some(now),
+            estimated_departure: Some(now),
+            estimated_arrival: Some(now),
+            actual_departure: None,
+            actual_arrival: None,
+            cobt_time: None,
+            codt: None,
+            has_boarding_restriction: false,
+            is_quick_turnaround: false,
+            is_commercial_signed: true,
+            status: FlightStatus::default(),
+            inbound_leg: None,
+            outbound_leg: None,
+            anomaly_summary: Default::default(),
+            created_at: now,
+            updated_at: now,
+            version,
+            labels: vec![],
+            flight_remarks: None,
+            load_planning_remarks: None,
+            aircraft_maintenance_remarks: None,
+            aircraft_check_remarks: None,
+            direction: None,
+            flight_kind: "passenger".to_string(),
+            is_draft: false,
+            divert: false,
+        }
     }
 }

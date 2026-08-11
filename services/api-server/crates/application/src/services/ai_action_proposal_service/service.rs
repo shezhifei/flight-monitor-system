@@ -989,6 +989,23 @@ impl AiActionProposalService {
         action_name: &str,
         _arguments: &Value,
     ) -> (RiskLevel, ApprovalPolicy) {
+        // 契约 §4.4：ontology schema 是风险/审批策略的单一事实来源，
+        // schema 内定义的动作一律以 schema 为准，避免硬编码表漂移。
+        if let Some(def) = Self::ontology_action_def(object_type, action_name) {
+            let risk = match def.risk_level.as_str() {
+                "critical" => RiskLevel::Critical,
+                "high" => RiskLevel::High,
+                "medium" => RiskLevel::Medium,
+                _ => RiskLevel::Low,
+            };
+            let policy = match def.approval_policy.as_str() {
+                "require_supervisor_approval" => ApprovalPolicy::RequireSupervisorApproval,
+                "require_flowable_approval" => ApprovalPolicy::RequireFlowableApproval,
+                "require_approval" => ApprovalPolicy::RequireApproval,
+                _ => ApprovalPolicy::AutoExecute,
+            };
+            return (risk, policy);
+        }
         let key = format!("{}.{}", object_type, action_name);
         match key.as_str() {
             // 高风险：影响航班状态、取消、重大变更
@@ -1026,7 +1043,23 @@ impl AiActionProposalService {
         format!("{}_{}", object_type.to_lowercase(), action_name.to_lowercase())
     }
 
+    /// 从确定性构建的 flight-ops.v1 schema 中查找动作定义（同步、无 IO）。
+    fn ontology_action_def(
+        object_type: &str,
+        action_name: &str,
+    ) -> Option<fms_domain::models::ai_ontology::OntologyActionDef> {
+        let schema = fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema();
+        schema.objects.get(object_type)?.actions.get(action_name).cloned()
+    }
+
     fn infer_required_permissions(&self, object_type: &str, action_name: &str) -> Vec<String> {
+        // 契约 §4.4：权限以 ontology schema 为单一事实来源，
+        // 保证 AI proposal 无法绕过新写动作的资源权限。
+        if let Some(def) = Self::ontology_action_def(object_type, action_name) {
+            if !def.required_permissions.is_empty() {
+                return def.required_permissions;
+            }
+        }
         match (object_type, action_name) {
             ("Flight", "get_context") => vec!["flight:read".to_string()],
             ("Flight", "change_stand")
