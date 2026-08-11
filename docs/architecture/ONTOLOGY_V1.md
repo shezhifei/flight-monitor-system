@@ -1,6 +1,8 @@
 # Ontology V1 — 飞机中心运行本体
 
-> 状态：飞机中心 V1 范围完成（`feat/ontology-definition`）；原始 AI Ontology 契约仍未全部实现。
+> 状态：飞机中心 V1 范围完成（`feat/ontology-definition`）；原始 AI Ontology 契约的
+> `flight-ops.v1` 子集（6 只读 / 5 建议 / 10 受控写动作）已按 Phase 0–5 落地，
+> 子集之外的对象/动作仍未实现。
 > 范围：机号权威、机位占用、登机口分配、周转链接、资源建议、draft 批确认
 
 本文档与代码对齐：`migrations/119_ontology_v1_core.sql`、

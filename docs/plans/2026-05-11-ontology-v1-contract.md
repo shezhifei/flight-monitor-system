@@ -1245,9 +1245,13 @@ GET /api/v2/ai/ontology/schema
 
 ## 8. 验收标准
 
-- [ ] Ontology V1 已文档化，并可导出 JSON 给 Python sidecar
-- [ ] 每个 V1 写动作都能映射到现有 Rust service 或明确计划中的 service method
-- [ ] 每个 V1 只读动作都能映射到 repository、read view 或 query service
-- [ ] 每个动作都有 JSON schema 定义
-- [ ] 每个动作都有风险等级和审批策略
-- [ ] 每个 proposal 都包含约束验证结果
+> 验收范围：`flight-ops.v1` 飞机中心运行资源子集（Ontology V1 Agent Handoff Phase 0–5 落地的
+> 6 个只读、5 个建议、10 个受控写动作），验收证据见各 Phase 提交与
+> `docs/operations/ontology-v1-agent-handoff.md`。
+
+- [x] Ontology V1 已文档化，并可导出 JSON 给 Python sidecar
+- [x] 每个 V1 写动作都能映射到现有 Rust service 或明确计划中的 service method
+- [x] 每个 V1 只读动作都能映射到 repository、read view 或 query service
+- [x] 每个动作都有 JSON schema 定义
+- [x] 每个动作都有风险等级和审批策略
+- [x] 每个 proposal 都包含约束验证结果
