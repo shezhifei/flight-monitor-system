@@ -679,6 +679,15 @@ const LINK_COLUMNS: &str = "id, inbound_flight_id, outbound_flight_id, status, s
 
 #[async_trait]
 impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
+    async fn find_by_id(&self, id: &str) -> Result<Option<TurnaroundLink>, DomainError> {
+        let row = sqlx::query("SELECT * FROM turnaround_links WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(row.map(|r| row_to_link(&r)))
+    }
+
     async fn create(&self, link: &TurnaroundLink) -> Result<(), DomainError> {
         sqlx::query(
             &format!(
@@ -788,6 +797,48 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
             }
         }
         Ok(candidates)
+    }
+
+    async fn list_outbound_for_autolink(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<(String, String, Option<DateTime<Utc>>)>, DomainError> {
+        let limit = limit.clamp(1, 500);
+        // status < 7: 未起飞 (Departed=7)；排除 draft；需要 registration + outbound_leg
+        let rows = sqlx::query(
+            "SELECT f.flight_id, f.registration, f.scheduled_departure \
+             FROM flights f \
+             WHERE f.registration IS NOT NULL \
+               AND btrim(f.registration) <> '' \
+               AND f.outbound_leg IS NOT NULL \
+               AND COALESCE(f.is_draft, FALSE) = FALSE \
+               AND f.status < 7 \
+               AND NOT EXISTS ( \
+                   SELECT 1 FROM turnaround_links tl \
+                   WHERE tl.outbound_flight_id = f.flight_id AND tl.status = 'active' \
+               ) \
+             ORDER BY f.scheduled_departure NULLS LAST \
+             LIMIT $1",
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+
+        Ok(rows
+            .into_iter()
+            .filter_map(|row| {
+                let flight_id: String = row.get("flight_id");
+                let registration: Option<String> = row.try_get("registration").unwrap_or(None);
+                let registration = registration?.trim().to_string();
+                if registration.is_empty() {
+                    return None;
+                }
+                let scheduled_departure: Option<DateTime<Utc>> =
+                    row.try_get("scheduled_departure").unwrap_or(None);
+                Some((flight_id, registration, scheduled_departure))
+            })
+            .collect())
     }
 }
 

@@ -172,6 +172,48 @@ pub struct GateAssignmentResult {
 }
 
 // ---------------------------------------------------------------------------
+// 周转链接 TurnaroundLink（§4.8）
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CreateTurnaroundLinkRequest {
+    pub inbound_flight_id: String,
+    pub outbound_flight_id: String,
+    /// auto | manual；默认 manual
+    #[serde(default = "default_link_source_manual")]
+    pub source: String,
+    pub created_by: Option<String>,
+}
+
+fn default_link_source_manual() -> String {
+    "manual".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BreakTurnaroundLinkRequest {
+    pub reason: Option<String>,
+    pub broken_by: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoLinkScanRequest {
+    /// 时间窗分钟（出港计划 − 进港到达），默认 360
+    pub window_minutes: Option<i64>,
+    /// 单次扫描出港候选上限，默认 100
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoLinkScanResult {
+    pub evaluated: usize,
+    pub created: Vec<String>,
+    pub skipped: usize,
+    pub errors: Vec<String>,
+}
+
+// ---------------------------------------------------------------------------
 // 新建建议（§4.9）
 // ---------------------------------------------------------------------------
 

@@ -12,7 +12,8 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use fms_application::schemas::ontology_schemas::{
     AdjustGateRequest, AdjustStandRequest, AllocateGateRequest, AllocateStandRequest,
-    ConfirmDraftFlightsRequest, CreateSuggestionRequest, ReassignAircraftRequest,
+    AutoLinkScanRequest, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
+    CreateSuggestionRequest, CreateTurnaroundLinkRequest, ReassignAircraftRequest,
     ReleaseResourceRequest, SuggestionAcceptRequest, SuggestionQuery, SuggestionRejectRequest,
 };
 use fms_application::services::ontology_service::{OntologyError, OntologyService};
@@ -253,6 +254,52 @@ async fn release_gate(
     Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
 }
 
+async fn create_turnaround_link(
+    svc: web::Data<Arc<OntologyService>>,
+    body: web::Json<CreateTurnaroundLinkRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .create_turnaround_link(body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Created().json(json!({ "success": true, "data": result })))
+}
+
+async fn break_turnaround_link(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<BreakTurnaroundLinkRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .break_turnaround_link(
+            &path.into_inner(),
+            body.into_inner(),
+            &actor,
+            &permissions,
+            is_admin,
+        )
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn auto_link_scan(
+    svc: web::Data<Arc<OntologyService>>,
+    body: web::Json<AutoLinkScanRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.plan.confirm")?;
+    let result = svc
+        .auto_link_scan(body.into_inner())
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
 async fn create_suggestion(
     svc: web::Data<Arc<OntologyService>>,
     body: web::Json<CreateSuggestionRequest>,
@@ -296,6 +343,12 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 "/gates/assignments/{id}/release",
                 web::post().to(release_gate),
             )
+            .route("/turnaround-links", web::post().to(create_turnaround_link))
+            .route(
+                "/turnaround-links/{id}/break",
+                web::post().to(break_turnaround_link),
+            )
+            .route("/turnaround-links/auto-scan", web::post().to(auto_link_scan))
             .route("/suggestions", web::get().to(list_suggestions))
             .route("/suggestions", web::post().to(create_suggestion))
             .route(

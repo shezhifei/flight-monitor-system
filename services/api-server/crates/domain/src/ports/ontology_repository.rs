@@ -107,6 +107,9 @@ pub trait GateAssignmentRepository: Send + Sync {
 
 #[async_trait]
 pub trait TurnaroundLinkRepository: Send + Sync {
+    /// 按 id 查询
+    async fn find_by_id(&self, id: &str) -> Result<Option<TurnaroundLink>, DomainError>;
+
     /// 建链接（自动/手工）
     async fn create(&self, link: &TurnaroundLink) -> Result<(), DomainError>;
 
@@ -130,6 +133,13 @@ pub trait TurnaroundLinkRepository: Send + Sync {
         outbound_sched_departure: Option<DateTime<Utc>>,
         window_minutes: i64,
     ) -> Result<Vec<(String, DateTime<Utc>)>, DomainError>;
+
+    /// 扫描候选：有机号、有出港边、未 draft、尚未起飞、尚无 active 出港链接的航段。
+    /// 返回 (flight_id, registration, scheduled_departure)。
+    async fn list_outbound_for_autolink(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<(String, String, Option<DateTime<Utc>>)>, DomainError>;
 }
 
 #[async_trait]

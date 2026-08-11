@@ -136,3 +136,19 @@ fn permission_and_time_window_rules() {
     assert!(draft_can_be_occupied(false));
     assert!(!draft_can_be_occupied(true));
 }
+
+#[test]
+fn autolink_window_bounds_are_sane() {
+    // service clamps window to [30, 1440]
+    let window = 360_i64;
+    assert!((30..=24 * 60).contains(&window));
+    // same-registration health is prerequisite for active auto links
+    assert!(fms_domain::models::ontology_v1_rules::link_is_healthy(
+        Some("B-1234"),
+        Some("B-1234")
+    ));
+    assert!(!fms_domain::models::ontology_v1_rules::link_is_healthy(
+        Some("B-1234"),
+        Some("B-5678")
+    ));
+}

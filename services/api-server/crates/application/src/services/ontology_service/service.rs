@@ -1,9 +1,13 @@
 //! OntologyService 实现。
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, Utc};
 use fms_domain::error::DomainError;
+use fms_runtime::spawn_tracked::spawn_tracked;
+use tracing::{info, warn};
 use fms_domain::models::ontology_v1::{
     AssignmentStatus, GateAssignment, OccupationKind, OccupationStatus, ResourceAdjustmentSuggestion,
     StandOccupation, SuggestionKind, SuggestionStatus, TurnaroundLink, TurnaroundLinkSource,
@@ -23,7 +27,8 @@ use ulid::Ulid;
 
 use crate::schemas::ontology_schemas::{
     AdjustGateRequest, AdjustStandRequest, AircraftResourceView, AllocateGateRequest, AllocateStandRequest,
-    ConfirmDraftFlightsRequest, ConfirmDraftFlightsResponse, CreateSuggestionRequest, FlightResourceView,
+    AutoLinkScanRequest, AutoLinkScanResult, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
+    ConfirmDraftFlightsResponse, CreateSuggestionRequest, CreateTurnaroundLinkRequest, FlightResourceView,
     GateAssignmentResult, ReassignAircraftRequest, ReassignAircraftResponse, ReassignAppliedResult,
     ReleaseResourceRequest, StandOccupationResult, SuggestionAcceptRequest, SuggestionQuery,
     SuggestionRejectRequest,
@@ -47,6 +52,11 @@ pub struct OntologyService {
     ontology_tx: Arc<dyn SqlxOntologyTransactionalRepository>,
     /// 可选：复用 FlightService 的 draft 确认语义。
     flight_service: Option<Arc<FlightService>>,
+    /// 自动建链扫描开关
+    autolink_scanner_running: AtomicBool,
+    autolink_scan_interval: StdDuration,
+    autolink_window_minutes: i64,
+    autolink_scan_limit: i64,
 }
 
 impl OntologyService {
@@ -73,12 +83,93 @@ impl OntologyService {
             suggestion_repo,
             ontology_tx,
             flight_service: None,
+            autolink_scanner_running: AtomicBool::new(false),
+            autolink_scan_interval: StdDuration::from_secs(
+                std::env::var("ONTOLOGY_AUTOLINK_SCAN_INTERVAL_SECONDS")
+                    .ok()
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(300),
+            ),
+            autolink_window_minutes: std::env::var("ONTOLOGY_AUTOLINK_WINDOW_MINUTES")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(360),
+            autolink_scan_limit: std::env::var("ONTOLOGY_AUTOLINK_SCAN_LIMIT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(100),
         }
     }
 
     pub fn with_flight_service(mut self, flight_service: Arc<FlightService>) -> Self {
         self.flight_service = Some(flight_service);
         self
+    }
+
+    /// 启动后台自动建链扫描（幂等）。由 `ONTOLOGY_AUTOLINK_SCANNER_ENABLED=true` 控制。
+    pub fn start_autolink_scanner(self: Arc<Self>) {
+        let enabled = std::env::var("ONTOLOGY_AUTOLINK_SCANNER_ENABLED")
+            .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
+            .unwrap_or(false);
+        if !enabled {
+            info!("ontology autolink scanner disabled (ONTOLOGY_AUTOLINK_SCANNER_ENABLED!=true)");
+            return;
+        }
+        if self
+            .autolink_scanner_running
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return;
+        }
+        let me = Arc::clone(&self);
+        spawn_tracked("ontology_autolink_scanner", async move {
+            me.run_autolink_scanner_loop().await;
+        });
+    }
+
+    pub fn stop_autolink_scanner(&self) {
+        self.autolink_scanner_running.store(false, Ordering::Release);
+    }
+
+    async fn run_autolink_scanner_loop(self: Arc<Self>) {
+        let mut ticker = tokio::time::interval(self.autolink_scan_interval);
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        info!(
+            interval_secs = self.autolink_scan_interval.as_secs(),
+            window_minutes = self.autolink_window_minutes,
+            "ontology autolink scanner started"
+        );
+        loop {
+            ticker.tick().await;
+            if !self.autolink_scanner_running.load(Ordering::Acquire) {
+                break;
+            }
+            let request = AutoLinkScanRequest {
+                window_minutes: Some(self.autolink_window_minutes),
+                limit: Some(self.autolink_scan_limit),
+            };
+            match self.auto_link_scan(request).await {
+                Ok(summary) => {
+                    if summary.created.is_empty() {
+                        tracing::debug!(
+                            evaluated = summary.evaluated,
+                            skipped = summary.skipped,
+                            "ontology autolink scan idle"
+                        );
+                    } else {
+                        info!(
+                            evaluated = summary.evaluated,
+                            created = summary.created.len(),
+                            skipped = summary.skipped,
+                            "ontology autolink scan applied"
+                        );
+                    }
+                }
+                Err(err) => warn!(error = %err, "ontology autolink scan failed"),
+            }
+        }
+        info!("ontology autolink scanner stopped");
     }
 
     /// §7 ReassignAircraft：批量变更执行机号。
@@ -951,6 +1042,272 @@ impl OntologyService {
             .ok_or_else(|| OntologyError::not_found(format!("active assignment {assignment_id}")))
     }
 
+    // -----------------------------------------------------------------------
+    // TurnaroundLink（§4.8）
+    // -----------------------------------------------------------------------
+
+    /// 手工创建周转链接（两端航段须存在；同机时 active，否则 broken）。
+    pub async fn create_turnaround_link(
+        &self,
+        request: CreateTurnaroundLinkRequest,
+        actor_id: &str,
+        actor_permissions: &[String],
+        actor_is_admin: bool,
+    ) -> Result<TurnaroundLink, OntologyError> {
+        // 建链：AOC 或至少 ontology.read 不够；允许 reassign / stand.manage / plan.confirm
+        if !actor_is_admin
+            && !actor_permissions.iter().any(|p| {
+                p == "*"
+                    || p == "ontology.aircraft.reassign"
+                    || p == "ontology.stand.manage"
+                    || p == "ontology.plan.confirm"
+            })
+        {
+            return Err(OntologyError::forbidden(
+                "missing permission to create turnaround link",
+            ));
+        }
+
+        let inbound_id = request.inbound_flight_id.trim();
+        let outbound_id = request.outbound_flight_id.trim();
+        if inbound_id.is_empty() || outbound_id.is_empty() {
+            return Err(OntologyError::validation(
+                "inbound_flight_id and outbound_flight_id must not be empty",
+            ));
+        }
+        if inbound_id == outbound_id {
+            return Err(OntologyError::validation(
+                "inbound and outbound flight must differ",
+            ));
+        }
+
+        let inbound = self
+            .flight_repo
+            .find_by_id(inbound_id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("inbound flight {inbound_id}")))?;
+        let outbound = self
+            .flight_repo
+            .find_by_id(outbound_id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("outbound flight {outbound_id}")))?;
+
+        if self.link_repo.find_active_by_outbound(outbound_id).await?.is_some() {
+            return Err(OntologyError::conflict(format!(
+                "outbound {outbound_id} already has an active turnaround link"
+            )));
+        }
+
+        let source = match request.source.trim().to_ascii_lowercase().as_str() {
+            "auto" => TurnaroundLinkSource::Auto,
+            "manual" | "" => TurnaroundLinkSource::Manual,
+            other => {
+                return Err(OntologyError::validation(format!(
+                    "invalid link source '{other}', expected auto|manual"
+                )))
+            }
+        };
+
+        let now = Utc::now();
+        let mut link = TurnaroundLink {
+            id: Ulid::new().to_string(),
+            inbound_flight_id: FlightId(inbound_id.to_string()),
+            outbound_flight_id: FlightId(outbound_id.to_string()),
+            status: TurnaroundLinkStatus::Active,
+            source,
+            broken_reason: None,
+            created_by: Some(
+                request
+                    .created_by
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or(actor_id)
+                    .to_string(),
+            ),
+            created_at: now,
+            updated_at: now,
+        };
+        link = enforce_link_health(
+            &link,
+            inbound.registration.as_deref(),
+            outbound.registration.as_deref(),
+        );
+
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        self.ontology_tx.create_link_in_tx(&mut tx, &link).await?;
+        tx.commit()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(link)
+    }
+
+    /// 拆链（status → broken）。
+    pub async fn break_turnaround_link(
+        &self,
+        link_id: &str,
+        request: BreakTurnaroundLinkRequest,
+        actor_id: &str,
+        actor_permissions: &[String],
+        actor_is_admin: bool,
+    ) -> Result<TurnaroundLink, OntologyError> {
+        if !actor_is_admin
+            && !actor_permissions.iter().any(|p| {
+                p == "*"
+                    || p == "ontology.aircraft.reassign"
+                    || p == "ontology.stand.manage"
+                    || p == "ontology.plan.confirm"
+            })
+        {
+            return Err(OntologyError::forbidden(
+                "missing permission to break turnaround link",
+            ));
+        }
+
+        // 通过 list 端点扫不到 id：用 flight list 不够。仓储无 find_by_id for link。
+        // 从 list_by_flight 需要 flight。加 find on port? Minimal: query via both ends from client.
+        // Add find_link_by_id to port - do quick via update after load from create_path.
+        let mut link = self.find_link_by_id(link_id).await?;
+        if matches!(link.status, TurnaroundLinkStatus::Broken) {
+            return Ok(link);
+        }
+        link.status = TurnaroundLinkStatus::Broken;
+        link.broken_reason = Some(
+            request
+                .reason
+                .clone()
+                .unwrap_or_else(|| format!("broken by {actor_id}")),
+        );
+        link.updated_at = Utc::now();
+        let _ = request.broken_by;
+
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        self.ontology_tx.update_link_in_tx(&mut tx, &link).await?;
+        tx.commit()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(link)
+    }
+
+    /// 自动建链扫描：为无 active 出港链接的出港航段匹配同机进港候选。
+    pub async fn auto_link_scan(
+        &self,
+        request: AutoLinkScanRequest,
+    ) -> Result<AutoLinkScanResult, OntologyError> {
+        let window = request.window_minutes.unwrap_or(self.autolink_window_minutes).clamp(30, 24 * 60);
+        let limit = request.limit.unwrap_or(self.autolink_scan_limit).clamp(1, 500);
+        let candidates = self.link_repo.list_outbound_for_autolink(limit).await?;
+
+        let mut created = Vec::new();
+        let mut skipped = 0usize;
+        let mut errors = Vec::new();
+        let mut evaluated = 0usize;
+
+        for (outbound_id, registration, sched_dep) in candidates {
+            evaluated += 1;
+            match self
+                .try_auto_link_outbound(&outbound_id, &registration, sched_dep, window)
+                .await
+            {
+                Ok(Some(link_id)) => created.push(link_id),
+                Ok(None) => skipped += 1,
+                Err(err) => errors.push(format!("{outbound_id}: {err}")),
+            }
+        }
+
+        Ok(AutoLinkScanResult {
+            evaluated,
+            created,
+            skipped,
+            errors,
+        })
+    }
+
+    /// 对单个出港航段尝试自动建链；成功返回 link id。
+    pub async fn try_auto_link_outbound(
+        &self,
+        outbound_flight_id: &str,
+        registration: &str,
+        outbound_sched_departure: Option<DateTime<Utc>>,
+        window_minutes: i64,
+    ) -> Result<Option<String>, OntologyError> {
+        if self
+            .link_repo
+            .find_active_by_outbound(outbound_flight_id)
+            .await?
+            .is_some()
+        {
+            return Ok(None);
+        }
+
+        let candidates = self
+            .link_repo
+            .find_candidates_for_outbound(
+                registration,
+                outbound_flight_id,
+                outbound_sched_departure,
+                window_minutes,
+            )
+            .await?;
+        let Some((inbound_id, _)) = candidates.into_iter().next() else {
+            return Ok(None);
+        };
+
+        // 避免进港已被其他出港占用为 active inbound（允许一对一健康链）
+        if self
+            .link_repo
+            .find_active_by_inbound(&inbound_id)
+            .await?
+            .is_some()
+        {
+            return Ok(None);
+        }
+
+        let now = Utc::now();
+        let link = TurnaroundLink {
+            id: Ulid::new().to_string(),
+            inbound_flight_id: FlightId(inbound_id),
+            outbound_flight_id: FlightId(outbound_flight_id.to_string()),
+            status: TurnaroundLinkStatus::Active,
+            source: TurnaroundLinkSource::Auto,
+            broken_reason: None,
+            created_by: Some("system:autolink".to_string()),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        // 并发下可能撞唯一约束
+        match self.ontology_tx.create_link_in_tx(&mut tx, &link).await {
+            Ok(()) => {
+                tx.commit()
+                    .await
+                    .map_err(|e| OntologyError::internal(e.to_string()))?;
+                Ok(Some(link.id))
+            }
+            Err(DomainError::Internal(msg)) if msg.contains("duplicate") || msg.contains("unique") => {
+                let _ = tx.rollback().await;
+                Ok(None)
+            }
+            Err(e) => {
+                let _ = tx.rollback().await;
+                Err(OntologyError::from(e))
+            }
+        }
+    }
+
     /// 新建资源调整建议（§4.9）。创建权限：AOC/TOC 或 admin。
     pub async fn create_suggestion(
         &self,
@@ -1181,6 +1538,13 @@ impl OntologyService {
             .find_by_id(id)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("assignment {id}")))
+    }
+
+    async fn find_link_by_id(&self, id: &str) -> Result<TurnaroundLink, OntologyError> {
+        self.link_repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("turnaround link {id}")))
     }
 }
 

@@ -324,6 +324,7 @@ pub(crate) async fn build_observability_services(
         ai.ai_recovery_orchestrator.clone().start();
         ai.ai_job_timeout_reaper.clone().start();
         dispatch.dispatch_overrun_warning_svc.clone().start_scanner();
+        flight.ontology_svc.clone().start_autolink_scanner();
     } else {
         if events_outbox_enabled {
             tracing::warn!(
