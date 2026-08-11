@@ -297,6 +297,14 @@ pub struct FlightUpdate {
     pub aircraft_maintenance_remarks: NullableUpdate<String>,
     #[serde(default)]
     pub aircraft_check_remarks: NullableUpdate<String>,
+
+    // 本体 V1（ONTOLOGY_V1.md §4.2）
+    pub is_draft: Option<bool>,
+    pub divert: Option<bool>,
+    #[serde(default)]
+    pub flight_kind: NullableUpdate<String>,
+    #[serde(default)]
+    pub direction: NullableUpdate<String>,
 }
 
 #[cfg(test)]
@@ -394,6 +402,13 @@ pub struct FlightResponse {
     pub load_planning_remarks: Option<String>,
     pub aircraft_maintenance_remarks: Option<String>,
     pub aircraft_check_remarks: Option<String>,
+    pub direction: Option<String>,
+    #[serde(default)]
+    pub flight_kind: Option<String>,
+    #[serde(default)]
+    pub is_draft: Option<bool>,
+    #[serde(default)]
+    pub divert: Option<bool>,
     pub created_by: Option<String>,
     pub updated_by: Option<String>,
 

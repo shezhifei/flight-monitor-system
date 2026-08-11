@@ -51,6 +51,16 @@ pub struct Flight {
     #[serde(default)]
     pub anomaly_summary: HashMap<String, serde_json::Value>,
 
+    // 本体 V1（ONTOLOGY_V1.md §4.2）
+    #[serde(default)]
+    pub direction: Option<String>,
+    #[serde(default = "default_flight_kind")]
+    pub flight_kind: String,
+    #[serde(default)]
+    pub is_draft: bool,
+    #[serde(default)]
+    pub divert: bool,
+
     // 审计
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -68,6 +78,10 @@ pub struct Flight {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_flight_kind() -> String {
+    "passenger".to_string()
 }
 
 impl Default for FlightStatus {

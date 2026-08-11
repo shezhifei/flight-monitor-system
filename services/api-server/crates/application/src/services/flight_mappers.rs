@@ -60,6 +60,10 @@ pub fn to_response(f: &Flight) -> FlightResponse {
         load_planning_remarks: f.load_planning_remarks.clone(),
         aircraft_maintenance_remarks: f.aircraft_maintenance_remarks.clone(),
         aircraft_check_remarks: f.aircraft_check_remarks.clone(),
+        direction: f.direction.clone(),
+        flight_kind: Some(f.flight_kind.clone()),
+        is_draft: Some(f.is_draft),
+        divert: Some(f.divert),
         created_by: None,
         updated_by: None,
         risk_score: None,
@@ -117,6 +121,10 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
         load_planning_remarks: dto.load_planning_remarks,
         aircraft_maintenance_remarks: dto.aircraft_maintenance_remarks,
         aircraft_check_remarks: dto.aircraft_check_remarks,
+        direction: None,
+        flight_kind: "passenger".to_string(),
+        is_draft: false,
+        divert: false,
     })
 }
 
@@ -147,6 +155,10 @@ pub fn update_patch_from_dto(dto: FlightUpdate) -> Result<FlightUpdatePatch, Dom
         load_planning_remarks: patch_field_identity(dto.load_planning_remarks),
         aircraft_maintenance_remarks: patch_field_identity(dto.aircraft_maintenance_remarks),
         aircraft_check_remarks: patch_field_identity(dto.aircraft_check_remarks),
+        is_draft: dto.is_draft,
+        divert: dto.divert,
+        flight_kind: patch_field_identity(dto.flight_kind),
+        direction: patch_field_identity(dto.direction),
     })
 }
 

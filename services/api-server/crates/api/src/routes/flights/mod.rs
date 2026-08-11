@@ -51,6 +51,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 "/{flight_id}/history-report",
                 web::get().to(crud::get_flight_history_report),
             )
-            .route("/{flight_id}/event-journey", web::get().to(crud::get_event_journey)),
+            .route("/{flight_id}/event-journey", web::get().to(crud::get_event_journey))
+            .route(
+                "/{flight_id}/confirm-draft",
+                web::post().to(crud::confirm_draft_flight),
+            ),
     );
 }

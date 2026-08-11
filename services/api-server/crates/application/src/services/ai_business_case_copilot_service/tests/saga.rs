@@ -854,6 +854,10 @@ fn test_case_properties_outbound_only_filters_inbound_flights() {
         load_planning_remarks: None,
         aircraft_maintenance_remarks: None,
         aircraft_check_remarks: None,
+        direction: None,
+        flight_kind: "passenger".to_string(),
+        is_draft: false,
+        divert: false,
     };
 
     let config = AiFlightMatchingConfig {

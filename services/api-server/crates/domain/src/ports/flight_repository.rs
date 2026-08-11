@@ -73,6 +73,12 @@ pub struct FlightUpdatePatch {
     pub load_planning_remarks: PatchField<String>,
     pub aircraft_maintenance_remarks: PatchField<String>,
     pub aircraft_check_remarks: PatchField<String>,
+
+    // 本体 V1（ONTOLOGY_V1.md §4.2）
+    pub is_draft: Option<bool>,
+    pub divert: Option<bool>,
+    pub flight_kind: PatchField<String>,
+    pub direction: PatchField<String>,
 }
 
 impl FlightUpdatePatch {
@@ -99,6 +105,10 @@ impl FlightUpdatePatch {
             || self.load_planning_remarks.is_touched()
             || self.aircraft_maintenance_remarks.is_touched()
             || self.aircraft_check_remarks.is_touched()
+            || self.is_draft.is_some()
+            || self.divert.is_some()
+            || self.flight_kind.is_touched()
+            || self.direction.is_touched()
     }
 
     pub fn has_any_changes(&self) -> bool {

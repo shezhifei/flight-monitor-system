@@ -46,6 +46,7 @@ pub mod pg_label_repository;
 pub mod pg_mobile_device_repository;
 pub mod pg_mobile_upload_repository;
 pub mod pg_notification_repository;
+pub mod pg_ontology_repository;
 pub mod pg_online_history_repository;
 pub mod pg_operator_identity_repository;
 pub mod pg_permission_repository;

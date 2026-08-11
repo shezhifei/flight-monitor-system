@@ -105,6 +105,10 @@ fn make_flight_for_test(
         load_planning_remarks: None,
         aircraft_maintenance_remarks: None,
         aircraft_check_remarks: None,
+        direction: None,
+        flight_kind: "passenger".to_string(),
+        is_draft: false,
+        divert: false,
     };
 
     let leg = FlightLeg {

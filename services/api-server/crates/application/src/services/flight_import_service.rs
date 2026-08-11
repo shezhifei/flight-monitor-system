@@ -555,6 +555,10 @@ impl NormalizedFlightPayload {
             load_planning_remarks: update_from_option(self.load_planning_remarks.clone()),
             aircraft_maintenance_remarks: update_from_option(self.aircraft_maintenance_remarks.clone()),
             aircraft_check_remarks: update_from_option(self.aircraft_check_remarks.clone()),
+            is_draft: None,
+            divert: None,
+            flight_kind: NullableUpdate::Unset,
+            direction: NullableUpdate::Unset,
         }
     }
 }

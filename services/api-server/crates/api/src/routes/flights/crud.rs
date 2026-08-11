@@ -163,3 +163,25 @@ pub async fn patch_flight(
 ) -> Result<HttpResponse, ApiError> {
     update_flight(svc, runtime, path, body, claims).await
 }
+
+/// POST /api/v2/flights/{flight_id}/confirm-draft
+///
+/// 批确认 draft 航班（ONTOLOGY_V1.md §3.3，不变量 5）：
+/// 仅 passenger 种类且 is_draft=true 的航班可确认；确认后 is_draft=false，
+/// 方允许被正式 StandOccupation 引用。乐观锁由版本号保证。
+pub async fn confirm_draft_flight(
+    svc: web::Data<Arc<FlightService>>,
+    path: web::Path<String>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("flight:manage")?;
+    let id = path.into_inner();
+    let flight = svc
+        .confirm_draft_flight(&id, Some(actor_id(&claims).to_string()))
+        .await
+        .map_err(map_flight_write_error)?;
+    match flight {
+        Some(flight) => Ok(ok_resp("航班批确认成功（is_draft=false）", flight)),
+        None => Err(ApiError::NotFound(format!("航班 {id} 未找到"))),
+    }
+}

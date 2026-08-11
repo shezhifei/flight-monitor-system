@@ -508,6 +508,22 @@ impl PgFlightRepository {
             PatchField::Clear => push_set!("aircraft_check_remarks", Option::<String>::None),
             PatchField::Unset => {}
         }
+        if let Some(value) = patch.is_draft {
+            push_set!("is_draft", value);
+        }
+        if let Some(value) = patch.divert {
+            push_set!("divert", value);
+        }
+        match patch.flight_kind.as_ref() {
+            PatchField::Set(value) => push_set!("flight_kind", value),
+            PatchField::Clear => push_set!("flight_kind", Option::<String>::None),
+            PatchField::Unset => {}
+        }
+        match patch.direction.as_ref() {
+            PatchField::Set(value) => push_set!("direction", value),
+            PatchField::Clear => push_set!("direction", Option::<String>::None),
+            PatchField::Unset => {}
+        }
 
         if !first {
             builder.push(", ");
@@ -587,7 +603,11 @@ const FLIGHT_COLUMNS_WITH_ALIAS: &str = r#"
     f.flight_remarks AS flight_remarks,
     f.load_planning_remarks AS load_planning_remarks,
     f.aircraft_maintenance_remarks AS aircraft_maintenance_remarks,
-    f.aircraft_check_remarks AS aircraft_check_remarks
+    f.aircraft_check_remarks AS aircraft_check_remarks,
+    f.direction AS direction,
+    f.flight_kind AS flight_kind,
+    f.is_draft AS is_draft,
+    f.divert AS divert
 "#;
 
 #[async_trait]
@@ -1169,6 +1189,13 @@ fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
         load_planning_remarks: r.get("load_planning_remarks"),
         aircraft_maintenance_remarks: r.get("aircraft_maintenance_remarks"),
         aircraft_check_remarks: r.get("aircraft_check_remarks"),
+        direction: r.get("direction"),
+        flight_kind: r
+            .get::<Option<String>, _>("flight_kind")
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "passenger".to_string()),
+        is_draft: r.get("is_draft"),
+        divert: r.get("divert"),
     }
 }
 

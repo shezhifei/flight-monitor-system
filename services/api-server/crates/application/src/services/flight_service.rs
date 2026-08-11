@@ -338,6 +338,56 @@ impl FlightService {
         Ok(Some(response))
     }
 
+    /// 批确认 draft 航班（ONTOLOGY_V1.md §3.3，不变量 5）。
+    ///
+    /// 仅 `flight_kind == "passenger"` 且 `is_draft == true` 的航班可确认；
+    /// 确认后 `is_draft = false`，方允许被正式 StandOccupation 引用。
+    /// 乐观并发由 `expected_version` 保证（版本冲突 → Conflict）。
+    pub async fn confirm_draft_flight(
+        &self,
+        flight_id: &str,
+        actor_id: Option<String>,
+    ) -> Result<Option<FlightResponse>, DomainError> {
+        let Some(current) = self.repo.find_by_id(flight_id).await? else {
+            return Ok(None);
+        };
+        if !current.is_draft {
+            return Err(DomainError::ValidationError(format!("航班 {flight_id} 不是 draft 状态")));
+        }
+        if current.flight_kind != "passenger" {
+            return Err(DomainError::ValidationError(format!(
+                "仅 passenger 航班支持批确认（当前 flight_kind: {}）",
+                current.flight_kind
+            )));
+        }
+
+        let patch = FlightUpdatePatch {
+            expected_version: Some(current.version),
+            is_draft: Some(false),
+            ..FlightUpdatePatch::default()
+        };
+
+        let flight = if let (Some(pool), Some(tx_repo)) = (self.pool.as_ref(), self.tx_repo.as_ref()) {
+            let mut tx = pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+            let Some(flight) = tx_repo.update_partial_in_tx(&mut tx, flight_id, &patch).await? else {
+                return Ok(None);
+            };
+            write_flight_update_outbox_events(&mut tx, flight_id, &patch, actor_id.as_deref()).await?;
+            tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+            flight
+        } else {
+            let Some(flight) = self.repo.update_partial(flight_id, &patch).await? else {
+                return Ok(None);
+            };
+            flight
+        };
+
+        self.invalidate_hot_list().await;
+        let mut response = to_response(&flight);
+        response.updated_by = actor_id;
+        Ok(Some(response))
+    }
+
     /// 删除航班
     pub async fn delete_flight(&self, flight_id: &str) -> Result<bool, DomainError> {
         let deleted = if let (Some(pool), Some(tx_repo)) = (self.pool.as_ref(), self.tx_repo.as_ref()) {

@@ -28,6 +28,8 @@ pub mod mission_type;
 pub mod mobile;
 pub mod notification;
 pub mod online_history;
+pub mod ontology_v1;
+pub mod ontology_v1_rules;
 pub mod operator_identity;
 pub mod permission_template;
 pub mod session_runtime;

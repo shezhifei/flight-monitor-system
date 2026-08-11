@@ -37,6 +37,7 @@ pub mod mobile_repository;
 pub mod nonce_replay_store;
 pub mod notification_repository;
 pub mod online_history_repository;
+pub mod ontology_repository;
 pub mod operator_identity_repository;
 pub mod permission_template_repository;
 pub mod runtime_diagnostic_repository;

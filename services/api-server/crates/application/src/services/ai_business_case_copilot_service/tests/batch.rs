@@ -751,6 +751,10 @@ fn test_match_flight_logic() {
         load_planning_remarks: None,
         aircraft_maintenance_remarks: None,
         aircraft_check_remarks: None,
+        direction: None,
+        flight_kind: "passenger".to_string(),
+        is_draft: false,
+        divert: false,
     };
 
     // 1. 测试成功匹配

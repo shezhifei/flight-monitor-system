@@ -14,6 +14,7 @@ pub mod llm_eval_schemas;
 pub mod micro_model_schemas;
 pub mod nl_query_schemas;
 pub mod notification_schemas;
+pub mod ontology_schemas;
 pub mod permission_template_schemas;
 pub mod response;
 pub mod shift_handover_schemas;

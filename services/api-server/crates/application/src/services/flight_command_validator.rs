@@ -32,6 +32,10 @@ pub fn denied_update_fields(dto: &FlightUpdate, is_admin: bool, permissions: &[S
             "actual_arrival" => dto.actual_arrival.is_touched(),
             "actual_departure" => dto.actual_departure.is_touched(),
             "cobt_time" => dto.cobt_time.is_touched(),
+            "is_draft" => dto.is_draft.is_some(),
+            "divert" => dto.divert.is_some(),
+            "flight_kind" => dto.flight_kind.is_touched(),
+            "direction" => dto.direction.is_touched(),
             _ => false,
         };
         if touched {
@@ -174,6 +178,18 @@ pub fn update_fields_present(dto: &FlightUpdate) -> Vec<&'static str> {
     if dto.aircraft_check_remarks.is_touched() {
         fields.push("aircraft_check_remarks");
     }
+    if dto.is_draft.is_some() {
+        fields.push("is_draft");
+    }
+    if dto.divert.is_some() {
+        fields.push("divert");
+    }
+    if dto.flight_kind.is_touched() {
+        fields.push("flight_kind");
+    }
+    if dto.direction.is_touched() {
+        fields.push("direction");
+    }
     fields
 }
 
@@ -219,6 +235,10 @@ fn sync_locked_fields() -> &'static [&'static str] {
         "actual_arrival",
         "actual_departure",
         "cobt_time",
+        "is_draft",
+        "divert",
+        "flight_kind",
+        "direction",
     ]
 }
 
@@ -273,5 +293,39 @@ mod tests {
         .unwrap();
         assert!(denied_update_fields(&dto, true, &[]).is_empty());
         assert!(denied_update_fields(&dto, false, &["*".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn update_fields_present_tracks_ontology_v1_fields() {
+        let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
+            "is_draft": true,
+            "divert": false,
+            "flight_kind": "ferry",
+            "direction": "outbound"
+        }))
+        .unwrap();
+        let fields = update_fields_present(&dto);
+        assert!(fields.contains(&"is_draft"));
+        assert!(fields.contains(&"divert"));
+        assert!(fields.contains(&"flight_kind"));
+        assert!(fields.contains(&"direction"));
+    }
+
+    #[test]
+    fn denied_update_fields_blocks_ontology_fields_for_non_admin() {
+        let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
+            "is_draft": false,
+            "divert": true,
+            "flight_kind": "ferry",
+            "direction": "inbound",
+            "flight_remarks": "note"
+        }))
+        .unwrap();
+        let denied = denied_update_fields(&dto, false, &[]);
+        for field in ["is_draft", "divert", "flight_kind", "direction"] {
+            assert!(denied.contains(&field.to_string()), "{field} should be denied");
+        }
+        assert!(!denied.iter().any(|f| f == "flight_remarks"));
+        assert!(denied_update_fields(&dto, true, &[]).is_empty());
     }
 }

@@ -1012,6 +1012,10 @@ mod tests {
             load_planning_remarks: None,
             aircraft_maintenance_remarks: None,
             aircraft_check_remarks: None,
+            direction: None,
+            flight_kind: "passenger".to_string(),
+            is_draft: false,
+            divert: false,
         };
         assert!(current_field_value(FlightBatchEditableField::StartBoardingTime, &flight, None).is_null());
         let dt = DateTime::parse_from_rfc3339("2026-07-17T10:00:00Z")
