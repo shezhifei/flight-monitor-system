@@ -10,8 +10,27 @@ const FLIGHT_VIEW = {
     registration: 'B-E2E1',
     plan_stand: '201',
     plan_gate: 'A12',
-    occupations: [{ id: 'occ-1', stand_code: '201' }],
-    assignments: [{ id: 'asn-1', gate_code: 'A12' }],
+    occupations: [
+      {
+        id: 'occ-1',
+        registration: 'B-E2E1',
+        stand_code: '201',
+        kind: 'normal',
+        status: 'active',
+        starts_at: '2026-08-11T02:00:00.000Z',
+        ends_at: '2026-08-11T04:00:00.000Z',
+      },
+    ],
+    assignments: [
+      {
+        id: 'asn-1',
+        registration: 'B-E2E1',
+        gate_code: 'A12',
+        status: 'active',
+        starts_at: '2026-08-11T02:00:00.000Z',
+        ends_at: '2026-08-11T04:00:00.000Z',
+      },
+    ],
     turnaround_links: [{ id: 'tl-1', status: 'active' }],
   },
 };
@@ -23,8 +42,23 @@ const AIRCRAFT_VIEW = {
     in_field: true,
     current_stand: '201',
     current_gate: 'A12',
-    occupations: [{ id: 'occ-1' }],
-    assignments: [{ id: 'asn-1' }],
+    occupations: [
+      {
+        id: 'occ-1',
+        registration: 'B-E2E1',
+        stand_code: '201',
+        kind: 'normal',
+        status: 'active',
+      },
+    ],
+    assignments: [
+      {
+        id: 'asn-1',
+        registration: 'B-E2E1',
+        gate_code: 'A12',
+        status: 'active',
+      },
+    ],
     flights: [{ flight_id: 'FL_E2E_001' }],
   },
 };
@@ -61,11 +95,17 @@ const LINKS = {
 async function installOntologyRoutes(page: Page): Promise<{
   reassignBodies: unknown[];
   allocateStandBodies: unknown[];
+  adjustStandBodies: unknown[];
+  releaseStandPaths: string[];
+  releaseGatePaths: string[];
   acceptBodies: unknown[];
   autoScanBodies: unknown[];
 }> {
   const reassignBodies: unknown[] = [];
   const allocateStandBodies: unknown[] = [];
+  const adjustStandBodies: unknown[] = [];
+  const releaseStandPaths: string[] = [];
+  const releaseGatePaths: string[] = [];
   const acceptBodies: unknown[] = [];
   const autoScanBodies: unknown[] = [];
 
@@ -127,6 +167,49 @@ async function installOntologyRoutes(page: Page): Promise<{
       });
       return;
     }
+    if (method === 'PATCH' && /\/stands\/occupations\/[^/]+$/.test(path)) {
+      adjustStandBodies.push(request.postDataJSON());
+      await route.fulfill({
+        status: 200,
+        json: {
+          success: true,
+          data: {
+            occupation: { id: 'occ-1', stand_code: '202' },
+            overlap_warnings: [],
+          },
+        },
+      });
+      return;
+    }
+    if (method === 'POST' && /\/stands\/occupations\/[^/]+\/release$/.test(path)) {
+      releaseStandPaths.push(path);
+      await route.fulfill({
+        status: 200,
+        json: { success: true, data: { id: 'occ-1', status: 'released' } },
+      });
+      return;
+    }
+    if (method === 'PATCH' && /\/gates\/assignments\/[^/]+$/.test(path)) {
+      await route.fulfill({
+        status: 200,
+        json: {
+          success: true,
+          data: {
+            assignment: { id: 'asn-1', gate_code: 'B01' },
+            consistency_warnings: [],
+          },
+        },
+      });
+      return;
+    }
+    if (method === 'POST' && /\/gates\/assignments\/[^/]+\/release$/.test(path)) {
+      releaseGatePaths.push(path);
+      await route.fulfill({
+        status: 200,
+        json: { success: true, data: { id: 'asn-1', status: 'released' } },
+      });
+      return;
+    }
     if (method === 'POST' && /\/suggestions\/[^/]+\/accept$/.test(path)) {
       acceptBodies.push(request.postDataJSON());
       await route.fulfill({
@@ -160,7 +243,15 @@ async function installOntologyRoutes(page: Page): Promise<{
     await route.fulfill({ status: 200, json: { success: true, data: {} } });
   });
 
-  return { reassignBodies, allocateStandBodies, acceptBodies, autoScanBodies };
+  return {
+    reassignBodies,
+    allocateStandBodies,
+    adjustStandBodies,
+    releaseStandPaths,
+    releaseGatePaths,
+    acceptBodies,
+    autoScanBodies,
+  };
 }
 
 async function openOntologyCenter(page: Page): Promise<void> {
@@ -192,11 +283,12 @@ test.describe('Ontology Center', () => {
     await page.getByPlaceholder('例如 FL…').fill('FL_E2E_001');
     await page.getByRole('button', { name: '加载资源视图' }).click();
 
-    await expect(page.getByText('航段资源')).toBeVisible();
-    await expect(page.getByText('FL_E2E_001')).toBeVisible();
-    await expect(page.getByText('B-E2E1')).toBeVisible();
-    await expect(page.getByText('201').first()).toBeVisible();
-    await expect(page.getByText('A12').first()).toBeVisible();
+    const flightCard = page.getByRole('article').filter({ hasText: '航段资源' });
+    await expect(page.getByRole('heading', { name: '航段资源' })).toBeVisible();
+    await expect(flightCard.getByText('FL_E2E_001')).toBeVisible();
+    await expect(flightCard.getByText('B-E2E1')).toBeVisible();
+    await expect(flightCard.getByText('201').first()).toBeVisible();
+    await expect(flightCard.getByText('A12').first()).toBeVisible();
   });
 
   test('switches context to aircraft mode and loads aircraft view', async ({ page }) => {
@@ -222,6 +314,8 @@ test.describe('Ontology Center', () => {
     await expect(page.getByRole('heading', { name: /正式机位/ })).toBeVisible();
     await expect(page.getByRole('button', { name: '分配机位' })).toBeVisible();
     await expect(page.getByRole('button', { name: '分配登机口' })).toBeVisible();
+    await expect(page.getByTestId('active-occupations')).toBeVisible();
+    await expect(page.getByTestId('active-assignments')).toBeVisible();
 
     await page.getByRole('button', { name: '资源建议' }).click();
     await expect(page.getByRole('heading', { name: '资源调整建议' })).toBeVisible();
@@ -278,7 +372,7 @@ test.describe('Ontology Center', () => {
     // Load flight context so suggestions refresh with flight filter
     await page.getByPlaceholder('例如 FL…').fill('FL_E2E_001');
     await page.getByRole('button', { name: '加载资源视图' }).click();
-    await expect(page.getByText('航段资源')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '航段资源' })).toBeVisible();
 
     await page.getByRole('button', { name: '资源建议' }).click();
     await expect(page.getByText('202')).toBeVisible();
@@ -286,6 +380,47 @@ test.describe('Ontology Center', () => {
     await page.getByRole('button', { name: '接受' }).click();
 
     await expect.poll(() => bodies.acceptBodies.length).toBe(1);
+  });
+
+  test('adjust stand posts PATCH after selecting occupation from view', async ({ page }) => {
+    await installSessionRoutes(page, PARITY_ADMIN);
+    const bodies = await installOntologyRoutes(page);
+    await page.goto(ONTOLOGY_URL);
+    await expect(page.getByRole('heading', { name: '本体资源台' })).toBeVisible();
+
+    await page.getByPlaceholder('例如 FL…').fill('FL_E2E_001');
+    await page.getByRole('button', { name: '加载资源视图' }).click();
+    await expect(page.getByRole('heading', { name: '航段资源' })).toBeVisible();
+
+    await page.getByRole('button', { name: '机位 / 登机口' }).click();
+    await expect(page.getByTestId('active-occupations').getByText('occ-1')).toBeVisible();
+    await page.getByTestId('active-occupations').getByRole('button', { name: '调整' }).click();
+    await expect(page.getByTestId('stand-adjust-form')).toBeVisible();
+    await page.locator('#stand-adj-code').fill('202');
+    await page.getByRole('button', { name: '提交调整' }).click();
+
+    await expect.poll(() => bodies.adjustStandBodies.length).toBe(1);
+    expect(bodies.adjustStandBodies[0]).toMatchObject({
+      stand_code: '202',
+      sync_flight_plan: true,
+    });
+  });
+
+  test('release gate posts to assignments/{id}/release', async ({ page }) => {
+    await installSessionRoutes(page, PARITY_ADMIN);
+    const bodies = await installOntologyRoutes(page);
+    await page.goto(ONTOLOGY_URL);
+    await expect(page.getByRole('heading', { name: '本体资源台' })).toBeVisible();
+
+    await page.getByPlaceholder('例如 FL…').fill('FL_E2E_001');
+    await page.getByRole('button', { name: '加载资源视图' }).click();
+    await expect(page.getByRole('heading', { name: '航段资源' })).toBeVisible();
+
+    await page.getByRole('button', { name: '机位 / 登机口' }).click();
+    await page.getByTestId('active-assignments').getByRole('button', { name: '释放' }).click();
+
+    await expect.poll(() => bodies.releaseGatePaths.length).toBe(1);
+    expect(bodies.releaseGatePaths[0]).toContain('/gates/assignments/asn-1/release');
   });
 
   test('auto-scan reports evaluated/created counts', async ({ page }) => {

@@ -7,14 +7,42 @@ export type OntologyTabId =
   | 'suggestions'
   | 'links';
 
+export interface StandOccupation {
+  id: string;
+  registration: string;
+  stand_code: string | { 0?: string };
+  starts_at?: string;
+  ends_at?: string;
+  kind?: string;
+  moving_to_stand?: string | { 0?: string } | null;
+  flight_id?: string | { 0?: string } | null;
+  status?: string;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GateAssignment {
+  id: string;
+  registration: string;
+  gate_code: string | { 0?: string };
+  starts_at?: string;
+  ends_at?: string;
+  flight_id?: string | { 0?: string } | null;
+  status?: string;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface FlightResourceView {
   flight_id: string;
   registration: string | null;
   plan_stand: string | null;
   plan_gate: string | null;
-  occupations: unknown[];
-  assignments: unknown[];
-  turnaround_links: unknown[];
+  occupations: StandOccupation[];
+  assignments: GateAssignment[];
+  turnaround_links: TurnaroundLink[] | unknown[];
 }
 
 export interface AircraftResourceView {
@@ -22,8 +50,8 @@ export interface AircraftResourceView {
   in_field: boolean;
   current_stand: string | null;
   current_gate: string | null;
-  occupations: unknown[];
-  assignments: unknown[];
+  occupations: StandOccupation[];
+  assignments: GateAssignment[];
   flights: unknown[];
 }
 

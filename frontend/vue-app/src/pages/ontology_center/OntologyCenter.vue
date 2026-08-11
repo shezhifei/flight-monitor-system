@@ -24,8 +24,12 @@ const {
   reassignForm,
   standForm,
   gateForm,
+  standAdjustForm,
+  gateAdjustForm,
   suggestionForm,
   linkForm,
+  activeOccupations,
+  activeAssignments,
   canRead,
   canReassign,
   canStand,
@@ -36,6 +40,14 @@ const {
   submitReassign,
   submitAllocateStand,
   submitAllocateGate,
+  beginAdjustStand,
+  beginAdjustGate,
+  clearStandAdjust,
+  clearGateAdjust,
+  submitAdjustStand,
+  submitReleaseStand,
+  submitAdjustGate,
+  submitReleaseGate,
   submitCreateSuggestion,
   acceptSuggestion,
   rejectSuggestion,
@@ -238,7 +250,8 @@ function countLabel(n: number | undefined): string {
       <section v-show="activeTab === 'resources'" class="ontology-panel">
         <h2>正式机位 / 登机口</h2>
         <p class="ontology-panel-desc">
-          机位 AOC（ontology.stand.manage），登机口 TOC（ontology.gate.manage）。时段重叠仅告警。
+          机位 AOC（ontology.stand.manage），登机口 TOC（ontology.gate.manage）。
+          支持 Allocate · Adjust · Release；时段重叠仅告警。
         </p>
 
         <div class="ontology-grid-2">
@@ -329,6 +342,189 @@ function countLabel(n: number | undefined): string {
                 @click="submitAllocateGate()"
               >
                 分配登机口
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ontology-card" style="margin-top: 16px" data-testid="active-occupations">
+          <h3>当前机位占用</h3>
+          <p class="ontology-panel-desc" style="margin-top: 0">
+            先加载资源视图。点击「调整」填入下方表单，或直接「释放」。
+          </p>
+          <div v-if="!activeOccupations.length" class="ontology-empty">暂无 active 机位占用</div>
+          <div v-else class="ontology-table-wrap">
+            <table class="ontology-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>机号</th>
+                  <th>机位</th>
+                  <th>类型</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="occ in activeOccupations" :key="occ.id">
+                  <td><code>{{ occ.id }}</code></td>
+                  <td>{{ occ.registration }}</td>
+                  <td>{{ idField(occ.stand_code) }}</td>
+                  <td>{{ occ.kind || 'normal' }}</td>
+                  <td>
+                    <span class="ontology-pill tone-ok">{{ occ.status || 'active' }}</span>
+                  </td>
+                  <td class="row-actions">
+                    <button
+                      type="button"
+                      class="oc-btn oc-btn-secondary"
+                      :disabled="busy || !canStand"
+                      @click="beginAdjustStand(occ)"
+                    >
+                      调整
+                    </button>
+                    <button
+                      type="button"
+                      class="oc-btn oc-btn-danger"
+                      :disabled="busy || !canStand"
+                      @click="submitReleaseStand(occ)"
+                    >
+                      释放
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="standAdjustForm.id" class="ontology-card" style="margin-top: 12px" data-testid="stand-adjust-form">
+            <h3>调整机位 · {{ standAdjustForm.id }}</h3>
+            <div class="ontology-grid-2">
+              <div class="ontology-field">
+                <label for="stand-adj-code">机位</label>
+                <input id="stand-adj-code" v-model="standAdjustForm.stand_code" type="text" />
+              </div>
+              <div class="ontology-field">
+                <label for="stand-adj-kind">类型</label>
+                <select id="stand-adj-kind" v-model="standAdjustForm.kind">
+                  <option value="normal">normal</option>
+                  <option value="moving">moving</option>
+                </select>
+              </div>
+              <div class="ontology-field">
+                <label for="stand-adj-starts">开始</label>
+                <input id="stand-adj-starts" v-model="standAdjustForm.starts_at" type="datetime-local" />
+              </div>
+              <div class="ontology-field">
+                <label for="stand-adj-ends">结束</label>
+                <input id="stand-adj-ends" v-model="standAdjustForm.ends_at" type="datetime-local" />
+              </div>
+              <div class="ontology-field">
+                <label for="stand-adj-moving">拖曳目标机位</label>
+                <input
+                  id="stand-adj-moving"
+                  v-model="standAdjustForm.moving_to_stand"
+                  type="text"
+                  :disabled="standAdjustForm.kind !== 'moving'"
+                />
+              </div>
+              <label class="ontology-check">
+                <input v-model="standAdjustForm.sync_flight_plan" type="checkbox" />
+                同步回写 Flight.stand
+              </label>
+            </div>
+            <div class="ontology-actions">
+              <button
+                type="button"
+                class="oc-btn oc-btn-primary"
+                :disabled="busy || !canStand"
+                @click="submitAdjustStand()"
+              >
+                提交调整
+              </button>
+              <button type="button" class="oc-btn oc-btn-ghost" :disabled="busy" @click="clearStandAdjust()">
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ontology-card" style="margin-top: 16px" data-testid="active-assignments">
+          <h3>当前登机口分配</h3>
+          <div v-if="!activeAssignments.length" class="ontology-empty">暂无 active 登机口分配</div>
+          <div v-else class="ontology-table-wrap">
+            <table class="ontology-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>机号</th>
+                  <th>登机口</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="asn in activeAssignments" :key="asn.id">
+                  <td><code>{{ asn.id }}</code></td>
+                  <td>{{ asn.registration }}</td>
+                  <td>{{ idField(asn.gate_code) }}</td>
+                  <td>
+                    <span class="ontology-pill tone-ok">{{ asn.status || 'active' }}</span>
+                  </td>
+                  <td class="row-actions">
+                    <button
+                      type="button"
+                      class="oc-btn oc-btn-secondary"
+                      :disabled="busy || !canGate"
+                      @click="beginAdjustGate(asn)"
+                    >
+                      调整
+                    </button>
+                    <button
+                      type="button"
+                      class="oc-btn oc-btn-danger"
+                      :disabled="busy || !canGate"
+                      @click="submitReleaseGate(asn)"
+                    >
+                      释放
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="gateAdjustForm.id" class="ontology-card" style="margin-top: 12px" data-testid="gate-adjust-form">
+            <h3>调整登机口 · {{ gateAdjustForm.id }}</h3>
+            <div class="ontology-grid-2">
+              <div class="ontology-field">
+                <label for="gate-adj-code">登机口</label>
+                <input id="gate-adj-code" v-model="gateAdjustForm.gate_code" type="text" />
+              </div>
+              <div class="ontology-field">
+                <label for="gate-adj-starts">开始</label>
+                <input id="gate-adj-starts" v-model="gateAdjustForm.starts_at" type="datetime-local" />
+              </div>
+              <div class="ontology-field">
+                <label for="gate-adj-ends">结束</label>
+                <input id="gate-adj-ends" v-model="gateAdjustForm.ends_at" type="datetime-local" />
+              </div>
+              <label class="ontology-check">
+                <input v-model="gateAdjustForm.sync_flight_plan" type="checkbox" />
+                同步回写 Flight.gate
+              </label>
+            </div>
+            <div class="ontology-actions">
+              <button
+                type="button"
+                class="oc-btn oc-btn-primary"
+                :disabled="busy || !canGate"
+                @click="submitAdjustGate()"
+              >
+                提交调整
+              </button>
+              <button type="button" class="oc-btn oc-btn-ghost" :disabled="busy" @click="clearGateAdjust()">
+                取消
               </button>
             </div>
           </div>

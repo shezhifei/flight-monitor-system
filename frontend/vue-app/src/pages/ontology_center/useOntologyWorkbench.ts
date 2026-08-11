@@ -2,15 +2,17 @@ import { computed, reactive, ref } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { getUserPermissions, hasUserPermission, useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
-import { ONTOLOGY_BASE, ontologyGet, ontologyPost } from './ontologyApi';
+import { ONTOLOGY_BASE, ontologyGet, ontologyPatch, ontologyPost } from './ontologyApi';
 import type {
   AircraftResourceView,
   AutoLinkScanResult,
   FlightResourceView,
+  GateAssignment,
   GateAssignmentResult,
   OntologyTabId,
   ReassignAppliedResult,
   ResourceAdjustmentSuggestion,
+  StandOccupation,
   StandOccupationResult,
   TurnaroundLink,
 } from './types';
@@ -56,6 +58,24 @@ export function useOntologyWorkbench() {
     starts_at: '',
     ends_at: '',
     flight_id: '',
+    sync_flight_plan: true,
+  });
+
+  const standAdjustForm = reactive({
+    id: '',
+    stand_code: '',
+    starts_at: '',
+    ends_at: '',
+    kind: 'normal',
+    moving_to_stand: '',
+    sync_flight_plan: true,
+  });
+
+  const gateAdjustForm = reactive({
+    id: '',
+    gate_code: '',
+    starts_at: '',
+    ends_at: '',
     sync_flight_plan: true,
   });
 
@@ -231,6 +251,60 @@ export function useOntologyWorkbench() {
     return d.toISOString();
   }
 
+  function isoToLocalInput(iso: string | undefined): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  const activeOccupations = computed((): StandOccupation[] => {
+    const list = flightView.value?.occupations ?? aircraftView.value?.occupations ?? [];
+    return list.filter((o) => !o.status || o.status === 'active');
+  });
+
+  const activeAssignments = computed((): GateAssignment[] => {
+    const list = flightView.value?.assignments ?? aircraftView.value?.assignments ?? [];
+    return list.filter((a) => !a.status || a.status === 'active');
+  });
+
+  function beginAdjustStand(occ: StandOccupation) {
+    standAdjustForm.id = occ.id;
+    standAdjustForm.stand_code = idField(occ.stand_code);
+    standAdjustForm.starts_at = isoToLocalInput(occ.starts_at);
+    standAdjustForm.ends_at = isoToLocalInput(occ.ends_at);
+    standAdjustForm.kind = occ.kind || 'normal';
+    standAdjustForm.moving_to_stand = idField(occ.moving_to_stand) || '';
+    standAdjustForm.sync_flight_plan = true;
+    activeTab.value = 'resources';
+  }
+
+  function beginAdjustGate(asn: GateAssignment) {
+    gateAdjustForm.id = asn.id;
+    gateAdjustForm.gate_code = idField(asn.gate_code);
+    gateAdjustForm.starts_at = isoToLocalInput(asn.starts_at);
+    gateAdjustForm.ends_at = isoToLocalInput(asn.ends_at);
+    gateAdjustForm.sync_flight_plan = true;
+    activeTab.value = 'resources';
+  }
+
+  function clearStandAdjust() {
+    standAdjustForm.id = '';
+    standAdjustForm.stand_code = '';
+    standAdjustForm.starts_at = '';
+    standAdjustForm.ends_at = '';
+    standAdjustForm.kind = 'normal';
+    standAdjustForm.moving_to_stand = '';
+  }
+
+  function clearGateAdjust() {
+    gateAdjustForm.id = '';
+    gateAdjustForm.gate_code = '';
+    gateAdjustForm.starts_at = '';
+    gateAdjustForm.ends_at = '';
+  }
+
   async function submitAllocateStand() {
     if (!canStand.value) {
       toast.showToast('error', '缺少权限 ontology.stand.manage');
@@ -300,6 +374,146 @@ export function useOntologyWorkbench() {
         lastWarnings.value.length ? `登机口已分配（${lastWarnings.value.length} 条一致性提示）` : '登机口已分配',
       );
       await loadContextView();
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  async function submitAdjustStand() {
+    if (!canStand.value) {
+      toast.showToast('error', '缺少权限 ontology.stand.manage');
+      return;
+    }
+    const id = standAdjustForm.id.trim();
+    if (!id) {
+      toast.showToast('error', '请先从占用列表选择要调整的机位');
+      return;
+    }
+    const body: Record<string, unknown> = {
+      sync_flight_plan: standAdjustForm.sync_flight_plan,
+    };
+    if (standAdjustForm.stand_code.trim()) body.stand_code = standAdjustForm.stand_code.trim();
+    const starts = toIsoLocal(standAdjustForm.starts_at);
+    const ends = toIsoLocal(standAdjustForm.ends_at);
+    if (starts) body.starts_at = starts;
+    if (ends) body.ends_at = ends;
+    if (standAdjustForm.kind) body.kind = standAdjustForm.kind;
+    if (standAdjustForm.kind === 'moving') {
+      body.moving_to_stand = standAdjustForm.moving_to_stand.trim() || null;
+    }
+    busy.value = true;
+    try {
+      const res = await ontologyPatch<StandOccupationResult>(
+        api,
+        `${ONTOLOGY_BASE}/stands/occupations/${encodeURIComponent(id)}`,
+        body,
+      );
+      if (!res.ok) {
+        toast.showToast('error', res.error, { duration: 6000 });
+        return;
+      }
+      lastWarnings.value = res.data?.overlap_warnings ?? [];
+      toast.showToast(
+        lastWarnings.value.length ? 'warning' : 'success',
+        lastWarnings.value.length
+          ? `机位已调整（${lastWarnings.value.length} 条重叠告警）`
+          : '机位已调整',
+      );
+      clearStandAdjust();
+      if (contextKey.value.trim()) await loadContextView();
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  async function submitReleaseStand(occ: StandOccupation) {
+    if (!canStand.value) {
+      toast.showToast('error', '缺少权限 ontology.stand.manage');
+      return;
+    }
+    if (!occ?.id) return;
+    busy.value = true;
+    try {
+      const res = await ontologyPost(
+        api,
+        `${ONTOLOGY_BASE}/stands/occupations/${encodeURIComponent(occ.id)}/release`,
+        {},
+      );
+      if (!res.ok) {
+        toast.showToast('error', res.error, { duration: 6000 });
+        return;
+      }
+      toast.showToast('success', `机位占用 ${occ.id} 已释放`);
+      if (standAdjustForm.id === occ.id) clearStandAdjust();
+      if (contextKey.value.trim()) await loadContextView();
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  async function submitAdjustGate() {
+    if (!canGate.value) {
+      toast.showToast('error', '缺少权限 ontology.gate.manage');
+      return;
+    }
+    const id = gateAdjustForm.id.trim();
+    if (!id) {
+      toast.showToast('error', '请先从分配列表选择要调整的登机口');
+      return;
+    }
+    const body: Record<string, unknown> = {
+      sync_flight_plan: gateAdjustForm.sync_flight_plan,
+    };
+    if (gateAdjustForm.gate_code.trim()) body.gate_code = gateAdjustForm.gate_code.trim();
+    const starts = toIsoLocal(gateAdjustForm.starts_at);
+    const ends = toIsoLocal(gateAdjustForm.ends_at);
+    if (starts) body.starts_at = starts;
+    if (ends) body.ends_at = ends;
+    busy.value = true;
+    try {
+      const res = await ontologyPatch<GateAssignmentResult>(
+        api,
+        `${ONTOLOGY_BASE}/gates/assignments/${encodeURIComponent(id)}`,
+        body,
+      );
+      if (!res.ok) {
+        toast.showToast('error', res.error, { duration: 6000 });
+        return;
+      }
+      lastWarnings.value = res.data?.consistency_warnings ?? [];
+      toast.showToast(
+        lastWarnings.value.length ? 'warning' : 'success',
+        lastWarnings.value.length
+          ? `登机口已调整（${lastWarnings.value.length} 条一致性提示）`
+          : '登机口已调整',
+      );
+      clearGateAdjust();
+      if (contextKey.value.trim()) await loadContextView();
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  async function submitReleaseGate(asn: GateAssignment) {
+    if (!canGate.value) {
+      toast.showToast('error', '缺少权限 ontology.gate.manage');
+      return;
+    }
+    if (!asn?.id) return;
+    busy.value = true;
+    try {
+      const res = await ontologyPost(
+        api,
+        `${ONTOLOGY_BASE}/gates/assignments/${encodeURIComponent(asn.id)}/release`,
+        {},
+      );
+      if (!res.ok) {
+        toast.showToast('error', res.error, { duration: 6000 });
+        return;
+      }
+      toast.showToast('success', `登机口分配 ${asn.id} 已释放`);
+      if (gateAdjustForm.id === asn.id) clearGateAdjust();
+      if (contextKey.value.trim()) await loadContextView();
     } finally {
       busy.value = false;
     }
@@ -515,8 +729,12 @@ export function useOntologyWorkbench() {
     reassignForm,
     standForm,
     gateForm,
+    standAdjustForm,
+    gateAdjustForm,
     suggestionForm,
     linkForm,
+    activeOccupations,
+    activeAssignments,
     canRead,
     canReassign,
     canStand,
@@ -530,6 +748,14 @@ export function useOntologyWorkbench() {
     submitReassign,
     submitAllocateStand,
     submitAllocateGate,
+    beginAdjustStand,
+    beginAdjustGate,
+    clearStandAdjust,
+    clearGateAdjust,
+    submitAdjustStand,
+    submitReleaseStand,
+    submitAdjustGate,
+    submitReleaseGate,
     submitCreateSuggestion,
     acceptSuggestion,
     rejectSuggestion,

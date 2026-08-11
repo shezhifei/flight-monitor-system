@@ -1,6 +1,6 @@
 # Ontology V1 — 飞机中心运行本体
 
-> 状态：实现中（`feat/ontology-definition`）  
+> 状态：V1 完成（`feat/ontology-definition`）  
 > 范围：机号权威、机位占用、登机口分配、周转链接、资源建议、draft 批确认
 
 本文档与代码对齐：`migrations/119_ontology_v1_core.sql`、
@@ -110,6 +110,8 @@ server/di/flight.rs  (装配 OntologyService)
 | 域事件驱动建链 | ✅（status/resource/leg 更新） |
 | 集成测试 | ✅（`ontology_v1_integration`，需 `TEST_DATABASE_URL`） |
 | 前端资源台 | ✅ `/frontend/ontology_center.html`（工作区模块「本体」） |
+| 前端 AAR（Adjust/Release） | ✅ 占用/分配列表 + PATCH/release |
+| Playwright e2e | ✅ `e2e/ontology_center.spec.ts` |
 
 ### 集成测试
 
