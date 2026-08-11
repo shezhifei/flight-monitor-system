@@ -11,8 +11,9 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use fms_application::schemas::ontology_schemas::{
-    ConfirmDraftFlightsRequest, ReassignAircraftRequest, SuggestionAcceptRequest, SuggestionQuery,
-    SuggestionRejectRequest,
+    AdjustGateRequest, AdjustStandRequest, AllocateGateRequest, AllocateStandRequest,
+    ConfirmDraftFlightsRequest, CreateSuggestionRequest, ReassignAircraftRequest,
+    ReleaseResourceRequest, SuggestionAcceptRequest, SuggestionQuery, SuggestionRejectRequest,
 };
 use fms_application::services::ontology_service::{OntologyError, OntologyService};
 
@@ -156,11 +157,147 @@ async fn aircraft_resource_view(
     Ok(HttpResponse::Ok().json(json!({ "success": true, "data": view })))
 }
 
+fn actor_flags(claims: &JwtAuth) -> (String, Vec<String>, bool) {
+    (
+        actor_id(claims),
+        claims.0.permissions.clone(),
+        claims.0.is_admin.unwrap_or(false),
+    )
+}
+
+async fn allocate_stand(
+    svc: web::Data<Arc<OntologyService>>,
+    body: web::Json<AllocateStandRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.stand.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .allocate_stand(body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Created().json(json!({ "success": true, "data": result })))
+}
+
+async fn adjust_stand(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<AdjustStandRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.stand.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .adjust_stand(&path.into_inner(), body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn release_stand(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<ReleaseResourceRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.stand.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .release_stand(&path.into_inner(), body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn allocate_gate(
+    svc: web::Data<Arc<OntologyService>>,
+    body: web::Json<AllocateGateRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.gate.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .allocate_gate(body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Created().json(json!({ "success": true, "data": result })))
+}
+
+async fn adjust_gate(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<AdjustGateRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.gate.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .adjust_gate(&path.into_inner(), body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn release_gate(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<ReleaseResourceRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.gate.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .release_gate(&path.into_inner(), body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn create_suggestion(
+    svc: web::Data<Arc<OntologyService>>,
+    body: web::Json<CreateSuggestionRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    // 细粒度权限由服务层按 kind 判定
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    if !is_admin
+        && !permissions.iter().any(|p| {
+            p == "ontology.stand.manage"
+                || p == "ontology.gate.manage"
+                || p == "ontology.suggestion.accept_stand"
+                || p == "ontology.suggestion.accept_gate"
+                || p == "*"
+        })
+    {
+        return Err(ApiError::Forbidden(
+            "missing permission to create resource suggestion".into(),
+        ));
+    }
+    let result = svc
+        .create_suggestion(body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Created().json(json!({ "success": true, "data": result })))
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v2/ontology")
             .route("/aircraft/reassign", web::post().to(reassign_aircraft))
+            .route("/stands/occupations", web::post().to(allocate_stand))
+            .route("/stands/occupations/{id}", web::patch().to(adjust_stand))
+            .route(
+                "/stands/occupations/{id}/release",
+                web::post().to(release_stand),
+            )
+            .route("/gates/assignments", web::post().to(allocate_gate))
+            .route("/gates/assignments/{id}", web::patch().to(adjust_gate))
+            .route(
+                "/gates/assignments/{id}/release",
+                web::post().to(release_gate),
+            )
             .route("/suggestions", web::get().to(list_suggestions))
+            .route("/suggestions", web::post().to(create_suggestion))
             .route(
                 "/suggestions/{id}/accept",
                 web::post().to(accept_suggestion),

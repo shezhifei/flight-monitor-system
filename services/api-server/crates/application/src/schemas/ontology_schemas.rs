@@ -81,6 +81,115 @@ pub struct ConfirmDraftFlightsResponse {
 }
 
 // ---------------------------------------------------------------------------
+// 机位占用 StandOccupation（§4.4）— 正式写路径
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AllocateStandRequest {
+    /// 机号（主体）；原样存储
+    pub registration: String,
+    pub stand_code: String,
+    pub starts_at: chrono::DateTime<chrono::Utc>,
+    pub ends_at: chrono::DateTime<chrono::Utc>,
+    /// normal | moving
+    #[serde(default = "default_occupation_kind")]
+    pub kind: String,
+    /// kind=moving 时必填
+    pub moving_to_stand: Option<String>,
+    /// 可选原因航段
+    pub flight_id: Option<String>,
+    /// 是否同步回写 Flight.stand 计划字段
+    #[serde(default = "default_true")]
+    pub sync_flight_plan: bool,
+}
+
+fn default_occupation_kind() -> String {
+    "normal".to_string()
+}
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdjustStandRequest {
+    pub stand_code: Option<String>,
+    pub starts_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub ends_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub kind: Option<String>,
+    pub moving_to_stand: Option<String>,
+    /// 是否同步回写 Flight.stand
+    #[serde(default = "default_true")]
+    pub sync_flight_plan: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseResourceRequest {
+    pub released_by: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StandOccupationResult {
+    pub occupation: serde_json::Value,
+    /// 时段重叠告警（不硬拦，§4.4）
+    pub overlap_warnings: Vec<String>,
+}
+
+// ---------------------------------------------------------------------------
+// 登机口分配 GateAssignment（§4.5）— 正式写路径
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AllocateGateRequest {
+    pub registration: String,
+    pub gate_code: String,
+    pub starts_at: chrono::DateTime<chrono::Utc>,
+    pub ends_at: chrono::DateTime<chrono::Utc>,
+    pub flight_id: Option<String>,
+    #[serde(default = "default_true")]
+    pub sync_flight_plan: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdjustGateRequest {
+    pub gate_code: Option<String>,
+    pub starts_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub ends_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(default = "default_true")]
+    pub sync_flight_plan: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GateAssignmentResult {
+    pub assignment: serde_json::Value,
+    /// 口-位弱校验不一致告警（§4.5）
+    pub consistency_warnings: Vec<String>,
+}
+
+// ---------------------------------------------------------------------------
+// 新建建议（§4.9）
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CreateSuggestionRequest {
+    pub flight_id: String,
+    /// stand | gate
+    pub kind: String,
+    pub suggested_value: String,
+    pub current_value: Option<String>,
+    pub reason: Option<String>,
+    pub payload: Option<serde_json::Value>,
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_by: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
 // 双视图（§5.3）
 // ---------------------------------------------------------------------------
 

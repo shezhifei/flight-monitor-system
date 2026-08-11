@@ -342,6 +342,15 @@ const OCCUPATION_COLUMNS: &str = "id, registration, stand_code, starts_at, ends_
 
 #[async_trait]
 impl StandOccupationRepository for PgStandOccupationRepository {
+    async fn find_by_id(&self, id: &str) -> Result<Option<StandOccupation>, DomainError> {
+        let row = sqlx::query("SELECT * FROM stand_occupations WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(row.map(|r| row_to_occupation(&r)))
+    }
+
     async fn create(&self, occupation: &StandOccupation) -> Result<(), DomainError> {
         sqlx::query(
             &format!(
@@ -513,6 +522,15 @@ const ASSIGNMENT_COLUMNS: &str = "id, registration, gate_code, starts_at, ends_a
 
 #[async_trait]
 impl GateAssignmentRepository for PgGateAssignmentRepository {
+    async fn find_by_id(&self, id: &str) -> Result<Option<GateAssignment>, DomainError> {
+        let row = sqlx::query("SELECT * FROM gate_assignments WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(row.map(|r| row_to_assignment(&r)))
+    }
+
     async fn create(&self, assignment: &GateAssignment) -> Result<(), DomainError> {
         sqlx::query(
             &format!(

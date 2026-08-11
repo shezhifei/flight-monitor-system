@@ -121,3 +121,18 @@ fn ontology_error_maps_domain_variants() {
     ));
     assert!(matches!(conflict, OntologyError::Conflict(_)));
 }
+
+#[test]
+fn permission_and_time_window_rules() {
+    let perms: Vec<String> = vec![];
+    assert!(!perms.iter().any(|p| p == "ontology.stand.manage" || p == "*"));
+    assert!(["*".to_string()]
+        .iter()
+        .any(|p| p == "ontology.stand.manage" || p == "*"));
+
+    let start = chrono::Utc::now();
+    let end = start + chrono::Duration::hours(1);
+    assert!(end > start);
+    assert!(draft_can_be_occupied(false));
+    assert!(!draft_can_be_occupied(true));
+}

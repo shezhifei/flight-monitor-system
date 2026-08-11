@@ -25,6 +25,9 @@ pub trait AircraftRepository: Send + Sync {
 
 #[async_trait]
 pub trait StandOccupationRepository: Send + Sync {
+    /// 按 id 查询
+    async fn find_by_id(&self, id: &str) -> Result<Option<StandOccupation>, DomainError>;
+
     /// 新建占用（不变量 3: registration 非空由表约束保证）
     async fn create(&self, occupation: &StandOccupation) -> Result<(), DomainError>;
 
@@ -69,6 +72,9 @@ pub trait StandOccupationRepository: Send + Sync {
 
 #[async_trait]
 pub trait GateAssignmentRepository: Send + Sync {
+    /// 按 id 查询
+    async fn find_by_id(&self, id: &str) -> Result<Option<GateAssignment>, DomainError>;
+
     /// 新建分配（首次分配即生效，§4.5）
     async fn create(&self, assignment: &GateAssignment) -> Result<(), DomainError>;
 
