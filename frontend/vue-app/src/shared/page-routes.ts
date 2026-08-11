@@ -38,6 +38,7 @@ export const PAGE_ROUTES = {
   nl_query:         '/frontend/nl_query.html',
   user_manager:     '/frontend/user_manager.html',
   label_manager:    '/frontend/label_manager.html',
+  ontology_center:  '/frontend/ontology_center.html',
 } as const;
 
 export type PageKey = keyof typeof PAGE_ROUTES;

@@ -36,6 +36,7 @@ export const PRODUCTION_HTML_ENTRIES = [
   'nl_query',
   'user_manager',
   'label_manager',
+  'ontology_center',
 ] as const;
 
 export type ProductionHtmlEntry = (typeof PRODUCTION_HTML_ENTRIES)[number];

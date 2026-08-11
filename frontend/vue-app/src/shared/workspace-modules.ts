@@ -69,6 +69,13 @@ export const WORKSPACE_MODULES: WorkspaceModuleDef[] = [
     icon: 'users',
   },
   {
+    id: 'ontology_center',
+    title: '本体资源台',
+    shortTitle: '本体',
+    description: '换机/机位/口/链接',
+    icon: 'plane',
+  },
+  {
     id: 'resource_utilization',
     title: '资源利用率',
     shortTitle: '利用率',

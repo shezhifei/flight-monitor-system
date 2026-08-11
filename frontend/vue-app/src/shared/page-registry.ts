@@ -90,6 +90,12 @@ export const pageRegistry: Record<string, PageDefinition> = {
     summary: 'User administration covering accounts, roles, permission templates, and direct linking to the label manager.',
     url: '/frontend/user_manager.html',
   },
+  ontology_center: {
+    id: 'ontology_center',
+    title: 'Ontology Center',
+    summary: 'Aircraft-centric operations workbench: reassign aircraft, stand/gate allocate, resource suggestions, and turnaround links under dual-theme workspace tokens.',
+    url: '/frontend/ontology_center.html',
+  },
   ai_monitor: {
     id: 'ai_monitor',
     title: 'AI Monitor',

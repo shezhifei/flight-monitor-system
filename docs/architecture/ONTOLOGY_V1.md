@@ -109,7 +109,7 @@ server/di/flight.rs  (装配 OntologyService)
 | 周转链接手工/自动/扫描器 | ✅ |
 | 域事件驱动建链 | ✅（status/resource/leg 更新） |
 | 集成测试 | ✅（`ontology_v1_integration`，需 `TEST_DATABASE_URL`） |
-| 前端资源视图 | ⏳ 未做 |
+| 前端资源台 | ✅ `/frontend/ontology_center.html`（工作区模块「本体」） |
 
 ### 集成测试
 
