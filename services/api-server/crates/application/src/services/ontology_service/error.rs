@@ -50,11 +50,17 @@ impl OntologyError {
 impl From<fms_domain::error::DomainError> for OntologyError {
     fn from(error: fms_domain::error::DomainError) -> Self {
         match error {
-            fms_domain::error::DomainError::ValidationError(message) => Self::Validation(message),
+            fms_domain::error::DomainError::ValidationError(message)
+            | fms_domain::error::DomainError::BusinessRuleViolation(message) => Self::Validation(message),
+            fms_domain::error::DomainError::BusinessRuleViolationWithDetails { message, .. } => {
+                Self::Validation(message)
+            }
             fms_domain::error::DomainError::NotFound { entity_type, id } => {
                 Self::NotFound(format!("{entity_type} {id} not found"))
             }
-            fms_domain::error::DomainError::Conflict(message) => Self::Conflict(message),
+            fms_domain::error::DomainError::Conflict(message)
+            | fms_domain::error::DomainError::ConcurrencyConflict(message) => Self::Conflict(message),
+            fms_domain::error::DomainError::PermissionDenied(message) => Self::Forbidden(message),
             other => Self::Internal(other.to_string()),
         }
     }

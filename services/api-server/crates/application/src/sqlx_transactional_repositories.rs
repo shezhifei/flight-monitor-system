@@ -14,6 +14,7 @@ use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransact
 use fms_domain::ports::flight_repository::FlightTransactionalRepository;
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventTransactionalRepository;
 use fms_domain::ports::notification_repository::NotificationTransactionalRepository;
+use fms_domain::ports::ontology_repository::OntologyTransactionalRepository;
 use fms_domain::ports::todo_repository::TodoTransactionalRepository;
 use sqlx::{Postgres, Transaction};
 
@@ -94,6 +95,16 @@ pub trait SqlxFlightTimelineTransactionalRepository:
 
 impl<T> SqlxFlightTimelineTransactionalRepository for T where
     T: for<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+{
+}
+
+pub trait SqlxOntologyTransactionalRepository:
+    for<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+{
+}
+
+impl<T> SqlxOntologyTransactionalRepository for T where
+    T: for<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
 {
 }
 

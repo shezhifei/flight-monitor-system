@@ -39,6 +39,7 @@ pub mod metrics;
 pub mod mobile;
 pub mod nl_query;
 pub mod notifications;
+pub mod ontology;
 pub mod ping;
 pub mod reference;
 pub mod resource_utilization;
@@ -132,6 +133,7 @@ mod tests {
             .configure(super::anomalies::configure)
             .configure(super::kpi::configure)
             .configure(super::labels::configure)
+            .configure(super::ontology::configure)
             .configure(super::shift_handovers::configure)
             .configure(super::scheduler::configure)
             .configure(super::system::configure)

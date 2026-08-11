@@ -81,6 +81,7 @@ pub mod nl_query_service;
 pub mod notification_service;
 pub mod online_history_service;
 pub mod online_status_service;
+pub mod ontology_service;
 pub mod operator_identity_service;
 pub mod resource_availability_service;
 pub mod resource_utilization_service;
