@@ -221,6 +221,7 @@ pub(crate) async fn build_observability_services(
         Some(dispatch.anomaly_svc.clone()),
         Some(dispatch.dispatch_svc.clone()),
         Some(dispatch.dispatch_overrun_warning_svc.clone()),
+        Some(flight.ontology_svc.clone()),
         Some(dispatch.event_rule_repo.clone()),
         Some(business_case.business_case_type_svc.clone()),
         Some(business_case.business_case_workflow_svc.clone()),

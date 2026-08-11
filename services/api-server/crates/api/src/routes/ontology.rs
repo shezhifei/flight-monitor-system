@@ -300,6 +300,36 @@ async fn auto_link_scan(
     Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
 }
 
+async fn list_turnaround_links(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.read")?;
+    let items = svc
+        .list_turnaround_links(&path.into_inner())
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": items })))
+}
+
+async fn expire_stale_suggestions(
+    svc: web::Data<Arc<OntologyService>>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.plan.confirm")?;
+    let limit = query
+        .get("limit")
+        .and_then(|v| v.parse::<i64>().ok())
+        .unwrap_or(100);
+    let expired = svc
+        .expire_stale_suggestions(limit)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": { "expired": expired } })))
+}
+
 async fn create_suggestion(
     svc: web::Data<Arc<OntologyService>>,
     body: web::Json<CreateSuggestionRequest>,
@@ -349,8 +379,16 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 web::post().to(break_turnaround_link),
             )
             .route("/turnaround-links/auto-scan", web::post().to(auto_link_scan))
+            .route(
+                "/flights/{flight_id}/turnaround-links",
+                web::get().to(list_turnaround_links),
+            )
             .route("/suggestions", web::get().to(list_suggestions))
             .route("/suggestions", web::post().to(create_suggestion))
+            .route(
+                "/suggestions/expire-stale",
+                web::post().to(expire_stale_suggestions),
+            )
             .route(
                 "/suggestions/{id}/accept",
                 web::post().to(accept_suggestion),

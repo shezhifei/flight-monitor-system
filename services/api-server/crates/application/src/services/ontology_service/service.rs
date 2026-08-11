@@ -418,7 +418,12 @@ impl OntologyService {
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
 
-        if let Some(reg) = flight.registration.as_deref() {
+        let registration = flight
+            .registration
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        if let Some(reg) = registration {
             self.ontology_tx.upsert_aircraft_in_tx(&mut tx, reg).await?;
         }
 
@@ -435,6 +440,50 @@ impl OntologyService {
         )
         .await?;
 
+        // §4.9 接受即执行：若有机号，则落正式 Occupation / Assignment（时段可从 payload 解析）
+        if let Some(reg) = registration {
+            let (starts_at, ends_at) = Self::suggestion_time_window(&suggestion.payload);
+            let now = Utc::now();
+            match suggestion.kind {
+                SuggestionKind::Stand => {
+                    let occupation = StandOccupation {
+                        id: Ulid::new().to_string(),
+                        registration: reg.to_string(),
+                        stand_code: StandNumber(suggestion.suggested_value.clone()),
+                        starts_at,
+                        ends_at,
+                        kind: OccupationKind::Normal,
+                        moving_to_stand: None,
+                        flight_id: Some(FlightId(flight_id.clone())),
+                        status: OccupationStatus::Active,
+                        created_by: Some(request.accepted_by.clone()),
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    self.ontology_tx
+                        .create_occupation_in_tx(&mut tx, &occupation)
+                        .await?;
+                }
+                SuggestionKind::Gate => {
+                    let assignment = GateAssignment {
+                        id: Ulid::new().to_string(),
+                        registration: reg.to_string(),
+                        gate_code: GateNumber(suggestion.suggested_value.clone()),
+                        starts_at,
+                        ends_at,
+                        flight_id: Some(FlightId(flight_id.clone())),
+                        status: AssignmentStatus::Active,
+                        created_by: Some(request.accepted_by.clone()),
+                        created_at: now,
+                        updated_at: now,
+                    };
+                    self.ontology_tx
+                        .create_assignment_in_tx(&mut tx, &assignment)
+                        .await?;
+                }
+            }
+        }
+
         self.ontology_tx
             .update_suggestion_status_in_tx(
                 &mut tx,
@@ -448,6 +497,18 @@ impl OntologyService {
         tx.commit()
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
+
+        // 换机/资源落地后尝试自动建链（非阻断）
+        if let Some(reg) = registration {
+            let _ = self
+                .try_auto_link_outbound(
+                    &flight_id,
+                    reg,
+                    flight.scheduled_departure,
+                    self.autolink_window_minutes,
+                )
+                .await;
+        }
 
         self.suggestion_repo
             .find_by_id(suggestion_id)
@@ -1545,6 +1606,115 @@ impl OntologyService {
             .find_by_id(id)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("turnaround link {id}")))
+    }
+
+    /// payload 可选 `starts_at` / `ends_at`（RFC3339）；缺省 now → now+2h。
+    fn suggestion_time_window(payload: &serde_json::Value) -> (DateTime<Utc>, DateTime<Utc>) {
+        let now = Utc::now();
+        let starts = payload
+            .get("starts_at")
+            .and_then(|v| v.as_str())
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap_or(now);
+        let ends = payload
+            .get("ends_at")
+            .and_then(|v| v.as_str())
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap_or(starts + chrono::Duration::hours(2));
+        if ends <= starts {
+            (starts, starts + chrono::Duration::hours(2))
+        } else {
+            (starts, ends)
+        }
+    }
+
+    /// 域事件驱动入口：对单航段尝试自动建链（失败只记日志、不向上抛）。
+    pub async fn on_flight_event_autolink(&self, flight_id: &str) -> Result<(), DomainError> {
+        let flight_id = flight_id.trim();
+        if flight_id.is_empty() {
+            return Ok(());
+        }
+        let Some(flight) = self.flight_repo.find_by_id(flight_id).await? else {
+            return Ok(());
+        };
+        if flight.is_draft {
+            return Ok(());
+        }
+        let Some(registration) = flight
+            .registration
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        else {
+            return Ok(());
+        };
+        // 仅对有出港边的航段尝试
+        if flight.outbound_leg.is_none() {
+            return Ok(());
+        }
+        match self
+            .try_auto_link_outbound(
+                flight_id,
+                registration,
+                flight.scheduled_departure,
+                self.autolink_window_minutes,
+            )
+            .await
+        {
+            Ok(Some(link_id)) => {
+                info!(
+                    flight_id = %flight_id,
+                    link_id = %link_id,
+                    "ontology autolink created from domain event"
+                );
+            }
+            Ok(None) => {}
+            Err(err) => {
+                warn!(
+                    flight_id = %flight_id,
+                    error = %err,
+                    "ontology autolink from domain event failed"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// 列出航段相关周转链接。
+    pub async fn list_turnaround_links(
+        &self,
+        flight_id: &str,
+    ) -> Result<Vec<TurnaroundLink>, OntologyError> {
+        let flight_id = flight_id.trim();
+        if flight_id.is_empty() {
+            return Err(OntologyError::validation("flight_id must not be empty"));
+        }
+        Ok(self.link_repo.list_by_flight(flight_id).await?)
+    }
+
+    /// 批量过期 pending 建议（运维/扫描）。
+    pub async fn expire_stale_suggestions(
+        &self,
+        limit: i64,
+    ) -> Result<usize, OntologyError> {
+        let pending = self
+            .suggestion_repo
+            .list(None, Some("pending"), limit.clamp(1, 500))
+            .await?;
+        let now = Utc::now();
+        let mut expired = 0usize;
+        for suggestion in pending {
+            if suggestion.is_expired() {
+                let _ = self
+                    .suggestion_repo
+                    .update_status(&suggestion.id, "expired", None, Some(now))
+                    .await?;
+                expired += 1;
+            }
+        }
+        Ok(expired)
     }
 }
 

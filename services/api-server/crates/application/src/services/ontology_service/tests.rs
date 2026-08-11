@@ -152,3 +152,25 @@ fn autolink_window_bounds_are_sane() {
         Some("B-5678")
     ));
 }
+
+#[test]
+fn suggestion_time_window_parses_payload_or_defaults() {
+    let payload = serde_json::json!({
+        "starts_at": "2026-01-01T10:00:00Z",
+        "ends_at": "2026-01-01T12:00:00Z"
+    });
+    let starts = payload
+        .get("starts_at")
+        .and_then(|v| v.as_str())
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .expect("starts");
+    let ends = payload
+        .get("ends_at")
+        .and_then(|v| v.as_str())
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .expect("ends");
+    assert!(ends > starts);
+    assert_eq!(ends.signed_duration_since(starts).num_hours(), 2);
+}

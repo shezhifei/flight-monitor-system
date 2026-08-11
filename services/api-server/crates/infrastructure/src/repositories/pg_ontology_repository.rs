@@ -768,7 +768,10 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
              FROM flights f \
              WHERE f.registration = $1 \
                AND f.flight_id <> $2 \
-               AND f.inbound_leg IS NOT NULL \
+               AND EXISTS ( \
+                   SELECT 1 FROM flight_legs fl \
+                   WHERE fl.flight_id = f.flight_id AND fl.leg_type = 'inbound' \
+               ) \
                AND f.status IN (2, 8, 10) \
                AND NOT EXISTS ( \
                    SELECT 1 FROM turnaround_links tl \
@@ -804,13 +807,16 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
         limit: i64,
     ) -> Result<Vec<(String, String, Option<DateTime<Utc>>)>, DomainError> {
         let limit = limit.clamp(1, 500);
-        // status < 7: 未起飞 (Departed=7)；排除 draft；需要 registration + outbound_leg
+        // status < 7: 未起飞 (Departed=7)；排除 draft；需要 registration + outbound flight_leg
         let rows = sqlx::query(
             "SELECT f.flight_id, f.registration, f.scheduled_departure \
              FROM flights f \
              WHERE f.registration IS NOT NULL \
                AND btrim(f.registration) <> '' \
-               AND f.outbound_leg IS NOT NULL \
+               AND EXISTS ( \
+                   SELECT 1 FROM flight_legs fl \
+                   WHERE fl.flight_id = f.flight_id AND fl.leg_type = 'outbound' \
+               ) \
                AND COALESCE(f.is_draft, FALSE) = FALSE \
                AND f.status < 7 \
                AND NOT EXISTS ( \

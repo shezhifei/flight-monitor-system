@@ -73,6 +73,13 @@ const OVERRUN_TRIGGER_EVENT_TYPES: [&str; 3] = [
     "flight.leg_upserted_v2",
 ];
 
+/// 触发本体自动建链：状态/资源/航段变化可能带来同机进港落地或换机。
+const ONTOLOGY_AUTOLINK_TRIGGER_EVENT_TYPES: [&str; 3] = [
+    "flight.status_updated_v2",
+    "flight.resource_updated_v2",
+    "flight.leg_upserted_v2",
+];
+
 type DomainEventHandlerFuture = Pin<Box<dyn Future<Output = Result<(), DomainError>> + Send>>;
 type BusinessCaseWorkflowFuture = Pin<Box<dyn Future<Output = Result<(), DomainError>> + Send>>;
 type BusinessCaseNotifierFuture = Pin<Box<dyn Future<Output = Result<usize, DomainError>> + Send>>;
@@ -478,6 +485,34 @@ impl DomainEventHandler for DispatchOverrunEventHandler {
     }
 }
 
+/// 本体自动建链事件处理器：航班状态/资源/航段变化时尝试为出港边建链。
+struct OntologyAutolinkEventHandler {
+    service: Arc<crate::services::ontology_service::OntologyService>,
+}
+
+impl OntologyAutolinkEventHandler {
+    fn new(service: Arc<crate::services::ontology_service::OntologyService>) -> Self {
+        Self { service }
+    }
+}
+
+impl DomainEventHandler for OntologyAutolinkEventHandler {
+    fn can_handle(&self, event_type: &str) -> bool {
+        ONTOLOGY_AUTOLINK_TRIGGER_EVENT_TYPES.contains(&event_type.trim())
+    }
+
+    fn handle(&self, envelope: DomainEventEnvelope) -> DomainEventHandlerFuture {
+        let service = self.service.clone();
+        Box::pin(async move {
+            let flight_id = envelope.aggregate_id.trim();
+            if flight_id.is_empty() {
+                return Ok(());
+            }
+            service.on_flight_event_autolink(flight_id).await
+        })
+    }
+}
+
 struct FlowableBusinessCaseWorkflowTrigger {
     workflow_service: Arc<ConcreteBusinessCaseWorkflowService>,
 }
@@ -651,6 +686,7 @@ impl DomainEventSubscriberService {
         anomaly_service: Option<Arc<ConcreteAnomalyService>>,
         dispatch_service: Option<Arc<DispatchService>>,
         dispatch_overrun_service: Option<Arc<DispatchOverrunWarningService>>,
+        ontology_service: Option<Arc<crate::services::ontology_service::OntologyService>>,
         event_rule_repo: Option<Arc<dyn EventRuleRepository + Send + Sync>>,
         _business_case_type_service: Option<Arc<ConcreteBusinessCaseTypeService>>,
         business_case_workflow_service: Option<Arc<ConcreteBusinessCaseWorkflowService>>,
@@ -696,6 +732,9 @@ impl DomainEventSubscriberService {
         }
         if let Some(service) = dispatch_overrun_service {
             handlers.push(Arc::new(DispatchOverrunEventHandler::new(service)));
+        }
+        if let Some(service) = ontology_service {
+            handlers.push(Arc::new(OntologyAutolinkEventHandler::new(service)));
         }
         let business_case_workflow_trigger = business_case_workflow_service.map(|workflow_service| {
             Arc::new(FlowableBusinessCaseWorkflowTrigger::new(workflow_service)) as Arc<dyn BusinessCaseWorkflowTrigger>

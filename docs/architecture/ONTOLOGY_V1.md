@@ -98,9 +98,23 @@ server/di/flight.rs  (装配 OntologyService)
 
 ---
 
-## 7. 未完成 / 后续
+## 7. 完成度与运维
 
-- 接受建议时创建完整 Occupation/Assignment 时段对象（当前以回写 Flight 计划字段为主）
-- 事件驱动建链（换机/落地事件订阅）与当前扫描器互补
-- DB 集成测试（`TEST_DATABASE_URL`）
-- 前端资源视图与建议工作台
+| 项 | 状态 |
+|----|------|
+| 定义层 migration/models/repos | ✅ |
+| Reassign / draft / 双视图 | ✅ |
+| 机位/口 Allocate·Adjust·Release | ✅ |
+| 建议 create/accept/reject + 接受落正式资源 | ✅ |
+| 周转链接手工/自动/扫描器 | ✅ |
+| 域事件驱动建链 | ✅（status/resource/leg 更新） |
+| 集成测试 | ✅（`ontology_v1_integration`，需 `TEST_DATABASE_URL`） |
+| 前端资源视图 | ⏳ 未做 |
+
+### 集成测试
+
+```powershell
+$env:TEST_DATABASE_URL = "postgres://USER:PASS@localhost:5432/flight_monitor_test"
+# 确保已执行 migrations 含 119
+cargo test -p fms-application --test ontology_v1_integration -- --ignored --nocapture
+```
