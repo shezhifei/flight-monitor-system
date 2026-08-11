@@ -12,6 +12,7 @@ use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flight_service::FlightService;
 use fms_application::services::label_service::LabelService;
+use fms_application::services::ontology_advisory_service::OntologyAdvisoryService;
 use fms_application::services::ontology_read_action_service::OntologyReadActionService;
 use fms_application::services::ontology_service::OntologyService;
 use fms_application::sqlx_transactional_repositories::{
@@ -50,6 +51,7 @@ pub(crate) struct FlightServices {
     pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
     pub ontology_svc: Arc<OntologyService>,
     pub ontology_read_action_svc: Arc<OntologyReadActionService>,
+    pub ontology_advisory_svc: Arc<OntologyAdvisoryService>,
 }
 
 pub(crate) fn build_flight_services(
@@ -122,13 +124,23 @@ pub(crate) fn build_flight_services(
 
     // Ontology V1 只读动作服务（契约 §3.1）：直接查询仓储，响应带 evidence。
     let ontology_read_action_svc = Arc::new(OntologyReadActionService::new(
+        flight_repo_port.clone(),
+        dispatch_order_port.clone(),
+        anomaly_port.clone(),
+        team_port.clone(),
+        stand_port.clone(),
+        occupation_port.clone(),
+        business_case_port,
+    ));
+
+    // Ontology V1 建议动作服务（契约 §4.3）：只生成 proposal 载荷，不写业务表。
+    let ontology_advisory_svc = Arc::new(OntologyAdvisoryService::new(
         flight_repo_port,
-        dispatch_order_port,
-        anomaly_port,
-        team_port,
         stand_port,
         occupation_port,
-        business_case_port,
+        dispatch_order_port,
+        team_port,
+        anomaly_port,
     ));
 
     FlightServices {
@@ -140,6 +152,7 @@ pub(crate) fn build_flight_services(
         flight_batch_cell_svc,
         ontology_svc,
         ontology_read_action_svc,
+        ontology_advisory_svc,
     }
 }
 

@@ -81,6 +81,7 @@ pub mod nl_query_service;
 pub mod notification_service;
 pub mod online_history_service;
 pub mod online_status_service;
+pub mod ontology_advisory_service;
 pub mod ontology_read_action_service;
 pub mod ontology_service;
 pub mod operator_identity_service;

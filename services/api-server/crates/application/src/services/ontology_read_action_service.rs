@@ -551,7 +551,7 @@ fn matches_search_filters(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use async_trait::async_trait;
     use chrono::Duration;
@@ -566,8 +566,8 @@ mod tests {
     // ── fake repositories（未用到的方法统一 unimplemented!）──
 
     #[derive(Default)]
-    struct FakeFlightRepo {
-        flights: std::sync::Mutex<Vec<Flight>>,
+    pub(crate) struct FakeFlightRepo {
+        pub(crate) flights: std::sync::Mutex<Vec<Flight>>,
     }
 
     #[async_trait]
@@ -620,8 +620,8 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct FakeDispatchRepo {
-        orders: std::sync::Mutex<Vec<DispatchOrder>>,
+    pub(crate) struct FakeDispatchRepo {
+        pub(crate) orders: std::sync::Mutex<Vec<DispatchOrder>>,
     }
 
     #[async_trait]
@@ -722,12 +722,22 @@ mod tests {
             &self,
             _window_start: DateTime<Utc>,
             _window_end: DateTime<Utc>,
-            _team_id: Option<&str>,
+            team_id: Option<&str>,
             _individual_user_id: Option<&str>,
             _stand_id: Option<&str>,
-            _exclude_order_id: Option<&str>,
+            exclude_order_id: Option<&str>,
         ) -> Result<Vec<DispatchOrder>, DomainError> {
-            unimplemented!()
+            Ok(self
+                .orders
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|o| {
+                    o.team_id.as_deref() == team_id
+                        && exclude_order_id.is_none_or(|excluded| o.id != excluded)
+                })
+                .cloned()
+                .collect())
         }
         async fn find_equipment_conflicts(
             &self,
@@ -822,14 +832,14 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct FakeAnomalyRepo {
-        anomalies: std::sync::Mutex<Vec<Anomaly>>,
+    pub(crate) struct FakeAnomalyRepo {
+        pub(crate) anomalies: std::sync::Mutex<Vec<Anomaly>>,
     }
 
     #[async_trait]
     impl AnomalyRepository for FakeAnomalyRepo {
-        async fn find_by_id(&self, _anomaly_id: &str) -> Result<Option<Anomaly>, DomainError> {
-            unimplemented!()
+        async fn find_by_id(&self, anomaly_id: &str) -> Result<Option<Anomaly>, DomainError> {
+            Ok(self.anomalies.lock().unwrap().iter().find(|a| a.anomaly_id == anomaly_id).cloned())
         }
         async fn find_by_flight(&self, flight_id: &str) -> Result<Vec<Anomaly>, DomainError> {
             Ok(self
@@ -881,8 +891,8 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct FakeTeamRepo {
-        teams: std::sync::Mutex<Vec<Team>>,
+    pub(crate) struct FakeTeamRepo {
+        pub(crate) teams: std::sync::Mutex<Vec<Team>>,
     }
 
     #[async_trait]
@@ -901,7 +911,7 @@ mod tests {
             _team_type_id: Option<&str>,
             _terminal: Option<&str>,
         ) -> Result<Vec<Team>, DomainError> {
-            unimplemented!()
+            Ok(self.teams.lock().unwrap().iter().filter(|t| t.is_active).cloned().collect())
         }
         async fn find_all(
             &self,
@@ -922,8 +932,8 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct FakeStandRepo {
-        stands: std::sync::Mutex<Vec<Stand>>,
+    pub(crate) struct FakeStandRepo {
+        pub(crate) stands: std::sync::Mutex<Vec<Stand>>,
     }
 
     #[async_trait]
@@ -960,8 +970,8 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct FakeOccupationRepo {
-        occupations: std::sync::Mutex<Vec<StandOccupation>>,
+    pub(crate) struct FakeOccupationRepo {
+        pub(crate) occupations: std::sync::Mutex<Vec<StandOccupation>>,
     }
 
     #[async_trait]
@@ -1020,7 +1030,7 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct FakeBusinessCaseRepo;
+    pub(crate) struct FakeBusinessCaseRepo;
 
     #[async_trait]
     impl BusinessCaseRepository for FakeBusinessCaseRepo {
@@ -1149,7 +1159,7 @@ mod tests {
 
     // ── fixtures ──
 
-    fn flight_fixture(id: &str, status: FlightStatus, inbound: bool, outbound: bool) -> Flight {
+    pub(crate) fn flight_fixture(id: &str, status: FlightStatus, inbound: bool, outbound: bool) -> Flight {
         let leg = fms_domain::models::flight_leg::FlightLeg {
             leg_type: fms_domain::models::flight_leg::LegType::Inbound,
             flight_no: "CA1234".to_string(),
@@ -1211,7 +1221,7 @@ mod tests {
         }
     }
 
-    fn anomaly_fixture(id: &str, flight_id: &str, severity: AnomalySeverity, status: AnomalyStatus, minutes_ago: i64) -> Anomaly {
+    pub(crate) fn anomaly_fixture(id: &str, flight_id: &str, severity: AnomalySeverity, status: AnomalyStatus, minutes_ago: i64) -> Anomaly {
         let now = Utc::now();
         Anomaly {
             anomaly_id: id.to_string(),
@@ -1233,7 +1243,7 @@ mod tests {
         }
     }
 
-    fn order_fixture(id: &str, flight_id: &str, status: &str, team_id: Option<&str>) -> DispatchOrder {
+    pub(crate) fn order_fixture(id: &str, flight_id: &str, status: &str, team_id: Option<&str>) -> DispatchOrder {
         let mut raw = serde_json::json!({
             "id": id,
             "flight_id": flight_id,
@@ -1247,7 +1257,7 @@ mod tests {
         serde_json::from_value(raw).expect("dispatch order fixture")
     }
 
-    fn stand_fixture(id: &str, code: &str, active: bool) -> Stand {
+    pub(crate) fn stand_fixture(id: &str, code: &str, active: bool) -> Stand {
         Stand {
             id: id.to_string(),
             code: code.to_string(),
@@ -1263,7 +1273,7 @@ mod tests {
         }
     }
 
-    fn occupation_fixture(stand_code: &str, registration: &str, start_offset_mins: i64, end_offset_mins: i64) -> StandOccupation {
+    pub(crate) fn occupation_fixture(stand_code: &str, registration: &str, start_offset_mins: i64, end_offset_mins: i64) -> StandOccupation {
         let now = Utc::now();
         StandOccupation {
             id: format!("occ-{stand_code}"),

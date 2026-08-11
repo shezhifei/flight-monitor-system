@@ -50,6 +50,24 @@
       ],
       "risk_level": "low"
     },
+    "Anomaly.suggest_escalation": {
+      "action_name": "suggest_escalation",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "anomaly_id"
+        ],
+        "type": "object"
+      },
+      "category": "advisory",
+      "execution_mapping": null,
+      "object_type": "Anomaly",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "anomaly:read"
+      ],
+      "risk_level": "medium"
+    },
     "BusinessCase.close_case": {
       "action_name": "close_case",
       "approval_policy": "auto_execute",
@@ -156,6 +174,25 @@
       ],
       "risk_level": "medium"
     },
+    "DispatchOrder.suggest_replan": {
+      "action_name": "suggest_replan",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "category": "advisory",
+      "execution_mapping": null,
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:read"
+      ],
+      "risk_level": "high"
+    },
     "Flight.add_note": {
       "action_name": "add_note",
       "approval_policy": "auto_execute",
@@ -226,6 +263,42 @@
       ],
       "risk_level": "low"
     },
+    "Flight.suggest_delay_action": {
+      "action_name": "suggest_delay_action",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "flight_id"
+        ],
+        "type": "object"
+      },
+      "category": "advisory",
+      "execution_mapping": null,
+      "object_type": "Flight",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:read"
+      ],
+      "risk_level": "medium"
+    },
+    "Flight.suggest_stand_adjustment": {
+      "action_name": "suggest_stand_adjustment",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "flight_id"
+        ],
+        "type": "object"
+      },
+      "category": "advisory",
+      "execution_mapping": null,
+      "object_type": "Flight",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:read"
+      ],
+      "risk_level": "medium"
+    },
     "Flight.update_status": {
       "action_name": "update_status",
       "approval_policy": "require_approval",
@@ -257,6 +330,25 @@
       },
       "category": "write",
       "execution_mapping": "DomainActionExecutor.Notification.send",
+      "object_type": "Notification",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "notification:send"
+      ],
+      "risk_level": "medium"
+    },
+    "Notification.suggest_broadcast": {
+      "action_name": "suggest_broadcast",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "title",
+          "body"
+        ],
+        "type": "object"
+      },
+      "category": "advisory",
+      "execution_mapping": null,
       "object_type": "Notification",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
@@ -476,6 +568,35 @@
             "anomaly:read"
           ],
           "risk_level": "low"
+        },
+        "suggest_escalation": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "advisory",
+          "compensation": null,
+          "constraints": [],
+          "description": "Generate an escalation proposal for an anomaly (severity or handling path). No business write.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "suggest_escalation",
+          "parameters": {
+            "anomaly_id": {
+              "description": "Anomaly to escalate",
+              "name": "anomaly_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "anomaly_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "anomaly:read"
+          ],
+          "risk_level": "medium"
         }
       },
       "description": "An operational anomaly",
@@ -690,6 +811,48 @@
             "dispatch:write"
           ],
           "risk_level": "medium"
+        },
+        "suggest_replan": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "advisory",
+          "compensation": null,
+          "constraints": [],
+          "description": "Generate a reassignment proposal for a dispatch order (resource/score changes, conflicts). No business write.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "suggest_replan",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order to replan",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            },
+            "reason": {
+              "description": "Replan reason",
+              "name": "reason",
+              "param_type": "String",
+              "required": true
+            },
+            "target_team_id": {
+              "description": "Optional target team; auto-pick when omitted",
+              "name": "target_team_id",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:read"
+          ],
+          "risk_level": "high"
         }
       },
       "description": "A dispatch order for ground handling",
@@ -872,6 +1035,76 @@
           ],
           "risk_level": "low"
         },
+        "suggest_delay_action": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "advisory",
+          "compensation": null,
+          "constraints": [],
+          "description": "Generate a delay-handling proposal for a flight with impacted dispatch orders. No business write.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "suggest_delay_action",
+          "parameters": {
+            "flight_id": {
+              "description": "Delayed flight",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "new_estimated_departure": {
+              "description": "RFC3339 new departure; default current +30min",
+              "name": "new_estimated_departure",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "flight_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:read"
+          ],
+          "risk_level": "medium"
+        },
+        "suggest_stand_adjustment": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "advisory",
+          "compensation": null,
+          "constraints": [],
+          "description": "Generate a stand-change proposal for a flight (before/after preview, overlap warnings). No business write.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "suggest_stand_adjustment",
+          "parameters": {
+            "flight_id": {
+              "description": "Flight to adjust",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "new_stand_id": {
+              "description": "Optional target stand; auto-scan when omitted",
+              "name": "new_stand_id",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "flight_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:read"
+          ],
+          "risk_level": "medium"
+        },
         "update_status": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
@@ -1001,6 +1234,54 @@
           "parameters_schema": {
             "required": [
               "user_id",
+              "title",
+              "body"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "notification:send"
+          ],
+          "risk_level": "medium"
+        },
+        "suggest_broadcast": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "advisory",
+          "compensation": null,
+          "constraints": [],
+          "description": "Generate a broadcast notification proposal without sending side effects.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "suggest_broadcast",
+          "parameters": {
+            "body": {
+              "description": "Broadcast body",
+              "name": "body",
+              "param_type": "String",
+              "required": true
+            },
+            "department_id": {
+              "description": "Required when scope=department",
+              "name": "department_id",
+              "param_type": "String",
+              "required": false
+            },
+            "scope": {
+              "description": "all|on_duty_teams|department",
+              "name": "scope",
+              "param_type": "String",
+              "required": false
+            },
+            "title": {
+              "description": "Broadcast title",
+              "name": "title",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
               "title",
               "body"
             ],

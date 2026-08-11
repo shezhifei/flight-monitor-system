@@ -76,6 +76,33 @@ fn string_param(name: &str, description: &str, required: bool) -> OntologyAction
     }
 }
 
+/// 建议动作统一定义（契约 §4.3：只生成 proposal 载荷，不直接写业务表，
+/// 统一经 proposal/pending-action/approval 管线消费，因此不映射 DomainActionExecutor）。
+fn advisory_action(
+    name: &str,
+    description: &str,
+    parameters: HashMap<String, OntologyActionParameter>,
+    parameters_schema: serde_json::Value,
+    permission: &str,
+    risk_level: &str,
+) -> OntologyActionDef {
+    OntologyActionDef {
+        name: name.to_string(),
+        description: description.to_string(),
+        category: "advisory".to_string(),
+        parameters,
+        parameters_schema,
+        required_permissions: vec![permission.to_string()],
+        risk_level: risk_level.to_string(),
+        approval_strategy: "require_approval".to_string(),
+        approval_policy: "require_approval".to_string(),
+        constraints: vec![],
+        execution_mapping: None,
+        idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+        compensation: None,
+    }
+}
+
 pub fn build_flight_ops_v1_schema() -> OntologySchema {
     let mut objects = HashMap::new();
 
@@ -233,6 +260,42 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
             compensation: None,
         },
+    );
+
+    flight_actions.insert(
+        "suggest_stand_adjustment".to_string(),
+        advisory_action(
+            "suggest_stand_adjustment",
+            "Generate a stand-change proposal for a flight (before/after preview, overlap warnings). No business write.",
+            {
+                let mut p = HashMap::new();
+                p.insert("flight_id".to_string(), string_param("flight_id", "Flight to adjust", true));
+                p.insert("new_stand_id".to_string(), string_param("new_stand_id", "Optional target stand; auto-scan when omitted", false));
+                p
+            },
+            json!({"type": "object", "required": ["flight_id"]}),
+            "flight:read",
+            "medium",
+        ),
+    );
+    flight_actions.insert(
+        "suggest_delay_action".to_string(),
+        advisory_action(
+            "suggest_delay_action",
+            "Generate a delay-handling proposal for a flight with impacted dispatch orders. No business write.",
+            {
+                let mut p = HashMap::new();
+                p.insert("flight_id".to_string(), string_param("flight_id", "Delayed flight", true));
+                p.insert(
+                    "new_estimated_departure".to_string(),
+                    string_param("new_estimated_departure", "RFC3339 new departure; default current +30min", false),
+                );
+                p
+            },
+            json!({"type": "object", "required": ["flight_id"]}),
+            "flight:read",
+            "medium",
+        ),
     );
 
     flight_actions.insert(
@@ -420,6 +483,23 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
     dispatch_order_actions.insert(
+        "suggest_replan".to_string(),
+        advisory_action(
+            "suggest_replan",
+            "Generate a reassignment proposal for a dispatch order (resource/score changes, conflicts). No business write.",
+            {
+                let mut p = HashMap::new();
+                p.insert("dispatch_order_id".to_string(), string_param("dispatch_order_id", "Dispatch order to replan", true));
+                p.insert("reason".to_string(), string_param("reason", "Replan reason", true));
+                p.insert("target_team_id".to_string(), string_param("target_team_id", "Optional target team; auto-pick when omitted", false));
+                p
+            },
+            json!({"type": "object", "required": ["dispatch_order_id", "reason"]}),
+            "dispatch:read",
+            "high",
+        ),
+    );
+    dispatch_order_actions.insert(
         "reassign".to_string(),
         OntologyActionDef {
             name: "reassign".to_string(),
@@ -534,6 +614,21 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
             compensation: None,
         },
+    );
+    anomaly_actions.insert(
+        "suggest_escalation".to_string(),
+        advisory_action(
+            "suggest_escalation",
+            "Generate an escalation proposal for an anomaly (severity or handling path). No business write.",
+            {
+                let mut p = HashMap::new();
+                p.insert("anomaly_id".to_string(), string_param("anomaly_id", "Anomaly to escalate", true));
+                p
+            },
+            json!({"type": "object", "required": ["anomaly_id"]}),
+            "anomaly:read",
+            "medium",
+        ),
     );
     anomaly_actions.insert(
         "escalate".to_string(),
@@ -831,6 +926,25 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
+    notification_actions.insert(
+        "suggest_broadcast".to_string(),
+        advisory_action(
+            "suggest_broadcast",
+            "Generate a broadcast notification proposal without sending side effects.",
+            {
+                let mut p = HashMap::new();
+                p.insert("title".to_string(), string_param("title", "Broadcast title", true));
+                p.insert("body".to_string(), string_param("body", "Broadcast body", true));
+                p.insert("scope".to_string(), string_param("scope", "all|on_duty_teams|department", false));
+                p.insert("department_id".to_string(), string_param("department_id", "Required when scope=department", false));
+                p
+            },
+            json!({"type": "object", "required": ["title", "body"]}),
+            "notification:send",
+            "medium",
+        ),
+    );
+
     objects.insert(
         "Notification".to_string(),
         OntologyObjectDef {
@@ -1015,6 +1129,34 @@ mod tests {
                     .and_then(|object| object.actions.get(action_name))
                     .is_some(),
                 "{object_type}.{action_name} must be present in static fallback ontology"
+            );
+        }
+    }
+
+    #[test]
+    fn flight_ops_v1_advisory_actions_follow_contract_rules() {
+        let schema = build_flight_ops_v1_schema();
+
+        let advisory_actions = [
+            ("Flight", "suggest_stand_adjustment", "flight:read", "medium"),
+            ("Flight", "suggest_delay_action", "flight:read", "medium"),
+            ("DispatchOrder", "suggest_replan", "dispatch:read", "high"),
+            ("Anomaly", "suggest_escalation", "anomaly:read", "medium"),
+            ("Notification", "suggest_broadcast", "notification:send", "medium"),
+        ];
+        for (object_type, action_name, permission, risk) in advisory_actions {
+            let action = schema
+                .objects
+                .get(object_type)
+                .and_then(|object| object.actions.get(action_name))
+                .unwrap_or_else(|| panic!("{object_type}.{action_name} must exist"));
+            assert_eq!(action.category, "advisory", "{object_type}.{action_name}");
+            assert_eq!(action.risk_level, risk, "{object_type}.{action_name}");
+            assert_eq!(action.approval_policy, "require_approval", "{object_type}.{action_name}");
+            assert_eq!(action.required_permissions, vec![permission], "{object_type}.{action_name}");
+            assert!(
+                action.execution_mapping.is_none(),
+                "{object_type}.{action_name} 建议动作不得映射到 DomainActionExecutor（契约 §4.3）"
             );
         }
     }

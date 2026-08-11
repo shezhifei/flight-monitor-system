@@ -3,6 +3,7 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
+use fms_application::services::ontology_advisory_service::{advisory_action_permission, OntologyAdvisoryService};
 use fms_application::services::ontology_read_action_service::{
     read_action_permission, OntologyReadActionService, ReadActionError,
 };
@@ -100,13 +101,36 @@ async fn execute_read_action(
     }
 }
 
+/// 契约 §4.3：建议动作只生成 proposal 载荷，不写业务表；权限按动作声明校验。
+async fn execute_advisory_action(
+    claims: JwtAuth,
+    service: web::Data<Arc<OntologyAdvisoryService>>,
+    body: web::Json<ReadActionRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let permission = advisory_action_permission(&body.action_name)
+        .ok_or_else(|| ApiError::BadRequest(format!("unknown advisory action: {}", body.action_name)))?;
+    claims.ensure_permission(permission)?;
+
+    match service.execute(&body.action_name, &body.arguments).await {
+        Ok(result) => Ok(HttpResponse::Ok().json(result)),
+        Err(ReadActionError::UnknownAction(name)) => {
+            Err(ApiError::BadRequest(format!("unknown advisory action: {name}")))
+        }
+        Err(ReadActionError::InvalidArguments(msg)) => Err(ApiError::BadRequest(msg)),
+        Err(ReadActionError::NotFound(msg)) => Err(ApiError::NotFound(msg)),
+        Err(ReadActionError::Repository(msg)) => Err(ApiError::Internal(msg)),
+        Err(ReadActionError::Internal(msg)) => Err(ApiError::Internal(msg)),
+    }
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v2/ai/ontology")
             .route("/schema", web::get().to(get_schema))
             .route("/objects", web::get().to(get_objects))
             .route("/actions", web::get().to(get_actions))
-            .route("/actions/read", web::post().to(execute_read_action)),
+            .route("/actions/read", web::post().to(execute_read_action))
+            .route("/actions/advisory", web::post().to(execute_advisory_action)),
     );
 }
 
@@ -184,6 +208,14 @@ mod tests {
             .set_json(serde_json::json!({"action_name": "flight.search", "arguments": {}}))
             .to_request();
         let resp = test::call_service(&app, unauth_read).await;
+        assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
+
+        // 建议动作执行入口：未认证必须 401（契约 §4.3）。
+        let unauth_advisory = test::TestRequest::post()
+            .uri("/api/v2/ai/ontology/actions/advisory")
+            .set_json(serde_json::json!({"action_name": "flight.suggest_stand_adjustment", "arguments": {}}))
+            .to_request();
+        let resp = test::call_service(&app, unauth_advisory).await;
         assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
     }
 
