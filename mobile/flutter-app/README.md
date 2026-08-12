@@ -58,7 +58,6 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
 
 ## 计划与交接
 
-- 执行计划：`docs/plans/android-flutter-rust-rebuild-plan.md`
-- 交接快照：`docs/plans/android-flutter-rust-rebuild-handoff.md`
-- 34 端点回归清单：`docs/plans/android-mobile-endpoint-checklist.md`
-- 推送通道评估：`docs/plans/android-mobile-push-channel-eval.md`
+- 执行计划 / 交接：本地 `docs/plans/android-flutter-rust-rebuild-*.md`
+- 可跟踪文档：`docs/mobile/`（端点清单、推送评估、release 体积）
+- 旧 Kotlin 归档：`legacy/android-kotlin/`

@@ -33,7 +33,6 @@ class S {
   static const String navHandover = '交接';
   static const String navBusinessCase = '事项';
   static const String navOperations = '战情';
-  static const String comingSoonP2 = 'P2 阶段开放';
   static const String workbenchMyOrders = '我的工单';
   static const String workbenchUnreadNotifications = '未读通知';
   static const String workbenchUnreadChat = '未读消息';
