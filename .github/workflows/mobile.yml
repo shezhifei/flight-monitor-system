@@ -59,6 +59,13 @@ jobs:
       - name: flutter pub get
         run: flutter pub get
 
+      # The vendored cargokit build_tool is a separate Dart package; analyze
+      # covers it, so its deps must be fetched explicitly (CI-only step — on
+      # dev machines `frb integrate`/cargokit already did this).
+      - name: flutter pub get (cargokit build_tool)
+        working-directory: mobile/flutter-app/rust_builder/cargokit/build_tool
+        run: flutter pub get
+
       - name: flutter analyze
         run: flutter analyze
 
@@ -92,8 +99,12 @@ jobs:
         with:
           workspaces: mobile/core
 
+      - uses: android-actions/setup-android@v3
+
       - name: Install Android NDK ${{ env.NDK_VERSION }}
-        run: sdkmanager "ndk;${{ env.NDK_VERSION }}"
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "ndk;${{ env.NDK_VERSION }}"
 
       - name: flutter pub get
         run: flutter pub get
