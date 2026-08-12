@@ -4,6 +4,14 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/auth.dart';
+import 'api/business_case.dart';
+import 'api/chat.dart';
+import 'api/dispatch.dart';
+import 'api/handover.dart';
+import 'api/notification.dart';
+import 'api/operations.dart';
+import 'api/session.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -22,6 +30,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
+  Map<String, bool> dco_decode_Map_String_bool_None(dynamic raw);
+
+  @protected
+  Map<String, PlatformInt64> dco_decode_Map_String_i_64_None(dynamic raw);
+
+  @protected
+  RustStreamSink<SessionState> dco_decode_StreamSink_session_state_Sse(
+    dynamic raw,
+  );
+
+  @protected
   RustStreamSink<SseUpdate> dco_decode_StreamSink_sse_update_Sse(dynamic raw);
 
   @protected
@@ -31,16 +50,195 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  BusinessCase dco_decode_box_autoadd_business_case(dynamic raw);
+
+  @protected
+  BusinessCaseAppend dco_decode_box_autoadd_business_case_append(dynamic raw);
+
+  @protected
+  DeviceHeartbeatMeta dco_decode_box_autoadd_device_heartbeat_meta(dynamic raw);
+
+  @protected
+  DeviceRegisterInfo dco_decode_box_autoadd_device_register_info(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   SseConnectionState dco_decode_box_autoadd_sse_connection_state(dynamic raw);
 
   @protected
   SseEvent dco_decode_box_autoadd_sse_event(dynamic raw);
 
   @protected
+  TokenBundle dco_decode_box_autoadd_token_bundle(dynamic raw);
+
+  @protected
+  WorkflowRun dco_decode_box_autoadd_workflow_run(dynamic raw);
+
+  @protected
+  BusinessCase dco_decode_business_case(dynamic raw);
+
+  @protected
+  BusinessCaseAppend dco_decode_business_case_append(dynamic raw);
+
+  @protected
+  BusinessCaseType dco_decode_business_case_type(dynamic raw);
+
+  @protected
+  ChatGroup dco_decode_chat_group(dynamic raw);
+
+  @protected
+  ChatGroupList dco_decode_chat_group_list(dynamic raw);
+
+  @protected
+  ChatMessage dco_decode_chat_message(dynamic raw);
+
+  @protected
+  ChatMessageList dco_decode_chat_message_list(dynamic raw);
+
+  @protected
+  ChatReadResult dco_decode_chat_read_result(dynamic raw);
+
+  @protected
+  ChecklistItem dco_decode_checklist_item(dynamic raw);
+
+  @protected
+  ChecklistRecord dco_decode_checklist_record(dynamic raw);
+
+  @protected
+  DeviceHeartbeatMeta dco_decode_device_heartbeat_meta(dynamic raw);
+
+  @protected
+  DeviceInfo dco_decode_device_info(dynamic raw);
+
+  @protected
+  DeviceRegisterInfo dco_decode_device_register_info(dynamic raw);
+
+  @protected
+  DispatchActionResult dco_decode_dispatch_action_result(dynamic raw);
+
+  @protected
+  DispatchOrder dco_decode_dispatch_order(dynamic raw);
+
+  @protected
+  Handover dco_decode_handover(dynamic raw);
+
+  @protected
+  HandoverItem dco_decode_handover_item(dynamic raw);
+
+  @protected
+  int dco_decode_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<BusinessCase> dco_decode_list_business_case(dynamic raw);
+
+  @protected
+  List<BusinessCaseAppend> dco_decode_list_business_case_append(dynamic raw);
+
+  @protected
+  List<BusinessCaseType> dco_decode_list_business_case_type(dynamic raw);
+
+  @protected
+  List<ChatGroup> dco_decode_list_chat_group(dynamic raw);
+
+  @protected
+  List<ChatMessage> dco_decode_list_chat_message(dynamic raw);
+
+  @protected
+  List<ChecklistItem> dco_decode_list_checklist_item(dynamic raw);
+
+  @protected
+  List<DispatchOrder> dco_decode_list_dispatch_order(dynamic raw);
+
+  @protected
+  List<Handover> dco_decode_list_handover(dynamic raw);
+
+  @protected
+  List<HandoverItem> dco_decode_list_handover_item(dynamic raw);
+
+  @protected
+  List<Notification> dco_decode_list_notification(dynamic raw);
+
+  @protected
+  List<NotificationReceipt> dco_decode_list_notification_receipt(dynamic raw);
+
+  @protected
+  List<OperationsEvent> dco_decode_list_operations_event(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<(String, bool)> dco_decode_list_record_string_bool(dynamic raw);
+
+  @protected
+  List<(String, PlatformInt64)> dco_decode_list_record_string_i_64(dynamic raw);
+
+  @protected
+  List<WorkbenchOrderItem> dco_decode_list_workbench_order_item(dynamic raw);
+
+  @protected
+  Notification dco_decode_notification(dynamic raw);
+
+  @protected
+  NotificationList dco_decode_notification_list(dynamic raw);
+
+  @protected
+  NotificationReceipt dco_decode_notification_receipt(dynamic raw);
+
+  @protected
+  OperationsEvent dco_decode_operations_event(dynamic raw);
+
+  @protected
+  OperationsFeed dco_decode_operations_feed(dynamic raw);
+
+  @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  BusinessCase? dco_decode_opt_box_autoadd_business_case(dynamic raw);
+
+  @protected
+  BusinessCaseAppend? dco_decode_opt_box_autoadd_business_case_append(
+    dynamic raw,
+  );
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  TokenBundle? dco_decode_opt_box_autoadd_token_bundle(dynamic raw);
+
+  @protected
+  WorkflowRun? dco_decode_opt_box_autoadd_workflow_run(dynamic raw);
+
+  @protected
+  ReceiptGroup dco_decode_receipt_group(dynamic raw);
+
+  @protected
+  ReceiptSummary dco_decode_receipt_summary(dynamic raw);
+
+  @protected
+  (String, bool) dco_decode_record_string_bool(dynamic raw);
+
+  @protected
+  (String, PlatformInt64) dco_decode_record_string_i_64(dynamic raw);
+
+  @protected
+  SafetyChecklist dco_decode_safety_checklist(dynamic raw);
+
+  @protected
+  SessionState dco_decode_session_state(dynamic raw);
 
   @protected
   SignatureHeaders dco_decode_signature_headers(dynamic raw);
@@ -55,13 +253,55 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SseUpdate dco_decode_sse_update(dynamic raw);
 
   @protected
+  SyncSummary dco_decode_sync_summary(dynamic raw);
+
+  @protected
+  TokenBundle dco_decode_token_bundle(dynamic raw);
+
+  @protected
   int dco_decode_u_8(dynamic raw);
 
   @protected
   void dco_decode_unit(dynamic raw);
 
   @protected
+  UploadAsset dco_decode_upload_asset(dynamic raw);
+
+  @protected
+  Workbench dco_decode_workbench(dynamic raw);
+
+  @protected
+  WorkbenchCounts dco_decode_workbench_counts(dynamic raw);
+
+  @protected
+  WorkbenchOrderItem dco_decode_workbench_order_item(dynamic raw);
+
+  @protected
+  WorkflowDetail dco_decode_workflow_detail(dynamic raw);
+
+  @protected
+  WorkflowRun dco_decode_workflow_run(dynamic raw);
+
+  @protected
+  WorkflowStartResult dco_decode_workflow_start_result(dynamic raw);
+
+  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+  @protected
+  Map<String, bool> sse_decode_Map_String_bool_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Map<String, PlatformInt64> sse_decode_Map_String_i_64_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<SessionState> sse_decode_StreamSink_session_state_Sse(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RustStreamSink<SseUpdate> sse_decode_StreamSink_sse_update_Sse(
@@ -75,6 +315,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  BusinessCase sse_decode_box_autoadd_business_case(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BusinessCaseAppend sse_decode_box_autoadd_business_case_append(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceHeartbeatMeta sse_decode_box_autoadd_device_heartbeat_meta(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceRegisterInfo sse_decode_box_autoadd_device_register_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   SseConnectionState sse_decode_box_autoadd_sse_connection_state(
     SseDeserializer deserializer,
   );
@@ -83,10 +346,214 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SseEvent sse_decode_box_autoadd_sse_event(SseDeserializer deserializer);
 
   @protected
+  TokenBundle sse_decode_box_autoadd_token_bundle(SseDeserializer deserializer);
+
+  @protected
+  WorkflowRun sse_decode_box_autoadd_workflow_run(SseDeserializer deserializer);
+
+  @protected
+  BusinessCase sse_decode_business_case(SseDeserializer deserializer);
+
+  @protected
+  BusinessCaseAppend sse_decode_business_case_append(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BusinessCaseType sse_decode_business_case_type(SseDeserializer deserializer);
+
+  @protected
+  ChatGroup sse_decode_chat_group(SseDeserializer deserializer);
+
+  @protected
+  ChatGroupList sse_decode_chat_group_list(SseDeserializer deserializer);
+
+  @protected
+  ChatMessage sse_decode_chat_message(SseDeserializer deserializer);
+
+  @protected
+  ChatMessageList sse_decode_chat_message_list(SseDeserializer deserializer);
+
+  @protected
+  ChatReadResult sse_decode_chat_read_result(SseDeserializer deserializer);
+
+  @protected
+  ChecklistItem sse_decode_checklist_item(SseDeserializer deserializer);
+
+  @protected
+  ChecklistRecord sse_decode_checklist_record(SseDeserializer deserializer);
+
+  @protected
+  DeviceHeartbeatMeta sse_decode_device_heartbeat_meta(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceInfo sse_decode_device_info(SseDeserializer deserializer);
+
+  @protected
+  DeviceRegisterInfo sse_decode_device_register_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DispatchActionResult sse_decode_dispatch_action_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DispatchOrder sse_decode_dispatch_order(SseDeserializer deserializer);
+
+  @protected
+  Handover sse_decode_handover(SseDeserializer deserializer);
+
+  @protected
+  HandoverItem sse_decode_handover_item(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<BusinessCase> sse_decode_list_business_case(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BusinessCaseAppend> sse_decode_list_business_case_append(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BusinessCaseType> sse_decode_list_business_case_type(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ChatGroup> sse_decode_list_chat_group(SseDeserializer deserializer);
+
+  @protected
+  List<ChatMessage> sse_decode_list_chat_message(SseDeserializer deserializer);
+
+  @protected
+  List<ChecklistItem> sse_decode_list_checklist_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<DispatchOrder> sse_decode_list_dispatch_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<Handover> sse_decode_list_handover(SseDeserializer deserializer);
+
+  @protected
+  List<HandoverItem> sse_decode_list_handover_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<Notification> sse_decode_list_notification(SseDeserializer deserializer);
+
+  @protected
+  List<NotificationReceipt> sse_decode_list_notification_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<OperationsEvent> sse_decode_list_operations_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<(String, bool)> sse_decode_list_record_string_bool(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<(String, PlatformInt64)> sse_decode_list_record_string_i_64(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<WorkbenchOrderItem> sse_decode_list_workbench_order_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Notification sse_decode_notification(SseDeserializer deserializer);
+
+  @protected
+  NotificationList sse_decode_notification_list(SseDeserializer deserializer);
+
+  @protected
+  NotificationReceipt sse_decode_notification_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OperationsEvent sse_decode_operations_event(SseDeserializer deserializer);
+
+  @protected
+  OperationsFeed sse_decode_operations_feed(SseDeserializer deserializer);
+
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  BusinessCase? sse_decode_opt_box_autoadd_business_case(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BusinessCaseAppend? sse_decode_opt_box_autoadd_business_case_append(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  TokenBundle? sse_decode_opt_box_autoadd_token_bundle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  WorkflowRun? sse_decode_opt_box_autoadd_workflow_run(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ReceiptGroup sse_decode_receipt_group(SseDeserializer deserializer);
+
+  @protected
+  ReceiptSummary sse_decode_receipt_summary(SseDeserializer deserializer);
+
+  @protected
+  (String, bool) sse_decode_record_string_bool(SseDeserializer deserializer);
+
+  @protected
+  (String, PlatformInt64) sse_decode_record_string_i_64(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SafetyChecklist sse_decode_safety_checklist(SseDeserializer deserializer);
+
+  @protected
+  SessionState sse_decode_session_state(SseDeserializer deserializer);
 
   @protected
   SignatureHeaders sse_decode_signature_headers(SseDeserializer deserializer);
@@ -103,17 +570,63 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SseUpdate sse_decode_sse_update(SseDeserializer deserializer);
 
   @protected
+  SyncSummary sse_decode_sync_summary(SseDeserializer deserializer);
+
+  @protected
+  TokenBundle sse_decode_token_bundle(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer);
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
+  UploadAsset sse_decode_upload_asset(SseDeserializer deserializer);
+
+  @protected
+  Workbench sse_decode_workbench(SseDeserializer deserializer);
+
+  @protected
+  WorkbenchCounts sse_decode_workbench_counts(SseDeserializer deserializer);
+
+  @protected
+  WorkbenchOrderItem sse_decode_workbench_order_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  WorkflowDetail sse_decode_workflow_detail(SseDeserializer deserializer);
+
+  @protected
+  WorkflowRun sse_decode_workflow_run(SseDeserializer deserializer);
+
+  @protected
+  WorkflowStartResult sse_decode_workflow_start_result(
+    SseDeserializer deserializer,
+  );
 
   @protected
   void sse_encode_AnyhowException(
     AnyhowException self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Map_String_bool_None(
+    Map<String, bool> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Map_String_i_64_None(
+    Map<String, PlatformInt64> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_session_state_Sse(
+    RustStreamSink<SessionState> self,
     SseSerializer serializer,
   );
 
@@ -130,6 +643,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_business_case(
+    BusinessCase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_business_case_append(
+    BusinessCaseAppend self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_device_heartbeat_meta(
+    DeviceHeartbeatMeta self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_device_register_info(
+    DeviceRegisterInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_sse_connection_state(
     SseConnectionState self,
     SseSerializer serializer,
@@ -142,6 +685,171 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_token_bundle(
+    TokenBundle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_workflow_run(
+    WorkflowRun self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_business_case(BusinessCase self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_business_case_append(
+    BusinessCaseAppend self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_business_case_type(
+    BusinessCaseType self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_chat_group(ChatGroup self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chat_group_list(ChatGroupList self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chat_message(ChatMessage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chat_message_list(
+    ChatMessageList self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_chat_read_result(
+    ChatReadResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_checklist_item(ChecklistItem self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_checklist_record(
+    ChecklistRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_device_heartbeat_meta(
+    DeviceHeartbeatMeta self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_device_info(DeviceInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_device_register_info(
+    DeviceRegisterInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_dispatch_action_result(
+    DispatchActionResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_dispatch_order(DispatchOrder self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_handover(Handover self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_handover_item(HandoverItem self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_business_case(
+    List<BusinessCase> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_business_case_append(
+    List<BusinessCaseAppend> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_business_case_type(
+    List<BusinessCaseType> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_chat_group(
+    List<ChatGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_chat_message(
+    List<ChatMessage> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_checklist_item(
+    List<ChecklistItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_dispatch_order(
+    List<DispatchOrder> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_handover(List<Handover> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_handover_item(
+    List<HandoverItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_notification(
+    List<Notification> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_notification_receipt(
+    List<NotificationReceipt> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_operations_event(
+    List<OperationsEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
 
   @protected
@@ -149,6 +857,114 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     Uint8List self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_list_record_string_bool(
+    List<(String, bool)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_i_64(
+    List<(String, PlatformInt64)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_workbench_order_item(
+    List<WorkbenchOrderItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification(Notification self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_notification_list(
+    NotificationList self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification_receipt(
+    NotificationReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_operations_event(
+    OperationsEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_operations_feed(
+    OperationsFeed self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_business_case(
+    BusinessCase? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_business_case_append(
+    BusinessCaseAppend? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_token_bundle(
+    TokenBundle? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_workflow_run(
+    WorkflowRun? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_receipt_group(ReceiptGroup self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_receipt_summary(
+    ReceiptSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_record_string_bool(
+    (String, bool) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_record_string_i_64(
+    (String, PlatformInt64) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_safety_checklist(
+    SafetyChecklist self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_session_state(SessionState self, SseSerializer serializer);
 
   @protected
   void sse_encode_signature_headers(
@@ -169,13 +985,49 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_sse_update(SseUpdate self, SseSerializer serializer);
 
   @protected
+  void sse_encode_sync_summary(SyncSummary self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_token_bundle(TokenBundle self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
 
   @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
+  void sse_encode_upload_asset(UploadAsset self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_workbench(Workbench self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_workbench_counts(
+    WorkbenchCounts self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_workbench_order_item(
+    WorkbenchOrderItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_workflow_detail(
+    WorkflowDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_workflow_run(WorkflowRun self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_workflow_start_result(
+    WorkflowStartResult self,
+    SseSerializer serializer,
+  );
 }
 
 // Section: wire_class

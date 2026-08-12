@@ -1,12 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:flight_monitor/bridge/api.dart';
+import 'package:flight_monitor/bridge/api/session.dart';
 import 'package:flight_monitor/bridge/frb_generated.dart';
 
 /// P0 task 5 acceptance: connect the notifications SSE stream from a real
 /// device/emulator to the local backend. The token is injected manually via
-/// `--dart-define=FMS_TEST_TOKEN=...` (session state machine arrives in P1).
+/// `--dart-define=FMS_TEST_TOKEN=...`; since P1 the stream reads the session
+/// from the initialized runtime, so the token is restored there first.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -22,8 +26,23 @@ void main() {
     }
 
     await RustLib.init();
+    await initCore(
+      baseUrl: baseUrl,
+      allowCleartext: true,
+      dbPath:
+          '${Directory.systemTemp.path}${Platform.pathSeparator}fms_it_offline.db',
+      operatorContextId: 'integration-test-device',
+    );
+    await restoreTokens(
+      bundle: TokenBundle(
+        accessToken: token,
+        refreshToken: 'unused',
+        sessionSecret: 'unused',
+        accessExpireAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+      ),
+    );
 
-    final events = notificationsStream(baseUrl: baseUrl, accessToken: token);
+    final events = notificationsStream();
 
     var connected = false;
     SseUpdate_Event? firstEvent;

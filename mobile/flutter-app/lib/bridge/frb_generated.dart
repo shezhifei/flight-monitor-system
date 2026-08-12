@@ -4,6 +4,14 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/auth.dart';
+import 'api/business_case.dart';
+import 'api/chat.dart';
+import 'api/dispatch.dart';
+import 'api/handover.dart';
+import 'api/notification.dart';
+import 'api/operations.dart';
+import 'api/session.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -66,7 +74,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -835794796;
+  int get rustContentHash => -1745183447;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,17 +86,119 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<void> crateApiBusinessCaseAckAppend({
+    required String caseId,
+    required String appendId,
+  });
+
+  Future<Handover> crateApiHandoverAckHandover({required String handoverId});
+
+  Future<HandoverItem> crateApiHandoverAckHandoverItem({
+    required String handoverId,
+    required String itemId,
+    required bool acknowledged,
+  });
+
+  Future<BusinessCase> crateApiBusinessCaseAppendBusinessCase({
+    required String caseId,
+    required String content,
+  });
+
+  Future<void> crateApiAuthAuthHeartbeat();
+
+  Future<BusinessCase> crateApiBusinessCaseBusinessCaseDetail({
+    required String id,
+  });
+
+  Future<List<BusinessCaseType>> crateApiBusinessCaseBusinessCaseTypes({
+    required bool activeOnly,
+  });
+
+  Future<List<BusinessCase>> crateApiBusinessCaseBusinessCases({
+    String? status,
+    String? caseType,
+    String? flightId,
+  });
+
+  Future<WorkflowDetail> crateApiBusinessCaseCaseWorkflow({
+    required String caseId,
+  });
+
+  Future<ChatGroupList> crateApiChatChatGroups({
+    required String status,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  });
+
+  Future<ChatMessageList> crateApiChatChatMessages({
+    required String groupId,
+    required PlatformInt64 limit,
+    PlatformInt64? beforeSeq,
+  });
+
+  Future<BusinessCase> crateApiBusinessCaseCreateBusinessCase({
+    required String caseType,
+    required String flightId,
+    required String description,
+    required String visibilityScope,
+  });
+
+  Future<TokenBundle?> crateApiSessionCurrentTokenBundle();
+
+  Future<DeviceInfo> crateApiAuthDeviceHeartbeat({
+    required DeviceHeartbeatMeta meta,
+  });
+
+  Future<DispatchActionResult> crateApiDispatchDispatchAction({
+    required String orderId,
+    required String actionJson,
+  });
+
   Future<void> crateApiInitApp();
 
   Future<void> crateApiInitCore({
     required String baseUrl,
     required bool allowCleartext,
     required String dbPath,
+    required String operatorContextId,
   });
 
-  Stream<SseUpdate> crateApiNotificationsStream({
-    required String baseUrl,
-    required String accessToken,
+  Future<void> crateApiAuthLogin({
+    required String username,
+    required String password,
+  });
+
+  Future<void> crateApiSessionLogout();
+
+  Future<ChatReadResult> crateApiChatMarkChatRead({
+    required String groupId,
+    PlatformInt64? readSeq,
+  });
+
+  Future<List<DispatchOrder>> crateApiDispatchMyAssignedOrders({
+    String? status,
+  });
+
+  Future<NotificationReceipt> crateApiNotificationNotificationAck({
+    required String id,
+    required String action,
+    String? note,
+  });
+
+  Future<void> crateApiNotificationNotificationRead({required String id});
+
+  Future<void> crateApiNotificationNotificationReadAll();
+
+  Future<NotificationList> crateApiNotificationNotifications({
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+    required bool onlyUnread,
+  });
+
+  Stream<SseUpdate> crateApiNotificationsStream();
+
+  Future<OperationsFeed> crateApiOperationsOperationsEvents({
+    required PlatformInt64 limit,
   });
 
   Future<SignatureHeaders> crateApiPingSignDemo({
@@ -96,6 +206,62 @@ abstract class RustLibApi extends BaseApi {
     required String uri,
     required List<int> body,
     required String secret,
+  });
+
+  Future<ReceiptGroup> crateApiNotificationReceiptGroup({
+    required String receiptGroupId,
+  });
+
+  Future<DeviceInfo> crateApiAuthRegisterDevice({
+    required DeviceRegisterInfo info,
+  });
+
+  Future<void> crateApiSessionRestoreTokens({required TokenBundle bundle});
+
+  Future<SafetyChecklist> crateApiDispatchSafetyChecklist({
+    required String orderId,
+  });
+
+  Future<ChatMessage> crateApiChatSendChatMessage({
+    required String groupId,
+    required String content,
+    required bool atAll,
+  });
+
+  Stream<SessionState> crateApiSessionSessionState();
+
+  Future<Handover> crateApiHandoverShiftHandoverDetail({required String id});
+
+  Future<List<Handover>> crateApiHandoverShiftHandovers({
+    String? status,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  });
+
+  Future<WorkflowStartResult> crateApiBusinessCaseStartCaseWorkflow({
+    required String templateCode,
+    required String flightId,
+    required String description,
+  });
+
+  Future<ChecklistRecord> crateApiDispatchSubmitChecklistItem({
+    required String orderId,
+    required String itemCode,
+    required String result,
+  });
+
+  Future<SyncSummary> crateApiDispatchSyncOfflineActions();
+
+  Future<PlatformInt64> crateApiNotificationUnreadCount();
+
+  Future<UploadAsset> crateApiDispatchUploadAttachment({
+    required String path,
+    required String category,
+  });
+
+  Future<Workbench> crateApiDispatchWorkbench({
+    required PlatformInt64 pendingSyncCount,
+    required PlatformInt64 maxOrders,
   });
 }
 
@@ -108,6 +274,501 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<void> crateApiBusinessCaseAckAppend({
+    required String caseId,
+    required String appendId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(caseId, serializer);
+          sse_encode_String(appendId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseAckAppendConstMeta,
+        argValues: [caseId, appendId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseAckAppendConstMeta =>
+      const TaskConstMeta(
+        debugName: "ack_append",
+        argNames: ["caseId", "appendId"],
+      );
+
+  @override
+  Future<Handover> crateApiHandoverAckHandover({required String handoverId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(handoverId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_handover,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiHandoverAckHandoverConstMeta,
+        argValues: [handoverId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiHandoverAckHandoverConstMeta =>
+      const TaskConstMeta(debugName: "ack_handover", argNames: ["handoverId"]);
+
+  @override
+  Future<HandoverItem> crateApiHandoverAckHandoverItem({
+    required String handoverId,
+    required String itemId,
+    required bool acknowledged,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(handoverId, serializer);
+          sse_encode_String(itemId, serializer);
+          sse_encode_bool(acknowledged, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_handover_item,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiHandoverAckHandoverItemConstMeta,
+        argValues: [handoverId, itemId, acknowledged],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiHandoverAckHandoverItemConstMeta =>
+      const TaskConstMeta(
+        debugName: "ack_handover_item",
+        argNames: ["handoverId", "itemId", "acknowledged"],
+      );
+
+  @override
+  Future<BusinessCase> crateApiBusinessCaseAppendBusinessCase({
+    required String caseId,
+    required String content,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(caseId, serializer);
+          sse_encode_String(content, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_business_case,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseAppendBusinessCaseConstMeta,
+        argValues: [caseId, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseAppendBusinessCaseConstMeta =>
+      const TaskConstMeta(
+        debugName: "append_business_case",
+        argNames: ["caseId", "content"],
+      );
+
+  @override
+  Future<void> crateApiAuthAuthHeartbeat() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAuthAuthHeartbeatConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAuthAuthHeartbeatConstMeta =>
+      const TaskConstMeta(debugName: "auth_heartbeat", argNames: []);
+
+  @override
+  Future<BusinessCase> crateApiBusinessCaseBusinessCaseDetail({
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_business_case,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseBusinessCaseDetailConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseBusinessCaseDetailConstMeta =>
+      const TaskConstMeta(debugName: "business_case_detail", argNames: ["id"]);
+
+  @override
+  Future<List<BusinessCaseType>> crateApiBusinessCaseBusinessCaseTypes({
+    required bool activeOnly,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(activeOnly, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_business_case_type,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseBusinessCaseTypesConstMeta,
+        argValues: [activeOnly],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseBusinessCaseTypesConstMeta =>
+      const TaskConstMeta(
+        debugName: "business_case_types",
+        argNames: ["activeOnly"],
+      );
+
+  @override
+  Future<List<BusinessCase>> crateApiBusinessCaseBusinessCases({
+    String? status,
+    String? caseType,
+    String? flightId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(status, serializer);
+          sse_encode_opt_String(caseType, serializer);
+          sse_encode_opt_String(flightId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_business_case,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseBusinessCasesConstMeta,
+        argValues: [status, caseType, flightId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseBusinessCasesConstMeta =>
+      const TaskConstMeta(
+        debugName: "business_cases",
+        argNames: ["status", "caseType", "flightId"],
+      );
+
+  @override
+  Future<WorkflowDetail> crateApiBusinessCaseCaseWorkflow({
+    required String caseId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(caseId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_workflow_detail,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseCaseWorkflowConstMeta,
+        argValues: [caseId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseCaseWorkflowConstMeta =>
+      const TaskConstMeta(debugName: "case_workflow", argNames: ["caseId"]);
+
+  @override
+  Future<ChatGroupList> crateApiChatChatGroups({
+    required String status,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(status, serializer);
+          sse_encode_i_64(limit, serializer);
+          sse_encode_i_64(offset, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_group_list,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiChatChatGroupsConstMeta,
+        argValues: [status, limit, offset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatChatGroupsConstMeta => const TaskConstMeta(
+    debugName: "chat_groups",
+    argNames: ["status", "limit", "offset"],
+  );
+
+  @override
+  Future<ChatMessageList> crateApiChatChatMessages({
+    required String groupId,
+    required PlatformInt64 limit,
+    PlatformInt64? beforeSeq,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(groupId, serializer);
+          sse_encode_i_64(limit, serializer);
+          sse_encode_opt_box_autoadd_i_64(beforeSeq, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_message_list,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiChatChatMessagesConstMeta,
+        argValues: [groupId, limit, beforeSeq],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatChatMessagesConstMeta => const TaskConstMeta(
+    debugName: "chat_messages",
+    argNames: ["groupId", "limit", "beforeSeq"],
+  );
+
+  @override
+  Future<BusinessCase> crateApiBusinessCaseCreateBusinessCase({
+    required String caseType,
+    required String flightId,
+    required String description,
+    required String visibilityScope,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(caseType, serializer);
+          sse_encode_String(flightId, serializer);
+          sse_encode_String(description, serializer);
+          sse_encode_String(visibilityScope, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_business_case,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseCreateBusinessCaseConstMeta,
+        argValues: [caseType, flightId, description, visibilityScope],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseCreateBusinessCaseConstMeta =>
+      const TaskConstMeta(
+        debugName: "create_business_case",
+        argNames: ["caseType", "flightId", "description", "visibilityScope"],
+      );
+
+  @override
+  Future<TokenBundle?> crateApiSessionCurrentTokenBundle() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_token_bundle,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSessionCurrentTokenBundleConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSessionCurrentTokenBundleConstMeta =>
+      const TaskConstMeta(debugName: "current_token_bundle", argNames: []);
+
+  @override
+  Future<DeviceInfo> crateApiAuthDeviceHeartbeat({
+    required DeviceHeartbeatMeta meta,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_device_heartbeat_meta(meta, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_device_info,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAuthDeviceHeartbeatConstMeta,
+        argValues: [meta],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAuthDeviceHeartbeatConstMeta =>
+      const TaskConstMeta(debugName: "device_heartbeat", argNames: ["meta"]);
+
+  @override
+  Future<DispatchActionResult> crateApiDispatchDispatchAction({
+    required String orderId,
+    required String actionJson,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(orderId, serializer);
+          sse_encode_String(actionJson, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_dispatch_action_result,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchDispatchActionConstMeta,
+        argValues: [orderId, actionJson],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchDispatchActionConstMeta =>
+      const TaskConstMeta(
+        debugName: "dispatch_action",
+        argNames: ["orderId", "actionJson"],
+      );
+
+  @override
   Future<void> crateApiInitApp() {
     return handler.executeNormal(
       NormalTask(
@@ -116,7 +777,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 16,
             port: port_,
           );
         },
@@ -139,6 +800,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String baseUrl,
     required bool allowCleartext,
     required String dbPath,
+    required String operatorContextId,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -147,10 +809,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(baseUrl, serializer);
           sse_encode_bool(allowCleartext, serializer);
           sse_encode_String(dbPath, serializer);
+          sse_encode_String(operatorContextId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 17,
             port: port_,
           );
         },
@@ -159,7 +822,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiInitCoreConstMeta,
-        argValues: [baseUrl, allowCleartext, dbPath],
+        argValues: [baseUrl, allowCleartext, dbPath, operatorContextId],
         apiImpl: this,
       ),
     );
@@ -167,14 +830,268 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiInitCoreConstMeta => const TaskConstMeta(
     debugName: "init_core",
-    argNames: ["baseUrl", "allowCleartext", "dbPath"],
+    argNames: ["baseUrl", "allowCleartext", "dbPath", "operatorContextId"],
   );
 
   @override
-  Stream<SseUpdate> crateApiNotificationsStream({
-    required String baseUrl,
-    required String accessToken,
+  Future<void> crateApiAuthLogin({
+    required String username,
+    required String password,
   }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(username, serializer);
+          sse_encode_String(password, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAuthLoginConstMeta,
+        argValues: [username, password],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAuthLoginConstMeta => const TaskConstMeta(
+    debugName: "login",
+    argNames: ["username", "password"],
+  );
+
+  @override
+  Future<void> crateApiSessionLogout() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSessionLogoutConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSessionLogoutConstMeta =>
+      const TaskConstMeta(debugName: "logout", argNames: []);
+
+  @override
+  Future<ChatReadResult> crateApiChatMarkChatRead({
+    required String groupId,
+    PlatformInt64? readSeq,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(groupId, serializer);
+          sse_encode_opt_box_autoadd_i_64(readSeq, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_read_result,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiChatMarkChatReadConstMeta,
+        argValues: [groupId, readSeq],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatMarkChatReadConstMeta => const TaskConstMeta(
+    debugName: "mark_chat_read",
+    argNames: ["groupId", "readSeq"],
+  );
+
+  @override
+  Future<List<DispatchOrder>> crateApiDispatchMyAssignedOrders({
+    String? status,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(status, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_dispatch_order,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchMyAssignedOrdersConstMeta,
+        argValues: [status],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchMyAssignedOrdersConstMeta =>
+      const TaskConstMeta(
+        debugName: "my_assigned_orders",
+        argNames: ["status"],
+      );
+
+  @override
+  Future<NotificationReceipt> crateApiNotificationNotificationAck({
+    required String id,
+    required String action,
+    String? note,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          sse_encode_String(action, serializer);
+          sse_encode_opt_String(note, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 22,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_notification_receipt,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotificationNotificationAckConstMeta,
+        argValues: [id, action, note],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotificationNotificationAckConstMeta =>
+      const TaskConstMeta(
+        debugName: "notification_ack",
+        argNames: ["id", "action", "note"],
+      );
+
+  @override
+  Future<void> crateApiNotificationNotificationRead({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 23,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotificationNotificationReadConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotificationNotificationReadConstMeta =>
+      const TaskConstMeta(debugName: "notification_read", argNames: ["id"]);
+
+  @override
+  Future<void> crateApiNotificationNotificationReadAll() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 24,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotificationNotificationReadAllConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotificationNotificationReadAllConstMeta =>
+      const TaskConstMeta(debugName: "notification_read_all", argNames: []);
+
+  @override
+  Future<NotificationList> crateApiNotificationNotifications({
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+    required bool onlyUnread,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(limit, serializer);
+          sse_encode_i_64(offset, serializer);
+          sse_encode_bool(onlyUnread, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 25,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_notification_list,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotificationNotificationsConstMeta,
+        argValues: [limit, offset, onlyUnread],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotificationNotificationsConstMeta =>
+      const TaskConstMeta(
+        debugName: "notifications",
+        argNames: ["limit", "offset", "onlyUnread"],
+      );
+
+  @override
+  Stream<SseUpdate> crateApiNotificationsStream() {
     final sink = RustStreamSink<SseUpdate>();
     unawaited(
       handler.executeNormal(
@@ -182,12 +1099,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           callFfi: (port_) {
             final serializer = SseSerializer(generalizedFrbRustBinding);
             sse_encode_StreamSink_sse_update_Sse(sink, serializer);
-            sse_encode_String(baseUrl, serializer);
-            sse_encode_String(accessToken, serializer);
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 3,
+              funcId: 26,
               port: port_,
             );
           },
@@ -196,7 +1111,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             decodeErrorData: sse_decode_AnyhowException,
           ),
           constMeta: kCrateApiNotificationsStreamConstMeta,
-          argValues: [sink, baseUrl, accessToken],
+          argValues: [sink],
           apiImpl: this,
         ),
       ),
@@ -207,8 +1122,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiNotificationsStreamConstMeta =>
       const TaskConstMeta(
         debugName: "notifications_stream",
-        argNames: ["sink", "baseUrl", "accessToken"],
+        argNames: ["sink"],
       );
+
+  @override
+  Future<OperationsFeed> crateApiOperationsOperationsEvents({
+    required PlatformInt64 limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_operations_feed,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiOperationsOperationsEventsConstMeta,
+        argValues: [limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOperationsOperationsEventsConstMeta =>
+      const TaskConstMeta(debugName: "operations_events", argNames: ["limit"]);
 
   @override
   Future<SignatureHeaders> crateApiPingSignDemo({
@@ -228,7 +1173,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 28,
             port: port_,
           );
         },
@@ -248,10 +1193,486 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     argNames: ["method", "uri", "body", "secret"],
   );
 
+  @override
+  Future<ReceiptGroup> crateApiNotificationReceiptGroup({
+    required String receiptGroupId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(receiptGroupId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_receipt_group,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotificationReceiptGroupConstMeta,
+        argValues: [receiptGroupId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotificationReceiptGroupConstMeta =>
+      const TaskConstMeta(
+        debugName: "receipt_group",
+        argNames: ["receiptGroupId"],
+      );
+
+  @override
+  Future<DeviceInfo> crateApiAuthRegisterDevice({
+    required DeviceRegisterInfo info,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_device_register_info(info, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_device_info,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiAuthRegisterDeviceConstMeta,
+        argValues: [info],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAuthRegisterDeviceConstMeta =>
+      const TaskConstMeta(debugName: "register_device", argNames: ["info"]);
+
+  @override
+  Future<void> crateApiSessionRestoreTokens({required TokenBundle bundle}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_token_bundle(bundle, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSessionRestoreTokensConstMeta,
+        argValues: [bundle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSessionRestoreTokensConstMeta =>
+      const TaskConstMeta(debugName: "restore_tokens", argNames: ["bundle"]);
+
+  @override
+  Future<SafetyChecklist> crateApiDispatchSafetyChecklist({
+    required String orderId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(orderId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_safety_checklist,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchSafetyChecklistConstMeta,
+        argValues: [orderId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchSafetyChecklistConstMeta =>
+      const TaskConstMeta(debugName: "safety_checklist", argNames: ["orderId"]);
+
+  @override
+  Future<ChatMessage> crateApiChatSendChatMessage({
+    required String groupId,
+    required String content,
+    required bool atAll,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(groupId, serializer);
+          sse_encode_String(content, serializer);
+          sse_encode_bool(atAll, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_message,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiChatSendChatMessageConstMeta,
+        argValues: [groupId, content, atAll],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiChatSendChatMessageConstMeta =>
+      const TaskConstMeta(
+        debugName: "send_chat_message",
+        argNames: ["groupId", "content", "atAll"],
+      );
+
+  @override
+  Stream<SessionState> crateApiSessionSessionState() {
+    final sink = RustStreamSink<SessionState>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_session_state_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 34,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiSessionSessionStateConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiSessionSessionStateConstMeta =>
+      const TaskConstMeta(debugName: "session_state", argNames: ["sink"]);
+
+  @override
+  Future<Handover> crateApiHandoverShiftHandoverDetail({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 35,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_handover,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiHandoverShiftHandoverDetailConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiHandoverShiftHandoverDetailConstMeta =>
+      const TaskConstMeta(debugName: "shift_handover_detail", argNames: ["id"]);
+
+  @override
+  Future<List<Handover>> crateApiHandoverShiftHandovers({
+    String? status,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(status, serializer);
+          sse_encode_i_64(limit, serializer);
+          sse_encode_i_64(offset, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_handover,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiHandoverShiftHandoversConstMeta,
+        argValues: [status, limit, offset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiHandoverShiftHandoversConstMeta =>
+      const TaskConstMeta(
+        debugName: "shift_handovers",
+        argNames: ["status", "limit", "offset"],
+      );
+
+  @override
+  Future<WorkflowStartResult> crateApiBusinessCaseStartCaseWorkflow({
+    required String templateCode,
+    required String flightId,
+    required String description,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(templateCode, serializer);
+          sse_encode_String(flightId, serializer);
+          sse_encode_String(description, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 37,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_workflow_start_result,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBusinessCaseStartCaseWorkflowConstMeta,
+        argValues: [templateCode, flightId, description],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBusinessCaseStartCaseWorkflowConstMeta =>
+      const TaskConstMeta(
+        debugName: "start_case_workflow",
+        argNames: ["templateCode", "flightId", "description"],
+      );
+
+  @override
+  Future<ChecklistRecord> crateApiDispatchSubmitChecklistItem({
+    required String orderId,
+    required String itemCode,
+    required String result,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(orderId, serializer);
+          sse_encode_String(itemCode, serializer);
+          sse_encode_String(result, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_checklist_record,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchSubmitChecklistItemConstMeta,
+        argValues: [orderId, itemCode, result],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchSubmitChecklistItemConstMeta =>
+      const TaskConstMeta(
+        debugName: "submit_checklist_item",
+        argNames: ["orderId", "itemCode", "result"],
+      );
+
+  @override
+  Future<SyncSummary> crateApiDispatchSyncOfflineActions() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_summary,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchSyncOfflineActionsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchSyncOfflineActionsConstMeta =>
+      const TaskConstMeta(debugName: "sync_offline_actions", argNames: []);
+
+  @override
+  Future<PlatformInt64> crateApiNotificationUnreadCount() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 40,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotificationUnreadCountConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotificationUnreadCountConstMeta =>
+      const TaskConstMeta(debugName: "unread_count", argNames: []);
+
+  @override
+  Future<UploadAsset> crateApiDispatchUploadAttachment({
+    required String path,
+    required String category,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(path, serializer);
+          sse_encode_String(category, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 41,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_upload_asset,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchUploadAttachmentConstMeta,
+        argValues: [path, category],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchUploadAttachmentConstMeta =>
+      const TaskConstMeta(
+        debugName: "upload_attachment",
+        argNames: ["path", "category"],
+      );
+
+  @override
+  Future<Workbench> crateApiDispatchWorkbench({
+    required PlatformInt64 pendingSyncCount,
+    required PlatformInt64 maxOrders,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(pendingSyncCount, serializer);
+          sse_encode_i_64(maxOrders, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_workbench,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDispatchWorkbenchConstMeta,
+        argValues: [pendingSyncCount, maxOrders],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDispatchWorkbenchConstMeta => const TaskConstMeta(
+    debugName: "workbench",
+    argNames: ["pendingSyncCount", "maxOrders"],
+  );
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
+  }
+
+  @protected
+  Map<String, bool> dco_decode_Map_String_bool_None(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return Map.fromEntries(
+      dco_decode_list_record_string_bool(raw).map((e) => MapEntry(e.$1, e.$2)),
+    );
+  }
+
+  @protected
+  Map<String, PlatformInt64> dco_decode_Map_String_i_64_None(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return Map.fromEntries(
+      dco_decode_list_record_string_i_64(raw).map((e) => MapEntry(e.$1, e.$2)),
+    );
+  }
+
+  @protected
+  RustStreamSink<SessionState> dco_decode_StreamSink_session_state_Sse(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
   }
 
   @protected
@@ -273,6 +1694,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BusinessCase dco_decode_box_autoadd_business_case(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_business_case(raw);
+  }
+
+  @protected
+  BusinessCaseAppend dco_decode_box_autoadd_business_case_append(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_business_case_append(raw);
+  }
+
+  @protected
+  DeviceHeartbeatMeta dco_decode_box_autoadd_device_heartbeat_meta(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_device_heartbeat_meta(raw);
+  }
+
+  @protected
+  DeviceRegisterInfo dco_decode_box_autoadd_device_register_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_device_register_info(raw);
+  }
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_i_64(raw);
+  }
+
+  @protected
   SseConnectionState dco_decode_box_autoadd_sse_connection_state(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_sse_connection_state(raw);
@@ -285,6 +1738,419 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TokenBundle dco_decode_box_autoadd_token_bundle(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_token_bundle(raw);
+  }
+
+  @protected
+  WorkflowRun dco_decode_box_autoadd_workflow_run(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_workflow_run(raw);
+  }
+
+  @protected
+  BusinessCase dco_decode_business_case(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 17)
+      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
+    return BusinessCase(
+      caseId: dco_decode_String(arr[0]),
+      caseType: dco_decode_String(arr[1]),
+      caseTypeName: dco_decode_opt_String(arr[2]),
+      flightId: dco_decode_String(arr[3]),
+      flightNo: dco_decode_String(arr[4]),
+      createdAt: dco_decode_String(arr[5]),
+      createdBy: dco_decode_String(arr[6]),
+      description: dco_decode_String(arr[7]),
+      status: dco_decode_String(arr[8]),
+      stand: dco_decode_opt_String(arr[9]),
+      gate: dco_decode_opt_String(arr[10]),
+      visibilityScope: dco_decode_String(arr[11]),
+      departmentNameSnapshot: dco_decode_opt_String(arr[12]),
+      finishedAt: dco_decode_opt_String(arr[13]),
+      appendCount: dco_decode_i_64(arr[14]),
+      latestAppend: dco_decode_opt_box_autoadd_business_case_append(arr[15]),
+      appendEntries: dco_decode_list_business_case_append(arr[16]),
+    );
+  }
+
+  @protected
+  BusinessCaseAppend dco_decode_business_case_append(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BusinessCaseAppend(
+      appendId: dco_decode_String(arr[0]),
+      caseId: dco_decode_String(arr[1]),
+      content: dco_decode_String(arr[2]),
+      submittedBy: dco_decode_String(arr[3]),
+      submittedOperatorName: dco_decode_opt_String(arr[4]),
+      appendedAt: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  BusinessCaseType dco_decode_business_case_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BusinessCaseType(
+      id: dco_decode_String(arr[0]),
+      code: dco_decode_String(arr[1]),
+      name: dco_decode_String(arr[2]),
+      description: dco_decode_opt_String(arr[3]),
+      isActive: dco_decode_bool(arr[4]),
+      visibilityScope: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  ChatGroup dco_decode_chat_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return ChatGroup(
+      groupId: dco_decode_String(arr[0]),
+      channelType: dco_decode_String(arr[1]),
+      flightId: dco_decode_String(arr[2]),
+      groupName: dco_decode_String(arr[3]),
+      status: dco_decode_String(arr[4]),
+      readOnly: dco_decode_bool(arr[5]),
+      memberCount: dco_decode_i_64(arr[6]),
+      unreadCount: dco_decode_i_64(arr[7]),
+      lastMessageSeq: dco_decode_opt_box_autoadd_i_64(arr[8]),
+      lastMessagePreview: dco_decode_opt_String(arr[9]),
+      lastMessageAt: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  ChatGroupList dco_decode_chat_group_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return ChatGroupList(
+      items: dco_decode_list_chat_group(arr[0]),
+      total: dco_decode_i_64(arr[1]),
+      limit: dco_decode_i_64(arr[2]),
+      offset: dco_decode_i_64(arr[3]),
+      unreadTotal: dco_decode_i_64(arr[4]),
+    );
+  }
+
+  @protected
+  ChatMessage dco_decode_chat_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return ChatMessage(
+      messageId: dco_decode_String(arr[0]),
+      seqNo: dco_decode_i_64(arr[1]),
+      groupId: dco_decode_String(arr[2]),
+      senderUserId: dco_decode_opt_String(arr[3]),
+      senderUsername: dco_decode_opt_String(arr[4]),
+      messageType: dco_decode_String(arr[5]),
+      content: dco_decode_String(arr[6]),
+      isAtAll: dco_decode_bool(arr[7]),
+      sentAt: dco_decode_String(arr[8]),
+    );
+  }
+
+  @protected
+  ChatMessageList dco_decode_chat_message_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return ChatMessageList(
+      items: dco_decode_list_chat_message(arr[0]),
+      total: dco_decode_i_64(arr[1]),
+      limit: dco_decode_i_64(arr[2]),
+      beforeSeq: dco_decode_opt_box_autoadd_i_64(arr[3]),
+      hasMore: dco_decode_bool(arr[4]),
+      nextBeforeSeq: dco_decode_opt_box_autoadd_i_64(arr[5]),
+    );
+  }
+
+  @protected
+  ChatReadResult dco_decode_chat_read_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return ChatReadResult(
+      groupId: dco_decode_opt_String(arr[0]),
+      unreadCount: dco_decode_i_64(arr[1]),
+      unreadTotal: dco_decode_i_64(arr[2]),
+      readSeq: dco_decode_opt_box_autoadd_i_64(arr[3]),
+      readAt: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  ChecklistItem dco_decode_checklist_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return ChecklistItem(
+      itemCode: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      required_: dco_decode_bool(arr[2]),
+      allowNa: dco_decode_bool(arr[3]),
+      order: dco_decode_i_64(arr[4]),
+      result: dco_decode_opt_String(arr[5]),
+      checkedBy: dco_decode_opt_String(arr[6]),
+      checkedByUsername: dco_decode_opt_String(arr[7]),
+      checkedAt: dco_decode_opt_String(arr[8]),
+      note: dco_decode_opt_String(arr[9]),
+      status: dco_decode_String(arr[10]),
+    );
+  }
+
+  @protected
+  ChecklistRecord dco_decode_checklist_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return ChecklistRecord(
+      recordId: dco_decode_String(arr[0]),
+      dispatchOrderId: dco_decode_String(arr[1]),
+      itemCode: dco_decode_String(arr[2]),
+      result: dco_decode_String(arr[3]),
+      checkedBy: dco_decode_opt_String(arr[4]),
+      checkedByUsername: dco_decode_opt_String(arr[5]),
+      checkedAt: dco_decode_String(arr[6]),
+      note: dco_decode_opt_String(arr[7]),
+      templateVersion: dco_decode_opt_String(arr[8]),
+      createdAt: dco_decode_String(arr[9]),
+      updatedAt: dco_decode_String(arr[10]),
+    );
+  }
+
+  @protected
+  DeviceHeartbeatMeta dco_decode_device_heartbeat_meta(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return DeviceHeartbeatMeta(
+      networkStatus: dco_decode_opt_String(arr[0]),
+      batteryLevel: dco_decode_opt_box_autoadd_i_64(arr[1]),
+      metadataJson: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
+  DeviceInfo dco_decode_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return DeviceInfo(
+      deviceId: dco_decode_String(arr[0]),
+      userId: dco_decode_String(arr[1]),
+      isActive: dco_decode_bool(arr[2]),
+      lastHeartbeatAt: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  DeviceRegisterInfo dco_decode_device_register_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return DeviceRegisterInfo(
+      deviceId: dco_decode_String(arr[0]),
+      pushChannel: dco_decode_opt_String(arr[1]),
+      pushToken: dco_decode_opt_String(arr[2]),
+      appVersion: dco_decode_opt_String(arr[3]),
+      osVersion: dco_decode_opt_String(arr[4]),
+      deviceModel: dco_decode_opt_String(arr[5]),
+      manufacturer: dco_decode_opt_String(arr[6]),
+      metadataJson: dco_decode_opt_String(arr[7]),
+    );
+  }
+
+  @protected
+  DispatchActionResult dco_decode_dispatch_action_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DispatchActionResult.values[raw as int];
+  }
+
+  @protected
+  DispatchOrder dco_decode_dispatch_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return DispatchOrder(
+      id: dco_decode_String(arr[0]),
+      flightId: dco_decode_String(arr[1]),
+      stepCode: dco_decode_opt_String(arr[2]),
+      status: dco_decode_String(arr[3]),
+      terminal: dco_decode_opt_String(arr[4]),
+      standId: dco_decode_opt_String(arr[5]),
+      gate: dco_decode_opt_String(arr[6]),
+      estimatedCompletionTime: dco_decode_opt_String(arr[7]),
+      originType: dco_decode_String(arr[8]),
+      originLabel: dco_decode_String(arr[9]),
+      notificationReceiptSummaryJson: dco_decode_String(arr[10]),
+    );
+  }
+
+  @protected
+  Handover dco_decode_handover(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 19)
+      throw Exception('unexpected arr length: expect 19 but see ${arr.length}');
+    return Handover(
+      handoverId: dco_decode_String(arr[0]),
+      shiftDate: dco_decode_String(arr[1]),
+      shiftCode: dco_decode_String(arr[2]),
+      fromUserId: dco_decode_String(arr[3]),
+      toUserId: dco_decode_String(arr[4]),
+      fromOperatorName: dco_decode_opt_String(arr[5]),
+      fromOperatorJobTitle: dco_decode_opt_String(arr[6]),
+      fromOperatorLabel: dco_decode_opt_String(arr[7]),
+      toOperatorName: dco_decode_opt_String(arr[8]),
+      toOperatorJobTitle: dco_decode_opt_String(arr[9]),
+      toOperatorLabel: dco_decode_opt_String(arr[10]),
+      status: dco_decode_String(arr[11]),
+      summary: dco_decode_opt_String(arr[12]),
+      riskLevel: dco_decode_String(arr[13]),
+      signedAt: dco_decode_opt_String(arr[14]),
+      submittedAt: dco_decode_opt_String(arr[15]),
+      createdAt: dco_decode_String(arr[16]),
+      updatedAt: dco_decode_String(arr[17]),
+      items: dco_decode_list_handover_item(arr[18]),
+    );
+  }
+
+  @protected
+  HandoverItem dco_decode_handover_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return HandoverItem(
+      itemId: dco_decode_String(arr[0]),
+      handoverId: dco_decode_String(arr[1]),
+      itemType: dco_decode_String(arr[2]),
+      title: dco_decode_String(arr[3]),
+      detail: dco_decode_opt_String(arr[4]),
+      ownerUserId: dco_decode_opt_String(arr[5]),
+      dueAt: dco_decode_opt_String(arr[6]),
+      isMandatory: dco_decode_bool(arr[7]),
+      acknowledged: dco_decode_bool(arr[8]),
+      acknowledgedAt: dco_decode_opt_String(arr[9]),
+      acknowledgedBy: dco_decode_opt_String(arr[10]),
+      createdAt: dco_decode_String(arr[11]),
+      updatedAt: dco_decode_String(arr[12]),
+    );
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<BusinessCase> dco_decode_list_business_case(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_business_case).toList();
+  }
+
+  @protected
+  List<BusinessCaseAppend> dco_decode_list_business_case_append(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_business_case_append).toList();
+  }
+
+  @protected
+  List<BusinessCaseType> dco_decode_list_business_case_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_business_case_type).toList();
+  }
+
+  @protected
+  List<ChatGroup> dco_decode_list_chat_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_chat_group).toList();
+  }
+
+  @protected
+  List<ChatMessage> dco_decode_list_chat_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_chat_message).toList();
+  }
+
+  @protected
+  List<ChecklistItem> dco_decode_list_checklist_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_checklist_item).toList();
+  }
+
+  @protected
+  List<DispatchOrder> dco_decode_list_dispatch_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_dispatch_order).toList();
+  }
+
+  @protected
+  List<Handover> dco_decode_list_handover(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_handover).toList();
+  }
+
+  @protected
+  List<HandoverItem> dco_decode_list_handover_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_handover_item).toList();
+  }
+
+  @protected
+  List<Notification> dco_decode_list_notification(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_notification).toList();
+  }
+
+  @protected
+  List<NotificationReceipt> dco_decode_list_notification_receipt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_notification_receipt).toList();
+  }
+
+  @protected
+  List<OperationsEvent> dco_decode_list_operations_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_operations_event).toList();
+  }
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as List<int>;
@@ -294,6 +2160,258 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  List<(String, bool)> dco_decode_list_record_string_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_record_string_bool).toList();
+  }
+
+  @protected
+  List<(String, PlatformInt64)> dco_decode_list_record_string_i_64(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_record_string_i_64).toList();
+  }
+
+  @protected
+  List<WorkbenchOrderItem> dco_decode_list_workbench_order_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_workbench_order_item).toList();
+  }
+
+  @protected
+  Notification dco_decode_notification(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 21)
+      throw Exception('unexpected arr length: expect 21 but see ${arr.length}');
+    return Notification(
+      notificationId: dco_decode_String(arr[0]),
+      userId: dco_decode_String(arr[1]),
+      title: dco_decode_String(arr[2]),
+      body: dco_decode_String(arr[3]),
+      category: dco_decode_String(arr[4]),
+      severity: dco_decode_String(arr[5]),
+      isRead: dco_decode_bool(arr[6]),
+      readStatus: dco_decode_String(arr[7]),
+      deliveryStatus: dco_decode_String(arr[8]),
+      deliveredAt: dco_decode_opt_String(arr[9]),
+      originType: dco_decode_String(arr[10]),
+      originLabel: dco_decode_String(arr[11]),
+      receiptRequired: dco_decode_bool(arr[12]),
+      receiptGroupId: dco_decode_opt_String(arr[13]),
+      ackStatus: dco_decode_String(arr[14]),
+      ackAt: dco_decode_opt_String(arr[15]),
+      ackNote: dco_decode_opt_String(arr[16]),
+      relatedEntityType: dco_decode_opt_String(arr[17]),
+      relatedEntityId: dco_decode_opt_String(arr[18]),
+      createdAt: dco_decode_String(arr[19]),
+      readAt: dco_decode_opt_String(arr[20]),
+    );
+  }
+
+  @protected
+  NotificationList dco_decode_notification_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return NotificationList(
+      items: dco_decode_list_notification(arr[0]),
+      total: dco_decode_i_64(arr[1]),
+      limit: dco_decode_i_64(arr[2]),
+      offset: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
+  NotificationReceipt dco_decode_notification_receipt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
+    return NotificationReceipt(
+      notificationId: dco_decode_String(arr[0]),
+      userId: dco_decode_String(arr[1]),
+      title: dco_decode_opt_String(arr[2]),
+      originType: dco_decode_String(arr[3]),
+      originLabel: dco_decode_String(arr[4]),
+      receiptGroupId: dco_decode_opt_String(arr[5]),
+      deliveryStatus: dco_decode_String(arr[6]),
+      deliveredAt: dco_decode_opt_String(arr[7]),
+      readStatus: dco_decode_String(arr[8]),
+      readAt: dco_decode_opt_String(arr[9]),
+      ackStatus: dco_decode_String(arr[10]),
+      ackAt: dco_decode_opt_String(arr[11]),
+      ackNote: dco_decode_opt_String(arr[12]),
+      updatedAt: dco_decode_String(arr[13]),
+    );
+  }
+
+  @protected
+  OperationsEvent dco_decode_operations_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return OperationsEvent(
+      eventId: dco_decode_String(arr[0]),
+      eventType: dco_decode_String(arr[1]),
+      severity: dco_decode_String(arr[2]),
+      status: dco_decode_String(arr[3]),
+      title: dco_decode_String(arr[4]),
+      flightId: dco_decode_opt_String(arr[5]),
+      occurredAt: dco_decode_String(arr[6]),
+      source: dco_decode_String(arr[7]),
+    );
+  }
+
+  @protected
+  OperationsFeed dco_decode_operations_feed(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return OperationsFeed(
+      userId: dco_decode_opt_String(arr[0]),
+      generatedAt: dco_decode_opt_String(arr[1]),
+      total: dco_decode_i_64(arr[2]),
+      eventTypeCounts: dco_decode_Map_String_i_64_None(arr[3]),
+      severityCounts: dco_decode_Map_String_i_64_None(arr[4]),
+      events: dco_decode_list_operations_event(arr[5]),
+    );
+  }
+
+  @protected
+  String? dco_decode_opt_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  BusinessCase? dco_decode_opt_box_autoadd_business_case(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_business_case(raw);
+  }
+
+  @protected
+  BusinessCaseAppend? dco_decode_opt_box_autoadd_business_case_append(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_business_case_append(raw);
+  }
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
+  }
+
+  @protected
+  TokenBundle? dco_decode_opt_box_autoadd_token_bundle(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_token_bundle(raw);
+  }
+
+  @protected
+  WorkflowRun? dco_decode_opt_box_autoadd_workflow_run(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_workflow_run(raw);
+  }
+
+  @protected
+  ReceiptGroup dco_decode_receipt_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return ReceiptGroup(
+      receiptGroupId: dco_decode_String(arr[0]),
+      title: dco_decode_opt_String(arr[1]),
+      flightId: dco_decode_opt_String(arr[2]),
+      dispatchOrderId: dco_decode_opt_String(arr[3]),
+      groupId: dco_decode_opt_String(arr[4]),
+      originType: dco_decode_String(arr[5]),
+      originLabel: dco_decode_String(arr[6]),
+      receiptRequired: dco_decode_bool(arr[7]),
+      summary: dco_decode_receipt_summary(arr[8]),
+      items: dco_decode_list_notification_receipt(arr[9]),
+    );
+  }
+
+  @protected
+  ReceiptSummary dco_decode_receipt_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return ReceiptSummary(
+      totalCount: dco_decode_i_64(arr[0]),
+      pendingCount: dco_decode_i_64(arr[1]),
+      acknowledgedCount: dco_decode_i_64(arr[2]),
+      rejectedCount: dco_decode_i_64(arr[3]),
+      latestUpdatedAt: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  (String, bool) dco_decode_record_string_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (dco_decode_String(arr[0]), dco_decode_bool(arr[1]));
+  }
+
+  @protected
+  (String, PlatformInt64) dco_decode_record_string_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (dco_decode_String(arr[0]), dco_decode_i_64(arr[1]));
+  }
+
+  @protected
+  SafetyChecklist dco_decode_safety_checklist(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return SafetyChecklist(
+      dispatchOrderId: dco_decode_String(arr[0]),
+      stepCode: dco_decode_opt_String(arr[1]),
+      templateId: dco_decode_opt_String(arr[2]),
+      templateVersion: dco_decode_opt_String(arr[3]),
+      enforced: dco_decode_bool(arr[4]),
+      ready: dco_decode_bool(arr[5]),
+      requiredTotal: dco_decode_i_64(arr[6]),
+      completedRequired: dco_decode_i_64(arr[7]),
+      pendingRequiredItems: dco_decode_list_String(arr[8]),
+      failedRequiredItems: dco_decode_list_String(arr[9]),
+      items: dco_decode_list_checklist_item(arr[10]),
+    );
+  }
+
+  @protected
+  SessionState dco_decode_session_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return SessionState_Anonymous();
+      case 1:
+        return SessionState_Active(accessExpireAt: dco_decode_i_64(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -355,6 +2473,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SyncSummary dco_decode_sync_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return SyncSummary(
+      total: dco_decode_i_64(arr[0]),
+      applied: dco_decode_i_64(arr[1]),
+      duplicates: dco_decode_i_64(arr[2]),
+      failed: dco_decode_i_64(arr[3]),
+      remaining: dco_decode_i_64(arr[4]),
+    );
+  }
+
+  @protected
+  TokenBundle dco_decode_token_bundle(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return TokenBundle(
+      accessToken: dco_decode_String(arr[0]),
+      refreshToken: dco_decode_String(arr[1]),
+      sessionSecret: dco_decode_String(arr[2]),
+      accessExpireAt: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
   int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -367,10 +2514,158 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UploadAsset dco_decode_upload_asset(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return UploadAsset(
+      uploadId: dco_decode_String(arr[0]),
+      originalFilename: dco_decode_String(arr[1]),
+      contentType: dco_decode_opt_String(arr[2]),
+      fileSize: dco_decode_i_64(arr[3]),
+      checksumSha256: dco_decode_opt_String(arr[4]),
+      createdAt: dco_decode_String(arr[5]),
+      attachmentUrl: dco_decode_String(arr[6]),
+      metadataJson: dco_decode_String(arr[7]),
+    );
+  }
+
+  @protected
+  Workbench dco_decode_workbench(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return Workbench(
+      userId: dco_decode_String(arr[0]),
+      generatedAt: dco_decode_String(arr[1]),
+      myOrders: dco_decode_list_workbench_order_item(arr[2]),
+      orderCounts: dco_decode_workbench_counts(arr[3]),
+      notificationUnreadCount: dco_decode_i_64(arr[4]),
+      chatUnreadTotal: dco_decode_i_64(arr[5]),
+      pendingShiftHandoverCount: dco_decode_i_64(arr[6]),
+      pendingSyncActionCount: dco_decode_i_64(arr[7]),
+      channelRecommendation: dco_decode_Map_String_bool_None(arr[8]),
+    );
+  }
+
+  @protected
+  WorkbenchCounts dco_decode_workbench_counts(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return WorkbenchCounts(
+      pending: dco_decode_i_64(arr[0]),
+      assigned: dco_decode_i_64(arr[1]),
+      inProgress: dco_decode_i_64(arr[2]),
+      completed: dco_decode_i_64(arr[3]),
+      cancelled: dco_decode_i_64(arr[4]),
+      total: dco_decode_i_64(arr[5]),
+    );
+  }
+
+  @protected
+  WorkbenchOrderItem dco_decode_workbench_order_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return WorkbenchOrderItem(
+      orderId: dco_decode_String(arr[0]),
+      flightId: dco_decode_String(arr[1]),
+      stepCode: dco_decode_opt_String(arr[2]),
+      status: dco_decode_String(arr[3]),
+      terminal: dco_decode_opt_String(arr[4]),
+      standId: dco_decode_opt_String(arr[5]),
+      gate: dco_decode_opt_String(arr[6]),
+      plannedStartTime: dco_decode_opt_String(arr[7]),
+      plannedEndTime: dco_decode_opt_String(arr[8]),
+      actualStartTime: dco_decode_opt_String(arr[9]),
+      assignmentDeadline: dco_decode_opt_String(arr[10]),
+      supervisorNotified: dco_decode_bool(arr[11]),
+    );
+  }
+
+  @protected
+  WorkflowDetail dco_decode_workflow_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return WorkflowDetail(
+      run: dco_decode_opt_box_autoadd_workflow_run(arr[0]),
+      businessCase: dco_decode_opt_box_autoadd_business_case(arr[1]),
+    );
+  }
+
+  @protected
+  WorkflowRun dco_decode_workflow_run(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return WorkflowRun(
+      runId: dco_decode_String(arr[0]),
+      templateCode: dco_decode_String(arr[1]),
+      caseId: dco_decode_String(arr[2]),
+      flightId: dco_decode_String(arr[3]),
+      processInstanceId: dco_decode_String(arr[4]),
+      status: dco_decode_String(arr[5]),
+      outcome: dco_decode_opt_String(arr[6]),
+      startedBy: dco_decode_String(arr[7]),
+      createdAt: dco_decode_String(arr[8]),
+      updatedAt: dco_decode_String(arr[9]),
+    );
+  }
+
+  @protected
+  WorkflowStartResult dco_decode_workflow_start_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return WorkflowStartResult(
+      processInstanceId: dco_decode_opt_String(arr[0]),
+      workflowTriggered: dco_decode_bool(arr[1]),
+      receiptGroupId: dco_decode_opt_String(arr[2]),
+      businessCase: dco_decode_opt_box_autoadd_business_case(arr[3]),
+      run: dco_decode_opt_box_autoadd_workflow_run(arr[4]),
+    );
+  }
+
+  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_String(deserializer);
     return AnyhowException(inner);
+  }
+
+  @protected
+  Map<String, bool> sse_decode_Map_String_bool_None(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_list_record_string_bool(deserializer);
+    return Map.fromEntries(inner.map((e) => MapEntry(e.$1, e.$2)));
+  }
+
+  @protected
+  Map<String, PlatformInt64> sse_decode_Map_String_i_64_None(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_list_record_string_i_64(deserializer);
+    return Map.fromEntries(inner.map((e) => MapEntry(e.$1, e.$2)));
+  }
+
+  @protected
+  RustStreamSink<SessionState> sse_decode_StreamSink_session_state_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
   }
 
   @protected
@@ -395,6 +2690,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BusinessCase sse_decode_box_autoadd_business_case(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_business_case(deserializer));
+  }
+
+  @protected
+  BusinessCaseAppend sse_decode_box_autoadd_business_case_append(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_business_case_append(deserializer));
+  }
+
+  @protected
+  DeviceHeartbeatMeta sse_decode_box_autoadd_device_heartbeat_meta(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_device_heartbeat_meta(deserializer));
+  }
+
+  @protected
+  DeviceRegisterInfo sse_decode_box_autoadd_device_register_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_device_register_info(deserializer));
+  }
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
   SseConnectionState sse_decode_box_autoadd_sse_connection_state(
     SseDeserializer deserializer,
   ) {
@@ -409,6 +2742,627 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TokenBundle sse_decode_box_autoadd_token_bundle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_token_bundle(deserializer));
+  }
+
+  @protected
+  WorkflowRun sse_decode_box_autoadd_workflow_run(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_workflow_run(deserializer));
+  }
+
+  @protected
+  BusinessCase sse_decode_business_case(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_caseId = sse_decode_String(deserializer);
+    var var_caseType = sse_decode_String(deserializer);
+    var var_caseTypeName = sse_decode_opt_String(deserializer);
+    var var_flightId = sse_decode_String(deserializer);
+    var var_flightNo = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_createdBy = sse_decode_String(deserializer);
+    var var_description = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_stand = sse_decode_opt_String(deserializer);
+    var var_gate = sse_decode_opt_String(deserializer);
+    var var_visibilityScope = sse_decode_String(deserializer);
+    var var_departmentNameSnapshot = sse_decode_opt_String(deserializer);
+    var var_finishedAt = sse_decode_opt_String(deserializer);
+    var var_appendCount = sse_decode_i_64(deserializer);
+    var var_latestAppend = sse_decode_opt_box_autoadd_business_case_append(
+      deserializer,
+    );
+    var var_appendEntries = sse_decode_list_business_case_append(deserializer);
+    return BusinessCase(
+      caseId: var_caseId,
+      caseType: var_caseType,
+      caseTypeName: var_caseTypeName,
+      flightId: var_flightId,
+      flightNo: var_flightNo,
+      createdAt: var_createdAt,
+      createdBy: var_createdBy,
+      description: var_description,
+      status: var_status,
+      stand: var_stand,
+      gate: var_gate,
+      visibilityScope: var_visibilityScope,
+      departmentNameSnapshot: var_departmentNameSnapshot,
+      finishedAt: var_finishedAt,
+      appendCount: var_appendCount,
+      latestAppend: var_latestAppend,
+      appendEntries: var_appendEntries,
+    );
+  }
+
+  @protected
+  BusinessCaseAppend sse_decode_business_case_append(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_appendId = sse_decode_String(deserializer);
+    var var_caseId = sse_decode_String(deserializer);
+    var var_content = sse_decode_String(deserializer);
+    var var_submittedBy = sse_decode_String(deserializer);
+    var var_submittedOperatorName = sse_decode_opt_String(deserializer);
+    var var_appendedAt = sse_decode_String(deserializer);
+    return BusinessCaseAppend(
+      appendId: var_appendId,
+      caseId: var_caseId,
+      content: var_content,
+      submittedBy: var_submittedBy,
+      submittedOperatorName: var_submittedOperatorName,
+      appendedAt: var_appendedAt,
+    );
+  }
+
+  @protected
+  BusinessCaseType sse_decode_business_case_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_code = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_description = sse_decode_opt_String(deserializer);
+    var var_isActive = sse_decode_bool(deserializer);
+    var var_visibilityScope = sse_decode_String(deserializer);
+    return BusinessCaseType(
+      id: var_id,
+      code: var_code,
+      name: var_name,
+      description: var_description,
+      isActive: var_isActive,
+      visibilityScope: var_visibilityScope,
+    );
+  }
+
+  @protected
+  ChatGroup sse_decode_chat_group(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groupId = sse_decode_String(deserializer);
+    var var_channelType = sse_decode_String(deserializer);
+    var var_flightId = sse_decode_String(deserializer);
+    var var_groupName = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_readOnly = sse_decode_bool(deserializer);
+    var var_memberCount = sse_decode_i_64(deserializer);
+    var var_unreadCount = sse_decode_i_64(deserializer);
+    var var_lastMessageSeq = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_lastMessagePreview = sse_decode_opt_String(deserializer);
+    var var_lastMessageAt = sse_decode_opt_String(deserializer);
+    return ChatGroup(
+      groupId: var_groupId,
+      channelType: var_channelType,
+      flightId: var_flightId,
+      groupName: var_groupName,
+      status: var_status,
+      readOnly: var_readOnly,
+      memberCount: var_memberCount,
+      unreadCount: var_unreadCount,
+      lastMessageSeq: var_lastMessageSeq,
+      lastMessagePreview: var_lastMessagePreview,
+      lastMessageAt: var_lastMessageAt,
+    );
+  }
+
+  @protected
+  ChatGroupList sse_decode_chat_group_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_items = sse_decode_list_chat_group(deserializer);
+    var var_total = sse_decode_i_64(deserializer);
+    var var_limit = sse_decode_i_64(deserializer);
+    var var_offset = sse_decode_i_64(deserializer);
+    var var_unreadTotal = sse_decode_i_64(deserializer);
+    return ChatGroupList(
+      items: var_items,
+      total: var_total,
+      limit: var_limit,
+      offset: var_offset,
+      unreadTotal: var_unreadTotal,
+    );
+  }
+
+  @protected
+  ChatMessage sse_decode_chat_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_messageId = sse_decode_String(deserializer);
+    var var_seqNo = sse_decode_i_64(deserializer);
+    var var_groupId = sse_decode_String(deserializer);
+    var var_senderUserId = sse_decode_opt_String(deserializer);
+    var var_senderUsername = sse_decode_opt_String(deserializer);
+    var var_messageType = sse_decode_String(deserializer);
+    var var_content = sse_decode_String(deserializer);
+    var var_isAtAll = sse_decode_bool(deserializer);
+    var var_sentAt = sse_decode_String(deserializer);
+    return ChatMessage(
+      messageId: var_messageId,
+      seqNo: var_seqNo,
+      groupId: var_groupId,
+      senderUserId: var_senderUserId,
+      senderUsername: var_senderUsername,
+      messageType: var_messageType,
+      content: var_content,
+      isAtAll: var_isAtAll,
+      sentAt: var_sentAt,
+    );
+  }
+
+  @protected
+  ChatMessageList sse_decode_chat_message_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_items = sse_decode_list_chat_message(deserializer);
+    var var_total = sse_decode_i_64(deserializer);
+    var var_limit = sse_decode_i_64(deserializer);
+    var var_beforeSeq = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_hasMore = sse_decode_bool(deserializer);
+    var var_nextBeforeSeq = sse_decode_opt_box_autoadd_i_64(deserializer);
+    return ChatMessageList(
+      items: var_items,
+      total: var_total,
+      limit: var_limit,
+      beforeSeq: var_beforeSeq,
+      hasMore: var_hasMore,
+      nextBeforeSeq: var_nextBeforeSeq,
+    );
+  }
+
+  @protected
+  ChatReadResult sse_decode_chat_read_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groupId = sse_decode_opt_String(deserializer);
+    var var_unreadCount = sse_decode_i_64(deserializer);
+    var var_unreadTotal = sse_decode_i_64(deserializer);
+    var var_readSeq = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_readAt = sse_decode_opt_String(deserializer);
+    return ChatReadResult(
+      groupId: var_groupId,
+      unreadCount: var_unreadCount,
+      unreadTotal: var_unreadTotal,
+      readSeq: var_readSeq,
+      readAt: var_readAt,
+    );
+  }
+
+  @protected
+  ChecklistItem sse_decode_checklist_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_itemCode = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_required_ = sse_decode_bool(deserializer);
+    var var_allowNa = sse_decode_bool(deserializer);
+    var var_order = sse_decode_i_64(deserializer);
+    var var_result = sse_decode_opt_String(deserializer);
+    var var_checkedBy = sse_decode_opt_String(deserializer);
+    var var_checkedByUsername = sse_decode_opt_String(deserializer);
+    var var_checkedAt = sse_decode_opt_String(deserializer);
+    var var_note = sse_decode_opt_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    return ChecklistItem(
+      itemCode: var_itemCode,
+      title: var_title,
+      required_: var_required_,
+      allowNa: var_allowNa,
+      order: var_order,
+      result: var_result,
+      checkedBy: var_checkedBy,
+      checkedByUsername: var_checkedByUsername,
+      checkedAt: var_checkedAt,
+      note: var_note,
+      status: var_status,
+    );
+  }
+
+  @protected
+  ChecklistRecord sse_decode_checklist_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_recordId = sse_decode_String(deserializer);
+    var var_dispatchOrderId = sse_decode_String(deserializer);
+    var var_itemCode = sse_decode_String(deserializer);
+    var var_result = sse_decode_String(deserializer);
+    var var_checkedBy = sse_decode_opt_String(deserializer);
+    var var_checkedByUsername = sse_decode_opt_String(deserializer);
+    var var_checkedAt = sse_decode_String(deserializer);
+    var var_note = sse_decode_opt_String(deserializer);
+    var var_templateVersion = sse_decode_opt_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
+    return ChecklistRecord(
+      recordId: var_recordId,
+      dispatchOrderId: var_dispatchOrderId,
+      itemCode: var_itemCode,
+      result: var_result,
+      checkedBy: var_checkedBy,
+      checkedByUsername: var_checkedByUsername,
+      checkedAt: var_checkedAt,
+      note: var_note,
+      templateVersion: var_templateVersion,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+    );
+  }
+
+  @protected
+  DeviceHeartbeatMeta sse_decode_device_heartbeat_meta(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_networkStatus = sse_decode_opt_String(deserializer);
+    var var_batteryLevel = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_metadataJson = sse_decode_opt_String(deserializer);
+    return DeviceHeartbeatMeta(
+      networkStatus: var_networkStatus,
+      batteryLevel: var_batteryLevel,
+      metadataJson: var_metadataJson,
+    );
+  }
+
+  @protected
+  DeviceInfo sse_decode_device_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_userId = sse_decode_String(deserializer);
+    var var_isActive = sse_decode_bool(deserializer);
+    var var_lastHeartbeatAt = sse_decode_String(deserializer);
+    return DeviceInfo(
+      deviceId: var_deviceId,
+      userId: var_userId,
+      isActive: var_isActive,
+      lastHeartbeatAt: var_lastHeartbeatAt,
+    );
+  }
+
+  @protected
+  DeviceRegisterInfo sse_decode_device_register_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_pushChannel = sse_decode_opt_String(deserializer);
+    var var_pushToken = sse_decode_opt_String(deserializer);
+    var var_appVersion = sse_decode_opt_String(deserializer);
+    var var_osVersion = sse_decode_opt_String(deserializer);
+    var var_deviceModel = sse_decode_opt_String(deserializer);
+    var var_manufacturer = sse_decode_opt_String(deserializer);
+    var var_metadataJson = sse_decode_opt_String(deserializer);
+    return DeviceRegisterInfo(
+      deviceId: var_deviceId,
+      pushChannel: var_pushChannel,
+      pushToken: var_pushToken,
+      appVersion: var_appVersion,
+      osVersion: var_osVersion,
+      deviceModel: var_deviceModel,
+      manufacturer: var_manufacturer,
+      metadataJson: var_metadataJson,
+    );
+  }
+
+  @protected
+  DispatchActionResult sse_decode_dispatch_action_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DispatchActionResult.values[inner];
+  }
+
+  @protected
+  DispatchOrder sse_decode_dispatch_order(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_flightId = sse_decode_String(deserializer);
+    var var_stepCode = sse_decode_opt_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_terminal = sse_decode_opt_String(deserializer);
+    var var_standId = sse_decode_opt_String(deserializer);
+    var var_gate = sse_decode_opt_String(deserializer);
+    var var_estimatedCompletionTime = sse_decode_opt_String(deserializer);
+    var var_originType = sse_decode_String(deserializer);
+    var var_originLabel = sse_decode_String(deserializer);
+    var var_notificationReceiptSummaryJson = sse_decode_String(deserializer);
+    return DispatchOrder(
+      id: var_id,
+      flightId: var_flightId,
+      stepCode: var_stepCode,
+      status: var_status,
+      terminal: var_terminal,
+      standId: var_standId,
+      gate: var_gate,
+      estimatedCompletionTime: var_estimatedCompletionTime,
+      originType: var_originType,
+      originLabel: var_originLabel,
+      notificationReceiptSummaryJson: var_notificationReceiptSummaryJson,
+    );
+  }
+
+  @protected
+  Handover sse_decode_handover(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_handoverId = sse_decode_String(deserializer);
+    var var_shiftDate = sse_decode_String(deserializer);
+    var var_shiftCode = sse_decode_String(deserializer);
+    var var_fromUserId = sse_decode_String(deserializer);
+    var var_toUserId = sse_decode_String(deserializer);
+    var var_fromOperatorName = sse_decode_opt_String(deserializer);
+    var var_fromOperatorJobTitle = sse_decode_opt_String(deserializer);
+    var var_fromOperatorLabel = sse_decode_opt_String(deserializer);
+    var var_toOperatorName = sse_decode_opt_String(deserializer);
+    var var_toOperatorJobTitle = sse_decode_opt_String(deserializer);
+    var var_toOperatorLabel = sse_decode_opt_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_summary = sse_decode_opt_String(deserializer);
+    var var_riskLevel = sse_decode_String(deserializer);
+    var var_signedAt = sse_decode_opt_String(deserializer);
+    var var_submittedAt = sse_decode_opt_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
+    var var_items = sse_decode_list_handover_item(deserializer);
+    return Handover(
+      handoverId: var_handoverId,
+      shiftDate: var_shiftDate,
+      shiftCode: var_shiftCode,
+      fromUserId: var_fromUserId,
+      toUserId: var_toUserId,
+      fromOperatorName: var_fromOperatorName,
+      fromOperatorJobTitle: var_fromOperatorJobTitle,
+      fromOperatorLabel: var_fromOperatorLabel,
+      toOperatorName: var_toOperatorName,
+      toOperatorJobTitle: var_toOperatorJobTitle,
+      toOperatorLabel: var_toOperatorLabel,
+      status: var_status,
+      summary: var_summary,
+      riskLevel: var_riskLevel,
+      signedAt: var_signedAt,
+      submittedAt: var_submittedAt,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+      items: var_items,
+    );
+  }
+
+  @protected
+  HandoverItem sse_decode_handover_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_itemId = sse_decode_String(deserializer);
+    var var_handoverId = sse_decode_String(deserializer);
+    var var_itemType = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_detail = sse_decode_opt_String(deserializer);
+    var var_ownerUserId = sse_decode_opt_String(deserializer);
+    var var_dueAt = sse_decode_opt_String(deserializer);
+    var var_isMandatory = sse_decode_bool(deserializer);
+    var var_acknowledged = sse_decode_bool(deserializer);
+    var var_acknowledgedAt = sse_decode_opt_String(deserializer);
+    var var_acknowledgedBy = sse_decode_opt_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
+    return HandoverItem(
+      itemId: var_itemId,
+      handoverId: var_handoverId,
+      itemType: var_itemType,
+      title: var_title,
+      detail: var_detail,
+      ownerUserId: var_ownerUserId,
+      dueAt: var_dueAt,
+      isMandatory: var_isMandatory,
+      acknowledged: var_acknowledged,
+      acknowledgedAt: var_acknowledgedAt,
+      acknowledgedBy: var_acknowledgedBy,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+    );
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BusinessCase> sse_decode_list_business_case(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BusinessCase>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_business_case(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BusinessCaseAppend> sse_decode_list_business_case_append(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BusinessCaseAppend>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_business_case_append(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BusinessCaseType> sse_decode_list_business_case_type(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BusinessCaseType>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_business_case_type(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ChatGroup> sse_decode_list_chat_group(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ChatGroup>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_chat_group(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ChatMessage> sse_decode_list_chat_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ChatMessage>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_chat_message(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ChecklistItem> sse_decode_list_checklist_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ChecklistItem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_checklist_item(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<DispatchOrder> sse_decode_list_dispatch_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <DispatchOrder>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_dispatch_order(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<Handover> sse_decode_list_handover(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Handover>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_handover(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<HandoverItem> sse_decode_list_handover_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <HandoverItem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_handover_item(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<Notification> sse_decode_list_notification(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Notification>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_notification(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<NotificationReceipt> sse_decode_list_notification_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <NotificationReceipt>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_notification_receipt(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<OperationsEvent> sse_decode_list_operations_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <OperationsEvent>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_operations_event(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -420,6 +3374,372 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<(String, bool)> sse_decode_list_record_string_bool(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <(String, bool)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_string_bool(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<(String, PlatformInt64)> sse_decode_list_record_string_i_64(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <(String, PlatformInt64)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_string_i_64(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<WorkbenchOrderItem> sse_decode_list_workbench_order_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <WorkbenchOrderItem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_workbench_order_item(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  Notification sse_decode_notification(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_notificationId = sse_decode_String(deserializer);
+    var var_userId = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_body = sse_decode_String(deserializer);
+    var var_category = sse_decode_String(deserializer);
+    var var_severity = sse_decode_String(deserializer);
+    var var_isRead = sse_decode_bool(deserializer);
+    var var_readStatus = sse_decode_String(deserializer);
+    var var_deliveryStatus = sse_decode_String(deserializer);
+    var var_deliveredAt = sse_decode_opt_String(deserializer);
+    var var_originType = sse_decode_String(deserializer);
+    var var_originLabel = sse_decode_String(deserializer);
+    var var_receiptRequired = sse_decode_bool(deserializer);
+    var var_receiptGroupId = sse_decode_opt_String(deserializer);
+    var var_ackStatus = sse_decode_String(deserializer);
+    var var_ackAt = sse_decode_opt_String(deserializer);
+    var var_ackNote = sse_decode_opt_String(deserializer);
+    var var_relatedEntityType = sse_decode_opt_String(deserializer);
+    var var_relatedEntityId = sse_decode_opt_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_readAt = sse_decode_opt_String(deserializer);
+    return Notification(
+      notificationId: var_notificationId,
+      userId: var_userId,
+      title: var_title,
+      body: var_body,
+      category: var_category,
+      severity: var_severity,
+      isRead: var_isRead,
+      readStatus: var_readStatus,
+      deliveryStatus: var_deliveryStatus,
+      deliveredAt: var_deliveredAt,
+      originType: var_originType,
+      originLabel: var_originLabel,
+      receiptRequired: var_receiptRequired,
+      receiptGroupId: var_receiptGroupId,
+      ackStatus: var_ackStatus,
+      ackAt: var_ackAt,
+      ackNote: var_ackNote,
+      relatedEntityType: var_relatedEntityType,
+      relatedEntityId: var_relatedEntityId,
+      createdAt: var_createdAt,
+      readAt: var_readAt,
+    );
+  }
+
+  @protected
+  NotificationList sse_decode_notification_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_items = sse_decode_list_notification(deserializer);
+    var var_total = sse_decode_i_64(deserializer);
+    var var_limit = sse_decode_i_64(deserializer);
+    var var_offset = sse_decode_i_64(deserializer);
+    return NotificationList(
+      items: var_items,
+      total: var_total,
+      limit: var_limit,
+      offset: var_offset,
+    );
+  }
+
+  @protected
+  NotificationReceipt sse_decode_notification_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_notificationId = sse_decode_String(deserializer);
+    var var_userId = sse_decode_String(deserializer);
+    var var_title = sse_decode_opt_String(deserializer);
+    var var_originType = sse_decode_String(deserializer);
+    var var_originLabel = sse_decode_String(deserializer);
+    var var_receiptGroupId = sse_decode_opt_String(deserializer);
+    var var_deliveryStatus = sse_decode_String(deserializer);
+    var var_deliveredAt = sse_decode_opt_String(deserializer);
+    var var_readStatus = sse_decode_String(deserializer);
+    var var_readAt = sse_decode_opt_String(deserializer);
+    var var_ackStatus = sse_decode_String(deserializer);
+    var var_ackAt = sse_decode_opt_String(deserializer);
+    var var_ackNote = sse_decode_opt_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
+    return NotificationReceipt(
+      notificationId: var_notificationId,
+      userId: var_userId,
+      title: var_title,
+      originType: var_originType,
+      originLabel: var_originLabel,
+      receiptGroupId: var_receiptGroupId,
+      deliveryStatus: var_deliveryStatus,
+      deliveredAt: var_deliveredAt,
+      readStatus: var_readStatus,
+      readAt: var_readAt,
+      ackStatus: var_ackStatus,
+      ackAt: var_ackAt,
+      ackNote: var_ackNote,
+      updatedAt: var_updatedAt,
+    );
+  }
+
+  @protected
+  OperationsEvent sse_decode_operations_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_eventId = sse_decode_String(deserializer);
+    var var_eventType = sse_decode_String(deserializer);
+    var var_severity = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_flightId = sse_decode_opt_String(deserializer);
+    var var_occurredAt = sse_decode_String(deserializer);
+    var var_source = sse_decode_String(deserializer);
+    return OperationsEvent(
+      eventId: var_eventId,
+      eventType: var_eventType,
+      severity: var_severity,
+      status: var_status,
+      title: var_title,
+      flightId: var_flightId,
+      occurredAt: var_occurredAt,
+      source: var_source,
+    );
+  }
+
+  @protected
+  OperationsFeed sse_decode_operations_feed(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_userId = sse_decode_opt_String(deserializer);
+    var var_generatedAt = sse_decode_opt_String(deserializer);
+    var var_total = sse_decode_i_64(deserializer);
+    var var_eventTypeCounts = sse_decode_Map_String_i_64_None(deserializer);
+    var var_severityCounts = sse_decode_Map_String_i_64_None(deserializer);
+    var var_events = sse_decode_list_operations_event(deserializer);
+    return OperationsFeed(
+      userId: var_userId,
+      generatedAt: var_generatedAt,
+      total: var_total,
+      eventTypeCounts: var_eventTypeCounts,
+      severityCounts: var_severityCounts,
+      events: var_events,
+    );
+  }
+
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BusinessCase? sse_decode_opt_box_autoadd_business_case(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_business_case(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BusinessCaseAppend? sse_decode_opt_box_autoadd_business_case_append(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_business_case_append(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  TokenBundle? sse_decode_opt_box_autoadd_token_bundle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_token_bundle(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  WorkflowRun? sse_decode_opt_box_autoadd_workflow_run(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_workflow_run(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  ReceiptGroup sse_decode_receipt_group(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_receiptGroupId = sse_decode_String(deserializer);
+    var var_title = sse_decode_opt_String(deserializer);
+    var var_flightId = sse_decode_opt_String(deserializer);
+    var var_dispatchOrderId = sse_decode_opt_String(deserializer);
+    var var_groupId = sse_decode_opt_String(deserializer);
+    var var_originType = sse_decode_String(deserializer);
+    var var_originLabel = sse_decode_String(deserializer);
+    var var_receiptRequired = sse_decode_bool(deserializer);
+    var var_summary = sse_decode_receipt_summary(deserializer);
+    var var_items = sse_decode_list_notification_receipt(deserializer);
+    return ReceiptGroup(
+      receiptGroupId: var_receiptGroupId,
+      title: var_title,
+      flightId: var_flightId,
+      dispatchOrderId: var_dispatchOrderId,
+      groupId: var_groupId,
+      originType: var_originType,
+      originLabel: var_originLabel,
+      receiptRequired: var_receiptRequired,
+      summary: var_summary,
+      items: var_items,
+    );
+  }
+
+  @protected
+  ReceiptSummary sse_decode_receipt_summary(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_totalCount = sse_decode_i_64(deserializer);
+    var var_pendingCount = sse_decode_i_64(deserializer);
+    var var_acknowledgedCount = sse_decode_i_64(deserializer);
+    var var_rejectedCount = sse_decode_i_64(deserializer);
+    var var_latestUpdatedAt = sse_decode_opt_String(deserializer);
+    return ReceiptSummary(
+      totalCount: var_totalCount,
+      pendingCount: var_pendingCount,
+      acknowledgedCount: var_acknowledgedCount,
+      rejectedCount: var_rejectedCount,
+      latestUpdatedAt: var_latestUpdatedAt,
+    );
+  }
+
+  @protected
+  (String, bool) sse_decode_record_string_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_bool(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  (String, PlatformInt64) sse_decode_record_string_i_64(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_i_64(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  SafetyChecklist sse_decode_safety_checklist(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_dispatchOrderId = sse_decode_String(deserializer);
+    var var_stepCode = sse_decode_opt_String(deserializer);
+    var var_templateId = sse_decode_opt_String(deserializer);
+    var var_templateVersion = sse_decode_opt_String(deserializer);
+    var var_enforced = sse_decode_bool(deserializer);
+    var var_ready = sse_decode_bool(deserializer);
+    var var_requiredTotal = sse_decode_i_64(deserializer);
+    var var_completedRequired = sse_decode_i_64(deserializer);
+    var var_pendingRequiredItems = sse_decode_list_String(deserializer);
+    var var_failedRequiredItems = sse_decode_list_String(deserializer);
+    var var_items = sse_decode_list_checklist_item(deserializer);
+    return SafetyChecklist(
+      dispatchOrderId: var_dispatchOrderId,
+      stepCode: var_stepCode,
+      templateId: var_templateId,
+      templateVersion: var_templateVersion,
+      enforced: var_enforced,
+      ready: var_ready,
+      requiredTotal: var_requiredTotal,
+      completedRequired: var_completedRequired,
+      pendingRequiredItems: var_pendingRequiredItems,
+      failedRequiredItems: var_failedRequiredItems,
+      items: var_items,
+    );
+  }
+
+  @protected
+  SessionState sse_decode_session_state(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return SessionState_Anonymous();
+      case 1:
+        var var_accessExpireAt = sse_decode_i_64(deserializer);
+        return SessionState_Active(accessExpireAt: var_accessExpireAt);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -485,6 +3805,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SyncSummary sse_decode_sync_summary(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_total = sse_decode_i_64(deserializer);
+    var var_applied = sse_decode_i_64(deserializer);
+    var var_duplicates = sse_decode_i_64(deserializer);
+    var var_failed = sse_decode_i_64(deserializer);
+    var var_remaining = sse_decode_i_64(deserializer);
+    return SyncSummary(
+      total: var_total,
+      applied: var_applied,
+      duplicates: var_duplicates,
+      failed: var_failed,
+      remaining: var_remaining,
+    );
+  }
+
+  @protected
+  TokenBundle sse_decode_token_bundle(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_accessToken = sse_decode_String(deserializer);
+    var var_refreshToken = sse_decode_String(deserializer);
+    var var_sessionSecret = sse_decode_String(deserializer);
+    var var_accessExpireAt = sse_decode_i_64(deserializer);
+    return TokenBundle(
+      accessToken: var_accessToken,
+      refreshToken: var_refreshToken,
+      sessionSecret: var_sessionSecret,
+      accessExpireAt: var_accessExpireAt,
+    );
+  }
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8();
@@ -496,9 +3848,163 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
+  UploadAsset sse_decode_upload_asset(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
+    var var_uploadId = sse_decode_String(deserializer);
+    var var_originalFilename = sse_decode_String(deserializer);
+    var var_contentType = sse_decode_opt_String(deserializer);
+    var var_fileSize = sse_decode_i_64(deserializer);
+    var var_checksumSha256 = sse_decode_opt_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_attachmentUrl = sse_decode_String(deserializer);
+    var var_metadataJson = sse_decode_String(deserializer);
+    return UploadAsset(
+      uploadId: var_uploadId,
+      originalFilename: var_originalFilename,
+      contentType: var_contentType,
+      fileSize: var_fileSize,
+      checksumSha256: var_checksumSha256,
+      createdAt: var_createdAt,
+      attachmentUrl: var_attachmentUrl,
+      metadataJson: var_metadataJson,
+    );
+  }
+
+  @protected
+  Workbench sse_decode_workbench(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_userId = sse_decode_String(deserializer);
+    var var_generatedAt = sse_decode_String(deserializer);
+    var var_myOrders = sse_decode_list_workbench_order_item(deserializer);
+    var var_orderCounts = sse_decode_workbench_counts(deserializer);
+    var var_notificationUnreadCount = sse_decode_i_64(deserializer);
+    var var_chatUnreadTotal = sse_decode_i_64(deserializer);
+    var var_pendingShiftHandoverCount = sse_decode_i_64(deserializer);
+    var var_pendingSyncActionCount = sse_decode_i_64(deserializer);
+    var var_channelRecommendation = sse_decode_Map_String_bool_None(
+      deserializer,
+    );
+    return Workbench(
+      userId: var_userId,
+      generatedAt: var_generatedAt,
+      myOrders: var_myOrders,
+      orderCounts: var_orderCounts,
+      notificationUnreadCount: var_notificationUnreadCount,
+      chatUnreadTotal: var_chatUnreadTotal,
+      pendingShiftHandoverCount: var_pendingShiftHandoverCount,
+      pendingSyncActionCount: var_pendingSyncActionCount,
+      channelRecommendation: var_channelRecommendation,
+    );
+  }
+
+  @protected
+  WorkbenchCounts sse_decode_workbench_counts(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_pending = sse_decode_i_64(deserializer);
+    var var_assigned = sse_decode_i_64(deserializer);
+    var var_inProgress = sse_decode_i_64(deserializer);
+    var var_completed = sse_decode_i_64(deserializer);
+    var var_cancelled = sse_decode_i_64(deserializer);
+    var var_total = sse_decode_i_64(deserializer);
+    return WorkbenchCounts(
+      pending: var_pending,
+      assigned: var_assigned,
+      inProgress: var_inProgress,
+      completed: var_completed,
+      cancelled: var_cancelled,
+      total: var_total,
+    );
+  }
+
+  @protected
+  WorkbenchOrderItem sse_decode_workbench_order_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_orderId = sse_decode_String(deserializer);
+    var var_flightId = sse_decode_String(deserializer);
+    var var_stepCode = sse_decode_opt_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_terminal = sse_decode_opt_String(deserializer);
+    var var_standId = sse_decode_opt_String(deserializer);
+    var var_gate = sse_decode_opt_String(deserializer);
+    var var_plannedStartTime = sse_decode_opt_String(deserializer);
+    var var_plannedEndTime = sse_decode_opt_String(deserializer);
+    var var_actualStartTime = sse_decode_opt_String(deserializer);
+    var var_assignmentDeadline = sse_decode_opt_String(deserializer);
+    var var_supervisorNotified = sse_decode_bool(deserializer);
+    return WorkbenchOrderItem(
+      orderId: var_orderId,
+      flightId: var_flightId,
+      stepCode: var_stepCode,
+      status: var_status,
+      terminal: var_terminal,
+      standId: var_standId,
+      gate: var_gate,
+      plannedStartTime: var_plannedStartTime,
+      plannedEndTime: var_plannedEndTime,
+      actualStartTime: var_actualStartTime,
+      assignmentDeadline: var_assignmentDeadline,
+      supervisorNotified: var_supervisorNotified,
+    );
+  }
+
+  @protected
+  WorkflowDetail sse_decode_workflow_detail(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_run = sse_decode_opt_box_autoadd_workflow_run(deserializer);
+    var var_businessCase = sse_decode_opt_box_autoadd_business_case(
+      deserializer,
+    );
+    return WorkflowDetail(run: var_run, businessCase: var_businessCase);
+  }
+
+  @protected
+  WorkflowRun sse_decode_workflow_run(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_runId = sse_decode_String(deserializer);
+    var var_templateCode = sse_decode_String(deserializer);
+    var var_caseId = sse_decode_String(deserializer);
+    var var_flightId = sse_decode_String(deserializer);
+    var var_processInstanceId = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_outcome = sse_decode_opt_String(deserializer);
+    var var_startedBy = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
+    return WorkflowRun(
+      runId: var_runId,
+      templateCode: var_templateCode,
+      caseId: var_caseId,
+      flightId: var_flightId,
+      processInstanceId: var_processInstanceId,
+      status: var_status,
+      outcome: var_outcome,
+      startedBy: var_startedBy,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+    );
+  }
+
+  @protected
+  WorkflowStartResult sse_decode_workflow_start_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_processInstanceId = sse_decode_opt_String(deserializer);
+    var var_workflowTriggered = sse_decode_bool(deserializer);
+    var var_receiptGroupId = sse_decode_opt_String(deserializer);
+    var var_businessCase = sse_decode_opt_box_autoadd_business_case(
+      deserializer,
+    );
+    var var_run = sse_decode_opt_box_autoadd_workflow_run(deserializer);
+    return WorkflowStartResult(
+      processInstanceId: var_processInstanceId,
+      workflowTriggered: var_workflowTriggered,
+      receiptGroupId: var_receiptGroupId,
+      businessCase: var_businessCase,
+      run: var_run,
+    );
   }
 
   @protected
@@ -508,6 +4014,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_Map_String_bool_None(
+    Map<String, bool> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_record_string_bool(
+      self.entries.map((e) => (e.key, e.value)).toList(),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_Map_String_i_64_None(
+    Map<String, PlatformInt64> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_record_string_i_64(
+      self.entries.map((e) => (e.key, e.value)).toList(),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_StreamSink_session_state_Sse(
+    RustStreamSink<SessionState> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_session_state,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
   }
 
   @protected
@@ -540,6 +4087,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_business_case(
+    BusinessCase self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_business_case(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_business_case_append(
+    BusinessCaseAppend self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_business_case_append(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_device_heartbeat_meta(
+    DeviceHeartbeatMeta self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_device_heartbeat_meta(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_device_register_info(
+    DeviceRegisterInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_device_register_info(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_sse_connection_state(
     SseConnectionState self,
     SseSerializer serializer,
@@ -555,6 +4147,447 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_sse_event(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_token_bundle(
+    TokenBundle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_token_bundle(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_workflow_run(
+    WorkflowRun self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_workflow_run(self, serializer);
+  }
+
+  @protected
+  void sse_encode_business_case(BusinessCase self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.caseId, serializer);
+    sse_encode_String(self.caseType, serializer);
+    sse_encode_opt_String(self.caseTypeName, serializer);
+    sse_encode_String(self.flightId, serializer);
+    sse_encode_String(self.flightNo, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.createdBy, serializer);
+    sse_encode_String(self.description, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.stand, serializer);
+    sse_encode_opt_String(self.gate, serializer);
+    sse_encode_String(self.visibilityScope, serializer);
+    sse_encode_opt_String(self.departmentNameSnapshot, serializer);
+    sse_encode_opt_String(self.finishedAt, serializer);
+    sse_encode_i_64(self.appendCount, serializer);
+    sse_encode_opt_box_autoadd_business_case_append(
+      self.latestAppend,
+      serializer,
+    );
+    sse_encode_list_business_case_append(self.appendEntries, serializer);
+  }
+
+  @protected
+  void sse_encode_business_case_append(
+    BusinessCaseAppend self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.appendId, serializer);
+    sse_encode_String(self.caseId, serializer);
+    sse_encode_String(self.content, serializer);
+    sse_encode_String(self.submittedBy, serializer);
+    sse_encode_opt_String(self.submittedOperatorName, serializer);
+    sse_encode_String(self.appendedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_business_case_type(
+    BusinessCaseType self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.code, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.description, serializer);
+    sse_encode_bool(self.isActive, serializer);
+    sse_encode_String(self.visibilityScope, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_group(ChatGroup self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.groupId, serializer);
+    sse_encode_String(self.channelType, serializer);
+    sse_encode_String(self.flightId, serializer);
+    sse_encode_String(self.groupName, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_bool(self.readOnly, serializer);
+    sse_encode_i_64(self.memberCount, serializer);
+    sse_encode_i_64(self.unreadCount, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.lastMessageSeq, serializer);
+    sse_encode_opt_String(self.lastMessagePreview, serializer);
+    sse_encode_opt_String(self.lastMessageAt, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_group_list(
+    ChatGroupList self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_chat_group(self.items, serializer);
+    sse_encode_i_64(self.total, serializer);
+    sse_encode_i_64(self.limit, serializer);
+    sse_encode_i_64(self.offset, serializer);
+    sse_encode_i_64(self.unreadTotal, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_message(ChatMessage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.messageId, serializer);
+    sse_encode_i_64(self.seqNo, serializer);
+    sse_encode_String(self.groupId, serializer);
+    sse_encode_opt_String(self.senderUserId, serializer);
+    sse_encode_opt_String(self.senderUsername, serializer);
+    sse_encode_String(self.messageType, serializer);
+    sse_encode_String(self.content, serializer);
+    sse_encode_bool(self.isAtAll, serializer);
+    sse_encode_String(self.sentAt, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_message_list(
+    ChatMessageList self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_chat_message(self.items, serializer);
+    sse_encode_i_64(self.total, serializer);
+    sse_encode_i_64(self.limit, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.beforeSeq, serializer);
+    sse_encode_bool(self.hasMore, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.nextBeforeSeq, serializer);
+  }
+
+  @protected
+  void sse_encode_chat_read_result(
+    ChatReadResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.groupId, serializer);
+    sse_encode_i_64(self.unreadCount, serializer);
+    sse_encode_i_64(self.unreadTotal, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.readSeq, serializer);
+    sse_encode_opt_String(self.readAt, serializer);
+  }
+
+  @protected
+  void sse_encode_checklist_item(ChecklistItem self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.itemCode, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_bool(self.required_, serializer);
+    sse_encode_bool(self.allowNa, serializer);
+    sse_encode_i_64(self.order, serializer);
+    sse_encode_opt_String(self.result, serializer);
+    sse_encode_opt_String(self.checkedBy, serializer);
+    sse_encode_opt_String(self.checkedByUsername, serializer);
+    sse_encode_opt_String(self.checkedAt, serializer);
+    sse_encode_opt_String(self.note, serializer);
+    sse_encode_String(self.status, serializer);
+  }
+
+  @protected
+  void sse_encode_checklist_record(
+    ChecklistRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.recordId, serializer);
+    sse_encode_String(self.dispatchOrderId, serializer);
+    sse_encode_String(self.itemCode, serializer);
+    sse_encode_String(self.result, serializer);
+    sse_encode_opt_String(self.checkedBy, serializer);
+    sse_encode_opt_String(self.checkedByUsername, serializer);
+    sse_encode_String(self.checkedAt, serializer);
+    sse_encode_opt_String(self.note, serializer);
+    sse_encode_opt_String(self.templateVersion, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.updatedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_device_heartbeat_meta(
+    DeviceHeartbeatMeta self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.networkStatus, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.batteryLevel, serializer);
+    sse_encode_opt_String(self.metadataJson, serializer);
+  }
+
+  @protected
+  void sse_encode_device_info(DeviceInfo self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.userId, serializer);
+    sse_encode_bool(self.isActive, serializer);
+    sse_encode_String(self.lastHeartbeatAt, serializer);
+  }
+
+  @protected
+  void sse_encode_device_register_info(
+    DeviceRegisterInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_opt_String(self.pushChannel, serializer);
+    sse_encode_opt_String(self.pushToken, serializer);
+    sse_encode_opt_String(self.appVersion, serializer);
+    sse_encode_opt_String(self.osVersion, serializer);
+    sse_encode_opt_String(self.deviceModel, serializer);
+    sse_encode_opt_String(self.manufacturer, serializer);
+    sse_encode_opt_String(self.metadataJson, serializer);
+  }
+
+  @protected
+  void sse_encode_dispatch_action_result(
+    DispatchActionResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_dispatch_order(DispatchOrder self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.flightId, serializer);
+    sse_encode_opt_String(self.stepCode, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.terminal, serializer);
+    sse_encode_opt_String(self.standId, serializer);
+    sse_encode_opt_String(self.gate, serializer);
+    sse_encode_opt_String(self.estimatedCompletionTime, serializer);
+    sse_encode_String(self.originType, serializer);
+    sse_encode_String(self.originLabel, serializer);
+    sse_encode_String(self.notificationReceiptSummaryJson, serializer);
+  }
+
+  @protected
+  void sse_encode_handover(Handover self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.handoverId, serializer);
+    sse_encode_String(self.shiftDate, serializer);
+    sse_encode_String(self.shiftCode, serializer);
+    sse_encode_String(self.fromUserId, serializer);
+    sse_encode_String(self.toUserId, serializer);
+    sse_encode_opt_String(self.fromOperatorName, serializer);
+    sse_encode_opt_String(self.fromOperatorJobTitle, serializer);
+    sse_encode_opt_String(self.fromOperatorLabel, serializer);
+    sse_encode_opt_String(self.toOperatorName, serializer);
+    sse_encode_opt_String(self.toOperatorJobTitle, serializer);
+    sse_encode_opt_String(self.toOperatorLabel, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.summary, serializer);
+    sse_encode_String(self.riskLevel, serializer);
+    sse_encode_opt_String(self.signedAt, serializer);
+    sse_encode_opt_String(self.submittedAt, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.updatedAt, serializer);
+    sse_encode_list_handover_item(self.items, serializer);
+  }
+
+  @protected
+  void sse_encode_handover_item(HandoverItem self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.itemId, serializer);
+    sse_encode_String(self.handoverId, serializer);
+    sse_encode_String(self.itemType, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.detail, serializer);
+    sse_encode_opt_String(self.ownerUserId, serializer);
+    sse_encode_opt_String(self.dueAt, serializer);
+    sse_encode_bool(self.isMandatory, serializer);
+    sse_encode_bool(self.acknowledged, serializer);
+    sse_encode_opt_String(self.acknowledgedAt, serializer);
+    sse_encode_opt_String(self.acknowledgedBy, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.updatedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_business_case(
+    List<BusinessCase> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_business_case(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_business_case_append(
+    List<BusinessCaseAppend> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_business_case_append(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_business_case_type(
+    List<BusinessCaseType> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_business_case_type(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_chat_group(
+    List<ChatGroup> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_chat_group(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_chat_message(
+    List<ChatMessage> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_chat_message(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_checklist_item(
+    List<ChecklistItem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_checklist_item(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_dispatch_order(
+    List<DispatchOrder> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_dispatch_order(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_handover(List<Handover> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_handover(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_handover_item(
+    List<HandoverItem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_handover_item(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_notification(
+    List<Notification> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_notification(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_notification_receipt(
+    List<NotificationReceipt> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_notification_receipt(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_operations_event(
+    List<OperationsEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_operations_event(item, serializer);
+    }
   }
 
   @protected
@@ -577,6 +4610,286 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_list_record_string_bool(
+    List<(String, bool)> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_string_bool(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_record_string_i_64(
+    List<(String, PlatformInt64)> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_string_i_64(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_workbench_order_item(
+    List<WorkbenchOrderItem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_workbench_order_item(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_notification(Notification self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.notificationId, serializer);
+    sse_encode_String(self.userId, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.body, serializer);
+    sse_encode_String(self.category, serializer);
+    sse_encode_String(self.severity, serializer);
+    sse_encode_bool(self.isRead, serializer);
+    sse_encode_String(self.readStatus, serializer);
+    sse_encode_String(self.deliveryStatus, serializer);
+    sse_encode_opt_String(self.deliveredAt, serializer);
+    sse_encode_String(self.originType, serializer);
+    sse_encode_String(self.originLabel, serializer);
+    sse_encode_bool(self.receiptRequired, serializer);
+    sse_encode_opt_String(self.receiptGroupId, serializer);
+    sse_encode_String(self.ackStatus, serializer);
+    sse_encode_opt_String(self.ackAt, serializer);
+    sse_encode_opt_String(self.ackNote, serializer);
+    sse_encode_opt_String(self.relatedEntityType, serializer);
+    sse_encode_opt_String(self.relatedEntityId, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_opt_String(self.readAt, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_list(
+    NotificationList self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_notification(self.items, serializer);
+    sse_encode_i_64(self.total, serializer);
+    sse_encode_i_64(self.limit, serializer);
+    sse_encode_i_64(self.offset, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_receipt(
+    NotificationReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.notificationId, serializer);
+    sse_encode_String(self.userId, serializer);
+    sse_encode_opt_String(self.title, serializer);
+    sse_encode_String(self.originType, serializer);
+    sse_encode_String(self.originLabel, serializer);
+    sse_encode_opt_String(self.receiptGroupId, serializer);
+    sse_encode_String(self.deliveryStatus, serializer);
+    sse_encode_opt_String(self.deliveredAt, serializer);
+    sse_encode_String(self.readStatus, serializer);
+    sse_encode_opt_String(self.readAt, serializer);
+    sse_encode_String(self.ackStatus, serializer);
+    sse_encode_opt_String(self.ackAt, serializer);
+    sse_encode_opt_String(self.ackNote, serializer);
+    sse_encode_String(self.updatedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_operations_event(
+    OperationsEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.eventId, serializer);
+    sse_encode_String(self.eventType, serializer);
+    sse_encode_String(self.severity, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.flightId, serializer);
+    sse_encode_String(self.occurredAt, serializer);
+    sse_encode_String(self.source, serializer);
+  }
+
+  @protected
+  void sse_encode_operations_feed(
+    OperationsFeed self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.userId, serializer);
+    sse_encode_opt_String(self.generatedAt, serializer);
+    sse_encode_i_64(self.total, serializer);
+    sse_encode_Map_String_i_64_None(self.eventTypeCounts, serializer);
+    sse_encode_Map_String_i_64_None(self.severityCounts, serializer);
+    sse_encode_list_operations_event(self.events, serializer);
+  }
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_business_case(
+    BusinessCase? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_business_case(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_business_case_append(
+    BusinessCaseAppend? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_business_case_append(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_token_bundle(
+    TokenBundle? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_token_bundle(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_workflow_run(
+    WorkflowRun? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_workflow_run(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_receipt_group(ReceiptGroup self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.receiptGroupId, serializer);
+    sse_encode_opt_String(self.title, serializer);
+    sse_encode_opt_String(self.flightId, serializer);
+    sse_encode_opt_String(self.dispatchOrderId, serializer);
+    sse_encode_opt_String(self.groupId, serializer);
+    sse_encode_String(self.originType, serializer);
+    sse_encode_String(self.originLabel, serializer);
+    sse_encode_bool(self.receiptRequired, serializer);
+    sse_encode_receipt_summary(self.summary, serializer);
+    sse_encode_list_notification_receipt(self.items, serializer);
+  }
+
+  @protected
+  void sse_encode_receipt_summary(
+    ReceiptSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.totalCount, serializer);
+    sse_encode_i_64(self.pendingCount, serializer);
+    sse_encode_i_64(self.acknowledgedCount, serializer);
+    sse_encode_i_64(self.rejectedCount, serializer);
+    sse_encode_opt_String(self.latestUpdatedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_bool(
+    (String, bool) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_bool(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_i_64(
+    (String, PlatformInt64) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_i_64(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_safety_checklist(
+    SafetyChecklist self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.dispatchOrderId, serializer);
+    sse_encode_opt_String(self.stepCode, serializer);
+    sse_encode_opt_String(self.templateId, serializer);
+    sse_encode_opt_String(self.templateVersion, serializer);
+    sse_encode_bool(self.enforced, serializer);
+    sse_encode_bool(self.ready, serializer);
+    sse_encode_i_64(self.requiredTotal, serializer);
+    sse_encode_i_64(self.completedRequired, serializer);
+    sse_encode_list_String(self.pendingRequiredItems, serializer);
+    sse_encode_list_String(self.failedRequiredItems, serializer);
+    sse_encode_list_checklist_item(self.items, serializer);
+  }
+
+  @protected
+  void sse_encode_session_state(SessionState self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case SessionState_Anonymous():
+        sse_encode_i_32(0, serializer);
+      case SessionState_Active(accessExpireAt: final accessExpireAt):
+        sse_encode_i_32(1, serializer);
+        sse_encode_i_64(accessExpireAt, serializer);
+    }
   }
 
   @protected
@@ -629,6 +4942,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_sync_summary(SyncSummary self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.total, serializer);
+    sse_encode_i_64(self.applied, serializer);
+    sse_encode_i_64(self.duplicates, serializer);
+    sse_encode_i_64(self.failed, serializer);
+    sse_encode_i_64(self.remaining, serializer);
+  }
+
+  @protected
+  void sse_encode_token_bundle(TokenBundle self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.accessToken, serializer);
+    sse_encode_String(self.refreshToken, serializer);
+    sse_encode_String(self.sessionSecret, serializer);
+    sse_encode_i_64(self.accessExpireAt, serializer);
+  }
+
+  @protected
   void sse_encode_u_8(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self);
@@ -640,8 +4972,101 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
+  void sse_encode_upload_asset(UploadAsset self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
+    sse_encode_String(self.uploadId, serializer);
+    sse_encode_String(self.originalFilename, serializer);
+    sse_encode_opt_String(self.contentType, serializer);
+    sse_encode_i_64(self.fileSize, serializer);
+    sse_encode_opt_String(self.checksumSha256, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.attachmentUrl, serializer);
+    sse_encode_String(self.metadataJson, serializer);
+  }
+
+  @protected
+  void sse_encode_workbench(Workbench self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.userId, serializer);
+    sse_encode_String(self.generatedAt, serializer);
+    sse_encode_list_workbench_order_item(self.myOrders, serializer);
+    sse_encode_workbench_counts(self.orderCounts, serializer);
+    sse_encode_i_64(self.notificationUnreadCount, serializer);
+    sse_encode_i_64(self.chatUnreadTotal, serializer);
+    sse_encode_i_64(self.pendingShiftHandoverCount, serializer);
+    sse_encode_i_64(self.pendingSyncActionCount, serializer);
+    sse_encode_Map_String_bool_None(self.channelRecommendation, serializer);
+  }
+
+  @protected
+  void sse_encode_workbench_counts(
+    WorkbenchCounts self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.pending, serializer);
+    sse_encode_i_64(self.assigned, serializer);
+    sse_encode_i_64(self.inProgress, serializer);
+    sse_encode_i_64(self.completed, serializer);
+    sse_encode_i_64(self.cancelled, serializer);
+    sse_encode_i_64(self.total, serializer);
+  }
+
+  @protected
+  void sse_encode_workbench_order_item(
+    WorkbenchOrderItem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.orderId, serializer);
+    sse_encode_String(self.flightId, serializer);
+    sse_encode_opt_String(self.stepCode, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.terminal, serializer);
+    sse_encode_opt_String(self.standId, serializer);
+    sse_encode_opt_String(self.gate, serializer);
+    sse_encode_opt_String(self.plannedStartTime, serializer);
+    sse_encode_opt_String(self.plannedEndTime, serializer);
+    sse_encode_opt_String(self.actualStartTime, serializer);
+    sse_encode_opt_String(self.assignmentDeadline, serializer);
+    sse_encode_bool(self.supervisorNotified, serializer);
+  }
+
+  @protected
+  void sse_encode_workflow_detail(
+    WorkflowDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_workflow_run(self.run, serializer);
+    sse_encode_opt_box_autoadd_business_case(self.businessCase, serializer);
+  }
+
+  @protected
+  void sse_encode_workflow_run(WorkflowRun self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.runId, serializer);
+    sse_encode_String(self.templateCode, serializer);
+    sse_encode_String(self.caseId, serializer);
+    sse_encode_String(self.flightId, serializer);
+    sse_encode_String(self.processInstanceId, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.outcome, serializer);
+    sse_encode_String(self.startedBy, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.updatedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_workflow_start_result(
+    WorkflowStartResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.processInstanceId, serializer);
+    sse_encode_bool(self.workflowTriggered, serializer);
+    sse_encode_opt_String(self.receiptGroupId, serializer);
+    sse_encode_opt_box_autoadd_business_case(self.businessCase, serializer);
+    sse_encode_opt_box_autoadd_workflow_run(self.run, serializer);
   }
 }

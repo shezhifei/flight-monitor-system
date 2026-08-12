@@ -8,20 +8,28 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `runtime_slot`
+// These functions are ignored because they are not marked as `pub`: `runtime_slot`, `runtime`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `CoreRuntime`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`
 
 /// Initialize the core. Must be called once before any other export.
-/// Re-initialization is allowed (replaces the previous config).
+/// Re-initialization is allowed (replaces the previous runtime).
+///
+/// `operator_context_id` is the stable device id sent as
+/// `X-Operator-Context-Id` on every request (§0.3; the legacy app uses
+/// ANDROID_ID). It doubles as the `device_id` for device register/heartbeat.
+/// `db_path` is the sqlite offline-queue file (Dart:
+/// `getApplicationSupportDirectory`).
 Future<void> initCore({
   required String baseUrl,
   required bool allowCleartext,
   required String dbPath,
+  required String operatorContextId,
 }) => RustLib.instance.api.crateApiInitCore(
   baseUrl: baseUrl,
   allowCleartext: allowCleartext,
   dbPath: dbPath,
+  operatorContextId: operatorContextId,
 );
 
 /// P0 FFI round-trip demo: sign a request with a fresh timestamp and nonce
@@ -38,17 +46,11 @@ Future<SignatureHeaders> pingSignDemo({
   secret: secret,
 );
 
-/// P0 demo: connect to `GET /api/v2/notifications/stream` and forward every
-/// event / connection-state change to Dart until the sink is dropped.
-/// The token is supplied manually for now; the session state machine and the
-/// signed chat stream arrive in P1.
-Stream<SseUpdate> notificationsStream({
-  required String baseUrl,
-  required String accessToken,
-}) => RustLib.instance.api.crateApiNotificationsStream(
-  baseUrl: baseUrl,
-  accessToken: accessToken,
-);
+/// Connect to the universal SSE stream (`GET /api/v2/sse/stream`, see
+/// `sse.rs` docs) and forward every event / connection-state change to Dart
+/// until the sink is dropped. The token comes from the restored session.
+Stream<SseUpdate> notificationsStream() =>
+    RustLib.instance.api.crateApiNotificationsStream();
 
 /// Mirror of `mobile_core::signing::SignatureHeaders` for frb codegen.
 /// Kept as a local struct so `mobile-core` stays frb-free.
