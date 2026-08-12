@@ -118,3 +118,52 @@ jobs:
           name: app-debug-apk
           path: mobile/flutter-app/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
+
+  build-apk-release:
+    name: flutter build apk --release (dart-define https)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/flutter-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Rust Android targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mobile/core
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK ${{ env.NDK_VERSION }}
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "ndk;${{ env.NDK_VERSION }}"
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Placeholder https base URL for CI; production injects the real host.
+      # Signing falls back to debug keystore when android/key.properties is absent.
+      - name: flutter build apk --release
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://example.invalid
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile/flutter-app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
