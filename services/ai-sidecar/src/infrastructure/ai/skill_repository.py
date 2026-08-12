@@ -49,17 +49,23 @@ class PostgresSkillRepository(SkillRepository):
 
     async def find_all_skills(self, status_filter: str | None = None) -> list[dict[str, Any]]:
         if status_filter:
-            query = "SELECT * FROM ai_agent_skill_registry WHERE status = $1 ORDER BY skill_slug, version"
+            query = (
+                "SELECT * FROM ai_agent_skill_registry WHERE status = $1 AND deleted_at IS NULL "
+                "ORDER BY skill_slug, version"
+            )
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch(query, status_filter)
         else:
-            query = "SELECT * FROM ai_agent_skill_registry ORDER BY skill_slug, version"
+            query = "SELECT * FROM ai_agent_skill_registry WHERE deleted_at IS NULL ORDER BY skill_slug, version"
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch(query)
         return [dict(row) for row in rows]
 
     async def find_skill(self, skill_slug: str, version: str) -> dict[str, Any] | None:
-        query = "SELECT * FROM ai_agent_skill_registry WHERE skill_slug = $1 AND version = $2"
+        query = (
+            "SELECT * FROM ai_agent_skill_registry "
+            "WHERE skill_slug = $1 AND version = $2 AND deleted_at IS NULL"
+        )
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(query, skill_slug, version)
             return dict(row) if row else None
@@ -82,6 +88,7 @@ class PostgresSkillRepository(SkillRepository):
                 frontmatter = EXCLUDED.frontmatter,
                 content_hash = EXCLUDED.content_hash,
                 status = EXCLUDED.status,
+                deleted_at = NULL,
                 updated_at = now()
             RETURNING *
         """
@@ -102,15 +109,24 @@ class PostgresSkillRepository(SkillRepository):
             return dict(row)
 
     async def delete_skill(self, skill_slug: str, version: str) -> bool:
-        query = "DELETE FROM ai_agent_skill_registry WHERE skill_slug = $1 AND version = $2"
+        # 审计要求软删除：仅标记 deleted_at，行保留
+        query = (
+            "UPDATE ai_agent_skill_registry SET deleted_at = now(), updated_at = now() "
+            "WHERE skill_slug = $1 AND version = $2 AND deleted_at IS NULL"
+        )
         async with self._pool.acquire() as conn:
             result = await conn.execute(query, skill_slug, version)
-            return result == "DELETE 1"
+            deleted = result == "UPDATE 1"
+            if deleted:
+                await _write_soft_delete_audit(
+                    conn, "ai_agent_skill", f"{skill_slug}@{version}"
+                )
+            return deleted
 
     async def find_bindings_by_entity(self, entity_id: str) -> list[dict[str, Any]]:
         query = """
             SELECT * FROM ai_entity_skill_bindings
-            WHERE entity_id = $1
+            WHERE entity_id = $1 AND deleted_at IS NULL
             ORDER BY priority ASC, skill_slug
         """
         async with self._pool.acquire() as conn:
@@ -138,6 +154,7 @@ class PostgresSkillRepository(SkillRepository):
                 allowed_reference_paths = EXCLUDED.allowed_reference_paths,
                 allow_scripts = EXCLUDED.allow_scripts,
                 max_instruction_tokens = EXCLUDED.max_instruction_tokens,
+                deleted_at = NULL,
                 updated_at = now()
             RETURNING *
         """
@@ -159,7 +176,31 @@ class PostgresSkillRepository(SkillRepository):
             return dict(row)
 
     async def delete_binding(self, binding_id: str) -> bool:
-        query = "DELETE FROM ai_entity_skill_bindings WHERE binding_id = $1"
+        # 审计要求软删除：仅标记 deleted_at，行保留
+        query = (
+            "UPDATE ai_entity_skill_bindings SET deleted_at = now(), updated_at = now() "
+            "WHERE binding_id = $1 AND deleted_at IS NULL"
+        )
         async with self._pool.acquire() as conn:
             result = await conn.execute(query, binding_id)
-            return result == "DELETE 1"
+            deleted = result == "UPDATE 1"
+            if deleted:
+                await _write_soft_delete_audit(conn, "ai_entity_skill_binding", binding_id)
+            return deleted
+
+
+async def _write_soft_delete_audit(conn, entity_type: str, entity_id: str) -> None:
+    """写入一条软删除审计记录（best-effort，失败仅记日志不阻断主流程）。"""
+    try:
+        await conn.execute(
+            "INSERT INTO system_audit_logs (entity_type, entity_id, action, changes) "
+            "VALUES ($1, $2, $3, $4)",
+            entity_type,
+            str(entity_id),
+            "soft_delete",
+            '{"reason": "soft_delete"}',
+        )
+    except Exception as e:  # noqa: BLE001 - 审计失败不阻断主流程
+        logger.warning(
+            "写入软删除审计失败 entity_type=%s entity_id=%s: %s", entity_type, entity_id, e
+        )

@@ -11,6 +11,8 @@ use fms_domain::models::business_case::{
 };
 use fms_domain::ports::business_case_repository::{BusinessCaseRepository, BusinessCaseTransactionalRepository};
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgBusinessCaseRepository {
     pool: PgPool,
 }
@@ -46,7 +48,8 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
                 department_name_snapshot = EXCLUDED.department_name_snapshot,
                 finished_at = EXCLUDED.finished_at,
                 cancelled_at = EXCLUDED.cancelled_at,
-                log = EXCLUDED.log
+                log = EXCLUDED.log,
+                deleted_at = NULL
             "#,
         )
         .bind(&case.case_id)
@@ -132,7 +135,7 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
                 FROM notifications n
                 WHERE n.receipt_group_id = wr.receipt_group_id
             ) wr_items ON true
-            WHERE c.case_id = $1
+            WHERE c.case_id = $1 AND c.deleted_at IS NULL
             "#,
         )
         .bind(case_id)
@@ -255,7 +258,7 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
                 FROM notifications n
                 WHERE n.receipt_group_id = wr.receipt_group_id
             ) wr_items ON true
-            WHERE c.flight_id = ANY($1)
+            WHERE c.flight_id = ANY($1) AND c.deleted_at IS NULL
             ORDER BY c.created_at DESC
             "#,
         )
@@ -292,6 +295,7 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
             WHERE c.context->>'source' = 'ai_copilot_voice'
               AND c.context->>'copilot_batch_id' = $1
               AND c.context->>'copilot_action_id' = $2
+              AND c.deleted_at IS NULL
             ORDER BY c.created_at ASC, c.case_id ASC
             LIMIT 1
             "#,
@@ -324,6 +328,7 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
             LEFT JOIN flights f ON f.flight_id = c.flight_id
             WHERE c.context->>'source' = 'ai_copilot_voice'
               AND c.context->>'copilot_batch_id' = $1
+              AND c.deleted_at IS NULL
             ORDER BY c.created_at ASC, c.case_id ASC
             "#,
         )
@@ -429,11 +434,14 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
         "#;
         let base = if status.is_some() {
             format!(
-                r#"{} WHERE c.status = $1 ORDER BY c.created_at DESC LIMIT $2 OFFSET $3"#,
+                r#"{} WHERE c.deleted_at IS NULL AND c.status = $1 ORDER BY c.created_at DESC LIMIT $2 OFFSET $3"#,
                 select
             )
         } else {
-            format!(r#"{} ORDER BY c.created_at DESC LIMIT $1 OFFSET $2"#, select)
+            format!(
+                r#"{} WHERE c.deleted_at IS NULL ORDER BY c.created_at DESC LIMIT $1 OFFSET $2"#,
+                select
+            )
         };
 
         let rows = if let Some(status) = status {
@@ -495,6 +503,9 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
     ) -> Result<Vec<FlightBusinessCase>, DomainError> {
         let mut conditions = Vec::new();
         let mut binds = Vec::new();
+
+        // 审计要求软删除：读侧预置过滤
+        conditions.push("c.deleted_at IS NULL".to_string());
 
         if let Some(flight_id) = flight_id.filter(|value| !value.trim().is_empty()) {
             binds.push(flight_id.trim().to_string());
@@ -622,6 +633,9 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
     ) -> Result<Vec<FlightBusinessCase>, DomainError> {
         let mut conditions = Vec::new();
         let mut binds: Vec<String> = Vec::new();
+
+        // 审计要求软删除：读侧预置过滤
+        conditions.push("c.deleted_at IS NULL".to_string());
 
         if let Some(flight_id) = flight_id.filter(|value| !value.trim().is_empty()) {
             binds.push(flight_id.trim().to_string());
@@ -804,7 +818,7 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
                 finished_at = $8,
                 cancelled_at = $9,
                 log = $10
-            WHERE case_id = $11
+            WHERE case_id = $11 AND deleted_at IS NULL
             "#,
         )
         .bind(&case.case_type)
@@ -827,7 +841,7 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
     async fn update_status(&self, case_id: &str, status: &str, actor: &str) -> Result<bool, DomainError> {
         let result = sqlx::query(
             "UPDATE flight_business_cases SET status = $1, updated_by = $2 \
-             WHERE case_id = $3 AND status IS DISTINCT FROM $1",
+             WHERE case_id = $3 AND status IS DISTINCT FROM $1 AND deleted_at IS NULL",
         )
         .bind(status)
         .bind(actor)
@@ -930,12 +944,20 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
     }
 
     async fn delete(&self, case_id: &str) -> Result<bool, DomainError> {
-        let result = sqlx::query("DELETE FROM flight_business_cases WHERE case_id = $1")
+        // 审计要求软删除：仅标记 deleted_at，行与 append 记录全部保留
+        let result = sqlx::query(
+            "UPDATE flight_business_cases SET deleted_at = NOW() \
+             WHERE case_id = $1 AND deleted_at IS NULL",
+        )
             .bind(case_id)
             .execute(&self.pool)
             .await
             .map_err(|error| DomainError::Internal(error.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "flight_business_case", case_id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 }
 
@@ -968,7 +990,8 @@ impl<'tx> BusinessCaseTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postg
                 department_name_snapshot = EXCLUDED.department_name_snapshot,
                 finished_at = EXCLUDED.finished_at,
                 cancelled_at = EXCLUDED.cancelled_at,
-                log = EXCLUDED.log
+                log = EXCLUDED.log,
+                deleted_at = NULL
             "#,
         )
         .bind(&case.case_id)
@@ -1012,7 +1035,7 @@ impl<'tx> BusinessCaseTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postg
                 finished_at = $8,
                 cancelled_at = $9,
                 log = $10
-            WHERE case_id = $11
+            WHERE case_id = $11 AND deleted_at IS NULL
             "#,
         )
         .bind(&case.case_type)

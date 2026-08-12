@@ -95,7 +95,7 @@ sqlx migrate run --database-url $env:DATABASE_URL
 psql -v ON_ERROR_STOP=1 --file scripts\database\verify_runtime_schema.sql $env:DATABASE_URL
 ```
 
-- 最新迁移：`118_extend_dispatch_alerts_overrun.sql`
+- 最新迁移：`121_add_soft_delete_columns.sql`（`120` 移除全部外键，`121` 加软删除列；产品删除统一软删，引用完整性由应用层 + `scripts/database/check_referential_integrity.sql` 巡检保证）
 - 空库可直接 `sqlx migrate run --source migrations`
 - `CREATE INDEX CONCURRENTLY` 必须单独文件，首行 `-- no-transaction`（见 107–112 一类迁移）
 

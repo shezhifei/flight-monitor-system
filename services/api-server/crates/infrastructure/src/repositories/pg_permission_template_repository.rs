@@ -8,6 +8,8 @@ use fms_domain::error::DomainError;
 use fms_domain::models::permission_template::PermissionTemplate;
 use fms_domain::ports::permission_template_repository::PermissionTemplateRepository;
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgPermissionTemplateRepository {
     pool: PgPool,
 }
@@ -49,6 +51,7 @@ impl PermissionTemplateRepository for PgPermissionTemplateRepository {
             FROM permission_templates
             WHERE ($1::text IS NULL OR category = $1)
               AND ($2::bool OR is_active = TRUE)
+              AND deleted_at IS NULL
             ORDER BY category NULLS LAST, display_order ASC, name ASC
             LIMIT $3 OFFSET $4
             "#,
@@ -65,7 +68,7 @@ impl PermissionTemplateRepository for PgPermissionTemplateRepository {
     }
 
     async fn find_by_id(&self, id: &str) -> Result<Option<PermissionTemplate>, DomainError> {
-        let row = sqlx::query("SELECT * FROM permission_templates WHERE id = $1")
+        let row = sqlx::query("SELECT * FROM permission_templates WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -74,7 +77,7 @@ impl PermissionTemplateRepository for PgPermissionTemplateRepository {
     }
 
     async fn exists_by_name(&self, name: &str) -> Result<bool, DomainError> {
-        let row = sqlx::query("SELECT 1 FROM permission_templates WHERE name = $1")
+        let row = sqlx::query("SELECT 1 FROM permission_templates WHERE name = $1 AND deleted_at IS NULL")
             .bind(name)
             .fetch_optional(&self.pool)
             .await
@@ -83,7 +86,7 @@ impl PermissionTemplateRepository for PgPermissionTemplateRepository {
     }
 
     async fn exists_by_code(&self, code: &str) -> Result<bool, DomainError> {
-        let row = sqlx::query("SELECT 1 FROM permission_templates WHERE code = $1")
+        let row = sqlx::query("SELECT 1 FROM permission_templates WHERE code = $1 AND deleted_at IS NULL")
             .bind(code)
             .fetch_optional(&self.pool)
             .await
@@ -110,6 +113,7 @@ impl PermissionTemplateRepository for PgPermissionTemplateRepository {
                 category = EXCLUDED.category,
                 display_order = EXCLUDED.display_order,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = EXCLUDED.updated_at
             RETURNING *
             "#,
@@ -133,11 +137,19 @@ impl PermissionTemplateRepository for PgPermissionTemplateRepository {
     }
 
     async fn delete(&self, id: &str) -> Result<bool, DomainError> {
-        let result = sqlx::query("DELETE FROM permission_templates WHERE id = $1 AND is_system = FALSE")
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|error| DomainError::Internal(error.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE permission_templates SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE id = $1 AND is_system = FALSE AND deleted_at IS NULL",
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "permission_template", id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 }

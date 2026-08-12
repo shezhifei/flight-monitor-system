@@ -11,6 +11,8 @@ use fms_domain::models::ontology_v1_rules::dual_post_conflict;
 use fms_domain::models::user::Role;
 use fms_domain::ports::user_repository::RoleRepository;
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgRoleRepository {
     pool: PgPool,
 }
@@ -24,7 +26,7 @@ impl PgRoleRepository {
         let rows = sqlx::query(
             r#"SELECT p.name FROM permissions p
                JOIN role_permissions rp ON p.id = rp.permission_id
-               WHERE rp.role_id = $1"#,
+               WHERE rp.role_id = $1 AND rp.deleted_at IS NULL AND p.deleted_at IS NULL"#,
         )
         .bind(role_id)
         .fetch_all(&self.pool)
@@ -42,7 +44,7 @@ impl PgRoleRepository {
             r#"SELECT rp.role_id, p.name
                FROM permissions p
                JOIN role_permissions rp ON p.id = rp.permission_id
-               WHERE rp.role_id = ANY($1)"#,
+               WHERE rp.role_id = ANY($1) AND rp.deleted_at IS NULL AND p.deleted_at IS NULL"#,
         )
         .bind(role_ids)
         .fetch_all(&self.pool)
@@ -73,7 +75,7 @@ impl PgRoleRepository {
 
     /// 统计角色下的用户数
     pub async fn count_users(&self, role_id: &str) -> Result<i64, DomainError> {
-        let row = sqlx::query("SELECT COUNT(*) as cnt FROM user_roles WHERE role_id = $1")
+        let row = sqlx::query("SELECT COUNT(*) as cnt FROM user_roles WHERE role_id = $1 AND deleted_at IS NULL")
             .bind(role_id)
             .fetch_one(&self.pool)
             .await
@@ -89,18 +91,20 @@ impl PgRoleRepository {
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;
 
-        sqlx::query("DELETE FROM role_permissions WHERE role_id = $1")
-            .bind(role_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        sqlx::query(
+            "UPDATE role_permissions SET deleted_at = NOW() WHERE role_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(role_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
 
         if !permission_names.is_empty() {
             sqlx::query(
                 r#"INSERT INTO role_permissions (role_id, permission_id)
                    SELECT $1, p.id FROM permissions p
                    WHERE p.name = ANY($2)
-                   ON CONFLICT DO NOTHING"#,
+                   ON CONFLICT (role_id, permission_id) DO UPDATE SET deleted_at = NULL"#,
             )
             .bind(role_id)
             .bind(permission_names)
@@ -134,7 +138,8 @@ impl PgRoleRepository {
         if let Some(target_name) = target_name.as_deref() {
             let current_names: Vec<String> = sqlx::query_scalar(
                 "SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id = r.id \
-                 WHERE ur.user_id = $1 AND r.is_active = TRUE AND r.name IN ('AOC', 'TOC')",
+                 WHERE ur.user_id = $1 AND ur.deleted_at IS NULL AND r.deleted_at IS NULL \
+                 AND r.is_active = TRUE AND r.name IN ('AOC', 'TOC')",
             )
             .bind(user_id)
             .fetch_all(&mut *tx)
@@ -149,9 +154,12 @@ impl PgRoleRepository {
             }
         }
 
-        sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
-            .bind(user_id)
-            .bind(role_id)
+        sqlx::query(
+            "INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) \
+             ON CONFLICT (user_id, role_id) DO UPDATE SET deleted_at = NULL",
+        )
+        .bind(user_id)
+        .bind(role_id)
             .execute(&mut *tx)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;
@@ -160,12 +168,15 @@ impl PgRoleRepository {
     }
 
     pub async fn remove_user_from_role(&self, user_id: &str, role_id: &str) -> Result<(), DomainError> {
-        sqlx::query("DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2")
-            .bind(user_id)
-            .bind(role_id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        sqlx::query(
+            "UPDATE user_roles SET deleted_at = NOW() \
+             WHERE user_id = $1 AND role_id = $2 AND deleted_at IS NULL",
+        )
+        .bind(user_id)
+        .bind(role_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(())
     }
 
@@ -174,7 +185,8 @@ impl PgRoleRepository {
         let result = sqlx::query(
             r#"INSERT INTO role_permissions (role_id, permission_id)
                SELECT $1, id FROM permissions WHERE name = $2
-               ON CONFLICT DO NOTHING"#,
+               ON CONFLICT (role_id, permission_id) DO UPDATE SET deleted_at = NULL
+               WHERE role_permissions.deleted_at IS NOT NULL"#,
         )
         .bind(role_id)
         .bind(permission_name)
@@ -187,7 +199,8 @@ impl PgRoleRepository {
     /// 移除角色的单个权限
     pub async fn remove_permission(&self, role_id: &str, permission_name: &str) -> Result<bool, DomainError> {
         let result = sqlx::query(
-            r#"DELETE FROM role_permissions WHERE role_id = $1
+            r#"UPDATE role_permissions SET deleted_at = NOW() WHERE role_id = $1
+               AND deleted_at IS NULL
                AND permission_id = (SELECT id FROM permissions WHERE name = $2)"#,
         )
         .bind(role_id)
@@ -202,7 +215,7 @@ impl PgRoleRepository {
     pub async fn update(&self, role: &Role) -> Result<bool, DomainError> {
         let result = sqlx::query(
             r#"UPDATE roles SET name = $1, description = $2, is_active = $3, updated_at = $4
-               WHERE id = $5"#,
+               WHERE id = $5 AND deleted_at IS NULL"#,
         )
         .bind(&role.name)
         .bind(&role.description)
@@ -219,7 +232,7 @@ impl PgRoleRepository {
 #[async_trait]
 impl RoleRepository for PgRoleRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<Role>, DomainError> {
-        let row = sqlx::query("SELECT * FROM roles WHERE id = $1")
+        let row = sqlx::query("SELECT * FROM roles WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -234,7 +247,7 @@ impl RoleRepository for PgRoleRepository {
     }
 
     async fn find_by_name(&self, name: &str) -> Result<Option<Role>, DomainError> {
-        let row = sqlx::query("SELECT * FROM roles WHERE name = $1")
+        let row = sqlx::query("SELECT * FROM roles WHERE name = $1 AND deleted_at IS NULL")
             .bind(name)
             .fetch_optional(&self.pool)
             .await
@@ -250,7 +263,7 @@ impl RoleRepository for PgRoleRepository {
     }
 
     async fn find_all(&self) -> Result<Vec<Role>, DomainError> {
-        let rows = sqlx::query("SELECT * FROM roles ORDER BY name")
+        let rows = sqlx::query("SELECT * FROM roles WHERE deleted_at IS NULL ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;
@@ -275,6 +288,7 @@ impl RoleRepository for PgRoleRepository {
                    name = EXCLUDED.name,
                    description = EXCLUDED.description,
                    is_active = EXCLUDED.is_active,
+                   deleted_at = NULL,
                    updated_at = CURRENT_TIMESTAMP"#,
         )
         .bind(&role.id)
@@ -291,11 +305,30 @@ impl RoleRepository for PgRoleRepository {
     }
 
     async fn delete(&self, id: &str) -> Result<bool, DomainError> {
-        let result = sqlx::query("DELETE FROM roles WHERE id = $1 AND is_system = FALSE")
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        // 审计要求软删除：角色本体及其授权关系全部标记 deleted_at，不物理删除
+        let mut tx = self.pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+        let result = sqlx::query(
+            "UPDATE roles SET deleted_at = NOW(), is_active = FALSE, updated_at = NOW() \
+             WHERE id = $1 AND is_system = FALSE AND deleted_at IS NULL",
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if result.rows_affected() > 0 {
+            sqlx::query("UPDATE user_roles SET deleted_at = NOW() WHERE role_id = $1 AND deleted_at IS NULL")
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
+            sqlx::query("UPDATE role_permissions SET deleted_at = NOW() WHERE role_id = $1 AND deleted_at IS NULL")
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
+            record_soft_delete(&self.pool, "role", id, "soft_delete").await;
+        }
+        tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(result.rows_affected() > 0)
     }
 
@@ -303,7 +336,7 @@ impl RoleRepository for PgRoleRepository {
         let rows = sqlx::query(
             r#"SELECT r.* FROM roles r
                JOIN user_roles ur ON r.id = ur.role_id
-               WHERE ur.user_id = $1 AND r.is_active = TRUE"#,
+               WHERE ur.user_id = $1 AND ur.deleted_at IS NULL AND r.deleted_at IS NULL AND r.is_active = TRUE"#,
         )
         .bind(user_id)
         .fetch_all(&self.pool)

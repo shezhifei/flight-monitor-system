@@ -18,6 +18,8 @@ use fms_domain::ports::flight_repository::{
     FlightRepository, FlightSearchCriteria, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
 };
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgFlightRepository {
     pool: PgPool,
 }
@@ -60,6 +62,7 @@ impl PgFlightRepository {
     ) {
         builder.push(" WHERE flight_id = ").push_bind(flight_id);
         builder.push(" AND version = ").push_bind(expected_version);
+        builder.push(" AND deleted_at IS NULL");
     }
 
     fn flight_status_db_code(status: i32) -> Result<i16, DomainError> {
@@ -103,7 +106,7 @@ impl PgFlightRepository {
                    origin_stations, destination_stations,
                    is_vip, stand_type, scheduled_time
             FROM flight_legs
-            WHERE flight_id = ANY($1)
+            WHERE flight_id = ANY($1) AND deleted_at IS NULL
             "#,
         )
         .bind(flight_ids)
@@ -150,6 +153,7 @@ impl PgFlightRepository {
                 is_vip = EXCLUDED.is_vip,
                 stand_type = EXCLUDED.stand_type,
                 scheduled_time = EXCLUDED.scheduled_time,
+                deleted_at = NULL,
                 updated_at = NOW()
             "#,
         )
@@ -177,18 +181,24 @@ impl PgFlightRepository {
         outbound_present: bool,
     ) -> Result<(), DomainError> {
         if !inbound_present {
-            sqlx::query("DELETE FROM flight_legs WHERE flight_id = $1 AND leg_type = 'inbound'")
-                .bind(flight_id)
-                .execute(&mut **tx)
-                .await
-                .map_err(|e| DomainError::Internal(e.to_string()))?;
+            sqlx::query(
+                "UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() \
+                 WHERE flight_id = $1 AND leg_type = 'inbound' AND deleted_at IS NULL",
+            )
+            .bind(flight_id)
+            .execute(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
         }
         if !outbound_present {
-            sqlx::query("DELETE FROM flight_legs WHERE flight_id = $1 AND leg_type = 'outbound'")
-                .bind(flight_id)
-                .execute(&mut **tx)
-                .await
-                .map_err(|e| DomainError::Internal(e.to_string()))?;
+            sqlx::query(
+                "UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() \
+                 WHERE flight_id = $1 AND leg_type = 'outbound' AND deleted_at IS NULL",
+            )
+            .bind(flight_id)
+            .execute(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
         }
         Ok(())
     }
@@ -231,7 +241,7 @@ impl PgFlightRepository {
                'is_vip', fl.is_vip, 'stand_type', fl.stand_type, \
                'scheduled_time', fl.scheduled_time \
              )) FILTER (WHERE fl.leg_type = 'outbound') AS outbound_legs \
-           FROM flight_legs fl WHERE fl.flight_id = f.flight_id \
+           FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
          ) legs_agg ON TRUE"
     }
 
@@ -265,7 +275,7 @@ impl PgFlightRepository {
         flight_id: &str,
     ) -> Result<Option<Flight>, DomainError> {
         let q = format!(
-            "{}{} WHERE f.flight_id = $1",
+            "{}{} WHERE f.flight_id = $1 AND f.deleted_at IS NULL",
             Self::base_select(),
             Self::legs_lateral_join(),
         );
@@ -330,7 +340,8 @@ impl PgFlightRepository {
                 flight_remarks = EXCLUDED.flight_remarks,
                 load_planning_remarks = EXCLUDED.load_planning_remarks,
                 aircraft_maintenance_remarks = EXCLUDED.aircraft_maintenance_remarks,
-                aircraft_check_remarks = EXCLUDED.aircraft_check_remarks
+                aircraft_check_remarks = EXCLUDED.aircraft_check_remarks,
+                deleted_at = NULL
             WHERE flights.version = EXCLUDED.version - 1"#,
         )
         .bind(&flight.flight_id.0)
@@ -550,11 +561,14 @@ impl PgFlightRepository {
                 Self::persist_leg_in_tx(tx, flight_id, inbound_leg).await?;
             }
             PatchField::Clear => {
-                sqlx::query("DELETE FROM flight_legs WHERE flight_id = $1 AND leg_type = 'inbound'")
-                    .bind(flight_id)
-                    .execute(&mut **tx)
-                    .await
-                    .map_err(|e| DomainError::Internal(e.to_string()))?;
+                sqlx::query(
+                    "UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() \
+                     WHERE flight_id = $1 AND leg_type = 'inbound' AND deleted_at IS NULL",
+                )
+                .bind(flight_id)
+                .execute(&mut **tx)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
             }
             PatchField::Unset => {}
         }
@@ -563,11 +577,14 @@ impl PgFlightRepository {
                 Self::persist_leg_in_tx(tx, flight_id, outbound_leg).await?;
             }
             PatchField::Clear => {
-                sqlx::query("DELETE FROM flight_legs WHERE flight_id = $1 AND leg_type = 'outbound'")
-                    .bind(flight_id)
-                    .execute(&mut **tx)
-                    .await
-                    .map_err(|e| DomainError::Internal(e.to_string()))?;
+                sqlx::query(
+                    "UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() \
+                     WHERE flight_id = $1 AND leg_type = 'outbound' AND deleted_at IS NULL",
+                )
+                .bind(flight_id)
+                .execute(&mut **tx)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
             }
             PatchField::Unset => {}
         }
@@ -636,9 +653,9 @@ impl FlightRepository for PgFlightRepository {
                    'is_vip', fl.is_vip, 'stand_type', fl.stand_type, \
                    'scheduled_time', fl.scheduled_time \
                  )) FILTER (WHERE fl.leg_type = 'outbound') AS outbound_legs \
-               FROM flight_legs fl WHERE fl.flight_id = f.flight_id \
+               FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
              ) legs_agg ON TRUE \
-             WHERE f.flight_id = $1",
+             WHERE f.flight_id = $1 AND f.deleted_at IS NULL",
             Self::base_select()
         );
         let row = sqlx::query(&q)
@@ -656,7 +673,7 @@ impl FlightRepository for PgFlightRepository {
         let trace = should_emit_perf_trace(&PG_FLIGHT_FIND_ALL_TRACE_COUNTER);
         let total_start = Instant::now();
         let q = format!(
-            "{}{} ORDER BY COALESCE(f.scheduled_departure, f.scheduled_arrival) DESC LIMIT $1 OFFSET $2",
+            "{}{} WHERE f.deleted_at IS NULL ORDER BY COALESCE(f.scheduled_departure, f.scheduled_arrival) DESC LIMIT $1 OFFSET $2",
             Self::base_select(),
             Self::legs_lateral_join(),
         );
@@ -688,7 +705,7 @@ impl FlightRepository for PgFlightRepository {
 
     async fn find_by_date(&self, date: NaiveDate) -> Result<Vec<Flight>, DomainError> {
         let q = format!(
-            "{}{} WHERE COALESCE(f.scheduled_departure, f.scheduled_arrival)::date = $1 \
+            "{}{} WHERE f.deleted_at IS NULL AND COALESCE(f.scheduled_departure, f.scheduled_arrival)::date = $1 \
              ORDER BY COALESCE(f.scheduled_departure, f.scheduled_arrival) LIMIT 1000",
             Self::base_select(),
             Self::legs_lateral_join(),
@@ -709,13 +726,13 @@ impl FlightRepository for PgFlightRepository {
              'open_count', COALESCE(oa.open_count, 0), \
              'acknowledged_count', COALESCE(oa.ack_count, 0)\
              ) AS anomaly_summary FROM flights f \
-             LEFT JOIN flight_legs fl ON fl.flight_id = f.flight_id \
+             LEFT JOIN flight_legs fl ON fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
              LEFT JOIN LATERAL (\
                  SELECT COUNT(*) FILTER (WHERE a.status = 'open') AS open_count, \
                         COUNT(*) FILTER (WHERE a.status = 'acknowledged') AS ack_count \
                  FROM anomalies a WHERE a.flight_id = f.flight_id\
              ) oa ON TRUE \
-             WHERE f.flight_number ILIKE $1 OR fl.flight_no ILIKE $1 \
+             WHERE f.deleted_at IS NULL AND (f.flight_number ILIKE $1 OR fl.flight_no ILIKE $1) \
              ORDER BY COALESCE(f.scheduled_departure, f.scheduled_arrival) DESC LIMIT 50"
         );
         let rows = sqlx::query(&q)
@@ -731,7 +748,7 @@ impl FlightRepository for PgFlightRepository {
     async fn find_by_status(&self, status: i32, limit: i64, offset: i64) -> Result<Vec<Flight>, DomainError> {
         let status = Self::flight_status_db_code(status)?;
         let q = format!(
-            "{}{} WHERE f.status = $1 \
+            "{}{} WHERE f.status = $1 AND f.deleted_at IS NULL \
              ORDER BY COALESCE(f.scheduled_departure, f.scheduled_arrival) DESC LIMIT $2 OFFSET $3",
             Self::base_select(),
             Self::legs_lateral_join(),
@@ -877,7 +894,8 @@ impl FlightRepository for PgFlightRepository {
                 flight_remarks = EXCLUDED.flight_remarks,
                 load_planning_remarks = EXCLUDED.load_planning_remarks,
                 aircraft_maintenance_remarks = EXCLUDED.aircraft_maintenance_remarks,
-                aircraft_check_remarks = EXCLUDED.aircraft_check_remarks"#,
+                aircraft_check_remarks = EXCLUDED.aircraft_check_remarks,
+                deleted_at = NULL"#,
         );
 
         query_builder
@@ -933,6 +951,7 @@ impl FlightRepository for PgFlightRepository {
                     is_vip = EXCLUDED.is_vip,
                     stand_type = EXCLUDED.stand_type,
                     scheduled_time = EXCLUDED.scheduled_time,
+                    deleted_at = NULL,
                     updated_at = NOW()"#,
             );
 
@@ -951,7 +970,7 @@ impl FlightRepository for PgFlightRepository {
     async fn update_status(&self, flight_id: &str, status: i32) -> Result<bool, DomainError> {
         let status = Self::flight_status_db_code(status)?;
         let result = sqlx::query(
-            "UPDATE flights SET status = $1, updated_at = NOW(), version = version + 1 WHERE flight_id = $2",
+            "UPDATE flights SET status = $1, updated_at = NOW(), version = version + 1 WHERE flight_id = $2 AND deleted_at IS NULL",
         )
         .bind(status)
         .bind(flight_id)
@@ -962,23 +981,20 @@ impl FlightRepository for PgFlightRepository {
     }
 
     async fn delete(&self, flight_id: &str) -> Result<bool, DomainError> {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        sqlx::query("DELETE FROM flight_legs WHERE flight_id = $1")
-            .bind(flight_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        let result = sqlx::query("DELETE FROM flights WHERE flight_id = $1")
-            .bind(flight_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：仅标记 deleted_at，行与子表数据全部保留
+        let result = sqlx::query(
+            "UPDATE flights SET deleted_at = NOW(), updated_at = NOW(), version = version + 1 \
+             WHERE flight_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(flight_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "flight", flight_id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 
     async fn search(
@@ -989,7 +1005,9 @@ impl FlightRepository for PgFlightRepository {
     ) -> Result<Vec<Flight>, DomainError> {
         let mut builder =
             QueryBuilder::<Postgres>::new(format!("{}{}", Self::base_select(), Self::legs_lateral_join()));
-        let mut has_condition = false;
+        // 软删除过滤：已删除航班永不进入搜索结果
+        builder.push(" WHERE f.deleted_at IS NULL");
+        let mut has_condition = true;
 
         let mut push_where = |builder: &mut QueryBuilder<'_, Postgres>| {
             if has_condition {
@@ -1011,7 +1029,7 @@ impl FlightRepository for PgFlightRepository {
             builder.push("f.flight_number ILIKE ");
             builder.push_bind(format!("%{flight_no}%"));
             builder.push(" OR EXISTS (");
-            builder.push("SELECT 1 FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.flight_no ILIKE ");
+            builder.push("SELECT 1 FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND fl.flight_no ILIKE ");
             builder.push_bind(format!("%{flight_no}%"));
             builder.push("))");
         }
@@ -1039,7 +1057,7 @@ impl FlightRepository for PgFlightRepository {
         {
             push_where(&mut builder);
             builder.push("EXISTS (");
-            builder.push("SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.origin_stations) AS station WHERE fl.flight_id = f.flight_id AND UPPER(COALESCE(station->>'code', '')) = ");
+            builder.push("SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.origin_stations) AS station WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND UPPER(COALESCE(station->>'code', '')) = ");
             builder.push_bind(origin.to_uppercase());
             builder.push(")");
         }
@@ -1052,7 +1070,7 @@ impl FlightRepository for PgFlightRepository {
         {
             push_where(&mut builder);
             builder.push("EXISTS (");
-            builder.push("SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.destination_stations) AS station WHERE fl.flight_id = f.flight_id AND UPPER(COALESCE(station->>'code', '')) = ");
+            builder.push("SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.destination_stations) AS station WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND UPPER(COALESCE(station->>'code', '')) = ");
             builder.push_bind(destination.to_uppercase());
             builder.push(")");
         }
@@ -1083,7 +1101,7 @@ impl FlightRepository for PgFlightRepository {
 
     async fn count_by_date(&self, date: NaiveDate) -> Result<i64, DomainError> {
         let row = sqlx::query(
-            "SELECT COUNT(*) as cnt FROM flights WHERE COALESCE(scheduled_departure, scheduled_arrival)::date = $1",
+            "SELECT COUNT(*) as cnt FROM flights WHERE deleted_at IS NULL AND COALESCE(scheduled_departure, scheduled_arrival)::date = $1",
         )
         .bind(date)
         .fetch_one(&self.pool)
@@ -1113,17 +1131,20 @@ impl<'tx> FlightTransactionalRepository<Transaction<'tx, Postgres>> for PgFlight
     }
 
     async fn delete_in_tx(&self, tx: &mut Transaction<'tx, Postgres>, flight_id: &str) -> Result<bool, DomainError> {
-        sqlx::query("DELETE FROM flight_legs WHERE flight_id = $1")
-            .bind(flight_id)
-            .execute(&mut **tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        let result = sqlx::query("DELETE FROM flights WHERE flight_id = $1")
-            .bind(flight_id)
-            .execute(&mut **tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：仅标记 deleted_at，行与子表数据全部保留
+        let result = sqlx::query(
+            "UPDATE flights SET deleted_at = NOW(), updated_at = NOW(), version = version + 1 \
+             WHERE flight_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(flight_id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "flight", flight_id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 }
 

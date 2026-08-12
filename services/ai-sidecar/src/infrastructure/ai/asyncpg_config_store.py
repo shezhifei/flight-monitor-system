@@ -124,7 +124,9 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         await self._ensure_seeded()
         try:
             async with self._pool.acquire() as conn:
-                rows = await conn.fetch("SELECT id, config, config_revision FROM ai_entities")
+                rows = await conn.fetch(
+                    "SELECT id, config, config_revision FROM ai_entities WHERE deleted_at IS NULL"
+                )
         except POSTGRES_EXCEPTIONS as exc:
             logger.error("AsyncpgAIConfigStore.get_all failed: %s", exc)
             raise
@@ -145,7 +147,7 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         try:
             async with self._pool.acquire() as conn:
                 row = await conn.fetchrow(
-                    "SELECT config, config_revision FROM ai_entities WHERE id = $1",
+                    "SELECT config, config_revision FROM ai_entities WHERE id = $1 AND deleted_at IS NULL",
                     entity_id,
                 )
         except POSTGRES_EXCEPTIONS as exc:
@@ -186,6 +188,7 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
                     ON CONFLICT (id) DO UPDATE
                     SET config = EXCLUDED.config,
                         config_revision = ai_entities.config_revision + 1,
+                        deleted_at = NULL,
                         updated_at = CURRENT_TIMESTAMP
                     """,
                     entity_id,
@@ -202,17 +205,37 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         await self._ensure_seeded()
         try:
             async with self._pool.acquire() as conn:
-                status = await conn.execute("DELETE FROM ai_entities WHERE id = $1", entity_id)
+                # 审计要求软删除：仅标记 deleted_at，行保留
+                status = await conn.execute(
+                    "UPDATE ai_entities SET deleted_at = NOW(), updated_at = NOW() "
+                    "WHERE id = $1 AND deleted_at IS NULL",
+                    entity_id,
+                )
+                # asyncpg execute() returns a command tag like "UPDATE 1".
+                try:
+                    deleted = int(str(status).rsplit(" ", 1)[-1]) > 0
+                except (ValueError, IndexError):
+                    deleted = False
+                if deleted:
+                    try:
+                        await conn.execute(
+                            "INSERT INTO system_audit_logs (entity_type, entity_id, action, changes) "
+                            "VALUES ($1, $2, $3, $4)",
+                            "ai_entity",
+                            entity_id,
+                            "soft_delete",
+                            '{"reason": "soft_delete"}',
+                        )
+                    except Exception as audit_exc:  # noqa: BLE001 - 审计失败不阻断主流程
+                        logger.warning(
+                            "写入软删除审计失败 entity_id=%s: %s", entity_id, audit_exc
+                        )
         except POSTGRES_EXCEPTIONS as exc:
             logger.error("AsyncpgAIConfigStore.delete('%s') failed: %s", entity_id, exc)
             return False
 
         self._invalidate_cache(entity_id)
-        # asyncpg execute() returns a command tag like "DELETE 1".
-        try:
-            return int(str(status).rsplit(" ", 1)[-1]) > 0
-        except (ValueError, IndexError):
-            return False
+        return deleted
 
     async def reload(self) -> None:
         """Clear the in-memory read cache; DB remains the source of truth."""

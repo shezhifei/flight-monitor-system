@@ -27,7 +27,7 @@ Browser / Vue MPA
 | 消息网关 | `services/mq-gateway/` | RocketMQ 边界 |
 | 前端 | `frontend/vue-app/` | Vue 3 多页；访问 `/frontend/<page>.html` |
 | 移动端 | `mobile/flutter-app/` + `mobile/core/` | Flutter + Rust（Android）；旧 Kotlin 在 `legacy/android-kotlin/` |
-| 迁移 | `migrations/*.sql` | 按编号顺序；当前最新 **118** |
+| 迁移 | `migrations/*.sql` | 按编号顺序；当前最新 **121** |
 
 标准 Docker 拓扑（`deploy/docker/docker-compose.distributed.yml`）默认服务包括：`rust-api`、`flowable`、`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`（及 Vault 相关服务）。Python HTTP API 不是默认路径。
 
@@ -97,7 +97,8 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
 ## 数据与迁移
 
 - 目录：`migrations/`，按数字前缀顺序应用
-- 当前最新：`118_extend_dispatch_alerts_overrun.sql`
+- 当前最新：`121_add_soft_delete_columns.sql`
+- 引用完整性策略：迁移 `120` 移除全部外键，改由应用层逻辑保证；产品删除统一软删除（`deleted_at` 标记，见迁移 `121`；`users` 复用 `is_active`），审计禁止物理删除业务数据；巡检兜底见 `scripts/database/check_referential_integrity.sql`，回归防护见 `tests/tools/test_no_new_foreign_keys.py` 与 `test_no_physical_delete.py`
 - Host 模式默认跑 `scripts/database/setup_postgresql.sql`、`sqlx migrate run` 和 `scripts/database/verify_runtime_schema.sql`
 - 已有库只补未应用迁移；不要手改 `_sqlx_migrations` 伪造进度
 - 含 `CREATE INDEX CONCURRENTLY` 的迁移必须独占一个文件，且首行 `-- no-transaction`

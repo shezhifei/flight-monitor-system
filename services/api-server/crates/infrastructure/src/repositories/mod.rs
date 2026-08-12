@@ -66,4 +66,5 @@ pub mod pg_user_repository;
 pub mod pg_workflow_dispatch_repository;
 pub mod pg_workflow_form_repository;
 pub mod session_runtime_repository;
+pub(crate) mod soft_delete_audit;
 pub use pg_flight_sync_repository::PgFlightSyncRepository;

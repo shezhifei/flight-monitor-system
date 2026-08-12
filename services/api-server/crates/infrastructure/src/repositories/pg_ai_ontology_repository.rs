@@ -78,7 +78,8 @@ impl AiOntologyRepository for PgAiOntologyRepository {
               ON f.object_type = a.object_type
              AND f.action_name = a.name
              AND f.is_active = true
-            WHERE a.is_active = true
+             AND f.deleted_at IS NULL
+            WHERE a.is_active = true AND a.deleted_at IS NULL
             ORDER BY a.object_type ASC, a.name ASC
             "#,
         )
@@ -157,6 +158,7 @@ impl AiOntologyRepository for PgAiOntologyRepository {
             WHERE o.is_active = true
               AND a.is_active = true
               AND a.category = 'mutation'
+              AND a.deleted_at IS NULL
             "#,
         )
         .fetch_one(&self.pool)
@@ -172,7 +174,7 @@ impl PgAiOntologyRepository {
             r#"
             SELECT object_type, action_name, constraint_type, expression, error_message
             FROM aip_constraints
-            WHERE is_active = true
+            WHERE is_active = true AND deleted_at IS NULL
             ORDER BY object_type ASC, action_name ASC NULLS FIRST, name ASC
             "#,
         )

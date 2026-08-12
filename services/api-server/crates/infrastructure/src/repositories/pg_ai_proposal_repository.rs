@@ -10,6 +10,8 @@ use fms_domain::ports::ai_proposal_repository::{
     AiProposalRepository, AiProposalRepositoryError, SmokeProposalRow, SmokeProposalSummary,
 };
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgAiProposalRepository {
     pool: PgPool,
 }
@@ -118,7 +120,8 @@ impl AiProposalRepository for PgAiProposalRepository {
                 updated_at = EXCLUDED.updated_at,
                 expires_at = EXCLUDED.expires_at,
                 correlation_id = EXCLUDED.correlation_id,
-                metadata = EXCLUDED.metadata
+                metadata = EXCLUDED.metadata,
+                deleted_at = NULL
             "#,
         )
         .bind(&proposal.proposal_id)
@@ -161,7 +164,9 @@ impl AiProposalRepository for PgAiProposalRepository {
     }
 
     async fn find_by_id(&self, proposal_id: &str) -> Result<Option<AiActionProposal>, AiProposalRepositoryError> {
-        let row = sqlx::query("SELECT * FROM ai_action_proposals WHERE proposal_id = $1")
+        let row = sqlx::query(
+            "SELECT * FROM ai_action_proposals WHERE proposal_id = $1 AND deleted_at IS NULL",
+        )
             .bind(proposal_id)
             .fetch_optional(&self.pool)
             .await
@@ -173,7 +178,9 @@ impl AiProposalRepository for PgAiProposalRepository {
         &self,
         pending_action_id: &str,
     ) -> Result<Option<AiActionProposal>, AiProposalRepositoryError> {
-        let row = sqlx::query("SELECT * FROM ai_action_proposals WHERE pending_action_id = $1")
+        let row = sqlx::query(
+            "SELECT * FROM ai_action_proposals WHERE pending_action_id = $1 AND deleted_at IS NULL",
+        )
             .bind(pending_action_id)
             .fetch_optional(&self.pool)
             .await
@@ -232,6 +239,7 @@ impl AiProposalRepository for PgAiProposalRepository {
               AND ($10::text IS NULL OR metadata->>'idempotency_key' = $10)
               AND ($11::timestamptz IS NULL OR created_at >= $11)
               AND ($12::timestamptz IS NULL OR created_at <= $12)
+              AND deleted_at IS NULL
             ORDER BY created_at DESC
             LIMIT $13 OFFSET $14
             "#,
@@ -266,7 +274,10 @@ impl AiProposalRepository for PgAiProposalRepository {
     }
 
     async fn find_expired(&self) -> Result<Vec<AiActionProposal>, AiProposalRepositoryError> {
-        let rows = sqlx::query("SELECT * FROM ai_action_proposals WHERE expires_at IS NOT NULL AND expires_at < now()")
+        let rows = sqlx::query(
+            "SELECT * FROM ai_action_proposals \
+             WHERE expires_at IS NOT NULL AND expires_at < now() AND deleted_at IS NULL",
+        )
             .fetch_all(&self.pool)
             .await
             .map_err(db_err)?;
@@ -293,6 +304,7 @@ impl AiProposalRepository for PgAiProposalRepository {
               AND ($10::text IS NULL OR metadata->>'idempotency_key' = $10)
               AND ($11::timestamptz IS NULL OR created_at >= $11)
               AND ($12::timestamptz IS NULL OR created_at <= $12)
+              AND deleted_at IS NULL
             "#,
         )
         .bind(&query.job_id)
@@ -325,6 +337,7 @@ impl AiProposalRepository for PgAiProposalRepository {
                 COUNT(*) FILTER (WHERE status = $3)::bigint AS executed,
                 COUNT(*) FILTER (WHERE status = $4)::bigint AS failed
             FROM ai_action_proposals
+            WHERE deleted_at IS NULL
             "#,
         )
         .bind(ActionProposalStatus::Approved.code() as i16)
@@ -425,17 +438,25 @@ impl AiProposalRepository for PgAiProposalRepository {
     }
 
     async fn delete(&self, proposal_id: &str) -> Result<(), AiProposalRepositoryError> {
-        sqlx::query("DELETE FROM ai_action_proposals WHERE proposal_id = $1")
-            .bind(proposal_id)
-            .execute(&self.pool)
-            .await
-            .map_err(db_err)?;
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE ai_action_proposals SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE proposal_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(proposal_id)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        if result.rows_affected() > 0 {
+            record_soft_delete(&self.pool, "ai_action_proposal", proposal_id, "soft_delete").await;
+        }
         Ok(())
     }
 
     async fn count_pending_by_risk(&self) -> Result<Vec<(i16, i64)>, AiProposalRepositoryError> {
         let rows: Vec<(i16, i64)> = sqlx::query_as(
-            "SELECT risk_level, COUNT(*)::bigint FROM ai_action_proposals WHERE status = 2 GROUP BY risk_level ORDER BY risk_level",
+            "SELECT risk_level, COUNT(*)::bigint FROM ai_action_proposals \
+             WHERE status = 2 AND deleted_at IS NULL GROUP BY risk_level ORDER BY risk_level",
         )
         .fetch_all(&self.pool)
         .await
@@ -445,7 +466,10 @@ impl AiProposalRepository for PgAiProposalRepository {
 
     async fn count_failed_since(&self, cutoff: DateTime<Utc>) -> Result<i64, AiProposalRepositoryError> {
         let count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*)::bigint FROM ai_action_proposals WHERE status = 7 AND updated_at >= $1")
+            sqlx::query_as(
+                "SELECT COUNT(*)::bigint FROM ai_action_proposals \
+                 WHERE status = 7 AND updated_at >= $1 AND deleted_at IS NULL",
+            )
                 .bind(cutoff)
                 .fetch_one(&self.pool)
                 .await
@@ -455,7 +479,10 @@ impl AiProposalRepository for PgAiProposalRepository {
 
     async fn count_executed_since(&self, cutoff: DateTime<Utc>) -> Result<i64, AiProposalRepositoryError> {
         let count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*)::bigint FROM ai_action_proposals WHERE status = 6 AND updated_at >= $1")
+            sqlx::query_as(
+                "SELECT COUNT(*)::bigint FROM ai_action_proposals \
+                 WHERE status = 6 AND updated_at >= $1 AND deleted_at IS NULL",
+            )
                 .bind(cutoff)
                 .fetch_one(&self.pool)
                 .await
@@ -550,7 +577,8 @@ impl PgAiProposalRepository {
         F: Fn(i32) -> Option<String>,
     {
         let sql = format!(
-            "SELECT {column}::integer AS code, COUNT(*)::bigint AS count FROM ai_action_proposals GROUP BY {column}"
+            "SELECT {column}::integer AS code, COUNT(*)::bigint AS count FROM ai_action_proposals \
+             WHERE deleted_at IS NULL GROUP BY {column}"
         );
         let rows = sqlx::query(&sql).fetch_all(&self.pool).await.map_err(db_err)?;
 
@@ -568,8 +596,10 @@ impl PgAiProposalRepository {
     async fn group_object_counts(
         &self,
     ) -> Result<serde_json::Map<String, serde_json::Value>, AiProposalRepositoryError> {
-        let rows =
-            sqlx::query("SELECT object_type, COUNT(*)::bigint AS count FROM ai_action_proposals GROUP BY object_type")
+        let rows = sqlx::query(
+            "SELECT object_type, COUNT(*)::bigint AS count FROM ai_action_proposals \
+             WHERE deleted_at IS NULL GROUP BY object_type",
+        )
                 .fetch_all(&self.pool)
                 .await
                 .map_err(db_err)?;
@@ -613,6 +643,10 @@ mod tests {
         .execute(&pool)
         .await
         .expect("apply ai_action_proposals migration");
+        sqlx::query("ALTER TABLE ai_action_proposals ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ")
+            .execute(&pool)
+            .await
+            .expect("add soft delete column");
         PgAiProposalRepository::new(pool)
     }
 
