@@ -1075,12 +1075,12 @@ async fn test_dispatch_order_update_status_success() {
     let pool = create_pool().await;
     sqlx::query(
         "INSERT INTO users (id, username, display_name, email, password_hash, is_active, is_verified) \
-         VALUES ($1, $2, $3, $4, $5, TRUE, TRUE) ON CONFLICT (id) DO NOTHING",
+         VALUES ($1, $2, $3, $4, $5, TRUE, TRUE) ON CONFLICT DO NOTHING",
     )
-    .bind("tester")
-    .bind("tester")
-    .bind("Tester")
-    .bind("tester@example.com")
+    .bind("domain_action_status_usr")
+    .bind("domain_action_status_usr")
+    .bind("Domain Action Status Tester")
+    .bind("domain_action_status_tester@example.com")
     .bind("hashed_password")
     .execute(&pool)
     .await
@@ -1109,7 +1109,7 @@ async fn test_dispatch_order_update_status_success() {
             "DP_STATUS_OK",
             "update_status",
             &json!({"new_status": "in_progress", "notes": "started"}),
-            "tester",
+            "domain_action_status_usr",
         )
         .await;
     assert!(res.is_ok(), "expected Ok, got {:?}", res);
