@@ -95,7 +95,7 @@ Vue 3 + Vite + TypeScript multi-page app. Primary pages from `frontend/vue-app/d
 ## Migrations
 
 SQL files in `migrations/`, numeric order. Next number only; never renumber.  
-Latest at time of writing: `118_*`.
+Latest at time of writing: `121_*`.
 
 ## Conventions
 

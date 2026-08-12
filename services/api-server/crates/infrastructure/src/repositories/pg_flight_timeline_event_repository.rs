@@ -9,6 +9,8 @@ use fms_domain::ports::flight_timeline_event_repository::{
 };
 use sqlx::{PgPool, Postgres, Row, Transaction};
 
+use super::soft_delete_audit::record_soft_delete;
+
 #[derive(Debug, Clone)]
 pub struct PgFlightTimelineEventRepository {
     pool: PgPool,
@@ -42,7 +44,7 @@ impl FlightTimelineEventRepository for PgFlightTimelineEventRepository {
             r#"
             SELECT timeline_id, flight_id, milestone_code, occurred_at, leg_type, recorded_by, client_action_id, source, payload, created_at
             FROM flight_dispatch_timeline_events
-            WHERE flight_id = $1
+            WHERE flight_id = $1 AND deleted_at IS NULL
             ORDER BY occurred_at DESC, created_at DESC
             LIMIT $2
             "#,
@@ -70,7 +72,7 @@ impl FlightTimelineEventRepository for PgFlightTimelineEventRepository {
         let query = r#"
             SELECT DISTINCT ON (flight_id, milestone_code) flight_id, milestone_code, occurred_at
             FROM flight_dispatch_timeline_events
-            WHERE flight_id = ANY($1)
+            WHERE flight_id = ANY($1) AND deleted_at IS NULL
             ORDER BY flight_id, milestone_code, created_at DESC, timeline_id DESC
         "#;
 
@@ -108,7 +110,7 @@ impl<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>>
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (flight_id, client_action_id)
                 WHERE client_action_id IS NOT NULL
-                DO NOTHING
+                DO UPDATE SET deleted_at = NULL
                 RETURNING timeline_id, flight_id, milestone_code, occurred_at, leg_type, recorded_by,
                           client_action_id, source, payload, created_at, TRUE AS inserted
             )
@@ -122,6 +124,7 @@ impl<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>>
             WHERE $7::text IS NOT NULL
               AND flight_id = $2
               AND client_action_id = $7
+              AND deleted_at IS NULL
             LIMIT 1
             "#,
         )
@@ -151,13 +154,20 @@ impl<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>>
         flight_id: &str,
         timeline_id: &str,
     ) -> Result<bool, DomainError> {
-        sqlx::query("DELETE FROM flight_dispatch_timeline_events WHERE flight_id = $1 AND timeline_id = $2")
-            .bind(flight_id)
-            .bind(timeline_id)
-            .execute(&mut **tx)
-            .await
-            .map(|result| result.rows_affected() > 0)
-            .map_err(|error| DomainError::Internal(error.to_string()))
+        let result = sqlx::query(
+            "UPDATE flight_dispatch_timeline_events SET deleted_at = NOW() \
+             WHERE flight_id = $1 AND timeline_id = $2 AND deleted_at IS NULL",
+        )
+        .bind(flight_id)
+        .bind(timeline_id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "flight_timeline_event", timeline_id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 }
 

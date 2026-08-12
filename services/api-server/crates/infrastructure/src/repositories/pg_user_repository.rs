@@ -12,6 +12,8 @@ use fms_domain::error::DomainError;
 use fms_domain::models::user::{Role, User};
 use fms_domain::ports::user_repository::UserRepository;
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgUserRepository {
     pool: PgPool,
 }
@@ -237,12 +239,19 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn delete(&self, user_id: &str) -> Result<bool, DomainError> {
-        let result = sqlx::query("DELETE FROM users WHERE id = $1")
-            .bind(user_id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：停用用户而非物理删除，行与关联数据全部保留
+        let result = sqlx::query(
+            "UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND is_active = TRUE",
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "user", user_id, "deactivate").await;
+        }
+        Ok(deleted)
     }
 
     async fn update_password(&self, user_id: &str, password_hash: &str) -> Result<bool, DomainError> {
@@ -275,7 +284,7 @@ impl PgUserRepository {
                       r.created_at, r.updated_at
                FROM roles r
                JOIN user_roles ur ON r.id = ur.role_id
-               WHERE ur.user_id = $1 AND r.is_active = TRUE"#,
+               WHERE ur.user_id = $1 AND ur.deleted_at IS NULL AND r.deleted_at IS NULL AND r.is_active = TRUE"#,
         )
         .bind(user_id)
         .fetch_all(&self.pool)
@@ -313,7 +322,7 @@ impl PgUserRepository {
                       r.created_at, r.updated_at
                FROM roles r
                JOIN user_roles ur ON r.id = ur.role_id
-               WHERE ur.user_id = ANY($1) AND r.is_active = TRUE"#,
+               WHERE ur.user_id = ANY($1) AND ur.deleted_at IS NULL AND r.deleted_at IS NULL AND r.is_active = TRUE"#,
         )
         .bind(user_ids)
         .fetch_all(&self.pool)
@@ -351,7 +360,7 @@ impl PgUserRepository {
             r#"SELECT rp.role_id, p.name
                FROM permissions p
                JOIN role_permissions rp ON p.id = rp.permission_id
-               WHERE rp.role_id = ANY($1)"#,
+               WHERE rp.role_id = ANY($1) AND rp.deleted_at IS NULL AND p.deleted_at IS NULL"#,
         )
         .bind(role_ids)
         .fetch_all(&self.pool)

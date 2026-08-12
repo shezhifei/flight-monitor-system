@@ -6,6 +6,8 @@ AIP Ontology 自定义配置 Repository 实现
 
 from typing import TYPE_CHECKING, Any
 
+from src.infrastructure.database.soft_delete_audit import record_soft_delete
+
 from src.domain.models.aip_ontology_models import (
     AIPFunction,
     ConstraintDefinition,
@@ -42,7 +44,7 @@ class AIPOntologyRepository:
         """获取所有对象定义"""
         query = """
             SELECT * FROM aip_ontology_objects
-            WHERE (is_active = TRUE OR %s = TRUE)
+            WHERE (is_active = TRUE OR %s = TRUE) AND deleted_at IS NULL
             ORDER BY name
             LIMIT %s OFFSET %s
         """
@@ -53,7 +55,7 @@ class AIPOntologyRepository:
 
     async def get_object_by_id(self, id: str) -> OntologyObjectDefinition | None:
         """根据ID获取对象定义"""
-        query = "SELECT * FROM aip_ontology_objects WHERE id = %s"
+        query = "SELECT * FROM aip_ontology_objects WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (id,))
             row = await cursor.fetchone()
@@ -61,7 +63,7 @@ class AIPOntologyRepository:
 
     async def get_object_by_name(self, name: str) -> OntologyObjectDefinition | None:
         """根据名称获取对象定义"""
-        query = "SELECT * FROM aip_ontology_objects WHERE name = %s"
+        query = "SELECT * FROM aip_ontology_objects WHERE name = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (name,))
             row = await cursor.fetchone()
@@ -90,6 +92,7 @@ class AIPOntologyRepository:
                 tags = EXCLUDED.tags,
                 metadata = EXCLUDED.metadata,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
         """
         import json
@@ -115,11 +118,14 @@ class AIPOntologyRepository:
         return obj
 
     async def delete_object(self, id: str) -> bool:
-        """删除对象定义"""
-        query = "DELETE FROM aip_ontology_objects WHERE id = %s"
+        """删除对象定义（审计要求软删除：仅标记 deleted_at，行保留）"""
+        query = "UPDATE aip_ontology_objects SET deleted_at = NOW(), updated_at = NOW() WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn:
             result = await conn.execute(query, (id,))
-            return result > 0 if result else False
+            if result and result > 0:
+                await record_soft_delete(conn, "aip_ontology_object", id)
+                return True
+            return False
 
 
 class AIPActionRepository:
@@ -136,7 +142,7 @@ class AIPActionRepository:
         offset: int = 0,
     ) -> list[OntologyActionDefinition]:
         """获取所有动作定义"""
-        conditions = ["(is_active = TRUE OR %s = TRUE)"]
+        conditions = ["deleted_at IS NULL", "(is_active = TRUE OR %s = TRUE)"]
         params: list[Any] = [include_inactive]
 
         if object_type:
@@ -159,7 +165,7 @@ class AIPActionRepository:
 
     async def get_action_by_id(self, id: str) -> OntologyActionDefinition | None:
         """根据ID获取动作定义"""
-        query = "SELECT * FROM aip_ontology_actions WHERE id = %s"
+        query = "SELECT * FROM aip_ontology_actions WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (id,))
             row = await cursor.fetchone()
@@ -167,7 +173,10 @@ class AIPActionRepository:
 
     async def get_action_by_object_action(self, object_type: str, action_name: str) -> OntologyActionDefinition | None:
         """根据对象类型和动作名称获取动作定义"""
-        query = "SELECT * FROM aip_ontology_actions WHERE object_type = %s AND name = %s"
+        query = (
+            "SELECT * FROM aip_ontology_actions "
+            "WHERE object_type = %s AND name = %s AND deleted_at IS NULL"
+        )
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (object_type, action_name))
             row = await cursor.fetchone()
@@ -197,6 +206,7 @@ class AIPActionRepository:
                 constraint_rules = EXCLUDED.constraint_rules,
                 metadata = EXCLUDED.metadata,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
         """
         params = {
@@ -220,11 +230,14 @@ class AIPActionRepository:
         return action
 
     async def delete_action(self, id: str) -> bool:
-        """删除动作定义"""
-        query = "DELETE FROM aip_ontology_actions WHERE id = %s"
+        """删除动作定义（审计要求软删除：仅标记 deleted_at，行保留）"""
+        query = "UPDATE aip_ontology_actions SET deleted_at = NOW(), updated_at = NOW() WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn:
             result = await conn.execute(query, (id,))
-            return result > 0 if result else False
+            if result and result > 0:
+                await record_soft_delete(conn, "aip_ontology_action", id)
+                return True
+            return False
 
 
 class AIPPolicyRepository:
@@ -241,7 +254,7 @@ class AIPPolicyRepository:
         offset: int = 0,
     ) -> list[ObjectPolicy]:
         """获取所有策略"""
-        conditions = []
+        conditions = ["deleted_at IS NULL"]
         params: list[Any] = []
 
         if principal_id:
@@ -251,7 +264,7 @@ class AIPPolicyRepository:
             conditions.append("object_type = %s")
             params.append(object_type)
 
-        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        where_clause = " AND ".join(conditions)
 
         query = f"""
             SELECT * FROM aip_object_policies
@@ -268,7 +281,7 @@ class AIPPolicyRepository:
 
     async def get_policy_by_id(self, id: str) -> ObjectPolicy | None:
         """根据ID获取策略"""
-        query = "SELECT * FROM aip_object_policies WHERE id = %s"
+        query = "SELECT * FROM aip_object_policies WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (id,))
             row = await cursor.fetchone()
@@ -296,6 +309,7 @@ class AIPPolicyRepository:
                 conditions = EXCLUDED.conditions,
                 description = EXCLUDED.description,
                 expires_at = EXCLUDED.expires_at,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
         """
         params = {
@@ -320,11 +334,14 @@ class AIPPolicyRepository:
         return policy
 
     async def delete_policy(self, id: str) -> bool:
-        """删除策略"""
-        query = "DELETE FROM aip_object_policies WHERE id = %s"
+        """删除策略（审计要求软删除：仅标记 deleted_at，行保留）"""
+        query = "UPDATE aip_object_policies SET deleted_at = NOW(), updated_at = NOW() WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn:
             result = await conn.execute(query, (id,))
-            return result > 0 if result else False
+            if result and result > 0:
+                await record_soft_delete(conn, "aip_object_policy", id)
+                return True
+            return False
 
 
 class AIPFunctionRepository:
@@ -342,7 +359,7 @@ class AIPFunctionRepository:
         offset: int = 0,
     ) -> list[AIPFunction]:
         """获取所有函数"""
-        conditions = ["(is_active = TRUE OR %s = TRUE)"]
+        conditions = ["deleted_at IS NULL", "(is_active = TRUE OR %s = TRUE)"]
         params: list[Any] = [include_inactive]
 
         if object_type:
@@ -368,7 +385,7 @@ class AIPFunctionRepository:
 
     async def get_function_by_id(self, id: str) -> AIPFunction | None:
         """根据ID获取函数"""
-        query = "SELECT * FROM aip_functions WHERE id = %s"
+        query = "SELECT * FROM aip_functions WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (id,))
             row = await cursor.fetchone()
@@ -376,7 +393,7 @@ class AIPFunctionRepository:
 
     async def get_function_by_name(self, name: str) -> AIPFunction | None:
         """根据名称获取函数"""
-        query = "SELECT * FROM aip_functions WHERE name = %s"
+        query = "SELECT * FROM aip_functions WHERE name = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (name,))
             row = await cursor.fetchone()
@@ -412,6 +429,7 @@ class AIPFunctionRepository:
                 examples = EXCLUDED.examples,
                 metadata = EXCLUDED.metadata,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
         """
         params = {
@@ -438,11 +456,14 @@ class AIPFunctionRepository:
         return func
 
     async def delete_function(self, id: str) -> bool:
-        """删除函数"""
-        query = "DELETE FROM aip_functions WHERE id = %s"
+        """删除函数（审计要求软删除：仅标记 deleted_at，行保留）"""
+        query = "UPDATE aip_functions SET deleted_at = NOW(), updated_at = NOW() WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn:
             result = await conn.execute(query, (id,))
-            return result > 0 if result else False
+            if result and result > 0:
+                await record_soft_delete(conn, "aip_function", id)
+                return True
+            return False
 
 
 class AIPToolMappingRepository:
@@ -460,7 +481,7 @@ class AIPToolMappingRepository:
         offset: int = 0,
     ) -> list[ToolMapping]:
         """获取所有工具映射"""
-        conditions = ["(is_active = TRUE OR %s = TRUE)"]
+        conditions = ["deleted_at IS NULL", "(is_active = TRUE OR %s = TRUE)"]
         params: list[Any] = [include_inactive]
 
         if object_type:
@@ -486,7 +507,7 @@ class AIPToolMappingRepository:
 
     async def get_mapping_by_id(self, id: str) -> ToolMapping | None:
         """根据ID获取映射"""
-        query = "SELECT * FROM aip_tool_mappings WHERE id = %s"
+        query = "SELECT * FROM aip_tool_mappings WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (id,))
             row = await cursor.fetchone()
@@ -494,7 +515,7 @@ class AIPToolMappingRepository:
 
     async def get_mapping_by_tool_name(self, tool_name: str) -> ToolMapping | None:
         """根据工具名称获取映射"""
-        query = "SELECT * FROM aip_tool_mappings WHERE tool_name = %s"
+        query = "SELECT * FROM aip_tool_mappings WHERE tool_name = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (tool_name,))
             row = await cursor.fetchone()
@@ -524,6 +545,7 @@ class AIPToolMappingRepository:
                 custom_handler = EXCLUDED.custom_handler,
                 metadata = EXCLUDED.metadata,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
         """
         params = {
@@ -546,11 +568,14 @@ class AIPToolMappingRepository:
         return mapping
 
     async def delete_mapping(self, id: str) -> bool:
-        """删除工具映射"""
-        query = "DELETE FROM aip_tool_mappings WHERE id = %s"
+        """删除工具映射（审计要求软删除：仅标记 deleted_at，行保留）"""
+        query = "UPDATE aip_tool_mappings SET deleted_at = NOW(), updated_at = NOW() WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn:
             result = await conn.execute(query, (id,))
-            return result > 0 if result else False
+            if result and result > 0:
+                await record_soft_delete(conn, "aip_tool_mapping", id)
+                return True
+            return False
 
 
 class AIPConstraintRepository:
@@ -568,7 +593,7 @@ class AIPConstraintRepository:
         offset: int = 0,
     ) -> list[ConstraintDefinition]:
         """获取所有约束"""
-        conditions = ["(is_active = TRUE OR %s = TRUE)"]
+        conditions = ["deleted_at IS NULL", "(is_active = TRUE OR %s = TRUE)"]
         params: list[Any] = [include_inactive]
 
         if object_type:
@@ -594,7 +619,7 @@ class AIPConstraintRepository:
 
     async def get_constraint_by_id(self, id: str) -> ConstraintDefinition | None:
         """根据ID获取约束"""
-        query = "SELECT * FROM aip_constraints WHERE id = %s"
+        query = "SELECT * FROM aip_constraints WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (id,))
             row = await cursor.fetchone()
@@ -621,6 +646,7 @@ class AIPConstraintRepository:
                 severity = EXCLUDED.severity,
                 metadata = EXCLUDED.metadata,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
         """
         params = {
@@ -643,8 +669,11 @@ class AIPConstraintRepository:
         return constraint
 
     async def delete_constraint(self, id: str) -> bool:
-        """删除约束"""
-        query = "DELETE FROM aip_constraints WHERE id = %s"
+        """删除约束（审计要求软删除：仅标记 deleted_at，行保留）"""
+        query = "UPDATE aip_constraints SET deleted_at = NOW(), updated_at = NOW() WHERE id = %s AND deleted_at IS NULL"
         async with self._db_pool.connection_context() as conn:
             result = await conn.execute(query, (id,))
-            return result > 0 if result else False
+            if result and result > 0:
+                await record_soft_delete(conn, "aip_constraint", id)
+                return True
+            return False

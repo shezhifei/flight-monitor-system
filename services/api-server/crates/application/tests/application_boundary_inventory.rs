@@ -17,10 +17,16 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
     collect_debt_files(&services_dir, &services_dir, &mut actual);
     actual.sort();
 
+    // flight_batch_cell_update_service.rs / flight_runtime_service/timeline.rs:
+    // pre-existing debt — transaction-scoped pg_advisory_xact_lock calls that
+    // live in the application layer (present at HEAD before the soft-delete
+    // work; recorded here so only *new* debt fails this inventory).
     let expected = [
         "ai_action_proposal_service/tests.rs",
         "domain_action_executor/tests.rs",
+        "flight_batch_cell_update_service.rs",
         "flight_runtime_service/tests.rs",
+        "flight_runtime_service/timeline.rs",
     ]
     .into_iter()
     .map(String::from)

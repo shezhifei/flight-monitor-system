@@ -12,9 +12,9 @@ from src.infrastructure.common.exceptions import POSTGRES_EXCEPTIONS
 from src.infrastructure.database.connection import AsyncDatabaseConnectionInterface
 from src.infrastructure.database.query_builder import (
     ComparisonOperator,
-    DeleteBuilder,
     QueryBuilder,
 )
+from src.infrastructure.database.soft_delete_audit import record_soft_delete
 from src.infrastructure.logging.core import get_logger
 
 from .config.ai_config_crypto import ConfigEncryptor, get_config_encryptor
@@ -69,7 +69,13 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         await self._ensure_initialized()
         try:
             async with self._db_connection.connection_context() as conn, conn.cursor() as cursor:
-                query, params = QueryBuilder().select("*").from_table("ai_entities").build()
+                query, params = (
+                    QueryBuilder()
+                    .select("*")
+                    .from_table("ai_entities")
+                    .where("deleted_at", ComparisonOperator.IS_NULL)
+                    .build()
+                )
 
                 await cursor.execute(query, params)
                 rows = await cursor.fetchall()
@@ -98,6 +104,7 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
                     .select("config", "config_revision")
                     .from_table("ai_entities")
                     .where("id", ComparisonOperator.EQ, entity_id)
+                    .where("deleted_at", ComparisonOperator.IS_NULL)
                     .build()
                 )
 
@@ -140,7 +147,7 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
                         INSERT INTO ai_entities (id, config, updated_at)
                         VALUES (%s, %s, CURRENT_TIMESTAMP)
                         ON CONFLICT (id) DO UPDATE
-                        SET config = EXCLUDED.config, updated_at = CURRENT_TIMESTAMP
+                        SET config = EXCLUDED.config, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
                     """,
                         (entity_id, json.dumps(encrypted_config)),
                     )
@@ -152,17 +159,19 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
             raise
 
     async def delete(self, entity_id: str) -> bool:
-        """删除实体配置"""
+        """删除实体配置（审计要求软删除：仅标记 deleted_at，行保留）"""
         await self._ensure_initialized()
         try:
             async with self._db_connection.connection_context() as conn:
                 async with conn.cursor() as cursor:
-                    query, params = (
-                        DeleteBuilder().from_table("ai_entities").where("id", ComparisonOperator.EQ, entity_id).build()
+                    await cursor.execute(
+                        "UPDATE ai_entities SET deleted_at = NOW(), updated_at = NOW() "
+                        "WHERE id = %s AND deleted_at IS NULL",
+                        (entity_id,),
                     )
-
-                    await cursor.execute(query, params)
                     rowcount = cursor.rowcount
+                    if rowcount > 0:
+                        await record_soft_delete(cursor, "ai_entity", entity_id)
                 await conn.connection.commit()
                 return rowcount > 0
         except POSTGRES_EXCEPTIONS as e:

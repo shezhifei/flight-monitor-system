@@ -8,6 +8,8 @@ use fms_domain::error::DomainError;
 use fms_domain::models::ai_entity_config::AiEntityConfigRecord;
 use fms_domain::ports::ai_entity_config_repository::AiEntityConfigRepository;
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgAiEntityConfigRepository {
     pool: PgPool,
 }
@@ -24,7 +26,8 @@ impl PgAiEntityConfigRepository {
                 id TEXT PRIMARY KEY,
                 config JSONB NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                deleted_at TIMESTAMPTZ
             )
             "#,
         )
@@ -75,6 +78,7 @@ impl AiEntityConfigRepository for PgAiEntityConfigRepository {
             r#"
             SELECT id, config, created_at, updated_at
             FROM ai_entities
+            WHERE deleted_at IS NULL
             ORDER BY id ASC
             "#,
         )
@@ -90,7 +94,7 @@ impl AiEntityConfigRepository for PgAiEntityConfigRepository {
             r#"
             SELECT id, config, created_at, updated_at
             FROM ai_entities
-            WHERE id = $1
+            WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -109,6 +113,7 @@ impl AiEntityConfigRepository for PgAiEntityConfigRepository {
             VALUES ($1, $2::jsonb, $3)
             ON CONFLICT (id) DO UPDATE SET
                 config = EXCLUDED.config,
+                deleted_at = NULL,
                 updated_at = EXCLUDED.updated_at
             RETURNING id, config, created_at, updated_at
             "#,
@@ -124,12 +129,20 @@ impl AiEntityConfigRepository for PgAiEntityConfigRepository {
 
     async fn delete(&self, id: &str) -> Result<bool, DomainError> {
         self.ensure_schema().await?;
-        let result = sqlx::query("DELETE FROM ai_entities WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|error| DomainError::Internal(error.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE ai_entities SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE id = $1 AND deleted_at IS NULL",
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "ai_entity", id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 }
 

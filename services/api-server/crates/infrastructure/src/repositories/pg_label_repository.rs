@@ -7,6 +7,8 @@ use fms_domain::error::DomainError;
 use fms_domain::models::label::{LabelCategory, LabelDefinition, LabelScope};
 use fms_domain::ports::label_repository::{CreateLabelDefinitionParams, LabelRepository, UpdateLabelDefinitionParams};
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgLabelRepository {
     pool: PgPool,
 }
@@ -25,10 +27,11 @@ impl LabelRepository for PgLabelRepository {
             SELECT label_id, code, name, color, icon, scope, category,
                    is_active, sort_order, created_by, created_at, updated_at
             FROM label_definitions
+            WHERE deleted_at IS NULL
             "#,
         );
         if active_only {
-            builder.push(" WHERE is_active = TRUE");
+            builder.push(" AND is_active = TRUE");
         }
         builder.push(" ORDER BY sort_order ASC, created_at ASC");
 
@@ -46,7 +49,7 @@ impl LabelRepository for PgLabelRepository {
             SELECT label_id, code, name, color, icon, scope, category,
                    is_active, sort_order, created_by, created_at, updated_at
             FROM label_definitions
-            WHERE code = $1
+            WHERE code = $1 AND deleted_at IS NULL
             "#,
         )
         .bind(code)
@@ -121,7 +124,7 @@ impl LabelRepository for PgLabelRepository {
             builder.push(", sort_order = ");
             builder.push_bind(sort_order);
         }
-        builder.push(" WHERE label_id = ");
+        builder.push(" WHERE deleted_at IS NULL AND label_id = ");
         builder.push_bind(label_id);
 
         let result = builder
@@ -133,12 +136,20 @@ impl LabelRepository for PgLabelRepository {
     }
 
     async fn delete_definition(&self, label_id: &str) -> Result<bool, DomainError> {
-        let result = sqlx::query("DELETE FROM label_definitions WHERE label_id = $1 AND category = 'custom'")
-            .bind(label_id)
-            .execute(&self.pool)
-            .await
-            .map_err(|error| DomainError::Internal(error.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE label_definitions SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE label_id = $1 AND category = 'custom' AND deleted_at IS NULL",
+        )
+        .bind(label_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "label_definition", label_id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 
     async fn attach_flight_label(&self, flight_id: &str, code: &str) -> Result<(), DomainError> {
@@ -157,7 +168,7 @@ impl LabelRepository for PgLabelRepository {
                 ELSE labels
             END,
             updated_at = NOW()
-            WHERE flight_id = $2
+            WHERE flight_id = $2 AND deleted_at IS NULL
             "#,
         )
         .bind(&label_json)
@@ -168,14 +179,18 @@ impl LabelRepository for PgLabelRepository {
 
         match code {
             "quick_turnaround" => {
-                sqlx::query("UPDATE flights SET is_quick_turnaround = TRUE WHERE flight_id = $1")
+                sqlx::query(
+                    "UPDATE flights SET is_quick_turnaround = TRUE WHERE flight_id = $1 AND deleted_at IS NULL",
+                )
                     .bind(flight_id)
                     .execute(&mut *tx)
                     .await
                     .map_err(|error| DomainError::Internal(error.to_string()))?;
             }
             "boarding_restriction" => {
-                sqlx::query("UPDATE flights SET has_boarding_restriction = TRUE WHERE flight_id = $1")
+                sqlx::query(
+                    "UPDATE flights SET has_boarding_restriction = TRUE WHERE flight_id = $1 AND deleted_at IS NULL",
+                )
                     .bind(flight_id)
                     .execute(&mut *tx)
                     .await
@@ -202,7 +217,7 @@ impl LabelRepository for PgLabelRepository {
             UPDATE flights
             SET labels = labels - $1,
                 updated_at = NOW()
-            WHERE flight_id = $2
+            WHERE flight_id = $2 AND deleted_at IS NULL
             "#,
         )
         .bind(code)
@@ -213,14 +228,18 @@ impl LabelRepository for PgLabelRepository {
 
         match code {
             "quick_turnaround" => {
-                sqlx::query("UPDATE flights SET is_quick_turnaround = FALSE WHERE flight_id = $1")
+                sqlx::query(
+                    "UPDATE flights SET is_quick_turnaround = FALSE WHERE flight_id = $1 AND deleted_at IS NULL",
+                )
                     .bind(flight_id)
                     .execute(&mut *tx)
                     .await
                     .map_err(|error| DomainError::Internal(error.to_string()))?;
             }
             "boarding_restriction" => {
-                sqlx::query("UPDATE flights SET has_boarding_restriction = FALSE WHERE flight_id = $1")
+                sqlx::query(
+                    "UPDATE flights SET has_boarding_restriction = FALSE WHERE flight_id = $1 AND deleted_at IS NULL",
+                )
                     .bind(flight_id)
                     .execute(&mut *tx)
                     .await
@@ -251,7 +270,7 @@ impl LabelRepository for PgLabelRepository {
                 ELSE labels
             END,
             updated_at = NOW()
-            WHERE flight_id = $2 AND leg_type = $3
+            WHERE flight_id = $2 AND leg_type = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(&label_json)
@@ -262,7 +281,9 @@ impl LabelRepository for PgLabelRepository {
         .map_err(|error| DomainError::Internal(error.to_string()))?;
 
         if code == "vip" {
-            sqlx::query("UPDATE flight_legs SET is_vip = TRUE WHERE flight_id = $1 AND leg_type = $2")
+            sqlx::query(
+                "UPDATE flight_legs SET is_vip = TRUE WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL",
+            )
                 .bind(flight_id)
                 .bind(leg_type)
                 .execute(&mut *tx)
@@ -288,7 +309,7 @@ impl LabelRepository for PgLabelRepository {
             UPDATE flight_legs
             SET labels = labels - $1,
                 updated_at = NOW()
-            WHERE flight_id = $2 AND leg_type = $3
+            WHERE flight_id = $2 AND leg_type = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(code)
@@ -299,7 +320,9 @@ impl LabelRepository for PgLabelRepository {
         .map_err(|error| DomainError::Internal(error.to_string()))?;
 
         if code == "vip" {
-            sqlx::query("UPDATE flight_legs SET is_vip = FALSE WHERE flight_id = $1 AND leg_type = $2")
+            sqlx::query(
+                "UPDATE flight_legs SET is_vip = FALSE WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL",
+            )
                 .bind(flight_id)
                 .bind(leg_type)
                 .execute(&mut *tx)
@@ -314,7 +337,7 @@ impl LabelRepository for PgLabelRepository {
     }
 
     async fn get_flight_labels(&self, flight_id: &str) -> Result<Vec<String>, DomainError> {
-        let row = sqlx::query("SELECT labels FROM flights WHERE flight_id = $1")
+        let row = sqlx::query("SELECT labels FROM flights WHERE flight_id = $1 AND deleted_at IS NULL")
             .bind(flight_id)
             .fetch_optional(&self.pool)
             .await
@@ -331,7 +354,9 @@ impl LabelRepository for PgLabelRepository {
     }
 
     async fn get_leg_labels(&self, flight_id: &str, leg_type: &str) -> Result<Vec<String>, DomainError> {
-        let row = sqlx::query("SELECT labels FROM flight_legs WHERE flight_id = $1 AND leg_type = $2")
+        let row = sqlx::query(
+            "SELECT labels FROM flight_legs WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL",
+        )
             .bind(flight_id)
             .bind(leg_type)
             .fetch_optional(&self.pool)

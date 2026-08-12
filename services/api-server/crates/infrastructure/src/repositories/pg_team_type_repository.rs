@@ -21,7 +21,7 @@ impl PgTeamTypeRepository {
             r#"
             SELECT task_type
             FROM team_type_steps
-            WHERE team_type_id = $1
+            WHERE team_type_id = $1 AND deleted_at IS NULL
             ORDER BY priority DESC, task_type ASC
             "#,
         )
@@ -56,6 +56,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
                 color = EXCLUDED.color,
                 is_driver_type = EXCLUDED.is_driver_type,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -71,19 +72,26 @@ impl TeamTypeRepository for PgTeamTypeRepository {
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
 
-        sqlx::query("DELETE FROM team_type_steps WHERE team_type_id = $1")
-            .bind(&team_type.id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
+        sqlx::query(
+            "UPDATE team_type_steps SET deleted_at = NOW() WHERE team_type_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(&team_type.id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
 
         if !team_type.task_types.is_empty() {
-            let mut query_builder =
-                QueryBuilder::<Postgres>::new("INSERT INTO team_type_steps (team_type_id, task_type, priority) ");
+            let mut query_builder = QueryBuilder::<Postgres>::new(
+                "INSERT INTO team_type_steps (team_type_id, task_type, priority) ",
+            );
             query_builder.push_values(&team_type.task_types, |mut b, task_type| {
                 let priority = team_type.task_types.len() as i32;
                 b.push_bind(&team_type.id).push_bind(task_type).push_bind(priority);
             });
+            query_builder.push(
+                " ON CONFLICT (team_type_id, task_type) DO UPDATE SET \
+                 priority = EXCLUDED.priority, deleted_at = NULL",
+            );
             query_builder
                 .build()
                 .execute(&mut *tx)
@@ -105,7 +113,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
             r#"
             SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active
             FROM team_types
-            WHERE id = $1
+            WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -124,7 +132,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
 
     async fn find_all(&self, include_inactive: bool, limit: i64, offset: i64) -> Result<Vec<TeamType>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active FROM team_types WHERE 1=1",
+            "SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active FROM team_types WHERE deleted_at IS NULL",
         );
         if !include_inactive {
             builder.push(" AND is_active = TRUE");
@@ -147,7 +155,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
 
         let ids: Vec<String> = rows.iter().map(|row| row.get("id")).collect();
         let task_type_rows = sqlx::query(
-            "SELECT team_type_id, task_type FROM team_type_steps WHERE team_type_id = ANY($1) ORDER BY priority DESC, task_type ASC",
+            "SELECT team_type_id, task_type FROM team_type_steps WHERE team_type_id = ANY($1) AND deleted_at IS NULL ORDER BY priority DESC, task_type ASC",
         )
         .bind(&ids)
         .fetch_all(&self.pool)
@@ -182,7 +190,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
                    tt.color, tt.is_driver_type, tt.created_at, tt.updated_at, tt.is_active
             FROM team_types tt
             INNER JOIN team_type_steps tts ON tts.team_type_id = tt.id
-            WHERE tts.task_type = $1 AND tt.is_active = TRUE
+            WHERE tts.task_type = $1 AND tts.deleted_at IS NULL AND tt.deleted_at IS NULL AND tt.is_active = TRUE
             ORDER BY tts.priority DESC, tt.name
             "#,
         )
@@ -197,7 +205,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
 
         let ids: Vec<String> = rows.iter().map(|row| row.get("id")).collect();
         let task_type_rows = sqlx::query(
-            "SELECT team_type_id, task_type FROM team_type_steps WHERE team_type_id = ANY($1) ORDER BY priority DESC, task_type ASC",
+            "SELECT team_type_id, task_type FROM team_type_steps WHERE team_type_id = ANY($1) AND deleted_at IS NULL ORDER BY priority DESC, task_type ASC",
         )
         .bind(&ids)
         .fetch_all(&self.pool)
@@ -230,7 +238,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
             r#"
             UPDATE team_types
             SET is_active = $2, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1
+            WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
         .bind(id)

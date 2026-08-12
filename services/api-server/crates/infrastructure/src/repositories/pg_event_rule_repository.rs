@@ -12,6 +12,8 @@ use fms_domain::ports::event_rule_repository::{
     ListAdjustmentRulesParams, ListGenerationRulesParams,
 };
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgEventRuleRepository {
     pool: PgPool,
 }
@@ -94,7 +96,7 @@ impl EventRuleRepository for PgEventRuleRepository {
                    r.created_at, r.updated_at, r.created_by
             FROM dispatch_order_adjustment_rules r
             LEFT JOIN departments d ON r.department_id = d.id
-            WHERE 1=1
+            WHERE r.deleted_at IS NULL
             "#,
         );
 
@@ -140,7 +142,9 @@ impl EventRuleRepository for PgEventRuleRepository {
     }
 
     async fn count_adjustment_rules(&self, params: &ListAdjustmentRulesParams) -> Result<i64, DomainError> {
-        let mut query = String::from("SELECT COUNT(*) FROM dispatch_order_adjustment_rules WHERE 1=1");
+        let mut query = String::from(
+            "SELECT COUNT(*) FROM dispatch_order_adjustment_rules WHERE deleted_at IS NULL",
+        );
 
         let q;
         if let Some(enabled) = params.is_enabled {
@@ -167,7 +171,7 @@ impl EventRuleRepository for PgEventRuleRepository {
                    r.created_at, r.updated_at, r.created_by
             FROM dispatch_order_adjustment_rules r
             LEFT JOIN departments d ON r.department_id = d.id
-            WHERE r.id = $1
+            WHERE r.id = $1 AND r.deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -294,7 +298,7 @@ impl EventRuleRepository for PgEventRuleRepository {
         param_idx += 1;
 
         let query = format!(
-            "UPDATE dispatch_order_adjustment_rules SET {} WHERE id = ${}",
+            "UPDATE dispatch_order_adjustment_rules SET {} WHERE id = ${} AND deleted_at IS NULL",
             updates.join(", "),
             param_idx
         );
@@ -344,17 +348,27 @@ impl EventRuleRepository for PgEventRuleRepository {
     }
 
     async fn delete_adjustment_rule(&self, id: &str) -> Result<(), DomainError> {
-        sqlx::query("DELETE FROM dispatch_order_adjustment_rules WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE dispatch_order_adjustment_rules SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE id = $1 AND deleted_at IS NULL",
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if result.rows_affected() > 0 {
+            record_soft_delete(&self.pool, "dispatch_order_adjustment_rule", id, "soft_delete").await;
+        }
         Ok(())
     }
 
     async fn set_adjustment_rule_enabled(&self, id: &str, enabled: bool) -> Result<AdjustmentRuleRecord, DomainError> {
         let now = Utc::now();
-        sqlx::query("UPDATE dispatch_order_adjustment_rules SET is_enabled = $1, updated_at = $2 WHERE id = $3")
+        sqlx::query(
+            "UPDATE dispatch_order_adjustment_rules SET is_enabled = $1, updated_at = $2 \
+             WHERE id = $3 AND deleted_at IS NULL",
+        )
             .bind(enabled)
             .bind(now)
             .bind(id)
@@ -382,7 +396,7 @@ impl EventRuleRepository for PgEventRuleRepository {
                    r.created_at, r.updated_at, r.created_by
             FROM event_driven_dispatch_generation_rules r
             LEFT JOIN departments d ON r.department_id = d.id
-            WHERE 1=1
+            WHERE r.deleted_at IS NULL
             "#,
         );
 
@@ -428,7 +442,9 @@ impl EventRuleRepository for PgEventRuleRepository {
     }
 
     async fn count_generation_rules(&self, params: &ListGenerationRulesParams) -> Result<i64, DomainError> {
-        let mut query = String::from("SELECT COUNT(*) FROM event_driven_dispatch_generation_rules WHERE 1=1");
+        let mut query = String::from(
+            "SELECT COUNT(*) FROM event_driven_dispatch_generation_rules WHERE deleted_at IS NULL",
+        );
 
         let q;
         if let Some(enabled) = params.is_enabled {
@@ -455,7 +471,7 @@ impl EventRuleRepository for PgEventRuleRepository {
                    r.created_at, r.updated_at, r.created_by
             FROM event_driven_dispatch_generation_rules r
             LEFT JOIN departments d ON r.department_id = d.id
-            WHERE r.id = $1
+            WHERE r.id = $1 AND r.deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -569,7 +585,7 @@ impl EventRuleRepository for PgEventRuleRepository {
         param_idx += 1;
 
         let query = format!(
-            "UPDATE event_driven_dispatch_generation_rules SET {} WHERE id = ${}",
+            "UPDATE event_driven_dispatch_generation_rules SET {} WHERE id = ${} AND deleted_at IS NULL",
             updates.join(", "),
             param_idx
         );
@@ -620,17 +636,27 @@ impl EventRuleRepository for PgEventRuleRepository {
     }
 
     async fn delete_generation_rule(&self, id: &str) -> Result<(), DomainError> {
-        sqlx::query("DELETE FROM event_driven_dispatch_generation_rules WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE event_driven_dispatch_generation_rules SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE id = $1 AND deleted_at IS NULL",
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if result.rows_affected() > 0 {
+            record_soft_delete(&self.pool, "event_driven_dispatch_generation_rule", id, "soft_delete").await;
+        }
         Ok(())
     }
 
     async fn set_generation_rule_enabled(&self, id: &str, enabled: bool) -> Result<GenerationRuleRecord, DomainError> {
         let now = Utc::now();
-        sqlx::query("UPDATE event_driven_dispatch_generation_rules SET is_enabled = $1, updated_at = $2 WHERE id = $3")
+        sqlx::query(
+            "UPDATE event_driven_dispatch_generation_rules SET is_enabled = $1, updated_at = $2 \
+             WHERE id = $3 AND deleted_at IS NULL",
+        )
             .bind(enabled)
             .bind(now)
             .bind(id)

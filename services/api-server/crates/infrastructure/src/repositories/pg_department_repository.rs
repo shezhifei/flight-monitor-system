@@ -7,6 +7,8 @@ use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::Department;
 use fms_domain::ports::dispatch_repository::DepartmentRepository;
 
+use super::soft_delete_audit::record_soft_delete;
+
 pub struct PgDepartmentRepository {
     pool: PgPool,
 }
@@ -32,6 +34,7 @@ impl DepartmentRepository for PgDepartmentRepository {
                 manager_id = EXCLUDED.manager_id,
                 terminal = EXCLUDED.terminal,
                 is_active = EXCLUDED.is_active,
+                deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -56,7 +59,7 @@ impl DepartmentRepository for PgDepartmentRepository {
             r#"
             SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active
             FROM departments
-            WHERE id = $1
+            WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -72,7 +75,7 @@ impl DepartmentRepository for PgDepartmentRepository {
             r#"
             SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active
             FROM departments
-            WHERE name = $1
+            WHERE name = $1 AND deleted_at IS NULL
             LIMIT 1
             "#,
         )
@@ -86,7 +89,7 @@ impl DepartmentRepository for PgDepartmentRepository {
 
     async fn find_all(&self, include_inactive: bool, limit: i64, offset: i64) -> Result<Vec<Department>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active FROM departments WHERE 1=1",
+            "SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active FROM departments WHERE deleted_at IS NULL",
         );
         if !include_inactive {
             builder.push(" AND is_active = TRUE");
@@ -136,12 +139,20 @@ impl DepartmentRepository for PgDepartmentRepository {
     }
 
     async fn delete_permanently(&self, department_id: &str) -> Result<bool, DomainError> {
-        let result = sqlx::query("DELETE FROM departments WHERE id = $1")
-            .bind(department_id)
-            .execute(&self.pool)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
-        Ok(result.rows_affected() > 0)
+        // 审计要求软删除：仅标记 deleted_at，行保留
+        let result = sqlx::query(
+            "UPDATE departments SET deleted_at = NOW(), updated_at = NOW() \
+             WHERE id = $1 AND deleted_at IS NULL",
+        )
+        .bind(department_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        let deleted = result.rows_affected() > 0;
+        if deleted {
+            record_soft_delete(&self.pool, "department", department_id, "soft_delete").await;
+        }
+        Ok(deleted)
     }
 }
 

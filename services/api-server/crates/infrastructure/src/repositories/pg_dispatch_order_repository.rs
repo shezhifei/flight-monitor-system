@@ -27,6 +27,25 @@ impl PgDispatchOrderRepository {
     }
 
     async fn save_order_in_tx(tx: &mut Transaction<'_, Postgres>, order: &DispatchOrder) -> Result<(), DomainError> {
+        // FK 移除后的应用层兜底校验（spec §3.2.6）：父航班必须存在且未软删
+        let flight_id = order.flight_id.as_str();
+        if flight_id.is_empty() {
+            return Err(DomainError::ValidationError(
+                "无法创建派工单：flight_id 不能为空".into(),
+            ));
+        }
+        let flight_active: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM flights WHERE flight_id = $1 AND deleted_at IS NULL)",
+        )
+        .bind(flight_id)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if !flight_active {
+            return Err(DomainError::ValidationError(format!(
+                "无法创建派工单：父航班 {flight_id} 不存在或已删除"
+            )));
+        }
         sqlx::query(
             r#"
                 INSERT INTO dispatch_orders (

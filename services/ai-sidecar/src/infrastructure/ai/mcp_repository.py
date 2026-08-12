@@ -91,13 +91,13 @@ class PostgresMcpRepository(McpRepository):
         self._pool = pool
 
     async def find_all_servers(self) -> list[dict[str, Any]]:
-        query = "SELECT * FROM ai_mcp_servers ORDER BY server_id"
+        query = "SELECT * FROM ai_mcp_servers WHERE deleted_at IS NULL ORDER BY server_id"
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(query)
             return [_decode_row_jsonb(dict(row)) for row in rows]
 
     async def find_server_by_id(self, server_id: str) -> dict[str, Any] | None:
-        query = "SELECT * FROM ai_mcp_servers WHERE server_id = $1"
+        query = "SELECT * FROM ai_mcp_servers WHERE server_id = $1 AND deleted_at IS NULL"
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(query, server_id)
             return _decode_row_jsonb(dict(row)) if row else None
@@ -125,6 +125,7 @@ class PostgresMcpRepository(McpRepository):
                 startup_timeout_seconds = EXCLUDED.startup_timeout_seconds,
                 max_concurrency = EXCLUDED.max_concurrency,
                 status = EXCLUDED.status,
+                deleted_at = NULL,
                 updated_at = now()
             RETURNING *
         """
@@ -148,10 +149,17 @@ class PostgresMcpRepository(McpRepository):
             return _decode_row_jsonb(dict(row))
 
     async def delete_server(self, server_id: str) -> bool:
-        query = "DELETE FROM ai_mcp_servers WHERE server_id = $1"
+        # 审计要求软删除：仅标记 deleted_at，行保留
+        query = (
+            "UPDATE ai_mcp_servers SET deleted_at = now(), updated_at = now() "
+            "WHERE server_id = $1 AND deleted_at IS NULL"
+        )
         async with self._pool.acquire() as conn:
             result = await conn.execute(query, server_id)
-            return result == "DELETE 1"
+            deleted = result == "UPDATE 1"
+            if deleted:
+                await _write_soft_delete_audit(conn, "ai_mcp_server", server_id)
+            return deleted
 
     async def get_capabilities(self, server_id: str) -> dict[str, Any] | None:
         query = "SELECT * FROM ai_mcp_server_capabilities WHERE server_id = $1"
@@ -193,7 +201,7 @@ class PostgresMcpRepository(McpRepository):
     async def find_bindings_by_entity(self, entity_id: str) -> list[dict[str, Any]]:
         query = """
             SELECT * FROM ai_entity_mcp_bindings
-            WHERE entity_id = $1
+            WHERE entity_id = $1 AND deleted_at IS NULL
             ORDER BY binding_id
         """
         async with self._pool.acquire() as conn:
@@ -218,6 +226,7 @@ class PostgresMcpRepository(McpRepository):
                 allowed_resources = EXCLUDED.allowed_resources,
                 allowed_prompts = EXCLUDED.allowed_prompts,
                 tool_defaults = EXCLUDED.tool_defaults,
+                deleted_at = NULL,
                 updated_at = now()
             RETURNING *
         """
@@ -237,7 +246,32 @@ class PostgresMcpRepository(McpRepository):
             return _decode_row_jsonb(dict(row))
 
     async def delete_binding(self, binding_id: str) -> bool:
-        query = "DELETE FROM ai_entity_mcp_bindings WHERE binding_id = $1"
+        # 审计要求软删除：仅标记 deleted_at，行保留
+        query = (
+            "UPDATE ai_entity_mcp_bindings SET deleted_at = now(), updated_at = now() "
+            "WHERE binding_id = $1 AND deleted_at IS NULL"
+        )
         async with self._pool.acquire() as conn:
             result = await conn.execute(query, binding_id)
-            return result == "DELETE 1"
+            deleted = result == "UPDATE 1"
+            if deleted:
+                await _write_soft_delete_audit(conn, "ai_entity_mcp_binding", binding_id)
+            return deleted
+
+
+async def _write_soft_delete_audit(conn, entity_type: str, entity_id: str) -> None:
+    """写入一条软删除审计记录（best-effort，失败仅记日志不阻断主流程）。"""
+    try:
+        await conn.execute(
+            "INSERT INTO system_audit_logs (entity_type, entity_id, action, changes) "
+            "VALUES ($1, $2, $3, $4)",
+            entity_type,
+            str(entity_id),
+            "soft_delete",
+            '{"reason": "soft_delete"}',
+        )
+    except Exception as e:  # noqa: BLE001 - 审计失败不阻断主流程
+        logger.warning(
+            "写入软删除审计失败 entity_type=%s entity_id=%s: %s", entity_type, entity_id, e
+        )
+
