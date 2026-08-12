@@ -64,7 +64,17 @@ pub async fn notification_read_all(client: &ApiClient) -> Result<(), CoreError> 
     Ok(())
 }
 
-/// `POST /api/v2/notifications/{id}/ack` — action is `ack` / `reject`.
+/// Backend only accepts `acknowledged` / `rejected` (see
+/// `routes/notifications/shared.rs`). Map the shorter UI verbs.
+pub fn normalize_ack_action(action: &str) -> String {
+    match action.trim().to_ascii_lowercase().as_str() {
+        "ack" | "acknowledge" | "acknowledged" => "acknowledged".to_string(),
+        "reject" | "rejected" => "rejected".to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// `POST /api/v2/notifications/{id}/ack` — `ack`/`reject` or full verbs.
 pub async fn notification_ack(
     client: &ApiClient,
     id: &str,
@@ -76,7 +86,7 @@ pub async fn notification_ack(
             "POST",
             &format!("/api/v2/notifications/{id}/ack"),
             Some(&NotificationAcknowledgeRequest {
-                action: action.to_string(),
+                action: normalize_ack_action(action),
                 note: note.map(str::to_string),
             }),
         )
@@ -113,3 +123,17 @@ pub async fn receipt_group(
 
 // Re-export for callers that need the item type after list.
 pub type ListedNotification = NotificationItem;
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_ack_action;
+
+    #[test]
+    fn ack_verbs_normalize_to_backend_values() {
+        assert_eq!(normalize_ack_action("ack"), "acknowledged");
+        assert_eq!(normalize_ack_action("ACK"), "acknowledged");
+        assert_eq!(normalize_ack_action("acknowledged"), "acknowledged");
+        assert_eq!(normalize_ack_action("reject"), "rejected");
+        assert_eq!(normalize_ack_action("rejected"), "rejected");
+    }
+}

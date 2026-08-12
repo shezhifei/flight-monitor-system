@@ -383,4 +383,59 @@ mod tests {
             assert!((0.8..=1.2).contains(&f), "jitter out of bounds: {f}");
         }
     }
+
+    /// Plan §6 P2: after the server closes, the connector must reconnect
+    /// (Connecting → Connected again) and deliver a later event.
+    #[tokio::test]
+    async fn reconnects_after_server_closes() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            for n in 0..2 {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut buf = [0u8; 4096];
+                let _ = socket.read(&mut buf).await;
+                let body = format!("event: ping\ndata: {{\"n\":{n}}}\n\n");
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n{body}"
+                );
+                let _ = socket.write_all(resp.as_bytes()).await;
+            }
+        });
+
+        let connector = SseConnector::new(
+            default_client(),
+            format!("http://{addr}/api/v2/sse/stream"),
+            "token".to_string(),
+            None,
+        );
+        let mut rx = connector.start();
+
+        let mut connected = 0u32;
+        let mut events = Vec::new();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+        while tokio::time::Instant::now() < deadline && (connected < 2 || events.len() < 2) {
+            match tokio::time::timeout(
+                deadline.saturating_duration_since(tokio::time::Instant::now()),
+                rx.recv(),
+            )
+            .await
+            {
+                Ok(Some(SseUpdate::State(SseConnectionState::Connected))) => connected += 1,
+                Ok(Some(SseUpdate::Event(ev))) => events.push(ev.data),
+                Ok(Some(_)) => {}
+                Ok(None) | Err(_) => break,
+            }
+        }
+
+        assert!(
+            connected >= 2,
+            "expected reconnect to Connected twice, got {connected}; events={events:?}"
+        );
+        assert!(
+            events.iter().any(|d| d.contains("\"n\":0"))
+                && events.iter().any(|d| d.contains("\"n\":1")),
+            "expected both ping payloads after reconnect, got {events:?}"
+        );
+    }
 }

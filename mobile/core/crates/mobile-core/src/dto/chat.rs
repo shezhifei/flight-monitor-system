@@ -103,6 +103,7 @@ pub struct ChatReadResult {
     pub unread_count: i64,
     #[serde(default)]
     pub unread_total: i64,
+    #[serde(default, alias = "last_read_seq")]
     pub read_seq: Option<i64>,
     pub read_at: Option<String>,
 }
@@ -136,5 +137,13 @@ mod tests {
         let list: ChatMessageListResponse = serde_json::from_str(raw).unwrap();
         assert!(list.items.is_empty());
         assert!(!list.has_more);
+    }
+
+    #[test]
+    fn read_result_accepts_last_read_seq_alias() {
+        let raw = r#"{"group_id":"g1","last_read_seq":5,"unread_count":0,"unread_total":0}"#;
+        let got: ChatReadResult = serde_json::from_str(raw).unwrap();
+        assert_eq!(got.read_seq, Some(5));
+        assert_eq!(got.unread_count, 0);
     }
 }
