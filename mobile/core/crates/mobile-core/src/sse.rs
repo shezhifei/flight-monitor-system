@@ -208,13 +208,14 @@ fn path_and_query_of(url: &str) -> String {
 /// of the dependency tree).
 fn jitter_factor() -> f64 {
     let byte = uuid::Uuid::new_v4().as_bytes()[0];
-    0.8 + (f64::from(byte) / 255.0) * 0.4
+    // Clamp: f64 rounding can push the max to 1.2000000000000002.
+    (0.8 + (f64::from(byte) / 255.0) * 0.4).min(1.2)
 }
 
-/// Stable client User-Agent. The backend binds a `ua_hash` claim into access
-/// tokens at login (`middleware/jwt.rs::validate_client_context`), so login
-/// and every subsequent request MUST send the same UA.
-pub const CLIENT_USER_AGENT: &str = "FlightMonitorMobile/0.1 (Android; flutter)";
+/// Stable client User-Agent lives in `client.rs` (the backend binds a
+/// `ua_hash` claim into access tokens at login, so login, REST and SSE MUST
+/// all send the same UA). Re-exported here for existing callers.
+pub use crate::client::CLIENT_USER_AGENT;
 
 fn default_client() -> reqwest::Client {
     reqwest::Client::builder()
