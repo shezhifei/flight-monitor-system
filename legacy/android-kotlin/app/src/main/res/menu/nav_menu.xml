@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_dispatch"
+            android:icon="@drawable/ic_assignment"
+            android:title="派工闭环" />
+        <item
+            android:id="@+id/nav_chat"
+            android:icon="@drawable/ic_chat"
+            android:title="航班群聊" />
+        <item
+            android:id="@+id/nav_notification"
+            android:icon="@drawable/ic_notifications"
+            android:title="系统通知" />
+        <item
+            android:id="@+id/nav_operations"
+            android:icon="@drawable/ic_warning"
+            android:title="战情中心" />
+        <item
+            android:id="@+id/nav_business_case"
+            android:icon="@drawable/ic_assignment"
+            android:title="业务事项" />
+        <item
+            android:id="@+id/nav_handover"
+            android:icon="@drawable/ic_swap_horiz"
+            android:title="交接班" />
+        <item
+            android:id="@+id/nav_safety"
+            android:icon="@drawable/ic_verified_user"
+            android:title="安全检查" />
+    </group>
+
+    <item android:title="">
+        <menu>
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@drawable/ic_exit_to_app"
+                android:title="退出登录" />
+        </menu>
+    </item>
+</menu>

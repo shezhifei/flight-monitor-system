@@ -82,7 +82,7 @@
 | CI | `.github/workflows/mobile.yml` |
 | 执行计划 / 交接 | `docs/plans/android-flutter-rust-rebuild-plan.md`、`…-handoff.md` |
 | 端点回归清单 | `docs/plans/android-mobile-endpoint-checklist.md` |
-| 旧 Kotlin App 归档 | `frontend/backup/android-legacy/`（只读对拍，不再修改） |
+| 旧 Kotlin App 归档 | `legacy/android-kotlin/`（只读对拍，不再修改） |
 
 约束：后端零改动；`mobile-core` 禁止依赖 flutter_rust_bridge；token/secret 不进日志；release base_url 强制 https（`--dart-define=API_BASE_URL`）。
 

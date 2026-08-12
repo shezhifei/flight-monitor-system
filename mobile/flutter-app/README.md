@@ -13,7 +13,7 @@ Android 客户端重构：`mobile/flutter-app`（UI）+ `mobile/core`（Rust 签
 | `../core/crates/mobile-core` | 纯 Rust，零 frb 依赖 |
 | `../core/crates/mobile-ffi` | frb 出口 façade |
 
-旧 Kotlin 工程已归档到 `frontend/backup/android-legacy/`（只读对拍参考）。
+旧 Kotlin 工程已归档到 `legacy/android-kotlin/`（只读对拍参考）。
 
 ## 开发
 
