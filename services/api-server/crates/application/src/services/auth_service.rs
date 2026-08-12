@@ -35,12 +35,14 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
+// Test-only default: gated behind cfg(test) so release builds cannot
+// accidentally fall back to a placeholder secret. Production must always
+// construct JwtConfig explicitly via `resolve_jwt_secret()` in main.rs.
+#[cfg(test)]
 impl Default for JwtConfig {
-    /// Test-only default. In production, `resolve_jwt_secret()` in main.rs
-    /// always overrides `secret` from the JWT_SECRET env var (panics if unset).
     fn default() -> Self {
         Self {
-            secret: "change-me-in-production".to_string(),
+            secret: "test-only-insecure-secret".to_string(),
             access_token_expire_secs: 3600,
             refresh_token_expire_secs: 604800,
             sse_token_expire_secs: 300,

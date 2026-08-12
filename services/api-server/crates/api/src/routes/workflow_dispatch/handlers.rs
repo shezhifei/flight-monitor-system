@@ -19,6 +19,26 @@ use super::shared::{
     PublicWorkflowDispatchTriggerRequest,
 };
 
+/// Constant-time token comparison to avoid timing side channels on the
+/// shared workflow secret. Uses HMAC(key=expected) so the expected value
+/// never participates in a byte-wise comparison.
+fn constant_time_token_eq(expected: &str, provided: &str) -> bool {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+
+    let Ok(tag_mac) = Hmac::<Sha256>::new_from_slice(expected.as_bytes()) else {
+        return false;
+    };
+    let expected_tag = {
+        let mut mac = tag_mac.clone();
+        mac.update(expected.as_bytes());
+        mac.finalize().into_bytes()
+    };
+    let mut verifier = tag_mac;
+    verifier.update(provided.as_bytes());
+    verifier.verify_slice(&expected_tag).is_ok()
+}
+
 pub(crate) async fn trigger_dispatch_from_workflow(
     svc: Option<web::Data<Arc<WorkflowDispatchService>>>,
     workflow_token: Option<web::Data<WorkflowInternalToken>>,
@@ -45,7 +65,7 @@ pub(crate) async fn trigger_dispatch_from_workflow(
     let can_manage = can_manage_dispatch_claims(claims_ref.as_ref());
 
     let token_valid = match (expected_token, provided_token) {
-        (Some(expected), Some(provided)) => provided == expected,
+        (Some(expected), Some(provided)) => constant_time_token_eq(expected, provided),
         (Some(_), None) => false,
         (None, _) => true,
     };
@@ -174,6 +194,7 @@ pub(crate) async fn list_pending_workflow_dispatch_orders(
 pub(crate) async fn get_workflow_dispatch_recommendations(
     workflow_svc: Option<web::Data<Arc<WorkflowDispatchService>>>,
     query_svc: Option<web::Data<Arc<DispatchQueryService>>>,
+    auth_svc: Option<web::Data<Arc<AuthService>>>,
     claims: JwtAuth,
     path: web::Path<String>,
 ) -> Result<HttpResponse, ApiError> {
@@ -184,8 +205,11 @@ pub(crate) async fn get_workflow_dispatch_recommendations(
         return Ok(service_unavailable("workflow dispatch service unavailable"));
     };
     claims.ensure_permission(PermissionCatalog::DISPATCH_ORDER_READ)?;
+    // Non-admin users may only read orders within their own department,
+    // mirroring the scope enforced by list_pending_workflow_dispatch_orders.
+    let department = department_scope(auth_svc.as_ref().map(|svc| svc.get_ref()), &claims).await?;
     let order_id = path.into_inner();
-    let Some(order) = query_svc.get_order(&order_id, true, None).await? else {
+    let Some(order) = query_svc.get_order(&order_id, true, department.as_deref()).await? else {
         return Err(ApiError::NotFound("dispatch order not found".into()));
     };
 
@@ -218,4 +242,17 @@ pub(crate) async fn get_workflow_dispatch_recommendations(
     };
 
     Ok(HttpResponse::Ok().json(recommendations))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::constant_time_token_eq;
+
+    #[test]
+    fn token_comparison_accepts_match_and_rejects_mismatch() {
+        assert!(constant_time_token_eq("s3cret-workflow-token", "s3cret-workflow-token"));
+        assert!(!constant_time_token_eq("s3cret-workflow-token", "s3cret-workflow-tok3n"));
+        assert!(!constant_time_token_eq("s3cret-workflow-token", ""));
+        assert!(!constant_time_token_eq("", "anything"));
+    }
 }

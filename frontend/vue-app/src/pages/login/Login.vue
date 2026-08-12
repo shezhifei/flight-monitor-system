@@ -16,6 +16,9 @@ const showPassword = ref(false);
 const auth = useAuth();
 const api = useApi();
 
+// 默认账号提示仅开发模式展示，避免生产环境泄露默认凭据
+const showDemoCredentials = import.meta.env.DEV;
+
 const usernameInput = ref<HTMLInputElement | null>(null);
 const passwordInput = ref<HTMLInputElement | null>(null);
 
@@ -305,17 +308,19 @@ async function handleLogin(event: Event): Promise<void> {
           </button>
         </form>
 
-        <div class="divider">
-          <span>测试账号</span>
-        </div>
-
-        <div class="demo-credentials">
-          <div class="demo-credentials-title">
-            默认管理员账号
+        <template v-if="showDemoCredentials">
+          <div class="divider">
+            <span>测试账号</span>
           </div>
-          <p>用户名: <code>admin</code></p>
-          <p>密码: <code>admin123</code></p>
-        </div>
+
+          <div class="demo-credentials">
+            <div class="demo-credentials-title">
+              默认管理员账号
+            </div>
+            <p>用户名: <code>admin</code></p>
+            <p>密码: <code>admin123</code></p>
+          </div>
+        </template>
 
         <p class="footer-text">
           没有账号？<button

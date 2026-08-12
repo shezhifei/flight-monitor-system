@@ -125,8 +125,9 @@ def decode_service_identity(token: str, secret: str, request_path: str) -> Servi
     except jwt.DecodeError as e:
         raise InvalidTokenError(f"Failed to decode token: {e}") from e
     except Exception as error:  # unexpected token validation errors become InvalidTokenError
-        logger.warning("token_validation_failed", exc_info=error, extra={"error": str(error)})
-        raise InvalidTokenError(f"Token validation failed: {error}") from error
+        # 仅记录异常类型，避免 str(error) 在部分 JWT 库版本中带出 token 片段。
+        logger.warning("token_validation_failed", extra={"error_type": type(error).__name__})
+        raise InvalidTokenError("Token validation failed") from error
 
     if payload.get("sub") != SERVICE_SUBJECT:
         raise InvalidTokenError(f"Invalid subject: expected {SERVICE_SUBJECT}")

@@ -35,7 +35,6 @@ export interface JwtUser {
 export interface AuthEventSourceOptions {
   clientScope?: string;
   clientInstanceId?: string;
-  allowQueryToken?: boolean;
 }
 
 const IMPLIED_PERMISSION_MAP: Record<string, string[]> = {
@@ -1359,15 +1358,6 @@ function appendQueryParam(url: URL, key: string, value: string | null | undefine
   url.searchParams.set(key, value);
 }
 
-function isTruthyFlag(value: unknown): boolean {
-  return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
-}
-
-function isLegacySSEQueryTokenAuthEnabled(options: AuthEventSourceOptions): boolean {
-  return options.allowQueryToken === true
-    || isTruthyFlag(import.meta.env.VITE_SSE_QUERY_TOKEN_AUTH_ENABLED);
-}
-
 interface ParsedSSEEvent {
   type: string;
   data: string;
@@ -1535,28 +1525,15 @@ function getEventSource(url: string, options: AuthEventSourceOptions = {}): Even
     throw new Error('EventSource is only available in the browser');
   }
 
+  // 认证统一走 fetch-based EventSource（Authorization 头 + 同源 cookie），
+  // 不再支持把 token 放进 URL query——query 中的 token 会落入访问日志、
+  // 浏览器历史与 Referrer。
   const clientScope = options.clientScope ?? 'default';
   const clientInstanceId = options.clientInstanceId ?? getClientInstanceId(clientScope);
   const authenticatedUrl = assertSameOriginHttpUrl(url, 'authenticated EventSource');
-  const legacyQueryTokenAuthEnabled = isLegacySSEQueryTokenAuthEnabled(options);
-  const sseToken = legacyQueryTokenAuthEnabled && hasUsableSSEToken() ? getSSEToken() : null;
-  const fallbackToken = legacyQueryTokenAuthEnabled ? getToken() : null;
-  const eventSourceToken = sseToken ?? fallbackToken;
-
-  if (legacyQueryTokenAuthEnabled && eventSourceToken) {
-    appendQueryParam(authenticatedUrl, sseToken ? 'sse_token' : 'token', eventSourceToken);
-  }
-  if (legacyQueryTokenAuthEnabled && !sseToken) {
-    void refreshSSEToken();
-  }
 
   appendQueryParam(authenticatedUrl, 'client_instance_id', clientInstanceId);
-  const authenticatedUrlString = authenticatedUrl.toString();
-  if (legacyQueryTokenAuthEnabled) {
-    return new EventSource(authenticatedUrlString, { withCredentials: true });
-  }
-
-  return new AuthenticatedFetchEventSource(authenticatedUrlString) as unknown as EventSource;
+  return new AuthenticatedFetchEventSource(authenticatedUrl.toString()) as unknown as EventSource;
 }
 
 function initialize(): void {

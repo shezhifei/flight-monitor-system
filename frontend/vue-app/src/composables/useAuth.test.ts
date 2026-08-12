@@ -140,7 +140,6 @@ describe('useAuth getEventSource', () => {
     const auth = useAuth();
 
     expect(() => auth.getEventSource('https://evil.example/api/v2/sse/stream', {
-      allowQueryToken: true,
       clientInstanceId: 'client-1',
     })).toThrow(/same-origin/);
     expect(eventSourceUrls).toHaveLength(0);

@@ -455,15 +455,17 @@ pub(crate) fn flowable_stream_event_to_sse(
 impl Stream for RouteSseStream {
     type Item = Result<actix_web::web::Bytes, ActixError>;
 
-    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if let Some(initial) = self.initial_events.pop_front() {
             return Poll::Ready(Some(Ok(actix_web::web::Bytes::from(initial))));
         }
 
-        match self.receiver.try_recv() {
-            Ok(payload) => Poll::Ready(Some(Ok(actix_web::web::Bytes::from(payload)))),
-            Err(mpsc::error::TryRecvError::Empty) => Poll::Pending,
-            Err(mpsc::error::TryRecvError::Disconnected) => Poll::Ready(None),
+        // poll_recv registers the waker so the stream is re-woken when a
+        // payload arrives; try_recv + Pending would hang forever.
+        match self.receiver.poll_recv(cx) {
+            Poll::Ready(Some(payload)) => Poll::Ready(Some(Ok(actix_web::web::Bytes::from(payload)))),
+            Poll::Ready(None) => Poll::Ready(None),
+            Poll::Pending => Poll::Pending,
         }
     }
 }

@@ -72,7 +72,13 @@ async def health() -> JSONResponse:
 
 
 @app.get("/metrics")
-async def prometheus_metrics() -> Response:
+async def prometheus_metrics(request: Request) -> Response:
+    # 仅允许环回来源匿名抓取（本机 Prometheus 直连）；
+    # 其它来源必须携带服务身份令牌，避免内部运行指标泄露。
+    client_host = request.client.host if request.client else None
+    if client_host not in {"127.0.0.1", "::1"}:
+        require_service_identity(request)
+
     from prometheus_client import REGISTRY, generate_latest
 
     return Response(generate_latest(REGISTRY), media_type="text/plain; version=0.0.4")

@@ -1011,20 +1011,25 @@ impl ResourceAdjustmentSuggestionRepository for PgResourceAdjustmentSuggestionRe
         status: Option<&str>,
         limit: i64,
     ) -> Result<Vec<ResourceAdjustmentSuggestion>, DomainError> {
+        // 所有用户输入均通过占位符绑定，避免手工拼接 SQL。
         let mut query = String::from("SELECT * FROM resource_adjustment_suggestions WHERE 1=1");
+        let mut bindings: Vec<&str> = Vec::new();
         if let Some(f) = flight_id {
-            query.push_str(" AND flight_id = '");
-            query.push_str(&f.replace('\'', "''"));
-            query.push('\'');
+            bindings.push(f);
+            query.push_str(&format!(" AND flight_id = ${}", bindings.len()));
         }
         if let Some(s) = status {
-            query.push_str(" AND status = '");
-            query.push_str(&s.replace('\'', "''"));
-            query.push('\'');
+            bindings.push(s);
+            query.push_str(&format!(" AND status = ${}", bindings.len()));
         }
-        query.push_str(" ORDER BY created_at DESC LIMIT ");
-        query.push_str(&limit.to_string());
-        let rows = sqlx::query(&query)
+        let limit_index = bindings.len() + 1;
+        query.push_str(&format!(" ORDER BY created_at DESC LIMIT ${limit_index}"));
+        let mut q = sqlx::query(&query);
+        for value in bindings {
+            q = q.bind(value);
+        }
+        q = q.bind(limit);
+        let rows = q
             .fetch_all(&self.pool)
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;

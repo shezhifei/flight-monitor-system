@@ -153,6 +153,12 @@ async fn download_asset(
     let Some((asset, absolute_path)) = svc.resolve_content_path(&upload_id).await? else {
         return Err(ApiError::NotFound("upload not found".into()));
     };
+    // 属主校验：仅上传者本人或管理员可下载，防止凭 upload_id 任意拉取他人附件。
+    let caller_id = extract_user_id(&claims)?;
+    let is_admin = claims.0.is_admin.unwrap_or(false);
+    if !is_admin && asset.user_id != caller_id {
+        return Err(ApiError::Forbidden("no access to this upload".into()));
+    }
     let filename = svc.build_download_filename(&asset).replace('"', "_");
     let mime_type: actix_web::mime::Mime = asset
         .content_type

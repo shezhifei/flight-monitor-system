@@ -288,6 +288,16 @@ async fn sse_stream(
 
     let user_id = auth.0.sub.clone().unwrap_or_else(|| "anonymous".to_string());
 
+    // Per-user topics are private: a caller may only subscribe to topics
+    // whose suffix matches their own user id. Reject cross-user
+    // subscriptions instead of silently filtering them.
+    if let Some(offending) = find_foreign_user_topic(&topics, &user_id) {
+        hub.release_connection();
+        return HttpResponse::Forbidden().json(serde_json::json!({
+            "error": format!("cannot subscribe to another user's topic: {offending}")
+        }));
+    }
+
     if user_id != "anonymous" {
         let notif_topic = format!("user_notifications_{user_id}");
         let chat_topic = format!("user_dispatch_chat_{user_id}");
@@ -395,6 +405,17 @@ fn normalize_topics(raw: Option<&str>) -> Result<Vec<String>, String> {
     Ok(topics)
 }
 
+/// Returns the first per-user topic whose owner suffix does not match
+/// `user_id`, or `None` when all requested topics belong to the caller.
+fn find_foreign_user_topic<'a>(topics: &'a [String], user_id: &str) -> Option<&'a String> {
+    topics.iter().find(|topic| {
+        super::hub::PREFIX_TOPICS
+            .iter()
+            .filter_map(|prefix| topic.strip_prefix(prefix))
+            .any(|suffix| suffix != user_id)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::normalize_topics;
@@ -430,5 +451,30 @@ mod tests {
     fn deduplicates_topics() {
         let result = normalize_topics(Some("flights,flights,system_alerts"));
         assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn rejects_topics_owned_by_other_users() {
+        use super::find_foreign_user_topic;
+
+        let own = vec![
+            "flights".to_string(),
+            "user_notifications_42".to_string(),
+            "user_dispatch_chat_42".to_string(),
+            "user_ai_v2_42".to_string(),
+        ];
+        assert!(find_foreign_user_topic(&own, "42").is_none());
+
+        let foreign = vec![
+            "flights".to_string(),
+            "user_notifications_77".to_string(),
+        ];
+        assert_eq!(
+            find_foreign_user_topic(&foreign, "42").map(String::as_str),
+            Some("user_notifications_77")
+        );
+
+        // Anonymous callers may not subscribe to any per-user topic.
+        assert!(find_foreign_user_topic(&foreign, "anonymous").is_some());
     }
 }

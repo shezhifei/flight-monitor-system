@@ -9,8 +9,22 @@
  *
  * 以下为模块级状态与纯函数（非 setup 作用域）：缓存与 id 计数器必须跨实例共享。
  */
+import DOMPurify from 'dompurify';
+
 const svgCache = new Map<string, Promise<string>>();
 let svgInstanceCounter = 0;
+
+/**
+ * 内联 SVG 前的最后一道净化：移除 script、事件处理器（onload 等）、
+ * javascript: URL 与 foreignObject 等危险结构，只保留 SVG 图形元素。
+ * 仅靠正则剔除 <script> 无法防御事件属性类 XSS。
+ */
+function sanitizeInlineSvg(svgText: string): string {
+  return DOMPurify.sanitize(svgText, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_ATTR: ['href', 'xlink:href'],
+  });
+}
 
 /**
  * 内联多个 SVG 到同一文档时，id（path-1、mask-2 等）会互相冲突，
@@ -81,11 +95,12 @@ function loadSvg(src: string): Promise<string> {
         return res.text();
       })
       .then((text) =>
-        recolorToCurrentColor(
-          text
-            .replace(/<script[\s\S]*?<\/script>/gi, '')
-            .replace(/<\?xml[^?]*\?>/g, '')
-            .replace(/<!DOCTYPE[^>]*>/gi, ''),
+        sanitizeInlineSvg(
+          recolorToCurrentColor(
+            text
+              .replace(/<\?xml[^?]*\?>/g, '')
+              .replace(/<!DOCTYPE[^>]*>/gi, ''),
+          ),
         ),
       );
     svgCache.set(src, pending);

@@ -11,11 +11,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from src.application.services.aip_ontology_service import AIPOntologyService
+from src.infrastructure.ai.service_identity import require_service_identity
 from src.infrastructure.database.async_connection_pool import AsyncPooledDatabaseConnection
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/aip/ontology", tags=["AIP Ontology"])
+# Ontology CRUD（含权限策略写操作）必须携带服务身份令牌，
+# 与 management_routes / api_routes 保持一致的鉴权基线。
+router = APIRouter(
+    prefix="/aip/ontology",
+    tags=["AIP Ontology"],
+    dependencies=[Depends(require_service_identity)],
+)
 
 
 class ObjectCreateRequest(BaseModel):
