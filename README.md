@@ -26,6 +26,7 @@ Browser / Vue MPA
 | 历史 Python 后端 | `legacy-backend/` | 本地归档，已 gitignore，不作为主链 |
 | 消息网关 | `services/mq-gateway/` | RocketMQ 边界 |
 | 前端 | `frontend/vue-app/` | Vue 3 多页；访问 `/frontend/<page>.html` |
+| 移动端 | `mobile/flutter-app/` + `mobile/core/` | Flutter + Rust（Android）；旧 Kotlin 在 `legacy/android-kotlin/` |
 | 迁移 | `migrations/*.sql` | 按编号顺序；当前最新 **118** |
 
 标准 Docker 拓扑（`deploy/docker/docker-compose.distributed.yml`）默认服务包括：`rust-api`、`flowable`、`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`（及 Vault 相关服务）。Python HTTP API 不是默认路径。
@@ -73,6 +74,25 @@ npm run build
 ```
 
 常用页面：`/frontend/login.html`、`dashboard.html`、`flight_monitor.html`、`dispatch_board.html`、`command_center.html`、`ai_config_center.html`、`system_status.html`、`flowable_modeler.html`。
+
+## 移动端（Android）
+
+```powershell
+# Rust
+cargo test --manifest-path mobile/core/Cargo.toml
+cargo clippy --manifest-path mobile/core/Cargo.toml --all-targets -- -D warnings
+
+# Flutter
+cd mobile\flutter-app
+flutter pub get
+flutter analyze
+flutter test
+flutter run -d emulator-5554
+# release（必须 https）
+flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
+```
+
+说明见 `mobile/flutter-app/README.md`、`docs/mobile/`。CI：`.github/workflows/mobile.yml`。
 
 ## 数据与迁移
 

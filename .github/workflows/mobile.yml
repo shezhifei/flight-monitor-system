@@ -1,0 +1,169 @@
+name: Mobile
+
+# CI for the Flutter + Rust mobile rebuild (docs/plans/android-flutter-rust-rebuild-plan.md P0-6).
+
+on:
+  push:
+    branches: [master, android-flutter-rust-rebuild]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+  FLUTTER_VERSION: '3.44.9'
+  FRB_CODEGEN_VERSION: '2.12.0'
+  NDK_VERSION: '29.0.14206865'
+
+jobs:
+  cargo-test:
+    name: mobile-core — cargo test & clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mobile/core
+
+      - name: cargo test (mobile workspace)
+        run: cargo test --manifest-path mobile/core/Cargo.toml
+
+      - name: cargo clippy -D warnings (mobile workspace)
+        run: cargo clippy --manifest-path mobile/core/Cargo.toml --all-targets -- -D warnings
+
+  flutter-analyze-test:
+    name: flutter analyze & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/flutter-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # The vendored cargokit build_tool is a separate Dart package; analyze
+      # covers it, so its deps must be fetched explicitly (CI-only step — on
+      # dev machines `frb integrate`/cargokit already did this).
+      - name: flutter pub get (cargokit build_tool)
+        working-directory: mobile/flutter-app/rust_builder/cargokit/build_tool
+        run: flutter pub get
+
+      - name: flutter analyze
+        run: flutter analyze
+
+      - name: flutter test
+        run: flutter test
+
+  build-apk-debug:
+    name: flutter build apk --debug (frb + NDK)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/flutter-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Rust Android targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mobile/core
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK ${{ env.NDK_VERSION }}
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "ndk;${{ env.NDK_VERSION }}"
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: flutter build apk --debug
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: mobile/flutter-app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
+
+  build-apk-release:
+    name: flutter build apk --release (dart-define https)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/flutter-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Rust Android targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mobile/core
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK ${{ env.NDK_VERSION }}
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "ndk;${{ env.NDK_VERSION }}"
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Placeholder https base URL for CI; production injects the real host.
+      # Signing falls back to debug keystore when android/key.properties is absent.
+      - name: flutter build apk --release
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://example.invalid
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile/flutter-app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

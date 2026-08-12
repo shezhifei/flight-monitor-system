@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["crates/mobile-core", "crates/mobile-ffi"]
+
+[workspace.package]
+edition = "2021"
+license = "Proprietary"
+
+[profile.release]
+opt-level = 3
+lto = "thin"

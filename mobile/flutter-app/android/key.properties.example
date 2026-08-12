@@ -1,0 +1,7 @@
+# Copy to android/key.properties (gitignored) for production signing.
+# Never commit real passwords or keystore files.
+
+storePassword=change-me
+keyPassword=change-me
+keyAlias=flightmonitor
+storeFile=../upload-keystore.jks

@@ -122,7 +122,11 @@ async fn main() -> std::io::Result<()> {
             .first()
             .cloned()
             .unwrap_or_else(|| "flight-monitor-api".to_string()),
-        ..Default::default()
+        // JwtConfig::default() is cfg(test)-gated; production must set every
+        // field explicitly. Values match the previous Default impl.
+        access_token_expire_secs: 3600,
+        refresh_token_expire_secs: 604800,
+        sse_token_expire_secs: 300,
     };
 
     // 5. 数据库连接池配置与建立

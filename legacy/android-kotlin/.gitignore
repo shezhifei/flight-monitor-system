@@ -1,0 +1,8 @@
+# Keep only source in the archive
+.gradle/
+.idea/
+**/build/
+local.properties
+*.iml
+captures/
+.cxx/
