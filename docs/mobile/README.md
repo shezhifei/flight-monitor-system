@@ -16,6 +16,10 @@
 | [push-channel-eval.md](./push-channel-eval.md) | FCM/厂商推送评估（不实现） |
 | [release-notes.md](./release-notes.md) | release 构建与体积记录 |
 
+本机写路径解阻（不改后端）：`scripts/mobile/apply_local_write_paths.ps1`。  
+P2 双端：`flutter test integration_test/p2_realtime_acceptance_test.dart -d emulator-5554`。  
+P2 SSE 重连：`scripts/mobile/run_p2_sse_reconnect.ps1`。
+
 执行计划/交接快照在本地 `docs/plans/android-flutter-rust-rebuild-*.md`（`docs/plans/*` 默认 gitignore）。
 
 ## 约束

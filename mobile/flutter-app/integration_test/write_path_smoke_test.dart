@@ -13,7 +13,7 @@ import 'package:flight_monitor/bridge/api/handover.dart';
 import 'package:flight_monitor/bridge/api/notification.dart' as notif_api;
 import 'package:flight_monitor/bridge/frb_generated.dart';
 
-/// 写路径冒烟。聊天发送若遇后端 FK/环境 500，标记 ENV_BLOCK 不失败整套。
+/// 写路径冒烟。聊天发送/已读已在本机解阻；清单 submit 依赖本地 varchar 补丁。
 const String kBaseUrl = String.fromEnvironment(
   'FMS_TEST_BASE_URL',
   defaultValue: 'http://10.0.2.2:8000',
@@ -62,32 +62,21 @@ void main() {
     debugPrint('WRITE_CHAT_MSGS_BEFORE=${msgsBefore.items.length}');
 
     final stamp = DateTime.now().toUtc().toIso8601String();
-    try {
-      final sent = await sendChatMessage(
-        groupId: group.groupId,
-        content: 'write-smoke $stamp',
-        atAll: false,
-      );
-      expect(sent.messageId, isNotEmpty);
-      debugPrint('WRITE_CHAT_SENT id=${sent.messageId} seq=${sent.seqNo}');
-      final read = await markChatRead(
-        groupId: group.groupId,
-        readSeq: sent.seqNo,
-      );
-      debugPrint('WRITE_CHAT_READ unread=${read.unreadCount}');
-      final msgs = await chatMessages(groupId: group.groupId, limit: 10);
-      expect(msgs.items.any((m) => m.messageId == sent.messageId), isTrue);
-      debugPrint('WRITE_CHAT_OK');
-    } catch (e) {
-      if (_isEnvServerError(e)) {
-        debugPrint(
-          'WRITE_CHAT_ENV_BLOCK err=$e '
-          '(backend fk_dispatch_chat_messages_event — not a client bug)',
-        );
-      } else {
-        rethrow;
-      }
-    }
+    final sent = await sendChatMessage(
+      groupId: group.groupId,
+      content: 'write-smoke $stamp',
+      atAll: false,
+    );
+    expect(sent.messageId, isNotEmpty);
+    debugPrint('WRITE_CHAT_SENT id=${sent.messageId} seq=${sent.seqNo}');
+    final read = await markChatRead(
+      groupId: group.groupId,
+      readSeq: sent.seqNo,
+    );
+    debugPrint('WRITE_CHAT_READ unread=${read.unreadCount}');
+    final msgs = await chatMessages(groupId: group.groupId, limit: 10);
+    expect(msgs.items.any((m) => m.messageId == sent.messageId), isTrue);
+    debugPrint('WRITE_CHAT_OK');
 
     // --- Notifications read-all ---
     await notif_api.notificationReadAll();
