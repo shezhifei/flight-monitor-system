@@ -5,7 +5,9 @@
 //!   `TokenResponse` (NOT enveloped); native surface is mandatory so the JSON
 //!   carries `session_secret`;
 //! - `POST /api/v2/auth/logout` / `POST /api/v2/auth/heartbeat` →
-//!   `{success, message}` ack;
+//!   `{success, message}` ack at the TOP LEVEL (the live response is
+//!   `{success, message, data: null}` — envelope-shaped but with null data,
+//!   so it must be parsed raw, not via `call_with_envelope`);
 //! - `GET /api/v2/auth/me` → raw `UserProfile` (backend returns
 //!   `UserResponse` verbatim);
 //! - `POST /api/v2/mobile/devices/register` /
@@ -50,7 +52,7 @@ pub async fn login(
 /// Logout: best-effort server call, local state always cleared afterwards.
 pub async fn logout(client: &ApiClient) -> Result<(), CoreError> {
     let result: Result<AuthAckResponse, CoreError> = client
-        .call_with_envelope("POST", "/api/v2/auth/logout", Option::<&()>::None)
+        .call_raw("POST", "/api/v2/auth/logout", Option::<&()>::None)
         .await;
     client.session().clear().await;
     result.map(|_| ())
@@ -81,7 +83,7 @@ pub async fn me(client: &ApiClient) -> Result<UserProfile, CoreError> {
 /// `POST /api/v2/auth/heartbeat` — keep-alive ack.
 pub async fn auth_heartbeat(client: &ApiClient) -> Result<(), CoreError> {
     let ack: AuthAckResponse = client
-        .call_with_envelope("POST", "/api/v2/auth/heartbeat", Option::<&()>::None)
+        .call_raw("POST", "/api/v2/auth/heartbeat", Option::<&()>::None)
         .await?;
     if ack.success {
         Ok(())

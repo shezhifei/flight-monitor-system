@@ -83,3 +83,21 @@ pub struct UserProfile {
 pub struct OperatorContextUpdateRequest {
     pub operator_name: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression: logout/heartbeat return the ack at the top level with
+    /// `data: null` (`{"success":true,"message":"...","data":null}`) — it must
+    /// parse raw, envelope extraction would fail on the null data.
+    #[test]
+    fn auth_ack_parses_top_level_ack_with_null_data() {
+        let ack: AuthAckResponse = serde_json::from_str(
+            r#"{"success":true,"message":"ok","data":null}"#,
+        )
+        .unwrap();
+        assert!(ack.success);
+        assert_eq!(ack.message.as_deref(), Some("ok"));
+    }
+}

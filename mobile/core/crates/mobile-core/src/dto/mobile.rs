@@ -33,7 +33,8 @@ pub struct MobileWorkbenchResponse {
 pub struct MobileWorkbenchOrderItem {
     pub order_id: String,
     pub flight_id: String,
-    pub step_code: String,
+    // Absent in the live workbench my_orders payload — keep optional.
+    pub step_code: Option<String>,
     pub status: String,
     pub terminal: Option<String>,
     pub stand_id: Option<String>,
@@ -135,4 +136,20 @@ pub struct MobileDeviceResponse {
     pub user_id: String,
     pub is_active: bool,
     pub last_heartbeat_at: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression: the live workbench my_orders payload omits `step_code`.
+    #[test]
+    fn workbench_order_item_deserializes_without_step_code() {
+        let item: MobileWorkbenchOrderItem = serde_json::from_str(
+            r#"{"order_id":"o1","flight_id":"f1","status":"assigned"}"#,
+        )
+        .unwrap();
+        assert_eq!(item.step_code, None);
+        assert!(!item.supervisor_notified);
+    }
 }

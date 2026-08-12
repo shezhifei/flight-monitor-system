@@ -119,6 +119,7 @@ fn signing_required(path_and_query: &str) -> bool {
 
 /// Authenticated API client. One instance per app runtime; holds the session
 /// state machine and the device id used for the operator-context header.
+#[derive(Clone)]
 pub struct ApiClient {
     config: ApiConfig,
     http: reqwest::Client,
@@ -142,6 +143,12 @@ impl ApiClient {
 
     pub fn session(&self) -> &SessionManager {
         &self.session
+    }
+
+    /// The stable device id sent as `X-Operator-Context-Id` (§0.3); also used
+    /// as the `device_id` for device register/heartbeat endpoints.
+    pub fn device_id(&self) -> &str {
+        &self.device_id
     }
 
     fn url(&self, path_and_query: &str) -> String {

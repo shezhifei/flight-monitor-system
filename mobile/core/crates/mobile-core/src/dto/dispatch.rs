@@ -59,12 +59,13 @@ pub mod receipt_status {
 // ---------------------------------------------------------------------------
 
 /// One dispatch order as returned by the my/assigned list endpoints.
+/// `step_code` is absent in the live backend payload — keep it optional.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DispatchOrderItem {
     pub id: String,
     pub flight_id: String,
-    pub step_code: String,
+    pub step_code: Option<String>,
     pub status: String,
     pub terminal: Option<String>,
     pub stand_id: Option<String>,
@@ -199,4 +200,112 @@ pub struct DispatchSyncResponse {
     pub failed: i64,
     #[serde(default)]
     pub results: Vec<DispatchSyncResult>,
+}
+
+// ---------------------------------------------------------------------------
+// Safety checklist (`/{order_id}/safety-checklist`, legacy DispatchSafetyModels.kt)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct DispatchSafetyChecklistItemStatus {
+    pub item_code: String,
+    pub title: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub allow_na: bool,
+    #[serde(default)]
+    pub order: i64,
+    pub result: Option<String>,
+    pub checked_by: Option<String>,
+    pub checked_by_username: Option<String>,
+    pub checked_at: Option<String>,
+    pub note: Option<String>,
+    #[serde(default = "default_item_status")]
+    pub status: String,
+}
+
+fn default_item_status() -> String {
+    "pending".to_string()
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct DispatchSafetyChecklistStatus {
+    pub dispatch_order_id: String,
+    // Absent in the live checklist response — keep optional.
+    pub step_code: Option<String>,
+    pub template_id: Option<String>,
+    pub template_version: Option<String>,
+    #[serde(default)]
+    pub enforced: bool,
+    #[serde(default = "default_ready")]
+    pub ready: bool,
+    #[serde(default)]
+    pub required_total: i64,
+    #[serde(default)]
+    pub completed_required: i64,
+    #[serde(default)]
+    pub pending_required_items: Vec<String>,
+    #[serde(default)]
+    pub failed_required_items: Vec<String>,
+    #[serde(default)]
+    pub items: Vec<DispatchSafetyChecklistItemStatus>,
+}
+
+fn default_ready() -> bool {
+    true
+}
+
+/// `POST /{order_id}/safety-checklist/items/{item_code}` body.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct DispatchSafetyChecklistItemResultRequest {
+    pub result: String,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct DispatchSafetyChecklistRecord {
+    pub record_id: String,
+    pub dispatch_order_id: String,
+    pub item_code: String,
+    pub result: String,
+    pub checked_by: Option<String>,
+    pub checked_by_username: Option<String>,
+    pub checked_at: String,
+    pub note: Option<String>,
+    pub template_version: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression: the live my/assigned payload omits `step_code`.
+    #[test]
+    fn order_item_deserializes_without_step_code() {
+        let item: DispatchOrderItem = serde_json::from_str(
+            r#"{"id":"o1","flight_id":"f1","status":"assigned"}"#,
+        )
+        .unwrap();
+        assert_eq!(item.step_code, None);
+        assert_eq!(item.origin_type, "manual");
+    }
+
+    /// Regression: the live safety-checklist response omits `step_code`.
+    #[test]
+    fn checklist_status_deserializes_without_step_code() {
+        let status: DispatchSafetyChecklistStatus = serde_json::from_str(
+            r#"{"dispatch_order_id":"o1","task_type":"x","template_id":"t1",
+                "ready":true,"enforced":false,"items":[]}"#,
+        )
+        .unwrap();
+        assert_eq!(status.step_code, None);
+        assert!(status.ready);
+    }
 }

@@ -5,12 +5,17 @@
 //! reference), cross-checked against the backend schemas in
 //! `services/api-server/crates/application/src/schemas/`.
 //! All structs use `snake_case` field names; `Option` mirrors Kotlin
-//! nullability. Only the structures needed by the P1 main flow are included —
-//! this is NOT a full transcription of the 34 endpoints.
+//! nullability. P1 + P2 domains are covered; BusinessCase / Operations arrive
+//! in P3.
 
 pub mod auth;
+pub mod business_case;
+pub mod chat;
 pub mod dispatch;
+pub mod handover;
 pub mod mobile;
+pub mod notification;
+pub mod operations;
 
 use serde::Deserialize;
 

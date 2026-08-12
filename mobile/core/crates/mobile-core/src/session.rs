@@ -20,7 +20,7 @@
 
 use std::sync::Arc;
 
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{watch, Mutex, RwLock};
 
 use crate::client::HEADER_CLIENT_SURFACE;
 use crate::dto::auth::{RefreshRequest, TokenResponse};
@@ -50,18 +50,52 @@ enum SessionState {
     Active(TokenBundle),
 }
 
+/// Public, token-free snapshot of the session for status streams (plan §4
+/// `session_state()`). Token/secret material NEVER leaves the state machine
+/// through this channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionStateSnapshot {
+    Anonymous,
+    Active { access_expire_at: i64 },
+}
+
+impl From<&SessionState> for SessionStateSnapshot {
+    fn from(state: &SessionState) -> Self {
+        match state {
+            SessionState::Anonymous => SessionStateSnapshot::Anonymous,
+            SessionState::Active(bundle) => SessionStateSnapshot::Active {
+                access_expire_at: bundle.access_expire_at,
+            },
+        }
+    }
+}
+
 /// Token state machine with single-flight refresh. Cheap to clone (shared
 /// inner state) so the HTTP client pipeline can hold one reference.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct SessionManager {
     inner: Arc<SessionInner>,
 }
 
-#[derive(Debug, Default)]
+impl Default for SessionManager {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(SessionInner {
+                state: RwLock::new(SessionState::Anonymous),
+                refresh_lock: Mutex::new(()),
+                snapshot_tx: watch::channel(SessionStateSnapshot::Anonymous).0,
+            }),
+        }
+    }
+}
+
+#[derive(Debug)]
 struct SessionInner {
     state: RwLock<SessionState>,
     /// Single-flight guard: only one in-flight refresh at a time.
     refresh_lock: Mutex<()>,
+    /// Token-free state notifications for UI (login guard, indicators).
+    snapshot_tx: watch::Sender<SessionStateSnapshot>,
 }
 
 fn now_epoch() -> i64 {
@@ -79,7 +113,9 @@ impl SessionManager {
     /// Restore a persisted bundle (called by FFI at startup). Any previously
     /// held state is replaced.
     pub async fn restore_tokens(&self, bundle: TokenBundle) {
-        *self.inner.state.write().await = SessionState::Active(bundle);
+        let mut state = self.inner.state.write().await;
+        *state = SessionState::Active(bundle);
+        self.inner.snapshot_tx.send_replace((&*state).into());
     }
 
     /// Build a bundle from a fresh login/refresh response and activate it.
@@ -112,7 +148,16 @@ impl SessionManager {
 
     /// Drop all tokens (logout / refresh rejected). Never logs token material.
     pub async fn clear(&self) {
-        *self.inner.state.write().await = SessionState::Anonymous;
+        let mut state = self.inner.state.write().await;
+        *state = SessionState::Anonymous;
+        self.inner.snapshot_tx.send_replace(SessionStateSnapshot::Anonymous);
+    }
+
+    /// Subscribe to token-free session state changes (for the FFI
+    /// `session_state()` stream). The receiver immediately observes the
+    /// current snapshot via `borrow()`.
+    pub fn subscribe_state(&self) -> watch::Receiver<SessionStateSnapshot> {
+        self.inner.snapshot_tx.subscribe()
     }
 
     /// Return a valid bundle, proactively refreshing when the access token is
@@ -360,6 +405,26 @@ mod tests {
         let session = SessionManager::new();
         let err = session.ensure_valid(&http(), "http://127.0.0.1:1").await.unwrap_err();
         assert!(matches!(err, CoreError::Auth(_)));
+    }
+
+    #[tokio::test]
+    async fn state_stream_emits_token_free_snapshots() {
+        let session = SessionManager::new();
+        let mut rx = session.subscribe_state();
+        assert_eq!(*rx.borrow(), SessionStateSnapshot::Anonymous);
+
+        session.restore_tokens(bundle("a", 3600)).await;
+        rx.changed().await.unwrap();
+        match *rx.borrow() {
+            SessionStateSnapshot::Active { access_expire_at } => {
+                assert!(access_expire_at > now_epoch());
+            }
+            other => panic!("expected Active, got {other:?}"),
+        }
+
+        session.clear().await;
+        rx.changed().await.unwrap();
+        assert_eq!(*rx.borrow(), SessionStateSnapshot::Anonymous);
     }
 
     #[tokio::test]
