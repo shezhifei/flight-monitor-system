@@ -3,9 +3,8 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
-use fms_application::services::ontology_advisory_service::{advisory_action_permission, OntologyAdvisoryService};
-use fms_application::services::ontology_read_action_service::{
-    read_action_permission, OntologyReadActionService, ReadActionError,
+use fms_application::services::ontology_actions::{
+    advisory_action_permission, read_action_permission, OntologyActionError, OntologyActionServices,
 };
 use fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema;
 use fms_domain::ontology::schema_export::{build_schema_export, OntologySchemaExport};
@@ -29,7 +28,7 @@ async fn load_schema(
     build_flight_ops_v1_schema()
 }
 
-/// 契约 §7：返回稳定导出结构（ontology_version / exported_at / objects / actions /
+/// 返回稳定 schema export 结构（ontology_version / exported_at / objects / actions /
 /// risk_policies / constraints）。
 async fn get_schema(
     repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
@@ -70,7 +69,7 @@ async fn get_actions(
     Ok(HttpResponse::Ok().json(actions))
 }
 
-/// 契约 §4.2：只读动作直接执行，不创建 pending action；权限按动作声明校验。
+/// 只读动作直接执行，不创建 pending action；权限按动作声明校验。
 #[derive(Debug, Deserialize)]
 struct ReadActionRequest {
     action_name: String,
@@ -82,45 +81,57 @@ fn default_arguments() -> Value {
     serde_json::json!({})
 }
 
+fn map_action_error(error: OntologyActionError) -> ApiError {
+    match error {
+        OntologyActionError::InvalidArguments(msg) => ApiError::BadRequest(msg),
+        OntologyActionError::NotFound(msg) => ApiError::NotFound(msg),
+        OntologyActionError::Repository(msg) | OntologyActionError::Internal(msg) => ApiError::Internal(msg),
+    }
+}
+
 async fn execute_read_action(
     claims: JwtAuth,
-    service: web::Data<Arc<OntologyReadActionService>>,
+    actions: web::Data<Arc<OntologyActionServices>>,
     body: web::Json<ReadActionRequest>,
 ) -> Result<HttpResponse, ApiError> {
     let permission = read_action_permission(&body.action_name)
         .ok_or_else(|| ApiError::BadRequest(format!("unknown read action: {}", body.action_name)))?;
     claims.ensure_permission(permission)?;
 
-    match service.execute(&body.action_name, &body.arguments).await {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(ReadActionError::UnknownAction(name)) => Err(ApiError::BadRequest(format!("unknown read action: {name}"))),
-        Err(ReadActionError::InvalidArguments(msg)) => Err(ApiError::BadRequest(msg)),
-        Err(ReadActionError::NotFound(msg)) => Err(ApiError::NotFound(msg)),
-        Err(ReadActionError::Repository(msg)) => Err(ApiError::Internal(msg)),
-        Err(ReadActionError::Internal(msg)) => Err(ApiError::Internal(msg)),
-    }
+    let result = match body.action_name.as_str() {
+        "flight.get_context" => actions.flight_context.get(&body.arguments).await,
+        "flight.search" => actions.flight_search.search(&body.arguments).await,
+        "dispatch.get_status" => actions.dispatch_status.get(&body.arguments).await,
+        "anomaly.list_open" => actions.anomaly_open_list.list(&body.arguments).await,
+        "stand.check_availability" => actions.stand_availability.check(&body.arguments).await,
+        "report.generate_briefing" => actions.briefing.generate(&body.arguments).await,
+        other => return Err(ApiError::BadRequest(format!("unknown read action: {other}"))),
+    };
+    result
+        .map(|value| HttpResponse::Ok().json(value))
+        .map_err(map_action_error)
 }
 
-/// 契约 §4.3：建议动作只生成 proposal 载荷，不写业务表；权限按动作声明校验。
 async fn execute_advisory_action(
     claims: JwtAuth,
-    service: web::Data<Arc<OntologyAdvisoryService>>,
+    actions: web::Data<Arc<OntologyActionServices>>,
     body: web::Json<ReadActionRequest>,
 ) -> Result<HttpResponse, ApiError> {
     let permission = advisory_action_permission(&body.action_name)
         .ok_or_else(|| ApiError::BadRequest(format!("unknown advisory action: {}", body.action_name)))?;
     claims.ensure_permission(permission)?;
 
-    match service.execute(&body.action_name, &body.arguments).await {
-        Ok(result) => Ok(HttpResponse::Ok().json(result)),
-        Err(ReadActionError::UnknownAction(name)) => {
-            Err(ApiError::BadRequest(format!("unknown advisory action: {name}")))
-        }
-        Err(ReadActionError::InvalidArguments(msg)) => Err(ApiError::BadRequest(msg)),
-        Err(ReadActionError::NotFound(msg)) => Err(ApiError::NotFound(msg)),
-        Err(ReadActionError::Repository(msg)) => Err(ApiError::Internal(msg)),
-        Err(ReadActionError::Internal(msg)) => Err(ApiError::Internal(msg)),
-    }
+    let result = match body.action_name.as_str() {
+        "flight.suggest_stand_adjustment" => actions.stand_recommendation.suggest(&body.arguments).await,
+        "dispatch.suggest_replan" => actions.dispatch_replan.suggest(&body.arguments).await,
+        "anomaly.suggest_escalation" => actions.anomaly_escalation.suggest(&body.arguments).await,
+        "flight.suggest_delay_action" => actions.delay.suggest(&body.arguments).await,
+        "notification.suggest_broadcast" => actions.notification_broadcast.suggest(&body.arguments).await,
+        other => return Err(ApiError::BadRequest(format!("unknown advisory action: {other}"))),
+    };
+    result
+        .map(|value| HttpResponse::Ok().json(value))
+        .map_err(map_action_error)
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -202,7 +213,7 @@ mod tests {
         let resp = test::call_service(&app, req).await;
         assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
 
-        // 只读动作执行入口：未认证必须 401（契约 §4.2：权限按动作声明校验）。
+        // 只读动作执行入口：未认证必须 401（权限按动作声明校验）。
         let unauth_read = test::TestRequest::post()
             .uri("/api/v2/ai/ontology/actions/read")
             .set_json(serde_json::json!({"action_name": "flight.search", "arguments": {}}))
@@ -210,7 +221,7 @@ mod tests {
         let resp = test::call_service(&app, unauth_read).await;
         assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
 
-        // 建议动作执行入口：未认证必须 401（契约 §4.3）。
+        // 建议动作执行入口：未认证必须 401。
         let unauth_advisory = test::TestRequest::post()
             .uri("/api/v2/ai/ontology/actions/advisory")
             .set_json(serde_json::json!({"action_name": "flight.suggest_stand_adjustment", "arguments": {}}))
@@ -246,7 +257,10 @@ mod tests {
         assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
         let export: serde_json::Value = test::read_body_json(resp).await;
         assert_eq!(export["ontology_version"], "flight-ops.v1");
-        assert!(export.get("exported_at").is_some(), "exported_at required by contract §7");
+        assert!(
+            export.get("exported_at").is_some(),
+            "exported_at is required by the schema export"
+        );
         assert!(export["objects"].get("Flight").is_some());
         assert!(export["actions"].get("Flight.change_stand").is_some());
         for level in ["low", "medium", "high", "critical"] {

@@ -7,7 +7,7 @@ import '../../bridge/api/chat.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/sse_demux.dart';
 
-/// 聊天群列表（plan §5 ChatGroupsScreen）。
+/// 聊天群列表。
 class ChatGroupsScreen extends ConsumerWidget {
   const ChatGroupsScreen({super.key});
 

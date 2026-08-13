@@ -1,7 +1,6 @@
-//! Dispatch collaboration chat DTOs (plan §0.5 Chat group).
+//! Dispatch collaboration chat DTOs.
 //!
-//! Backend routes live under `/api/v2/dispatch/collaboration/*`
-//! (NOT the legacy Python `/api/v2/dispatch-chat/*` which 404s).
+//! Backend routes live under `/api/v2/dispatch/collaboration/*`.
 //! List / message / send / mark-read responses are **raw** (no envelope).
 
 use serde::{Deserialize, Serialize};

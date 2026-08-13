@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/l10n.dart';
 import '../../providers/notification_provider.dart';
 
-/// 回执组详情（plan §5 ReceiptGroupScreen）。
+/// 回执组详情。
 class ReceiptGroupScreen extends ConsumerWidget {
   const ReceiptGroupScreen({super.key, required this.receiptGroupId});
 

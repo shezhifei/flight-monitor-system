@@ -1,11 +1,11 @@
-//! HTTP client with the full request pipeline (plan §3.3, contract §0.1–§0.3).
+//! HTTP client with the full request pipeline (auth, signing, retries).
 //!
 //! Per-request pipeline:
-//! 1. fixed headers (§0.3): `X-Client-Surface: native`,
+//! 1. fixed headers: `X-Client-Surface: native`,
 //!    `X-Operator-Context-Type: mobile_device`,
 //!    `X-Operator-Context-Id: {device_id}`;
 //! 2. `Authorization: Bearer` from the session state machine;
-//! 3. anti-replay signature headers (§0.2) — skipped for public/stream paths
+//! 3. anti-replay signature headers — skipped for public/stream paths
 //!    ([`is_public_path`] / [`is_stream_path`], mirrored byte-for-byte from
 //!    `services/api-server/crates/api/src/middleware/anti_replay.rs`);
 //! 4. send; on 401 run the session's single-flight refresh and retry ONCE.
@@ -35,7 +35,7 @@ use crate::signing::{self, SignatureHeaders};
 /// and every subsequent request MUST send the same UA.
 pub const CLIENT_USER_AGENT: &str = "FlightMonitorMobile/0.1 (Android; flutter)";
 
-// Fixed header names (§0.3).
+// Fixed header names.
 pub const HEADER_CLIENT_SURFACE: &str = "X-Client-Surface";
 pub const HEADER_OPERATOR_CONTEXT_TYPE: &str = "X-Operator-Context-Type";
 pub const HEADER_OPERATOR_CONTEXT_ID: &str = "X-Operator-Context-Id";
@@ -44,7 +44,7 @@ const CLIENT_SURFACE_NATIVE: &str = "native";
 const OPERATOR_CONTEXT_TYPE_MOBILE: &str = "mobile_device";
 
 /// Process-wide `reqwest::Client` singleton (rustls, connection pooling,
-/// fixed UA). Plan §3.3: one global instance.
+/// fixed UA). One global instance.
 pub fn shared_http_client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(|| {
@@ -111,7 +111,7 @@ fn path_only(path_and_query: &str) -> &str {
     path_and_query.split('?').next().unwrap_or(path_and_query)
 }
 
-/// Whether anti-replay signing applies to this path (§0.2).
+/// Whether anti-replay signing applies to this path.
 fn signing_required(path_and_query: &str) -> bool {
     let path = path_only(path_and_query);
     !is_public_path(path) && !is_stream_path(path)
@@ -145,7 +145,7 @@ impl ApiClient {
         &self.session
     }
 
-    /// The stable device id sent as `X-Operator-Context-Id` (§0.3); also used
+    /// The stable device id sent as `X-Operator-Context-Id`; also used
     /// as the `device_id` for device register/heartbeat endpoints.
     pub fn device_id(&self) -> &str {
         &self.device_id
@@ -155,8 +155,8 @@ impl ApiClient {
         format!("{}{}", self.config.base_url, path_and_query)
     }
 
-    /// Call an endpoint that returns the `GenericApiResponse<T>` envelope
-    /// (§0.5). `success=false` maps to [`CoreError::Api`] carrying the
+    /// Call an endpoint that returns the `GenericApiResponse<T>` envelope.
+    /// `success=false` maps to [`CoreError::Api`] carrying the
     /// server message and request_id; a missing `data` on success is a
     /// serialization error.
     pub async fn call_with_envelope<T, B>(
@@ -201,7 +201,7 @@ impl ApiClient {
     }
 
     /// Multipart upload `POST /api/v2/mobile/uploads` (fields `file` +
-    /// `category`, plan §3.3). The multipart body is assembled once (reqwest
+    /// `category`). The multipart body is assembled once (reqwest
     /// sends it from memory) and its SHA-256 is computed INCREMENTALLY while
     /// assembling — never hashed as one big buffer afterwards.
     pub async fn upload(
@@ -295,7 +295,7 @@ impl ApiClient {
             return Err(CoreError::BodyNotAllowed);
         }
 
-        // Proactive refresh when we hold tokens (§3.2); public paths may run
+        // Proactive refresh when we hold tokens; public paths may run
         // anonymous, anything else requires a session.
         let mut bundle = match self.session.current_token_bundle().await {
             Some(_) => Some(
@@ -328,7 +328,7 @@ impl ApiClient {
                 return self.decode_response(response).await;
             }
 
-            // 401: exactly one single-flight refresh + retry (§3.3).
+            // 401: exactly one single-flight refresh + retry.
             let Some(stale) = bundle.take() else {
                 return self.decode_response(response).await;
             };
@@ -665,7 +665,7 @@ mod tests {
             assert!(is_stream_path(p), "stream: {p}");
             assert!(!signing_required(p), "no signing: {p}");
         }
-        // dispatch-chat is deliberately NOT skipped (§0.2 note).
+        // dispatch-chat is deliberately NOT skipped.
         assert!(signing_required("/api/v2/dispatch-chat/stream"));
         assert!(signing_required("/api/v2/mobile/workbench"));
         assert!(signing_required("/api/v2/dispatch-orders/my"));

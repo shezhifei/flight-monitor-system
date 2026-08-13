@@ -33,6 +33,7 @@ use crate::schemas::ontology_schemas::{
 };
 use crate::services::flight_domain_events::write_flight_update_outbox_events;
 use crate::services::flight_service::FlightService;
+use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::sqlx_transactional_repositories::{SqlxFlightTransactionalRepository, SqlxOntologyTransactionalRepository};
 
 use super::error::OntologyError;
@@ -48,6 +49,7 @@ pub struct OntologyService {
     link_repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
     suggestion_repo: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync>,
     ontology_tx: Arc<dyn SqlxOntologyTransactionalRepository>,
+    outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
     /// 可选：复用 FlightService 的 draft 确认语义。
     flight_service: Option<Arc<FlightService>>,
     /// 自动建链扫描开关
@@ -69,6 +71,7 @@ impl OntologyService {
         link_repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
         suggestion_repo: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync>,
         ontology_tx: Arc<dyn SqlxOntologyTransactionalRepository>,
+        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
     ) -> Self {
         Self {
             pool,
@@ -80,6 +83,7 @@ impl OntologyService {
             link_repo,
             suggestion_repo,
             ontology_tx,
+            outbox_repo,
             flight_service: None,
             autolink_scanner_running: AtomicBool::new(false),
             autolink_scan_interval: StdDuration::from_secs(
@@ -248,7 +252,8 @@ impl OntologyService {
                 .update_partial_in_tx(&mut tx, flight_id, &patch)
                 .await?
                 .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
-            write_flight_update_outbox_events(&mut tx, flight_id, &patch, Some(actor_id)).await?;
+            write_flight_update_outbox_events(self.outbox_repo.as_ref(), &mut tx, flight_id, &patch, Some(actor_id))
+                .await?;
 
             // 3) 周转链接健康维护（不变量 4）
             let mut broken_links = Vec::new();
@@ -405,7 +410,14 @@ impl OntologyService {
             .update_partial_in_tx(&mut tx, &flight_id, &patch)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
-        write_flight_update_outbox_events(&mut tx, &flight_id, &patch, Some(request.accepted_by.as_str())).await?;
+        write_flight_update_outbox_events(
+            self.outbox_repo.as_ref(),
+            &mut tx,
+            &flight_id,
+            &patch,
+            Some(request.accepted_by.as_str()),
+        )
+        .await?;
 
         // §4.9 接受即执行：若有机号，则落正式 Occupation / Assignment（时段可从 payload 解析）
         if let Some(reg) = registration {
@@ -576,8 +588,14 @@ impl OntologyService {
                     missing.push(flight_id.clone());
                     continue;
                 };
-                write_flight_update_outbox_events(&mut tx, flight_id, &patch, Some(request.confirmed_by.as_str()))
-                    .await?;
+                write_flight_update_outbox_events(
+                    self.outbox_repo.as_ref(),
+                    &mut tx,
+                    flight_id,
+                    &patch,
+                    Some(request.confirmed_by.as_str()),
+                )
+                .await?;
                 tx.commit().await.map_err(|e| OntologyError::internal(e.to_string()))?;
                 confirmed.push(flight_id.clone());
             }
@@ -1485,7 +1503,7 @@ impl OntologyService {
             .update_partial_in_tx(tx, flight_id, &patch)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
-        write_flight_update_outbox_events(tx, flight_id, &patch, Some(actor_id)).await?;
+        write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, flight_id, &patch, Some(actor_id)).await?;
         Ok(())
     }
 

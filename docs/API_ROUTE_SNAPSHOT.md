@@ -1,6 +1,6 @@
 # API 路由快照
 
-文档基线：**2026-08-11**。端点实现以 `services/api-server/crates/api/src/routes/*.rs` 为准；生产注册以 `services/api-server/crates/server/src/web.rs` 为准。本页供导航与巡检，不替代源码。
+文档基线：**2026-08-13**。端点实现以 `services/api-server/crates/api/src/routes/*.rs` 为准；生产注册以 `services/api-server/crates/server/src/web.rs` 为准。本页供导航与巡检，不替代源码。
 
 ## 1. 入口与健康
 
@@ -11,8 +11,6 @@
 | `/api/v2/system/*` | 系统健康、机场上下文、系统标志、导入等 | `routes/system.rs` |
 | `/api/v2/system/runtime/streaming/*` | streaming / SSE 统计 | `routes/scheduler.rs` |
 | `/api/v2/system/scheduler/*` | scheduler 状态与触发 | `routes/scheduler.rs` |
-| `/api/v2/shadow/*` | shadow compare | `routes/shadow.rs` |
-| `/api/v2/verification/*` | 写结果对比 | `routes/verification.rs` |
 
 （表中 `routes/` 指 `services/api-server/crates/api/src/routes/`。）
 
@@ -94,7 +92,6 @@
 
 | 路由组 | 说明 | 源码 |
 |---|---|---|
-| `/api/v2/ai/v2/*` | AI v2 entity / batch 兼容 | `routes/ai_v2.rs` |
 | `/api/v2/ai/eval/*` | LLM Eval jobs | `routes/ai_eval.rs` |
 | `/api/v2/ai/nl-query/*` | NL Query（建议、执行、schema、历史、流） | `routes/nl_query/` |
 | `/api/v2/ai/copilot/*` | 业务案例草稿、批次、派发重试 | `routes/ai_copilot.rs` |
@@ -124,7 +121,7 @@
 |---|---|---|
 | `/api/v2/todos*` | Todo CRUD、状态、agent context | `routes/todos.rs` |
 
-> `ai_config_v2` / `ai_execution_readiness` 挂在 `/api/v2/ai` 父 scope 下，不要再单独挂一层同名 scope（actix 前缀会互斥）。`ai_sidecar_dependency.rs` 只做依赖元数据；`experimental.rs` 目前为空。
+> `ai_config_v2` / `ai_execution_readiness` 挂在 `/api/v2/ai` 父 scope 下，不要再单独挂一层同名 scope（actix 前缀会互斥）。`ai_sidecar_dependency.rs` 只做依赖元数据。
 
 ## 7. 通知、交接班、移动端与参考数据
 
@@ -150,7 +147,7 @@
 | `/frontend/js/*` 等 | 旧静态资源 | `routes/static_files.rs` |
 | `/api/v2/openapi.json` | OpenAPI（utoipa） | `server/src/web.rs` |
 | `/swagger-ui/*` | Swagger UI | `server/src/web.rs` |
-| `/` | 302 → `/frontend/html/login.html`（**当前仍指向兼容登录**；正式 Vue 登录为 `/frontend/login.html`） | `server/src/web.rs` |
+| `/` | 302 → `/frontend/login.html` | `server/src/web.rs` |
 
 源码根：`services/api-server/crates/`。
 
@@ -183,7 +180,6 @@
 | `event_rules.rs` | 仅测试 | 事件驱动派工规则 CRUD（调整规则、生成规则、规则预览），仅在测试 app 中注册 |
 | `ping.rs` | 仅 OpenAPI | `/api/ping` 和 `/api/v2/ping` 仅在 utoipa OpenApi 文档中声明，未作为中间件路由挂载；测试中断言其返回 404 |
 | `ai_sidecar_dependency.rs` | 元数据模块 | 路由依赖清单静态导出，不挂载任何 HTTP 路由 |
-| `experimental.rs` | 空占位 | `configure` 函数体为空，不暴露任何接口 |
 
 ## 10. 巡检规则
 

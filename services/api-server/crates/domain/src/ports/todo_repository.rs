@@ -39,7 +39,7 @@ pub trait TodoRepository {
 
     async fn count_by_status(&self, status: TodoStatus) -> Result<i64, DomainError>;
 
-    // Phase C: batch smoke-cleanup operations
+    // Batch smoke-cleanup operations
     async fn count_by_source_ids(
         &self,
         source_type: &str,
@@ -54,7 +54,7 @@ pub trait TodoTransactionalRepository<Tx>: Send + Sync {
 
     async fn update_in_tx(&self, tx: &mut Tx, todo: &Todo) -> Result<bool, DomainError>;
 
-    // Phase C: batch smoke-cleanup operation
+    // Batch smoke-cleanup operation
     async fn soft_delete_by_source_ids(
         &self,
         tx: &mut Tx,

@@ -29,7 +29,7 @@ void main() {
     });
   });
 
-  group('dispatchActionsForStatus 状态机（对照旧 App）', () {
+  group('dispatchActionsForStatus 状态机', () {
     test('assigned → 接单', () {
       expect(dispatchActionsForStatus('assigned'),
           [DispatchActionId.accept]);

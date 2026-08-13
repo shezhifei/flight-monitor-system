@@ -5,13 +5,12 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::sse::hub::SseHub;
-use fms_application::services::ai_route_service::AiRouteService;
-use fms_domain::error::DomainError;
+use fms_application::services::ai_runtime_service::AiRuntimeService;
 
 use super::shared::*;
 
 pub async fn execute_todo(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     sse_hub: web::Data<Arc<SseHub>>,
     path: web::Path<String>,
     claims: JwtAuth,
@@ -24,23 +23,27 @@ pub async fn execute_todo(
         max_iterations: default_max_iterations(),
         system_prompt_override: None,
     });
-    let (data, event) = svc
+    let data = svc
         .execute_todo(
-            todo_id,
+            &todo_id,
             body.entity_id,
             body.max_iterations,
             body.system_prompt_override,
-            current_user_id(&claims),
+            Some(current_user_id(&claims)),
             current_user_roles(&claims),
         )
-        .await
-        .map_err(map_route_error)?;
-    broadcast_ai_event(&sse_hub, &event.event, event.payload).await;
+        .await;
+    broadcast_ai_event(
+        &sse_hub,
+        "todo_executed",
+        serde_json::json!({ "todo_id": todo_id, "execution": data }),
+    )
+    .await;
     Ok(ok_resp(data))
 }
 
 pub async fn execute_todo_tree(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     sse_hub: web::Data<Arc<SseHub>>,
     path: web::Path<String>,
     claims: JwtAuth,
@@ -52,120 +55,125 @@ pub async fn execute_todo_tree(
         max_iterations_per_todo: default_max_iterations(),
         fail_fast: true,
     });
-    let (data, event) = svc
+    let data = svc
         .execute_todo_tree(
-            todo_id,
+            &todo_id,
             body.max_iterations_per_todo,
             body.fail_fast,
-            current_user_id(&claims),
+            Some(current_user_id(&claims)),
             current_user_roles(&claims),
         )
-        .await
-        .map_err(map_route_error)?;
-    broadcast_ai_event(&sse_hub, &event.event, event.payload).await;
+        .await;
+    broadcast_ai_event(
+        &sse_hub,
+        "todo_tree_executed",
+        serde_json::json!({ "root_todo_id": todo_id, "result": data }),
+    )
+    .await;
     Ok(ok_resp(data))
 }
 
 pub async fn create_chain(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     claims: JwtAuth,
     body: web::Json<TodoChainCreateFromTemplateRequest>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:execute")?;
     let payload = svc
-        .create_chain(&body.template_id, body.context.clone())
+        .create_chain_from_template(&body.template_id, body.context.clone())
         .await
-        .map_err(map_route_error)?;
+        .map_err(map_runtime_error)?;
     Ok(ok_resp(payload))
 }
 
 pub async fn get_chain_status(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
     let root_todo_id = path.into_inner();
-    let payload = svc.get_chain_status(&root_todo_id).await.map_err(map_route_error)?;
+    let payload = svc.get_chain_status(&root_todo_id).await.map_err(map_runtime_error)?;
     Ok(ok_resp(payload))
 }
 
 pub async fn list_chain_templates(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    let payload = svc.list_chain_templates().await.map_err(map_route_error)?;
+    let payload = svc.list_chain_templates().await;
     Ok(ok_resp(payload))
 }
 
 pub async fn get_execution(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
     let run_id = path.into_inner();
-    match svc
-        .get_execution(&run_id, &claims.0.permissions, &current_user_id(&claims))
-        .await
-    {
-        Ok(Some(data)) => Ok(ok_resp(data)),
-        Ok(None) => Err(ApiError::NotFound(format!("执行记录不存在: {run_id}"))),
-        Err(AiRouteError::Domain(DomainError::PermissionDenied(_))) => {
-            Err(ApiError::Forbidden("无权访问该执行记录".to_string()))
-        }
-        Err(error) => Err(map_route_error(error)),
+    let Some(data) = svc.get_execution(&run_id).await else {
+        return Err(ApiError::NotFound(format!("执行记录不存在: {run_id}")));
+    };
+    if !can_access_execution(&claims, &data) {
+        return Err(ApiError::Forbidden("无权访问该执行记录".to_string()));
     }
+    Ok(ok_resp(data))
 }
 
 pub async fn list_executions(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     query: web::Query<ExecutionListQuery>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
     let can_view_all = claims.has_permission("ai:monitor");
-    let payload = svc
+    let executions = svc
         .list_executions(
             query.todo_id.as_deref(),
             query.entity_id.as_deref(),
             query.status.as_deref(),
             query.limit,
-            can_view_all,
-            &current_user_id(&claims),
         )
-        .await
-        .map_err(map_route_error)?;
+        .await;
+    let executions = if can_view_all {
+        executions
+    } else {
+        executions
+            .into_iter()
+            .filter(|item| can_access_execution(&claims, item))
+            .collect::<Vec<_>>()
+    };
+    let payload = serde_json::json!({ "total": executions.len(), "executions": executions });
     Ok(ok_resp(payload))
 }
 
 pub async fn cancel_execution(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     sse_hub: web::Data<Arc<SseHub>>,
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:execute")?;
     let run_id = path.into_inner();
-    match svc
-        .cancel_execution(run_id.clone(), &claims.0.permissions, current_user_id(&claims))
-        .await
-    {
-        Ok((success, Some(event))) => {
-            broadcast_ai_event(&sse_hub, &event.event, event.payload).await;
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "success": success,
-                "message": if success { "执行已取消" } else { "无法取消执行" }
-            })))
-        }
-        Ok((success, None)) => Ok(HttpResponse::Ok().json(serde_json::json!({
-            "success": success,
-            "message": if success { "执行已取消" } else { "无法取消执行" }
-        }))),
-        Err(AiRouteError::Domain(DomainError::PermissionDenied(_))) => {
-            Err(ApiError::Forbidden("无权取消该执行".to_string()))
-        }
-        Err(error) => Err(map_route_error(error)),
+    let Some(data) = svc.get_execution(&run_id).await else {
+        return Err(ApiError::NotFound(format!("执行记录不存在: {run_id}")));
+    };
+    if !can_access_execution(&claims, &data) {
+        return Err(ApiError::Forbidden("无权取消该执行".to_string()));
     }
+    let success = svc.cancel_execution(&run_id).await;
+    if success {
+        broadcast_ai_event(
+            &sse_hub,
+            "execution_cancelled",
+            serde_json::json!({ "execution_id": run_id, "status": "cancelled" }),
+        )
+        .await;
+    }
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "success": success,
+        "message": if success { "执行已取消" } else { "无法取消执行" }
+    })))
 }

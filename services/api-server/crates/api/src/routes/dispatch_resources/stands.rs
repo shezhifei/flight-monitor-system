@@ -6,10 +6,8 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::routes::dispatch_resources::{created_resp, ok_resp};
 use fms_application::schemas::dispatch_schemas::{StandCreate, StandResponse};
+use fms_application::services::dispatch_resource_service::{to_stand_response, StandListQuery};
 use fms_application::types::ConcreteDispatchResourceService;
-use fms_application::services::dispatch_resource_service::{
-    to_stand_response, StandListQuery,
-};
 
 pub async fn list_stands(
     req: HttpRequest,

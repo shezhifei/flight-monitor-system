@@ -1,4 +1,4 @@
-//! Mobile operations event feed (plan §0.5 / §5 OperationsScreen).
+//! Mobile operations event feed.
 
 use crate::client::ApiClient;
 use crate::dto::operations::OperationsEventsResponse;

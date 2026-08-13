@@ -1,4 +1,4 @@
-//! Mobile operations event feed DTOs (plan §0.5 Mobile operations).
+//! Mobile operations event feed DTOs.
 //!
 //! `GET /api/v2/mobile/operations/events` → enveloped
 //! `MobileOperationsEventsResponse`.

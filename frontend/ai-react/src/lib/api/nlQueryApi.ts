@@ -46,7 +46,7 @@ export async function streamQuery(
   payload: StreamRequestPayload,
   onEvent: (eventName: string, data: Record<string, unknown>) => void,
 ): Promise<NLQueryResult> {
-  const endpoint = payload.conversation_id ? `${BASE}/followup/stream` : `${BASE}/stream`;
+  const endpoint = `${BASE}/stream`;
   const response = await authFetch(endpoint, {
     method: 'POST',
     headers: {
@@ -65,7 +65,11 @@ export async function streamQuery(
   await consumeSSEBody(response, (event) => {
     const parsed = safeJson<Record<string, unknown>>(event.data) || {};
     if (event.event === 'final_result') {
-      finalResult = parsed as unknown as NLQueryResult;
+      finalResult = {
+        ...(parsed as unknown as NLQueryResult),
+        conversation_id: String(parsed.conversation_id || payload.conversation_id || ''),
+        summary: String(parsed.summary || parsed.answer || ''),
+      };
       return;
     }
     if (event.event === 'error') {

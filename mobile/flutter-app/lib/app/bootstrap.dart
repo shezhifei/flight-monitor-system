@@ -12,7 +12,7 @@ import '../bridge/frb_generated.dart';
 import 'constants.dart';
 import 'token_store.dart';
 
-/// 启动装配结果（plan §4 init_core + 会话持久化恢复流程）。
+/// 启动装配结果：init_core + 会话持久化恢复。
 class AppBootstrap {
   const AppBootstrap({
     required this.deviceId,
@@ -21,7 +21,7 @@ class AppBootstrap {
     required this.restoredLoggedIn,
   });
 
-  /// 设备稳定 ID（§0.3 X-Operator-Context-Id）：ANDROID_ID，
+  /// 设备稳定 ID（X-Operator-Context-Id）：ANDROID_ID，
   /// 读不到时用持久化的 UUID 兜底。
   final String deviceId;
 
@@ -90,7 +90,7 @@ class Bootstrapper {
     );
   }
 
-  /// ANDROID_ID 优先（旧 App 同款）；非 Android 或读取失败时用
+  /// ANDROID_ID 优先，保证设备 id 稳定；非 Android 或读取失败时用
   /// secure storage 里的持久化 UUID 兜底（保证同一设备稳定）。
   static Future<String> _resolveDeviceId(FlutterSecureStorage storage) async {
     try {

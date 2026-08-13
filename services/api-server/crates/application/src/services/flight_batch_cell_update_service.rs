@@ -29,7 +29,8 @@ use crate::services::flight_domain_events::{
     FLIGHT_AGGREGATE_TYPE, FLIGHT_TIMELINE_UPSERTED_EVENT,
 };
 use crate::sqlx_transactional_repositories::{
-    SqlxFlightTimelineTransactionalRepository, SqlxFlightTransactionalRepository,
+    SqlxDomainEventOutboxTransactionalRepository, SqlxFlightTimelineTransactionalRepository,
+    SqlxFlightTransactionalRepository,
 };
 
 pub const MAX_BATCH_CELL_TARGETS: usize = 200;
@@ -81,6 +82,7 @@ pub struct FlightBatchCellUpdateService {
     timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository>,
     timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync>,
     projection_repo: Option<Arc<dyn FlightRuntimeProjectionRepository + Send + Sync>>,
+    outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
     pool: PgPool,
 }
 
@@ -90,6 +92,7 @@ impl FlightBatchCellUpdateService {
         tx_repo: Arc<dyn SqlxFlightTransactionalRepository>,
         timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository>,
         timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync>,
+        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
         pool: PgPool,
     ) -> Self {
         Self {
@@ -98,6 +101,7 @@ impl FlightBatchCellUpdateService {
             timeline_tx_repo,
             timeline_repo,
             projection_repo: None,
+            outbox_repo,
             pool,
         }
     }
@@ -300,7 +304,7 @@ impl FlightBatchCellUpdateService {
             return Err(ApplyError::NotFound(target.flight_id.clone()));
         };
 
-        write_flight_update_outbox_events(tx, &target.flight_id, &patch, Some(actor_id))
+        write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, &target.flight_id, &patch, Some(actor_id))
             .await
             .map_err(|e| ApplyError::Internal(e.to_string()))?;
 
@@ -339,13 +343,16 @@ impl FlightBatchCellUpdateService {
         };
 
         // Serialize concurrent milestone writers (shared with single-flight path).
-        lock_timeline_milestone_in_tx(tx, &target.flight_id, field.as_str())
+        self.timeline_tx_repo
+            .lock_milestone_in_tx(tx, &target.flight_id, field.as_str())
             .await
             .map_err(|e| ApplyError::Internal(e.to_string()))?;
 
         // Re-read last-write milestone value under the lock and re-check expected_value.
         let expected_value = &target.expected_value;
-        let locked_current = read_timeline_current_in_tx(tx, &target.flight_id, field.as_str())
+        let locked_current = self
+            .timeline_tx_repo
+            .latest_occurred_at_in_tx(tx, &target.flight_id, field.as_str())
             .await
             .map_err(|e| ApplyError::Internal(e.to_string()))?;
         let current_value = match locked_current {
@@ -420,6 +427,7 @@ impl FlightBatchCellUpdateService {
             });
 
             write_flight_outbox_event(
+                self.outbox_repo.as_ref(),
                 tx,
                 FLIGHT_AGGREGATE_TYPE,
                 &target.flight_id,
@@ -783,45 +791,6 @@ fn normalize_optional_text(value: Option<String>) -> Option<String> {
     value
         .map(|text| text.trim().to_string())
         .filter(|text| !text.is_empty())
-}
-
-/// Transaction-scoped advisory lock for one flight milestone.
-/// Keys must match the single-flight timeline write path.
-async fn lock_timeline_milestone_in_tx(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    flight_id: &str,
-    milestone_code: &str,
-) -> Result<(), DomainError> {
-    sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))")
-        .bind(flight_id)
-        .bind(milestone_code)
-        .execute(&mut **tx)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
-    Ok(())
-}
-
-/// Last-write-wins current occurred_at for a milestone, under the caller's lock.
-async fn read_timeline_current_in_tx(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    flight_id: &str,
-    milestone_code: &str,
-) -> Result<Option<DateTime<Utc>>, DomainError> {
-    let row: Option<DateTime<Utc>> = sqlx::query_scalar(
-        r#"
-        SELECT occurred_at
-        FROM flight_dispatch_timeline_events
-        WHERE flight_id = $1 AND milestone_code = $2
-        ORDER BY created_at DESC, timeline_id DESC
-        LIMIT 1
-        "#,
-    )
-    .bind(flight_id)
-    .bind(milestone_code)
-    .fetch_optional(&mut **tx)
-    .await
-    .map_err(|e| DomainError::Internal(e.to_string()))?;
-    Ok(row)
 }
 
 #[cfg(test)]

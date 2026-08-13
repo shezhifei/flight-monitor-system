@@ -190,7 +190,7 @@ export function useFlightBatchEdit(options: UseFlightBatchEditOptions): UseFligh
     selectedCount: 0,
   });
 
-  const canManageFlights = computed(() => hasUserPermission(auth.getUser(), 'flight:manage'));
+  const canManageFlights = computed(() => hasUserPermission(auth.getUser(), 'flight.update'));
   const isAdminUser = computed(() => {
     const user = auth.getUser() as JwtUser | null;
     if (!user) {

@@ -91,13 +91,11 @@ impl PgRoleRepository {
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;
 
-        sqlx::query(
-            "UPDATE role_permissions SET deleted_at = NOW() WHERE role_id = $1 AND deleted_at IS NULL",
-        )
-        .bind(role_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        sqlx::query("UPDATE role_permissions SET deleted_at = NOW() WHERE role_id = $1 AND deleted_at IS NULL")
+            .bind(role_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
 
         if !permission_names.is_empty() {
             sqlx::query(
@@ -119,7 +117,11 @@ impl PgRoleRepository {
 
     /// 为用户分配角色
     pub async fn assign_role_to_user(&self, user_id: &str, role_id: &str) -> Result<(), DomainError> {
-        let mut tx = self.pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
 
         // Serialize role changes per user so the AOC/TOC mutual exclusion
         // cannot be bypassed by two concurrent assignment requests.
@@ -129,11 +131,12 @@ impl PgRoleRepository {
             .await
             .map_err(|e| DomainError::Internal(e.to_string()))?;
 
-        let target_name: Option<String> = sqlx::query_scalar("SELECT name FROM roles WHERE id = $1 AND is_active = TRUE")
-            .bind(role_id)
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let target_name: Option<String> =
+            sqlx::query_scalar("SELECT name FROM roles WHERE id = $1 AND is_active = TRUE")
+                .bind(role_id)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
 
         if let Some(target_name) = target_name.as_deref() {
             let current_names: Vec<String> = sqlx::query_scalar(
@@ -160,9 +163,9 @@ impl PgRoleRepository {
         )
         .bind(user_id)
         .bind(role_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
         tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(())
     }
@@ -306,7 +309,11 @@ impl RoleRepository for PgRoleRepository {
 
     async fn delete(&self, id: &str) -> Result<bool, DomainError> {
         // 审计要求软删除：角色本体及其授权关系全部标记 deleted_at，不物理删除
-        let mut tx = self.pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
         let result = sqlx::query(
             "UPDATE roles SET deleted_at = NOW(), is_active = FALSE, updated_at = NOW() \
              WHERE id = $1 AND is_system = FALSE AND deleted_at IS NULL",

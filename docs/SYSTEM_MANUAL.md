@@ -110,17 +110,27 @@ Host 适合排障，不替代 Docker 作为验收基线。
 
 ### 5.5 AI
 
-能力与工具注册/执行、待审批动作、实体配置、Todo/chain 执行可见性、NL Query、LLM Eval、侧车 proxy 与健康。  
-**Rust 管管理面与代理；Python 跑需要 runtime 的执行。**  
-侧车只写自有控制面表（`ai_*` / `agent_*` / `aip_*` 等），不直写航班/派工/todo 等核心真相表；写域走 Rust DomainAction 或内部 API。
+能力与工具、待审批、proposal、本体动作、NL Query、LLM Eval、微模型。
+**一条链**：Rust 管 HTTP、鉴权、proposal 与受控写；Python 侧车跑 LLM/工具/MCP。
+侧车只写控制面表（`ai_*`、`agent_*`、`todo_agent_context`、`ai_runtime_commands` 等），不直写航班/派工/todo；写域走 `DomainActionExecutor` 或内部 JWT。侧车本体能力只镜像 Rust schema，不维护独立 AIP 动作栈。
 
 ### 5.6 Observability
 
-`/api/v2/health/*`、`/api/v2/system/*`、scheduler/streaming、shadow/verification、runtime diagnostic events、SSE hub。
+`/api/v2/health/*`、`/api/v2/system/*`、scheduler/streaming、运行时错误监控与 SSE hub。
 
 ### 5.7 Mobile
 
 Workbench、operations events、uploads、device register/heartbeat/unregister。迁移：`033`。
+
+### 5.8 并行读模型边界
+
+以下接口不是重复实现，而是面向不同产品工作流的活读模型。修改其中一面时必须同步审计对应客户端，不能只按表名或返回字段相似度合并。
+
+| 事实 | 运行/操作面 | 本体/管线面 | 边界 |
+|---|---|---|---|
+| 机位 | `PATCH /api/v2/flights/{flight_id}` 写 `flights.stand` | `/api/v2/ontology` 管理 `stand_occupations`，可选同步航班计划 | 即时运行字段与时段占用模型并存 |
+| AI 审批 | Vue/ai-react 使用 `/api/v2/ai/pending-actions` | proposal 管线使用 `/api/v2/ai/proposals`，执行时回写 pending action | 人工工具审批与本体动作 proposal 两个工作流通过桥接保持一致 |
+| 工单时间线 | `/api/v2/dispatch-orders/{order_id}/timeline` 投影协同账本中的工单状态事件 | `/api/v2/mobile/workbench` 提供移动作业日志/工单摘要 | 同一工单事实按桌面时间线与移动工作台契约分别读取 |
 
 ## 6. 前端
 
@@ -133,7 +143,7 @@ Workbench、operations events、uploads、device register/heartbeat/unregister�
 | 兼容访问 | `/frontend/html/<page>.html` |
 
 约 22 个页面入口（login、dashboard、flight_monitor、dispatch_board、command_center、ai_*、nl_query、system_status、flowable_modeler 等）。新功能只走 Vue 多页。  
-根路径 `/` 仍跳到兼容登录页；日常用 `/frontend/login.html`。
+根路径 `/` 跳到正式 Vue 登录页 `/frontend/login.html`。
 
 ## 7. 配置、密钥与迁移
 
@@ -150,7 +160,7 @@ Workbench、operations events、uploads、device register/heartbeat/unregister�
 ### 迁移
 
 - 目录：`migrations/*.sql`
-- 当前最新：`118_extend_dispatch_alerts_overrun.sql`
+- 当前最新：`121_add_soft_delete_columns.sql`
 - 按编号顺序；Host 默认可自动执行
 - 空库可用 `sqlx migrate run --source migrations`
 - `CREATE INDEX CONCURRENTLY`：每文件一条，首行 `-- no-transaction`
@@ -177,5 +187,5 @@ Workbench、operations events、uploads、device register/heartbeat/unregister�
 2. `docs/DEPLOYMENT.md`
 3. `docs/API_ROUTE_SNAPSHOT.md`
 4. `docs/SOURCE_OF_TRUTH.md`
-5. `docs/architecture/ADR-0001` … `ADR-0004`
-6. `docs/architecture/TECH_DEBT_DASHBOARD.md`
+5. `docs/architecture/ONTOLOGY_V1.md`
+6. `docs/architecture/ADR-0001` … `ADR-0003`

@@ -6,43 +6,44 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::services::python_sidecar_proxy::{forward_ai_sidecar_sse, forward_ai_sidecar_sse_json};
 use crate::sse::hub::SseHub;
-use fms_application::services::ai_route_service::AiRouteService;
+use fms_application::services::ai_runtime_service::AiRuntimeService;
 
 use super::shared::*;
 
-pub async fn rate_limit_status(svc: web::Data<Arc<AiRouteService>>, claims: JwtAuth) -> Result<HttpResponse, ApiError> {
+pub async fn rate_limit_status(
+    svc: web::Data<Arc<AiRuntimeService>>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    Ok(ok_resp(svc.rate_limit_status().await.map_err(map_route_error)?))
+    Ok(ok_resp(svc.rate_limit_status().await))
 }
 
 pub async fn query_routing_metrics(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    Ok(ok_resp(svc.query_routing_metrics().await.map_err(map_route_error)?))
+    Ok(ok_resp(svc.query_routing_metrics().await))
 }
 
 pub async fn report_schema_metrics(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    Ok(ok_resp(svc.report_schema_metrics().await.map_err(map_route_error)?))
+    Ok(ok_resp(svc.report_schema_metrics().await))
 }
 
 pub async fn execution_visibility_metrics(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    Ok(ok_resp(
-        svc.execution_visibility_metrics().await.map_err(map_route_error)?,
-    ))
+    Ok(ok_resp(svc.execution_visibility_metrics().await))
 }
 
 pub async fn todo_graph_pilot_metrics(
-    svc: web::Data<Arc<AiRouteService>>,
+    svc: web::Data<Arc<AiRuntimeService>>,
     claims: JwtAuth,
     query: web::Query<TodoGraphPilotQuery>,
 ) -> Result<HttpResponse, ApiError> {
@@ -54,8 +55,7 @@ pub async fn todo_graph_pilot_metrics(
             query.sample_limit,
             query.pending_stale_after_minutes,
         )
-        .await
-        .map_err(map_route_error)?;
+        .await;
     Ok(ok_resp(data))
 }
 

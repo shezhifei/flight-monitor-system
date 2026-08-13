@@ -15,7 +15,6 @@ pub mod ai_realtime_audio;
 pub mod ai_resume;
 pub mod ai_rollback;
 pub mod ai_sidecar_dependency;
-pub mod ai_v2;
 pub mod anomalies;
 pub mod archive;
 pub mod auth;
@@ -29,7 +28,6 @@ pub mod dispatch_chat;
 pub mod dispatch_collaboration;
 pub mod dispatch_resources;
 pub mod event_rules;
-pub mod experimental;
 pub mod flights;
 pub mod flowable;
 pub mod health;
@@ -44,12 +42,10 @@ pub mod ping;
 pub mod reference;
 pub mod resource_utilization;
 pub mod scheduler;
-pub mod shadow;
 pub mod shift_handovers;
 pub mod static_files;
 pub mod system;
 pub mod todos;
-pub mod verification;
 mod workflow_actor;
 pub mod workflow_dispatch;
 pub mod workflow_forms;
@@ -89,7 +85,6 @@ mod tests {
             .configure(super::ai_eval::configure)
             .configure(super::nl_query::configure)
             .configure(super::system::configure)
-            .configure(super::ai_v2::configure)
             // ai_config_v2 routes are composed into super::ai's single /api/v2/ai
             // scope (registering it separately would shadow ai's routes).
             .configure(super::ai_ontology::configure)
@@ -137,15 +132,12 @@ mod tests {
             .configure(super::shift_handovers::configure)
             .configure(super::scheduler::configure)
             .configure(super::system::configure)
-            .configure(super::shadow::configure)
-            .configure(super::verification::configure)
             .configure(super::archive::configure)
             .configure(super::mobile::configure)
             .configure(super::resource_utilization::configure)
             .configure(super::workflow_dispatch::configure)
             .configure(super::ai_eval::configure)
             .configure(super::nl_query::configure)
-            .configure(super::ai_v2::configure)
             // ai_config_v2 routes are composed into super::ai's single /api/v2/ai
             // scope (registering it separately would shadow ai's routes).
             .configure(super::ai_ontology::configure)
@@ -158,7 +150,6 @@ mod tests {
             .configure(crate::sse::handler::configure)
             .configure(super::flowable::configure)
             .configure(super::workflow_forms::configure)
-            .configure(super::experimental::configure)
             .configure(super::static_files::configure)
     }
 
@@ -218,7 +209,6 @@ mod tests {
             "/api/v2/health",
             "/api/v2/system/airport-context",
             "/api/v2/ai/capabilities",
-            "/api/v2/ai/v2/entities",
             "/api/v2/ai/eval/jobs?limit=1",
             "/api/v2/ai/nl-query/suggestions",
             "/api/v2/ai/copilot/business-case-operational-metrics",
@@ -274,11 +264,6 @@ mod tests {
             "/api/v2/system/runtime/streaming/sse-stats",
             "/api/v2/system/scheduler/status",
             "/api/v2/system/scheduler/flight-sync/status",
-            "/api/v2/shadow/diffs",
-            "/api/v2/shadow/stats",
-            "/api/v2/shadow/health",
-            "/api/v2/verification/stats",
-            "/api/v2/verification/health",
             "/api/v2/anomalies",
             "/api/v2/shift-handovers?limit=1",
             "/api/v2/mobile/workbench?pending_sync_action_count=0&max_orders=1",
@@ -286,7 +271,6 @@ mod tests {
             "/api/v2/workflows/instances",
             "/api/v2/workflows/history/instances",
             "/api/v2/ai/capabilities",
-            "/api/v2/ai/v2/entities",
             "/api/v2/ai/eval/jobs?limit=1",
             "/api/v2/ai/nl-query/suggestions",
             "/api/v2/ai/copilot/business-case-operational-metrics",
@@ -335,7 +319,6 @@ mod tests {
             "/api/v2/workflows/definitions/drafts/assistant-chat",
             "/api/v2/workflows/definitions/drafts/assistant-chat/stream",
             "/api/v2/workflows/instances",
-            "/api/v2/verification/compare",
         ];
 
         for path in post_cases {
@@ -461,7 +444,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn removed_public_alias_routes_are_absent() {
+    async fn removed_public_routes_are_absent() {
         let app = test::init_service(build_full_route_order_app()).await;
 
         let removed_get_cases = [
@@ -482,7 +465,14 @@ mod tests {
             "/api/v2/workflow-dispatch/pending?page=1&page_size=1",
             "/api/v2/workflows/process-drafts/assistant-chat",
             "/api/ai/v2/entities",
+            "/api/v2/ai/v2/entities",
+            "/api/v2/ai/v2/entities/default/status",
             "/api/v2/ai/v2/ws/user-1",
+            "/api/v2/shadow/diffs",
+            "/api/v2/shadow/stats",
+            "/api/v2/shadow/health",
+            "/api/v2/verification/stats",
+            "/api/v2/verification/health",
             "/api/ping",
             "/api/v2/ping",
             "/api/v2/business-case-workflows/runs/run-1",
@@ -498,6 +488,17 @@ mod tests {
 
         for path in removed_get_cases {
             let response = test::call_service(&app, test::TestRequest::get().uri(path).to_request()).await;
+            assert_eq!(
+                response.status(),
+                StatusCode::NOT_FOUND,
+                "expected removed public route to stay absent: {path}"
+            );
+        }
+
+        let removed_post_cases = ["/api/v2/ai/v2/batch/default", "/api/v2/verification/compare"];
+
+        for path in removed_post_cases {
+            let response = test::call_service(&app, test::TestRequest::post().uri(path).to_request()).await;
             assert_eq!(
                 response.status(),
                 StatusCode::NOT_FOUND,

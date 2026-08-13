@@ -20,7 +20,6 @@ pub struct RolloutStatusResponse {
     pub execution_enabled: bool,
     pub execution_mode: String,
     pub readiness_override: Option<String>,
-    pub legacy_fallback_enabled: bool,
     pub readiness: fms_domain::models::ai_execution_readiness::AiExecutionReadinessReport,
     pub metrics: MetricsSummary,
     pub recent_smoke: Option<SmokeSummary>,
@@ -108,7 +107,6 @@ impl AiRolloutStatusService {
             execution_enabled: allowlist.is_execution_enabled(),
             execution_mode: allowlist.execution_mode().to_string(),
             readiness_override: std::env::var("FMS_AI_EXECUTION_READINESS_OVERRIDE").ok(),
-            legacy_fallback_enabled: legacy_fallback_enabled(),
             readiness: self.readiness_service.evaluate().await,
             metrics: MetricsSummary {
                 pending_proposals,
@@ -296,36 +294,5 @@ impl AiRolloutStatusService {
             todos_soft_deleted,
             proposals_deleted,
         })
-    }
-}
-
-/// Scheduled retirement date for the legacy tool fallback path (Q3 2026).
-const LEGACY_FALLBACK_RETIREMENT_DATE: &str = "2026-09-30";
-
-fn legacy_fallback_enabled() -> bool {
-    let enabled = std::env::var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED")
-        .map(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
-        .unwrap_or(false);
-    if enabled {
-        tracing::warn!(
-            retirement_date = LEGACY_FALLBACK_RETIREMENT_DATE,
-            "FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED is true — legacy tool fallback is scheduled for retirement on {}",
-            LEGACY_FALLBACK_RETIREMENT_DATE,
-        );
-    }
-    enabled
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn legacy_fallback_has_retirement_date() {
-        let source = include_str!("ai_rollout_status_service.rs");
-        let test_marker = "#[cfg(test)]";
-        let main_code = &source[..source.find(test_marker).unwrap_or(source.len())];
-        assert!(
-            main_code.contains("RETIREMENT_DATE") || main_code.contains("retire") || main_code.contains("2026"),
-            "FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED should have a retirement date"
-        );
     }
 }

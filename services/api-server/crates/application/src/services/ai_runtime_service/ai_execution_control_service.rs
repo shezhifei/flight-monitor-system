@@ -1,5 +1,5 @@
 //! `AiExecutionControlService` — the durable ledger side of the AI
-//! agent resilient tool architecture (Phase 1).
+//! agent resilient tool architecture.
 //!
 //! The service is the consumer-side counterpart to the Python
 //! `ToolExecutor` / `LLMStreamRunner`. It owns the transitions on
@@ -16,10 +16,8 @@
 //! (`tool_lease` / `tool_proposal_only` / `tool_denied`) and the
 //! ledger status (`Authorized` / `ProposalOnly` / `Denied`).
 //!
-//! Phase 1 is intentionally narrow: it covers the ledger transitions
-//! described in the plan's "Phase 1: Ledger + MQ Consumer" section.
-//! Checkpoint persistence, run finalization, and the full
-//! `AiProposalIngestService` wiring land in Waves 2-4.
+//! The service owns ledger transitions, checkpoint persistence, run
+//! finalization, and routing into `AiProposalIngestService`.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -53,9 +51,9 @@ use crate::services::ai_runtime_service::tool_authorization_service::{
 };
 
 /// Hook for ingesting proposals emitted by a tool result. The full
-/// implementation lives in `AiProposalIngestService`; Phase 1 keeps
-/// the surface here so the control service can route the proposal ids
-/// without yet wiring the heavier service.
+/// implementation lives in `AiProposalIngestService`; this surface
+/// lets the control service route proposal ids without depending on
+/// the heavier service type.
 #[async_trait]
 pub trait ProposalIngestHook: Send + Sync {
     async fn ingest(
@@ -67,8 +65,8 @@ pub trait ProposalIngestHook: Send + Sync {
     ) -> Result<(), ControlServiceError>;
 }
 
-/// Default Phase 1 implementation: log and return `Ok(())`. Wave 4
-/// replaces this with the real `AiProposalIngestService` wiring.
+/// Default hook: log and return `Ok(())`. Production wiring injects
+/// `AiProposalIngestService`.
 pub struct LoggingProposalIngestHook;
 
 #[async_trait]
@@ -245,7 +243,7 @@ impl AiExecutionControlService {
 
     /// Process a `tool.call.requested` event.
     ///
-    /// ## Trust boundary (Phase 4 hardening)
+    /// ## Trust boundary
     ///
     /// The Python sidecar sends `authorization_mode` in the payload, but
     /// it is **never trusted** for security decisions. Instead:
@@ -529,10 +527,8 @@ impl AiExecutionControlService {
         Ok(())
     }
 
-    /// Phase 1 stub. The full `ai_run_checkpoints` table lands in
-    /// Phase 2; here we only log a structured event so the consumer
-    /// can verify the dispatch path without an additional DB
-    /// dependency.
+    /// Persist a run checkpoint. If no checkpoint repository is
+    /// configured, skip persistence after validating the payload.
     pub async fn handle_checkpoint(&self, envelope: AiRuntimeEventEnvelope) -> Result<(), ControlServiceError> {
         let payload: CheckpointPayload = serde_json::from_value(envelope.payload.clone())
             .map_err(|error| ControlServiceError::PayloadParse(format!("checkpoint: {error}")))?;
@@ -746,11 +742,10 @@ impl AiExecutionControlService {
         Ok(record)
     }
 
-    /// Phase 4: enqueue a `start_run` command. Replaces the direct
-    /// HTTP bootstrap call — a Python worker leases this command and
-    /// becomes the run owner. The payload carries the envelope,
-    /// capability snapshot and governance hash so the worker has
-    /// everything it needs without a second round-trip.
+    /// Enqueue a `start_run` command. A Python worker leases this
+    /// command and becomes the run owner. The payload carries the
+    /// envelope, capability snapshot and governance hash so the worker
+    /// has everything it needs without a second round-trip.
     pub async fn enqueue_start_run(
         &self,
         job_id: &str,
@@ -787,10 +782,9 @@ impl AiExecutionControlService {
         Ok(record)
     }
 
-    /// Phase 4: enqueue a `cancel_run` command instead of directly
-    /// calling the Python sidecar. The worker that owns the run (or
-    /// any worker if the run is unowned) picks up the cancel command
-    /// and interrupts the in-flight tool execution.
+    /// Enqueue a `cancel_run` command. The worker that owns the run
+    /// (or any worker if the run is unowned) picks it up and
+    /// interrupts the in-flight tool execution.
     pub async fn enqueue_cancel_run(
         &self,
         job_id: &str,
@@ -823,10 +817,9 @@ impl AiExecutionControlService {
         Ok(record)
     }
 
-    /// Phase 4: enqueue a `retry_tool` command for a specific tool
-    /// call. The worker re-executes the tool call with the same
-    /// idempotency key (so duplicate effects are prevented by the DB
-    /// unique constraint).
+    /// Enqueue a `retry_tool` command for a specific tool call. The
+    /// worker re-executes the tool with the same idempotency key (so
+    /// duplicate effects are prevented by the DB unique constraint).
     pub async fn enqueue_retry_tool(
         &self,
         job_id: &str,

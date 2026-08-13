@@ -20,6 +20,10 @@
 | 待审批动作 | Pending action | 工具执行后等人审的对象，表 `ai_pending_actions`。 |
 | 业务事项 | Business case | 运行中的业务工作项；含 append、workflow、表单。 |
 | 派工工单 | Dispatch order | 派工主实体；重排、协同、时间线围绕它展开。 |
+| 运行资源本体 | Ops ontology | `Aircraft` / 占用 / 口 / 周转链；HTTP `/api/v2/ontology`。 |
+| 动作本体 | flight-ops.v1 | 同一对象上的只读 / 建议 / 受控写；HTTP `/api/v2/ai/ontology`。 |
+| 本体动作服务 | Ontology action services | 每条只读或建议动作一个应用服务，由 HTTP 选型。 |
+| 受控写执行器 | DomainActionExecutor | 审批后的写动作落到既有领域服务。 |
 | 事实来源 | Source of truth | 文档应对的唯一代码依据，见 `docs/SOURCE_OF_TRUTH.md`。 |
 | 文档基线 | Doc baseline | 当前约定仍有效的主文档集合与日期戳。 |
 
@@ -38,4 +42,6 @@
 - `global_container` 旧全局容器别名
 - 模块级 `lifecycle_manager` 单例当正式读路径
 - 「Python `main.py` 是默认路由挂载源」— 默认 HTTP 已是 Rust
+- 「AIP 主链」「Python HTTP 主链」「Rust 子集」
+- 「OntologyAdvisoryService 分发门面」
 - 产品文档里堆任务波次编号、评分口号；那些留在路线图/计划即可

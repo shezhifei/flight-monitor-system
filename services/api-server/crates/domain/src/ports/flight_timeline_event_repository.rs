@@ -55,6 +55,21 @@ pub trait FlightTimelineEventRepository: Send + Sync {
 /// Transactional write side of the timeline repository.
 #[async_trait]
 pub trait FlightTimelineEventTransactionalRepository<Tx: Send>: Send + Sync {
+    /// Serialize writers for one `(flight_id, milestone_code)` until the
+    /// caller's transaction completes.
+    async fn lock_milestone_in_tx(&self, tx: &mut Tx, flight_id: &str, milestone_code: &str)
+        -> Result<(), DomainError>;
+
+    /// Read the current milestone value while holding the caller's lock.
+    /// Current means last write by `(created_at, timeline_id)`, not the
+    /// greatest business `occurred_at` value.
+    async fn latest_occurred_at_in_tx(
+        &self,
+        tx: &mut Tx,
+        flight_id: &str,
+        milestone_code: &str,
+    ) -> Result<Option<DateTime<Utc>>, DomainError>;
+
     async fn insert_in_tx(
         &self,
         tx: &mut Tx,
@@ -89,6 +104,24 @@ mod tests {
         }
         #[async_trait]
         impl FlightTimelineEventTransactionalRepository<()> for Stub {
+            async fn lock_milestone_in_tx(
+                &self,
+                _tx: &mut (),
+                _flight_id: &str,
+                _milestone_code: &str,
+            ) -> Result<(), DomainError> {
+                Ok(())
+            }
+
+            async fn latest_occurred_at_in_tx(
+                &self,
+                _tx: &mut (),
+                _flight_id: &str,
+                _milestone_code: &str,
+            ) -> Result<Option<DateTime<Utc>>, DomainError> {
+                Ok(None)
+            }
+
             async fn insert_in_tx(
                 &self,
                 _: &mut (),

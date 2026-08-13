@@ -1,12 +1,10 @@
-//! Wire DTOs (plan §3.6).
+//! Wire DTOs for every mobile domain.
 //!
-//! Field authority: the legacy Kotlin models under
-//! `android/app/src/main/java/com/flightmonitor/mobile/api/model/` (read-only
-//! reference), cross-checked against the backend schemas in
-//! `services/api-server/crates/application/src/schemas/`.
+//! Field authority: archived Kotlin models under
+//! `legacy/android-kotlin/` (read-only reference), cross-checked against
+//! the backend schemas in `services/api-server/crates/application/src/schemas/`.
 //! All structs use `snake_case` field names; `Option` mirrors Kotlin
-//! nullability. P1 + P2 domains are covered; BusinessCase / Operations arrive
-//! in P3.
+//! nullability.
 
 pub mod auth;
 pub mod business_case;

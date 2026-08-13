@@ -7,7 +7,7 @@ import '../../providers/chat_provider.dart';
 import '../../providers/sse_demux.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 聊天室（plan §5 ChatRoomScreen）：分页、发送、at_all、read_only、系统消息。
+/// 聊天室：分页、发送、at_all、read_only、系统消息。
 class ChatRoomScreen extends ConsumerStatefulWidget {
   const ChatRoomScreen({
     super.key,

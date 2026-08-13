@@ -41,6 +41,7 @@
 - `docs/`：`SYSTEM_MANUAL.md`、`DEPLOYMENT.md`、`API_ROUTE_SNAPSHOT.md`、`SOURCE_OF_TRUTH.md`、`DOCUMENTATION_WORKFLOW.md`、`GLOSSARY.md`
 - `docs/architecture/`、`docs/observability/`
 - 少量长期 ops 笔记与技术债主计划（见 `.gitignore` 白名单）
+- 代理交接：`docs/operations/agent-handoff.md`
 
 **默认不入库：**
 

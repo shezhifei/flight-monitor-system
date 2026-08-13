@@ -1,7 +1,7 @@
 """Contract test: sidecar 必须能解析与 Rust 共享的 Ontology V1 schema fixture。
 
 fixture 由 Rust `fms-domain` 的 `flight_ops_v1_export_matches_fixture` 测试维护
-（`docs/fixtures/flight_ops_v1_ontology_schema.json`，契约 §7 导出结构）。
+（`docs/fixtures/flight_ops_v1_ontology_schema.json`，稳定 schema export 结构）。
 """
 
 from __future__ import annotations

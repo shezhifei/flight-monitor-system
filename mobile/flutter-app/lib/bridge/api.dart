@@ -16,7 +16,7 @@ part 'api.freezed.dart';
 /// Re-initialization is allowed (replaces the previous runtime).
 ///
 /// `operator_context_id` is the stable device id sent as
-/// `X-Operator-Context-Id` on every request (§0.3; the legacy app uses
+/// `X-Operator-Context-Id` on every request (the archived Kotlin app uses
 /// ANDROID_ID). It doubles as the `device_id` for device register/heartbeat.
 /// `db_path` is the sqlite offline-queue file (Dart:
 /// `getApplicationSupportDirectory`).
@@ -32,8 +32,8 @@ Future<void> initCore({
   operatorContextId: operatorContextId,
 );
 
-/// P0 FFI round-trip demo: sign a request with a fresh timestamp and nonce
-/// and return the four anti-replay header values.
+/// Sign a request with a fresh timestamp and nonce and return the four
+/// anti-replay header values.
 Future<SignatureHeaders> pingSignDemo({
   required String method,
   required String uri,

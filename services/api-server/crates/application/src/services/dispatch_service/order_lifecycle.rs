@@ -589,7 +589,7 @@ impl DispatchService {
         Ok(order_to_response(&order))
     }
 
-    /// Ontology 契约 §3.3.3 `dispatch.update_status` 的受控写入口：
+    /// `DispatchOrder.update_status` 的受控写入口：
     /// 在调用方事务内更新派工单状态并写操作日志（与 outbox 同事务提交）。
     pub async fn update_order_status_in_tx(
         &self,

@@ -1,4 +1,4 @@
-//! SSE connector (plan §0.4 / §3.4).
+//! SSE connector.
 //!
 //! Rust handles transport and heartbeat only — domain parsing happens on the
 //! Dart side, so event payloads stay raw JSON strings here.
@@ -44,8 +44,7 @@ pub enum SseUpdate {
     Event(SseEvent),
 }
 
-/// Reconnecting SSE connector. Use [`connect_notifications_stream`] or
-/// [`connect_chat_stream`].
+/// Reconnecting SSE connector. Use [`connect_notifications_stream`].
 pub struct SseConnector {
     client: reqwest::Client,
     url: String,
@@ -225,34 +224,16 @@ fn default_client() -> reqwest::Client {
         .expect("default reqwest client must build")
 }
 
-/// Notifications realtime (plan §0.4, corrected against backend source).
+/// Notifications realtime over the universal SSE stream.
 ///
-/// The dedicated `/api/v2/notifications/stream` route is NOT mounted in the
-/// current backend (`notification_stream` is dead code in
-/// `routes/notifications/shared.rs`), and `/api/v2/dispatch-chat/stream` was
-/// removed outright (`middleware/jwt.rs` comment: "已移除以与 Python 一致").
-/// The live transport is the universal `GET /api/v2/sse/stream`
-/// (`sse/handler.rs`), which automatically subscribes the caller to both
-/// `user_notifications_{uid}` and `user_dispatch_chat_{uid}` — so one
-/// connection carries chat + notification events. Bearer only, anti-replay
-/// skip path, no signature headers.
+/// `GET /api/v2/sse/stream` (`sse/handler.rs`) subscribes the caller to both
+/// `user_notifications_{uid}` and `user_dispatch_chat_{uid}`, so one
+/// connection carries chat and notification events. Bearer only; no
+/// anti-replay signature headers.
 pub fn connect_notifications_stream(
     base_url: &str,
     access_token: String,
 ) -> mpsc::Receiver<SseUpdate> {
-    SseConnector::new(
-        default_client(),
-        format!("{}/api/v2/sse/stream", base_url.trim_end_matches('/')),
-        access_token,
-        None,
-    )
-    .start()
-}
-
-/// Chat realtime: same universal stream as [`connect_notifications_stream`]
-/// (see its doc comment for why the dedicated chat path is gone). Kept as a
-/// separate entry point so the P2 chat feature can demux by event name.
-pub fn connect_chat_stream(base_url: &str, access_token: String) -> mpsc::Receiver<SseUpdate> {
     SseConnector::new(
         default_client(),
         format!("{}/api/v2/sse/stream", base_url.trim_end_matches('/')),
@@ -384,7 +365,7 @@ mod tests {
         }
     }
 
-    /// Plan §6 P2: after the server closes, the connector must reconnect
+    /// After the server closes, the connector must reconnect
     /// (Connecting → Connected again) and deliver a later event.
     #[tokio::test]
     async fn reconnects_after_server_closes() {

@@ -1,4 +1,4 @@
-//! Token session state machine (plan §3.2, contract §0.1).
+//! Token session state machine.
 //!
 //! States: `Anonymous | Active { access, refresh, session_secret,
 //! access_expire_at }`. Persistence is NOT done in Rust — the FFI/Dart side
@@ -14,7 +14,7 @@
 //!   token reuse the result instead of firing their own request;
 //! - on success the new `session_secret` replaces the old one immediately —
 //!   the backend derives it as `HMAC-SHA256(jwt_secret, access_token)` so the
-//!   old secret is invalid the moment the refresh lands (§0.1);
+//!   old secret is invalid the moment the refresh lands;
 //! - refresh answering 401 → state cleared, [`CoreError::Auth`] returned
 //!   (re-login required).
 
@@ -27,7 +27,7 @@ use crate::dto::auth::{RefreshRequest, TokenResponse};
 use crate::error::CoreError;
 
 /// Proactive refresh threshold: refresh when the access token has less than
-/// this many seconds of validity left (plan §3.2).
+/// this many seconds of validity left.
 pub const REFRESH_THRESHOLD_SECS: i64 = 30;
 
 /// One snapshot of the active session. This is the exact shape the Dart side
@@ -50,9 +50,8 @@ enum SessionState {
     Active(TokenBundle),
 }
 
-/// Public, token-free snapshot of the session for status streams (plan §4
-/// `session_state()`). Token/secret material NEVER leaves the state machine
-/// through this channel.
+/// Public, token-free snapshot of the session for status streams.
+/// Token/secret material NEVER leaves the state machine through this channel.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionStateSnapshot {
     Anonymous,
@@ -178,7 +177,7 @@ impl SessionManager {
             .await
     }
 
-    /// Single-flight refresh (plan §3.2).
+    /// Single-flight refresh.
     ///
     /// `stale_access` is the access token the caller just saw fail (or the one
     /// about to expire). While this caller waits on the refresh mutex another
@@ -186,7 +185,7 @@ impl SessionManager {
     /// longer matches `stale_access` and its (fresh) value is returned WITHOUT
     /// firing a second refresh request.
     ///
-    /// Never logs token/secret material (plan §7.4).
+    /// Never logs token/secret material.
     pub async fn refresh_single_flight(
         &self,
         http: &reqwest::Client,
@@ -211,7 +210,7 @@ impl SessionManager {
         let resp = http
             .post(url)
             // Native surface is required so the JSON body carries the new
-            // session_secret (web gets null + a cookie instead, §0.1/§0.3).
+            // session_secret (web gets null + a cookie instead).
             .header(HEADER_CLIENT_SURFACE, "native")
             .json(&RefreshRequest {
                 refresh_token: current.refresh_token.clone(),
@@ -237,7 +236,7 @@ impl SessionManager {
         let token: TokenResponse = resp.json().await.map_err(|e| {
             CoreError::Serialization(format!("invalid refresh response: {e}"))
         })?;
-        // activate() replaces the session_secret immediately (§0.1).
+        // activate() replaces the session_secret immediately.
         self.activate(&token).await
     }
 }
@@ -339,7 +338,7 @@ mod tests {
             .unwrap();
         assert_eq!(new_bundle.access_token, "access-new");
         assert_eq!(new_bundle.refresh_token, "refresh-new");
-        // session_secret replaced immediately (§0.1).
+        // session_secret replaced immediately.
         assert_eq!(new_bundle.session_secret, "secret-new");
         assert_eq!(server.refresh_count.load(Ordering::SeqCst), 1);
     }

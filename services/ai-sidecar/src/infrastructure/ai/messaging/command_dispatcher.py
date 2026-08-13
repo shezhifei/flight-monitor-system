@@ -1,8 +1,7 @@
 """Command dispatcher for the AI runtime command consumer.
 
-Replaces the Phase 1 drain dispatcher with real command handling:
-start_run, cancel_run, tool_lease, tool_denied, tool_proposal_only,
-retry_tool and resume_run.
+Handles start_run, cancel_run, tool_lease, tool_denied,
+tool_proposal_only, retry_tool and resume_run.
 """
 
 from __future__ import annotations

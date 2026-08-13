@@ -1,4 +1,4 @@
-//! Session exports (plan §4 初始化与状态).
+//! Session exports.
 //!
 //! Token material crosses the bridge ONLY through [`TokenBundle`] (so Dart
 //! can persist it in flutter_secure_storage); the `session_state` stream is

@@ -221,7 +221,6 @@ pub fn map_to_internal_path(public_path: &str) -> String {
         "/api/v2/ai/eval/jobs" => "/internal/ai/v1/eval/jobs".to_string(),
         "/api/v2/ai/generate_plan" => "/internal/ai/v1/runs".to_string(),
         "/api/v2/ai/events/stream" => "/internal/ai/v1/events/stream".to_string(),
-        "/api/v2/ai/v2/entities" => "/internal/ai/v1/entities".to_string(),
         p => format!("/internal/ai/v1{}", p.strip_prefix("/api/v2/ai").unwrap_or(p)),
     }
 }

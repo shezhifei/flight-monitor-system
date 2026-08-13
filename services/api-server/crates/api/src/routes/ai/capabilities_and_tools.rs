@@ -10,6 +10,7 @@ use fms_application::schemas::ai_schemas::{
     ConnectionProbeRequest, EntityConfigUpdate, EntityToolsUpdateRequest, SystemPromptUpdate,
 };
 use fms_application::services::ai_route_service::AiRouteService;
+use fms_application::services::ai_runtime_service::AiRuntimeService;
 
 use super::shared::*;
 
@@ -38,31 +39,73 @@ pub async fn list_tools(
 
 pub async fn execute_tool(
     svc: web::Data<Arc<AiRouteService>>,
+    runtime: web::Data<Arc<AiRuntimeService>>,
     sse_hub: web::Data<Arc<SseHub>>,
     claims: JwtAuth,
     body: web::Json<ToolExecuteRequest>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:execute")?;
-    match svc
+    let spec = match svc.find_tool_spec(&body.tool_name, &body.tool_args).await {
+        Ok(spec) => spec,
+        Err(AiRouteError::Domain(fms_domain::error::DomainError::NotFound { .. })) => {
+            return Ok(raw_detail(
+                actix_web::http::StatusCode::NOT_FOUND,
+                format!("工具不存在: {}", body.tool_name),
+            ))
+        }
+        Err(error) => return Err(map_route_error(error)),
+    };
+    let payload = runtime
         .execute_tool(
-            body.tool_name.clone(),
+            spec,
             body.tool_args.clone(),
-            current_user_id(&claims),
+            Some(current_user_id(&claims)),
             current_user_roles(&claims),
         )
-        .await
-    {
-        Ok((response, Some(event))) => {
-            broadcast_ai_event(&sse_hub, &event.event, event.payload).await;
-            Ok(HttpResponse::Ok().json(response))
-        }
-        Ok((response, None)) => Ok(HttpResponse::Ok().json(response)),
-        Err(AiRouteError::Domain(fms_domain::error::DomainError::NotFound { .. })) => Ok(raw_detail(
-            actix_web::http::StatusCode::NOT_FOUND,
-            format!("工具不存在: {}", body.tool_name),
-        )),
-        Err(error) => Err(map_route_error(error)),
-    }
+        .await;
+    let status = payload
+        .get("status")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("error");
+    let accepted = payload
+        .get("success")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+        || status == "pending_approval";
+    let execution_id = payload.get("execution_id").cloned().unwrap_or(serde_json::Value::Null);
+    let response = serde_json::json!({
+        "success": accepted,
+        "accepted": accepted,
+        "status": status,
+        "code": payload.get("code"),
+        "message": payload.get("message"),
+        "recoverable": payload.get("recoverable"),
+        "retryable": payload.get("retryable"),
+        "execution_id": execution_id,
+        "tool_name": body.tool_name,
+        "severity": payload.get("severity"),
+        "approval_required": payload.get("approval_required"),
+        "approval_id": payload.get("approval_id"),
+        "result_data": payload.get("data"),
+        "error": payload.get("error"),
+        "meta": payload.get("meta").cloned().unwrap_or_else(|| serde_json::json!({ "contract_version": "2.0" })),
+    });
+    broadcast_ai_event(
+        &sse_hub,
+        if status == "pending_approval" {
+            "tool_pending_approval"
+        } else {
+            "tool_executed"
+        },
+        serde_json::json!({
+            "status": status,
+            "tool_name": body.tool_name,
+            "execution_id": execution_id,
+            "payload": payload,
+        }),
+    )
+    .await;
+    Ok(HttpResponse::Ok().json(response))
 }
 
 pub async fn list_tool_categories(

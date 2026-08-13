@@ -1,10 +1,9 @@
 # Mobile 34 端点回归清单
 
-> 对照 `../plans/android-flutter-rust-rebuild-plan.md (local)` §0.5 与旧 App 对拍面。  
+> 移动端正式能力回归面。
 > 状态：`implemented` = mobile-core + FFI + UI 已接线；`core-only` = 仅 core/FFI；`n/a` = 后端已迁路径。  
 > 验证列：模拟器对拍 200 记 `ok`；写路径 `write_ok`；环境阻塞 `env_block`；未跑 `pending`。  
-> **收口日 2026-08-12**：读路径 smoke + 写路径 smoke + 离线 applied 已跑。  
-> **P2 补齐（同日）**：Web/Native 双端 SSE ≤2s；飞行模式 30s 重连无重复 seq；聊天 send/read、清单 submit、通知 read/ack/回执组、交接班签收均 write_ok。
+> Web/Native 双端 SSE ≤2s；飞行模式 30s 重连无重复 seq；聊天 send/read、清单 submit、通知 read/ack/回执组、交接班签收均 write_ok。
 
 ## Auth / Device
 
@@ -66,7 +65,7 @@
 | 33 | `GET /api/v2/shift-handovers/{id}` | implemented | write_ok |
 | 34 | `POST .../items/{itemId}/ack` + `POST .../ack` | implemented | write_ok |
 
-## Business case（P3 扩展，超出原 34 中的核心子集）
+## Business case
 
 | 端点 | 状态 |
 |------|------|
@@ -86,4 +85,4 @@
 
 ---
 
-**回归结论（2026-08-12）**：P0–P3 端点均在 mobile-core/FFI/UI 接线。模拟器读路径全绿；写路径聊天 send/read、清单 submit、通知 read/ack/回执组、交接班签收、事项追加、离线 applied 绿。清单/通知写路径依赖本机 schema 补丁（UUID record_id / `notifications.updated_at`），脚本 `scripts/mobile/apply_local_write_paths.ps1`，**不是客户端 bug**。P2 双端与 SSE 重连专项已过。CI release APK 69.85 MB 级体积、装机成功。
+**回归结论（2026-08-12）**：端点均在 mobile-core / FFI / UI 接线。模拟器读路径全绿；写路径聊天 send/read、清单 submit、通知 read/ack/回执组、交接班签收、事项追加、离线 applied 绿。清单/通知写路径依赖本机 schema 补丁（UUID record_id / `notifications.updated_at`），脚本 `scripts/mobile/apply_local_write_paths.ps1`，**不是客户端 bug**。双端实时与 SSE 重连专项已过。CI release APK 69.85 MB 级体积、装机成功。

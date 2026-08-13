@@ -1,4 +1,4 @@
-//! Notification DTOs (plan §0.5 Notifications group).
+//! Notification DTOs.
 //!
 //! List / unread-count / receipt endpoints return **raw** objects.
 //! mark-read / ack / read-all return the standard envelope.

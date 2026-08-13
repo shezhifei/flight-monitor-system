@@ -8,7 +8,7 @@ import '../../providers/session_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 设置页（plan §5 SettingsScreen）：base_url 展示/debug 覆盖、
+/// 设置页：base_url 展示/debug 覆盖、
 /// 设备 ID、离线补传、退出登录。
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});

@@ -11,6 +11,7 @@ use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjec
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 
 use crate::schemas::flight_schemas::DispatchTimelineEventResponse;
+use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::sqlx_transactional_repositories::SqlxFlightTimelineTransactionalRepository;
 use crate::types::{ConcreteBusinessCaseService, ConcreteFlightService};
 
@@ -24,6 +25,7 @@ pub struct FlightRuntimeService {
     pub(super) audit_log_repo: Option<Arc<dyn AuditLogRepository + Send + Sync>>,
     pub(super) timeline_repo: Option<Arc<dyn FlightTimelineEventRepository + Send + Sync>>,
     pub(super) timeline_tx_repo: Option<Arc<dyn SqlxFlightTimelineTransactionalRepository>>,
+    pub(super) outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
     pub(super) ai_runtime_service: Option<Arc<AiRuntimeService>>,
     pub(super) state: RwLock<FlightRuntimeState>,
 }

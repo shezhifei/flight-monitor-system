@@ -20,6 +20,7 @@ use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjec
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 
 use crate::schemas::flight_schemas::FlightResponse;
+use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::sqlx_transactional_repositories::SqlxFlightTimelineTransactionalRepository;
 use crate::types::{ConcreteBusinessCaseService, ConcreteFlightService};
 
@@ -35,7 +36,11 @@ static FLIGHT_RUNTIME_ENRICH_TRACE_COUNTER: AtomicU64 = AtomicU64::new(0);
 static FLIGHT_RUNTIME_PROJECTION_TRACE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 impl FlightRuntimeService {
-    pub fn new(pool: PgPool, flight_service: Arc<ConcreteFlightService>) -> Self {
+    pub fn new(
+        pool: PgPool,
+        flight_service: Arc<ConcreteFlightService>,
+        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+    ) -> Self {
         Self {
             pool,
             flight_service,
@@ -44,6 +49,7 @@ impl FlightRuntimeService {
             audit_log_repo: None,
             timeline_repo: None,
             timeline_tx_repo: None,
+            outbox_repo,
             ai_runtime_service: None,
             state: RwLock::new(FlightRuntimeState::default()),
         }

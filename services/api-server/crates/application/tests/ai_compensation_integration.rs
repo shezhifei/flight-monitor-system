@@ -1,9 +1,8 @@
-//! End-to-end integration tests for Phase 3: Compensation + Rollback.
+//! End-to-end integration tests for compensation and rollback.
 //!
 //! Drives the full `RollbackService` surface (planner, receipts,
 //! compensation plans, rollback, scheduler) through the in-memory
-//! repository set. The Postgres adapter (out of scope for this wave)
-//! mirrors the same shape.
+//! repository set. The Postgres adapter mirrors the same shape.
 
 use std::sync::Arc;
 

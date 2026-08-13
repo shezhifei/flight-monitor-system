@@ -7,10 +7,9 @@ import 'package:flight_monitor/bridge/api.dart';
 import 'package:flight_monitor/bridge/api/session.dart';
 import 'package:flight_monitor/bridge/frb_generated.dart';
 
-/// P0 task 5 acceptance: connect the notifications SSE stream from a real
-/// device/emulator to the local backend. The token is injected manually via
-/// `--dart-define=FMS_TEST_TOKEN=...`; since P1 the stream reads the session
-/// from the initialized runtime, so the token is restored there first.
+/// Connect the notifications SSE stream from a device/emulator to the
+/// local backend. The token is injected via `--dart-define=FMS_TEST_TOKEN`
+/// and restored into the initialized runtime before the stream starts.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

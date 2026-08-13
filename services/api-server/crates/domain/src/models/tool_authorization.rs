@@ -1,4 +1,4 @@
-//! Tool authorization decision types (Phase 1a).
+//! Tool authorization decision types.
 //!
 //! The `ToolAuthorizationService` (application layer) is the **single
 //! authorization decision point** for protected tool calls. It evaluates a

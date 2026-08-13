@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 def _resolve_mq_publisher() -> Any | None:
     """Return the process-wide MQ event publisher, or ``None`` when absent.
 
-    The publisher is registered by the Wave 2.5 composition root. When
+    The publisher is registered by the MQ composition root. When
     absent (degraded mode, no mq-gateway URL configured) the run
     terminal events go out only over SSE — the durable guarantee is
     silently skipped.
@@ -178,7 +178,7 @@ class _StreamingToolsMixin:
             )
             return
 
-        # Phase 1: Resolve entity capabilities (shared preamble; tool path reuses cache).
+        # Resolve entity capabilities (shared preamble; tool path reuses cache).
         entity_id = getattr(envelope, "entity_id", None) or "default"
         prep = await self._prepare_capabilities(envelope, run_id, started, read_context_cache=True)
         for evt in prep.progress_events:

@@ -99,12 +99,7 @@ async fn get_group_by_flight(
                 .await
                 .map_err(map_chat_error)?
             {
-                let _ = broadcast_lifecycle_change(
-                    hub.get_ref().clone(),
-                    svc.get_ref().clone(),
-                    change,
-                )
-                .await;
+                let _ = broadcast_lifecycle_change(hub.get_ref().clone(), svc.get_ref().clone(), change).await;
             }
             Ok(HttpResponse::Ok().json(payload))
         }

@@ -29,8 +29,8 @@ use tracing::{info, warn};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
-    AlertSeverity, AssigneeType, CompletionWarningLeadSource, DepartmentRuleStatus, DispatchAlert,
-    DispatchOrder, DispatchOrderStatus, LegScope, dispatch_overrun_dedupe_key, resolve_completion_warning_lead_minutes,
+    dispatch_overrun_dedupe_key, resolve_completion_warning_lead_minutes, AlertSeverity, AssigneeType,
+    CompletionWarningLeadSource, DepartmentRuleStatus, DispatchAlert, DispatchOrder, DispatchOrderStatus, LegScope,
 };
 use fms_domain::ports::dispatch_repository::{
     DispatchAlertRepository, DispatchOrderRepository, FlightGenerationRuleRepository,
@@ -194,10 +194,13 @@ impl DispatchOverrunWarningService {
                 id: id.to_string(),
             });
         }
-        self.alert_repo.find_by_id(id).await?.ok_or_else(|| DomainError::NotFound {
-            entity_type: "DispatchAlert",
-            id: id.to_string(),
-        })
+        self.alert_repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "DispatchAlert",
+                id: id.to_string(),
+            })
     }
 
     /// 人工关闭告警。
@@ -209,10 +212,13 @@ impl DispatchOverrunWarningService {
                 id: id.to_string(),
             });
         }
-        self.alert_repo.find_by_id(id).await?.ok_or_else(|| DomainError::NotFound {
-            entity_type: "DispatchAlert",
-            id: id.to_string(),
-        })
+        self.alert_repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "DispatchAlert",
+                id: id.to_string(),
+            })
     }
 
     pub fn metrics_snapshot(&self) -> serde_json::Value {
@@ -243,7 +249,10 @@ impl DispatchOverrunWarningService {
     }
 
     /// 评估一组工单(通常来自同一航班)的相邻对。
-    pub async fn evaluate_orders(&self, mut orders: Vec<DispatchOrder>) -> Result<Vec<OverrunEvaluationOutcome>, DomainError> {
+    pub async fn evaluate_orders(
+        &self,
+        mut orders: Vec<DispatchOrder>,
+    ) -> Result<Vec<OverrunEvaluationOutcome>, DomainError> {
         if !self.warning_enabled {
             return Ok(Vec::new());
         }
@@ -289,8 +298,7 @@ impl DispatchOverrunWarningService {
                 true,
             )
             .await?;
-        let mut by_flight: std::collections::BTreeMap<String, Vec<DispatchOrder>> =
-            std::collections::BTreeMap::new();
+        let mut by_flight: std::collections::BTreeMap<String, Vec<DispatchOrder>> = std::collections::BTreeMap::new();
         for order in orders.into_iter().take(SCAN_MAX_ORDERS) {
             by_flight.entry(order.flight_id.clone()).or_default().push(order);
         }
@@ -437,9 +445,7 @@ impl DispatchOverrunWarningService {
         let dedupe_key = dispatch_overrun_dedupe_key(&current.id, &next.id);
         let now = (self.now_provider)();
         let candidate = detect_overrun(&current, &next, lead_minutes, lead_source, now);
-        let existing = self
-            .find_active_alert(&next.flight_id, &dedupe_key)
-            .await?;
+        let existing = self.find_active_alert(&next.flight_id, &dedupe_key).await?;
         match candidate {
             Some(candidate) => {
                 let alert = build_overrun_alert(&candidate, &dedupe_key);
@@ -477,13 +483,11 @@ impl DispatchOverrunWarningService {
         }
     }
 
-    async fn find_active_alert(
-        &self,
-        flight_id: &str,
-        dedupe_key: &str,
-    ) -> Result<Option<DispatchAlert>, DomainError> {
+    async fn find_active_alert(&self, flight_id: &str, dedupe_key: &str) -> Result<Option<DispatchAlert>, DomainError> {
         let alerts = self.alert_repo.find_unresolved(Some(flight_id)).await?;
-        Ok(alerts.into_iter().find(|alert| alert.dedupe_key.as_deref() == Some(dedupe_key)))
+        Ok(alerts
+            .into_iter()
+            .find(|alert| alert.dedupe_key.as_deref() == Some(dedupe_key)))
     }
 
     /// 解析下一单的生效提前量:工单级 > 当前生成规则(部门) > 系统默认 5。
@@ -497,7 +501,9 @@ impl DispatchOverrunWarningService {
                 rules
                     .iter()
                     .filter(|rule| rule.status == DepartmentRuleStatus::Published)
-                    .filter(|rule| rule.task_type == order.task_type && leg_scope_value(rule.leg_scope) == order.leg_scope)
+                    .filter(|rule| {
+                        rule.task_type == order.task_type && leg_scope_value(rule.leg_scope) == order.leg_scope
+                    })
                     .find_map(|rule| rule.completion_warning_lead_minutes)
             }
             _ => None,
@@ -573,7 +579,10 @@ pub fn detect_overrun(
     if current.status != DispatchOrderStatus::InProgress || current.actual_end_time.is_some() {
         return None;
     }
-    if !matches!(next.status, DispatchOrderStatus::Pending | DispatchOrderStatus::Assigned) {
+    if !matches!(
+        next.status,
+        DispatchOrderStatus::Pending | DispatchOrderStatus::Assigned
+    ) {
         return None;
     }
     let next_start = next.planned_start_time?;
@@ -915,14 +924,23 @@ mod tests {
 
     impl StubOrderRepo {
         fn replace(&self, flight_id: &str, orders: Vec<DispatchOrder>) {
-            self.orders_by_flight.lock().unwrap().insert(flight_id.to_string(), orders);
+            self.orders_by_flight
+                .lock()
+                .unwrap()
+                .insert(flight_id.to_string(), orders);
         }
     }
 
     #[async_trait::async_trait]
     impl DispatchOrderRepository for StubOrderRepo {
         async fn find_by_flight(&self, flight_id: &str) -> Result<Vec<DispatchOrder>, DomainError> {
-            Ok(self.orders_by_flight.lock().unwrap().get(flight_id).cloned().unwrap_or_default())
+            Ok(self
+                .orders_by_flight
+                .lock()
+                .unwrap()
+                .get(flight_id)
+                .cloned()
+                .unwrap_or_default())
         }
         async fn find_by_id(
             &self,
@@ -1026,7 +1044,8 @@ mod tests {
                     end >= window_start && start <= window_end
                 })
                 .filter(|order| {
-                    let in_status = statuses.is_empty() || statuses.iter().any(|status| status == order.status.as_ref());
+                    let in_status =
+                        statuses.is_empty() || statuses.iter().any(|status| status == order.status.as_ref());
                     in_status || (include_cancelled && order.status == DispatchOrderStatus::Cancelled)
                 })
                 .cloned()
@@ -1052,7 +1071,11 @@ mod tests {
         ) -> Result<Vec<serde_json::Value>, DomainError> {
             unimplemented!("find_equipment_conflicts")
         }
-        async fn list_logs(&self, _dispatch_order_id: &str, _limit: i64) -> Result<Vec<serde_json::Value>, DomainError> {
+        async fn list_logs(
+            &self,
+            _dispatch_order_id: &str,
+            _limit: i64,
+        ) -> Result<Vec<serde_json::Value>, DomainError> {
             unimplemented!("list_logs")
         }
         async fn find_pending_for_flight(&self, _flight_id: &str) -> Result<Vec<DispatchOrder>, DomainError> {
@@ -1074,7 +1097,12 @@ mod tests {
         ) -> Result<bool, DomainError> {
             unimplemented!("update_status")
         }
-        async fn start_order(&self, _id: &str, _actual_start: DateTime<Utc>, _actor_id: &str) -> Result<bool, DomainError> {
+        async fn start_order(
+            &self,
+            _id: &str,
+            _actual_start: DateTime<Utc>,
+            _actor_id: &str,
+        ) -> Result<bool, DomainError> {
             unimplemented!("start_order")
         }
         async fn complete_order(
@@ -1130,7 +1158,11 @@ mod tests {
         ) -> Result<bool, DomainError> {
             unimplemented!("update_planned_times")
         }
-        async fn replace_order_equipment_assignments(&self, _id: &str, _equipment_ids: &[String]) -> Result<(), DomainError> {
+        async fn replace_order_equipment_assignments(
+            &self,
+            _id: &str,
+            _equipment_ids: &[String],
+        ) -> Result<(), DomainError> {
             unimplemented!("replace_order_equipment_assignments")
         }
     }
@@ -1154,7 +1186,9 @@ mod tests {
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|alert| !alert.is_resolved && flight_id.is_none_or(|flight| alert.flight_id.as_deref() == Some(flight)))
+                .filter(|alert| {
+                    !alert.is_resolved && flight_id.is_none_or(|flight| alert.flight_id.as_deref() == Some(flight))
+                })
                 .cloned()
                 .collect())
         }
@@ -1175,7 +1209,9 @@ mod tests {
         async fn upsert_overrun(&self, alert: &DispatchAlert) -> Result<OverrunAlertUpsert, DomainError> {
             let dedupe_key = alert.dedupe_key.clone().expect("dedupe_key required");
             let mut guards = self.alerts.lock().unwrap();
-            let existing = guards.iter().find(|item| item.dedupe_key.as_deref() == Some(dedupe_key.as_str()));
+            let existing = guards
+                .iter()
+                .find(|item| item.dedupe_key.as_deref() == Some(dedupe_key.as_str()));
             let outcome = match existing {
                 Some(current) => {
                     let reopened = current.is_resolved;
@@ -1192,13 +1228,24 @@ mod tests {
                         updated.acknowledged_by = None;
                         updated.occurrence_count += 1;
                     }
-                    let index = guards.iter().position(|item| item.id == updated.id).expect("must exist");
+                    let index = guards
+                        .iter()
+                        .position(|item| item.id == updated.id)
+                        .expect("must exist");
                     guards[index] = updated.clone();
-                    OverrunAlertUpsert { alert: updated, inserted: false, reopened }
+                    OverrunAlertUpsert {
+                        alert: updated,
+                        inserted: false,
+                        reopened,
+                    }
                 }
                 None => {
                     guards.push(alert.clone());
-                    OverrunAlertUpsert { alert: alert.clone(), inserted: true, reopened: false }
+                    OverrunAlertUpsert {
+                        alert: alert.clone(),
+                        inserted: true,
+                        reopened: false,
+                    }
                 }
             };
             Ok(outcome)
@@ -1237,7 +1284,11 @@ mod tests {
         ]
     }
 
-    fn flight_chain_for(flight_id: &str, current_start: DateTime<Utc>, next_start: DateTime<Utc>) -> Vec<DispatchOrder> {
+    fn flight_chain_for(
+        flight_id: &str,
+        current_start: DateTime<Utc>,
+        next_start: DateTime<Utc>,
+    ) -> Vec<DispatchOrder> {
         let mut orders = flight_chain(current_start, next_start);
         for (index, order) in orders.iter_mut().enumerate() {
             order.flight_id = flight_id.to_string();
@@ -1250,10 +1301,13 @@ mod tests {
     async fn lifecycle_upserts_idempotently_and_does_not_notify_twice() {
         let now = fixed_now();
         let order_repo = Arc::new(StubOrderRepo::default());
-        order_repo.replace("fl-1", flight_chain(now - Duration::minutes(10), now + Duration::minutes(5)));
+        order_repo.replace(
+            "fl-1",
+            flight_chain(now - Duration::minutes(10), now + Duration::minutes(5)),
+        );
         let alert_repo = Arc::new(StubAlertRepo::default());
-        let service = DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone())
-            .with_clock(move || now);
+        let service =
+            DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone()).with_clock(move || now);
 
         let first = service.evaluate_flight("fl-1").await.unwrap();
         assert_eq!(first.len(), 1);
@@ -1272,10 +1326,13 @@ mod tests {
     async fn lifecycle_auto_resolves_when_conflict_disappears() {
         let now = fixed_now();
         let order_repo = Arc::new(StubOrderRepo::default());
-        order_repo.replace("fl-1", flight_chain(now - Duration::minutes(10), now + Duration::minutes(5)));
+        order_repo.replace(
+            "fl-1",
+            flight_chain(now - Duration::minutes(10), now + Duration::minutes(5)),
+        );
         let alert_repo = Arc::new(StubAlertRepo::default());
-        let service = DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone())
-            .with_clock(move || now);
+        let service =
+            DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone()).with_clock(move || now);
 
         service.evaluate_flight("fl-1").await.unwrap();
         assert_eq!(alert_repo.find_unresolved(None).await.unwrap().len(), 1);
@@ -1294,10 +1351,13 @@ mod tests {
     async fn lifecycle_reopens_resolved_alert_with_new_notification() {
         let now = fixed_now();
         let order_repo = Arc::new(StubOrderRepo::default());
-        order_repo.replace("fl-1", flight_chain(now - Duration::minutes(10), now + Duration::minutes(5)));
+        order_repo.replace(
+            "fl-1",
+            flight_chain(now - Duration::minutes(10), now + Duration::minutes(5)),
+        );
         let alert_repo = Arc::new(StubAlertRepo::default());
-        let service = DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone())
-            .with_clock(move || now);
+        let service =
+            DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone()).with_clock(move || now);
 
         let first = service.evaluate_flight("fl-1").await.unwrap();
         let alert_id = first[0].alert.as_ref().unwrap().id.clone();
@@ -1316,13 +1376,22 @@ mod tests {
     async fn scan_covers_all_flights_and_counts_summary() {
         let now = fixed_now();
         let order_repo = Arc::new(StubOrderRepo::default());
-        order_repo.replace("fl-1", flight_chain_for("fl-1", now - Duration::minutes(10), now + Duration::minutes(5)));
-        order_repo.replace("fl-2", flight_chain_for("fl-2", now - Duration::minutes(20), now + Duration::minutes(3)));
+        order_repo.replace(
+            "fl-1",
+            flight_chain_for("fl-1", now - Duration::minutes(10), now + Duration::minutes(5)),
+        );
+        order_repo.replace(
+            "fl-2",
+            flight_chain_for("fl-2", now - Duration::minutes(20), now + Duration::minutes(3)),
+        );
         // 窗口外的航班不参与扫描。
-        order_repo.replace("fl-3", flight_chain_for("fl-3", now - Duration::hours(6), now - Duration::hours(5)));
+        order_repo.replace(
+            "fl-3",
+            flight_chain_for("fl-3", now - Duration::hours(6), now - Duration::hours(5)),
+        );
         let alert_repo = Arc::new(StubAlertRepo::default());
-        let service = DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone())
-            .with_clock(move || now);
+        let service =
+            DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone()).with_clock(move || now);
 
         let summary = service.scan_once().await.unwrap();
         assert_eq!(summary.evaluated_pairs, 2);
@@ -1336,10 +1405,13 @@ mod tests {
     async fn scan_auto_resolves_stale_conflict() {
         let now = fixed_now();
         let order_repo = Arc::new(StubOrderRepo::default());
-        order_repo.replace("fl-1", flight_chain_for("fl-1", now - Duration::minutes(10), now + Duration::minutes(5)));
+        order_repo.replace(
+            "fl-1",
+            flight_chain_for("fl-1", now - Duration::minutes(10), now + Duration::minutes(5)),
+        );
         let alert_repo = Arc::new(StubAlertRepo::default());
-        let service = DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone())
-            .with_clock(move || now);
+        let service =
+            DispatchOverrunWarningService::new(order_repo.clone(), alert_repo.clone()).with_clock(move || now);
 
         let first = service.evaluate_flight("fl-1").await.unwrap();
         assert!(first[0].notify);

@@ -6,7 +6,7 @@ use crate::models::ai_ontology::OntologySchema;
 pub trait AiOntologyRepository {
     async fn load_active_schema(&self) -> Result<Option<OntologySchema>, AiOntologyRepositoryError>;
 
-    // Phase C: count methods replacing raw SQL in application services
+    // Count methods (no raw SQL in application services)
     async fn count_active_objects(&self) -> Result<i64, AiOntologyRepositoryError>;
     async fn count_active_write_actions(&self) -> Result<i64, AiOntologyRepositoryError>;
 }

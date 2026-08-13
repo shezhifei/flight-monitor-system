@@ -177,7 +177,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('单击空值未注册打卡列写入当前时间（dispatch-timeline API）', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ cabin_door_open_time: null });
     const wrapper = mountTable(flight);
     await cell(wrapper, 'cabin_door_open_time').trigger('click');
@@ -192,7 +192,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('单击空值已注册打卡列（如 on_blocks_time）同样写入当前时间', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ on_blocks_time: null });
     const wrapper = mountTable(flight, { canEditField: () => true });
     await cell(wrapper, 'on_blocks_time').trigger('click');
@@ -201,7 +201,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('单击有值打卡列不重复打卡', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ cabin_door_open_time: '2026-07-22T07:30:00Z' });
     const wrapper = mountTable(flight);
     await cell(wrapper, 'cabin_door_open_time').trigger('click');
@@ -209,7 +209,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('无权限用户单击打卡被禁用并 toast', async () => {
-    mockUser = null; // 无 flight:manage
+    mockUser = null; // 无 flight.timeline_edit
     const flight = makeFlight({ cabin_door_open_time: null });
     const wrapper = mountTable(flight, { canEditField: () => false });
     await cell(wrapper, 'cabin_door_open_time').trigger('click');
@@ -219,7 +219,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('无权限用户单击已注册打卡列走 canEditField 门控', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ on_blocks_time: null });
     const wrapper = mountTable(flight, { canEditField: () => false });
     await cell(wrapper, 'on_blocks_time').trigger('click');
@@ -228,7 +228,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('打卡失败回滚并 toast', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     mockWriteTimeline.mockRejectedValueOnce(new Error('写入时间线失败 (500)'));
     const flight = makeFlight({ cabin_door_open_time: null });
     const wrapper = mountTable(flight);
@@ -241,7 +241,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('有值未注册打卡列右键弹出修改/撤销菜单', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ cabin_door_open_time: '2026-07-22T07:30:00Z' });
     const wrapper = mountTable(flight);
     await cell(wrapper, 'cabin_door_open_time').trigger('contextmenu', { clientX: 100, clientY: 100 });
@@ -252,7 +252,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('空值打卡列右键不弹菜单', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ cabin_door_open_time: null });
     const wrapper = mountTable(flight);
     await cell(wrapper, 'cabin_door_open_time').trigger('contextmenu', { clientX: 100, clientY: 100 });
@@ -260,7 +260,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('撤销经 confirm 后置空（dispatch-timeline 删除）', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const flight = makeFlight({ cabin_door_open_time: '2026-07-22T07:30:00Z' });
     const wrapper = mountTable(flight);
@@ -296,7 +296,7 @@ describe('交互式打卡单元格', () => {
   });
 
   it('已注册打卡列右键仍走父级 open-context-menu 菜单', async () => {
-    mockUser = { permissions: ['flight:manage'] };
+    mockUser = { permissions: ['flight.timeline_edit'] };
     const flight = makeFlight({ on_blocks_time: '2026-07-22T07:30:00Z' });
     const wrapper = mountTable(flight, { canEditField: () => true });
     await cell(wrapper, 'on_blocks_time').trigger('contextmenu', { clientX: 100, clientY: 100 });

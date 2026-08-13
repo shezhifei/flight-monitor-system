@@ -1,6 +1,6 @@
 //! 微模型输入输出 Schema 定义
 //!
-//! 对应 Phase 4 设计：航班风险摘要微模型和派工重排顾问微模型的 I/O schema。
+//! 航班风险摘要微模型和派工重排顾问微模型的 I/O schema。
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,6 @@
 //! 微模型元信息与规格定义
 //!
-//! 对应 Phase 4 设计：围绕高价值运行任务建设微模型。
+//! 围绕高价值运行任务的微模型规格。
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

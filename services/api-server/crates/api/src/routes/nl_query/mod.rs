@@ -13,15 +13,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v2/ai/nl-query")
             .route("", web::post().to(query::query_natural_language))
-            .route("/followup", web::post().to(query::followup_natural_language))
             .route("/stream", web::post().to(stream::query_natural_language_stream))
             .route(
                 "/stream-with-tools",
                 web::post().to(tools_stream::stream_with_tools_gate),
-            )
-            .route(
-                "/followup/stream",
-                web::post().to(conversations::followup_natural_language_stream),
             )
             .route("/suggestions", web::get().to(conversations::get_query_suggestions))
             .route("/conversations", web::get().to(conversations::list_conversations))

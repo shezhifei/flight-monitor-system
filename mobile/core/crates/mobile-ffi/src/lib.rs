@@ -1,5 +1,5 @@
-//! frb facade over `mobile-core` (plan §4). Forwarding only — no business
-//! logic lives here.
+//! flutter_rust_bridge façade over `mobile-core`. Forwarding only — no
+//! business logic lives here.
 
 pub mod api;
 

@@ -1,7 +1,7 @@
-//! SQLite offline action queue (plan §3.5).
+//! SQLite offline action queue.
 //!
-//! `pending_actions` DDL per plan §3.5. The DB file path is supplied at init
-//! (Dart side: `getApplicationSupportDirectory`).
+//! The DB file path is supplied at init (Dart side:
+//! `getApplicationSupportDirectory`).
 //!
 //! Queue discipline:
 //! - ONLY network-class errors enqueue ([`should_enqueue`]); HTTP 4xx/5xx
@@ -20,7 +20,7 @@ use crate::client::ApiClient;
 use crate::dto::dispatch::{sync_status, DispatchSyncAction, DispatchSyncRequest, DispatchSyncResponse};
 use crate::error::CoreError;
 
-/// Hard cap on queued actions; oldest rows are dropped beyond this (§3.5).
+/// Hard cap on queued actions; oldest rows are dropped beyond this.
 pub const MAX_PENDING_ACTIONS: usize = 200;
 
 const DDL: &str = "
@@ -57,7 +57,7 @@ pub struct SyncSummary {
     pub remaining: usize,
 }
 
-/// Only network-class errors are enqueueable (§3.5); HTTP 4xx/5xx and
+/// Only network-class errors are enqueueable; HTTP 4xx/5xx and
 /// serialization/auth failures are final and must not be queued.
 pub fn should_enqueue(error: &CoreError) -> bool {
     matches!(error, CoreError::Network(_))
@@ -210,7 +210,7 @@ impl OfflineQueue {
         Ok(())
     }
 
-    /// Keep the row but record a failed attempt (`failed` verdict, §3.5).
+    /// Keep the row but record a failed attempt (`failed` verdict).
     pub fn mark_failed(&self, client_action_id: &str, last_error: &str) -> Result<(), CoreError> {
         let conn = self.lock()?;
         conn.execute(
@@ -223,7 +223,7 @@ impl OfflineQueue {
     }
 
     /// Replay the queue through `POST
-    /// /api/v2/dispatch-orders/mobile/sync/actions` (§3.5). Verdicts:
+    /// /api/v2/dispatch-orders/mobile/sync/actions`. Verdicts:
     /// `applied`/`duplicate` → row deleted; `failed` → kept, `retry_count+1`.
     pub async fn sync_pending(&self, client: &ApiClient) -> Result<SyncSummary, CoreError> {
         let pending = self.pending()?;
@@ -392,7 +392,7 @@ mod tests {
 
     #[tokio::test]
     async fn sync_handles_applied_duplicate_failed_branches() {
-        // One verdict per branch (§3.5).
+        // One verdict per branch.
         let body = r#"{"success":true,"data":{"total":3,"applied":1,"duplicates":1,"failed":1,"results":[
             {"client_action_id":"act-applied","dispatch_order_id":"o1","action_type":"accept","status":"applied","message":"ok","server_timestamp":"2024-01-01T00:00:00Z"},
             {"client_action_id":"act-dup","dispatch_order_id":"o1","action_type":"checkin","status":"duplicate","message":"already","server_timestamp":"2024-01-01T00:00:00Z"},

@@ -1,6 +1,6 @@
 //! 航班风险摘要微模型实现
 //!
-//! Phase 4 核心实现：基于 `flight_risk_service.rs` 的确定性评分逻辑，
+//! 基于 `flight_risk_service.rs` 的确定性评分逻辑，
 //! 扩展为带证据追踪、置信度评估和动作建议生成的完整微模型。
 
 use chrono::{DateTime, Duration, Utc};
@@ -278,7 +278,7 @@ impl FlightRiskMicroModel {
                     FlightRiskProposal::new(
                         "review_stand_assignment",
                         "Flight",
-                        "update_stand",
+                        "change_stand",
                         format!(
                             "Critical risk flight {} at stand {} requires stand capacity review",
                             flight.flight_number.as_deref().unwrap_or(&flight_id),

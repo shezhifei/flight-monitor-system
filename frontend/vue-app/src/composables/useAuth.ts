@@ -39,21 +39,6 @@ export interface AuthEventSourceOptions {
 
 const IMPLIED_PERMISSION_MAP: Record<string, string[]> = {
   'flight:read': ['flight.read', 'business_case.read', 'workflow_run.read'],
-  'flight:manage': [
-    'flight.read',
-    'flight.update',
-    'flight.timeline_edit',
-    'flight.import_commit',
-    'flight.report_generate',
-    'business_case.create',
-    'business_case.read',
-    'business_case.append',
-    'business_case.update',
-    'business_case.status_transition',
-    'workflow_run.start',
-    'workflow_run.read',
-    'workflow_run.act',
-  ],
   'dispatch:view': [
     'dispatch_order.read',
     'dispatch_catalog.read',

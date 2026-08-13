@@ -1,4 +1,4 @@
-//! Run authorization context loader (Phase 4 hardening).
+//! Run authorization context loader.
 //!
 //! This port is the **trust boundary** for tool authorization. It loads
 //! the [`ToolAuthorizationContext`] from Rust-persisted data sources

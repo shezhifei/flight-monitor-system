@@ -24,6 +24,7 @@ use fms_domain::ports::ontology_repository::{
     AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
     TurnaroundLinkRepository,
 };
+use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomainEventOutboxRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_ontology_repository::{
     PgAircraftRepository, PgGateAssignmentRepository, PgResourceAdjustmentSuggestionRepository,
@@ -84,7 +85,7 @@ fn build_service(pool: PgPool) -> OntologyService {
     let flight_tx = flight_repo;
 
     OntologyService::new(
-        pool,
+        pool.clone(),
         flight_port,
         flight_tx,
         aircraft_port,
@@ -93,6 +94,7 @@ fn build_service(pool: PgPool) -> OntologyService {
         link_port,
         suggestion_port,
         ontology_tx,
+        Arc::new(PgDomainEventOutboxRepository::new(pool.clone())),
     )
 }
 

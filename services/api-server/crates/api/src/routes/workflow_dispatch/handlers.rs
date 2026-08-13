@@ -251,7 +251,10 @@ mod tests {
     #[test]
     fn token_comparison_accepts_match_and_rejects_mismatch() {
         assert!(constant_time_token_eq("s3cret-workflow-token", "s3cret-workflow-token"));
-        assert!(!constant_time_token_eq("s3cret-workflow-token", "s3cret-workflow-tok3n"));
+        assert!(!constant_time_token_eq(
+            "s3cret-workflow-token",
+            "s3cret-workflow-tok3n"
+        ));
         assert!(!constant_time_token_eq("s3cret-workflow-token", ""));
         assert!(!constant_time_token_eq("", "anything"));
     }

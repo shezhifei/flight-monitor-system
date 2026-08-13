@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/l10n.dart';
 
-/// 工单状态中文标签（对照旧 App mapStatusLabel）。
+/// 工单状态中文标签。
 String statusLabel(String status) {
   return switch (status.toLowerCase()) {
     'pending' => S.statusPending,
@@ -16,10 +16,10 @@ String statusLabel(String status) {
   };
 }
 
-/// 状态 → (前景, 背景) 颜色（对照旧 App mapStatusColors 的分组语义：
+/// 状态 → (前景, 背景) 颜色（分组语义：
 /// pending/assigned=warning 系，进行中=info/primary 系，
 /// completed=success 系，cancelled=弱化）。色值取自 ColorScheme，
-/// 不硬编码（plan §5）。
+/// 不硬编码。
 (Color, Color) statusColors(ColorScheme scheme, String status) {
   return switch (status.toLowerCase()) {
     'pending' || 'assigned' => (

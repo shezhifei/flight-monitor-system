@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../bridge/api/dispatch.dart';
 import 'settings_provider.dart';
 
-/// 派工动作（对照旧 App DispatchActionsActivity 的状态机按钮）。
+/// 派工动作（按工单状态列出可用按钮）。
 enum DispatchActionId { accept, checkIn, checkOut, start, complete, etaReport }
 
-/// 状态 → 可用主流程动作（旧 App updateActionButtonsForStatus）：
+/// 状态 → 可用主流程动作：
 /// assigned→接单，accepted→签到，checked_in→开始作业，
 /// in_progress→上报预计/完工/签退；安全检查清单与问题上报另行常驻。
 List<DispatchActionId> dispatchActionsForStatus(String status) {
@@ -25,7 +25,7 @@ List<DispatchActionId> dispatchActionsForStatus(String status) {
   };
 }
 
-/// 安全检查清单入口可见的状态（旧 App：in_progress）。
+/// 安全检查清单入口可见的状态（in_progress）。
 bool safetyChecklistVisibleForStatus(String status) =>
     status.toLowerCase() == 'in_progress';
 
@@ -46,7 +46,7 @@ String dispatchActionType(DispatchActionId action) => switch (action) {
 /// 动作执行结果（供 Snackbar 反馈）。
 enum DispatchActionFeedback { sent, queued }
 
-/// 派工工单列表（plan §5 DispatchScreen：my/assigned）。
+/// 派工工单列表（my/assigned）。
 final dispatchOrdersProvider = AsyncNotifierProvider<DispatchOrdersNotifier,
     List<DispatchOrder>>(DispatchOrdersNotifier.new);
 

@@ -1,7 +1,6 @@
-//! 派工应用服务
-//!
-//! 对应 Python `dispatch_command_service` + `dispatch_query_service` 核心子集。
+//! 派工应用服务：工单生命周期、生成、发布、移动作业。
 
+pub mod dispatch_overrun_warning_service;
 mod generation;
 mod generation_batch;
 mod generation_flight;
@@ -18,7 +17,6 @@ mod order_lifecycle;
 mod safety;
 #[cfg(test)]
 mod tests;
-pub mod dispatch_overrun_warning_service;
 
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;

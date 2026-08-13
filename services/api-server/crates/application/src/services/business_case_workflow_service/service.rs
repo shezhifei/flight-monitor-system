@@ -655,7 +655,7 @@ impl BusinessCaseWorkflowService {
             return Ok(BusinessCaseWorkflowBatchResult::default());
         }
 
-        // Phase 1: Plan all items
+        // 1. Plan all items
         let mut planned_items: Vec<WorkflowBatchPlanItem> = Vec::new();
         for item in items {
             // Skip if already has a workflow run
@@ -786,7 +786,7 @@ impl BusinessCaseWorkflowService {
             return Ok(BusinessCaseWorkflowBatchResult::default());
         }
 
-        // Phase 2: Group by notification group key
+        // 2. Group by notification group key
         let mut groups: HashMap<WorkflowNotificationGroupKey, Vec<WorkflowBatchPlanItem>> = HashMap::new();
         let mut ungrouped: Vec<WorkflowBatchPlanItem> = Vec::new();
 
@@ -809,7 +809,7 @@ impl BusinessCaseWorkflowService {
         let mut all_started: Vec<BusinessCaseWorkflowStartData> = Vec::new();
         let mut notification_groups: Vec<BusinessCaseWorkflowNotificationGroup> = Vec::new();
 
-        // Phase 3: Send grouped notifications with orchestration
+        // 3. Send grouped notifications with orchestration
         for (_key, group_items) in groups {
             if group_items.is_empty() {
                 continue;
@@ -1066,7 +1066,7 @@ impl BusinessCaseWorkflowService {
             }
         }
 
-        // Phase 4: Handle ungrouped items (single-case notifications, process already started)
+        // 4. Handle ungrouped items (single-case notifications, process already started)
         for mut planned in ungrouped {
             let mut start_payload = planned.start_payload.clone();
             let idempotency_context = derive_per_case_batch_notification_idempotency_context(

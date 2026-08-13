@@ -1,4 +1,4 @@
-//! End-to-end integration test for Phase 2: Checkpoints + Resume.
+//! End-to-end integration test for checkpoints and resume.
 //!
 //! Drives the resume API path through:
 //! 1. Insert a `run_input` + `before_tool` + `after_tool` checkpoint

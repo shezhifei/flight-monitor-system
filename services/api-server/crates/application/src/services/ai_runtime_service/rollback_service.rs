@@ -1,5 +1,4 @@
-//! `RollbackService` — Phase 3 of the AI agent resilient tool
-//! architecture. Wraps the existing `AiActionProposalService` so every
+//! `RollbackService` wraps `AiActionProposalService` so every
 //! executed proposal is durable as an `ai_action_receipts` row plus an
 //! `ai_compensation_plans` row, and exposes the rollback /
 //! compensation-execution flow used by the rollback API and the
@@ -184,7 +183,7 @@ impl RollbackService {
         self.checkpoint_repo.as_ref()
     }
 
-    /// Phase 3 entry point. Wraps `AiActionProposalService::execute_proposal`
+    /// Wraps `AiActionProposalService::execute_proposal`
     /// to also write the receipt and derive the compensation plan.
     ///
     /// `object_version` is the version the caller observed when

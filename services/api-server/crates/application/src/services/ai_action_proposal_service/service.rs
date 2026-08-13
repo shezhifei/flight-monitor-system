@@ -9,13 +9,12 @@ use tokio::sync::RwLock;
 use ulid::Ulid;
 
 use fms_domain::models::ai_proposal::{
-    ActionProposalQuery, ActionProposalStats, ActionProposalStatus, AiActionProposal, ApprovalPolicy, ConstraintResult,
-    RiskLevel,
+    ActionProposalQuery, ActionProposalStats, ActionProposalStatus, AiActionProposal, ApprovalPolicy, RiskLevel,
 };
 use fms_domain::ports::ai_object_policy_repository::{
-    AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicySubject,
+    AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository,
 };
-use fms_domain::ports::ai_proposal_repository::{AiProposalRepository, AiProposalRepositoryError};
+use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::dispatch_repository::StandRepository;
 use fms_domain::ports::flight_repository::FlightRepository;
@@ -23,13 +22,13 @@ use fms_domain::ports::flight_repository::FlightRepository;
 use crate::services::ai_execution_allowlist::ExecutionAllowlist;
 use crate::services::ai_execution_readiness_service::AiExecutionReadinessService;
 use crate::services::ai_proposal_audit_recorder::{AiProposalAuditEventRecorder, ProposalAuditEvent};
-use crate::services::ai_runtime_service::{AiRuntimeError, AiRuntimeService, AiToolExecutionSpec};
+use crate::services::ai_runtime_service::AiRuntimeService;
 use crate::services::authorization_service::AuthorizationService;
 use crate::services::notification_service::NotificationCreate;
 use crate::types::ConcreteNotificationService;
 
 use super::error::AiActionProposalError;
-use super::helpers::{feature_enabled, normalize_policy_for_risk, object_policy_subject};
+use super::helpers::object_policy_subject;
 use super::schemas::{
     ApproveProposalRequest, ExecuteProposalRequest, GenerateProposalRequest, RejectProposalRequest,
     SubmitProposalRequest, ValidateProposalRequest,
@@ -197,6 +196,13 @@ impl AiActionProposalService {
         &self,
         req: GenerateProposalRequest,
     ) -> Result<AiActionProposal, AiActionProposalError> {
+        let action_def = Self::ontology_action_def(&req.object_type, &req.action_name).ok_or_else(|| {
+            AiActionProposalError::validation(format!(
+                "Action '{}.{}' is not declared in the active ontology schema",
+                req.object_type, req.action_name
+            ))
+        })?;
+
         let proposal_id = format!("prop_{}", Ulid::new());
         let now = Utc::now();
         let expires_at = now + chrono::Duration::minutes(PROPOSAL_EXPIRATION_MINUTES);
@@ -239,17 +245,33 @@ impl AiActionProposalService {
             proposal = proposal.with_confidence(confidence);
         }
 
-        // 根据 action_name 和 object_type 推断风险等级和审批策略
-        let (inferred_risk_level, inferred_approval_policy) =
-            self.infer_risk_and_policy(&req.object_type, &req.action_name, &req.arguments);
-        let risk_level = req.risk_level.unwrap_or(inferred_risk_level);
-        let approval_policy =
-            normalize_policy_for_risk(risk_level, req.approval_policy.unwrap_or(inferred_approval_policy));
-        proposal.risk_level = risk_level;
-        proposal.approval_policy = approval_policy;
-        proposal.required_permissions = req
-            .required_permissions
-            .unwrap_or_else(|| self.infer_required_permissions(&req.object_type, &req.action_name));
+        let (schema_risk_level, schema_approval_policy) = Self::governance_from_action(&action_def)?;
+        if req.risk_level.is_some_and(|requested| requested != schema_risk_level) {
+            return Err(AiActionProposalError::validation(format!(
+                "Risk level for '{}.{}' must match the ontology schema",
+                req.object_type, req.action_name
+            )));
+        }
+        if req
+            .approval_policy
+            .is_some_and(|requested| requested != schema_approval_policy)
+        {
+            return Err(AiActionProposalError::validation(format!(
+                "Approval policy for '{}.{}' must match the ontology schema",
+                req.object_type, req.action_name
+            )));
+        }
+        proposal.risk_level = schema_risk_level;
+        proposal.approval_policy = schema_approval_policy;
+        if let Some(requested_permissions) = &req.required_permissions {
+            if requested_permissions != &action_def.required_permissions {
+                return Err(AiActionProposalError::validation(format!(
+                    "Required permissions for '{}.{}' must match the ontology schema",
+                    req.object_type, req.action_name
+                )));
+            }
+        }
+        proposal.required_permissions = action_def.required_permissions.clone();
 
         let requester_id = req.requester_user_id.as_deref().unwrap_or("unknown_user").to_string();
         self.ensure_action_permissions("generate", &proposal, &requester_id, &req.requester_user_roles)?;
@@ -288,7 +310,7 @@ impl AiActionProposalService {
         let _ = counter!(AI_ACTION_PROPOSAL_GENERATED_METRIC,
             "object_type" => req.object_type.clone(),
             "action_name" => req.action_name.clone(),
-            "risk_level" => risk_level.label()
+            "risk_level" => schema_risk_level.label()
         );
 
         Ok(proposal)
@@ -661,61 +683,26 @@ impl AiActionProposalService {
         }
 
         // 通过 DomainActionExecutor 或 AiRuntimeService 执行
-        let execution_result: Result<Value, AiActionProposalError> = if let Some(executor) =
-            &self.domain_action_executor
-        {
-            let receipt = executor
-                .execute_approved_action(
-                    &proposal.object_type,
-                    &proposal.object_id,
-                    &proposal.action_name,
-                    &proposal.arguments,
-                    &req.executor_id,
-                )
-                .await
-                .map_err(|e| AiActionProposalError::execution(&e.to_string()))?;
+        let execution_result: Result<Value, AiActionProposalError> =
+            if let Some(executor) = &self.domain_action_executor {
+                let receipt = executor
+                    .execute_approved_action(
+                        &proposal.object_type,
+                        &proposal.object_id,
+                        &proposal.action_name,
+                        &proposal.arguments,
+                        &req.executor_id,
+                    )
+                    .await
+                    .map_err(|e| AiActionProposalError::execution(&e.to_string()))?;
 
-            let val = receipt.result.clone();
-            proposal.mark_executed(&req.executor_id, val.clone());
-            Ok(val)
-        } else if let Some(runtime) = &self.ai_runtime_service {
-            if !feature_enabled("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED") {
-                proposal.mark_failed("domain_action_executor unavailable and legacy tool fallback disabled");
-                Err(AiActionProposalError::execution(
-                    "domain_action_executor unavailable and legacy tool fallback disabled",
-                ))
+                let val = receipt.result.clone();
+                proposal.mark_executed(&req.executor_id, val.clone());
+                Ok(val)
             } else {
-                tracing::warn!(
-                        "DEPRECATED: FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED is true — using legacy runtime fallback in execute_proposal. Scheduled retirement: 2026-09-30"
-                    );
-                let spec = AiToolExecutionSpec {
-                    tool_name: self.map_action_to_tool(&proposal.object_type, &proposal.action_name),
-                    category: proposal.object_type.clone(),
-                    operation_level: if proposal.risk_level.requires_supervisor() {
-                        "supervisor".to_string()
-                    } else if proposal.risk_level.requires_approval() {
-                        "operator".to_string()
-                    } else {
-                        "auto".to_string()
-                    },
-                    side_effect: true,
-                    query_intent: None,
-                    query_dataset: None,
-                };
-
-                let result = runtime
-                    .execute_tool(spec, proposal.arguments.clone(), Some(req.executor_id.clone()), vec![])
-                    .await;
-                proposal.mark_executed(&req.executor_id, result.clone());
-                Ok(result)
-            }
-        } else {
-            // 没有执行器，标记为失败
-            proposal.mark_failed("neither domain_action_executor nor ai_runtime_service available");
-            Err(AiActionProposalError::execution(
-                "neither domain_action_executor nor ai_runtime_service available",
-            ))
-        };
+                proposal.mark_failed("domain_action_executor unavailable");
+                Err(AiActionProposalError::execution("domain_action_executor unavailable"))
+            };
 
         self.persist_proposal(&proposal).await?;
 
@@ -983,66 +970,6 @@ impl AiActionProposalService {
         Ok(())
     }
 
-    fn infer_risk_and_policy(
-        &self,
-        object_type: &str,
-        action_name: &str,
-        _arguments: &Value,
-    ) -> (RiskLevel, ApprovalPolicy) {
-        // 契约 §4.4：ontology schema 是风险/审批策略的单一事实来源，
-        // schema 内定义的动作一律以 schema 为准，避免硬编码表漂移。
-        if let Some(def) = Self::ontology_action_def(object_type, action_name) {
-            let risk = match def.risk_level.as_str() {
-                "critical" => RiskLevel::Critical,
-                "high" => RiskLevel::High,
-                "medium" => RiskLevel::Medium,
-                _ => RiskLevel::Low,
-            };
-            let policy = match def.approval_policy.as_str() {
-                "require_supervisor_approval" => ApprovalPolicy::RequireSupervisorApproval,
-                "require_flowable_approval" => ApprovalPolicy::RequireFlowableApproval,
-                "require_approval" => ApprovalPolicy::RequireApproval,
-                _ => ApprovalPolicy::AutoExecute,
-            };
-            return (risk, policy);
-        }
-        let key = format!("{}.{}", object_type, action_name);
-        match key.as_str() {
-            // 高风险：影响航班状态、取消、重大变更
-            "Flight.cancel" | "Flight.divert" | "Flight.delete" => {
-                (RiskLevel::Critical, ApprovalPolicy::RequireSupervisorApproval)
-            }
-            "Flight.update_status" | "Flight.change_stand" | "Flight.update_stand" | "Flight.update_gate" => {
-                (RiskLevel::High, ApprovalPolicy::RequireApproval)
-            }
-            // 中风险：派工变更
-            "DispatchOrder.cancel" | "DispatchOrder.reassign" | "Team.reassign" => {
-                (RiskLevel::High, ApprovalPolicy::RequireApproval)
-            }
-            "DispatchOrder.create" | "Equipment.reassign" => (RiskLevel::Medium, ApprovalPolicy::RequireApproval),
-            // 低风险：信息更新、标记
-            "Flight.add_note" | "Flight.update_estimated_time" => (RiskLevel::Low, ApprovalPolicy::AutoExecute),
-            "Anomaly.acknowledge" | "Anomaly.resolve" | "Todo.complete" => {
-                (RiskLevel::Low, ApprovalPolicy::AutoExecute)
-            }
-            "Notification.send" | "BusinessCase.create" => (RiskLevel::Medium, ApprovalPolicy::RequireApproval),
-            // 默认
-            _ => {
-                if action_name.contains("delete") || action_name.contains("cancel") || action_name.contains("reject") {
-                    (RiskLevel::High, ApprovalPolicy::RequireApproval)
-                } else if action_name.contains("create") || action_name.contains("update") {
-                    (RiskLevel::Medium, ApprovalPolicy::RequireApproval)
-                } else {
-                    (RiskLevel::Low, ApprovalPolicy::AutoExecute)
-                }
-            }
-        }
-    }
-
-    fn map_action_to_tool(&self, object_type: &str, action_name: &str) -> String {
-        format!("{}_{}", object_type.to_lowercase(), action_name.to_lowercase())
-    }
-
     /// 从确定性构建的 flight-ops.v1 schema 中查找动作定义（同步、无 IO）。
     fn ontology_action_def(
         object_type: &str,
@@ -1052,34 +979,32 @@ impl AiActionProposalService {
         schema.objects.get(object_type)?.actions.get(action_name).cloned()
     }
 
-    fn infer_required_permissions(&self, object_type: &str, action_name: &str) -> Vec<String> {
-        // 契约 §4.4：权限以 ontology schema 为单一事实来源，
-        // 保证 AI proposal 无法绕过新写动作的资源权限。
-        if let Some(def) = Self::ontology_action_def(object_type, action_name) {
-            if !def.required_permissions.is_empty() {
-                return def.required_permissions;
+    fn governance_from_action(
+        action: &fms_domain::models::ai_ontology::OntologyActionDef,
+    ) -> Result<(RiskLevel, ApprovalPolicy), AiActionProposalError> {
+        let risk = match action.risk_level.as_str() {
+            "critical" => RiskLevel::Critical,
+            "high" => RiskLevel::High,
+            "medium" => RiskLevel::Medium,
+            "low" => RiskLevel::Low,
+            other => {
+                return Err(AiActionProposalError::validation(format!(
+                    "Unknown ontology risk level: {other}"
+                )))
             }
-        }
-        match (object_type, action_name) {
-            ("Flight", "get_context") => vec!["flight:read".to_string()],
-            ("Flight", "change_stand")
-            | ("Flight", "update_status")
-            | ("Flight", "add_note")
-            | ("Flight", "update_estimated_time") => vec!["flight:write".to_string()],
-            ("DispatchOrder", "recommend_replan") | ("Stand", "reserve") => {
-                vec!["dispatch:write".to_string()]
+        };
+        let policy = match action.approval_policy.as_str() {
+            "require_supervisor_approval" => ApprovalPolicy::RequireSupervisorApproval,
+            "require_flowable_approval" => ApprovalPolicy::RequireFlowableApproval,
+            "require_approval" => ApprovalPolicy::RequireApproval,
+            "auto_execute" => ApprovalPolicy::AutoExecute,
+            other => {
+                return Err(AiActionProposalError::validation(format!(
+                    "Unknown ontology approval policy: {other}"
+                )))
             }
-            ("DispatchOrder", "reassign") => vec!["dispatch:admin".to_string()],
-            ("DispatchOrder", "publish") => vec!["dispatch:publish".to_string()],
-            ("Anomaly", "acknowledge") | ("Anomaly", "escalate") => {
-                vec!["anomaly:write".to_string()]
-            }
-            ("Notification", "send") => vec!["notification:send".to_string()],
-            ("Todo", "create") | ("Todo", "complete") => vec!["todo:write".to_string()],
-            ("BusinessCase", "create") => vec!["business_case:create".to_string()],
-            ("BusinessCase", "close_case") => vec!["business_case:update".to_string()],
-            _ => vec![],
-        }
+        };
+        Ok((risk, policy))
     }
 
     fn ensure_not_expired(&self, proposal: &AiActionProposal) -> Result<(), AiActionProposalError> {

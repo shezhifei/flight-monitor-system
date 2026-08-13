@@ -1,4 +1,4 @@
-//! Business case exports (plan §4 事项).
+//! Business case exports.
 
 use mobile_core::dto::business_case as core;
 

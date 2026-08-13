@@ -142,9 +142,7 @@ impl EventRuleRepository for PgEventRuleRepository {
     }
 
     async fn count_adjustment_rules(&self, params: &ListAdjustmentRulesParams) -> Result<i64, DomainError> {
-        let mut query = String::from(
-            "SELECT COUNT(*) FROM dispatch_order_adjustment_rules WHERE deleted_at IS NULL",
-        );
+        let mut query = String::from("SELECT COUNT(*) FROM dispatch_order_adjustment_rules WHERE deleted_at IS NULL");
 
         let q;
         if let Some(enabled) = params.is_enabled {
@@ -369,12 +367,12 @@ impl EventRuleRepository for PgEventRuleRepository {
             "UPDATE dispatch_order_adjustment_rules SET is_enabled = $1, updated_at = $2 \
              WHERE id = $3 AND deleted_at IS NULL",
         )
-            .bind(enabled)
-            .bind(now)
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        .bind(enabled)
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
 
         self.get_adjustment_rule(id)
             .await?
@@ -442,9 +440,8 @@ impl EventRuleRepository for PgEventRuleRepository {
     }
 
     async fn count_generation_rules(&self, params: &ListGenerationRulesParams) -> Result<i64, DomainError> {
-        let mut query = String::from(
-            "SELECT COUNT(*) FROM event_driven_dispatch_generation_rules WHERE deleted_at IS NULL",
-        );
+        let mut query =
+            String::from("SELECT COUNT(*) FROM event_driven_dispatch_generation_rules WHERE deleted_at IS NULL");
 
         let q;
         if let Some(enabled) = params.is_enabled {
@@ -657,12 +654,12 @@ impl EventRuleRepository for PgEventRuleRepository {
             "UPDATE event_driven_dispatch_generation_rules SET is_enabled = $1, updated_at = $2 \
              WHERE id = $3 AND deleted_at IS NULL",
         )
-            .bind(enabled)
-            .bind(now)
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        .bind(enabled)
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
 
         self.get_generation_rule(id)
             .await?

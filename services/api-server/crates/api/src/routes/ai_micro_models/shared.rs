@@ -1,4 +1,4 @@
-//! AI 微模型执行路由 (Phase 5)
+//! AI 微模型执行路由
 //!
 //! 暴露微模型注册表查询和微模型执行 API。
 //! - list/get: 返回模型元数据，包含 enabled 状态和 feature flag。

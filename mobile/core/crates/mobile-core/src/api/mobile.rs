@@ -1,4 +1,4 @@
-//! Mobile workbench API wrapper (plan §0.5 Mobile group).
+//! Mobile workbench API wrapper.
 //!
 //! `GET /api/v2/mobile/workbench` — enveloped `MobileWorkbenchResponse`
 //! (backend `routes/mobile.rs`).

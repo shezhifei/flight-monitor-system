@@ -1,7 +1,7 @@
 """Tool governance primitives for the AI runtime.
 
-Phase 0 surface: canonical args hashing (cross-language with Rust) plus
-the governance resolver that turns a :class:`ToolDefinition` into a
+Canonical args hashing (cross-language with Rust) plus the
+governance resolver that turns a :class:`ToolDefinition` into a
 ``ResolvedToolGovernance`` dict.
 """
 

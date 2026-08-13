@@ -307,7 +307,6 @@ async fn api_readiness_smoke_returns_ready_with_staging_override() {
 
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::set("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let token = make_test_jwt(&["system.config_read"]);
     let req = test::TestRequest::get()
@@ -339,7 +338,6 @@ async fn api_readiness_smoke_returns_not_ready_without_override() {
 
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::remove("FMS_AI_EXECUTION_READINESS_OVERRIDE");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let token = make_test_jwt(&["system.config_read"]);
     let req = test::TestRequest::get()
@@ -483,7 +481,6 @@ async fn api_rollout_status_smoke_returns_aggregate() {
 
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "Todo.create");
     let _guard2 = EnvGuard::set("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let token = make_test_jwt(&["system.config_read"]);
     let req = test::TestRequest::get()

@@ -949,10 +949,10 @@ impl BusinessCaseRepository for PgBusinessCaseRepository {
             "UPDATE flight_business_cases SET deleted_at = NOW() \
              WHERE case_id = $1 AND deleted_at IS NULL",
         )
-            .bind(case_id)
-            .execute(&self.pool)
-            .await
-            .map_err(|error| DomainError::Internal(error.to_string()))?;
+        .bind(case_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?;
         let deleted = result.rows_affected() > 0;
         if deleted {
             record_soft_delete(&self.pool, "flight_business_case", case_id, "soft_delete").await;

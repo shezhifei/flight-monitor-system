@@ -1,11 +1,11 @@
-"""Composition root for the AI runtime MQ control plane (Wave 2.5 / Phase 4).
+"""Composition root for the AI runtime MQ control plane.
 
-Wires the :class:`ToolMqGate` (Phase 1) to its
-:class:`AiRuntimeEventPublisher` and :class:`AiCommandPoller`, and the
-Phase 4 :class:`CommandDispatcher` + :class:`RunOwnerRegistry` so the
-sidecar can consume ``start_run`` / ``cancel_run`` / ``retry_tool`` /
-``resume_run`` commands and route ``tool_lease`` / ``tool_denied`` /
-``tool_proposal_only`` commands to waiting protected tool calls.
+Wires :class:`ToolMqGate` to :class:`AiRuntimeEventPublisher` and
+:class:`AiCommandPoller`, plus :class:`CommandDispatcher` and
+:class:`RunOwnerRegistry`, so the sidecar can consume ``start_run`` /
+``cancel_run`` / ``retry_tool`` / ``resume_run`` commands and route
+``tool_lease`` / ``tool_denied`` / ``tool_proposal_only`` to waiting
+protected tool calls.
 
 The module is the **single composition root** for the MQ control plane:
 nothing else constructs :class:`ToolMqGate`,

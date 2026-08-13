@@ -12,7 +12,6 @@ from src.infrastructure.runtime.providers import get_runtime_config_manager
 logger = get_logger(__name__)
 
 AI_FEATURE_FLAG_DEFAULTS: dict[str, bool] = {
-    "AI_EXEC_STATUS_V2": True,
     "AI_APPROVAL_DIFF_V1": True,
     "AI_TODO_AGENT_GRAPH_V1": False,
     "AI_KB_FTS_V1": False,

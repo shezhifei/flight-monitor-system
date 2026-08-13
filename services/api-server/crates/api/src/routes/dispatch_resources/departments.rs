@@ -6,10 +6,8 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::routes::dispatch_resources::{created_resp, ok_resp};
 use fms_application::schemas::dispatch_schemas::{DepartmentCreate, DepartmentResponse, DepartmentUpdate};
+use fms_application::services::dispatch_resource_service::{to_department_response, PageQuery};
 use fms_application::types::ConcreteDispatchResourceService;
-use fms_application::services::dispatch_resource_service::{
-    to_department_response, PageQuery,
-};
 
 pub async fn list_departments(
     req: HttpRequest,

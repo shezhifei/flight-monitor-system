@@ -3,6 +3,7 @@
 //! 定义 domain 层需要的数据访问抽象，由 infrastructure 层实现。
 
 pub mod ai_auth_context_loader;
+pub mod ai_context_snapshot_repository;
 pub mod ai_copilot_repository;
 pub mod ai_entity_config_repository;
 pub mod ai_execution_repository;
@@ -40,8 +41,6 @@ pub mod online_history_repository;
 pub mod ontology_repository;
 pub mod operator_identity_repository;
 pub mod permission_template_repository;
-pub mod runtime_diagnostic_repository;
-pub mod runtime_diagnostic_sink;
 pub mod session_runtime_repository;
 pub mod shift_handover_repository;
 pub mod system_flags_repository;

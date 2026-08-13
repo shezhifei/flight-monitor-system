@@ -153,7 +153,7 @@ def build_and_register_runtime(
 
 
 def _register_mq_components(mq_components: Any) -> None:
-    """Register the Wave 2.5 MQ control-plane singletons in the AI container.
+    """Register the MQ control-plane singletons in the AI container.
 
     Pre-builds a :class:`ToolExecutor` that has the gate wired so the
     LLMStreamRunner path in ``stream_run_with_tools`` uses it.
@@ -281,10 +281,9 @@ async def bootstrap_ai_runtime_from_env() -> bool:
         redis_client = await _create_redis_client_from_env()
         build_and_register_runtime(db_pool=pool, redis_client=redis_client)
 
-        # Wave 2.5: build the MQ control plane (publisher + poller + gate).
+        # Build the MQ control plane (publisher + poller + gate).
         # Degrades closed (None) when the mq-gateway URL or DB pool is
-        # missing. The runtime service falls back to legacy behavior in
-        # that mode (no MQ publishes, no gate).
+        # missing. The runtime service then skips MQ publishes and the gate.
         try:
             from src.infrastructure.ai.messaging.mq_runtime_bootstrap import (
                 build_mq_runtime_components,

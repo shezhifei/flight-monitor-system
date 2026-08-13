@@ -1,5 +1,7 @@
 # Frontend Shell Migration
 
+> 历史迁移动态。现行前端路径见 `docs/SOURCE_OF_TRUTH.md` §6：`frontend/vue-app/dist/` → `/frontend/<page>.html`。
+
 ## 北极星
 
 - 单一页面壳层：Vue 3 + Vite MPA 架构，20 个独立入口

@@ -156,7 +156,7 @@ impl DispatchCollaborationQueryService {
         Ok(Some(payload))
     }
 
-    pub async fn get_legacy_order_timeline(&self, order_id: &str, limit: i64) -> Result<Option<Value>, DomainError> {
+    pub async fn get_order_timeline(&self, order_id: &str, limit: i64) -> Result<Option<Value>, DomainError> {
         let Some(_) = self.order_repo.find_by_id(order_id, false, None).await? else {
             return Ok(None);
         };
@@ -166,7 +166,7 @@ impl DispatchCollaborationQueryService {
             .list_events_by_order(order_id, limit.max(1), 0)
             .await?
             .into_iter()
-            .filter_map(dispatch_event_to_legacy_timeline_item)
+            .filter_map(dispatch_event_to_timeline_item)
             .collect::<Vec<_>>();
 
         Ok(Some(json!({
@@ -215,7 +215,7 @@ fn filter_message_events(events: &[DispatchCollaborationEvent]) -> Vec<DispatchC
         .collect()
 }
 
-fn dispatch_event_to_legacy_timeline_item(event: DispatchCollaborationEvent) -> Option<Value> {
+fn dispatch_event_to_timeline_item(event: DispatchCollaborationEvent) -> Option<Value> {
     let action = match event.event_type.as_str() {
         "order_created" => "created",
         "order_accepted" => "accepted",

@@ -1,7 +1,6 @@
 //! Durable execution control plane records.
 //!
-//! Phase 1 of the AI Agent Resilient Tool Architecture plan
-//! (`docs/plans/2026-06-29-ai-agent-resilient-tool-architecture.md`).
+//! Durable ledger for tool calls and the Rust → Python command queue.
 //!
 //! Two tables back this module:
 //! * `ai_tool_calls` — one row per tool invocation. Replaces the
@@ -299,15 +298,15 @@ pub struct AiRuntimeCommandRecord {
     pub lease_expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub processed_at: Option<DateTime<Utc>>,
-    /// Phase 4: how many times this command has been leased (including
+    /// How many times this command has been leased (including
     /// renewals). Used to fail a command after `max_attempts`.
     pub attempt_count: i32,
-    /// Phase 4: maximum lease attempts before the command is considered
+    /// Maximum lease attempts before the command is considered
     /// permanently failed.
     pub max_attempts: i32,
-    /// Phase 4: last worker heartbeat timestamp for leased commands.
+    /// Last worker heartbeat timestamp for leased commands.
     pub last_heartbeat_at: Option<DateTime<Utc>>,
-    /// Phase 4: sticky run owner assigned when `start_run` is first
+    /// Sticky run owner assigned when `start_run` is first
     /// leased. Subsequent commands for the same run are only leased by
     /// the same owner unless the lease expires and another worker
     /// performs an explicit takeover.
@@ -433,7 +432,7 @@ pub struct AiRunCheckpointRecord {
 // ---------------------------------------------------------------------------
 
 /// Lifecycle status of an `ai_compensation_plans` row. The plan state
-/// machine (from the Phase 3 plan):
+/// machine:
 ///
 /// ```text
 /// Planned -> Approved -> Executing -> Succeeded

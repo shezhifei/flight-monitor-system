@@ -183,34 +183,25 @@ impl AuthorizationService {
     ///
     /// This mapping will be removed after 2026-10-01.
     /// All frontends and API consumers should migrate to new permission names before this date.
-    /// Migration guide: docs/architecture/auth-permission-migration.md
+    /// Current permission boundaries are documented in `docs/SYSTEM_MANUAL.md`.
     fn legacy_aliases(permission: &str) -> &'static [&'static str] {
         tracing::debug!(permission = permission, "using legacy permission alias");
         match permission {
-            PermissionCatalog::BUSINESS_CASE_CREATE => &["flight:manage"],
-            PermissionCatalog::BUSINESS_CASE_READ => &["flight:read", "flight:manage"],
-            PermissionCatalog::BUSINESS_CASE_APPEND => &["flight:manage"],
-            PermissionCatalog::BUSINESS_CASE_UPDATE => &["flight:manage"],
-            PermissionCatalog::BUSINESS_CASE_STATUS_TRANSITION => &["flight:manage"],
-            PermissionCatalog::BUSINESS_CASE_DELETE => &["flight:manage"],
+            PermissionCatalog::BUSINESS_CASE_READ => &["flight:read"],
 
-            PermissionCatalog::WORKFLOW_RUN_START => &["flight:manage", "flowable:manage"],
-            PermissionCatalog::WORKFLOW_RUN_READ => {
-                &["flight:read", "flight:manage", "flowable:read", "flowable:manage"]
-            }
-            PermissionCatalog::WORKFLOW_RUN_ACT => &["flight:manage", "flowable:manage"],
+            PermissionCatalog::WORKFLOW_RUN_START => &["flowable:manage"],
+            PermissionCatalog::WORKFLOW_RUN_READ => &["flight:read", "flowable:read", "flowable:manage"],
+            PermissionCatalog::WORKFLOW_RUN_ACT => &["flowable:manage"],
 
-            PermissionCatalog::WORKFLOW_DEFINITION_READ => {
-                &["flight:read", "flight:manage", "flowable:read", "flowable:manage"]
-            }
-            PermissionCatalog::WORKFLOW_DEFINITION_EDIT => &["flight:manage", "flowable:manage"],
-            PermissionCatalog::WORKFLOW_DEFINITION_PUBLISH => &["flight:manage", "flowable:manage"],
-            PermissionCatalog::WORKFLOW_DEFINITION_DEPRECATE => &["flight:manage", "flowable:manage"],
+            PermissionCatalog::WORKFLOW_DEFINITION_READ => &["flight:read", "flowable:read", "flowable:manage"],
+            PermissionCatalog::WORKFLOW_DEFINITION_EDIT => &["flowable:manage"],
+            PermissionCatalog::WORKFLOW_DEFINITION_PUBLISH => &["flowable:manage"],
+            PermissionCatalog::WORKFLOW_DEFINITION_DEPRECATE => &["flowable:manage"],
 
-            PermissionCatalog::AUTOMATION_NOTIFY_SEND => &["flight:manage", "flowable:manage"],
-            PermissionCatalog::AUTOMATION_DISPATCH_CREATE => &["flight:manage", "flowable:manage", "dispatch:manage"],
-            PermissionCatalog::AUTOMATION_BUSINESS_CASE_COMPLETE => &["flight:manage", "flowable:manage"],
-            PermissionCatalog::AUTOMATION_BUSINESS_CASE_FAIL => &["flight:manage", "flowable:manage"],
+            PermissionCatalog::AUTOMATION_NOTIFY_SEND => &["flowable:manage"],
+            PermissionCatalog::AUTOMATION_DISPATCH_CREATE => &["flowable:manage", "dispatch:manage"],
+            PermissionCatalog::AUTOMATION_BUSINESS_CASE_COMPLETE => &["flowable:manage"],
+            PermissionCatalog::AUTOMATION_BUSINESS_CASE_FAIL => &["flowable:manage"],
 
             PermissionCatalog::DISPATCH_ORDER_READ => &["dispatch:view", "dispatch:manage"],
             PermissionCatalog::DISPATCH_ORDER_CREATE => &["dispatch:manage"],
@@ -239,11 +230,8 @@ impl AuthorizationService {
             PermissionCatalog::NOTIFICATION_RECEIPT_READ => &["dispatch:view", "dispatch:manage"],
             PermissionCatalog::NOTIFICATION_RECEIPT_MANAGE => &["dispatch:manage"],
 
-            PermissionCatalog::FLIGHT_READ => &["flight:read", "flight:manage"],
-            PermissionCatalog::FLIGHT_UPDATE => &["flight:manage"],
-            PermissionCatalog::FLIGHT_TIMELINE_EDIT => &["flight:manage"],
-            PermissionCatalog::FLIGHT_IMPORT_COMMIT => &["flight:manage"],
-            PermissionCatalog::FLIGHT_REPORT_GENERATE => &["flight:read", "flight:manage"],
+            PermissionCatalog::FLIGHT_READ => &["flight:read"],
+            PermissionCatalog::FLIGHT_REPORT_GENERATE => &["flight:read"],
 
             PermissionCatalog::AUTH_ROLE_READ
             | PermissionCatalog::AUTH_PERMISSION_TEMPLATE_READ
@@ -291,9 +279,7 @@ fn permission_matches_ai_grant(permission: &str, required: &str) -> bool {
     permission == required
         || matches!(
             (permission, required),
-            ("flight:manage", "flight:read")
-                | ("flight:manage", "flight:write")
-                | ("flight:write", "flight:read")
+            ("flight:write", "flight:read")
                 | ("dispatch:manage", "dispatch:write")
                 | ("dispatch:manage", "dispatch:publish")
                 | ("dispatch:manage", "dispatch:admin")
@@ -338,15 +324,35 @@ mod tests {
     }
 
     #[test]
-    fn flight_manage_aliases_to_business_case_permissions() {
+    fn flight_manage_does_not_expand_to_granular_permissions() {
         let token = claims(&["flight:manage"]);
-        assert!(AuthorizationService::has_grant(
+        assert!(!AuthorizationService::has_grant(
             &token,
             PermissionCatalog::BUSINESS_CASE_UPDATE
         ));
-        assert!(AuthorizationService::has_grant(
+        assert!(!AuthorizationService::has_grant(
             &token,
             PermissionCatalog::WORKFLOW_RUN_START
+        ));
+        assert!(!AuthorizationService::has_grant(
+            &token,
+            PermissionCatalog::FLIGHT_UPDATE
+        ));
+    }
+
+    #[test]
+    fn granular_flight_permissions_are_granted_directly() {
+        let token = claims(&[
+            PermissionCatalog::FLIGHT_UPDATE,
+            PermissionCatalog::FLIGHT_TIMELINE_EDIT,
+        ]);
+        assert!(AuthorizationService::has_grant(
+            &token,
+            PermissionCatalog::FLIGHT_UPDATE
+        ));
+        assert!(AuthorizationService::has_grant(
+            &token,
+            PermissionCatalog::FLIGHT_TIMELINE_EDIT
         ));
     }
 
@@ -389,8 +395,12 @@ mod tests {
     #[test]
     fn ai_action_grants_default_deny_empty_required_permissions() {
         assert!(!AuthorizationService::has_ai_action_grants(&["*".to_string()], &[]));
-        assert!(AuthorizationService::has_ai_action_grants(
+        assert!(!AuthorizationService::has_ai_action_grants(
             &["flight:manage".to_string()],
+            &["flight:write".to_string()]
+        ));
+        assert!(AuthorizationService::has_ai_action_grants(
+            &[PermissionCatalog::FLIGHT_UPDATE.to_string()],
             &["flight:write".to_string()]
         ));
         assert!(AuthorizationService::has_ai_supervisor_approval_grant(&[

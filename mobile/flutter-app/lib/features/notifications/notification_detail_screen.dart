@@ -7,7 +7,7 @@ import '../../bridge/api/notification.dart' as notif_api;
 import '../../providers/notification_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 通知详情 + ack/reject（plan §5 NotificationDetailScreen）。
+/// 通知详情 + ack/reject。
 class NotificationDetailScreen extends ConsumerWidget {
   const NotificationDetailScreen({super.key, required this.notificationId});
 

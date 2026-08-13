@@ -155,4 +155,10 @@ describe('hasUserPermission', () => {
   it('keeps dot-delimited compatibility grants working', () => {
     expect(hasUserPermission({ permissions: ['system.*'] }, 'system.config_write')).toBe(true);
   });
+
+  it('does not expand flight:manage into granular permissions', () => {
+    const user = { permissions: ['flight:manage'] };
+    expect(hasUserPermission(user, 'flight.update')).toBe(false);
+    expect(hasUserPermission(user, 'business_case.update')).toBe(false);
+  });
 });

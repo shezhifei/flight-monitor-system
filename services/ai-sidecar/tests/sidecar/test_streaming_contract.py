@@ -21,25 +21,53 @@ import pytest
 from fastapi.testclient import TestClient
 
 _project_root = Path(__file__).parent.parent.parent
-os.environ["JWT_SECRET"] = os.environ.get("JWT_SECRET", "test-secret-for-streaming-tests")
-
-from scripts.host.ai_sidecar_entrypoint import app
+_TEST_JWT_SECRET = "test-secret-for-streaming-tests-32b"
 
 from src.infrastructure.ai.service_identity import (
     SERVICE_AUDIENCE,
     SERVICE_IDENTITY_HEADER,
     SERVICE_ISSUER,
     SERVICE_SUBJECT,
+    get_jwt_algorithm,
+    get_jwt_public_key,
+    get_jwt_secret,
 )
+from tests.sidecar.canonical_entrypoint import app
 
 
 @pytest.fixture(scope="module")
-def client() -> TestClient:
+def service_identity_environment() -> Any:
+    previous = {
+        key: os.environ.get(key)
+        for key in ("JWT_SECRET", "JWT_SECRET_KEY", "JWT_ALGORITHM", "JWT_PUBLIC_KEY")
+    }
+    os.environ["JWT_SECRET"] = _TEST_JWT_SECRET
+    os.environ.pop("JWT_SECRET_KEY", None)
+    os.environ["JWT_ALGORITHM"] = "HS256"
+    os.environ.pop("JWT_PUBLIC_KEY", None)
+    get_jwt_secret.cache_clear()
+    get_jwt_algorithm.cache_clear()
+    get_jwt_public_key.cache_clear()
+    try:
+        yield
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        get_jwt_secret.cache_clear()
+        get_jwt_algorithm.cache_clear()
+        get_jwt_public_key.cache_clear()
+
+
+@pytest.fixture(scope="module")
+def client(service_identity_environment: Any) -> TestClient:
     return TestClient(app)
 
 
 def _create_token(path: str, secret: str | None = None, expired: bool = False) -> str:
-    secret = secret or os.environ["JWT_SECRET"]
+    secret = secret or _TEST_JWT_SECRET
     now = int(time.time())
     payload = {
         "iss": SERVICE_ISSUER,

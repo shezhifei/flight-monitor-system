@@ -8,7 +8,6 @@ use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use tokio::sync::watch;
 use tracing::{info, warn};
 
 use fms_domain::broadcaster::Broadcaster;
@@ -20,8 +19,8 @@ use fms_domain::ports::event_rule_repository::EventRuleRepository;
 
 use crate::services::business_case_workflow_service::WorkflowActor;
 use crate::services::cache_invalidation_service::{CacheInvalidationKey, CacheInvalidationService};
-use crate::services::dispatch_service::DispatchService;
 use crate::services::dispatch_service::dispatch_overrun_warning_service::DispatchOverrunWarningService;
+use crate::services::dispatch_service::DispatchService;
 use crate::services::event_rule_handler::EventDrivenRuleHandler;
 use crate::services::flight_cache_service::{flight_list_requires_global_invalidation, FlightCacheService};
 use crate::services::flight_runtime_service::FlightRuntimeService;
@@ -809,41 +808,6 @@ impl DomainEventSubscriberService {
         }
 
         self.process_messages(message_queue.as_ref(), messages).await
-    }
-
-    /// Consume messages with a long `wait_ms`, designed to be called from a
-    /// dedicated background task (callback-style) instead of a scheduler loop.
-    pub async fn consume_once_long_poll(&self) -> Result<i64, DomainError> {
-        // Retained as a thin shim over `consume_once` for callers that still
-        // expect the long-poll semantics. The push-consumer adapter now drives
-        // `handle_messages` directly, so this path is exercised only when
-        // `EVENTS_PUSH_CONSUMER_ENABLED=false`.
-        self.consume_once().await
-    }
-
-    /// Run the subscriber as a long-polling background task.
-    ///
-    /// Deprecated: the RocketMQ push consumer (`RocketMqPushConsumer`) now
-    /// drives this service via `handle_messages`. This method is retained as a
-    /// shim for callers that explicitly want a polling fallback (e.g. when
-    /// `EVENTS_PUSH_CONSUMER_ENABLED=false`). It simply delegates to
-    /// `consume_once` and no longer holds a long-poll loop of its own.
-    pub async fn run_forever(self: Arc<Self>, _stop_rx: watch::Receiver<bool>) {
-        if !self.enabled {
-            info!("domain_event_subscriber polling fallback disabled");
-            return;
-        }
-        if self.message_queue.is_none() {
-            warn!("domain_event_subscriber polling fallback exiting: message queue unavailable");
-            return;
-        }
-        info!(
-            topic = %self.topic,
-            consumer_group = %self.consumer_group,
-            "domain_event_subscriber polling fallback armed (push consumer is recommended)"
-        );
-        // Push consumer is the production path; nothing to do here.
-        // The `_stop_rx` is intentionally ignored to keep the signature stable.
     }
 
     async fn process_messages(

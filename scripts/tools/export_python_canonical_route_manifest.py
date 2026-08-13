@@ -2,9 +2,9 @@
 """Export the retired Python canonical route manifest for Rust parity tests.
 
 The Python HTTP backend was retired, so this exporter intentionally no longer
-imports the old FastAPI application factory.  It emits the last checked-in
-canonical `/api/v2/*` route snapshot captured before the Python HTTP surface was
-removed.  Rust tests use the snapshot as a stable migration contract.
+imports the old FastAPI application factory. It emits the checked-in subset of
+canonical `/api/v2/*` routes that Rust still promises to serve. Retired routes
+are removed from the fixture and covered by explicit 404 tests in the Rust API.
 """
 
 from __future__ import annotations

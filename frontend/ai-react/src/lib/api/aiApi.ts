@@ -100,7 +100,7 @@ export async function listToolCategories(): Promise<{ categories: Array<Record<s
   return requestEnvelope<{ categories: Array<Record<string, unknown>> }>(`${AI_BASE}/tools/categories`);
 }
 
-// ---- Phase 5: Proposals API ----
+// ---- Proposals API ----
 
 export async function listProposals(params: {
   object_type?: string;
@@ -140,7 +140,7 @@ export async function getProposalStats(): Promise<Record<string, unknown>> {
   return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/proposals/stats`);
 }
 
-// ---- Phase 5: AI Jobs API ----
+// ---- AI Jobs API ----
 
 export async function listAiJobs(params: {
   status?: string;
@@ -172,7 +172,7 @@ export async function getAiJobStats(): Promise<Record<string, unknown>> {
   return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/jobs/stats`);
 }
 
-// ---- Phase 5: Flight Risk Micro Model ----
+// ---- Flight Risk Micro Model ----
 
 export async function executeFlightRiskModel(flightId: string): Promise<Record<string, unknown>> {
   return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/micro-models/flight_risk_v1/execute`, {
@@ -182,7 +182,7 @@ export async function executeFlightRiskModel(flightId: string): Promise<Record<s
   });
 }
 
-// ---- Phase 6: Rollout Gate APIs ----
+// ---- Rollout Gate APIs ----
 
 export type ExecutionMode = 'disabled' | 'allow_all' | 'allowlist';
 
@@ -190,7 +190,6 @@ export interface RolloutStatusResponse {
   execution_enabled: boolean;
   execution_mode: ExecutionMode;
   readiness_override: string | null;
-  legacy_fallback_enabled: boolean;
   readiness: {
     overall_status: 'Ready' | 'NotReady';
     checks: Array<{ name: string; status: 'Pass' | 'Fail' | 'Warn'; message: string }>;

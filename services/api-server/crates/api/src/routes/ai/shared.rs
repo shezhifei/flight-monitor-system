@@ -10,10 +10,19 @@ use crate::services::python_sidecar_proxy::ai_sidecar_url;
 use crate::sse::hub::SseHub;
 use fms_application::schemas::response::ApiErrorResponse;
 
-pub use fms_application::services::ai_route_service::{
-    ai_feature_enabled, AiEventPayload, AiRouteError, AiRouteService,
-};
-pub use fms_application::services::ai_runtime_service::AiRuntimeError;
+pub use fms_application::services::ai_route_service::{AiRouteError, AiRouteService};
+pub use fms_application::services::ai_runtime_service::{AiRuntimeError, AiRuntimeService};
+
+pub fn ai_feature_enabled(flag_name: &str, default: bool) -> bool {
+    std::env::var(flag_name)
+        .ok()
+        .map(|value| match value.trim().to_ascii_lowercase().as_str() {
+            "0" | "false" | "off" | "no" => false,
+            "1" | "true" | "on" | "yes" => true,
+            _ => default,
+        })
+        .unwrap_or(default)
+}
 
 #[derive(Debug, Deserialize)]
 pub struct ListToolsQuery {
@@ -186,6 +195,101 @@ pub fn raw_detail(status: actix_web::http::StatusCode, detail: impl serde::Seria
     HttpResponse::build(status).json(json!({ "detail": detail }))
 }
 
+pub fn execution_result_response(data: &Value) -> Value {
+    let execution_result = data.get("execution_result").unwrap_or(&Value::Null);
+    json!({
+        "success": execution_result.get("status").and_then(Value::as_str) == Some("success"),
+        "status": execution_result.get("status").cloned().unwrap_or_else(|| json!("error")),
+        "code": execution_result.get("code"),
+        "message": execution_result.get("message"),
+        "recoverable": execution_result.get("recoverable"),
+        "retryable": execution_result.get("retryable"),
+        "severity": execution_result.get("severity"),
+        "approval_id": data.get("pending_action").and_then(|item| item.get("action_id")),
+        "data": data,
+        "meta": { "contract_version": "2.0" },
+    })
+}
+
+pub fn rejection_response(data: &Value) -> Value {
+    json!({
+        "success": true,
+        "status": "success",
+        "code": "APPROVAL_REJECTED",
+        "message": "approval request rejected by human reviewer",
+        "recoverable": true,
+        "retryable": false,
+        "severity": "warning",
+        "approval_id": data.get("pending_action").and_then(|item| item.get("action_id")),
+        "data": data,
+        "meta": { "contract_version": "2.0" },
+    })
+}
+
+pub fn batch_error_result(action_id: &str, status: &str, code: &str, message: impl Into<String>) -> Value {
+    json!({
+        "action_id": action_id,
+        "success": false,
+        "status": status,
+        "code": code,
+        "message": message.into(),
+    })
+}
+
+pub fn batch_approve_success_result(action_id: &str, data: &Value) -> Value {
+    let pending_action = data.get("pending_action").unwrap_or(&Value::Null);
+    let execution_result = data.get("execution_result").unwrap_or(&Value::Null);
+    let pending_status = pending_action
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_lowercase();
+    let execution_status = execution_result
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_lowercase();
+    let status = if pending_status.is_empty() {
+        if execution_status.is_empty() {
+            "unknown".to_string()
+        } else {
+            execution_status.clone()
+        }
+    } else {
+        pending_status
+    };
+    let success = matches!(status.as_str(), "approved" | "executed" | "success")
+        && matches!(execution_status.as_str(), "" | "success" | "executed");
+    json!({
+        "action_id": action_id,
+        "success": success,
+        "status": status,
+        "code": execution_result.get("code").or_else(|| pending_action.get("status_code")),
+        "message": execution_result.get("message").or_else(|| pending_action.get("execution_error")),
+        "data": data,
+    })
+}
+
+pub fn batch_reject_success_result(action_id: &str, data: &Value) -> Value {
+    let pending_action = data.get("pending_action").unwrap_or(&Value::Null);
+    json!({
+        "action_id": action_id,
+        "success": true,
+        "status": "rejected",
+        "code": pending_action.get("status_code").cloned().unwrap_or_else(|| json!("APPROVAL_REJECTED")),
+        "message": "approval request rejected by human reviewer",
+        "data": data,
+    })
+}
+
+pub fn map_runtime_error(error: AiRuntimeError) -> ApiError {
+    match error {
+        AiRuntimeError::NotFound(message) => ApiError::NotFound(message),
+        AiRuntimeError::Validation(message) => ApiError::BadRequest(message),
+        AiRuntimeError::Conflict { message, .. } => ApiError::Conflict(message),
+    }
+}
+
 pub async fn broadcast_ai_event(hub: &Arc<SseHub>, event: &str, payload: Value) {
     let _ = hub.broadcast_event("ai_execution", Some(event), payload.clone()).await;
     let _ = hub
@@ -203,9 +307,6 @@ pub async fn broadcast_ai_event(hub: &Arc<SseHub>, event: &str, payload: Value) 
 pub fn map_route_error(error: AiRouteError) -> ApiError {
     match error {
         AiRouteError::Domain(domain_err) => ApiError::from(domain_err),
-        AiRouteError::Runtime(AiRuntimeError::NotFound(msg)) => ApiError::NotFound(msg),
-        AiRouteError::Runtime(AiRuntimeError::Validation(msg)) => ApiError::BadRequest(msg),
-        AiRouteError::Runtime(AiRuntimeError::Conflict { message, .. }) => ApiError::Conflict(message),
     }
 }
 

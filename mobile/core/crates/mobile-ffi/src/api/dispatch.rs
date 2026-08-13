@@ -1,4 +1,4 @@
-//! Dispatch exports (plan §4 派工).
+//! Dispatch exports.
 //!
 //! Structured data crosses the bridge as frb-mirrored structs; the two
 //! parameters that are JSON by contract (`action_json`, checklist `result`)
@@ -327,7 +327,7 @@ pub async fn my_assigned_orders(status: Option<String>) -> anyhow::Result<Vec<Di
 }
 
 /// Send one dispatch action, queueing offline on network-class errors only
-/// (§3.5). `action_json` is `{"action_type": "...", "payload": {...}}` where
+///. `action_json` is `{"action_type": "...", "payload": {...}}` where
 /// `action_type` is one of `accept|checkin|checkout|start|complete|
 /// eta_report|report_issue` and `payload` the action-specific request body.
 pub async fn dispatch_action(
@@ -360,7 +360,7 @@ pub async fn dispatch_action(
 }
 
 /// Replay the offline queue through
-/// `POST /api/v2/dispatch-orders/mobile/sync/actions` (§3.5).
+/// `POST /api/v2/dispatch-orders/mobile/sync/actions`.
 pub async fn sync_offline_actions() -> anyhow::Result<SyncSummary> {
     let rt = runtime()?;
     Ok(rt.offline.sync_pending(&rt.client).await?.into())

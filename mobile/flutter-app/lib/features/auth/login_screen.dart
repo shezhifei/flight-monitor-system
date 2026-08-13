@@ -7,7 +7,7 @@ import '../../bridge/api/session.dart';
 import '../../providers/session_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 登录页（plan §5 LoginScreen）。登录成功 → currentTokenBundle 落
+/// 登录页。登录成功 → currentTokenBundle 落
 /// secure storage → 尽力注册设备；路由守卫由 session_state 流自动跳
 /// /workbench。
 class LoginScreen extends ConsumerStatefulWidget {

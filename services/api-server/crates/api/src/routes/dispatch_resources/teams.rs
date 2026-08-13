@@ -8,11 +8,10 @@ use crate::routes::dispatch_resources::{created_resp, ok_resp, MessageResponse};
 use fms_application::schemas::dispatch_schemas::{
     PositionUpdate, TeamCreate, TeamMemberAdd, TeamMemberResponse, TeamResponse, TeamUpdate,
 };
-use fms_application::types::ConcreteDispatchResourceService;
 use fms_application::services::dispatch_resource_service::{
-    to_member_response, to_team_response, TeamDetailQuery, TeamListQuery, TeamMembersQuery,
-    TeamStatusQuery,
+    to_member_response, to_team_response, TeamDetailQuery, TeamListQuery, TeamMembersQuery, TeamStatusQuery,
 };
+use fms_application::types::ConcreteDispatchResourceService;
 
 pub async fn list_teams(
     req: HttpRequest,

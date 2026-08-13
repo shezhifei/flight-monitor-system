@@ -1,4 +1,4 @@
-//! Notification API wrappers (plan §0.5 Notifications).
+//! Notification API wrappers.
 //!
 //! - List / unread-count / receipt / receipt-group → raw
 //! - mark-read / ack / read-all → envelope

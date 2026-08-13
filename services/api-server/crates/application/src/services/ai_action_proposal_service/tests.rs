@@ -86,6 +86,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn generate_proposal_rejects_action_missing_from_ontology_schema() {
+        let service = AiActionProposalService::new();
+        let result = service
+            .generate_proposal(generate_request(
+                "update_stand",
+                json!({"new_stand_id": "S02"}),
+                &["flight:write"],
+            ))
+            .await;
+
+        assert!(
+            matches!(&result, Err(AiActionProposalError::Validation(message)) if message.contains("not declared")),
+            "unknown ontology action must fail closed: {:?}",
+            result
+        );
+    }
+
+    #[tokio::test]
+    async fn generate_proposal_rejects_permissions_that_differ_from_schema() {
+        let service = AiActionProposalService::new();
+        let mut request = generate_request("change_stand", json!({"new_stand_id": "S02"}), &["flight:write"]);
+        request.required_permissions = Some(vec!["flight:manage".to_string()]);
+
+        let result = service.generate_proposal(request).await;
+        assert!(
+            matches!(&result, Err(AiActionProposalError::Validation(message)) if message.contains("must match the ontology schema")),
+            "caller must not override schema permissions: {:?}",
+            result
+        );
+    }
+
+    #[tokio::test]
+    async fn generate_proposal_rejects_risk_level_that_differs_from_schema() {
+        let service = AiActionProposalService::new();
+        let mut request = generate_request("change_stand", json!({"new_stand_id": "S02"}), &["flight:write"]);
+        request.risk_level = Some(RiskLevel::Low);
+
+        let result = service.generate_proposal(request).await;
+        assert!(
+            matches!(&result, Err(AiActionProposalError::Validation(message)) if message.contains("Risk level") && message.contains("ontology schema")),
+            "caller must not override schema risk: {:?}",
+            result
+        );
+    }
+
+    #[tokio::test]
+    async fn generate_proposal_rejects_approval_policy_that_differs_from_schema() {
+        let service = AiActionProposalService::new();
+        let mut request = generate_request("change_stand", json!({"new_stand_id": "S02"}), &["flight:write"]);
+        request.approval_policy = Some(ApprovalPolicy::AutoExecute);
+
+        let result = service.generate_proposal(request).await;
+        assert!(
+            matches!(&result, Err(AiActionProposalError::Validation(message)) if message.contains("Approval policy") && message.contains("ontology schema")),
+            "caller must not override schema approval policy: {:?}",
+            result
+        );
+    }
+
+    #[tokio::test]
     async fn generate_proposal_rejects_object_policy_deny() {
         let policy_repo = Arc::new(SequenceObjectPolicyRepository::new(vec![AiObjectAccessDecision::Deny]));
         let service = AiActionProposalService::new().with_object_policy_repository(policy_repo);
@@ -188,31 +248,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn generate_proposal_normalizes_registry_approval_policy_by_risk() {
+    async fn generate_proposal_accepts_governance_values_that_match_schema() {
         let service = AiActionProposalService::new();
-        let mut medium_request = generate_request("add_note", json!({"note_content": "ops note"}), &["flight:write"]);
-        medium_request.risk_level = Some(RiskLevel::Medium);
-        medium_request.approval_policy = Some(ApprovalPolicy::AutoExecute);
+        let mut request = generate_request("add_note", json!({"note_content": "ops note"}), &["flight:write"]);
+        request.risk_level = Some(RiskLevel::Low);
+        request.approval_policy = Some(ApprovalPolicy::AutoExecute);
 
-        let medium = service
-            .generate_proposal(medium_request)
+        let proposal = service
+            .generate_proposal(request)
             .await
-            .expect("authorized generator should create medium proposal");
+            .expect("governance values matching the schema should be accepted");
 
-        assert_eq!(medium.risk_level, RiskLevel::Medium);
-        assert_eq!(medium.approval_policy, ApprovalPolicy::RequireApproval);
-
-        let mut critical_request = generate_request("add_note", json!({"note_content": "ops note"}), &["flight:write"]);
-        critical_request.risk_level = Some(RiskLevel::Critical);
-        critical_request.approval_policy = Some(ApprovalPolicy::AutoExecute);
-
-        let critical = service
-            .generate_proposal(critical_request)
-            .await
-            .expect("authorized generator should create critical proposal");
-
-        assert_eq!(critical.risk_level, RiskLevel::Critical);
-        assert_eq!(critical.approval_policy, ApprovalPolicy::RequireSupervisorApproval);
+        assert_eq!(proposal.risk_level, RiskLevel::Low);
+        assert_eq!(proposal.approval_policy, ApprovalPolicy::AutoExecute);
     }
 
     #[tokio::test]
@@ -366,17 +414,22 @@ mod tests {
         use fms_infrastructure::repositories::{
             pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
             pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
-            pg_dispatch_order_repository::PgDispatchOrderRepository, pg_flight_repository::PgFlightRepository,
+            pg_dispatch_order_repository::PgDispatchOrderRepository,
+            pg_domain_event_outbox_repository::PgDomainEventOutboxRepository, pg_flight_repository::PgFlightRepository,
             pg_label_repository::PgLabelRepository, pg_notification_repository::PgNotificationRepository,
             pg_todo_repository::PgTodoRepository,
         };
 
         let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
-        let flight_svc = Arc::new(FlightService::new(flight_repo.clone()).with_transactional_repository(flight_repo));
-        let dispatch_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-        let dispatch_svc = Arc::new(
-            DispatchService::new(dispatch_repo.clone()).with_transactional_repos(dispatch_repo, None),
+        let outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
+        let flight_svc = Arc::new(
+            FlightService::new(flight_repo.clone())
+                .with_transactional_repository(flight_repo)
+                .with_outbox_repository(outbox_repo.clone()),
         );
+        let dispatch_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
+        let dispatch_svc =
+            Arc::new(DispatchService::new(dispatch_repo.clone()).with_transactional_repos(dispatch_repo, None));
         let notif_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
         let notif_repo_port: Arc<dyn fms_domain::ports::notification_repository::NotificationRepository + Send + Sync> =
@@ -406,9 +459,8 @@ mod tests {
                     ),
             );
         let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-        let anomaly_svc = Arc::new(
-            AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo),
-        );
+        let anomaly_svc =
+            Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
         let label_svc = Arc::new(LabelService::new(
             Arc::new(PgLabelRepository::new(pool.clone())),
             Arc::new(NoopBroadcaster),
@@ -442,6 +494,7 @@ mod tests {
             label_svc,
             todo_svc,
             bc_svc,
+            outbox_repo,
             pool,
         ))
     }
@@ -559,7 +612,6 @@ mod tests {
         // Set env vars for execution
         std::env::set_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
         std::env::set_var("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
-        std::env::set_var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
         let result = service
             .execute_proposal(ExecuteProposalRequest {
@@ -573,7 +625,6 @@ mod tests {
         // Clean up env vars
         std::env::remove_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED");
         std::env::remove_var("FMS_AI_EXECUTION_READINESS_OVERRIDE");
-        std::env::remove_var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED");
 
         let executed = result.expect("smoke execution should succeed");
 
@@ -651,7 +702,6 @@ mod tests {
         // Execution DISABLED
         std::env::set_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "false");
         std::env::remove_var("FMS_AI_EXECUTION_READINESS_OVERRIDE");
-        std::env::set_var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
         let result = service
             .execute_proposal(ExecuteProposalRequest {
@@ -663,7 +713,6 @@ mod tests {
             .await;
 
         std::env::remove_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED");
-        std::env::remove_var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED");
 
         // Must be rejected
         assert!(result.is_err(), "execution must be blocked when flag is off");
@@ -754,7 +803,6 @@ mod tests {
         // Execution enabled but NO staging override → readiness fails
         std::env::set_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
         std::env::remove_var("FMS_AI_EXECUTION_READINESS_OVERRIDE");
-        std::env::set_var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
         let result = service
             .execute_proposal(ExecuteProposalRequest {
@@ -766,7 +814,6 @@ mod tests {
             .await;
 
         std::env::remove_var("FMS_AI_PROPOSAL_EXECUTION_ENABLED");
-        std::env::remove_var("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED");
 
         assert!(result.is_err(), "execution must be blocked when readiness is not ready");
 
@@ -827,7 +874,7 @@ mod tests {
         assert!(allowlist.allows("Todo", "create"));
     }
 
-    // ── Phase 4（契约 §4.4/§4.5）：proposal 管线消费 schema 的接线用例 ──────────
+    // ── proposal 管线消费 schema 的接线用例 ──────────
 
     fn generate_request_for(
         job_id: &str,
@@ -872,38 +919,10 @@ mod tests {
             "require_approval" => ApprovalPolicy::RequireApproval,
             _ => ApprovalPolicy::AutoExecute,
         };
-        // 契约 §4.5：风险等级对审批策略的归一化（与 service 的 normalize_policy_for_risk 一致）。
-        let policy = match risk {
-            RiskLevel::Critical => {
-                if declared_policy == ApprovalPolicy::RequireFlowableApproval {
-                    ApprovalPolicy::RequireFlowableApproval
-                } else {
-                    ApprovalPolicy::RequireSupervisorApproval
-                }
-            }
-            RiskLevel::High => {
-                if matches!(
-                    declared_policy,
-                    ApprovalPolicy::RequireSupervisorApproval | ApprovalPolicy::RequireFlowableApproval
-                ) {
-                    declared_policy
-                } else {
-                    ApprovalPolicy::RequireApproval
-                }
-            }
-            RiskLevel::Medium => {
-                if declared_policy == ApprovalPolicy::RequireFlowableApproval {
-                    ApprovalPolicy::RequireFlowableApproval
-                } else {
-                    ApprovalPolicy::RequireApproval
-                }
-            }
-            RiskLevel::Low => declared_policy,
-        };
-        (risk, policy)
+        (risk, declared_policy)
     }
 
-    // 契约 §4.4：每个 schema 动作的 proposal 必须携带 schema 声明的
+    // 每个 schema 动作的 proposal 必须携带 schema 声明的
     // 风险等级、审批策略与权限（单一事实来源，不得硬编码漂移）。
     #[tokio::test]
     async fn generated_proposals_carry_schema_risk_policy_and_permissions_for_every_action() {
@@ -944,10 +963,13 @@ mod tests {
             }
         }
 
-        assert!(checked >= 30, "expected the full flight-ops.v1 action set, got {checked}");
+        assert!(
+            checked >= 30,
+            "expected the full flight-ops.v1 action set, got {checked}"
+        );
     }
 
-    // 契约 §4.4：每个 write 动作在无权限时必须被拒绝（禁止绕过资源权限）。
+    // 每个 write 动作在无权限时必须被拒绝（禁止绕过资源权限）。
     #[tokio::test]
     async fn every_schema_write_action_is_forbidden_without_permissions() {
         let schema = fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema();
@@ -981,10 +1003,13 @@ mod tests {
             }
         }
 
-        assert!(checked >= 10, "expected at least the 10 contract write actions, got {checked}");
+        assert!(
+            checked >= 10,
+            "expected at least the 10 contract write actions, got {checked}"
+        );
     }
 
-    // 契约 §4.5：过期 proposal 不能审批也不能执行。
+    // 过期 proposal 不能审批也不能执行。
     #[tokio::test]
     async fn expired_proposal_cannot_be_approved_or_executed() {
         use crate::services::in_memory_ai_proposal_repository::InMemoryAiProposalRepository;
@@ -1007,8 +1032,12 @@ mod tests {
         )
         .with_expires_at(Utc::now() - chrono::Duration::minutes(1));
         pending.required_permissions = vec!["flight:write".to_string()];
-        pending.transition_to(ActionProposalStatus::Validating).expect("to validating");
-        pending.transition_to(ActionProposalStatus::Pending).expect("to pending");
+        pending
+            .transition_to(ActionProposalStatus::Validating)
+            .expect("to validating");
+        pending
+            .transition_to(ActionProposalStatus::Pending)
+            .expect("to pending");
         repo.save(&pending).await.expect("persist pending proposal");
 
         let approve_result = service
@@ -1038,8 +1067,12 @@ mod tests {
         )
         .with_expires_at(Utc::now() - chrono::Duration::minutes(1));
         approved.required_permissions = vec!["flight:write".to_string()];
-        approved.transition_to(ActionProposalStatus::Validating).expect("to validating");
-        approved.transition_to(ActionProposalStatus::Pending).expect("to pending");
+        approved
+            .transition_to(ActionProposalStatus::Validating)
+            .expect("to validating");
+        approved
+            .transition_to(ActionProposalStatus::Pending)
+            .expect("to pending");
         approved.approve("approver_1").expect("approve");
         repo.save(&approved).await.expect("persist approved proposal");
 
@@ -1058,7 +1091,7 @@ mod tests {
         );
     }
 
-    // 契约 §4.3：同一 idempotency key 已执行过的动作不得重复执行。
+    // 同一 idempotency key 已执行过的动作不得重复执行。
     #[tokio::test]
     async fn execute_proposal_rejects_duplicate_idempotency_key() {
         use crate::services::in_memory_ai_proposal_repository::InMemoryAiProposalRepository;
@@ -1079,10 +1112,16 @@ mod tests {
         )
         .with_metadata(json!({"idempotency_key": "dup_key_1"}));
         executed.required_permissions = vec!["todo:write".to_string()];
-        executed.transition_to(ActionProposalStatus::Validating).expect("to validating");
-        executed.transition_to(ActionProposalStatus::Pending).expect("to pending");
+        executed
+            .transition_to(ActionProposalStatus::Validating)
+            .expect("to validating");
+        executed
+            .transition_to(ActionProposalStatus::Pending)
+            .expect("to pending");
         executed.approve("approver_1").expect("approve");
-        executed.transition_to(ActionProposalStatus::Executing).expect("to executing");
+        executed
+            .transition_to(ActionProposalStatus::Executing)
+            .expect("to executing");
         executed.mark_executed("executor_1", json!({}));
         repo.save(&executed).await.expect("persist executed proposal");
 
@@ -1099,7 +1138,10 @@ mod tests {
             &["todo:write"],
         );
         request.idempotency_key = Some("dup_key_1".to_string());
-        let proposal = service.generate_proposal(request).await.expect("generate duplicate proposal");
+        let proposal = service
+            .generate_proposal(request)
+            .await
+            .expect("generate duplicate proposal");
 
         let proposal = service
             .validate_proposal(ValidateProposalRequest {
@@ -1142,10 +1184,10 @@ mod tests {
         );
     }
 
-    // 契约 §4.3：执行前重验对象版本，版本不一致必须拒绝执行。
+    // 执行前重验对象版本，版本不一致必须拒绝执行。
     #[tokio::test]
     async fn execute_proposal_rejects_flight_version_conflict() {
-        use crate::services::ontology_read_action_service::tests::FakeFlightRepo;
+        use crate::services::ontology_actions::test_support::FakeFlightRepo;
 
         let flight_repo = Arc::new(FakeFlightRepo::default());
         flight_repo.flights.lock().unwrap().push(versioned_flight("flt_1", 2));

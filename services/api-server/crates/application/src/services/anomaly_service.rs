@@ -1,6 +1,4 @@
-//! 异常告警应用服务
-//!
-//! 对应 Python `anomaly_query_service.py` 核心子集。
+//! 异常告警应用服务。
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;

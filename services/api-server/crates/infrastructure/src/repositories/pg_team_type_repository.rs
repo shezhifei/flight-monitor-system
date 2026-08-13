@@ -72,18 +72,15 @@ impl TeamTypeRepository for PgTeamTypeRepository {
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
 
-        sqlx::query(
-            "UPDATE team_type_steps SET deleted_at = NOW() WHERE team_type_id = $1 AND deleted_at IS NULL",
-        )
-        .bind(&team_type.id)
-        .execute(&mut *tx)
-        .await
-        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        sqlx::query("UPDATE team_type_steps SET deleted_at = NOW() WHERE team_type_id = $1 AND deleted_at IS NULL")
+            .bind(&team_type.id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
 
         if !team_type.task_types.is_empty() {
-            let mut query_builder = QueryBuilder::<Postgres>::new(
-                "INSERT INTO team_type_steps (team_type_id, task_type, priority) ",
-            );
+            let mut query_builder =
+                QueryBuilder::<Postgres>::new("INSERT INTO team_type_steps (team_type_id, task_type, priority) ");
             query_builder.push_values(&team_type.task_types, |mut b, task_type| {
                 let priority = team_type.task_types.len() as i32;
                 b.push_bind(&team_type.id).push_bind(task_type).push_bind(priority);

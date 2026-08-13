@@ -1,4 +1,4 @@
-//! API client configuration (plan §3.3).
+//! API client configuration.
 
 use crate::error::CoreError;
 
@@ -11,7 +11,7 @@ pub struct ApiConfig {
 
 impl ApiConfig {
     /// Create a new config. When `allow_cleartext` is false (release mode),
-    /// a non-HTTPS base URL is rejected, matching the legacy app constraint.
+    /// a non-HTTPS base URL is rejected.
     pub fn new(base_url: impl Into<String>, allow_cleartext: bool) -> Result<Self, CoreError> {
         let base_url = base_url.into();
         let base_url = base_url.trim_end_matches('/').to_string();

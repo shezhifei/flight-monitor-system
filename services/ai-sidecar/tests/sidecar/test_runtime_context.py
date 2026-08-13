@@ -1,6 +1,8 @@
-"""Tests for read-only ontology/AIP context enhancement."""
+"""Tests for read-only ontology context enhancement."""
 
 from __future__ import annotations
+
+from typing import ClassVar
 
 import pytest
 
@@ -14,6 +16,21 @@ from src.infrastructure.ai.context_envelope import (
     EnvelopeTask,
 )
 from src.infrastructure.ai.runtime_context import enhance_context
+
+
+class _SchemaMirrorStub:
+    schema_cache: ClassVar[dict[str, dict[str, dict[str, object]]]] = {
+        "objects": {"Flight": {}},
+        "actions": {"Flight.add_note": {}},
+    }
+
+    def get_cached_schema_snapshot(self) -> dict[str, dict[str, dict[str, object]]]:
+        return self.schema_cache
+
+
+class _FailingSchemaMirrorStub:
+    def get_cached_schema_snapshot(self) -> dict[str, object]:
+        raise RuntimeError("schema cache crashed")
 
 
 def _sample_envelope(**overrides) -> ContextEnvelope:
@@ -52,20 +69,15 @@ class TestEnhanceContext:
         result = enhance_context(envelope)
         assert any(r.step == "intent_classify" for r in result.reasoning_steps)
 
-    def test_returns_evidence_for_flight_object(self):
-        envelope = _sample_envelope()
-        result = enhance_context(envelope)
-        sources = {e.source for e in result.evidence}
-        assert "ontology.flight" in sources or "schema_mirror.snapshot" in sources
-
-    def test_degrades_gracefully_when_ontology_missing(self, monkeypatch):
+    def test_returns_evidence_for_flight_object(self, monkeypatch):
         monkeypatch.setattr(
-            "src.infrastructure.ai.runtime_context._get_ontology_registry",
-            lambda: None,
+            "src.infrastructure.ai.runtime_context._get_schema_mirror",
+            lambda: _SchemaMirrorStub(),
         )
         envelope = _sample_envelope()
         result = enhance_context(envelope)
-        assert any("Ontology registry unavailable" in lim for lim in result.limitations)
+        sources = {e.source for e in result.evidence}
+        assert sources == {"schema_mirror.snapshot"}
 
     def test_degrades_gracefully_when_schema_mirror_missing(self, monkeypatch):
         monkeypatch.setattr(
@@ -83,18 +95,18 @@ class TestEnhanceContext:
         assert isinstance(result.evidence, list)
         assert isinstance(result.limitations, list)
 
-    def test_action_inventory_step_present_when_actions_resolved(self):
+    def test_action_inventory_step_present_when_actions_resolved(self, monkeypatch):
+        monkeypatch.setattr(
+            "src.infrastructure.ai.runtime_context._get_schema_mirror",
+            lambda: _SchemaMirrorStub(),
+        )
         envelope = _sample_envelope()
         result = enhance_context(envelope)
         steps = [r.step for r in result.reasoning_steps]
-        assert "action_inventory" in steps or any("ontology" in lim for lim in result.limitations)
+        assert "action_inventory" in steps
 
-    def test_no_500_when_both_ontology_and_schema_mirror_fail(self, monkeypatch):
-        """Both ontology registry and schema mirror unavailable -> no exception, just limitations."""
-        monkeypatch.setattr(
-            "src.infrastructure.ai.runtime_context._get_ontology_registry",
-            lambda: None,
-        )
+    def test_no_500_when_schema_mirror_unavailable(self, monkeypatch):
+        """A missing schema mirror produces a limitation rather than an exception."""
         monkeypatch.setattr(
             "src.infrastructure.ai.runtime_context._get_schema_mirror",
             lambda: None,
@@ -104,8 +116,6 @@ class TestEnhanceContext:
         assert isinstance(result.reasoning_steps, list)
         assert isinstance(result.evidence, list)
         assert isinstance(result.limitations, list)
-        assert len(result.limitations) >= 2
-        assert any("Ontology registry unavailable" in lim for lim in result.limitations)
         assert any("Schema mirror unavailable" in lim for lim in result.limitations)
 
     def test_no_500_when_schema_mirror_raises_exception(self, monkeypatch):
@@ -124,6 +134,15 @@ class TestEnhanceContext:
         assert isinstance(result.evidence, list)
         assert isinstance(result.limitations, list)
         assert any("Schema mirror unavailable" in lim for lim in result.limitations)
+
+    def test_no_500_when_schema_mirror_cache_read_raises(self, monkeypatch):
+        monkeypatch.setattr(
+            "src.infrastructure.ai.runtime_context._get_schema_mirror",
+            lambda: _FailingSchemaMirrorStub(),
+        )
+        result = enhance_context(_sample_envelope())
+        assert result.evidence == []
+        assert "Schema mirror unavailable" in result.limitations
 
 
 if __name__ == "__main__":

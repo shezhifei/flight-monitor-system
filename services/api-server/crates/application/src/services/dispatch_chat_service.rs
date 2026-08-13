@@ -413,8 +413,7 @@ impl DispatchChatService {
         flight_id: &str,
         user_id: &str,
     ) -> Result<Option<DispatchChatGroupSummary>, DispatchChatError> {
-        self.open_group_for_user_by_flight(flight_id, user_id, false)
-            .await
+        self.open_group_for_user_by_flight(flight_id, user_id, false).await
     }
 
     /// Open (and if needed sync/create) the system flight chat for a user.
@@ -466,20 +465,12 @@ impl DispatchChatService {
                     "force_joined_user_id": normalized_user_id,
                 });
                 self.collaboration_repo
-                    .upsert_group_for_flight(
-                        &normalized_flight_id,
-                        &group_name,
-                        archive_at,
-                        &metadata,
-                    )
+                    .upsert_group_for_flight(&normalized_flight_id, &group_name, archive_at, &metadata)
                     .await?
             }
         };
 
-        let latest_seq = self
-            .collaboration_repo
-            .get_group_latest_seq(&group.group_id)
-            .await?;
+        let latest_seq = self.collaboration_repo.get_group_latest_seq(&group.group_id).await?;
         self.collaboration_repo
             .upsert_group_memberships(
                 &group.group_id,

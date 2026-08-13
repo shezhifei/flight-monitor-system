@@ -354,26 +354,6 @@
       ],
       "risk_level": "medium"
     },
-    "Flight.update_stand": {
-      "action_name": "update_stand",
-      "approval_policy": "require_approval",
-      "arguments_schema": {
-        "required": [
-          "flight_id",
-          "new_stand_id",
-          "reason"
-        ],
-        "type": "object"
-      },
-      "category": "write",
-      "execution_mapping": "DomainActionExecutor.Flight.update_stand",
-      "object_type": "Flight",
-      "ontology_version": "flight-ops.v1",
-      "required_permissions": [
-        "flight:write"
-      ],
-      "risk_level": "medium"
-    },
     "Flight.update_status": {
       "action_name": "update_status",
       "approval_policy": "require_approval",
@@ -577,15 +557,6 @@
   "constraints": [
     {
       "action_name": "change_stand",
-      "constraint": {
-        "constraint_type": "Precondition",
-        "description": "Target stand must be available",
-        "expression": "stand.is_available()"
-      },
-      "object_type": "Flight"
-    },
-    {
-      "action_name": "update_stand",
       "constraint": {
         "constraint_type": "Precondition",
         "description": "Target stand must be available",
@@ -1139,7 +1110,15 @@
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
           "category": "write",
-          "compensation": null,
+          "compensation": {
+            "before_snapshot_required": true,
+            "followup_action_name": null,
+            "followup_args": null,
+            "inverse_action_name": null,
+            "irreversible_fields": [],
+            "mode": "restore_snapshot",
+            "requires_approval": true
+          },
           "constraints": [
             {
               "constraint_type": "Precondition",
@@ -1147,7 +1126,7 @@
               "expression": "stand.is_available()"
             }
           ],
-          "description": "Change the assigned stand for the flight",
+          "description": "Change the assigned stand for the flight (optional reason, before/after snapshot).",
           "execution_mapping": "DomainActionExecutor.Flight.change_stand",
           "idempotency_key_strategy": "job_id:object_id:action_name",
           "name": "change_stand",
@@ -1157,6 +1136,12 @@
               "name": "new_stand_id",
               "param_type": "String",
               "required": true
+            },
+            "reason": {
+              "description": "Why the stand change is required",
+              "name": "reason",
+              "param_type": "String",
+              "required": false
             }
           },
           "parameters_schema": {
@@ -1367,63 +1352,6 @@
           "parameters_schema": {
             "required": [
               "flight_id"
-            ],
-            "type": "object"
-          },
-          "required_permissions": [
-            "flight:write"
-          ],
-          "risk_level": "medium"
-        },
-        "update_stand": {
-          "approval_policy": "require_approval",
-          "approval_strategy": "require_approval",
-          "category": "write",
-          "compensation": {
-            "before_snapshot_required": true,
-            "followup_action_name": null,
-            "followup_args": null,
-            "inverse_action_name": null,
-            "irreversible_fields": [],
-            "mode": "restore_snapshot",
-            "requires_approval": true
-          },
-          "constraints": [
-            {
-              "constraint_type": "Precondition",
-              "description": "Target stand must be available",
-              "expression": "stand.is_available()"
-            }
-          ],
-          "description": "Adjust the flight stand with an explicit reason (controlled write, before/after snapshot).",
-          "execution_mapping": "DomainActionExecutor.Flight.update_stand",
-          "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "update_stand",
-          "parameters": {
-            "flight_id": {
-              "description": "Flight to adjust",
-              "name": "flight_id",
-              "param_type": "String",
-              "required": true
-            },
-            "new_stand_id": {
-              "description": "Target stand id",
-              "name": "new_stand_id",
-              "param_type": "String",
-              "required": true
-            },
-            "reason": {
-              "description": "Why the stand change is required",
-              "name": "reason",
-              "param_type": "String",
-              "required": true
-            }
-          },
-          "parameters_schema": {
-            "required": [
-              "flight_id",
-              "new_stand_id",
-              "reason"
             ],
             "type": "object"
           },

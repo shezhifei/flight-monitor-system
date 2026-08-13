@@ -53,8 +53,7 @@ use fms_application::services::llm_eval_service::LLMEvalService;
 use fms_application::services::mobile_upload_service::MobileUploadService;
 use fms_application::services::online_history_service::OnlineHistoryService;
 use fms_application::services::online_status_service::OnlineStatusService;
-use fms_application::services::ontology_advisory_service::OntologyAdvisoryService;
-use fms_application::services::ontology_read_action_service::OntologyReadActionService;
+use fms_application::services::ontology_actions::OntologyActionServices;
 use fms_application::services::ontology_service::OntologyService;
 use fms_application::services::operator_identity_service::OperatorIdentityService;
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
@@ -66,7 +65,6 @@ use fms_application::services::workflow_form_service::WorkflowFormService;
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::nonce_replay_store::NonceReplayStore;
-use fms_domain::ports::runtime_diagnostic_sink::RuntimeDiagnosticSink;
 
 use crate::config::DatabaseUrlDefaults;
 
@@ -94,8 +92,6 @@ pub struct DiContainer {
     pub performance_metrics: Arc<PerformanceMetricsService>,
     pub runtime_error_monitor: Arc<RuntimeErrorMonitor>,
     pub scheduler_runtime_svc: Arc<SchedulerRuntimeService>,
-    pub runtime_diagnostics_svc: Arc<ConcreteRuntimeDiagnosticsService>,
-    pub runtime_diagnostic_sink: Arc<dyn RuntimeDiagnosticSink>,
 
     pub flight_svc: Arc<ConcreteFlightService>,
     pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
@@ -104,8 +100,7 @@ pub struct DiContainer {
     pub flight_import_svc: Arc<FlightImportService>,
     pub flight_archive_svc: Arc<FlightArchiveService>,
     pub ontology_svc: Arc<OntologyService>,
-    pub ontology_read_action_svc: Arc<OntologyReadActionService>,
-    pub ontology_advisory_svc: Arc<OntologyAdvisoryService>,
+    pub ontology_actions: Arc<OntologyActionServices>,
     pub auth_svc: Arc<ConcreteAuthService>,
     pub login_failure_limiter: Arc<fms_api::routes::auth::LoginFailureRateLimiter>,
     pub auth_validation_cache: Arc<fms_application::services::auth_validation_cache::AuthValidationCache>,
@@ -241,8 +236,6 @@ pub async fn build_di_container(
         performance_metrics: infra.performance_metrics.clone(),
         runtime_error_monitor: observability.runtime_error_monitor.clone(),
         scheduler_runtime_svc: observability.scheduler_runtime_svc.clone(),
-        runtime_diagnostics_svc: observability.runtime_diagnostics_svc.clone(),
-        runtime_diagnostic_sink: observability.runtime_diagnostic_sink.clone(),
 
         flight_svc: flight.flight_svc.clone(),
         flight_batch_cell_svc: flight.flight_batch_cell_svc.clone(),
@@ -251,8 +244,7 @@ pub async fn build_di_container(
         flight_import_svc: flight.flight_import_svc.clone(),
         flight_archive_svc: flight.flight_archive_svc.clone(),
         ontology_svc: flight.ontology_svc.clone(),
-        ontology_read_action_svc: flight.ontology_read_action_svc.clone(),
-        ontology_advisory_svc: flight.ontology_advisory_svc.clone(),
+        ontology_actions: flight.ontology_actions.clone(),
         auth_svc: auth.auth_svc.clone(),
         login_failure_limiter: auth.login_failure_limiter.clone(),
         auth_validation_cache: auth.auth_validation_cache.clone(),

@@ -1,4 +1,4 @@
-//! Business case API wrappers (plan §0.5 BusinessCase).
+//! Business case API wrappers.
 
 use crate::client::ApiClient;
 use crate::dto::business_case::{

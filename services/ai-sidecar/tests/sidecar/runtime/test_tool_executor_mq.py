@@ -1,10 +1,8 @@
-"""Tests for the Phase 1 MQ authorization gate wired into :class:`ToolExecutor`.
+"""Tests for the MQ authorization gate wired into :class:`ToolExecutor`.
 
 The tests use in-memory fakes for the publisher, poller, and an
 in-process event sequence recorder. They verify the public/protected
-split, the failure semantics described in the plan, the heartbeat
-emission for long-running tools, and the additive (non-breaking)
-integration with the existing executor.
+split, fail-closed behavior, heartbeat emission, and tool execution.
 """
 
 from __future__ import annotations
@@ -38,9 +36,7 @@ from src.infrastructure.ai.messaging.ai_runtime_event_publisher import (
 )
 from src.infrastructure.ai.messaging.command_dispatcher import ToolCommandWaiter
 from src.infrastructure.ai.tools.mq_gate import (
-    ToolAuthContextRequired,
     ToolAuthorizationTimeout,
-    ToolDeniedByRust,
     ToolMqGate,
     _summarize_arguments,
     make_tool_call_pk,
@@ -50,7 +46,6 @@ from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
 )
 from src.infrastructure.ai.tools.tool_registry_snapshot import ToolDefinition
-
 
 # ---------------------------------------------------------------------------
 # Fakes
@@ -779,13 +774,12 @@ def test_make_tool_call_pk_is_deterministic() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Backward compatibility
+# Public L0 local execution
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_executor_without_gate_keeps_legacy_behavior() -> None:
-    """Existing tests should still pass when no gate is configured."""
+async def test_public_l0_tool_executes_locally_without_gate() -> None:
     executor = ToolExecutor()
     tool_call = {
         "tool_call_id": "call-1",

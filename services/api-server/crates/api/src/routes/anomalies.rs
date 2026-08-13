@@ -148,7 +148,7 @@ async fn acknowledge(
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_permission("anomaly:write")?;
     let id = path.into_inner();
     let ok = svc.acknowledge(&id).await?;
     if ok {
@@ -178,7 +178,7 @@ async fn resolve_anomaly(
     body: web::Json<AnomalyResolveRequest>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_permission("anomaly:write")?;
     let id = path.into_inner();
     let payload = body.into_inner();
     let anomaly = svc

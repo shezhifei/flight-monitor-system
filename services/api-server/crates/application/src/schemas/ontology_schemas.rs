@@ -81,7 +81,7 @@ pub struct ConfirmDraftFlightsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// 机位占用 StandOccupation（§4.4）— 正式写路径
+// 机位占用 StandOccupation 对象的正式写路径。
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

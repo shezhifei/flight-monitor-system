@@ -12,27 +12,26 @@ use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flight_service::FlightService;
 use fms_application::services::label_service::LabelService;
-use fms_application::services::ontology_advisory_service::OntologyAdvisoryService;
-use fms_application::services::ontology_read_action_service::OntologyReadActionService;
+use fms_application::services::ontology_actions::OntologyActionServices;
 use fms_application::services::ontology_service::OntologyService;
 use fms_application::sqlx_transactional_repositories::{
-    SqlxFlightTimelineTransactionalRepository, SqlxFlightTransactionalRepository,
-    SqlxOntologyTransactionalRepository,
+    SqlxDomainEventOutboxTransactionalRepository, SqlxFlightTimelineTransactionalRepository,
+    SqlxFlightTransactionalRepository, SqlxOntologyTransactionalRepository,
 };
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
+use fms_domain::ports::audit_log_repository::AuditLogRepository;
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
 use fms_domain::ports::dispatch_repository::{DispatchOrderRepository, StandRepository, TeamRepository};
 use fms_domain::ports::flight_repository::FlightRepository;
+use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository,
-    StandOccupationRepository, TurnaroundLinkRepository,
+    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
+    TurnaroundLinkRepository,
 };
 use fms_infrastructure::repositories::pg_ontology_repository::{
     PgAircraftRepository, PgGateAssignmentRepository, PgResourceAdjustmentSuggestionRepository,
     PgStandOccupationRepository, PgTurnaroundLinkRepository,
 };
-use fms_domain::ports::audit_log_repository::AuditLogRepository;
-use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 
 use fms_infrastructure::cache::flight_cache_backend::RedisFlightCacheBackend;
 use fms_infrastructure::repositories::pg_audit_log_repository::PgAuditLogRepository;
@@ -50,8 +49,7 @@ pub(crate) struct FlightServices {
     pub flight_cache_svc: Arc<FlightCacheService>,
     pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
     pub ontology_svc: Arc<OntologyService>,
-    pub ontology_read_action_svc: Arc<OntologyReadActionService>,
-    pub ontology_advisory_svc: Arc<OntologyAdvisoryService>,
+    pub ontology_actions: Arc<OntologyActionServices>,
 }
 
 pub(crate) fn build_flight_services(
@@ -67,12 +65,14 @@ pub(crate) fn build_flight_services(
     };
 
     let flight_tx_repo: Arc<dyn SqlxFlightTransactionalRepository> = repos.flight_repo.clone();
+    let outbox_tx_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository> = repos.domain_event_outbox_repo.clone();
     let timeline_pg = Arc::new(PgFlightTimelineEventRepository::new(repos.pool.clone()));
     let timeline_read: Arc<dyn FlightTimelineEventRepository + Send + Sync> = timeline_pg.clone();
     let timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository> = timeline_pg;
     let flight_svc = Arc::new(
         FlightService::new(repos.flight_repo.clone())
             .with_transactional_repository(flight_tx_repo.clone())
+            .with_outbox_repository(outbox_tx_repo.clone())
             .with_pool(repos.pool.clone()),
     );
     let flight_batch_cell_svc = Arc::new(
@@ -81,6 +81,7 @@ pub(crate) fn build_flight_services(
             flight_tx_repo.clone(),
             timeline_tx_repo,
             timeline_read,
+            outbox_tx_repo.clone(),
             repos.pool.clone(),
         )
         .with_projection_repository(repos.flight_runtime_projection_repo.clone()),
@@ -118,29 +119,19 @@ pub(crate) fn build_flight_services(
             link_port,
             suggestion_port,
             ontology_tx,
+            outbox_tx_repo,
         )
         .with_flight_service(flight_svc.clone()),
     );
 
-    // Ontology V1 只读动作服务（契约 §3.1）：直接查询仓储，响应带 evidence。
-    let ontology_read_action_svc = Arc::new(OntologyReadActionService::new(
-        flight_repo_port.clone(),
-        dispatch_order_port.clone(),
-        anomaly_port.clone(),
-        team_port.clone(),
-        stand_port.clone(),
-        occupation_port.clone(),
-        business_case_port,
-    ));
-
-    // Ontology V1 建议动作服务（契约 §4.3）：只生成 proposal 载荷，不写业务表。
-    let ontology_advisory_svc = Arc::new(OntologyAdvisoryService::new(
+    let ontology_actions = Arc::new(OntologyActionServices::new(
         flight_repo_port,
+        dispatch_order_port,
+        anomaly_port,
+        team_port,
         stand_port,
         occupation_port,
-        dispatch_order_port,
-        team_port,
-        anomaly_port,
+        business_case_port,
     ));
 
     FlightServices {
@@ -151,8 +142,7 @@ pub(crate) fn build_flight_services(
         flight_cache_svc,
         flight_batch_cell_svc,
         ontology_svc,
-        ontology_read_action_svc,
-        ontology_advisory_svc,
+        ontology_actions,
     }
 }
 
@@ -168,11 +158,15 @@ pub(crate) fn build_flight_runtime_service(
     let timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync> = timeline_pg.clone();
     let timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository> = timeline_pg;
     Arc::new(
-        FlightRuntimeService::new(repos.pool.clone(), flight.flight_svc.clone())
-            .with_business_case_service(business_case.business_case_svc.clone())
-            .with_projection_repository(repos.flight_runtime_projection_repo.clone())
-            .with_audit_log_repository(audit_log_repo)
-            .with_timeline_repository(timeline_repo, timeline_tx_repo)
-            .with_ai_runtime_service(ai.ai_runtime_svc.clone()),
+        FlightRuntimeService::new(
+            repos.pool.clone(),
+            flight.flight_svc.clone(),
+            repos.domain_event_outbox_repo.clone(),
+        )
+        .with_business_case_service(business_case.business_case_svc.clone())
+        .with_projection_repository(repos.flight_runtime_projection_repo.clone())
+        .with_audit_log_repository(audit_log_repo)
+        .with_timeline_repository(timeline_repo, timeline_tx_repo)
+        .with_ai_runtime_service(ai.ai_runtime_svc.clone()),
     )
 }

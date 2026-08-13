@@ -24,9 +24,9 @@ routes/flights/crud.rs
 
 ## 路由职责（仅此）
 
-1. 认证与权限（如 `flight:manage`、受控字段拒绝）
+1. 认证与粒度权限（写为 `flight.update`，时间线为 `flight.timeline_edit`，并执行受控字段拒绝）
 2. 映射 HTTP body → `FlightCreateCommand` / `FlightUpdateCommand`
-3. 调用 `FlightService::execute_create` / `execute_update`（兼容方法 `create_flight` / `update_flight` 仍可用）
+3. 调用 `FlightService::execute_create` / `execute_update`
 4. 可选审计记录（`FlightRuntimeService::record_*`）
 5. 封装 HTTP 响应
 

@@ -26,7 +26,7 @@ Ontology V1 是 Flight Monitor System 的 AI 可读业务模型，定义了 AI �
 - Python sidecar 消费带版本的 schema 快照
 - 每个 AI job、action proposal、pending action 都标注 ontology version
 
-**版本命名决策（Phase 0，2026-08-12）**：
+**版本命名决策（2026-08-12）**：
 
 | 范围 | 版本标识 | 出现位置 |
 |---|---|---|
@@ -1173,18 +1173,25 @@ Ontology V1 是 Flight Monitor System 的 AI 可读业务模型，定义了 AI �
 
 ---
 
-## 6. 缺失服务补全计划
+## 6. 建议动作与写入口
 
-以下动作需要新增 Rust service method：
+`flight-ops.v1` 动作由命名应用服务实现；HTTP 按动作名选择服务。受控写经 `DomainActionExecutor` 落到既有领域服务：
 
-| 动作 | 状态 | 计划 |
-|---|---|---|
-| `flight.suggest_stand_adjustment` | 缺失 | 新增 `StandRecommendationService` |
-| `dispatch.suggest_replan` | 缺失 | 新增 `DispatchReplanAdvisorService` |
-| `anomaly.suggest_escalation` | 缺失 | 新增 `AnomalyEscalationAdvisorService` |
-| `flight.suggest_delay_action` | 缺失 | 新增 `DelayAdvisorService` |
-| `report.generate_briefing` | 部分存在 | 扩展 `DashboardWorkbenchService` |
-| `label.add` | 缺失 | 新增 `LabelService.add_to_flight` |
+| 动作 | 实现 |
+|---|---|
+| `flight.get_context` | `FlightContextService` |
+| `flight.search` | `FlightSearchService` |
+| `dispatch.get_status` | `DispatchStatusService` |
+| `anomaly.list_open` | `AnomalyOpenListService` |
+| `stand.check_availability` | `StandAvailabilityService` |
+| `report.generate_briefing` | `BriefingService` |
+| `flight.suggest_stand_adjustment` | `StandRecommendationService` → `change_stand` |
+| `dispatch.suggest_replan` | `DispatchReplanAdvisorService` |
+| `anomaly.suggest_escalation` | `AnomalyEscalationAdvisorService` |
+| `flight.suggest_delay_action` | `DelayAdvisorService` |
+| `notification.suggest_broadcast` | `NotificationBroadcastAdvisorService` |
+| `flight.change_stand` | `DomainActionExecutor` → `FlightService` |
+| `label.add` | `LabelService.add_to_flight` |
 
 ---
 
@@ -1245,7 +1252,7 @@ GET /api/v2/ai/ontology/schema
 
 ## 8. 验收标准
 
-> 验收范围：`flight-ops.v1` 飞机中心运行资源子集（Ontology V1 Agent Handoff Phase 0–5 落地的
+> 验收范围：`flight-ops.v1` 飞机中心运行资源子集（已落地的
 > 6 个只读、5 个建议、10 个受控写动作），验收证据见各 Phase 提交与
 > `docs/operations/ontology-v1-agent-handoff.md`。
 

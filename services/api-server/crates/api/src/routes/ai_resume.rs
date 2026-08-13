@@ -5,9 +5,8 @@
 //! `GET /api/v2/ai/jobs/{job_id}/runs/{run_id}/checkpoints` — list
 //! the run's checkpoints for ops/UI readouts.
 //!
-//! Both endpoints are read-mostly and live in this single file to
-//! keep the Phase 2 surface area small. The full `AiActionProposalService`
-//! rollback path lives in Phase 3 and lands separately.
+//! Both endpoints are read-mostly and live in this file. Rollback
+//! goes through `AiActionProposalService` on the compensation routes.
 
 use actix_web::{web, HttpResponse};
 use serde::Deserialize;

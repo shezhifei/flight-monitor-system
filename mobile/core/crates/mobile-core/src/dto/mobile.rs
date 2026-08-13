@@ -1,4 +1,4 @@
-//! Mobile-domain DTOs (plan §3.6).
+//! Mobile-domain DTOs.
 //!
 //! Field authority: legacy `MobileModels.kt`, cross-checked against
 //! `services/api-server/crates/api/src/routes/mobile.rs`.
@@ -82,8 +82,7 @@ pub struct MobileUploadAsset {
 
 /// `POST /api/v2/mobile/devices/register` body.
 ///
-/// `platform` stays `"android"` per decision point D3 (do not change the
-/// backend even if its enum validation complains — report instead).
+/// `platform` is always `"android"` (backend enum).
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MobileDeviceRegisterRequest {
@@ -100,7 +99,7 @@ pub struct MobileDeviceRegisterRequest {
 }
 
 impl MobileDeviceRegisterRequest {
-    /// Minimal registration payload matching the legacy app defaults.
+    /// Minimal registration payload.
     pub fn new(device_id: impl Into<String>) -> Self {
         Self {
             device_id: device_id.into(),
@@ -126,9 +125,8 @@ pub struct MobileDeviceHeartbeatRequest {
     pub metadata: HashMap<String, serde_json::Value>,
 }
 
-/// Device register/heartbeat response data. The backend returns the full
-/// device record (plus `delivery_channels` on heartbeat); the legacy app only
-/// consumes these four fields, so the rest is ignored on deserialization.
+/// Device register/heartbeat response data. Extra backend fields are
+/// ignored on deserialization.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MobileDeviceResponse {

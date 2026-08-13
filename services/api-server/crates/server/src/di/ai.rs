@@ -4,13 +4,12 @@
 //! ai_execution_readiness / ai_execution_metrics / ai_rollout_status /
 //! ai_context / ai_runtime_client / micro_model_registry。
 //!
-//! Phase 4 additionally wires the AI execution control plane
+//! Also wires the AI execution control plane
 //! (`AiExecutionControlService`, `RollbackService`,
-//! `RecoveryOrchestrator`, `AiEventConsumer`) so the command queue
-//! and hardened worker leases become the canonical run lifecycle
-//! path. Production wiring uses Postgres-backed repositories for
-//! the control plane and a Postgres-backed authorization context
-//! loader so Rust is the authority boundary for tool permissions.
+//! `RecoveryOrchestrator`, `AiEventConsumer`): the command queue
+//! and worker leases are the canonical run lifecycle path. Production
+//! uses Postgres-backed repositories and a Postgres-backed authorization
+//! context loader so Rust is the authority boundary for tool permissions.
 
 use std::sync::Arc;
 
@@ -22,7 +21,6 @@ use fms_api::services::ai_runtime_client::AiRuntimeClient;
 
 use fms_application::services::ai_action_proposal_service::AiActionProposalService;
 use fms_application::services::ai_admin_service::AiAdminService;
-use fms_application::services::ai_route_service::AiRouteService;
 use fms_application::services::ai_business_case_copilot_service::AiBusinessCaseCopilotService;
 use fms_application::services::ai_context_service::AiContextService;
 use fms_application::services::ai_execution_metrics_service::AiExecutionMetricsService;
@@ -37,6 +35,7 @@ use fms_application::services::ai_proposal_audit_recorder::{
 use fms_application::services::ai_proposal_ingest_service::AiProposalIngestService;
 use fms_application::services::ai_realtime_audio_service::RealtimeAudioSessionService;
 use fms_application::services::ai_rollout_status_service::AiRolloutStatusService;
+use fms_application::services::ai_route_service::AiRouteService;
 use fms_application::services::ai_runtime_service::ai_event_consumer::AiEventConsumer;
 use fms_application::services::ai_runtime_service::ai_execution_control_service::{
     AiExecutionControlService, ControlServiceError, RunLifecycleHook,
@@ -70,6 +69,7 @@ use fms_domain::ports::dispatch_repository::StandRepository;
 use fms_domain::ports::ai_job_repository::AiJobRepository;
 use fms_domain::ports::ai_run_event_repository::AiRunEventRepository;
 use fms_domain::ports::ai_run_repository::AiRunRepository;
+use fms_infrastructure::ai_context_snapshot::PgAiContextSnapshotRepository;
 use fms_infrastructure::repositories::pg_ai_action_receipt_repository::PgAiActionReceiptRepository;
 use fms_infrastructure::repositories::pg_ai_auth_context_loader::PgRunAuthorizationContextLoader;
 use fms_infrastructure::repositories::pg_ai_compensation_plan_repository::PgAiCompensationPlanRepository;
@@ -131,10 +131,9 @@ pub(crate) fn build_ai_services(
             .with_todo_repository(repos.todo_repo.clone())
             .with_todo_agent_context_repository(repos.todo_agent_context_repo.clone()),
     );
-    // Routes under /api/v2/ai/* (capabilities/tools/executions) depend on this service.
-    let ai_route_svc = Arc::new(
-        AiRouteService::new(ai_admin_svc.clone()).with_runtime_service(ai_runtime_svc.clone()),
-    );
+    let ai_route_svc = Arc::new(fms_application::services::ai_route_service::AiRouteService::new(
+        ai_admin_svc.clone(),
+    ));
 
     let ai_copilot_business_case_batch_repo: Arc<dyn AiCopilotBusinessCaseBatchRepository + Send + Sync> =
         repos.ai_copilot_business_case_batch_repo.clone();
@@ -158,6 +157,7 @@ pub(crate) fn build_ai_services(
         flight.label_svc.clone(),
         shared.todo_svc.clone(),
         business_case.business_case_svc.clone(),
+        repos.domain_event_outbox_repo.clone(),
         pool.clone(),
     ));
 
@@ -251,7 +251,7 @@ pub(crate) fn build_ai_services(
             .with_notification_service(shared.notification_svc.clone())
             .with_todo_service(shared.todo_svc.clone())
             .with_object_policy_repository(ai_object_policy_repo)
-            .with_pool(pool.clone()),
+            .with_snapshot_repository(Arc::new(PgAiContextSnapshotRepository::new(pool.clone()))),
     );
     let ai_runtime_client = Arc::new(AiRuntimeClient::new());
 

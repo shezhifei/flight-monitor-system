@@ -8,6 +8,7 @@ use tracing::info;
 
 use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
+use crate::middleware::permissions::PermissionCheck;
 
 use super::cache::{
     cached_flight_list_response, can_use_flight_list_response_cache, json_body_response, ok_resp_bytes,
@@ -17,6 +18,7 @@ use super::proto::build_flights_list_envelope_bytes;
 use super::shared::{
     ok_resp, viewer_department_id, viewer_department_name, FlightListQuery, FlightSearchQuery, RecentUpdatesQuery,
 };
+use fms_application::services::authorization_service::PermissionCatalog;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flight_service::FlightService;
 
@@ -28,6 +30,7 @@ pub async fn list_flights(
     query: web::Query<FlightListQuery>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     let trace = should_emit_list_trace();
     let total_start = Instant::now();
     let page = query.page.unwrap_or(1).max(1);
@@ -128,6 +131,7 @@ pub async fn search_flights(
     query: web::Query<FlightSearchQuery>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     let page = query.page.unwrap_or(1).max(1);
     let size = query.page_size.unwrap_or(100).clamp(1, 500);
     let result = svc
@@ -159,8 +163,9 @@ pub async fn search_flights(
 pub async fn recent_updates(
     runtime: web::Data<Arc<FlightRuntimeService>>,
     query: web::Query<RecentUpdatesQuery>,
-    _claims: JwtAuth,
+    claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     let minutes = query.minutes.unwrap_or(60).clamp(1, 1440);
     let limit = query.limit.unwrap_or(100).clamp(1, 500);
     let updates = runtime.get_recent_flight_updates(minutes, limit).await?;

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/constants.dart';
 import '../bridge/api/chat.dart';
 
-/// 聊天群列表（plan §6 P2 ChatGroupsScreen）。
+/// 聊天群列表。
 final chatGroupsProvider =
     AsyncNotifierProvider<ChatGroupsNotifier, ChatGroupList>(
   ChatGroupsNotifier.new,

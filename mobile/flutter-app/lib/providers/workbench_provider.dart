@@ -8,7 +8,7 @@ import '../bridge/api/dispatch.dart';
 import 'session_provider.dart';
 import 'settings_provider.dart';
 
-/// 工作台数据（plan §5 WorkbenchScreen）。
+/// 工作台数据。
 final workbenchProvider =
     AsyncNotifierProvider<WorkbenchNotifier, Workbench>(WorkbenchNotifier.new);
 
@@ -28,7 +28,7 @@ class WorkbenchNotifier extends AsyncNotifier<Workbench> {
   }
 }
 
-/// SSE 实时事件流（登录后才连接；plan P0-5 已联调 /api/v2/sse/stream）。
+/// SSE 实时事件流（登录后才连接 `/api/v2/sse/stream`）。
 final sseUpdatesProvider = StreamProvider<SseUpdate>((ref) {
   if (!ref.watch(loggedInProvider)) return const Stream.empty();
   return notificationsStream();
@@ -50,7 +50,7 @@ final sseIndicatorProvider = Provider<SseIndicator>((ref) {
   return SseIndicator.connecting;
 });
 
-/// 60s 心跳循环（plan §5 constants）：auth 心跳 + 设备心跳 + 离线补传。
+/// 心跳循环：auth 心跳 + 设备心跳 + 离线补传。
 /// 各项独立容错，网络异常不打断 UI。
 Future<void> runHeartbeatCycle(WidgetRef ref) async {
   try {

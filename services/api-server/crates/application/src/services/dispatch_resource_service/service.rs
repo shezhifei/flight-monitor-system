@@ -17,14 +17,14 @@ use fms_domain::ports::dispatch_repository::{
 use super::mappers::equipment_status_value;
 
 pub struct DispatchResourceService<
-    DR: DepartmentRepository = fms_domain::ports::NullRepository,
-    TTR: TeamTypeRepository = fms_domain::ports::NullRepository,
-    TR: TeamRepository = fms_domain::ports::NullRepository,
-    TMR: TeamMemberRepository = fms_domain::ports::NullRepository,
-    ETR: EquipmentTypeRepository = fms_domain::ports::NullRepository,
-    ER: EquipmentRepository = fms_domain::ports::NullRepository,
-    SR: StandRepository = fms_domain::ports::NullRepository,
-    TTR2: TaskTypeRepository = fms_domain::ports::NullRepository,
+    DR: DepartmentRepository + ?Sized = fms_domain::ports::NullRepository,
+    TTR: TeamTypeRepository + ?Sized = fms_domain::ports::NullRepository,
+    TR: TeamRepository + ?Sized = fms_domain::ports::NullRepository,
+    TMR: TeamMemberRepository + ?Sized = fms_domain::ports::NullRepository,
+    ETR: EquipmentTypeRepository + ?Sized = fms_domain::ports::NullRepository,
+    ER: EquipmentRepository + ?Sized = fms_domain::ports::NullRepository,
+    SR: StandRepository + ?Sized = fms_domain::ports::NullRepository,
+    TTR2: TaskTypeRepository + ?Sized = fms_domain::ports::NullRepository,
 > {
     department_repo: Arc<DR>,
     team_type_repo: Arc<TTR>,
@@ -37,14 +37,14 @@ pub struct DispatchResourceService<
 }
 
 impl<
-        DR: DepartmentRepository,
-        TTR: TeamTypeRepository,
-        TR: TeamRepository,
-        TMR: TeamMemberRepository,
-        ETR: EquipmentTypeRepository,
-        ER: EquipmentRepository,
-        SR: StandRepository,
-        TTR2: TaskTypeRepository,
+        DR: DepartmentRepository + ?Sized,
+        TTR: TeamTypeRepository + ?Sized,
+        TR: TeamRepository + ?Sized,
+        TMR: TeamMemberRepository + ?Sized,
+        ETR: EquipmentTypeRepository + ?Sized,
+        ER: EquipmentRepository + ?Sized,
+        SR: StandRepository + ?Sized,
+        TTR2: TaskTypeRepository + ?Sized,
     > DispatchResourceService<DR, TTR, TR, TMR, ETR, ER, SR, TTR2>
 {
     pub fn new(

@@ -40,7 +40,7 @@ pub trait AiProposalRepository {
     async fn unlink_pending_action(&self, pending_action_id: &str) -> Result<(), AiProposalRepositoryError>;
     async fn delete(&self, proposal_id: &str) -> Result<(), AiProposalRepositoryError>;
 
-    // Phase C: count/aggregation methods replacing raw SQL in application services
+    // Count/aggregation methods (no raw SQL in application services)
     async fn count_pending_by_risk(&self) -> Result<Vec<(i16, i64)>, AiProposalRepositoryError>;
     async fn count_failed_since(&self, cutoff: DateTime<Utc>) -> Result<i64, AiProposalRepositoryError>;
     async fn count_executed_since(&self, cutoff: DateTime<Utc>) -> Result<i64, AiProposalRepositoryError>;

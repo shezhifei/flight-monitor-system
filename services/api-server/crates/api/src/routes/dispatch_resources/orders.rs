@@ -139,7 +139,7 @@ pub async fn get_order_timeline(
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("dispatch:view")?;
     let payload = svc
-        .get_legacy_order_timeline(&path.into_inner(), query.limit.unwrap_or(200))
+        .get_order_timeline(&path.into_inner(), query.limit.unwrap_or(200))
         .await?;
     match payload {
         Some(payload) => Ok(ok_resp(&req, payload)),

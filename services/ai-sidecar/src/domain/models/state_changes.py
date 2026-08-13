@@ -69,28 +69,4 @@ class FlightRemarksUpdatedChange(FlightStateChange):
     new_value: Any = None
 
 
-# Legacy aliases retained for transitional imports.
-@dataclass
-class FlightTakeoffChange(FlightStateChange):
-    change_type: str = "status_updated_v2"
-    actual_departure: datetime | None = None
-    status: str = "DEPARTED"
 
-
-@dataclass
-class FlightLandedChange(FlightStateChange):
-    change_type: str = "status_updated_v2"
-    actual_arrival: datetime | None = None
-    status: str = "ARRIVED"
-
-
-@dataclass
-class BoardingStartedChange(FlightStateChange):
-    change_type: str = "status_updated_v2"
-    status: str = "BOARDING"
-
-
-@dataclass
-class BoardingEndedChange(FlightStateChange):
-    change_type: str = "status_updated_v2"
-    status: str = "BOARDING_END"

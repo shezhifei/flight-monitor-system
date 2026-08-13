@@ -58,13 +58,12 @@ export function useFlightCaseAi(flight: Ref<Flight | null>): FlightCaseAiState {
 
       if (result.ok && result.data) {
         const payload = result.data as {
-          data?: { result?: Record<string, unknown> | null } | null;
           result_data?: Record<string, unknown> | null;
           message?: string;
         };
         const data = (payload.result_data && typeof payload.result_data === 'object')
           ? payload.result_data
-          : (payload.data?.result && typeof payload.data.result === 'object' ? payload.data.result : {});
+          : {};
         diagnosisResult.value = {
           summary: String(data.summary || data.output || payload.message || '诊断完成'),
           recommendations: Array.isArray(data.recommendations) ? data.recommendations as string[] : [],
@@ -110,13 +109,12 @@ export function useFlightCaseAi(flight: Ref<Flight | null>): FlightCaseAiState {
 
       if (result.ok && result.data) {
         const payload = result.data as {
-          data?: { result?: Record<string, unknown> | null } | null;
           result_data?: Record<string, unknown> | null;
           message?: string;
         };
         const data = (payload.result_data && typeof payload.result_data === 'object')
           ? payload.result_data
-          : (payload.data?.result && typeof payload.data.result === 'object' ? payload.data.result : {});
+          : {};
         journeyResult.value = {
           summary: String(data.summary || data.output || payload.message || '事件经过已生成'),
           details: String(data.details || ''),

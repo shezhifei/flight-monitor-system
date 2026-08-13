@@ -5,13 +5,15 @@ Covers:
 - ToolExecutor returns failed ToolExecutionResult for invalid JSON arguments
 """
 import json
+
 import pytest
 
 from src.infrastructure.ai.tools.tool_executor import (
-    ToolExecutor,
     ToolExecutionResult,
+    ToolExecutor,
     parse_tool_arguments,
 )
+from tests.sidecar.tool_executor_test_support import authorized_tool_executor
 
 
 class TestParseToolArguments:
@@ -46,7 +48,7 @@ class TestParseToolArguments:
 
 class TestToolExecutorInvalidArguments:
     def _make_executor(self) -> ToolExecutor:
-        return ToolExecutor()
+        return authorized_tool_executor()
 
     @pytest.mark.asyncio
     async def test_invalid_json_arguments_return_failed_result(self):

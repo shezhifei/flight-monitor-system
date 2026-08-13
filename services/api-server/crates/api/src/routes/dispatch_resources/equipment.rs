@@ -9,11 +9,10 @@ use fms_application::schemas::dispatch_schemas::{
     EquipmentCreate, EquipmentResponse, EquipmentStatusUpdate, EquipmentTypeCreate, EquipmentTypeResponse,
     EquipmentTypeUpdate, EquipmentUpdate, PositionUpdate,
 };
-use fms_application::types::ConcreteDispatchResourceService;
 use fms_application::services::dispatch_resource_service::{
-    to_equipment_response, to_equipment_type_response, EquipmentListQuery,
-    EquipmentStatusQuery, PageQuery,
+    to_equipment_response, to_equipment_type_response, EquipmentListQuery, EquipmentStatusQuery, PageQuery,
 };
+use fms_application::types::ConcreteDispatchResourceService;
 
 pub async fn list_equipment_types(
     req: HttpRequest,

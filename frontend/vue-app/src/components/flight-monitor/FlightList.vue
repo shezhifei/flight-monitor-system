@@ -126,7 +126,7 @@ const props = withDefaults(defineProps<{
   canSelectCells?: boolean;
   /** O(1) membership check from parent selection model. */
   isCellSelected?: (flightId: string, field: string) => boolean;
-  /** Permission gate per field (adminOnly, flight:manage). */
+  /** Permission gate per field (adminOnly, flight.update). */
   canEditField?: (field: string) => boolean;
   /** Bumps when selection Set mutates so computed class re-evaluates. */
   selectionRevision?: number;
@@ -396,13 +396,13 @@ function onEditableContextMenu(
 const auth = useAuth();
 const toast = useToast();
 
-/** flight:manage permission — same gate as batch edit's canManageFlights. */
-const hasManagePermission = computed(() => hasUserPermission(auth.getUser(), 'flight:manage'));
+/** Timeline edit permission for interactive time-cell events. */
+const hasTimelineEditPermission = computed(() => hasUserPermission(auth.getUser(), 'flight.timeline_edit'));
 
 /**
  * Punch permission per field. Batch-registered fields reuse the parent-provided
- * gate (flight:manage + registry adminOnly policy); the remaining punch fields
- * fall back to the same flight:manage permission the batch gate is built on.
+ * gate (flight.update + registry adminOnly policy); unregistered punch fields
+ * use the timeline-event permission required by their write endpoint.
  */
 function canPunchField(field: string): boolean {
   if (!isPunchTimeField(field)) {
@@ -411,7 +411,7 @@ function canPunchField(field: string): boolean {
   if (BATCH_EDITABLE_FIELD_KEYS.has(field)) {
     return props.canEditField(field);
   }
-  return hasManagePermission.value;
+  return hasTimelineEditPermission.value;
 }
 
 /** Unregistered punch fields rendered between the explicit registered cells. */

@@ -1,4 +1,4 @@
-//! Shift handover DTOs (plan §0.5 ShiftHandover group).
+//! Shift handover DTOs.
 //!
 //! List / detail / item-ack return **raw** objects.
 //! Whole-handover ack returns an envelope wrapping `ShiftHandover`.

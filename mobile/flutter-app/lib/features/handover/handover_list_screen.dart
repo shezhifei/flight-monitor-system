@@ -6,7 +6,7 @@ import '../../app/l10n.dart';
 import '../../bridge/api/handover.dart';
 import '../../providers/handover_provider.dart';
 
-/// 交接班列表（plan §5 HandoverListScreen）。
+/// 交接班列表。
 class HandoverListScreen extends ConsumerWidget {
   const HandoverListScreen({super.key});
 

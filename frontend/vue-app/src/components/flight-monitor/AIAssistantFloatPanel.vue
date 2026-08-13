@@ -213,18 +213,17 @@ const sendMessage = async () => {
   await scrollToBottom();
 
   try {
-    const endpoint = conversationId.value
-      ? `${auth.apiBase.value}/ai/nl-query/followup`
-      : `${auth.apiBase.value}/ai/nl-query`;
+    const endpoint = `${auth.apiBase.value}/ai/nl-query`;
       
     currentRequestId = `req-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const requestConversationId = conversationId.value || `conversation-${currentRequestId}`;
 
     const response = await api.raw(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question: text,
-        conversation_id: conversationId.value || undefined,
+        conversation_id: requestConversationId,
         context: buildNlContext(),
         request_id: currentRequestId,
       })
@@ -234,14 +233,12 @@ const sendMessage = async () => {
       throw new Error(`AI Gateway Error: ${response.status}`);
     }
     
-    const payload = unwrapEnvelope<{ summary?: string; conversation_id?: string; structured_data?: Record<string, unknown>; visualization_hint?: Record<string, unknown> }>(await response.json());
-    if (payload?.conversation_id) {
-      conversationId.value = String(payload.conversation_id);
-    }
+    const payload = unwrapEnvelope<{ answer?: string; summary?: string; conversation_id?: string; structured_data?: Record<string, unknown>; visualization_hint?: Record<string, unknown> }>(await response.json());
+    conversationId.value = String(payload?.conversation_id || requestConversationId);
     
     chatHistory.value.push({
       role: 'assistant',
-      content: payload?.summary || '查询完成。',
+      content: payload?.answer || payload?.summary || '查询完成。',
       data: payload?.structured_data,
       type: (payload?.visualization_hint as { type?: string } | undefined)?.type,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -283,7 +280,7 @@ const triggerDiagnosis = async (flightId: string, flightNo: string) => {
     
     if (!response.ok) throw new Error('Diagnosis Request Failed');
     const payload = unwrapEnvelope<Record<string, unknown>>(await response.json());
-    const resultData = (payload?.result_data || payload?.result || {}) as Record<string, unknown>;
+    const resultData = (payload?.result_data || {}) as Record<string, unknown>;
     
     chatHistory.value.push({
       role: 'assistant',

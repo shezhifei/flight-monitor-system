@@ -1,11 +1,10 @@
 """Postgres-as-queue poller for ``ai_runtime_commands``.
 
-Phase 4 of the AI agent resilient tool architecture: Rust writes
-authorization decisions (tool_lease, tool_denied, tool_proposal_only) and
-control commands (start_run, cancel_run, retry_tool, resume_run) to the
-``ai_runtime_commands`` table. The Python sidecar consumes the table
-using the same ``FOR UPDATE SKIP LOCKED`` pattern as
-``DomainEventRelayService``.
+Rust writes authorization decisions (tool_lease, tool_denied,
+tool_proposal_only) and control commands (start_run, cancel_run,
+retry_tool, resume_run) to the ``ai_runtime_commands`` table. The
+sidecar consumes the table using the same ``FOR UPDATE SKIP LOCKED``
+pattern as ``DomainEventRelayService``.
 
 The poller is split into parts:
 

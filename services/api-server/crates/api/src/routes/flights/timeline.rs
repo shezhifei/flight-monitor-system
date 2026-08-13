@@ -11,14 +11,16 @@ use crate::middleware::permissions::PermissionCheck;
 
 use super::shared::{actor_id, ok_resp};
 use fms_application::schemas::flight_schemas::{DispatchTimelineEventCreate, DispatchTimelineListResponse};
+use fms_application::services::authorization_service::PermissionCatalog;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 
 /// GET /api/v2/flights/{flight_id}/dispatch-timeline
 pub async fn get_dispatch_timeline(
     runtime: web::Data<Arc<FlightRuntimeService>>,
     path: web::Path<String>,
-    _claims: JwtAuth,
+    claims: JwtAuth,
 ) -> Result<actix_web::HttpResponse, ApiError> {
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     let flight_id = path.into_inner();
     let items = runtime.list_dispatch_timeline(&flight_id).await?;
     Ok(ok_resp(
@@ -36,7 +38,7 @@ pub async fn create_dispatch_timeline_event(
     body: web::Json<DispatchTimelineEventCreate>,
     claims: JwtAuth,
 ) -> Result<actix_web::HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_TIMELINE_EDIT)?;
     let flight_id = path.into_inner();
     let mut payload = body.into_inner();
     if payload.recorded_by.is_none() {
@@ -54,7 +56,7 @@ pub async fn delete_dispatch_timeline_event(
     path: web::Path<(String, String)>,
     claims: JwtAuth,
 ) -> Result<actix_web::HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_TIMELINE_EDIT)?;
     let (flight_id, timeline_id) = path.into_inner();
     if !runtime.delete_dispatch_timeline_event(&flight_id, &timeline_id).await? {
         return Err(ApiError::NotFound("时间线事件未找到".into()));

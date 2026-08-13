@@ -1,4 +1,4 @@
-//! Unified error type for mobile-core (see plan §7.2).
+//! Unified error type for mobile-core.
 
 use thiserror::Error;
 

@@ -7,7 +7,7 @@ import '../../providers/dispatch_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 import 'status_label.dart';
 
-/// 安全检查清单页（plan §5 SafetyChecklistScreen）：逐项提交
+/// 安全检查清单页：逐项提交
 /// pass/fail/na，提交后刷新；顶部显示 ready/enforced 门禁状态。
 class SafetyChecklistScreen extends ConsumerWidget {
   const SafetyChecklistScreen({super.key, required this.orderId});

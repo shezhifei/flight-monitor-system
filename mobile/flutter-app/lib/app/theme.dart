@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Material 3 主题（plan §5 / P3 视觉走查）：
+/// Material 3 主题：
 /// - ColorScheme.fromSeed 品牌蓝，暗色模式
 /// - 触控目标 ≥48dp（materialTapTargetSize + visualDensity）
 /// - 动态字体：textTheme 继承 platform textScaler
@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  /// 品牌蓝（沿用 P0 demo 的 0xFF1565C0）。
+  /// 品牌蓝。
   static const Color seed = Color(0xFF1565C0);
 
   static ThemeData light() => _base(

@@ -41,7 +41,11 @@ pub fn link_is_healthy(inbound_registration: Option<&str>, outbound_registration
 }
 
 /// 不变量 4（链接侧）: 同机才允许 active，异机必须 broken/拆。
-pub fn enforce_link_health(link: &TurnaroundLink, inbound_registration: Option<&str>, outbound_registration: Option<&str>) -> TurnaroundLink {
+pub fn enforce_link_health(
+    link: &TurnaroundLink,
+    inbound_registration: Option<&str>,
+    outbound_registration: Option<&str>,
+) -> TurnaroundLink {
     let mut updated = link.clone();
     if link_is_healthy(inbound_registration, outbound_registration) {
         updated.status = super::ontology_v1::TurnaroundLinkStatus::Active;
@@ -98,19 +102,21 @@ mod tests {
     };
 
     fn flight_with(status: FlightStatus, inbound: bool, outbound: bool) -> Flight {
-        let leg = || Some(crate::models::flight_leg::FlightLeg {
-            leg_type: crate::models::flight_leg::LegType::Inbound,
-            flight_no: "CA1234".to_string(),
-            flight_type: crate::models::flight_leg::FlightTypeCode::Domestic,
-            mission: None,
-            origin_code: Some("PEK".to_string()),
-            origin_name: None,
-            destination_code: Some("SHA".to_string()),
-            destination_name: None,
-            is_vip: false,
-            stand_type: None,
-            scheduled_time: None,
-        });
+        let leg = || {
+            Some(crate::models::flight_leg::FlightLeg {
+                leg_type: crate::models::flight_leg::LegType::Inbound,
+                flight_no: "CA1234".to_string(),
+                flight_type: crate::models::flight_leg::FlightTypeCode::Domestic,
+                mission: None,
+                origin_code: Some("PEK".to_string()),
+                origin_name: None,
+                destination_code: Some("SHA".to_string()),
+                destination_name: None,
+                is_vip: false,
+                stand_type: None,
+                scheduled_time: None,
+            })
+        };
         Flight {
             flight_id: "FL_TEST".into(),
             airline_code: Some("CA".to_string()),
@@ -250,8 +256,14 @@ mod tests {
 
     #[test]
     fn accept_permission_matches_resource_kind() {
-        assert_eq!(accept_permission_for(SuggestionKind::Stand), "ontology.suggestion.accept_stand");
-        assert_eq!(accept_permission_for(SuggestionKind::Gate), "ontology.suggestion.accept_gate");
+        assert_eq!(
+            accept_permission_for(SuggestionKind::Stand),
+            "ontology.suggestion.accept_stand"
+        );
+        assert_eq!(
+            accept_permission_for(SuggestionKind::Gate),
+            "ontology.suggestion.accept_gate"
+        );
     }
 
     #[test]

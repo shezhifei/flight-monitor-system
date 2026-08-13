@@ -265,11 +265,12 @@ export function NLQueryPage(): JSX.Element {
 
     try {
       const requestId = createRequestId('nl');
+      const requestConversationId = conversationId || createRequestId('conversation');
       const result = await streamQuery(
         {
           question,
           request_id: requestId,
-          conversation_id: conversationId || undefined,
+          conversation_id: requestConversationId,
           context: {
             source_page: 'nl_query',
             scope_mode: 'global',
@@ -298,10 +299,8 @@ export function NLQueryPage(): JSX.Element {
           }
         },
       );
-      if (result.conversation_id) {
-        setConversationId(result.conversation_id);
-      }
-      const resolvedConversationId = String(result.conversation_id || conversationId || '').trim();
+      const resolvedConversationId = String(result.conversation_id || requestConversationId).trim();
+      setConversationId(resolvedConversationId);
       upsertConversationSummary(
         resolvedConversationId,
         question,

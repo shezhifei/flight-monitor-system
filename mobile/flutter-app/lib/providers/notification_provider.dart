@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/constants.dart';
 import '../bridge/api/notification.dart' as notif_api;
 
-/// 通知列表（plan §6 P2 NotificationsScreen）。
+/// 通知列表。
 final notificationsProvider = AsyncNotifierProvider<NotificationsNotifier,
     List<notif_api.Notification>>(NotificationsNotifier.new);
 

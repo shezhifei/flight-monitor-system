@@ -1,4 +1,4 @@
-"""Tests for the Phase 4 command dispatcher."""
+"""Tests for the command dispatcher."""
 
 from __future__ import annotations
 

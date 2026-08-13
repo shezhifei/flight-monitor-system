@@ -8,9 +8,9 @@ import 'notification_provider.dart';
 import 'session_provider.dart';
 import 'workbench_provider.dart';
 
-/// SSE 事件 demux（handoff §8 / plan §5）：
+/// SSE 事件 demux：
 /// 单流 `/api/v2/sse/stream` 按 event 名分发到聊天/通知；
-/// 未知事件 1.2s 防抖全量刷新兜底（保留旧 App 行为）。
+/// 未知事件 1.2s 防抖全量刷新兜底。
 final sseDemuxProvider = Provider<void>((ref) {
   Timer? debounce;
   ref.onDispose(() => debounce?.cancel());

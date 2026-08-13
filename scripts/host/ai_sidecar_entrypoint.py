@@ -1,29 +1,28 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402 - executable entrypoint must add the sidecar source root before local imports
 """AI Sidecar Entrypoint - Provides internal AI Runtime API for Rust control plane."""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
-import signal
 import sys
 from pathlib import Path
-from typing import Any
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "services" / "ai-sidecar"))
 
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
-import uvicorn
 
+from src.infrastructure.ai.api_routes import router as api_routes
+from src.infrastructure.ai.ai_runtime_bootstrap import ai_runtime_lifespan
+from src.infrastructure.ai.management_routes import router as management_routes
 from src.infrastructure.ai.ontology.schema_mirror import schema_mirror
 from src.infrastructure.ai.service_identity import (
     require_service_identity,
 )
-from src.infrastructure.ai.api_routes import router as api_routes
-from src.infrastructure.ai.management_routes import router as management_routes
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +35,12 @@ app = FastAPI(
     docs_url="/docs" if _docs_enabled else None,
     redoc_url="/redoc" if _docs_enabled else None,
     openapi_url="/openapi.json" if _docs_enabled else None,
+    lifespan=ai_runtime_lifespan,
 )
 
 app.include_router(api_routes)
 app.include_router(management_routes)
+
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -138,59 +139,12 @@ async def fail_run(request: Request, run_id: str) -> JSONResponse:
     }, status_code=503)
 
 
-@app.api_route("/api/v2/health/ping")
-async def legacy_health_ping() -> JSONResponse:
-    return JSONResponse({"status": "healthy", "service": "ai-sidecar-legacy"})
-
-
-@app.api_route("/api/v2/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-async def legacy_proxy_endpoint(request: Request, full_path: str) -> JSONResponse:
-    return JSONResponse({
-        "success": False,
-        "message": "This endpoint is deprecated. Use /internal/ai/v1/* via Rust gateway.",
-        "data": None,
-        "degraded": True,
-    }, status_code=410)
-
-
-async def startup_event() -> None:
-    print("FMS AI Runtime started on port 9000")
-    try:
-        from src.infrastructure.ai.ai_runtime_bootstrap import bootstrap_ai_runtime_from_env
-
-        registered = await bootstrap_ai_runtime_from_env()
-        if registered:
-            print("AI runtime DI graph bootstrapped (v2 capability stack registered)")
-        else:
-            print("AI runtime DI graph degraded (no DB-backed capability stack)")
-    except Exception as exc:  # defensive: never block startup on DI wiring
-        print(f"AI runtime DI bootstrap error (continuing degraded): {exc}")
-
-
-async def shutdown_event() -> None:
-    print("FMS AI Runtime shutting down")
-
-
-app.add_event_handler("startup", startup_event)
-app.add_event_handler("shutdown", shutdown_event)
-
-
 def main() -> None:
     host = os.getenv("API_HOST", "127.0.0.1")
     port = int(os.getenv("API_PORT", "9000"))
 
     print(f"Starting FMS AI Runtime on {host}:{port}")
-    print("Health endpoint: http://{host}:{port}/internal/ai/v1/health")
-    print("Legacy health endpoint: http://{host}:{port}/api/v2/health/ping")
-
-    shutdown_event_set = asyncio.Event()
-
-    def signal_handler(signum: int, _frame: Any) -> None:
-        print(f"Received signal {signum}, initiating shutdown...")
-        shutdown_event_set.set()
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    print(f"Health endpoint: http://{host}:{port}/internal/ai/v1/health")
 
     config = uvicorn.Config(
         app,
@@ -201,7 +155,7 @@ def main() -> None:
     )
     server = uvicorn.Server(config)
 
-    asyncio.run(server.serve())
+    server.run()
     print("FMS AI Runtime server stopped")
 
 

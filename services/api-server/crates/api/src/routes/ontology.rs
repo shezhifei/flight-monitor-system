@@ -68,10 +68,7 @@ async fn accept_suggestion(
     Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
 }
 
-fn canonical_accept_request(
-    mut request: SuggestionAcceptRequest,
-    claims: &JwtAuth,
-) -> SuggestionAcceptRequest {
+fn canonical_accept_request(mut request: SuggestionAcceptRequest, claims: &JwtAuth) -> SuggestionAcceptRequest {
     request.actor_permissions = claims.0.permissions.clone();
     if claims.0.is_admin.unwrap_or(false) && !request.actor_permissions.iter().any(|p| p == "*") {
         request.actor_permissions.push("*".to_string());

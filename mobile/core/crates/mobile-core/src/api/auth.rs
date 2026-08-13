@@ -1,4 +1,4 @@
-//! Auth + device API wrappers (plan §0.1/§0.5, §3.3).
+//! Auth + device API wrappers.
 //!
 //! Endpoints (backend `routes/auth/mod.rs`, `routes/mobile.rs`):
 //! - `POST /api/v2/auth/login` / `POST /api/v2/auth/refresh` → raw

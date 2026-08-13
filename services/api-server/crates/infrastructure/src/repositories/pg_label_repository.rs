@@ -182,19 +182,19 @@ impl LabelRepository for PgLabelRepository {
                 sqlx::query(
                     "UPDATE flights SET is_quick_turnaround = TRUE WHERE flight_id = $1 AND deleted_at IS NULL",
                 )
-                    .bind(flight_id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|error| DomainError::Internal(error.to_string()))?;
+                .bind(flight_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
             }
             "boarding_restriction" => {
                 sqlx::query(
                     "UPDATE flights SET has_boarding_restriction = TRUE WHERE flight_id = $1 AND deleted_at IS NULL",
                 )
-                    .bind(flight_id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|error| DomainError::Internal(error.to_string()))?;
+                .bind(flight_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
             }
             _ => {}
         }
@@ -231,19 +231,19 @@ impl LabelRepository for PgLabelRepository {
                 sqlx::query(
                     "UPDATE flights SET is_quick_turnaround = FALSE WHERE flight_id = $1 AND deleted_at IS NULL",
                 )
-                    .bind(flight_id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|error| DomainError::Internal(error.to_string()))?;
+                .bind(flight_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
             }
             "boarding_restriction" => {
                 sqlx::query(
                     "UPDATE flights SET has_boarding_restriction = FALSE WHERE flight_id = $1 AND deleted_at IS NULL",
                 )
-                    .bind(flight_id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|error| DomainError::Internal(error.to_string()))?;
+                .bind(flight_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
             }
             _ => {}
         }
@@ -284,11 +284,11 @@ impl LabelRepository for PgLabelRepository {
             sqlx::query(
                 "UPDATE flight_legs SET is_vip = TRUE WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL",
             )
-                .bind(flight_id)
-                .bind(leg_type)
-                .execute(&mut *tx)
-                .await
-                .map_err(|error| DomainError::Internal(error.to_string()))?;
+            .bind(flight_id)
+            .bind(leg_type)
+            .execute(&mut *tx)
+            .await
+            .map_err(|error| DomainError::Internal(error.to_string()))?;
         }
 
         tx.commit()
@@ -323,11 +323,11 @@ impl LabelRepository for PgLabelRepository {
             sqlx::query(
                 "UPDATE flight_legs SET is_vip = FALSE WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL",
             )
-                .bind(flight_id)
-                .bind(leg_type)
-                .execute(&mut *tx)
-                .await
-                .map_err(|error| DomainError::Internal(error.to_string()))?;
+            .bind(flight_id)
+            .bind(leg_type)
+            .execute(&mut *tx)
+            .await
+            .map_err(|error| DomainError::Internal(error.to_string()))?;
         }
 
         tx.commit()
@@ -354,14 +354,13 @@ impl LabelRepository for PgLabelRepository {
     }
 
     async fn get_leg_labels(&self, flight_id: &str, leg_type: &str) -> Result<Vec<String>, DomainError> {
-        let row = sqlx::query(
-            "SELECT labels FROM flight_legs WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL",
-        )
-            .bind(flight_id)
-            .bind(leg_type)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|error| DomainError::Internal(error.to_string()))?;
+        let row =
+            sqlx::query("SELECT labels FROM flight_legs WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL")
+                .bind(flight_id)
+                .bind(leg_type)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
 
         match row {
             Some(row) => {

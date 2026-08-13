@@ -164,9 +164,7 @@ impl AiProposalRepository for PgAiProposalRepository {
     }
 
     async fn find_by_id(&self, proposal_id: &str) -> Result<Option<AiActionProposal>, AiProposalRepositoryError> {
-        let row = sqlx::query(
-            "SELECT * FROM ai_action_proposals WHERE proposal_id = $1 AND deleted_at IS NULL",
-        )
+        let row = sqlx::query("SELECT * FROM ai_action_proposals WHERE proposal_id = $1 AND deleted_at IS NULL")
             .bind(proposal_id)
             .fetch_optional(&self.pool)
             .await
@@ -178,9 +176,7 @@ impl AiProposalRepository for PgAiProposalRepository {
         &self,
         pending_action_id: &str,
     ) -> Result<Option<AiActionProposal>, AiProposalRepositoryError> {
-        let row = sqlx::query(
-            "SELECT * FROM ai_action_proposals WHERE pending_action_id = $1 AND deleted_at IS NULL",
-        )
+        let row = sqlx::query("SELECT * FROM ai_action_proposals WHERE pending_action_id = $1 AND deleted_at IS NULL")
             .bind(pending_action_id)
             .fetch_optional(&self.pool)
             .await
@@ -278,9 +274,9 @@ impl AiProposalRepository for PgAiProposalRepository {
             "SELECT * FROM ai_action_proposals \
              WHERE expires_at IS NOT NULL AND expires_at < now() AND deleted_at IS NULL",
         )
-            .fetch_all(&self.pool)
-            .await
-            .map_err(db_err)?;
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
         rows.iter().map(Self::row_to_model).collect()
     }
 
@@ -465,28 +461,26 @@ impl AiProposalRepository for PgAiProposalRepository {
     }
 
     async fn count_failed_since(&self, cutoff: DateTime<Utc>) -> Result<i64, AiProposalRepositoryError> {
-        let count: (i64,) =
-            sqlx::query_as(
-                "SELECT COUNT(*)::bigint FROM ai_action_proposals \
+        let count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*)::bigint FROM ai_action_proposals \
                  WHERE status = 7 AND updated_at >= $1 AND deleted_at IS NULL",
-            )
-                .bind(cutoff)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(db_err)?;
+        )
+        .bind(cutoff)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(db_err)?;
         Ok(count.0)
     }
 
     async fn count_executed_since(&self, cutoff: DateTime<Utc>) -> Result<i64, AiProposalRepositoryError> {
-        let count: (i64,) =
-            sqlx::query_as(
-                "SELECT COUNT(*)::bigint FROM ai_action_proposals \
+        let count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*)::bigint FROM ai_action_proposals \
                  WHERE status = 6 AND updated_at >= $1 AND deleted_at IS NULL",
-            )
-                .bind(cutoff)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(db_err)?;
+        )
+        .bind(cutoff)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(db_err)?;
         Ok(count.0)
     }
 
@@ -600,9 +594,9 @@ impl PgAiProposalRepository {
             "SELECT object_type, COUNT(*)::bigint AS count FROM ai_action_proposals \
              WHERE deleted_at IS NULL GROUP BY object_type",
         )
-                .fetch_all(&self.pool)
-                .await
-                .map_err(db_err)?;
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
 
         let mut result = serde_json::Map::new();
         for row in rows {

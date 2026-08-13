@@ -16,6 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from tests.sidecar.tool_executor_test_support import authorized_tool_executor
+
 
 def _run(coro):
     """Run a coroutine synchronously."""
@@ -1196,9 +1198,7 @@ class TestToolExecutorMcpExecution:
         assert tool_name == "my_tool"
 
     def test_mcp_tool_without_client_manager_returns_error(self):
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
-        executor = ToolExecutor()
+        executor = authorized_tool_executor()
 
         async def run():
             result = await executor.execute(
@@ -1219,8 +1219,6 @@ class TestToolExecutorMcpExecution:
         from types import SimpleNamespace
 
         from src.infrastructure.ai.mcp.client_manager import McpClientManager, McpServerSession, McpToolInfo
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
         # Create a session with a side_effect tool
         session = McpServerSession(server_id="srv-a", transport="stdio", status="connected")
         session.tools = [
@@ -1252,7 +1250,7 @@ class TestToolExecutorMcpExecution:
         mock_mgr = MagicMock(spec=McpClientManager)
         mock_mgr.get_session.return_value = session
 
-        executor = ToolExecutor(mcp_client_manager=mock_mgr, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_mgr, mcp_repo=repo)
         envelope = SimpleNamespace(entity_id="default")
 
         async def run():
@@ -1278,8 +1276,6 @@ class TestToolExecutorMcpExecution:
 
         from src.infrastructure.ai.mcp.client_manager import McpClientManager, McpServerSession, McpToolInfo
         from src.infrastructure.ai.mcp.command_allowlist import reset_cache
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
         session = McpServerSession(server_id="srv-b", transport="stdio", status="connected")
         session.tools = [
             McpToolInfo(name="read_tool", description="", parameters={}, server_id="srv-b", side_effect=False),
@@ -1331,7 +1327,7 @@ class TestToolExecutorMcpExecution:
 
         mock_mgr.call_tool = fake_call_tool
 
-        executor = ToolExecutor(mcp_client_manager=mock_mgr, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_mgr, mcp_repo=repo)
         envelope = SimpleNamespace(entity_id="default")
 
         async def run():
@@ -1418,7 +1414,7 @@ class TestCacheEndpoints:
             body = resp.json()["data"]
             assert body["invalidated"] == 0
             assert body["skipped"] is True
-            assert body["reason"] == "cache backend not configured"
+            assert body["reason"] == "internal_error"
         finally:
             s1.stop()
             s2.stop()
@@ -1808,8 +1804,6 @@ class TestMcpCommandAllowlistSecurity:
         from types import SimpleNamespace
 
         from src.infrastructure.ai.mcp.command_allowlist import reset_cache
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
         repo = FakeMcpRepository()
         repo.sync_upsert_binding(
             "bind-bad",
@@ -1850,7 +1844,7 @@ class TestMcpCommandAllowlistSecurity:
         mock_client.connect_server = AsyncMock()
         mock_client.call_tool = AsyncMock()
 
-        executor = ToolExecutor(mcp_client_manager=mock_client, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_client, mcp_repo=repo)
         envelope = SimpleNamespace(entity_id="default")
 
         async def run():
@@ -1879,8 +1873,6 @@ class TestMcpCommandAllowlistSecurity:
     def test_side_effect_tool_first_execution_proposal_only(self):
         """P0-2: side_effect tool with no session → proposal, no connect/call."""
         from types import SimpleNamespace
-
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 
         repo = FakeMcpRepository()
         repo.sync_upsert_binding(
@@ -1922,7 +1914,7 @@ class TestMcpCommandAllowlistSecurity:
         mock_client.connect_server = AsyncMock()
         mock_client.call_tool = AsyncMock()
 
-        executor = ToolExecutor(mcp_client_manager=mock_client, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_client, mcp_repo=repo)
         envelope = SimpleNamespace(entity_id="default")
 
         async def run():
@@ -1946,8 +1938,6 @@ class TestMcpCommandAllowlistSecurity:
 
     def test_capabilities_missing_returns_error(self):
         """No capabilities in repo → MCP_TOOL_CAPABILITIES_NOT_DISCOVERED, no connect/call."""
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
         repo = FakeMcpRepository()
         repo.sync_upsert_server(
             "srv-nocaps",
@@ -1965,7 +1955,7 @@ class TestMcpCommandAllowlistSecurity:
         mock_client.connect_server = AsyncMock()
         mock_client.call_tool = AsyncMock()
 
-        executor = ToolExecutor(mcp_client_manager=mock_client, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_client, mcp_repo=repo)
 
         async def run():
             return await executor.execute(
@@ -1986,8 +1976,6 @@ class TestMcpCommandAllowlistSecurity:
     def test_tool_not_in_discovered_capabilities(self):
         """Tool name not in capabilities → MCP_TOOL_NOT_DISCOVERED."""
         from types import SimpleNamespace
-
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 
         repo = FakeMcpRepository()
         repo.sync_upsert_binding(
@@ -2029,7 +2017,7 @@ class TestMcpCommandAllowlistSecurity:
         mock_client.connect_server = AsyncMock()
         mock_client.call_tool = AsyncMock()
 
-        executor = ToolExecutor(mcp_client_manager=mock_client, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_client, mcp_repo=repo)
         envelope = SimpleNamespace(entity_id="default")
 
         async def run():
@@ -2054,8 +2042,6 @@ class TestMcpCommandAllowlistSecurity:
         from types import SimpleNamespace
 
         from src.infrastructure.ai.mcp.command_allowlist import reset_cache
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
         repo = FakeMcpRepository()
         repo.sync_upsert_binding(
             "bind-safe",
@@ -2101,7 +2087,7 @@ class TestMcpCommandAllowlistSecurity:
         mock_client.connect_server = AsyncMock()
         mock_client.call_tool = AsyncMock(return_value={"content": "ok"})
 
-        executor = ToolExecutor(mcp_client_manager=mock_client, mcp_repo=repo)
+        executor = authorized_tool_executor(mcp_client_manager=mock_client, mcp_repo=repo)
         envelope = SimpleNamespace(entity_id="default")
 
         async def run():

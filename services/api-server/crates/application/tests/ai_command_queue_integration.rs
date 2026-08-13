@@ -1,4 +1,4 @@
-//! Phase 4 integration test: command queue lifecycle from
+//! Command queue lifecycle from
 //! `start_run` through worker competition, heartbeat, crash, and
 //! take-over.
 //!

@@ -1,11 +1,11 @@
 //! OntologyService 纯规则与错误映射单元测试（不依赖数据库）。
 
 use fms_domain::models::flight::Flight;
+use fms_domain::models::ontology_v1::SuggestionKind;
 use fms_domain::models::ontology_v1_rules::{
     accept_permission_for, draft_can_be_occupied, is_ground_blacklisted_action, is_reassign_action,
     reassign_gate_violation,
 };
-use fms_domain::models::ontology_v1::SuggestionKind;
 use fms_domain::models::value_objects::FlightStatus;
 
 use super::error::OntologyError;
@@ -111,14 +111,10 @@ fn ground_blacklist_and_reassign_flags() {
 
 #[test]
 fn ontology_error_maps_domain_variants() {
-    let forbidden = OntologyError::from(fms_domain::error::DomainError::PermissionDenied(
-        "nope".into(),
-    ));
+    let forbidden = OntologyError::from(fms_domain::error::DomainError::PermissionDenied("nope".into()));
     assert!(matches!(forbidden, OntologyError::Forbidden(_)));
 
-    let conflict = OntologyError::from(fms_domain::error::DomainError::ConcurrencyConflict(
-        "ver".into(),
-    ));
+    let conflict = OntologyError::from(fms_domain::error::DomainError::ConcurrencyConflict("ver".into()));
     assert!(matches!(conflict, OntologyError::Conflict(_)));
 }
 

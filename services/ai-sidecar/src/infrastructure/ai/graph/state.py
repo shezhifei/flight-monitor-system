@@ -3,9 +3,6 @@ LangGraph 状态机的数据底座 (State Definition)
 
 定义在图中流转的整体数据结构。
 使用 TypedDict 配合 Annotated 实现特定字段的追加/覆盖逻辑。
-
-AIP 扩展：
-- AIPAgentState 继承 AgentCoreState，添加 Ontology 相关字段
 """
 
 import operator
@@ -66,64 +63,3 @@ class AgentCoreState(TypedDict):
     max_consecutive_tool_failures: NotRequired[int]
     last_tool_error_code: NotRequired[str]
     last_tool_error_message: NotRequired[str]
-
-
-class AIPAgentState(AgentCoreState, total=False):
-    """
-    AIP 模式扩展状态
-
-    继承 AgentCoreState，添加 Ontology 相关的上下文信息。
-
-    新增字段说明：
-    - object_context: 当前操作的对象上下文，用于 LLM 理解业务实体
-    - action_queue: 待执行的 Ontology Action 队列
-    - resolved_objects: 已解析的对象缓存，避免重复查询
-    - pending_approvals: 待审批的变更列表（增强审批体验）
-    - aip_enabled: 是否启用 AIP 模式
-    - last_action_result: 最近一次 Action 执行结果
-    """
-
-    object_context: NotRequired[dict[str, Any] | None]
-    action_queue: NotRequired[list[dict[str, Any]]]
-    resolved_objects: NotRequired[dict[str, Any]]
-    pending_approvals: NotRequired[list[dict[str, Any]]]
-    aip_enabled: NotRequired[bool]
-    last_action_result: NotRequired[dict[str, Any] | None]
-    object_change_previews: NotRequired[list[dict[str, Any]]]
-
-
-def create_initial_aip_state(
-    todo_id: str = "", entity_id: str = "", aip_enabled: bool = True, **kwargs
-) -> AIPAgentState:
-    """
-    创建 AIP 初始状态
-
-    Args:
-        todo_id: 待办ID
-        entity_id: 实体ID
-        aip_enabled: 是否启用AIP模式
-        **kwargs: 其他初始字段
-
-    Returns:
-        AIPAgentState: 初始状态字典
-    """
-    return AIPAgentState(
-        messages=[],
-        todo_id=todo_id,
-        entity_id=entity_id,
-        current_plan="",
-        requires_approval=False,
-        pending_action_id=None,
-        pending_tool_call=None,
-        metrics=AgentMetrics(total_steps=0, total_tokens=0, total_tool_calls=0),
-        blackboard_facts=[],
-        error_message=None,
-        object_context=None,
-        action_queue=[],
-        resolved_objects={},
-        pending_approvals=[],
-        aip_enabled=aip_enabled,
-        last_action_result=None,
-        object_change_previews=[],
-        **kwargs,
-    )

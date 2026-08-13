@@ -6,7 +6,7 @@ import '../../app/l10n.dart';
 import '../../bridge/api/business_case.dart';
 import '../../providers/business_case_provider.dart';
 
-/// 业务事项列表（plan §5 BusinessCaseListScreen）。
+/// 业务事项列表。
 class BusinessCaseListScreen extends ConsumerWidget {
   const BusinessCaseListScreen({super.key});
 

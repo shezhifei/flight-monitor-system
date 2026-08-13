@@ -22,7 +22,7 @@ const MANAGE_OPERATOR = {
   email: 'parity.manager@example.test',
   is_admin: false,
   roles: ['flight_manager'],
-  permissions: ['flight:manage', 'flight:read'],
+  permissions: ['flight.update', 'flight:read'],
   display_name: '航班管理员',
   effective_operator_name: '航班管理员',
   effective_operator_label: '航班管理员',
@@ -166,10 +166,35 @@ async function installCommonRoutes(page: Page): Promise<void> {
   );
 }
 
+async function installBatchColumnStorage(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'flight_monitor_columns',
+      JSON.stringify({
+        stand: true,
+        cobt_time: true,
+        start_boarding_time: true,
+        remarks: true,
+      }),
+    );
+    localStorage.setItem(
+      'flight_monitor_columns_order',
+      JSON.stringify([
+        'flight_number',
+        'stand',
+        'cobt_time',
+        'start_boarding_time',
+        'remarks',
+      ]),
+    );
+  });
+}
+
 async function openMonitorAs(
   page: Page,
   user: typeof PARITY_ADMIN | typeof PARITY_READONLY | typeof MANAGE_OPERATOR,
 ): Promise<void> {
+  await installBatchColumnStorage(page);
   // Seed JWT-like storage so hasUserPermission / is_admin work before /auth/me resolves.
   const authUser = user as unknown as AuthUserFixture;
   await installLegacyAuthStorage(page, authUser, '2026-07-14T02:30:00Z');
@@ -339,7 +364,7 @@ test.describe('Flight monitor batch cells (fixture auth)', () => {
     await expect(standCell(page, 'flight-batch-02')).not.toHaveClass(/cell-batch-selected/);
   });
 
-  test('non-admin flight:manage can select remarks but not stand (adminOnly)', async ({ page }) => {
+  test('non-admin flight.update can select remarks but not stand (adminOnly)', async ({ page }) => {
     await openMonitorAs(page, MANAGE_OPERATOR);
 
     // Remarks is allowed for ordinary manage users.
@@ -506,6 +531,7 @@ test.describe('Flight monitor batch cells (fixture auth)', () => {
 
     // openMonitorAs installs routes first; re-register flights override after would be overridden.
     // So install session + common manually, then flights override above must be registered AFTER openMonitorAs.
+    await installBatchColumnStorage(page);
     await installSessionRoutes(page, PARITY_ADMIN as typeof PARITY_ADMIN);
     await installLegacyAuthStorage(page, PARITY_ADMIN as unknown as AuthUserFixture, '2026-07-14T02:30:00Z');
     await installCommonRoutes(page);

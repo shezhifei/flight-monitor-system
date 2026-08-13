@@ -7,8 +7,8 @@ This module provides a ToolExecutor that:
 4. Checks if it's an MCP tool (mcp.{server_id}.{tool_name}) -> routes to MCP client manager
 5. Returns the result or proposal
 
-When a ``ToolMqGate`` is wired in (Phase 1 of the AI agent resilient tool
-architecture), every tool call goes through the gate first: a
+When a ``ToolMqGate`` is wired in, every tool call goes through the
+gate first: a
 ``tool.call.requested`` event is published to the RocketMQ control
 channel and protected tools block on a Rust authorization decision
 (``tool_lease`` / ``tool_denied`` / ``tool_proposal_only``). Public L0

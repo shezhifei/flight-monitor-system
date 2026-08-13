@@ -44,6 +44,10 @@ class SchemaMirror:
         self._schema_cache = response.json()
         return self._schema_cache
 
+    def get_cached_schema_snapshot(self) -> dict[str, Any] | None:
+        """Return the current snapshot without performing network I/O."""
+        return self._schema_cache
+
     def get_action_schema(self, object_type: str, action_name: str) -> dict[str, Any] | None:
         if not self._schema_cache:
             self.load_schema_snapshot()

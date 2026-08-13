@@ -1,6 +1,5 @@
 //! `CompensationPlanner` — derives an `AiCompensationPlanRecord` for
-//! an executed domain action (Phase 3 §"Compensation Planner" of
-//! `docs/plans/2026-06-29-ai-agent-resilient-tool-architecture.md`).
+//! an executed domain action.
 //!
 //! The planner is pure: given the receipt, the ontology's
 //! `CompensationMetadata`, and the before snapshot, it produces a

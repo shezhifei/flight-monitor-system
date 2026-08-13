@@ -1,28 +1,20 @@
 //! `AiEventConsumer` — the RocketMQ push consumer for
-//! `ai.runtime.events` (Phase 1 of the AI agent resilient tool
-//! architecture).
+//! `ai.runtime.events`.
 //!
 //! The consumer is a [`MessageHandler`] implementation; it receives
-//! batches of [`SubscriberMessage`] from the
-//! `fms_infrastructure::messaging` push consumer wiring, parses each
+//! batches of [`SubscriberMessage`] from the message-queue adapter, parses each
 //! payload as an [`AiRuntimeEventEnvelope`], and dispatches it to the
 //! [`AiExecutionControlService`] for durable ledger work.
 //!
 //! # Ordering
 //!
-//! Phase 1 runs a **single** consumer instance per deployment. Same
+//! A **single** consumer instance runs per deployment. Same
 //! `run_id` events are routed to a stable RocketMQ queue by the
 //! sidecar (using `run_id` as the MQ Message Key) and processed
-//! serially in the order the consumer receives them. The DB
-//! `UNIQUE(run_id, idempotency_key)` constraint provides at-least-
-//! once → effectively-once deduplication on retries, and the per-run
-//! `command_sequence` keeps `ai_runtime_commands` ordered for the
-//! Python worker.
-//!
-//! Multi-worker fan-out (which makes per-run ordering a hard
-//! requirement) lands in Phase 4; the `AiExecutionControlService`
-//! sequence counter and the `Message Key` based queue selector are
-//! already in place to support that move.
+//! serially. The DB `UNIQUE(run_id, idempotency_key)` constraint
+//! provides at-least-once → effectively-once deduplication on retries,
+//! and the per-run `command_sequence` keeps `ai_runtime_commands`
+//! ordered for the Python worker.
 
 use std::sync::Arc;
 
@@ -30,7 +22,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use fms_domain::ai_runtime_event::{AiRuntimeEventEnvelope, AiRuntimeEventType};
-use fms_infrastructure::messaging::{MessageHandler, MessageQueueError, SubscriberMessage};
+use fms_domain::ports::message_queue::{MessageHandler, MessageQueueError, SubscriberMessage};
 
 use crate::services::ai_runtime_service::ai_execution_control_service::{
     AiExecutionControlService, ControlServiceError,

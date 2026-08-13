@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/constants.dart';
 import 'session_provider.dart';
 
-/// 设置域（plan §5 SettingsScreen）：base_url 展示/debug 覆盖、
+/// 设置域：base_url 展示/debug 覆盖、
 /// 离线待同步计数。
 final baseUrlProvider = Provider<String>(
   (ref) => ref.watch(bootstrapProvider).baseUrl,

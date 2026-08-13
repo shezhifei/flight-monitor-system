@@ -240,13 +240,12 @@ impl UserRepository for PgUserRepository {
 
     async fn delete(&self, user_id: &str) -> Result<bool, DomainError> {
         // 审计要求软删除：停用用户而非物理删除，行与关联数据全部保留
-        let result = sqlx::query(
-            "UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND is_active = TRUE",
-        )
-        .bind(user_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let result =
+            sqlx::query("UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND is_active = TRUE")
+                .bind(user_id)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
         let deleted = result.rows_affected() > 0;
         if deleted {
             record_soft_delete(&self.pool, "user", user_id, "deactivate").await;

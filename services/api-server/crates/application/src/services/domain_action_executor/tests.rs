@@ -74,19 +74,23 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
     use fms_infrastructure::repositories::{
         pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
         pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
-        pg_dispatch_order_repository::PgDispatchOrderRepository, pg_flight_repository::PgFlightRepository,
+        pg_dispatch_order_repository::PgDispatchOrderRepository,
+        pg_domain_event_outbox_repository::PgDomainEventOutboxRepository, pg_flight_repository::PgFlightRepository,
         pg_label_repository::PgLabelRepository, pg_notification_repository::PgNotificationRepository,
         pg_todo_repository::PgTodoRepository,
     };
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
-    let flight_service = Arc::new(FlightService::new(flight_repo.clone()).with_transactional_repository(flight_repo));
+    let outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
+    let flight_service = Arc::new(
+        FlightService::new(flight_repo.clone())
+            .with_transactional_repository(flight_repo)
+            .with_outbox_repository(outbox_repo.clone()),
+    );
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-    let dispatch_service = Arc::new(
-        DispatchService::new(dispatch_order_repo.clone())
-            .with_transactional_repos(dispatch_order_repo, None),
-    );
+    let dispatch_service =
+        Arc::new(DispatchService::new(dispatch_order_repo.clone()).with_transactional_repos(dispatch_order_repo, None));
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -116,9 +120,8 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
     );
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-    let anomaly_service = Arc::new(
-        AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo),
-    );
+    let anomaly_service =
+        Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
@@ -152,6 +155,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         label_service,
         todo_service,
         business_case_service,
+        outbox_repo,
         pool,
     )
 }
@@ -761,11 +765,7 @@ async fn test_outbox_failure_rollback() {
     let res = executor
         .execute_approved_action("Flight", "FL_TX_ROLLBACK", "update_status", &args, "tester_tx_rollback")
         .await;
-    assert!(
-        is_outbox_failure(&res),
-        "expected outbox failure, got {:?}",
-        res
-    );
+    assert!(is_outbox_failure(&res), "expected outbox failure, got {:?}", res);
 
     let outbox_count: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM domain_event_outbox WHERE aggregate_id = 'FL_TX_ROLLBACK'")
@@ -933,52 +933,7 @@ async fn test_outbox_failure_rollback() {
     guard.cleanup().await;
 }
 
-// 契约 §3.3.1：update_stand 缺参 → Validation。
-#[tokio::test]
-#[ignore = "requires TEST_DATABASE_URL"]
-async fn test_flight_update_stand_validation() {
-    if !has_pool() {
-        return;
-    }
-    let executor = build_executor(create_pool().await).await;
-    let res = executor
-        .execute_approved_action("Flight", "FL123", "update_stand", &json!({}), "tester")
-        .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
-
-    // reason 必填
-    let res = executor
-        .execute_approved_action(
-            "Flight",
-            "FL123",
-            "update_stand",
-            &json!({"new_stand_id": "ST101"}),
-            "tester",
-        )
-        .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
-}
-
-#[tokio::test]
-#[ignore = "requires TEST_DATABASE_URL"]
-async fn test_flight_update_stand_not_found() {
-    if !has_pool() {
-        return;
-    }
-    let executor = build_executor(create_pool().await).await;
-    let res = executor
-        .execute_approved_action(
-            "Flight",
-            "FL_NONEXISTENT",
-            "update_stand",
-            &json!({"new_stand_id": "ST101", "reason": "conflict"}),
-            "tester",
-        )
-        .await;
-    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
-}
-
-// 契约 §3.3.2：update_delay 至少一个时间且格式 RFC3339。
+// `Flight.update_delay` 至少一个时间且格式 RFC3339。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
 async fn test_flight_update_delay_validation() {
@@ -1022,7 +977,7 @@ async fn test_flight_update_delay_not_found() {
     assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
-// 契约 §3.3.3：update_status 枚举校验与 NotFound 映射。
+// `DispatchOrder.update_status` 枚举校验与 NotFound 映射。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
 async fn test_dispatch_order_update_status_validation() {
@@ -1114,15 +1069,14 @@ async fn test_dispatch_order_update_status_success() {
         .await;
     assert!(res.is_ok(), "expected Ok, got {:?}", res);
 
-    let status: String =
-        sqlx::query_scalar("SELECT status FROM dispatch_orders WHERE id = 'DP_STATUS_OK'")
-            .fetch_one(&pool)
-            .await
-            .expect("fetch order status");
+    let status: String = sqlx::query_scalar("SELECT status FROM dispatch_orders WHERE id = 'DP_STATUS_OK'")
+        .fetch_one(&pool)
+        .await
+        .expect("fetch order status");
     assert_eq!(status, "in_progress");
 }
 
-// 契约 §3.3.7：resolve 对不存在异常报 Execution。
+// `Anomaly.resolve` 对不存在异常报 Execution。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
 async fn test_anomaly_resolve_not_found() {
@@ -1170,15 +1124,14 @@ async fn test_anomaly_resolve_success() {
         .await;
     assert!(res.is_ok(), "expected Ok, got {:?}", res);
 
-    let status: String =
-        sqlx::query_scalar("SELECT status FROM anomalies WHERE anomaly_id = 'AN_RESOLVE_OK'")
-            .fetch_one(&pool)
-            .await
-            .expect("fetch anomaly status");
+    let status: String = sqlx::query_scalar("SELECT status FROM anomalies WHERE anomaly_id = 'AN_RESOLVE_OK'")
+        .fetch_one(&pool)
+        .await
+        .expect("fetch anomaly status");
     assert_eq!(status, "resolved");
 }
 
-// 契约 §3.3.9：Label.add 缺参 → Validation。
+// `Label.add` 缺参 -> Validation。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
 async fn test_label_add_validation() {
@@ -1192,7 +1145,7 @@ async fn test_label_add_validation() {
     assert!(matches!(res, Err(DomainActionError::Validation(_))));
 }
 
-// 契约 §3.3.10：Workflow.start 未配置 Flowable 网关时拒绝执行。
+// `Workflow.start` 未配置 Flowable 网关时拒绝执行。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
 async fn test_workflow_start_requires_flowable_gateway() {

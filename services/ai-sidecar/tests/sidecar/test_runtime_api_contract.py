@@ -27,14 +27,13 @@ from fastapi.testclient import TestClient
 _project_root = Path(__file__).parent.parent.parent
 os.environ["JWT_SECRET"] = os.environ.get("JWT_SECRET", "test-secret-for-smoke-tests")
 
-from scripts.host.ai_sidecar_entrypoint import app
-
 from src.infrastructure.ai.service_identity import (
     SERVICE_AUDIENCE,
     SERVICE_IDENTITY_HEADER,
     SERVICE_ISSUER,
     SERVICE_SUBJECT,
 )
+from tests.sidecar.canonical_entrypoint import app
 
 
 @pytest.fixture(scope="module")
@@ -215,13 +214,9 @@ class TestInvalidEnvelope:
 class TestGracefulDegradation:
     """Ensure enhancement failures do NOT cause HTTP 500."""
 
-    def test_runs_no_500_when_ontology_and_schema_unavailable(
+    def test_runs_no_500_when_schema_mirror_unavailable(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(
-            "src.infrastructure.ai.runtime_context._get_ontology_registry",
-            lambda: None,
-        )
         monkeypatch.setattr(
             "src.infrastructure.ai.runtime_context._get_schema_mirror",
             lambda: None,

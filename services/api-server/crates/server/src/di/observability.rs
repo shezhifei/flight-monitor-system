@@ -26,7 +26,6 @@ use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flowable_draft_service::FlowableDraftService;
 use fms_application::services::kpi_aggregation_service::KpiAggregationService;
 use fms_application::services::nl_query_service::NLQueryService;
-use fms_application::services::runtime_diagnostics_service::RuntimeDiagnosticsService;
 use fms_application::services::shift_handover_service::ShiftHandoverService;
 use fms_application::services::system_flags_service::SystemFlagsService;
 use fms_application::services::system_ops_service::SystemOpsService;
@@ -35,15 +34,12 @@ use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxReposito
 use fms_domain::ports::domain_event_subscription_state_repository::DomainEventSubscriptionStateRepository;
 use fms_domain::ports::kpi_port::KpiPort;
 use fms_domain::ports::message_queue::{MessageHandler, PushConsumer};
-use fms_domain::ports::runtime_diagnostic_repository::RuntimeDiagnosticRepository;
-use fms_domain::ports::runtime_diagnostic_sink::RuntimeDiagnosticSink;
 use fms_domain::ports::system_flags_repository::SystemFlagsRepository;
 
 use fms_infrastructure::messaging::RocketMqPushConsumer;
 use fms_infrastructure::repositories::pg_domain_event_subscription_state_repository::PgDomainEventSubscriptionStateRepository;
 use fms_infrastructure::repositories::pg_flight_sync_repository::PgFlightSyncRepository;
 use fms_infrastructure::repositories::pg_kpi_repository::PgKpiRepository;
-use fms_infrastructure::repositories::pg_runtime_diagnostic_event_repository::PgRuntimeDiagnosticEventRepository;
 use fms_infrastructure::repositories::pg_system_flags_repository::PgSystemFlagsRepository;
 
 use crate::config::{
@@ -71,8 +67,6 @@ pub(crate) struct ObservabilityServices {
     pub system_ops_svc: Arc<SystemOpsService>,
     pub nl_query_svc: Arc<ConcreteNLQueryService>,
     pub runtime_error_monitor: Arc<RuntimeErrorMonitor>,
-    pub runtime_diagnostics_svc: Arc<ConcreteRuntimeDiagnosticsService>,
-    pub runtime_diagnostic_sink: Arc<dyn RuntimeDiagnosticSink>,
     pub flowable_draft_svc: Arc<FlowableDraftService>,
     pub workflow_form_svc: Arc<WorkflowFormService>,
     pub dashboard_workbench_svc: Arc<ConcreteDashboardWorkbenchService>,
@@ -257,11 +251,6 @@ pub(crate) async fn build_observability_services(
         ai.ai_runtime_svc.clone(),
     ));
     let runtime_error_monitor = RuntimeErrorMonitor::new(Some(infra.sse_hub.clone()));
-    let runtime_diagnostics_repo = Arc::new(PgRuntimeDiagnosticEventRepository::new(pool.clone()));
-    let runtime_diagnostics_reader: Arc<dyn RuntimeDiagnosticRepository> = runtime_diagnostics_repo.clone();
-    let runtime_diagnostic_sink: Arc<dyn RuntimeDiagnosticSink> = runtime_diagnostics_repo.clone();
-    let runtime_diagnostics_svc: Arc<ConcreteRuntimeDiagnosticsService> =
-        Arc::new(RuntimeDiagnosticsService::new(runtime_diagnostics_reader));
     set_global_runtime_error_monitor(&runtime_error_monitor);
 
     let push_consumer: Option<Arc<dyn PushConsumer + Send + Sync>> = if env_flag("EVENTS_PUSH_CONSUMER_ENABLED", true) {
@@ -353,8 +342,6 @@ pub(crate) async fn build_observability_services(
         system_ops_svc,
         nl_query_svc,
         runtime_error_monitor,
-        runtime_diagnostics_svc,
-        runtime_diagnostic_sink,
         flowable_draft_svc,
         workflow_form_svc,
         dashboard_workbench_svc,

@@ -1,7 +1,5 @@
-//! `RecoveryOrchestrator` — Phase 2 scheduled scanner that reconciles
-//! stuck tool calls, runs, and pending commands (Phase 2 §"Recovery
-//! Orchestrator" of
-//! `docs/plans/2026-06-29-ai-agent-resilient-tool-architecture.md`).
+//! `RecoveryOrchestrator` — scheduled scanner that reconciles stuck
+//! tool calls, runs, and pending commands.
 //!
 //! The orchestrator runs on a 30 s tick and is registered alongside
 //! `prune_scheduling` in the AI runtime service. It uses the
@@ -19,8 +17,9 @@
 //! 3. **Expired commands** — `ai_runtime_commands` with
 //!    `status = 'pending'` and `created_at < now() - 60s` are
 //!    `failed` with reason `command_ttl_expired`.
-//! 4. **DLQ alerts** — placeholder that logs `dlq_message_alert`; the
-//!    actual RocketMQ DLQ consumption is a later wave.
+//! 4. **DLQ alerts** — logs `dlq_message_alert` so ops can confirm
+//!    the orchestrator is alive. RocketMQ DLQ consumption is not
+//!    wired here.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -63,16 +62,15 @@ pub const DEFAULT_COMPENSATION_AUTO_EXECUTE_GRACE_SECONDS: i64 = 5;
 /// stuck and is failed with `execution_error = "execution_timeout"`.
 pub const DEFAULT_COMPENSATION_EXECUTING_TIMEOUT_SECONDS: i64 = 60;
 
-/// Phase 4: a leased command whose `last_heartbeat_at` is older than
-/// this AND whose `lease_expires_at` is in the past is considered
-/// lost (worker crash). The recovery orchestrator marks it `failed`
-/// with reason `worker_lease_lost`.
+/// A leased command whose `last_heartbeat_at` is older than this AND
+/// whose `lease_expires_at` is in the past is considered lost (worker
+/// crash). The recovery orchestrator marks it `failed` with reason
+/// `worker_lease_lost`.
 pub const DEFAULT_COMMAND_HEARTBEAT_TIMEOUT_SECONDS: i64 = 60;
 
-/// Phase 4: pending commands older than this TTL are failed with
-/// reason `command_ttl_expired`. Kept at 30s per the plan (Phase 4
-/// hardening tightened the Phase 2 60s window).
-pub const DEFAULT_PHASE4_COMMAND_TTL_SECONDS: i64 = 30;
+/// Pending commands older than this TTL are failed with reason
+/// `command_ttl_expired`.
+pub const DEFAULT_LEASED_COMMAND_TTL_SECONDS: i64 = 30;
 
 /// Inputs the orchestrator needs. Mirrors the shape of the
 /// repositories a real `server` composition root would inject; the
@@ -82,8 +80,7 @@ pub struct RecoveryOrchestratorDeps {
     pub command_repo: Arc<dyn AiRuntimeCommandRepository>,
     pub checkpoint_repo: Option<Arc<dyn AiRunCheckpointRepository>>,
     /// Optional `RollbackService` — when supplied, the orchestrator
-    /// runs the Phase 3 compensation scanner (timeout + auto-execute)
-    /// in addition to the Phase 2 scanners.
+    /// also runs the compensation scanner (timeout + auto-execute).
     pub rollback_service: Option<Arc<RollbackService>>,
     /// Override for the executing-pass timeout window.
     pub compensation_executing_timeout_seconds: i64,
@@ -518,7 +515,7 @@ impl RecoveryOrchestrator {
         }
     }
 
-    /// Phase 3 compensation scanner. Delegates to
+    /// Compensation scanner. Delegates to
     /// `RollbackService::scheduler_tick` when the dependency is wired;
     /// no-op otherwise. The orchestrator treats both timeout and
     /// auto-execute outcomes as a single `tick`; the breakdown is
@@ -628,17 +625,15 @@ impl RecoveryOrchestrator {
         Ok(count)
     }
 
-    /// Scanner 4: DLQ alert stub. The real RocketMQ DLQ consumer
-    /// is a later wave; for now we log a structured event so the
-    /// ops dashboards can verify the orchestrator is alive.
+    /// Scanner 4: emit a DLQ-alert heartbeat so ops dashboards can
+    /// verify the orchestrator is alive.
     pub fn dlq_alert_stub(&self) -> u64 {
         debug!(target: "ai_recovery_orchestrator", "dlq_message_alert: stub");
         0
     }
 
-    /// Phase 4 Scanner: find leased commands whose lease has expired
-    /// AND whose last heartbeat is older than
-    /// `command_heartbeat_timeout`. These are treated as
+    /// Find leased commands whose lease has expired AND whose last
+    /// heartbeat is older than `command_heartbeat_timeout`. These are
     /// `worker_lease_lost` — the worker crashed or stalled without
     /// renewing the lease. Each lost command is failed with reason
     /// `worker_lease_lost`; an optional `take_over_run` is triggered

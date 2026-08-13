@@ -24,6 +24,7 @@ from src.infrastructure.ai.subagents.dispatcher import (
     SubagentDispatcher,
     SubagentResult,
 )
+from tests.sidecar.tool_executor_test_support import authorized_tool_executor
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -368,8 +369,6 @@ class TestSubagentConcurrency:
 
     def test_tool_executor_passes_metadata_concurrency_to_dispatcher(self):
         """ToolExecutor reads max_concurrency from envelope.metadata and passes to dispatcher."""
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
         dispatch_calls = []
 
         async def mock_dispatch(**kwargs):
@@ -383,7 +382,7 @@ class TestSubagentConcurrency:
         mock_dispatcher = MagicMock()
         mock_dispatcher.dispatch = mock_dispatch
 
-        executor = ToolExecutor(subagent_dispatcher=mock_dispatcher)
+        executor = authorized_tool_executor(subagent_dispatcher=mock_dispatcher)
 
         envelope = MagicMock()
         envelope.entity_id = "parent"

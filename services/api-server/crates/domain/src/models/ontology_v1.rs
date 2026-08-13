@@ -158,10 +158,7 @@ pub struct ResourceAdjustmentSuggestion {
 
 impl ResourceAdjustmentSuggestion {
     pub fn is_expired(&self) -> bool {
-        matches!(self.status, SuggestionStatus::Expired)
-            || self
-                .expires_at
-                .is_some_and(|expires| expires <= Utc::now())
+        matches!(self.status, SuggestionStatus::Expired) || self.expires_at.is_some_and(|expires| expires <= Utc::now())
     }
 
     /// §4.9: 接受语义 — 机位建议仅 AOC、口建议仅 TOC。

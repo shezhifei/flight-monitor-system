@@ -1,6 +1,6 @@
 """AI 缓存管理器 - 统一管理多种缓存
 
-Phase 4 核心组件：统一 context/tool/MCP resource 缓存。
+统一 context/tool/MCP resource 缓存。
 支持 stale-while-revalidate (SWR) 策略：当缓存条目过期但仍在 SWR 窗口内时，
 返回陈旧数据并异步触发刷新，避免阻塞请求。
 """

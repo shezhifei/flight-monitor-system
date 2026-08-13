@@ -1,4 +1,4 @@
-//! Notification exports (plan §4 通知).
+//! Notification exports.
 
 use mobile_core::dto::notification as core;
 

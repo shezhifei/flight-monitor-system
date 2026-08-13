@@ -18,7 +18,9 @@ use crate::schemas::flight_schemas::{FlightCreate, FlightListResponse, FlightRes
 use crate::services::flight_command_validator;
 use crate::services::flight_commands::{FlightCreateCommand, FlightUpdateCommand};
 use crate::services::flight_mappers::{from_create, to_response, update_patch_from_dto};
-use crate::sqlx_transactional_repositories::SqlxFlightTransactionalRepository;
+use crate::sqlx_transactional_repositories::{
+    SqlxDomainEventOutboxTransactionalRepository, SqlxFlightTransactionalRepository,
+};
 
 const NEGATIVE_CACHE_TTL: Duration = Duration::from_secs(5);
 
@@ -35,6 +37,7 @@ pub struct FlightService {
     tx_repo: Option<Arc<dyn SqlxFlightTransactionalRepository>>,
     /// Optional pool for same-transaction outbox writes on create/update.
     pool: Option<PgPool>,
+    outbox_repo: Option<Arc<dyn SqlxDomainEventOutboxTransactionalRepository>>,
     hot_list: RwLock<Option<FlightListResponse>>,
     negative_cache: DashMap<String, Instant>,
 }
@@ -65,6 +68,7 @@ impl FlightService {
             repo,
             tx_repo: None,
             pool: None,
+            outbox_repo: None,
             hot_list: RwLock::new(None),
             negative_cache: DashMap::new(),
         }
@@ -78,6 +82,17 @@ impl FlightService {
     pub fn with_pool(mut self, pool: PgPool) -> Self {
         self.pool = Some(pool);
         self
+    }
+
+    pub fn with_outbox_repository(mut self, repository: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>) -> Self {
+        self.outbox_repo = Some(repository);
+        self
+    }
+
+    fn outbox_repository(&self) -> Result<&dyn SqlxDomainEventOutboxTransactionalRepository, DomainError> {
+        self.outbox_repo
+            .as_deref()
+            .ok_or_else(|| DomainError::Internal("domain event outbox repository unavailable".into()))
     }
 
     pub fn denied_update_fields(&self, dto: &FlightUpdate, is_admin: bool, permissions: &[String]) -> Vec<String> {
@@ -225,27 +240,6 @@ impl FlightService {
             .await
     }
 
-    /// 创建航班（兼容入口；请使用 `execute_create` + `FlightCreateCommand`）。
-    #[deprecated(note = "use execute_create / execute_update with FlightCreate/UpdateCommand (ADR-0002)")]
-    pub(crate) async fn create_flight(
-        &self,
-        dto: FlightCreate,
-        created_by: Option<String>,
-    ) -> Result<FlightResponse, DomainError> {
-        self.create_flight_inner(dto, created_by).await
-    }
-
-    /// 更新航班（兼容入口；请使用 `execute_update` + `FlightUpdateCommand`）。
-    #[deprecated(note = "use execute_create / execute_update with FlightCreate/UpdateCommand (ADR-0002)")]
-    pub(crate) async fn update_flight(
-        &self,
-        flight_id: &str,
-        dto: FlightUpdate,
-        updated_by: Option<String>,
-    ) -> Result<Option<FlightResponse>, DomainError> {
-        self.update_flight_inner(flight_id, dto, updated_by).await
-    }
-
     async fn create_flight_inner(
         &self,
         dto: FlightCreate,
@@ -258,6 +252,7 @@ impl FlightService {
             let mut tx = pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
             tx_repo.save_in_tx(&mut tx, &flight).await?;
             write_flight_outbox_event(
+                self.outbox_repository()?,
                 &mut tx,
                 FLIGHT_AGGREGATE_TYPE,
                 flight.flight_id.as_str(),
@@ -297,7 +292,14 @@ impl FlightService {
             let Some(flight) = tx_repo.update_partial_in_tx(&mut tx, flight_id, &patch).await? else {
                 return Ok(None);
             };
-            write_flight_update_outbox_events(&mut tx, flight_id, &patch, updated_by.as_deref()).await?;
+            write_flight_update_outbox_events(
+                self.outbox_repository()?,
+                &mut tx,
+                flight_id,
+                &patch,
+                updated_by.as_deref(),
+            )
+            .await?;
             tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
             flight
         } else {
@@ -331,7 +333,8 @@ impl FlightService {
         };
         // Domain flight facts for projection/SSE. Callers (e.g. DomainActionExecutor)
         // may also write an action-level outbox row (Flight.update_status) in the same tx.
-        write_flight_update_outbox_events(tx, flight_id, &patch, updated_by.as_deref()).await?;
+        write_flight_update_outbox_events(self.outbox_repository()?, tx, flight_id, &patch, updated_by.as_deref())
+            .await?;
         self.invalidate_hot_list().await;
         let mut response = to_response(&flight);
         response.updated_by = updated_by;
@@ -352,7 +355,9 @@ impl FlightService {
             return Ok(None);
         };
         if !current.is_draft {
-            return Err(DomainError::ValidationError(format!("航班 {flight_id} 不是 draft 状态")));
+            return Err(DomainError::ValidationError(format!(
+                "航班 {flight_id} 不是 draft 状态"
+            )));
         }
         if current.flight_kind != "passenger" {
             return Err(DomainError::ValidationError(format!(
@@ -372,7 +377,14 @@ impl FlightService {
             let Some(flight) = tx_repo.update_partial_in_tx(&mut tx, flight_id, &patch).await? else {
                 return Ok(None);
             };
-            write_flight_update_outbox_events(&mut tx, flight_id, &patch, actor_id.as_deref()).await?;
+            write_flight_update_outbox_events(
+                self.outbox_repository()?,
+                &mut tx,
+                flight_id,
+                &patch,
+                actor_id.as_deref(),
+            )
+            .await?;
             tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
             flight
         } else {
@@ -395,6 +407,7 @@ impl FlightService {
             let deleted = tx_repo.delete_in_tx(&mut tx, flight_id).await?;
             if deleted {
                 write_flight_outbox_event(
+                    self.outbox_repository()?,
                     &mut tx,
                     FLIGHT_AGGREGATE_TYPE,
                     flight_id,

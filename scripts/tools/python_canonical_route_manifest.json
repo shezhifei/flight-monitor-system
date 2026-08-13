@@ -174,12 +174,6 @@
     ]
   },
   {
-    "path": "/api/v2/ai/nl-query/followup",
-    "methods": [
-      "POST"
-    ]
-  },
-  {
     "path": "/api/v2/ai/nl-query/suggestions",
     "methods": [
       "GET"
@@ -285,24 +279,6 @@
     "path": "/api/v2/ai/tools/execute",
     "methods": [
       "POST"
-    ]
-  },
-  {
-    "path": "/api/v2/ai/v2/batch/{entity_id}",
-    "methods": [
-      "POST"
-    ]
-  },
-  {
-    "path": "/api/v2/ai/v2/entities",
-    "methods": [
-      "GET"
-    ]
-  },
-  {
-    "path": "/api/v2/ai/v2/entities/{entity_id}/status",
-    "methods": [
-      "GET"
     ]
   },
   {
@@ -1602,24 +1578,6 @@
     ]
   },
   {
-    "path": "/api/v2/shadow/diffs",
-    "methods": [
-      "GET"
-    ]
-  },
-  {
-    "path": "/api/v2/shadow/health",
-    "methods": [
-      "GET"
-    ]
-  },
-  {
-    "path": "/api/v2/shadow/stats",
-    "methods": [
-      "GET"
-    ]
-  },
-  {
     "path": "/api/v2/shift-handovers",
     "methods": [
       "POST"
@@ -1875,24 +1833,6 @@
     "path": "/api/v2/todos/{todo_id}/progress",
     "methods": [
       "POST"
-    ]
-  },
-  {
-    "path": "/api/v2/verification/compare",
-    "methods": [
-      "POST"
-    ]
-  },
-  {
-    "path": "/api/v2/verification/health",
-    "methods": [
-      "GET"
-    ]
-  },
-  {
-    "path": "/api/v2/verification/stats",
-    "methods": [
-      "GET"
     ]
   },
   {

@@ -84,13 +84,11 @@ impl DispatchAlertRepository for PgDispatchAlertRepository {
     }
 
     async fn find_by_id(&self, id: &str) -> Result<Option<DispatchAlert>, DomainError> {
-        let row = sqlx::query(&format!(
-            "SELECT {ALERT_COLUMNS} FROM dispatch_alerts WHERE id = $1"
-        ))
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|error| DomainError::Internal(error.to_string()))?;
+        let row = sqlx::query(&format!("SELECT {ALERT_COLUMNS} FROM dispatch_alerts WHERE id = $1"))
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|error| DomainError::Internal(error.to_string()))?;
         Ok(row.as_ref().map(row_to_alert))
     }
 
@@ -132,9 +130,10 @@ impl DispatchAlertRepository for PgDispatchAlertRepository {
     }
 
     async fn upsert_overrun(&self, alert: &DispatchAlert) -> Result<OverrunAlertUpsert, DomainError> {
-        let dedupe_key = alert.dedupe_key.as_deref().ok_or_else(|| {
-            DomainError::ValidationError("预排冲突告警缺少 dedupe_key".to_string())
-        })?;
+        let dedupe_key = alert
+            .dedupe_key
+            .as_deref()
+            .ok_or_else(|| DomainError::ValidationError("预排冲突告警缺少 dedupe_key".to_string()))?;
         let row = sqlx::query(
             r#"
             WITH existing AS (

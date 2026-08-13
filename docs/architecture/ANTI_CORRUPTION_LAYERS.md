@@ -18,7 +18,6 @@
 | 航班归档 / 外部同步 | `ports/flight_archive_repository.rs`、`flight_sync_repository.rs` | `pg_flight_archive_repository.rs`、`pg_flight_sync_repository.rs` |
 | 消息队列 | `ports/message_queue.rs` | `messaging/`（`MessageQueueGatewayClient`、`RocketMqPushConsumer`、`MemoryPushConsumer`） |
 | Flowable 网关 | `ports/flowable_gateway.rs` | `integrations/flowable_client.rs` |
-| 运行时诊断 | `ports/runtime_diagnostic_repository.rs`、`runtime_diagnostic_sink.rs` | `repositories/pg_runtime_diagnostic_event_repository.rs` |
 | 防重放 nonce | `ports/nonce_replay_store.rs` | `security/anti_replay_store.rs` |
 | 会话运行时 | `ports/session_runtime_repository.rs` | `repositories/session_runtime_repository.rs` |
 
@@ -37,7 +36,7 @@ Python 仅承接 AI 侧车；分层镜像 Rust，端口在：
   - `agent_runtime_port.py` — Agent 引擎边界
   - `service_interfaces.py` — 对主链业务服务的 Protocol（航班/待办/业务事项）
 - 应用侧 AI 门面：`services/ai-sidecar/src/application/ports/ai_ports.py`（再导出 LLM/工具/配置等 infra 类型）
-- DI：`services/ai-sidecar/src/di/container.py`；运行时 provider：`infrastructure/runtime/providers.py`
+- AI runtime DI：`services/ai-sidecar/src/infrastructure/ai/ai_container.py`；运行时 provider：`infrastructure/runtime/providers.py`
 
 AI 不得绕过 Rust 写服务直接改航班核心表（见 [ADR-0002](ADR-0002-flight-core-write-boundary.md)）。
 

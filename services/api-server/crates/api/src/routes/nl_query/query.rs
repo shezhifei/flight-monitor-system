@@ -8,14 +8,14 @@ use crate::middleware::permissions::PermissionCheck;
 use crate::services::ai_run_event_payload::sanitize_event_payload_opt;
 use crate::services::ai_run_event_types as evt;
 use crate::services::ai_runtime_client::AiRuntimeClient;
-use crate::services::python_sidecar_proxy::{forward_ai_sidecar_json_deprecated, forward_ai_sidecar_sse_json};
+use crate::services::python_sidecar_proxy::forward_ai_sidecar_sse_json;
 use fms_application::services::ai_context_service::AiContextService;
 use fms_application::services::ai_job_service::AiJobService;
 use fms_application::services::ai_proposal_ingest_service::AiProposalIngestService;
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_domain::models::ai_structured_output::AiStructuredOutput;
 
-use super::shared::{current_user_id, target_objects_from_request, NLQueryRequest};
+use super::shared::{bind_conversation_id, current_user_id, target_objects_from_request, NLQueryRequest};
 
 pub(crate) async fn query_natural_language(
     req: HttpRequest,
@@ -54,6 +54,7 @@ pub(crate) async fn query_natural_language(
         )
         .await
         .map_err(|e| ApiError::Internal(e.to_string()))?;
+    let conversation_id = bind_conversation_id(&body, &mut envelope);
 
     let run = job_service
         .create_run(&job.job_id, "python-ai-runtime", None, None)
@@ -85,6 +86,7 @@ pub(crate) async fn query_natural_language(
             "data": {
                 "job_id": job.job_id,
                 "run_id": run.run_id,
+                "conversation_id": conversation_id,
                 "status": "pending",
                 "created_at": job.created_at,
             }
@@ -291,6 +293,7 @@ pub(crate) async fn query_natural_language(
             "data": {
                 "job_id": job.job_id,
                 "run_id": run.run_id,
+                "conversation_id": conversation_id,
                 "answer": answer,
                 "status": "succeeded",
                 "degraded": degraded,
@@ -323,19 +326,10 @@ pub(crate) async fn query_natural_language(
         "data": {
             "job_id": job.job_id,
             "run_id": run.run_id,
+            "conversation_id": conversation_id,
             "answer": answer,
             "status": run_status,
             "degraded": degraded,
         }
     })))
-}
-
-pub(crate) async fn followup_natural_language(
-    req: HttpRequest,
-    claims: JwtAuth,
-    body: web::Json<NLQueryRequest>,
-) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("ai:chat")?;
-    let body_value = serde_json::to_value(&*body).map_err(|e| ApiError::BadRequest(e.to_string()))?;
-    Ok(forward_ai_sidecar_json_deprecated(&req, reqwest::Method::POST, &body_value).await)
 }

@@ -245,18 +245,22 @@ async fn test_streaming_route_requires_authentication() {
 }
 
 #[actix_web::test]
-async fn test_followup_requires_authentication() {
+async fn retired_followup_routes_return_not_found() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(JwtSecret("test-secret".to_string())))
             .configure(super::configure),
     )
     .await;
-    let req = test::TestRequest::post()
-        .uri("/api/v2/ai/nl-query/followup")
-        .to_request();
-    let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+    for path in ["/api/v2/ai/nl-query/followup", "/api/v2/ai/nl-query/followup/stream"] {
+        let response = test::call_service(&app, test::TestRequest::post().uri(path).to_request()).await;
+        assert_eq!(
+            response.status(),
+            StatusCode::NOT_FOUND,
+            "retired route must stay absent: {path}"
+        );
+    }
 }
 
 #[actix_web::test]
@@ -287,28 +291,6 @@ async fn test_conversations_requires_authentication() {
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
-}
-
-#[actix_web::test]
-async fn test_followup_stream_returns_degraded_fallback() {
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(JwtSecret("test-secret".to_string())))
-            .configure(super::configure),
-    )
-    .await;
-    let token = make_valid_jwt();
-    let req = test::TestRequest::post()
-        .uri("/api/v2/ai/nl-query/followup")
-        .insert_header(("Authorization", format!("Bearer {}", token)))
-        .set_json(json!({
-            "question": "add note to flight FL123",
-            "context": {"selected_flight_id": "FL123"}
-        }))
-        .to_request();
-    let resp = test::call_service(&app, req).await;
-    assert_ne!(resp.status(), StatusCode::NOT_FOUND);
-    assert_ne!(resp.status(), StatusCode::OK);
 }
 
 #[actix_web::test]

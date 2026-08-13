@@ -8,7 +8,7 @@ import '../../providers/notification_provider.dart';
 import '../../providers/sse_demux.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 通知列表（plan §5 NotificationsScreen）。
+/// 通知列表。
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 

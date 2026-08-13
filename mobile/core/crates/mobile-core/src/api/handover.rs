@@ -1,4 +1,4 @@
-//! Shift handover API wrappers (plan §0.5 ShiftHandover).
+//! Shift handover API wrappers.
 //!
 //! - List / detail / item-ack → raw
 //! - Whole-handover ack → envelope wrapping `ShiftHandover`

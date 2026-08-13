@@ -58,16 +58,6 @@ impl FlowableClient {
         })
     }
 
-    /// Legacy constructor — panics on invalid `base_url`.
-    ///
-    /// Prefer `try_new` for new call sites.  This is retained for backward
-    /// compatibility with existing DI wiring that has not yet migrated.
-    #[deprecated(note = "use FlowableClient::try_new instead — fail-fast on invalid base_url")]
-    pub fn new(base_url: String, username: String, password: String) -> Self {
-        FlowableClient::try_new(base_url, username, password)
-            .expect("FlowableClient::new called with invalid base_url — use try_new for graceful error handling")
-    }
-
     pub async fn get_process_definitions(
         &self,
         key: Option<&str>,

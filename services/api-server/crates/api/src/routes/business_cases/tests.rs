@@ -97,9 +97,9 @@ async fn business_case_deleted_event_payload_matches_python_fields() {
 }
 
 #[test]
-fn flight_manage_alias_maps_to_business_case_grants() {
+fn flight_manage_does_not_map_to_business_case_grants() {
     let claims = build_claims("manager", "user-1", &["flight:manage"]);
 
-    assert!(has_grant(&claims, PermissionCatalog::BUSINESS_CASE_UPDATE));
-    assert!(has_grant(&claims, PermissionCatalog::BUSINESS_CASE_STATUS_TRANSITION));
+    assert!(!has_grant(&claims, PermissionCatalog::BUSINESS_CASE_UPDATE));
+    assert!(!has_grant(&claims, PermissionCatalog::BUSINESS_CASE_STATUS_TRANSITION));
 }

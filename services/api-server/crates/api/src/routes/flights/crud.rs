@@ -14,6 +14,7 @@ use super::shared::{
     FlightHistoryQuery, FlightInsightQuery,
 };
 use fms_application::schemas::flight_schemas::{FlightCreate, FlightUpdate};
+use fms_application::services::authorization_service::PermissionCatalog;
 use fms_application::services::flight_commands::{FlightCreateCommand, FlightUpdateCommand};
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flight_service::FlightService;
@@ -25,6 +26,7 @@ pub async fn get_flight(
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     let id = path.into_inner();
     match svc.get_flight(&id).await? {
         Some(f) => Ok(ok_resp(
@@ -42,8 +44,9 @@ pub async fn get_flight_history(
     runtime: web::Data<Arc<FlightRuntimeService>>,
     path: web::Path<String>,
     query: web::Query<FlightHistoryQuery>,
-    _claims: JwtAuth,
+    claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     let flight_id = path.into_inner();
     let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(50).clamp(1, 200);
@@ -58,7 +61,7 @@ pub async fn get_flight_history_report(
     query: web::Query<FlightInsightQuery>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:read")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_REPORT_GENERATE)?;
     claims.ensure_permission("ai:execute")?;
     let id = path.into_inner();
     let report = runtime
@@ -74,7 +77,7 @@ pub async fn get_event_journey(
     query: web::Query<FlightInsightQuery>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:read")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_READ)?;
     claims.ensure_permission("ai:execute")?;
     let id = path.into_inner();
     let journey = runtime.generate_event_journey(&id, query.hours.unwrap_or(24)).await?;
@@ -90,7 +93,7 @@ pub async fn create_flight(
     body: web::Json<FlightCreate>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_UPDATE)?;
     let actor = actor_id(&claims).to_string();
     // Build the create command explicitly from the request body + actor, then
     // enforce the command boundary's invariants before touching the service.
@@ -119,7 +122,7 @@ pub async fn update_flight(
     body: web::Json<FlightUpdate>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_UPDATE)?;
     let id = path.into_inner();
     let dto = body.into_inner();
     // Build the update command explicitly from the path id + body + actor. This
@@ -174,7 +177,7 @@ pub async fn confirm_draft_flight(
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_UPDATE)?;
     let id = path.into_inner();
     let flight = svc
         .confirm_draft_flight(&id, Some(actor_id(&claims).to_string()))

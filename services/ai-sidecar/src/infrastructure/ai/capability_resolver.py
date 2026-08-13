@@ -1,6 +1,6 @@
 """AI 能力解析器 - 运行时配置快照生成
 
-Phase 1 核心组件：在每次 LLM run 前解析实体配置，生成不可变的 ResolvedAiRuntimeConfig。
+在每次 LLM run 前解析实体配置，生成不可变的 ResolvedAiRuntimeConfig。
 """
 
 from __future__ import annotations

@@ -108,7 +108,7 @@ npm run typecheck
 npm run build
 ```
 
-正式页面：`frontend/vue-app/dist/` → `/frontend/<page>.html`（如 login、dashboard、flight_monitor、dispatch_board、system_status）。兼容旧页：`/frontend/html/<page>.html`。根路径 `/` 仍会跳到兼容登录页，请直接用 `/frontend/login.html`。
+正式页面：`frontend/vue-app/dist/` → `/frontend/<page>.html`（如 login、dashboard、flight_monitor、dispatch_board、system_status）。兼容旧页：`/frontend/html/<page>.html`。根路径 `/` 跳到 `/frontend/login.html`。
 
 ## 7. 常用命令
 

@@ -63,7 +63,9 @@ impl FlightRuntimeService {
             .map_err(|error| DomainError::Internal(error.to_string()))?;
         // Same concurrency protocol as batch-cells: serialize writers per
         // (flight_id, milestone_code) for the duration of this transaction.
-        lock_timeline_milestone(&mut tx, flight_id, &milestone_code).await?;
+        timeline_tx_repo
+            .lock_milestone_in_tx(&mut tx, flight_id, &milestone_code)
+            .await?;
 
         // Generate the last-write ordering keys only after acquiring the lock,
         // so created_at/timeline_id order matches the serialized writer order.
@@ -89,6 +91,7 @@ impl FlightRuntimeService {
             let timeline_value = serde_json::to_value(&result.event)
                 .unwrap_or_else(|_| json!({ "timeline_id": result.event.timeline_id }));
             write_flight_outbox_event(
+                self.outbox_repo.as_ref(),
                 &mut tx,
                 FLIGHT_AGGREGATE_TYPE,
                 flight_id,
@@ -141,6 +144,7 @@ impl FlightRuntimeService {
         let changed = deleted || memory_deleted;
         if changed {
             write_flight_outbox_event(
+                self.outbox_repo.as_ref(),
                 &mut tx,
                 FLIGHT_AGGREGATE_TYPE,
                 flight_id,
@@ -210,21 +214,6 @@ fn to_write_result(result: FlightTimelineWriteResult) -> DispatchTimelineEventWr
         event: to_response(result.event),
         inserted: result.inserted,
     }
-}
-
-/// Serialize concurrent writers for one flight milestone (matches batch-cells).
-async fn lock_timeline_milestone(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    flight_id: &str,
-    milestone_code: &str,
-) -> Result<(), DomainError> {
-    sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))")
-        .bind(flight_id)
-        .bind(milestone_code)
-        .execute(&mut **tx)
-        .await
-        .map_err(|error| DomainError::Internal(error.to_string()))?;
-    Ok(())
 }
 
 fn normalize_leg_type(value: String) -> Option<String> {

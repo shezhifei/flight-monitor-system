@@ -1,4 +1,4 @@
-//! Business case DTOs (plan §0.5 BusinessCase group).
+//! Business case DTOs.
 //!
 //! List endpoint returns a **JSON array of envelopes**
 //! `[{success,data,message}, ...]` (backend `list_business_cases`).

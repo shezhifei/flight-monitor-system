@@ -1,4 +1,4 @@
-//! AI 动作建议路由 (Phase 5)
+//! AI 动作建议路由
 //!
 //! 将 AiActionProposalService 和微模型执行能力暴露为 REST API。
 

@@ -15,6 +15,7 @@ use fms_domain::ports::ai_object_policy_repository::{
     AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicyRepositoryError,
 };
 use fms_domain::ports::flight_repository::FlightRepository;
+use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomainEventOutboxRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
@@ -553,12 +554,16 @@ async fn build_test_executor(
     };
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
-    let flight_service = Arc::new(FlightService::new(flight_repo.clone()).with_transactional_repository(flight_repo));
+    let outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
+    let flight_service = Arc::new(
+        FlightService::new(flight_repo.clone())
+            .with_transactional_repository(flight_repo)
+            .with_outbox_repository(outbox_repo.clone()),
+    );
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-    let dispatch_service = Arc::new(
-        DispatchService::new(dispatch_order_repo.clone()).with_transactional_repos(dispatch_order_repo, None),
-    );
+    let dispatch_service =
+        Arc::new(DispatchService::new(dispatch_order_repo.clone()).with_transactional_repos(dispatch_order_repo, None));
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -588,7 +593,8 @@ async fn build_test_executor(
     );
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-    let anomaly_service = Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
+    let anomaly_service =
+        Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
@@ -622,6 +628,7 @@ async fn build_test_executor(
         label_service,
         todo_service,
         business_case_service,
+        outbox_repo,
         pool,
     )
 }
@@ -870,7 +877,6 @@ async fn api_proposal_smoke_happy_path_todo_create_execute() {
     let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::set("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let app = test::init_service(
         App::new()
@@ -963,7 +969,6 @@ async fn api_proposal_smoke_execution_disabled_returns_conflict() {
     // Execution DISABLED
     let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "false");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let app = test::init_service(
         App::new()
@@ -1029,7 +1034,6 @@ async fn api_proposal_smoke_permission_denied_returns_403() {
     let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::set("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let app = test::init_service(
         App::new()
@@ -1093,7 +1097,6 @@ async fn api_proposal_smoke_readiness_not_ready_blocks_execute() {
     let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
     let _guard1 = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true");
     let _guard2 = EnvGuard::remove("FMS_AI_EXECUTION_READINESS_OVERRIDE");
-    let _guard3 = EnvGuard::set("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false");
 
     let app = test::init_service(
         App::new()

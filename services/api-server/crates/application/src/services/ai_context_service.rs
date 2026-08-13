@@ -4,10 +4,10 @@ use crate::types::{
     ConcreteNotificationService, ConcreteTodoService,
 };
 use fms_domain::models::ai_context_envelope::*;
+use fms_domain::ports::ai_context_snapshot_repository::{AiContextSnapshotKind, AiContextSnapshotRepository};
 use fms_domain::ports::ai_object_policy_repository::{
     AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicySubject,
 };
-use fms_infrastructure::ai_context_snapshot::load_table_snapshot;
 use std::collections::HashSet;
 use std::sync::Arc;
 use thiserror::Error;
@@ -27,7 +27,7 @@ pub struct AiContextService {
     notification_service: Option<Arc<ConcreteNotificationService>>,
     todo_service: Option<Arc<ConcreteTodoService>>,
     object_policy_repository: Option<Arc<dyn AiObjectPolicyRepository + Send + Sync>>,
-    pool: Option<sqlx::PgPool>,
+    snapshot_repository: Option<Arc<dyn AiContextSnapshotRepository>>,
 }
 
 impl AiContextService {
@@ -41,7 +41,7 @@ impl AiContextService {
             notification_service: None,
             todo_service: None,
             object_policy_repository: None,
-            pool: None,
+            snapshot_repository: None,
         }
     }
 
@@ -78,8 +78,8 @@ impl AiContextService {
         self
     }
 
-    pub fn with_pool(mut self, pool: sqlx::PgPool) -> Self {
-        self.pool = Some(pool);
+    pub fn with_snapshot_repository(mut self, repository: Arc<dyn AiContextSnapshotRepository>) -> Self {
+        self.snapshot_repository = Some(repository);
         self
     }
 
@@ -199,14 +199,7 @@ impl AiContextService {
                     .ok_or_else(|| AiContextError::Internal(format!("Flight not found: {obj_id}")))?;
                 Ok(serde_json::to_value(flight).unwrap_or_default())
             }
-            "FlightLeg" => {
-                self.load_snapshot(
-                    "flight_legs",
-                    "leg_id = $1 OR flight_id = $1 OR CONCAT(flight_id, ':', leg_type) = $1",
-                    obj_id,
-                )
-                .await
-            }
+            "FlightLeg" => self.load_snapshot(AiContextSnapshotKind::FlightLeg, obj_id).await,
             "DispatchOrder" => {
                 let service = self
                     .dispatch_query_service
@@ -219,9 +212,9 @@ impl AiContextService {
                     .ok_or_else(|| AiContextError::Internal(format!("DispatchOrder not found: {obj_id}")))?;
                 Ok(serde_json::to_value(order).unwrap_or_default())
             }
-            "Stand" => self.load_snapshot("stands", "id = $1", obj_id).await,
-            "Team" => self.load_snapshot("teams", "id = $1", obj_id).await,
-            "Equipment" => self.load_snapshot("equipment", "id = $1", obj_id).await,
+            "Stand" => self.load_snapshot(AiContextSnapshotKind::Stand, obj_id).await,
+            "Team" => self.load_snapshot(AiContextSnapshotKind::Team, obj_id).await,
+            "Equipment" => self.load_snapshot(AiContextSnapshotKind::Equipment, obj_id).await,
             "Anomaly" => {
                 let service = self
                     .anomaly_service
@@ -246,10 +239,7 @@ impl AiContextService {
                     .ok_or_else(|| AiContextError::Internal(format!("BusinessCase not found: {obj_id}")))?;
                 Ok(serde_json::to_value(case).unwrap_or_default())
             }
-            "WorkflowRun" => {
-                self.load_snapshot("business_case_workflow_runs", "run_id = $1", obj_id)
-                    .await
-            }
+            "WorkflowRun" => self.load_snapshot(AiContextSnapshotKind::WorkflowRun, obj_id).await,
             "Notification" => {
                 let service = self
                     .notification_service
@@ -262,8 +252,7 @@ impl AiContextService {
                 if let Some(notification) = notification {
                     Ok(serde_json::to_value(notification).unwrap_or_default())
                 } else {
-                    self.load_snapshot("notifications", "notification_id = $1", obj_id)
-                        .await
+                    self.load_snapshot(AiContextSnapshotKind::Notification, obj_id).await
                 }
             }
             "Todo" => {
@@ -286,17 +275,18 @@ impl AiContextService {
 
     async fn load_snapshot(
         &self,
-        table_name: &str,
-        predicate: &str,
+        kind: AiContextSnapshotKind,
         obj_id: &str,
     ) -> Result<serde_json::Value, AiContextError> {
-        let pool = self
-            .pool
+        let repository = self
+            .snapshot_repository
             .as_ref()
-            .ok_or_else(|| AiContextError::Internal("context snapshot pool unavailable".into()))?;
-        load_table_snapshot(pool, table_name, predicate, obj_id)
+            .ok_or_else(|| AiContextError::Internal("context snapshot repository unavailable".into()))?;
+        repository
+            .load_snapshot(kind, obj_id)
             .await
-            .map_err(|e| AiContextError::Internal(e.to_string()))
+            .map_err(|error| AiContextError::Internal(error.to_string()))?
+            .ok_or_else(|| AiContextError::Internal(format!("{kind:?} snapshot not found: {obj_id}")))
     }
 
     async fn object_policy_allows_read(
@@ -374,4 +364,113 @@ fn can_read_context_object_type(user_permissions: &[String], object_type: &str) 
                         .unwrap_or(false)
             })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use chrono::NaiveDate;
+    use fms_domain::error::DomainError;
+    use fms_domain::models::flight::Flight;
+    use fms_domain::ports::flight_repository::{FlightRepository, FlightSearchCriteria, FlightUpdatePatch};
+    use std::sync::Mutex;
+
+    struct EmptyFlightRepository;
+
+    #[async_trait]
+    impl FlightRepository for EmptyFlightRepository {
+        async fn find_by_id(&self, _flight_id: &str) -> Result<Option<Flight>, DomainError> {
+            Ok(None)
+        }
+        async fn find_all(&self, _limit: i64, _offset: i64) -> Result<Vec<Flight>, DomainError> {
+            Ok(Vec::new())
+        }
+        async fn find_by_date(&self, _date: NaiveDate) -> Result<Vec<Flight>, DomainError> {
+            Ok(Vec::new())
+        }
+        async fn find_by_flight_number(&self, _flight_no: &str) -> Result<Vec<Flight>, DomainError> {
+            Ok(Vec::new())
+        }
+        async fn find_by_status(&self, _status: i32, _limit: i64, _offset: i64) -> Result<Vec<Flight>, DomainError> {
+            Ok(Vec::new())
+        }
+        async fn save(&self, _flight: &Flight) -> Result<(), DomainError> {
+            Ok(())
+        }
+        async fn update_partial(
+            &self,
+            _flight_id: &str,
+            _patch: &FlightUpdatePatch,
+        ) -> Result<Option<Flight>, DomainError> {
+            Ok(None)
+        }
+        async fn save_batch(&self, _flights: &[Flight]) -> Result<usize, DomainError> {
+            Ok(0)
+        }
+        async fn update_status(&self, _flight_id: &str, _status: i32) -> Result<bool, DomainError> {
+            Ok(false)
+        }
+        async fn delete(&self, _flight_id: &str) -> Result<bool, DomainError> {
+            Ok(false)
+        }
+        async fn search(
+            &self,
+            _criteria: &FlightSearchCriteria,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<Vec<Flight>, DomainError> {
+            Ok(Vec::new())
+        }
+        async fn count_by_date(&self, _date: NaiveDate) -> Result<i64, DomainError> {
+            Ok(0)
+        }
+    }
+
+    struct RecordingSnapshotRepository {
+        requested: Mutex<Vec<AiContextSnapshotKind>>,
+    }
+
+    #[async_trait]
+    impl AiContextSnapshotRepository for RecordingSnapshotRepository {
+        async fn load_snapshot(
+            &self,
+            kind: AiContextSnapshotKind,
+            _object_id: &str,
+        ) -> Result<Option<serde_json::Value>, DomainError> {
+            self.requested.lock().unwrap().push(kind);
+            Ok(Some(serde_json::json!({ "id": "stand-1" })))
+        }
+    }
+
+    fn service() -> AiContextService {
+        AiContextService::new(
+            Arc::new(crate::services::flight_service::FlightService::new(Arc::new(
+                EmptyFlightRepository,
+            ))),
+            Arc::new(AuthorizationService),
+        )
+    }
+
+    #[tokio::test]
+    async fn snapshot_backed_objects_fail_closed_without_repository() {
+        let error = service().load_object_data("Stand", "stand-1").await.unwrap_err();
+        assert!(error.to_string().contains("context snapshot repository unavailable"));
+    }
+
+    #[tokio::test]
+    async fn snapshot_backed_objects_use_semantic_kind() {
+        let repository = Arc::new(RecordingSnapshotRepository {
+            requested: Mutex::new(Vec::new()),
+        });
+        let service = service().with_snapshot_repository(repository.clone());
+
+        let value = service.load_object_data("Stand", "stand-1").await.unwrap();
+
+        assert_eq!(value["id"], "stand-1");
+        assert_eq!(
+            repository.requested.lock().unwrap().as_slice(),
+            &[AiContextSnapshotKind::Stand]
+        );
+    }
 }

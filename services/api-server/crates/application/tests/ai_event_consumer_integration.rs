@@ -1,4 +1,4 @@
-//! End-to-end integration test for Wave 1 + Wave 2.
+//! End-to-end integration test for the runtime event consumer.
 //!
 //! Drives the full `ai.runtime.events` flow through a real
 //! `AiEventConsumer` wired into `fms_infrastructure::messaging::MemoryPushConsumer`.

@@ -1,4 +1,4 @@
-//! Mobile operations exports (plan §4 战情).
+//! Mobile operations exports.
 
 use mobile_core::dto::operations as core;
 

@@ -24,6 +24,7 @@ use fms_application::services::flight_batch_cell_update_service::{
 };
 use fms_domain::ports::flight_repository::FlightRepository;
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
+use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomainEventOutboxRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_flight_runtime_projection_repository::PgFlightRuntimeProjectionRepository;
 use fms_infrastructure::repositories::pg_flight_timeline_event_repository::PgFlightTimelineEventRepository;
@@ -60,7 +61,14 @@ fn build_service(pool: PgPool) -> FlightBatchCellUpdateService {
     let timeline_repo = Arc::new(PgFlightTimelineEventRepository::new(pool.clone()));
     let flight_repo_dyn: Arc<dyn FlightRepository + Send + Sync> = flight_repo.clone();
     let timeline_read = timeline_repo.clone();
-    FlightBatchCellUpdateService::new(flight_repo_dyn, flight_repo, timeline_repo, timeline_read, pool)
+    FlightBatchCellUpdateService::new(
+        flight_repo_dyn,
+        flight_repo,
+        timeline_repo,
+        timeline_read,
+        Arc::new(PgDomainEventOutboxRepository::new(pool.clone())),
+        pool,
+    )
 }
 
 async fn seed_flight(pool: &PgPool, flight_id: &str, stand: &str, remarks: &str, version: i32) {
@@ -208,7 +216,7 @@ async fn batch_snapshot_updates_all_or_nothing_and_writes_outbox() {
     };
 
     let result = service
-        .execute(request, "tester", false, &["flight:manage".into()])
+        .execute(request, "tester", false, &["flight.update".into()])
         .await
         .expect("batch remarks update");
 
@@ -325,7 +333,7 @@ async fn batch_timeline_appends_manual_batch_edit_events_with_jwt_actor() {
     };
 
     let result = service
-        .execute(request, "jwt-actor-1", false, &["flight:manage".into()])
+        .execute(request, "jwt-actor-1", false, &["flight.update".into()])
         .await
         .expect("timeline batch");
 
@@ -370,7 +378,7 @@ async fn batch_timeline_appends_manual_batch_edit_events_with_jwt_actor() {
         }],
     };
     let retry = service
-        .execute(request2, "jwt-actor-1", false, &["flight:manage".into()])
+        .execute(request2, "jwt-actor-1", false, &["flight.update".into()])
         .await
         .expect("idempotent retry");
     assert_eq!(retry.updated_count, 1);
@@ -388,7 +396,7 @@ async fn batch_timeline_appends_manual_batch_edit_events_with_jwt_actor() {
         }],
     };
     service
-        .execute(request3, "jwt-actor-1", false, &["flight:manage".into()])
+        .execute(request3, "jwt-actor-1", false, &["flight.update".into()])
         .await
         .expect("different field with same batch id");
     assert_eq!(timeline_count(&pool, &f1, MANUAL_BATCH_EDIT_SOURCE).await, 2);
@@ -407,7 +415,7 @@ async fn batch_timeline_appends_manual_batch_edit_events_with_jwt_actor() {
         }],
     };
     let overwrite = service
-        .execute(request4, "jwt-actor-1", false, &["flight:manage".into()])
+        .execute(request4, "jwt-actor-1", false, &["flight.update".into()])
         .await
         .expect("overwrite existing timeline value with earlier time");
     assert_eq!(overwrite.updated_count, 1);

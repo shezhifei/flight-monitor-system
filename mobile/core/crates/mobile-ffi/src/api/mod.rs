@@ -1,4 +1,4 @@
-//! Domain-level async exports visible to Dart (plan §4).
+//! Domain-level async exports visible to Dart.
 //!
 //! Runtime assembly lives here (`init_core`); domain exports are split into
 //! `session` / `auth` / `dispatch` submodules. Forwarding only — no business
@@ -77,7 +77,7 @@ pub(crate) fn runtime() -> anyhow::Result<Arc<CoreRuntime>> {
 /// Re-initialization is allowed (replaces the previous runtime).
 ///
 /// `operator_context_id` is the stable device id sent as
-/// `X-Operator-Context-Id` on every request (§0.3; the legacy app uses
+/// `X-Operator-Context-Id` on every request (the archived Kotlin app uses
 /// ANDROID_ID). It doubles as the `device_id` for device register/heartbeat.
 /// `db_path` is the sqlite offline-queue file (Dart:
 /// `getApplicationSupportDirectory`).
@@ -96,8 +96,8 @@ pub async fn init_core(
     Ok(())
 }
 
-/// P0 FFI round-trip demo: sign a request with a fresh timestamp and nonce
-/// and return the four anti-replay header values.
+/// Sign a request with a fresh timestamp and nonce and return the four
+/// anti-replay header values.
 pub async fn ping_sign_demo(
     method: String,
     uri: String,

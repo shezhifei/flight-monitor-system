@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import jwt
 import pytest
+from fastapi.testclient import TestClient
 
 from src.infrastructure.ai.service_identity import (
     ALLOWED_HEALTH_PATHS,
@@ -24,6 +25,7 @@ from src.infrastructure.ai.service_identity import (
     extract_service_identity_from_request,
     require_service_identity,
 )
+from tests.sidecar.canonical_entrypoint import app
 
 os.environ["JWT_SECRET"] = "test-secret-for-unit-tests"
 
@@ -220,26 +222,17 @@ class TestContractWithFastAPI:
         return jwt.encode(payload, self.secret, algorithm="HS256")
 
     def test_health_no_token_returns_200(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         client = TestClient(app)
         response = client.get("/internal/ai/v1/health")
         assert response.status_code == 200
         assert response.json()["status"] == "healthy"
 
     def test_ontology_schema_no_token_returns_401(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         client = TestClient(app)
         response = client.get("/internal/ai/v1/ontology/schema")
         assert response.status_code == 401
 
     def test_ontology_schema_valid_token_returns_200(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         from src.infrastructure.ai.ontology.schema_mirror import schema_mirror
 
         # Pre-populate cache to avoid external HTTP call
@@ -252,26 +245,17 @@ class TestContractWithFastAPI:
         assert response.json()["version"] == "1.0.0"
 
     def test_runs_no_token_returns_401(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         client = TestClient(app)
         response = client.post("/internal/ai/v1/runs", json={})
         assert response.status_code == 401
 
     def test_runs_path_mismatch_returns_403(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         client = TestClient(app)
         token = self._create_token("/different/path")
         response = client.post("/internal/ai/v1/runs", json={}, headers={SERVICE_IDENTITY_HEADER: token})
         assert response.status_code == 403
 
     def test_runs_path_mismatch_response_does_not_echo_paths(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         client = TestClient(app)
         token = self._create_token("/different/path")
         response = client.post(
@@ -285,9 +269,6 @@ class TestContractWithFastAPI:
         assert "/internal/ai/v1/runs" not in response_text
 
     def test_runs_valid_token_passes(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
         client = TestClient(app)
         token = self._create_token("/internal/ai/v1/runs")
         response = client.post(
@@ -308,13 +289,10 @@ class TestContractWithFastAPI:
         assert data["success"] is True
         assert "answer" in data
 
-    def test_legacy_api_v2_returns_410(self):
-        from fastapi.testclient import TestClient
-        from scripts.host.ai_sidecar_entrypoint import app
-
+    def test_public_api_v2_is_not_exposed_by_sidecar(self):
         client = TestClient(app)
         response = client.get("/api/v2/ai/nl-query")
-        assert response.status_code == 410
+        assert response.status_code == 404
 
 
 if __name__ == "__main__":

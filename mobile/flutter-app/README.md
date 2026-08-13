@@ -1,6 +1,6 @@
 # Flight Monitor Mobile（Flutter + Rust）
 
-Android 客户端重构：`mobile/flutter-app`（UI）+ `mobile/core`（Rust 签名/会话/API/SSE/离线队列）。
+Android 客户端：`mobile/flutter-app`（UI）+ `mobile/core`（Rust 签名/会话/API/SSE/离线队列）。
 
 ## 结构
 
@@ -56,8 +56,7 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
 # 未配置时 release 使用 debug 签名（仅本地/CI 方便，不可上架）
 ```
 
-## 计划与交接
+## 文档
 
-- 执行计划 / 交接：本地 `docs/plans/android-flutter-rust-rebuild-*.md`
-- 可跟踪文档：`docs/mobile/`（端点清单、推送评估、release 体积）
-- 旧 Kotlin 归档：`legacy/android-kotlin/`
+- 端点清单、推送评估、release 体积：`docs/mobile/`
+- 旧 Kotlin 归档（只读对拍）：`legacy/android-kotlin/`

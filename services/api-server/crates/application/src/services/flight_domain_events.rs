@@ -4,13 +4,14 @@
 //! the thin outbox write helper so the various flight writers (flight_service,
 //! flight_runtime_service/timeline) no longer duplicate the raw outbox INSERT.
 
-use fms_infrastructure::PgDomainEventOutboxRepository;
 use serde_json::{json, Value};
 use sqlx::{Postgres, Transaction};
 use ulid::Ulid;
 
 use fms_domain::error::DomainError;
 use fms_domain::ports::flight_repository::FlightUpdatePatch;
+
+use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 
 // ---------------------------------------------------------------------------
 // Event-type constants (single source of truth)
@@ -128,6 +129,7 @@ pub fn build_deleted_payload(flight_id: &str, actor_id: Option<&str>) -> Value {
 /// duplicated `insert_domain_event_outbox` functions in flight_service.rs and
 /// flight_runtime_service/timeline.rs. The SQL and error mapping are unchanged.
 pub async fn write_flight_outbox_event(
+    outbox_repo: &dyn SqlxDomainEventOutboxTransactionalRepository,
     tx: &mut Transaction<'_, Postgres>,
     aggregate_type: &str,
     aggregate_id: &str,
@@ -135,21 +137,16 @@ pub async fn write_flight_outbox_event(
     payload: Value,
 ) -> Result<(), DomainError> {
     let source_change_id = Ulid::new().to_string();
-    PgDomainEventOutboxRepository::insert_event(
-        tx,
-        aggregate_type,
-        aggregate_id,
-        event_type,
-        payload,
-        &source_change_id,
-    )
-    .await
-    .map_err(|e| DomainError::Internal(format!("outbox write failed: {e}")))?;
+    outbox_repo
+        .insert_event_in_tx(tx, aggregate_type, aggregate_id, event_type, payload, &source_change_id)
+        .await
+        .map_err(|error| DomainError::Internal(format!("outbox write failed: {error}")))?;
     Ok(())
 }
 
 /// Emit one outbox row per touched field on a flight update patch.
 pub async fn write_flight_update_outbox_events(
+    outbox_repo: &dyn SqlxDomainEventOutboxTransactionalRepository,
     tx: &mut Transaction<'_, Postgres>,
     flight_id: &str,
     patch: &FlightUpdatePatch,
@@ -224,7 +221,7 @@ pub async fn write_flight_update_outbox_events(
     }
 
     for (event_type, payload) in events {
-        write_flight_outbox_event(tx, FLIGHT_AGGREGATE_TYPE, flight_id, event_type, payload).await?;
+        write_flight_outbox_event(outbox_repo, tx, FLIGHT_AGGREGATE_TYPE, flight_id, event_type, payload).await?;
     }
     Ok(())
 }

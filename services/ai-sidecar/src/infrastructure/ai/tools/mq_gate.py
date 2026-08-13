@@ -327,7 +327,7 @@ def _default_governance_for_unresolved(tool_name: str) -> ResolvedToolGovernance
 
 
 class ToolMqGate:
-    """Phase 1 MQ authorization gate.
+    """MQ authorization gate.
 
     The gate owns the per-run ``event_sequence`` counter and is the
     single point that talks to the publisher and the command poller on

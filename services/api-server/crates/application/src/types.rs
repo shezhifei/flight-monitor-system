@@ -240,25 +240,19 @@ pub type ConcreteDomainActionExecutor = DomainActionExecutor;
 
 pub type ConcreteAiActionProposalService = AiActionProposalService;
 
-// DispatchResourceService is generic over repository impls. Handlers must extract
-// the same monomorphized type that the composition root registers in app_data.
 use crate::services::dispatch_resource_service::DispatchResourceService;
-use fms_infrastructure::repositories::pg_department_repository::PgDepartmentRepository;
-use fms_infrastructure::repositories::pg_equipment_repository::PgEquipmentRepository;
-use fms_infrastructure::repositories::pg_equipment_type_repository::PgEquipmentTypeRepository;
-use fms_infrastructure::repositories::pg_stand_repository::PgStandRepository;
-use fms_infrastructure::repositories::pg_task_type_repository::PgTaskTypeRepository;
-use fms_infrastructure::repositories::pg_team_member_repository::PgTeamMemberRepository;
-use fms_infrastructure::repositories::pg_team_repository::PgTeamRepository;
-use fms_infrastructure::repositories::pg_team_type_repository::PgTeamTypeRepository;
+use fms_domain::ports::dispatch_repository::{
+    DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository, TaskTypeRepository,
+    TeamMemberRepository, TeamRepository, TeamTypeRepository,
+};
 
 pub type ConcreteDispatchResourceService = DispatchResourceService<
-    PgDepartmentRepository,
-    PgTeamTypeRepository,
-    PgTeamRepository,
-    PgTeamMemberRepository,
-    PgEquipmentTypeRepository,
-    PgEquipmentRepository,
-    PgStandRepository,
-    PgTaskTypeRepository,
+    dyn DepartmentRepository + Send + Sync,
+    dyn TeamTypeRepository + Send + Sync,
+    dyn TeamRepository + Send + Sync,
+    dyn TeamMemberRepository + Send + Sync,
+    dyn EquipmentTypeRepository + Send + Sync,
+    dyn EquipmentRepository + Send + Sync,
+    dyn StandRepository + Send + Sync,
+    dyn TaskTypeRepository + Send + Sync,
 >;

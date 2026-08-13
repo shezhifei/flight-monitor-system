@@ -23,7 +23,7 @@ const {
 } = useAnomalyMonitor();
 
 const auth = useAuth();
-const canManageAnomalies = computed(() => hasUserPermission(auth.getUser(), 'flight:manage'));
+const canManageAnomalies = computed(() => hasUserPermission(auth.getUser(), 'anomaly:write'));
 function handleLogout() { auth.logout(); }
 
 async function handleAcknowledge(id: string): Promise<void> {

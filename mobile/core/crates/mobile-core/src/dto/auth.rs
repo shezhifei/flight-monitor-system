@@ -1,4 +1,4 @@
-//! Auth DTOs (plan §3.6).
+//! Auth DTOs.
 //!
 //! Field authority: legacy `AuthModels.kt`; `TokenResponse` additionally
 //! cross-checked against the backend `Token` schema
@@ -41,14 +41,6 @@ pub struct TokenResponse {
     pub session_secret: Option<String>,
 }
 
-/// `POST /api/v2/auth/sse-token` response.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct SseTokenResponse {
-    pub sse_token: String,
-    pub sse_expires_in: i64,
-}
-
 /// Simple ack payload (`{success, message}`) used by logout/heartbeat.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -58,7 +50,7 @@ pub struct AuthAckResponse {
 }
 
 /// Current-user profile (`GET /api/v2/auth/me` returns the backend
-/// `UserResponse` verbatim; this is the legacy app's projection of it).
+/// `UserResponse` verbatim).
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct UserProfile {

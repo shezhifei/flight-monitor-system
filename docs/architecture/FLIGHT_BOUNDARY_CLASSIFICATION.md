@@ -43,7 +43,7 @@
 - 判断缓存形状兼容分支
 - 根据页面消费方式决定领域行为
 
-## 当前 Phase 1 收口结果
+## 当前收口结果
 
 - 写后副作用已通过 `FlightWritePersistencePlan` 和 `FlightWriteSideEffectRequest` 明确化。
 - 仓储读模型反序列化不再依赖应用层 mapper。

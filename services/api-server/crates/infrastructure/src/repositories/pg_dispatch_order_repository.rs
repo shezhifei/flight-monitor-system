@@ -34,13 +34,12 @@ impl PgDispatchOrderRepository {
                 "无法创建派工单：flight_id 不能为空".into(),
             ));
         }
-        let flight_active: bool = sqlx::query_scalar(
-            "SELECT EXISTS (SELECT 1 FROM flights WHERE flight_id = $1 AND deleted_at IS NULL)",
-        )
-        .bind(flight_id)
-        .fetch_one(&mut **tx)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let flight_active: bool =
+            sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM flights WHERE flight_id = $1 AND deleted_at IS NULL)")
+                .bind(flight_id)
+                .fetch_one(&mut **tx)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
         if !flight_active {
             return Err(DomainError::ValidationError(format!(
                 "无法创建派工单：父航班 {flight_id} 不存在或已删除"

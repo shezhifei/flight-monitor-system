@@ -1,4 +1,4 @@
-//! Chat exports (plan §4 协作).
+//! Chat exports.
 
 use mobile_core::dto::chat as core;
 

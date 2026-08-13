@@ -1,6 +1,6 @@
 """上下文预算规划器 - 预算驱动的上下文压缩
 
-Phase 3 核心组件：在每次 LLM 请求前计算 token budget，决定是否需要压缩。
+在每次 LLM 请求前计算 token budget，决定是否需要压缩。
 """
 
 from __future__ import annotations

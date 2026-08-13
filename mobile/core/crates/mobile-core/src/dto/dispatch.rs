@@ -1,4 +1,4 @@
-//! Dispatch DTOs + status-machine constants (plan §3.6).
+//! Dispatch DTOs + status-machine constants.
 //!
 //! Field authority: legacy `DispatchModels.kt`, cross-checked against the
 //! backend `dispatch_schemas.rs` (`MobileSyncRequest` / `MobileSyncResponse`).
@@ -8,13 +8,12 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
-// Status-machine constants (centralized for UI mapping, plan §3.6)
+// Status-machine constants (centralized for UI mapping)
 // ---------------------------------------------------------------------------
 
-/// Dispatch order statuses. Labels in the legacy app:
+/// Dispatch order statuses.
 /// pending=待分配 assigned=待接单 accepted=已接单 checked_in=已签到
 /// in_progress=作业中 completed=已完工 cancelled=已取消
-/// (`WorkbenchActivity.kt::mapStatusLabel`).
 pub mod order_status {
     pub const PENDING: &str = "pending";
     pub const ASSIGNED: &str = "assigned";
@@ -26,7 +25,7 @@ pub mod order_status {
 }
 
 /// Offline action types stored in `pending_actions.action_type`
-/// (plan §3.5 DDL comment) and sent as `MobileSyncAction.action_type`.
+/// and sent as `MobileSyncAction.action_type`.
 pub mod action_type {
     pub const ACCEPT: &str = "accept";
     pub const CHECKIN: &str = "checkin";
@@ -39,7 +38,7 @@ pub mod action_type {
 
 /// Server-side per-action sync verdicts
 /// (`MobileSyncActionResult.status`): `applied`/`duplicate` → drop from the
-/// queue, `failed` → keep and increment `retry_count` (plan §3.5).
+/// queue, `failed` → keep and increment `retry_count`.
 pub mod sync_status {
     pub const APPLIED: &str = "applied";
     pub const DUPLICATE: &str = "duplicate";
@@ -88,7 +87,7 @@ fn default_origin_label() -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Action requests (the 7 dispatch actions on the P1 main flow)
+// Action requests (the seven dispatch write actions)
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize)]

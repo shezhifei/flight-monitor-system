@@ -95,6 +95,43 @@ impl FlightTimelineEventRepository for PgFlightTimelineEventRepository {
 
 #[async_trait]
 impl<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>> for PgFlightTimelineEventRepository {
+    async fn lock_milestone_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        flight_id: &str,
+        milestone_code: &str,
+    ) -> Result<(), DomainError> {
+        sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))")
+            .bind(flight_id)
+            .bind(milestone_code)
+            .execute(&mut **tx)
+            .await
+            .map_err(|error| DomainError::Internal(error.to_string()))?;
+        Ok(())
+    }
+
+    async fn latest_occurred_at_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        flight_id: &str,
+        milestone_code: &str,
+    ) -> Result<Option<DateTime<Utc>>, DomainError> {
+        sqlx::query_scalar(
+            r#"
+            SELECT occurred_at
+            FROM flight_dispatch_timeline_events
+            WHERE flight_id = $1 AND milestone_code = $2 AND deleted_at IS NULL
+            ORDER BY created_at DESC, timeline_id DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(flight_id)
+        .bind(milestone_code)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))
+    }
+
     async fn insert_in_tx(
         &self,
         tx: &mut Transaction<'tx, Postgres>,

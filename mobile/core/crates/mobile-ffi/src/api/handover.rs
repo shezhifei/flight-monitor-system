@@ -1,4 +1,4 @@
-//! Shift handover exports (plan §4 交接班).
+//! Shift handover exports.
 
 use mobile_core::dto::handover as core;
 

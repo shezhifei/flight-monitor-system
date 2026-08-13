@@ -7,7 +7,7 @@ import 'package:flight_monitor/bridge/frb_generated.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('rust lib loads and ping_sign_demo round-trips', (tester) async {
+  testWidgets('rust lib loads and signing headers round-trip', (tester) async {
     await RustLib.init();
     final headers = await pingSignDemo(
       method: 'GET',

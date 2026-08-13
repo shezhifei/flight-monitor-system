@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/constants.dart';
 import '../bridge/api/handover.dart';
 
-/// 交接班列表（plan §6 P2 HandoverList）。
+/// 交接班列表。
 final handoversProvider =
     AsyncNotifierProvider<HandoversNotifier, List<Handover>>(
   HandoversNotifier.new,

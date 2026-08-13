@@ -1,4 +1,4 @@
-//! Tool authorization service (Phase 1a).
+//! Tool authorization service.
 //!
 //! Single authorization decision point for protected tool calls. Given a
 //! [`ToolAuthorizationContext`] derived from the Rust edge (so that

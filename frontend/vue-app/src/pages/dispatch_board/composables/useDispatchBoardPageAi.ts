@@ -269,8 +269,7 @@ export function useDispatchBoardPageAi(options: UseDispatchBoardPageAiOptions): 
       if (res.ok) {
         const payload = unwrapEnvelope<Record<string, unknown>>(res.data);
         const payloadRec = payload as Record<string, unknown> | null;
-        const dataObj = payloadRec?.data as Record<string, unknown> | undefined;
-        const resultData = ((dataObj?.result_data || dataObj?.result || {}) as Record<string, unknown>) || {};
+        const resultData = (payloadRec?.result_data as Record<string, unknown> | undefined) || {};
         const text = String(resultData.output || resultData.summary || '').trim();
         if (text)
           suggestions.push({

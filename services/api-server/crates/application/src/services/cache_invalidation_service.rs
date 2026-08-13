@@ -9,8 +9,7 @@ use fms_domain::ports::message_queue::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tokio::sync::watch;
-use tracing::{info, warn};
+use tracing::warn;
 
 use crate::types::ConcreteFlightService;
 
@@ -287,37 +286,6 @@ impl CacheInvalidationSubscriberService {
             .map_err(|error| DomainError::Internal(error.to_string()))?;
 
         self.process_messages(message_queue.as_ref(), messages).await
-    }
-
-    pub async fn consume_once_long_poll(&self) -> Result<i64, DomainError> {
-        // Deprecated long-poll shim — the RocketMQ push consumer drives this
-        // service via `handle_messages` now.  We keep the method for callers
-        // that still expect the long-poll semantics; it simply delegates to
-        // `consume_once` so the polling cadence matches the scheduler fallback.
-        self.consume_once().await
-    }
-
-    /// Run the cache invalidation subscriber as a long-polling background task.
-    ///
-    /// Deprecated: the RocketMQ push consumer (`RocketMqPushConsumer`) now
-    /// drives this service via `handle_messages`.  This method is retained as
-    /// a no-op shim for callers that explicitly want a polling fallback (e.g.
-    /// when `EVENTS_PUSH_CONSUMER_ENABLED=false`).
-    pub async fn run_forever(self: Arc<Self>, _stop_rx: watch::Receiver<bool>) {
-        if !self.enabled {
-            info!("cache_invalidation_subscriber polling fallback disabled");
-            return;
-        }
-        if self.message_queue.is_none() {
-            warn!("cache_invalidation_subscriber polling fallback exiting: message queue unavailable");
-            return;
-        }
-        info!(
-            topic = %self.topic,
-            consumer_group = %self.consumer_group,
-            "cache_invalidation_subscriber polling fallback armed (push consumer is recommended)"
-        );
-        // The `_stop_rx` is intentionally ignored to keep the signature stable.
     }
 
     async fn process_messages(

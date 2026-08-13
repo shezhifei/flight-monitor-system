@@ -5,7 +5,7 @@ import '../../app/l10n.dart';
 import '../../providers/handover_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 交接班详情：条目签收 + 整单签收（plan §5 HandoverDetailScreen）。
+/// 交接班详情：条目签收 + 整单签收。
 class HandoverDetailScreen extends ConsumerWidget {
   const HandoverDetailScreen({super.key, required this.handoverId});
 

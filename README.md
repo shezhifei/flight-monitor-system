@@ -31,7 +31,7 @@ Browser / Vue MPA
 
 标准 Docker 拓扑（`deploy/docker/docker-compose.distributed.yml`）默认服务包括：`rust-api`、`flowable`、`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`（及 Vault 相关服务）。Python HTTP API 不是默认路径。
 
-旧静态页兼容路径：`/frontend/html/<page>.html`，不要作为新功能入口。根路径 `/` 当前仍跳到兼容登录页，验收请直接打开 `/frontend/login.html`。
+旧静态页兼容路径：`/frontend/html/<page>.html`，不要作为新功能入口。根路径 `/` 跳到正式 Vue 登录页 `/frontend/login.html`。
 
 ## 子系统
 

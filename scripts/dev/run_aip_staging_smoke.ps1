@@ -93,7 +93,6 @@ Write-Host ""
 Write-Host "Flags (set by tests):" -ForegroundColor Yellow
 Write-Host "  FMS_AI_PROPOSAL_EXECUTION_ENABLED    = true"
 Write-Host "  FMS_AI_EXECUTION_READINESS_OVERRIDE  = staging"
-Write-Host "  FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED  = false"
 Write-Host ""
 
 # ── Set environment ─────────────────────────────────────────────────────
@@ -195,7 +194,6 @@ try {
     Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue
     Remove-Item Env:\FMS_AI_PROPOSAL_EXECUTION_ENABLED -ErrorAction SilentlyContinue
     Remove-Item Env:\FMS_AI_EXECUTION_READINESS_OVERRIDE -ErrorAction SilentlyContinue
-    Remove-Item Env:\FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED -ErrorAction SilentlyContinue
 }
 
 if ($exitCode -ne 0) {

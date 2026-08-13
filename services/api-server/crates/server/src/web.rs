@@ -21,6 +21,12 @@ use utoipa::OpenApi;
 )]
 struct ApiDoc;
 
+async fn redirect_root_to_login() -> actix_web::HttpResponse {
+    actix_web::HttpResponse::Found()
+        .insert_header(("Location", "/frontend/login.html"))
+        .finish()
+}
+
 pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
     // 1. Enforce payload size limits for JSON and Query configs
     let json_config = web::JsonConfig::default().error_handler(fms_api::error::default_json_payload_error_handler);
@@ -91,8 +97,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .app_data(web::Data::new(di.ai_job_svc.clone()))
         .app_data(web::Data::new(di.ai_output_validator.clone()))
         .app_data(web::Data::new(di.ai_ontology_repo.clone()))
-        .app_data(web::Data::new(di.ontology_read_action_svc.clone()))
-        .app_data(web::Data::new(di.ontology_advisory_svc.clone()))
+        .app_data(web::Data::new(di.ontology_actions.clone()))
         .app_data(web::Data::new(di.ai_proposal_ingest_svc.clone()))
         .app_data(web::Data::new(di.ai_execution_readiness_svc.clone()))
         .app_data(web::Data::new(di.ai_execution_metrics_svc.clone()))
@@ -118,9 +123,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .app_data(web::Data::new(di.sse_hub.clone()))
         .app_data(web::Data::new(di.performance_metrics.clone()))
         .app_data(web::Data::new(di.runtime_error_monitor.clone()))
-        .app_data(web::Data::new(di.scheduler_runtime_svc.clone()))
-        .app_data(web::Data::new(di.runtime_diagnostics_svc.clone()))
-        .app_data(web::Data::new(di.runtime_diagnostic_sink.clone()));
+        .app_data(web::Data::new(di.scheduler_runtime_svc.clone()));
 
     // 4. Configure API Routes
     cfg.configure(fms_api::routes::metrics::configure)
@@ -146,8 +149,6 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .configure(fms_api::routes::shift_handovers::configure)
         .configure(fms_api::routes::scheduler::configure)
         .configure(fms_api::routes::system::configure)
-        .configure(fms_api::routes::shadow::configure)
-        .configure(fms_api::routes::verification::configure)
         .configure(fms_api::routes::archive::configure)
         .configure(fms_api::routes::mobile::configure)
         .configure(fms_api::routes::dashboard::configure)
@@ -155,7 +156,6 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .configure(fms_api::routes::workflow_dispatch::configure)
         .configure(fms_api::routes::ai_eval::configure)
         .configure(fms_api::routes::nl_query::configure)
-        .configure(fms_api::routes::ai_v2::configure)
         .configure(fms_api::routes::ai_ontology::configure)
         .configure(fms_api::routes::ai_proposals::configure)
         .configure(fms_api::routes::ai_media::configure)
@@ -170,7 +170,6 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .configure(fms_api::sse::handler::configure)
         .configure(fms_api::routes::flowable::configure)
         .configure(fms_api::routes::workflow_forms::configure)
-        .configure(fms_api::routes::experimental::configure)
         .configure(fms_api::routes::static_files::configure)
         .route(
             "/api/v2/openapi.json",
@@ -180,12 +179,24 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
             }),
         )
         .service(utoipa_swagger_ui::SwaggerUi::new("/swagger-ui/{_:.*}").url("/api/v2/openapi.json", ApiDoc::openapi()))
-        .route(
-            "/",
-            web::get().to(|| async {
-                actix_web::HttpResponse::Found()
-                    .insert_header(("Location", "/frontend/html/login.html"))
-                    .finish()
-            }),
+        .route("/", web::get().to(redirect_root_to_login));
+}
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{http::StatusCode, test, web, App};
+
+    use super::redirect_root_to_login;
+
+    #[actix_web::test]
+    async fn root_redirects_to_canonical_vue_login() {
+        let app = test::init_service(App::new().route("/", web::get().to(redirect_root_to_login))).await;
+        let response = test::call_service(&app, test::TestRequest::get().uri("/").to_request()).await;
+
+        assert_eq!(response.status(), StatusCode::FOUND);
+        assert_eq!(
+            response.headers().get("Location").and_then(|value| value.to_str().ok()),
+            Some("/frontend/login.html")
         );
+    }
 }

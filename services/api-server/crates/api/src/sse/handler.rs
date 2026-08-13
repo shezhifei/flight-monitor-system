@@ -465,10 +465,7 @@ mod tests {
         ];
         assert!(find_foreign_user_topic(&own, "42").is_none());
 
-        let foreign = vec![
-            "flights".to_string(),
-            "user_notifications_77".to_string(),
-        ];
+        let foreign = vec!["flights".to_string(), "user_notifications_77".to_string()];
         assert_eq!(
             find_foreign_user_topic(&foreign, "42").map(String::as_str),
             Some("user_notifications_77")

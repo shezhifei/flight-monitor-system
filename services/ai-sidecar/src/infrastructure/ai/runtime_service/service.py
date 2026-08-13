@@ -97,9 +97,9 @@ class RuntimeService(
         self._subagent_dispatcher = subagent_dispatcher
         self._cache_manager = cache_manager
         self._context_budget_planner = context_budget_planner
-        # Wave 2.5: prefer an explicit gate; otherwise resolve from the
+        # Prefer an explicit gate; otherwise resolve from the
         # AI container (registered by the MQ composition root); otherwise
-        # fall back to None (legacy behaviour, no MQ publishes).
+        # fall back to None (no MQ publishes).
         resolved_mq_gate = mq_gate
         if resolved_mq_gate is None and tool_executor is None:
             try:

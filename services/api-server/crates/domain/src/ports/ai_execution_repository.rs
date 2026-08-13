@@ -1,4 +1,4 @@
-//! Repository ports for the AI execution control plane (Phase 1+2+3).
+//! Repository ports for the AI execution control plane.
 //!
 //! Five ports back the durable control plane:
 //! * [`AiToolCallRepository`] — the per-tool-call ledger
@@ -84,8 +84,7 @@ pub trait AiRuntimeCommandRepository: Send + Sync {
         batch_size: u32,
     ) -> Result<Vec<AiRuntimeCommandRecord>, AiExecutionRepositoryError>;
 
-    /// Phase 4 hardened lease: lease pending commands while respecting
-    /// per-run ownership.
+    /// Lease pending commands while respecting per-run ownership.
     ///
     /// A command is eligible when:
     /// * `status = 'pending'`, or
@@ -111,11 +110,11 @@ pub trait AiRuntimeCommandRepository: Send + Sync {
 
     async fn get(&self, command_id: &str) -> Result<Option<AiRuntimeCommandRecord>, AiExecutionRepositoryError>;
 
-    /// Phase 4: refresh the lease heartbeat timestamp for a command.
+    /// Refresh the lease heartbeat timestamp for a command.
     /// Implementations should only update rows with `status = 'leased'`.
     async fn heartbeat_command(&self, command_id: &str) -> Result<(), AiExecutionRepositoryError>;
 
-    /// Phase 4: atomically take over ownership of a run whose previous
+    /// Atomically take over ownership of a run whose previous
     /// worker has crashed or let its lease expire.
     ///
     /// Returns the `start_run` command for `run_id` after setting
@@ -129,7 +128,7 @@ pub trait AiRuntimeCommandRepository: Send + Sync {
         lease_seconds: u32,
     ) -> Result<Option<AiRuntimeCommandRecord>, AiExecutionRepositoryError>;
 
-    /// Phase 4: list leased commands whose `lease_expires_at` is in the
+    /// List leased commands whose `lease_expires_at` is in the
     /// past and whose `attempt_count < max_attempts`. Used by the
     /// recovery orchestrator to find work that needs to be retried or
     /// taken over.

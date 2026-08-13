@@ -6,7 +6,7 @@ import '../../bridge/api/business_case.dart';
 import '../../providers/business_case_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 业务事项详情 + 追加 + 工作流查看（plan §5 BusinessCaseDetailScreen）。
+/// 业务事项详情 + 追加 + 工作流查看。
 class BusinessCaseDetailScreen extends ConsumerWidget {
   const BusinessCaseDetailScreen({super.key, required this.caseId});
 

@@ -1,10 +1,10 @@
 name: Mobile
 
-# CI for the Flutter + Rust mobile rebuild (docs/plans/android-flutter-rust-rebuild-plan.md P0-6).
+# CI for the Flutter + Rust mobile client.
 
 on:
   push:
-    branches: [master, android-flutter-rust-rebuild]
+    branches: [master]
     paths:
       - 'mobile/**'
       - '.github/workflows/mobile.yml'

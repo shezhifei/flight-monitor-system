@@ -1,7 +1,5 @@
 use chrono::{Duration, Utc};
-use fms_domain::models::dispatch::{
-    AlertSeverity, DispatchAlert, dispatch_overrun_dedupe_key,
-};
+use fms_domain::models::dispatch::{dispatch_overrun_dedupe_key, AlertSeverity, DispatchAlert};
 use fms_domain::ports::dispatch_repository::DispatchAlertRepository;
 use fms_infrastructure::repositories::pg_dispatch_alert_repository::PgDispatchAlertRepository;
 use serde_json::json;
@@ -80,7 +78,10 @@ async fn upsert_overrun_reopens_resolved_alert_with_incremented_occurrence(pool:
     assert_eq!(outcome.alert.id, alert_id);
     assert_eq!(outcome.alert.occurrence_count, 2, "occurrence must increment");
     assert!(!outcome.alert.is_resolved);
-    assert!(outcome.alert.acknowledged_at.is_none(), "ack state must be cleared on reopen");
+    assert!(
+        outcome.alert.acknowledged_at.is_none(),
+        "ack state must be cleared on reopen"
+    );
     assert!(outcome.alert.acknowledged_by.is_none());
     assert!(outcome.alert.resolved_at.is_none());
 }
@@ -132,9 +133,13 @@ async fn upsert_overrun_refreshes_last_detected_at(pool: PgPool) {
 #[ignore = "requires DATABASE_URL with PostgreSQL"]
 async fn find_unresolved_filters_by_flight(pool: PgPool) {
     let repo = PgDispatchAlertRepository::new(pool);
-    repo.upsert_overrun(&overrun_alert(&dispatch_overrun_dedupe_key("do-1", "do-2"), "do-1", "do-2"))
-        .await
-        .unwrap();
+    repo.upsert_overrun(&overrun_alert(
+        &dispatch_overrun_dedupe_key("do-1", "do-2"),
+        "do-1",
+        "do-2",
+    ))
+    .await
+    .unwrap();
 
     let all = repo.find_unresolved(None).await.unwrap();
     assert_eq!(all.len(), 1);

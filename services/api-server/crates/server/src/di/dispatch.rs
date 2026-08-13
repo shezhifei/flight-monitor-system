@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use crate::di::types::*;
 
+use crate::config::{env_flag, env_i64};
 use fms_application::services::anomaly_service::AnomalyService;
 use fms_application::services::dispatch_analytics_service::DispatchAnalyticsService;
 use fms_application::services::dispatch_chat_service::DispatchChatService;
@@ -25,14 +26,16 @@ use fms_application::services::llm_eval_service::LLMEvalService;
 use fms_application::services::resource_availability_service::ResourceAvailabilityService;
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
-use fms_domain::broadcaster::Broadcaster;
-use crate::config::{env_flag, env_i64};
 use fms_application::sqlx_transactional_repositories::{
     SqlxAnomalyTransactionalRepository, SqlxDispatchOrderMemberTransactionalRepository,
     SqlxDispatchOrderTransactionalRepository,
 };
+use fms_domain::broadcaster::Broadcaster;
 
-use fms_domain::ports::dispatch_repository::DispatchOrderRepository;
+use fms_domain::ports::dispatch_repository::{
+    DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository,
+    TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
+};
 use fms_domain::ports::event_rule_repository::EventRuleRepository;
 use fms_domain::ports::user_repository::UserRepository;
 use fms_domain::ports::workflow_dispatch_repository::WorkflowDispatchRepository;
@@ -102,17 +105,14 @@ pub(crate) fn build_dispatch_services(
     let sse_broadcaster: Arc<dyn Broadcaster + Send + Sync> = infra.sse_hub.clone();
     let scan_interval_secs = env_i64("DISPATCH_OVERRUN_SCAN_INTERVAL_SECS", 30).max(1) as u64;
     let dispatch_overrun_warning_svc = Arc::new(
-        DispatchOverrunWarningService::new(
-            repos.dispatch_order_repo.clone(),
-            repos.dispatch_alert_repo.clone(),
-        )
-        .with_generation_rule_repo(repos.generation_rule_repo.clone())
-        .with_broadcaster(sse_broadcaster)
-        .with_feature_flags(
-            env_flag("DISPATCH_OVERRUN_WARNING_ENABLED", true),
-            env_flag("DISPATCH_OVERRUN_SSE_ENABLED", true),
-        )
-        .with_scan_interval(std::time::Duration::from_secs(scan_interval_secs)),
+        DispatchOverrunWarningService::new(repos.dispatch_order_repo.clone(), repos.dispatch_alert_repo.clone())
+            .with_generation_rule_repo(repos.generation_rule_repo.clone())
+            .with_broadcaster(sse_broadcaster)
+            .with_feature_flags(
+                env_flag("DISPATCH_OVERRUN_WARNING_ENABLED", true),
+                env_flag("DISPATCH_OVERRUN_SSE_ENABLED", true),
+            )
+            .with_scan_interval(std::time::Duration::from_secs(scan_interval_secs)),
     );
     let dispatch_svc = Arc::new(
         DispatchService::new(repos.dispatch_order_repo.clone())
@@ -166,10 +166,7 @@ pub(crate) fn build_dispatch_services(
             .with_collaboration_repo(repos.dispatch_collaboration_repo.clone())
             .with_dispatch_chat_service(dispatch_chat_svc.clone())
             .with_generation_rule_repo(repos.generation_rule_repo.clone())
-            .with_qualification_repos(
-                repos.qualification_repo.clone(),
-                repos.qualification_grant_repo.clone(),
-            ),
+            .with_qualification_repos(repos.qualification_repo.clone(), repos.qualification_grant_repo.clone()),
     );
     let anomaly_tx_repo: Arc<dyn SqlxAnomalyTransactionalRepository> = repos.anomaly_repo.clone();
     let anomaly_svc = Arc::new(
@@ -178,14 +175,14 @@ pub(crate) fn build_dispatch_services(
             .with_flight_repository(repos.flight_repo.clone()),
     );
     let dispatch_resource_svc = Arc::new(DispatchResourceService::new(
-        repos.department_repo.clone(),
-        repos.team_type_repo.clone(),
-        repos.team_repo.clone(),
-        repos.team_member_repo.clone(),
-        repos.equipment_type_repo.clone(),
-        repos.equipment_repo.clone(),
-        repos.stand_repo.clone(),
-        repos.task_type_repo.clone(),
+        repos.department_repo.clone() as Arc<dyn DepartmentRepository + Send + Sync>,
+        repos.team_type_repo.clone() as Arc<dyn TeamTypeRepository + Send + Sync>,
+        repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+        repos.team_member_repo.clone() as Arc<dyn TeamMemberRepository + Send + Sync>,
+        repos.equipment_type_repo.clone() as Arc<dyn EquipmentTypeRepository + Send + Sync>,
+        repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
+        repos.stand_repo.clone() as Arc<dyn StandRepository + Send + Sync>,
+        repos.task_type_repo.clone() as Arc<dyn TaskTypeRepository + Send + Sync>,
     ));
     let resource_utilization_svc = Arc::new(ResourceUtilizationService::new(repos.dispatch_order_repo.clone()));
     let dispatch_rule_svc = Arc::new(DispatchRuleService::new(

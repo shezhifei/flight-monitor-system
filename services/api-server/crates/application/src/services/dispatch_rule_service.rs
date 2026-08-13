@@ -12,11 +12,11 @@ use crate::schemas::dispatch_schemas::{
 };
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
-    DepartmentQualificationCatalog, DepartmentQualificationLevel, DepartmentRuleStatus,
-    DepartmentTaskTypeRequirementVersion, DispatchPublicationState, FlightGenerationRule, GenerationAdjustmentRule,
-    LegScope, PublishTriggerMode, QualificationGrant, QualificationGrantStatus, TaskTypeCrewSlotRequirement,
-    TaskTypeEquipmentRequirement, TemporaryTaskTemplate, TurnaroundConstraintMode, TurnaroundContinuityRule,
-    TurnaroundSlotPair, validate_completion_warning_lead_minutes,
+    validate_completion_warning_lead_minutes, DepartmentQualificationCatalog, DepartmentQualificationLevel,
+    DepartmentRuleStatus, DepartmentTaskTypeRequirementVersion, DispatchPublicationState, FlightGenerationRule,
+    GenerationAdjustmentRule, LegScope, PublishTriggerMode, QualificationGrant, QualificationGrantStatus,
+    TaskTypeCrewSlotRequirement, TaskTypeEquipmentRequirement, TemporaryTaskTemplate, TurnaroundConstraintMode,
+    TurnaroundContinuityRule, TurnaroundSlotPair,
 };
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DepartmentRepository, DepartmentTaskTypeRequirementRepository,

@@ -1,4 +1,4 @@
-//! Phase 3 Rollback API (`/api/v2/ai/proposals/{proposal_id}/...`).
+//! Rollback API (`/api/v2/ai/proposals/{proposal_id}/...`).
 //!
 //! Endpoints (consumed by the operations UI and the agent self-test
 //! scripts):

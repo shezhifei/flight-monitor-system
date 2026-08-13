@@ -1,4 +1,4 @@
-/// 中文文案集中处（plan §5：全部中文文案进 app/l10n；用简单 const 映射，
+/// 中文文案集中处（全部中文文案进 app/l10n；用简单 const 映射，
 /// 不引入 arb 复杂度）。
 class S {
   S._();
@@ -123,7 +123,7 @@ class S {
   static const String checklistResultNa = '不适用';
   static const String checklistEnforced = '强制执行';
 
-  // 工单状态标签（对照旧 App mapStatusLabel）
+  // 工单状态标签
   static const String statusPending = '待分配';
   static const String statusAssigned = '待接单';
   static const String statusAccepted = '已接单';

@@ -1,4 +1,4 @@
-//! 领域事件定义 — Phase 1 展开
+//! 领域事件定义
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;

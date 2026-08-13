@@ -22,6 +22,7 @@ from src.infrastructure.ai.tools.tool_executor import (
     parse_tool_arguments,
     parse_tool_calls_from_stream,
 )
+from tests.sidecar.tool_executor_test_support import authorized_tool_executor
 
 # ---------------------------------------------------------------------------
 # Read-only tool tests
@@ -115,7 +116,7 @@ async def test_tool_executor_read_only():
 @pytest.mark.asyncio
 async def test_tool_executor_write_action_becomes_proposal():
     """Test ToolExecutor creates proposal for write-action tools."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_002",
         "tool_name": "add_flight_note",
@@ -133,7 +134,7 @@ async def test_tool_executor_write_action_becomes_proposal():
 @pytest.mark.asyncio
 async def test_tool_executor_unknown_tool():
     """Test ToolExecutor returns error for unknown tools."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_003",
         "tool_name": "nonexistent_tool",
@@ -147,7 +148,7 @@ async def test_tool_executor_unknown_tool():
 @pytest.mark.asyncio
 async def test_tool_executor_batch():
     """Test batch execution of multiple tools."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_calls = [
         {"tool_call_id": "tc_010", "tool_name": "flight_status_lookup", "arguments": {"flight_id": "CA1234"}},
         {"tool_call_id": "tc_011", "tool_name": "weather_at_airport", "arguments": {"airport_code": "PEK"}},
@@ -168,7 +169,7 @@ async def test_tool_executor_batch():
 @pytest.mark.asyncio
 async def test_collect_proposals():
     """Test proposal collection from execution results."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_calls = [
         {"tool_call_id": "tc_020", "tool_name": "flight_status_lookup", "arguments": {"flight_id": "CA1"}},
         {
@@ -296,7 +297,7 @@ async def test_sse_payload_error():
 @pytest.mark.asyncio
 async def test_high_risk_tools():
     """Test that critical tools are marked as high risk."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     high_risk_tools = ["assign_gate", "update_flight_status"]
 
     for tool_name in high_risk_tools:
@@ -313,7 +314,7 @@ async def test_high_risk_tools():
 @pytest.mark.asyncio
 async def test_medium_risk_tools():
     """Test that standard write tools are marked as medium risk."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_040",
         "tool_name": "add_flight_note",
@@ -377,7 +378,7 @@ async def test_read_only_tool_result_no_secrets():
 @pytest.mark.asyncio
 async def test_write_action_tool_only_generates_proposal():
     """Test that write-action tools generate proposals without executing business actions."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_write",
         "tool_name": "add_flight_note",
@@ -398,7 +399,7 @@ async def test_write_action_tool_only_generates_proposal():
 @pytest.mark.asyncio
 async def test_unknown_tool_emits_safe_error():
     """Test that unknown tool emits a safe error without crashing."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_unknown",
         "tool_name": "nonexistent_dangerous_tool",
@@ -416,7 +417,7 @@ async def test_unknown_tool_emits_safe_error():
 @pytest.mark.asyncio
 async def test_read_only_tool_result_summary_bounded():
     """Test tool.result payload is bounded for SSE streaming."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_summary",
         "tool_name": "flight_list_by_date",
@@ -435,7 +436,7 @@ async def test_read_only_tool_result_summary_bounded():
 @pytest.mark.asyncio
 async def test_write_action_proposal_requires_approval():
     """Test all write-action proposals require approval."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     for tool_name in WRITE_ACTION_TOOLS:
         tool_call = {
             "tool_call_id": f"tc_approval_{tool_name}",
@@ -510,7 +511,7 @@ async def test_enabled_read_only_tool_execution_produces_result():
 @pytest.mark.asyncio
 async def test_enabled_write_action_produces_proposal_no_db_write():
     """Test enabled path: write-action tool produces proposal without DB write."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_enabled_write",
         "tool_name": "add_flight_note",
@@ -531,7 +532,7 @@ async def test_enabled_write_action_produces_proposal_no_db_write():
 @pytest.mark.asyncio
 async def test_enabled_mid_stream_error_does_not_succeed():
     """Test enabled path: mid-stream error does not produce succeeded run.complete."""
-    executor = ToolExecutor()
+    executor = authorized_tool_executor()
     tool_call = {
         "tool_call_id": "tc_enabled_err",
         "tool_name": "nonexistent_dangerous_tool",

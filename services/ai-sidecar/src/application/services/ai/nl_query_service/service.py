@@ -901,13 +901,6 @@ class NLQueryService:
             }
             event_payload["phase"] = phase_map.get(event_name, "planning")
 
-        if not self._is_feature_enabled("AI_EXEC_STATUS_V2", default=True):
-            try:
-                await self._notification_port.notify_ai_event(event_type, event_payload)
-            except Exception as exc:  # noqa: BLE001 - best-effort side effect must not abort main flow
-                logger.warning(f"failed to emit nl_query runtime event '{event_type}': {exc}")
-            return
-
         status_value = str(event_payload.get("status") or "in_progress").strip().lower()
         execution_id = str(event_payload.get("execution_id") or request_id or "").strip()
         conversation_value = str(event_payload.get("conversation_id") or conversation_id or execution_id or "").strip()

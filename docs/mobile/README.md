@@ -17,14 +17,11 @@
 | [release-notes.md](./release-notes.md) | release 构建与体积记录 |
 
 本机写路径解阻（不改后端）：`scripts/mobile/apply_local_write_paths.ps1`。  
-P2 双端：`flutter test integration_test/p2_realtime_acceptance_test.dart -d emulator-5554`。  
-P2 SSE 重连：`scripts/mobile/run_p2_sse_reconnect.ps1`。
-
-执行计划/交接快照在本地 `docs/plans/android-flutter-rust-rebuild-*.md`（`docs/plans/*` 默认 gitignore）。
+双端实时：`flutter test integration_test/dual_client_realtime_test.dart -d emulator-5554`。  
+SSE 重连：`scripts/mobile/run_sse_reconnect.ps1`。
 
 ## 约束
 
-- 后端零改动（除历史 JwtConfig 编译修复）
 - `mobile-core` 禁止依赖 flutter_rust_bridge
 - release `API_BASE_URL` 必须 `https://`（`--dart-define`）
 - token/secret 不进日志

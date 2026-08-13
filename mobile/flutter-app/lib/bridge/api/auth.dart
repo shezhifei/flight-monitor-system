@@ -17,12 +17,12 @@ Future<void> login({required String username, required String password}) =>
       password: password,
     );
 
-/// Register this device. `platform` stays `"android"` (decision point D3).
+/// Register this device. `platform` is always `"android"`.
 Future<DeviceInfo> registerDevice({required DeviceRegisterInfo info}) =>
     RustLib.instance.api.crateApiAuthRegisterDevice(info: info);
 
 /// Device heartbeat. Uses the runtime's operator-context id as the device id
-/// (same ANDROID_ID the legacy app registers with).
+/// (same ANDROID_ID used at register).
 Future<DeviceInfo> deviceHeartbeat({required DeviceHeartbeatMeta meta}) =>
     RustLib.instance.api.crateApiAuthDeviceHeartbeat(meta: meta);
 

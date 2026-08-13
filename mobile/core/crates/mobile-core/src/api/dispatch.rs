@@ -1,5 +1,4 @@
-//! Dispatch API wrappers + offline-aware action dispatch (plan §0.5
-//! Dispatch group, §3.5).
+//! Dispatch API wrappers + offline-aware action dispatch.
 //!
 //! Endpoints (backend `routes/dispatch/mod.rs`,
 //! `routes/dispatch_resources/mod.rs`, mirrored from legacy
@@ -13,7 +12,7 @@
 //! [`dispatch_action`] is the offline-aware entry: send directly, and only
 //! when the failure is network-class ([`crate::offline::should_enqueue`])
 //! queue the action into the sqlite store for later replay. HTTP 4xx/5xx
-//! rejections are final and never queued (§3.5).
+//! rejections are final and never queued.
 
 use serde_json::Value;
 
@@ -57,8 +56,7 @@ pub async fn my_assigned_orders(
         .await
 }
 
-/// The Rust backend route is `/api/v2/dispatch-orders/my/assigned` — the
-/// legacy Python path `/api/v2/dispatch/orders/my/assigned` 404s.
+/// Live route is `/api/v2/dispatch-orders/my/assigned`.
 fn my_assigned_path(status: Option<&str>) -> String {
     match status {
         Some(s) => format!("/api/v2/dispatch-orders/my/assigned?status={s}"),
@@ -67,7 +65,7 @@ fn my_assigned_path(status: Option<&str>) -> String {
 }
 
 /// Send one dispatch action, falling back to the offline queue on
-/// network-class errors only (§3.5).
+/// network-class errors only.
 ///
 /// `payload_json` is the action-specific request body (e.g. the serialized
 /// `DispatchOrderCheckInRequest`). A fresh `client_action_id` (UUID) is

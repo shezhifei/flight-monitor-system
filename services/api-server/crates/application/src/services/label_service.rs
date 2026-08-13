@@ -75,20 +75,15 @@ impl LabelService {
         self.repo.delete_definition(label_id).await
     }
 
-    /// Ontology 契约 §3.3.9 `label.add` 的受控写入口：为航班附加标签。
+    /// `Label.add` 的受控写入口：为航班附加标签。
     /// 标签定义校验、scope 校验与广播复用 attach_flight_label，审计身份由调用方 JWT 注入。
     pub async fn add_to_flight(&self, flight_id: &str, label: &str, _actor: Option<&str>) -> Result<(), DomainError> {
         let code = label.trim();
         if code.is_empty() {
             return Err(DomainError::ValidationError("label is required".to_string()));
         }
-        self.attach_flight_label(
-            flight_id,
-            AttachLabelRequest {
-                code: code.to_string(),
-            },
-        )
-        .await
+        self.attach_flight_label(flight_id, AttachLabelRequest { code: code.to_string() })
+            .await
     }
 
     pub async fn attach_flight_label(&self, flight_id: &str, dto: AttachLabelRequest) -> Result<(), DomainError> {

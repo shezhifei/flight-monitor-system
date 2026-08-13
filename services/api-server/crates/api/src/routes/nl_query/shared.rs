@@ -12,6 +12,21 @@ pub(crate) fn current_user_id(claims: &JwtAuth) -> String {
         .unwrap_or_else(|| "unknown_user".to_string())
 }
 
+pub(crate) fn bind_conversation_id(
+    body: &NLQueryRequest,
+    envelope: &mut fms_domain::models::ai_context_envelope::ContextEnvelope,
+) -> String {
+    let conversation_id = body
+        .conversation_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| envelope.correlation_id.clone());
+    envelope.correlation_id = conversation_id.clone();
+    conversation_id
+}
+
 pub(crate) fn target_objects_from_request(body: &NLQueryRequest) -> Vec<(String, String)> {
     let mut targets = Vec::new();
     if let Some(context) = &body.context {
@@ -89,4 +104,74 @@ pub(crate) struct NLQueryRequest {
     /// The client receives the result via SSE or polls GET /api/v2/ai/jobs/{job_id}.
     #[serde(default)]
     pub async_mode: Option<bool>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fms_domain::models::ai_context_envelope::*;
+
+    fn envelope() -> ContextEnvelope {
+        ContextEnvelope {
+            contract_version: "ai-runtime.v1".into(),
+            job_id: "job-1".into(),
+            run_id: "run-1".into(),
+            correlation_id: "generated-correlation".into(),
+            requester: EnvelopeRequester {
+                user_id: "user-1".into(),
+                roles: vec![],
+                department_id: None,
+                permission_version: None,
+            },
+            ontology: EnvelopeOntology {
+                version: "flight-ops.v1".into(),
+                allowed_object_types: vec![],
+                allowed_actions: vec![],
+                risk_ceiling: "medium".into(),
+            },
+            context: EnvelopeContext {
+                objects: vec![],
+                relations: vec![],
+                evidence: vec![],
+                limits: EnvelopeLimits {
+                    max_objects: 100,
+                    max_tokens: 12000,
+                    redaction: "standard".into(),
+                },
+            },
+            task: EnvelopeTask {
+                task_type: "nl_query".into(),
+                user_message: "status".into(),
+            },
+        }
+    }
+
+    #[test]
+    fn bind_conversation_id_uses_client_id_as_runtime_cache_key() {
+        let request = NLQueryRequest {
+            question: "status".into(),
+            conversation_id: Some(" conversation-1 ".into()),
+            context: None,
+            streaming: None,
+            async_mode: None,
+        };
+        let mut envelope = envelope();
+
+        assert_eq!(bind_conversation_id(&request, &mut envelope), "conversation-1");
+        assert_eq!(envelope.correlation_id, "conversation-1");
+    }
+
+    #[test]
+    fn bind_conversation_id_preserves_generated_id_for_first_turn() {
+        let request = NLQueryRequest {
+            question: "status".into(),
+            conversation_id: None,
+            context: None,
+            streaming: None,
+            async_mode: None,
+        };
+        let mut envelope = envelope();
+
+        assert_eq!(bind_conversation_id(&request, &mut envelope), "generated-correlation");
+    }
 }

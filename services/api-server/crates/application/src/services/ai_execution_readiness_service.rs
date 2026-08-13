@@ -142,15 +142,6 @@ impl AiExecutionReadinessService {
     }
 
     async fn check_feature_flags(&self) -> AiExecutionReadinessCheck {
-        let fallback_enabled = Self::is_truthy(self.read_env("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED").await.as_deref());
-
-        if fallback_enabled {
-            return AiExecutionReadinessCheck::fail(
-                "feature_flags",
-                "FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED must not be true for staging readiness",
-            );
-        }
-
         let execution_allowlist = ExecutionAllowlist::parse(
             self.read_env("FMS_AI_PROPOSAL_EXECUTION_ENABLED")
                 .await
@@ -298,15 +289,6 @@ impl AiExecutionReadinessService {
     }
 
     async fn check_sidecar_write_boundary(&self) -> AiExecutionReadinessCheck {
-        let fallback_enabled = Self::is_truthy(self.read_env("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED").await.as_deref());
-
-        if fallback_enabled {
-            return AiExecutionReadinessCheck::fail(
-                "sidecar_write_boundary",
-                "legacy tool fallback is enabled; sidecar write boundary violated",
-            );
-        }
-
         let sidecar_write_mode = self.read_env("FMS_AI_SIDECAR_WRITE_MODE").await;
         if let Some(mode) = sidecar_write_mode {
             let mode_lower = mode.trim().to_ascii_lowercase();
@@ -338,8 +320,6 @@ mod tests {
             .with_env_value("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "Todo.create")
             .await
             .with_env_value("FMS_AI_EXECUTION_READINESS_OVERRIDE", "")
-            .await
-            .with_env_value("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false")
             .await;
 
         let report = service.evaluate_static_checks().await;
@@ -354,8 +334,6 @@ mod tests {
             .with_env_value("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "Todo.create")
             .await
             .with_env_value("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging")
-            .await
-            .with_env_value("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false")
             .await;
 
         let report = service.evaluate_static_checks().await;
@@ -381,8 +359,6 @@ mod tests {
     async fn readiness_passes_safe_default_flags() {
         let service = AiExecutionReadinessService::new_for_test()
             .with_env_value("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "false")
-            .await
-            .with_env_value("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false")
             .await;
 
         let report = service.evaluate_static_checks().await;
@@ -397,39 +373,11 @@ mod tests {
             .with_env_value("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "true")
             .await
             .with_env_value("FMS_AI_EXECUTION_READINESS_OVERRIDE", "staging")
-            .await
-            .with_env_value("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "false")
             .await;
 
         let report = service.evaluate_static_checks().await;
 
         assert!(report.is_ready());
-    }
-
-    #[tokio::test]
-    async fn readiness_fails_when_legacy_fallback_enabled() {
-        let service = AiExecutionReadinessService::new_for_test()
-            .with_env_value("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "true")
-            .await;
-
-        let report = service.evaluate_static_checks().await;
-
-        assert!(!report.is_ready());
-        assert!(report.failed_checks().iter().any(|check| check.name == "feature_flags"));
-    }
-
-    #[tokio::test]
-    async fn sidecar_write_boundary_fails_when_fallback_enabled() {
-        let service = AiExecutionReadinessService::new_for_test()
-            .with_env_value("FMS_AI_LEGACY_TOOL_FALLBACK_ENABLED", "true")
-            .await;
-
-        let report = service.evaluate_static_checks().await;
-
-        assert!(report
-            .failed_checks()
-            .iter()
-            .any(|check| check.name == "sidecar_write_boundary"));
     }
 
     #[tokio::test]

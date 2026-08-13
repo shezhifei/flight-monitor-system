@@ -1,19 +1,14 @@
 # Ontology V1 — 飞机中心运行本体
 
-> 状态：飞机中心 V1 范围完成（`feat/ontology-definition`）；原始 AI Ontology 契约的
-> `flight-ops.v1` 子集（6 只读 / 5 建议 / 10 受控写动作）已按 Phase 0–5 落地，
-> 子集之外的对象/动作仍未实现。
-> 范围：机号权威、机位占用、登机口分配、周转链接、资源建议、draft 批确认
+Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过同一套对象上的
+只读 / 建议 / 受控写动作访问。两个 HTTP 面共用这一模型，不是两套本体。
 
-本文档与代码对齐：`migrations/119_ontology_v1_core.sql`、
-`domain/models/ontology_v1*.rs`、`application/services/ontology_service`、
-`/api/v2/ontology/*`。
+- 运行资源：`/api/v2/ontology` → `OntologyService`
+- AI 协议：`/api/v2/ai/ontology` → 命名动作服务 + `DomainActionExecutor`
 
-> 范围说明：本文件描述的是飞机中心运行资源本体（Aircraft、StandOccupation、
-> GateAssignment、TurnaroundLink、ResourceAdjustmentSuggestion）。它不等同于
-> `docs/plans/2026-05-11-ontology-v1-contract.md` 中定义的完整 AI 动作集合；
-> 后者包含航班搜索、异常/派工查询、建议动作和更多受控写动作，当前仍按独立计划跟踪，
-> 不应使用本文件的“范围完成”状态作为其验收结论。
+`flight-ops.v1` 当前动作面：6 只读 / 5 建议 / 受控写（机位写作为
+`Flight.change_stand`）。历史完整动作清单见
+[ontology-v1-contract](../plans/2026-05-11-ontology-v1-contract.md)。
 
 ---
 
@@ -96,13 +91,41 @@
 migrations/119_ontology_v1_core.sql
 domain/models/ontology_v1.rs
 domain/models/ontology_v1_rules.rs
+domain/ontology/flight_ops_v1.rs
 domain/ports/ontology_repository.rs
 infrastructure/repositories/pg_ontology_repository.rs
 application/schemas/ontology_schemas.rs
-application/services/ontology_service/
-api/routes/ontology.rs
-server/di/flight.rs  (装配 OntologyService)
+application/services/ontology_service/          运行资源写
+application/services/ontology_actions/          AI 只读 / 建议（每动作一个服务）
+application/services/domain_action_executor/    受控写 → 领域服务
+api/routes/ontology.rs                          /api/v2/ontology
+api/routes/ai_ontology.rs                       /api/v2/ai/ontology
+server/di/flight.rs                             装配 OntologyService + OntologyActionServices
 ```
+
+只读动作服务：`FlightContextService`、`FlightSearchService`、`DispatchStatusService`、
+`AnomalyOpenListService`、`StandAvailabilityService`、`BriefingService`。
+
+建议动作服务：`StandRecommendationService`、`DispatchReplanAdvisorService`、
+`AnomalyEscalationAdvisorService`、`DelayAdvisorService`、
+`NotificationBroadcastAdvisorService`。
+
+机位受控写只有 `Flight.change_stand`。旧 `Flight.update_stand` 不在 schema 中，执行器也拒绝该动作名。
+
+| 动作 | 服务 |
+|---|---|
+| `flight.get_context` | `FlightContextService` |
+| `flight.search` | `FlightSearchService` |
+| `dispatch.get_status` | `DispatchStatusService` |
+| `anomaly.list_open` | `AnomalyOpenListService` |
+| `stand.check_availability` | `StandAvailabilityService` |
+| `report.generate_briefing` | `BriefingService` |
+| `flight.suggest_stand_adjustment` | `StandRecommendationService` |
+| `dispatch.suggest_replan` | `DispatchReplanAdvisorService` |
+| `anomaly.suggest_escalation` | `AnomalyEscalationAdvisorService` |
+| `flight.suggest_delay_action` | `DelayAdvisorService` |
+| `notification.suggest_broadcast` | `NotificationBroadcastAdvisorService` |
+| `Flight.change_stand` / `Flight.update_delay` / 其它受控写 | `DomainActionExecutor` → 既有领域服务 |
 
 ---
 

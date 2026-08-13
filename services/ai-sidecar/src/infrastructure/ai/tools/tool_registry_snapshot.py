@@ -1,6 +1,6 @@
 """统一工具注册表快照 - 合并多种来源的工具
 
-Phase 2 核心组件：将 builtin、MCP、skill 来源的工具合并为统一的 ToolRegistrySnapshot。
+将 builtin、MCP、skill 来源的工具合并为统一的 ToolRegistrySnapshot。
 """
 
 from __future__ import annotations

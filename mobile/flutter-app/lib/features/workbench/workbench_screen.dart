@@ -12,8 +12,7 @@ import '../../providers/sse_demux.dart';
 import '../../providers/workbench_provider.dart';
 import '../dispatch/status_label.dart';
 
-/// 工作台（plan §5 WorkbenchScreen）：workbench 概览 + 60s 心跳循环 +
-/// SSE 连接指示灯 + P2 入口（消息/通知/交接）。
+/// 工作台：概览、心跳循环、SSE 连接指示灯，以及消息/通知/交接入口。
 class WorkbenchScreen extends ConsumerStatefulWidget {
   const WorkbenchScreen({super.key});
 

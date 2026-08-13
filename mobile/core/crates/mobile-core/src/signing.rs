@@ -1,4 +1,4 @@
-//! Anti-replay request signing (plan §0.2 / §3.1).
+//! Anti-replay request signing.
 //!
 //! Byte-for-byte contract with the backend
 //! (`services/api-server/crates/api/src/middleware/anti_replay.rs`):
@@ -90,7 +90,7 @@ pub fn fresh_nonce() -> String {
 mod tests {
     use super::*;
 
-    /// Locked test vector (plan §3.1). Expected values computed independently
+    /// Locked test vector. Expected values computed independently
     /// and cross-checked against the backend `anti_replay.rs` payload format
     /// (`format!("{}:{}:{}:{}:{}", method_str, uri, timestamp_str, nonce, body_hash)`).
     #[test]

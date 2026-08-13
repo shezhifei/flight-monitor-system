@@ -11,16 +11,16 @@ mod tests {
     use crate::middleware::jwt::{JwtAuth, JwtSecret};
     use crate::sse::hub::SseHub;
     use fms_application::services::ai_admin_service::AiAdminService;
-    use fms_application::services::ai_route_service::{
-        ai_feature_enabled, batch_approve_success_result, batch_error_result, batch_reject_success_result,
-        parse_ai_feature_flag, AiRouteService,
-    };
+    use fms_application::services::ai_route_service::AiRouteService;
     use fms_application::services::ai_runtime_service::{AiRuntimeService, AiToolExecutionSpec};
     use fms_domain::error::DomainError;
     use fms_domain::models::ai_entity_config::AiEntityConfigRecord;
     use fms_domain::ports::ai_entity_config_repository::AiEntityConfigRepository;
 
-    use crate::routes::ai::shared::{can_access_execution, execution_owner_id, raw_detail, runtime_conflict_response};
+    use crate::routes::ai::shared::{
+        batch_approve_success_result, batch_error_result, batch_reject_success_result, can_access_execution,
+        execution_owner_id, raw_detail, runtime_conflict_response,
+    };
 
     struct InMemoryAiEntityConfigRepository {
         records: Mutex<HashMap<String, serde_json::Value>>,
@@ -74,11 +74,11 @@ mod tests {
         }
     }
 
-    fn build_ai_route_service(runtime_svc: Arc<AiRuntimeService>) -> Arc<AiRouteService> {
+    fn build_ai_route_service() -> Arc<AiRouteService> {
         let admin_repo: Arc<dyn AiEntityConfigRepository + Send + Sync> =
             Arc::new(InMemoryAiEntityConfigRepository::new([]));
         let admin_svc = Arc::new(AiAdminService::new(admin_repo));
-        Arc::new(AiRouteService::new(admin_svc).with_runtime_service(runtime_svc))
+        Arc::new(AiRouteService::new(admin_svc))
     }
 
     #[test]
@@ -131,15 +131,6 @@ mod tests {
     }
 
     #[test]
-    fn ai_feature_flags_follow_python_env_semantics() {
-        assert!(parse_ai_feature_flag(None, true));
-        assert!(!parse_ai_feature_flag(Some("false"), true));
-        assert!(!parse_ai_feature_flag(Some("0"), true));
-        assert!(parse_ai_feature_flag(Some("yes"), false));
-        assert_eq!(ai_feature_enabled("AI_EXEC_STATUS_V2_SHOULD_NOT_EXIST", true), true);
-    }
-
-    #[test]
     fn execute_tool_route_contract_uses_python_result_mapping() {
         let payload = json!({
             "success": false,
@@ -173,11 +164,6 @@ mod tests {
             "severity": payload.get("severity"),
             "approval_required": payload.get("approval_required"),
             "approval_id": payload.get("approval_id"),
-            "data": {
-                "tool_name": "update_todo",
-                "result": payload.get("data"),
-                "error": payload.get("error"),
-            },
             "result_data": payload.get("data"),
             "error": payload.get("error"),
             "meta": payload.get("meta"),
@@ -186,7 +172,7 @@ mod tests {
         assert_eq!(response["accepted"], true);
         assert_eq!(response["code"], "TOOL_PENDING_APPROVAL");
         assert_eq!(response["execution_id"], "exec_123");
-        assert_eq!(response["data"]["result"]["action_id"], "pending_123");
+        assert!(response.get("data").is_none());
         assert_eq!(response["result_data"]["action_id"], "pending_123");
         assert_eq!(response["meta"]["duration_ms"], 0);
         println!("ai execute route payload: {}", response);
@@ -300,7 +286,8 @@ mod tests {
     > {
         App::new()
             .app_data(web::Data::new(JwtSecret("test-secret".to_string())))
-            .app_data(web::Data::new(build_ai_route_service(runtime_svc)))
+            .app_data(web::Data::new(build_ai_route_service()))
+            .app_data(web::Data::new(runtime_svc))
             .app_data(web::Data::new(SseHub::new(100)))
             .configure(crate::routes::ai::configure)
     }

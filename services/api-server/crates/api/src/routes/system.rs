@@ -13,6 +13,7 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::sse::hub::SseHub;
+use fms_application::services::authorization_service::PermissionCatalog;
 use fms_application::services::flight_import_service::{FlightImportError, FlightImportService};
 use fms_application::services::system_flags_service::SystemFlagsService;
 use fms_application::services::system_ops_service::SystemOpsService;
@@ -204,7 +205,7 @@ async fn preview_flight_import(
     mut multipart: Multipart,
 ) -> Result<HttpResponse, ApiError> {
     ensure_admin(&claims)?;
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_IMPORT_COMMIT)?;
 
     let mut file_name: Option<String> = None;
     let mut file_bytes = Vec::new();
@@ -253,7 +254,7 @@ async fn get_flight_import_preview(
     path: web::Path<String>,
 ) -> Result<HttpResponse, ApiError> {
     ensure_admin(&claims)?;
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_IMPORT_COMMIT)?;
     let preview_id = path.into_inner();
     let preview = import_service
         .get_preview(&preview_id)
@@ -269,7 +270,7 @@ async fn commit_flight_import(
     path: web::Path<String>,
 ) -> Result<HttpResponse, ApiError> {
     ensure_admin(&claims)?;
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_IMPORT_COMMIT)?;
     let preview_id = path.into_inner();
     let result = import_service
         .commit_preview(&preview_id, &actor_id(&claims), request_id(&req))
@@ -285,7 +286,7 @@ async fn get_flight_import_result(
     path: web::Path<String>,
 ) -> Result<HttpResponse, ApiError> {
     ensure_admin(&claims)?;
-    claims.ensure_permission("flight:manage")?;
+    claims.ensure_grant(PermissionCatalog::FLIGHT_IMPORT_COMMIT)?;
     let preview_id = path.into_inner();
     let result = import_service.get_result(&preview_id).map_err(|error| match error {
         FlightImportError::NotFound(_) => ApiError::NotFound(format!("导入结果不存在: {preview_id}")),

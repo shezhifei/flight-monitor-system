@@ -23,7 +23,7 @@ Future<List<DispatchOrder>> myAssignedOrders({String? status}) =>
     RustLib.instance.api.crateApiDispatchMyAssignedOrders(status: status);
 
 /// Send one dispatch action, queueing offline on network-class errors only
-/// (§3.5). `action_json` is `{"action_type": "...", "payload": {...}}` where
+///. `action_json` is `{"action_type": "...", "payload": {...}}` where
 /// `action_type` is one of `accept|checkin|checkout|start|complete|
 /// eta_report|report_issue` and `payload` the action-specific request body.
 Future<DispatchActionResult> dispatchAction({
@@ -35,7 +35,7 @@ Future<DispatchActionResult> dispatchAction({
 );
 
 /// Replay the offline queue through
-/// `POST /api/v2/dispatch-orders/mobile/sync/actions` (§3.5).
+/// `POST /api/v2/dispatch-orders/mobile/sync/actions`.
 Future<SyncSummary> syncOfflineActions() =>
     RustLib.instance.api.crateApiDispatchSyncOfflineActions();
 

@@ -7,8 +7,8 @@
 //! Postgres adapter (delivered with the persistence layer) is the
 //! production source of truth.
 //!
-//! Wave 2+ work can reuse these mocks: the consumer, control service
-//! and any future recovery scheduler share the same trait set.
+//! The consumer, control service, and recovery scheduler share this
+//! trait set.
 
 use std::collections::HashMap;
 use std::sync::Mutex;

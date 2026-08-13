@@ -15,7 +15,7 @@ import 'status_label.dart';
 /// 时间（实测无时区字符串 422）。统一按 UTC 渲染。
 final _timeFormat = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-/// 派工页（plan §5 DispatchScreen）：my/assigned 列表 + 状态机动作按钮 +
+/// 派工页：my/assigned 列表 + 状态机动作按钮 +
 /// ETA 对话框 + 问题上报（附件上传）+ 完工门禁预校验。
 class DispatchScreen extends ConsumerStatefulWidget {
   const DispatchScreen({super.key});
@@ -57,7 +57,7 @@ class _DispatchScreenState extends ConsumerState<DispatchScreen> {
     }
   }
 
-  /// 时间手输对话框（旧 App showTimeInputDialog 同款语义）；预填值按 UTC
+  /// 时间手输对话框；预填值按 UTC
   /// 渲染，与 `_timeFormat` 的 RFC3339 `Z` 后缀一致。
   Future<String?> _askTime(String title, DateTime initial) {
     final controller =
@@ -111,7 +111,7 @@ class _DispatchScreenState extends ConsumerState<DispatchScreen> {
     }
   }
 
-  /// 完工门禁预校验（旧 App completeOrder → evaluateSafetyGateBeforeComplete）：
+  /// 完工门禁预校验：
   /// 先拉安全检查清单，未通过则禁止提交并引导去清单页。
   Future<void> _completeWithGate() async {
     final order = _selected;

@@ -1,4 +1,4 @@
-//! Auth + device exports (plan §4 Auth/设备).
+//! Auth + device exports.
 
 use mobile_core::dto::mobile::{
     MobileDeviceHeartbeatRequest, MobileDeviceRegisterRequest,
@@ -61,7 +61,7 @@ pub async fn login(username: String, password: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Register this device. `platform` stays `"android"` (decision point D3).
+/// Register this device. `platform` is always `"android"`.
 pub async fn register_device(info: DeviceRegisterInfo) -> anyhow::Result<DeviceInfo> {
     let rt = runtime()?;
     let mut request = MobileDeviceRegisterRequest::new(info.device_id);
@@ -80,7 +80,7 @@ pub async fn register_device(info: DeviceRegisterInfo) -> anyhow::Result<DeviceI
 }
 
 /// Device heartbeat. Uses the runtime's operator-context id as the device id
-/// (same ANDROID_ID the legacy app registers with).
+/// (same ANDROID_ID used at register).
 pub async fn device_heartbeat(meta: DeviceHeartbeatMeta) -> anyhow::Result<DeviceInfo> {
     let rt = runtime()?;
     let device_id = rt.client.device_id().to_string();

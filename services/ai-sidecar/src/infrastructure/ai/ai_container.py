@@ -169,7 +169,7 @@ def resolve_graph_runner(default: T | None = None) -> T:
 
 
 # ---------------------------------------------------------------------------
-# Phase 0-4: AI Capability Extension registration
+# AI capability extension registration
 # ---------------------------------------------------------------------------
 
 
@@ -294,12 +294,12 @@ def resolve_subagent_dispatcher(default: T | None = None) -> T:
 
 
 # ---------------------------------------------------------------------------
-# Wave 2.5: MQ control plane registration
+# MQ control plane registration
 # ---------------------------------------------------------------------------
 
 
 def register_tool_mq_gate(instance: Any) -> None:
-    """Register the :class:`ToolMqGate` (Wave 2.5 control plane)."""
+    """Register the :class:`ToolMqGate`."""
     get_ai_container().register("tool_mq_gate", instance)
 
 
@@ -309,7 +309,7 @@ def resolve_tool_mq_gate(default: T | None = None) -> T:
 
 
 def register_mq_event_publisher(instance: Any) -> None:
-    """Register the :class:`AiRuntimeEventPublisher` (Wave 2.5 control plane)."""
+    """Register the :class:`AiRuntimeEventPublisher`."""
     get_ai_container().register("mq_event_publisher", instance)
 
 
@@ -319,7 +319,7 @@ def resolve_mq_event_publisher(default: T | None = None) -> T:
 
 
 def register_mq_command_poller(instance: Any) -> None:
-    """Register the :class:`AiCommandPoller` (Wave 2.5 control plane)."""
+    """Register the :class:`AiCommandPoller`."""
     get_ai_container().register("mq_command_poller", instance)
 
 

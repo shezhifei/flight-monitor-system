@@ -7,7 +7,7 @@ import '../../bridge/api/business_case.dart';
 import '../../providers/business_case_provider.dart';
 import '../../shared/widgets/snackbar.dart';
 
-/// 新建事项 / 启动工作流（plan §5 BusinessCaseEditorScreen）。
+/// 新建事项 / 启动工作流。
 class BusinessCaseEditorScreen extends ConsumerStatefulWidget {
   const BusinessCaseEditorScreen({super.key});
 

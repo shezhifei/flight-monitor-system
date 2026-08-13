@@ -347,7 +347,6 @@ async fn main() -> std::io::Result<()> {
                 })
             })
             .wrap(cors)
-            .wrap(fms_api::middleware::shadow_compare::ShadowCompare::new())
             // 暴露 Prometheus 渲染句柄给 /metrics 路由
             .app_data(actix_web::web::Data::new(prom_handle.clone()))
             // 注册路由与依赖容器数据

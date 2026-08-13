@@ -6,10 +6,8 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::routes::dispatch_resources::{created_resp, ok_resp, MessageResponse};
 use fms_application::schemas::dispatch_schemas::{TaskTypeCreate, TaskTypeResponse};
+use fms_application::services::dispatch_resource_service::{to_task_type_response, StepListQuery};
 use fms_application::types::ConcreteDispatchResourceService;
-use fms_application::services::dispatch_resource_service::{
-    to_task_type_response, StepListQuery,
-};
 
 pub async fn list_task_types(
     req: HttpRequest,

@@ -8,7 +8,7 @@ import '../../app/l10n.dart';
 import '../../bridge/api/operations.dart';
 import '../../providers/operations_provider.dart';
 
-/// 战情中心（plan §5 OperationsScreen）：45s 轮询事件流。
+/// 战情中心：按间隔轮询事件流。
 class OperationsScreen extends ConsumerStatefulWidget {
   const OperationsScreen({super.key});
 

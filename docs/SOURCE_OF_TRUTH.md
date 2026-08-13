@@ -22,7 +22,7 @@
 |---|---|
 | 侧车源码 | `services/ai-sidecar/src/` |
 | 入口 | `scripts/host/ai_sidecar_entrypoint.py` |
-| DI | `services/ai-sidecar/src/di/container.py` |
+| AI runtime DI | `services/ai-sidecar/src/infrastructure/ai/ai_container.py`、`ai_runtime_bootstrap.py` |
 | Runtime providers | `services/ai-sidecar/src/infrastructure/runtime/providers.py` |
 | 应用层 | `services/ai-sidecar/src/application/` |
 | 历史 worker（本地归档） | `legacy-backend/src/application/worker_main.py` 等 |
@@ -31,7 +31,7 @@
 
 - 可做 AI 侧车、批处理、辅助脚本；不新增默认 Python HTTP 路由。
 - 新代码进 `services/ai-sidecar/`，不要往 `legacy-backend/` 加功能。
-- **写边界**：侧车只写控制面表（如 `ai_*`、`agent_*`、`aip_*`、`todo_agent_context`、`ai_runtime_commands`）。禁止直写核心真相表（`flights`、`dispatch_orders`、`todos`、`business_cases`、`domain_event_outbox` 等）。写业务域经 Rust DomainAction 或内部 API（Service Identity JWT）。失效/归档的旧 handler 不得假装成功（有测试约束）。
+- **写边界**：侧车只写控制面表（如 `ai_*`、`agent_*`、`todo_agent_context`、`ai_runtime_commands`）。禁止直写核心真相表（`flights`、`dispatch_orders`、`todos`、`business_cases`、`domain_event_outbox` 等）。写业务域经 Rust `DomainActionExecutor` 或内部 API（Service Identity JWT）。
 
 ## 3. 启动与部署
 
@@ -55,7 +55,7 @@
 | 事实 | 位置 |
 |---|---|
 | Rust 配置 | `services/api-server/crates/infrastructure/src/config/mod.rs` |
-| 侧车 DI | `services/ai-sidecar/src/di/container.py` |
+| 侧车 DI | `services/ai-sidecar/src/infrastructure/ai/ai_container.py` |
 | 侧车 runtime providers | `services/ai-sidecar/src/infrastructure/runtime/providers.py` |
 | 历史 Python 配置 | `legacy-backend/config/app_config.yaml` |
 
@@ -70,7 +70,7 @@
 | 差异审计（本地 ops） | `docs/operations/frontend-parity-audit.md` |
 
 正式路径：`/frontend/<page>.html`。兼容：`/frontend/html/<page>.html`。  
-根路径 `/` 当前仍 302 到兼容登录页；业务入口请用 `/frontend/login.html`。
+根路径 `/` 302 到正式 Vue 登录页 `/frontend/login.html`。
 
 ## 6.1 移动端（Android Flutter + Rust）
 
@@ -80,18 +80,17 @@
 | Rust 逻辑（零 frb） | `mobile/core/crates/mobile-core/` |
 | frb façade | `mobile/core/crates/mobile-ffi/` |
 | CI | `.github/workflows/mobile.yml` |
-| 执行计划 / 交接 | 本地 `docs/plans/android-flutter-rust-rebuild-*.md`（`docs/plans/*` 默认 gitignore） |
 | 端点 / 推送 / release | `docs/mobile/endpoint-checklist.md`、`push-channel-eval.md`、`release-notes.md` |
 | 旧 Kotlin App 归档 | `legacy/android-kotlin/`（只读对拍，不再修改） |
 
-约束：后端零改动；`mobile-core` 禁止依赖 flutter_rust_bridge；token/secret 不进日志；release base_url 强制 https（`--dart-define=API_BASE_URL`）。
+约束：`mobile-core` 禁止依赖 flutter_rust_bridge；token/secret 不进日志；release base_url 强制 https（`--dart-define=API_BASE_URL`）。
 
 ## 7. 数据库与事件
 
 | 事实 | 位置 |
 |---|---|
 | 迁移 | `migrations/*.sql` |
-| 当前最新 | `118_extend_dispatch_alerts_overrun.sql` |
+| 当前最新 | `121_add_soft_delete_columns.sql` |
 | 空库自举 | `sqlx migrate run --source migrations` |
 | Outbox / CDC 设计 | `docs/architecture/ADR-0003-domain-event-outbox-cdc-relay.md` |
 
@@ -121,3 +120,19 @@
 - 路由变化同步 `docs/API_ROUTE_SNAPSHOT.md`。
 - 不把 Python HTTP、旧 cutover、旧 nginx 分流写成当前默认路径。
 - 计划、审计、runbook 若保留，标明性质；默认不进 git（见 `.gitignore`），技术债主计划除外。
+- 后续代理从 `docs/operations/agent-handoff.md` 接手：现行设计、清理完成记录与后续维护边界。
+
+## 11. 不是当前设计
+
+下面这些文件保留作历史，不要当现行架构读：
+
+| 文件 | 原因 |
+|---|---|
+| `docs/architecture/AIP_IMPLEMENTATION_PLAN.md` | AIP 双模迁移计划，不是现行 HTTP 链 |
+| `docs/architecture/RUNTIME_CONTEXT_FACTORY.md` | 描述已不存在的 Python 组合根 |
+| `docs/architecture/FRONTEND_SHELL_MIGRATION.md` | Vue 迁移动态，现行路径见本文 §6 |
+| `docs/architecture/FLIGHT_CORE_FILE_WHITELIST.md` | 已标明历史 |
+| `docs/operations/current-rust-cutover-gap-analysis.md` | 2026-04 cutover 缺口 |
+| `docs/operations/read-domain-cutover-matrix.md` | Phase 2 规划稿；现行以 admission matrix 为准 |
+| `docs/operations/ai-worker-protocol.md` | Redis worker 草案；现行是 Postgres lease + 侧车 |
+| `docs/plans/2026-05-11-ontology-v1-contract.md` | 草稿契约；现行动作面见 `ONTOLOGY_V1.md` |

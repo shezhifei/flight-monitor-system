@@ -32,19 +32,18 @@ pub const AI_ROUTE_DEPENDENCIES: &[AiRouteDescriptor] = &[
     AiRouteDescriptor { path: "/api/v2/ai/todos/{todo_id}/execute", method: "POST", dependency: SidecarDependency::RustNative, note: "Rust AiRuntimeService todo execution" },
     AiRouteDescriptor { path: "/api/v2/ai/rate-limit/status", method: "GET", dependency: SidecarDependency::RustNative, note: "Rust rate limiter status" },
     AiRouteDescriptor { path: "/api/v2/ai/metrics/query-routing", method: "GET", dependency: SidecarDependency::RustNative, note: "Rust AiRuntimeService metrics" },
-    AiRouteDescriptor { path: "/api/v2/ai/generate_plan", method: "POST", dependency: SidecarDependency::TemporarilyUnavailable, note: "Sidecar 503 stub; needs Python AI Runtime restore" },
-    AiRouteDescriptor { path: "/api/v2/ai/events/stream", method: "GET", dependency: SidecarDependency::TemporarilyUnavailable, note: "Sidecar 503 stub; needs Python AI Runtime restore" },
+    AiRouteDescriptor { path: "/api/v2/ai/generate_plan", method: "POST", dependency: SidecarDependency::PythonRequired, note: "Rust handler forwards SSE JSON to sidecar runtime" },
+    AiRouteDescriptor { path: "/api/v2/ai/events/stream", method: "GET", dependency: SidecarDependency::PythonRequired, note: "Rust handler forwards SSE to sidecar runtime" },
 
     // nl_query.rs - 自然语言查询
     //   POST /api/v2/ai/nl-query (非 streaming): Rust 治理 + job/run pipeline + Python AI Runtime
     //     - 同步完成策略：Rust 侧创建 ai_job/ai_run，调用 Python /internal/ai/v1/runs，
     //       解析返回 body 语义（success/status/error），proposal ingest 在同步路径中直接执行。
     //       不期待 Python 再 callback /runs/{run_id}/complete。
-    //   streaming/followup/suggestions/conversations: 仍为 deprecated raw proxy fallback
+    //   suggestions/conversations: 仍为 deprecated raw proxy fallback
     AiRouteDescriptor { path: "/api/v2/ai/nl-query", method: "POST", dependency: SidecarDependency::PythonRequired, note: "Rust-governed: creates ai_job/ai_run, calls Python /internal/ai/v1/runs, completes synchronously with proposal ingest" },
     AiRouteDescriptor { path: "/api/v2/ai/nl-query/stream", method: "POST", dependency: SidecarDependency::PythonRequired, note: "Rust-governed streaming: creates ai_job/ai_run, calls Python /internal/ai/v1/runs/stream, finalizes in background" },
-    AiRouteDescriptor { path: "/api/v2/ai/nl-query/stream-with-tools", method: "POST", dependency: SidecarDependency::PythonRequired, note: "P2.4-alpha: Rust-governed tool-streaming, feature-gated by AI_RUNTIME_ENABLE_TOOL_STREAMING" },
-    AiRouteDescriptor { path: "/api/v2/ai/nl-query/followup", method: "POST", dependency: SidecarDependency::TemporarilyUnavailable, note: "Deprecated raw proxy fallback; conversation/session model not yet in Rust pipeline" },
+    AiRouteDescriptor { path: "/api/v2/ai/nl-query/stream-with-tools", method: "POST", dependency: SidecarDependency::PythonRequired, note: "Tool streaming; gated by AI_RUNTIME_ENABLE_TOOL_STREAMING" },
     AiRouteDescriptor { path: "/api/v2/ai/nl-query/suggestions", method: "GET", dependency: SidecarDependency::TemporarilyUnavailable, note: "Deprecated raw proxy fallback; not migrated to Rust pipeline" },
     AiRouteDescriptor { path: "/api/v2/ai/nl-query/conversations", method: "GET", dependency: SidecarDependency::TemporarilyUnavailable, note: "Deprecated raw proxy fallback; not migrated to Rust pipeline" },
 
@@ -54,11 +53,6 @@ pub const AI_ROUTE_DEPENDENCIES: &[AiRouteDescriptor] = &[
     AiRouteDescriptor { path: "/api/v2/ai/eval/jobs/{job_id}", method: "GET", dependency: SidecarDependency::PythonRequired, note: "LLM eval must run in Python; needs internal AI Runtime API" },
     AiRouteDescriptor { path: "/api/v2/ai/eval/jobs/{job_id}/cancel", method: "POST", dependency: SidecarDependency::PythonRequired, note: "LLM eval must run in Python; needs internal AI Runtime API" },
     AiRouteDescriptor { path: "/api/v2/ai/eval/jobs/{job_id}/compare", method: "GET", dependency: SidecarDependency::PythonRequired, note: "LLM eval must run in Python; needs internal AI Runtime API" },
-
-    // ai_v2.rs - AI v2 路由
-    AiRouteDescriptor { path: "/api/v2/ai/v2/entities", method: "GET", dependency: SidecarDependency::TemporarilyUnavailable, note: "Sidecar 503 stub; needs Python AI Runtime restore" },
-    AiRouteDescriptor { path: "/api/v2/ai/v2/entities/{entity_id}/status", method: "GET", dependency: SidecarDependency::TemporarilyUnavailable, note: "Sidecar 503 stub; needs Python AI Runtime restore" },
-    AiRouteDescriptor { path: "/api/v2/ai/v2/batch/{entity_id}", method: "POST", dependency: SidecarDependency::TemporarilyUnavailable, note: "Sidecar 503 stub; needs Python AI Runtime restore" },
 
     // ai_proposals.rs - 动作建议 (Rust 原生)
     AiRouteDescriptor { path: "/api/v2/ai/proposals", method: "POST", dependency: SidecarDependency::RustNative, note: "AiActionProposalService" },
@@ -87,23 +81,17 @@ mod tests {
 
     #[test]
     fn sidecar_dependent_routes_are_documented() {
-        let sidecar_routes: Vec<_> = AI_ROUTE_DEPENDENCIES
-            .iter()
-            .filter(|d| {
-                matches!(
-                    d.dependency,
-                    SidecarDependency::PythonRequired | SidecarDependency::TemporarilyUnavailable
-                )
-            })
-            .collect();
         assert!(
-            !sidecar_routes.is_empty(),
-            "at least some routes should depend on sidecar"
+            AI_ROUTE_DEPENDENCIES
+                .iter()
+                .any(|route| matches!(route.dependency, SidecarDependency::PythonRequired)),
+            "at least one active route should require the sidecar"
         );
         assert!(
-            sidecar_routes.len() >= 15,
-            "expected at least 15 sidecar-dependent routes, got {}",
-            sidecar_routes.len()
+            AI_ROUTE_DEPENDENCIES
+                .iter()
+                .any(|route| matches!(route.dependency, SidecarDependency::TemporarilyUnavailable)),
+            "temporarily unavailable routes should remain explicit"
         );
     }
 

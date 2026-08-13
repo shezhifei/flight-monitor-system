@@ -6,8 +6,6 @@ pub mod jwt;
 pub mod metrics;
 pub mod permissions;
 pub mod service_identity;
-pub mod shadow_compare;
-pub mod write_verification;
 
 #[cfg(test)]
 mod permissions_dedup_test;

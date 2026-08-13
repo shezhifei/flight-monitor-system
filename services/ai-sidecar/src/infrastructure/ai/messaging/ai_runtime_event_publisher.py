@@ -6,9 +6,8 @@ endpoint, which performs the actual publish. The gateway is responsible
 for ordered routing by ``Message Key`` (= ``run_id``) and the Rust
 consumer handles per-run serialization, retry, and DLQ.
 
-This module is intentionally minimal in Phase 0 — it just produces the
-envelope dict, hands it to the gateway, and retries on transient
-transport errors.
+Produces the envelope dict, hands it to the gateway, and retries
+on transient transport errors.
 """
 
 from __future__ import annotations

@@ -16,6 +16,7 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 from src.infrastructure.ai.tools.tool_executor import ToolExecutor, ToolResultCachePolicy
+from tests.sidecar.tool_executor_test_support import authorized_tool_executor
 
 
 def _run(coro):
@@ -67,7 +68,7 @@ class TestToolCacheDisabled:
         mock_cache.get_tool_result = AsyncMock(return_value=None)
         mock_cache.set_tool_result = AsyncMock()
 
-        executor = ToolExecutor(cache_manager=mock_cache)
+        executor = authorized_tool_executor(cache_manager=mock_cache)
         policy = ToolResultCachePolicy(enabled=False, cacheable_tools=["flight_status_lookup"])
 
         with patch("src.infrastructure.ai.tools.tool_executor.execute_read_only_tool") as mock_exec:
@@ -243,7 +244,7 @@ class TestWriteActionNeverCached:
         mock_cache.get_tool_result = AsyncMock(return_value=None)
         mock_cache.set_tool_result = AsyncMock()
 
-        executor = ToolExecutor(cache_manager=mock_cache)
+        executor = authorized_tool_executor(cache_manager=mock_cache)
         policy = ToolResultCachePolicy(enabled=True, cacheable_tools=["add_flight_note"])
 
         result = _run(
