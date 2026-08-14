@@ -44,6 +44,7 @@ from src.infrastructure.ai.structured_output import (
     ReasoningStep,
     TokenUsage,
 )
+from src.infrastructure.ai.templates import get_task_template
 
 _LANGGRAPH_AVAILABLE: bool = False
 try:
@@ -184,9 +185,11 @@ def _graph_validate_envelope(envelope: ContextEnvelope) -> list[str]:
 
 
 def _graph_build_system_prompt(envelope: ContextEnvelope) -> str:
+    # Mirror of runtime_service.helpers.build_system_prompt (kept in sync;
+    # separate copy to avoid a circular import).
     object_summary = ", ".join(f"{obj.object_type}:{obj.object_id}" for obj in envelope.context.objects[:10]) or "none"
     allowed = ", ".join(envelope.ontology.allowed_actions[:20]) or "none"
-    return (
+    prompt = (
         "You are the flight operations AI runtime assistant. "
         "Answer in Chinese unless the user writes in another language. "
         "Be concise; cite context objects when relevant. "
@@ -196,6 +199,10 @@ def _graph_build_system_prompt(envelope: ContextEnvelope) -> str:
         f"Allowed actions: {allowed}\n"
         f"Risk ceiling: {envelope.ontology.risk_ceiling}"
     )
+    template = get_task_template(envelope.task.task_type)
+    if template is not None:
+        prompt = f"{prompt}\n\n{template.system_prompt_addendum}"
+    return prompt
 
 
 def _graph_build_evidence(envelope: ContextEnvelope) -> list[OutputEvidence]:

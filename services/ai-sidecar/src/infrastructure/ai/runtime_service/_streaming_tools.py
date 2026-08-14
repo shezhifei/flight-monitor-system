@@ -24,6 +24,7 @@ from src.infrastructure.ai.structured_output import (
     ReasoningStep,
     TokenUsage,
 )
+from src.infrastructure.ai.templates import get_task_template, template_allows_tool
 from src.infrastructure.common.exceptions import REDIS_EXCEPTIONS
 
 from ._constants import CONTRACT_VERSION, STATUS_FAILED, STATUS_SUCCEEDED
@@ -364,7 +365,20 @@ class _StreamingToolsMixin:
                 )
                 return
 
-            tools = [t.to_schema() for t in resolved_config.tools]
+            # Hybrid agent Task A4–A6: task templates narrow the visible tool
+            # face (read-only categories for query_ops, write actions denied).
+            # Intersection only — a template can never widen the resolved
+            # entity snapshot (non-negotiable constraint #2).
+            task_template = get_task_template(getattr(envelope.task, "task_type", None))
+            tools = [
+                t.to_schema()
+                for t in resolved_config.tools
+                if template_allows_tool(
+                    task_template,
+                    tool_name=getattr(t, "name", ""),
+                    tool_category=getattr(t, "category", None),
+                )
+            ]
 
             # Add subagent tool if enabled
             if resolved_config and resolved_config.subagents.enabled:

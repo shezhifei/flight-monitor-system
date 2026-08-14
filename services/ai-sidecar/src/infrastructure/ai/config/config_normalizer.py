@@ -91,7 +91,17 @@ def default_entity_document() -> dict[str, Any]:
             "max_rounds": 5,
             "allow_parallel": False,
             "allowed_tool_sources": ["builtin"],
-            "allowed_tool_categories": ["flight", "flight_event", "todo", "business_case"],
+            # Read-only categories the default entity grants out of the box
+            # (query catalog, flight adapter, anomaly read tools); task
+            # templates narrow further per task_type (Task A4).
+            "allowed_tool_categories": [
+                "flight",
+                "flight_event",
+                "query",
+                "anomaly",
+                "todo",
+                "business_case",
+            ],
             "allowed_tools": None,
             "denied_tools": [],
             "write_action_policy": "proposal_only",

@@ -45,6 +45,8 @@ class ResolvedToolConfig:
     risk_level: str = "low"
     cacheable: bool = False
     side_effect: bool = False
+    # 治理字段：留在快照，不进 LLM function schema；任务模板按此收窄可见工具面。
+    category: str = ""
 
     def to_schema(self) -> dict[str, Any]:
         """Convert to OpenAI-compatible function schema."""
@@ -538,6 +540,7 @@ class CapabilityResolver:
                             risk_level=tool.get("risk_level", "low"),
                             cacheable=tool.get("cacheable", False),
                             side_effect=tool.get("side_effect", False),
+                            category=tool.get("category", ""),
                         )
                     )
 
