@@ -15,7 +15,6 @@ import {
   useRealtimeAudioSession,
   type RealtimeServerEvent,
 } from '@/composables/useRealtimeAudioSession';
-import { useAiConfigApiV2 } from '../aiConfigApiV2';
 import type {
   EnrichedCapabilitySnapshot,
   ValidationResult,
@@ -24,7 +23,7 @@ import type {
   SkillRegistryEntry,
   SkillEntityBinding,
   CacheMetricsSummary,
-} from '../aiConfigTypesV2';
+} from '../aiConfigTypes';
 import { summarizeValidation } from '../aiCapabilityViewModel';
 
 export interface OntologyObject {
@@ -170,7 +169,6 @@ export function useAiConfigCenter() {
   const auth = useAuth();
   const toast = useToast();
   const aiConfigApi = useAiConfigApi();
-  const aiConfigV2 = useAiConfigApiV2();
 
   const capabilitySnapshot = ref<EnrichedCapabilitySnapshot | null>(null);
   const capabilityLoading = ref(false);
@@ -328,7 +326,7 @@ export function useAiConfigCenter() {
       config_version: 2,
       base_url: '',
       api_key: '',
-      providers: [createDefaultProviderEntry('default')],
+      providers: [],
       model_provider_ref: 'default',
       default_model: '',
       chat_model: '',
@@ -424,7 +422,7 @@ export function useAiConfigCenter() {
   ];
 
   const existingCapabilityRows = [
-    { name: 'AI 实体配置', current: 'ai_entities.config JSONB 持久化；支持 base_url、api_key、default_model、api_format、Prompt、工具黑名单。' },
+    { name: 'AI 实体配置', current: 'ai_entities.config JSONB 持久化；连接在 providers，模型在 model_routing/models，工具策略在 tooling。' },
     { name: '模型/Provider', current: '支持 OpenAI-compatible Base URL、Chat Completions 与 Responses API、ASR/TTS 模型字段。' },
     { name: '工具调用', current: '已有 builtin 工具目录；读工具本地执行，写动作走审批提案；可按 denied_tools 禁用。' },
     { name: 'Prompt Cache', current: '后端已有 prompt_cache key 与 provider cache 参数透传能力，但实体页缺少策略开关。' },
@@ -689,7 +687,10 @@ export function useAiConfigCenter() {
   function applyEntityDetailToForm(detail: AiEntityDetail) {
     const modelRouting = asRecord(detail.model_routing);
     const modelMap = asRecord(detail.models);
-    const defaultModelId = String(detail.default_model || modelRouting.default || '');
+    const media = asRecord(detail.media);
+    const mediaAsr = asRecord(media.asr);
+    const mediaTts = asRecord(media.tts);
+    const defaultModelId = String(modelRouting.default || '');
     const defaultModelConfig = asRecord(modelMap[defaultModelId]);
     const modelModalities = asRecord(defaultModelConfig.modalities);
     const modelCapabilities = asRecord(defaultModelConfig.capabilities);
@@ -704,16 +705,18 @@ export function useAiConfigCenter() {
     const toolResultCache = asRecord(cachePolicy.tool_result_cache);
     const mcpResourceCache = asRecord(cachePolicy.mcp_resource_cache);
     const security = asRecord(detail.security);
-    const providerEntries = normalizeProviderEntries(asRecord(detail.providers));
+    const providersMap = asRecord(detail.providers);
+    const defaultProvider = asRecord(providersMap.default);
+    const providerEntries = normalizeProviderEntries(providersMap);
     const defaultCategories = Object.keys(categoryToolMap.value);
     const configuredCategories = readStringArray(
-      tooling.allowed_tool_categories ?? detail.allowed_tool_categories,
+      tooling.allowed_tool_categories,
       defaultCategories,
     );
     const nextForm = {
       config_version: readNumber(detail.config_version, 2),
-      base_url: String(detail.base_url || ''),
-      api_key: String(detail.api_key || ''),
+      base_url: readString(defaultProvider.base_url, ''),
+      api_key: readString(defaultProvider.api_key, ''),
       providers: providerEntries,
       model_provider_ref: readString(defaultModelConfig.provider_ref, 'default') || 'default',
       default_model: defaultModelId,
@@ -721,15 +724,15 @@ export function useAiConfigCenter() {
       summary_model: readString(modelRouting.summary ?? contextPolicy.summary_model, ''),
       vision_model: readString(modelRouting.vision, ''),
       embedding_model: readString(modelRouting.embedding, ''),
-      asr_model: String(detail.asr_model || ''),
-      tts_model: String(detail.tts_model || ''),
-      tts_voice: String(detail.tts_voice || ''),
-      api_format: String(detail.api_format || 'chat_completions'),
-      timeout: Number(detail.timeout ?? 30),
-      max_retries: Number(detail.max_retries ?? 3),
-      retry_delay: Number(detail.retry_delay ?? 0.5),
-      context_window: readNumber(defaultModelConfig.context_window ?? detail.context_window, 128000),
-      max_output_tokens: readNumber(defaultModelConfig.max_output_tokens ?? detail.max_tokens, 2000),
+      asr_model: readString(mediaAsr.model, readString(modelRouting.audio_transcription, '')),
+      tts_model: readString(mediaTts.model, readString(modelRouting.audio_speech, '')),
+      tts_voice: readString(mediaTts.voice, ''),
+      api_format: readString(defaultProvider.api_format, 'chat_completions'),
+      timeout: readNumber(defaultProvider.timeout, 30),
+      max_retries: readNumber(defaultProvider.max_retries, 3),
+      retry_delay: readNumber(defaultProvider.retry_delay, 0.5),
+      context_window: readNumber(defaultModelConfig.context_window, 128000),
+      max_output_tokens: readNumber(defaultModelConfig.max_output_tokens, 2000),
       model_input_modalities: readStringArray(modelModalities.input, ['text']),
       model_output_modalities: readStringArray(modelModalities.output, ['text']),
       model_tool_calling: readBoolean(modelCapabilities.tool_calling, true),
@@ -739,9 +742,7 @@ export function useAiConfigCenter() {
       model_prompt_cache: readBoolean(modelCapabilities.prompt_cache, false),
       system_prompt: String(detail.system_prompt || ''),
       task_template: String(detail.task_template || ''),
-      denied_tools: Array.isArray(detail.denied_tools)
-        ? (detail.denied_tools as string[]).slice()
-        : [],
+      denied_tools: readStringArray(tooling.denied_tools),
       allowed_tool_sources: readStringArray(tooling.allowed_tool_sources, ['builtin']),
       allowed_tool_categories: configuredCategories.length > 0 ? configuredCategories : defaultCategories,
       tooling_enabled: readBoolean(tooling.enabled, true),
@@ -832,20 +833,24 @@ export function useAiConfigCenter() {
     try {
       const detail = await aiConfigApi.getEntity(entityId);
       entityDetail.value = detail;
+      const routing = asRecord(detail.model_routing);
+      const media = asRecord(detail.media);
       modelOptions.value = [
-        detail.default_model,
-        asRecord(detail.model_routing).chat,
-        asRecord(detail.model_routing).summary,
-        asRecord(detail.model_routing).vision,
-        asRecord(detail.model_routing).embedding,
-        detail.asr_model,
-        detail.tts_model,
+        routing.default,
+        routing.chat,
+        routing.summary,
+        routing.vision,
+        routing.embedding,
+        asRecord(media.asr).model,
+        asRecord(media.tts).model,
+        routing.audio_transcription,
+        routing.audio_speech,
       ].reduce<NormalizedModelOption[]>(
         (acc, value) => ensureCustomModelOption(acc, value),
         modelOptions.value,
       );
       applyEntityDetailToForm(detail);
-      loadAllV2Data(entityId);
+      loadAllEntityData(entityId);
     } catch (err) {
       toast.show('error', err instanceof Error ? err.message : '加载实体详情失败');
     } finally {
@@ -857,7 +862,7 @@ export function useAiConfigCenter() {
     if (!entityId) { capabilitySnapshot.value = null; return; }
     capabilityLoading.value = true;
     try {
-      capabilitySnapshot.value = await aiConfigV2.getEntityCapabilities(entityId);
+      capabilitySnapshot.value = await aiConfigApi.getEntityCapabilities(entityId);
     } catch {
       capabilitySnapshot.value = null;
     } finally {
@@ -872,7 +877,7 @@ export function useAiConfigCenter() {
       return null;
     }
     try {
-      capabilityValidation.value = await aiConfigV2.validateEntityCapabilities(selectedEntityId.value);
+      capabilityValidation.value = await aiConfigApi.validateEntityCapabilities(selectedEntityId.value);
       if (!silent) {
         const summary = summarizeValidation(capabilityValidation.value);
         toast.show(summary.level, summary.message);
@@ -889,8 +894,8 @@ export function useAiConfigCenter() {
     mcpLoading.value = true;
     try {
       const [servers, bindings] = await Promise.all([
-        aiConfigV2.listMcpServers(entityId),
-        aiConfigV2.listMcpBindings(entityId),
+        aiConfigApi.listMcpServers(entityId),
+        aiConfigApi.listMcpBindings(entityId),
       ]);
       mcpServers.value = servers;
       mcpBindings.value = bindings;
@@ -905,7 +910,7 @@ export function useAiConfigCenter() {
   async function saveMcpBindingForEntity(serverId: string): Promise<void> {
     if (!selectedEntityId.value) { toast.show('warning', '请先选择一个实体'); return; }
     try {
-      await aiConfigV2.saveMcpBinding(selectedEntityId.value, {
+      await aiConfigApi.saveMcpBinding(selectedEntityId.value, {
         server_id: serverId,
         enabled: true,
       });
@@ -919,7 +924,7 @@ export function useAiConfigCenter() {
   async function probeMcpServerAndRefresh(serverId: string): Promise<void> {
     if (!selectedEntityId.value) { toast.show('warning', '请先选择一个实体'); return; }
     try {
-      const result = await aiConfigV2.probeMcpServer(selectedEntityId.value, serverId);
+      const result = await aiConfigApi.probeMcpServer(selectedEntityId.value, serverId);
       if (result.status === 'discovered') {
         const tools = result.capabilities?.tools?.length ?? 0;
         const resources = result.capabilities?.resources?.length ?? 0;
@@ -943,8 +948,8 @@ export function useAiConfigCenter() {
     skillsLoading.value = true;
     try {
       const [registry, bindings] = await Promise.all([
-        aiConfigV2.listSkillRegistry(),
-        aiConfigV2.listEntitySkills(entityId),
+        aiConfigApi.listSkillRegistry(),
+        aiConfigApi.listEntitySkills(entityId),
       ]);
       skillRegistry.value = registry;
       skillBindings.value = bindings;
@@ -959,7 +964,7 @@ export function useAiConfigCenter() {
   async function saveSkillBindingForEntity(skillSlug: string): Promise<void> {
     if (!selectedEntityId.value) { toast.show('warning', '请先选择一个实体'); return; }
     try {
-      await aiConfigV2.saveSkillBinding(selectedEntityId.value, {
+      await aiConfigApi.saveSkillBinding(selectedEntityId.value, {
         skill_slug: skillSlug,
         enabled: true,
       });
@@ -973,7 +978,7 @@ export function useAiConfigCenter() {
   async function deleteSkillBindingById(bindingId: string): Promise<void> {
     if (!selectedEntityId.value) return;
     try {
-      await aiConfigV2.deleteSkillBinding(selectedEntityId.value, bindingId);
+      await aiConfigApi.deleteSkillBinding(selectedEntityId.value, bindingId);
       toast.show('success', 'Skill 绑定已删除');
       await loadSkillData(selectedEntityId.value);
     } catch (err) {
@@ -985,7 +990,7 @@ export function useAiConfigCenter() {
     if (!selectedEntityId.value) { cacheMetrics.value = null; return; }
     cacheLoading.value = true;
     try {
-      cacheMetrics.value = await aiConfigV2.getCacheMetrics(selectedEntityId.value, 24);
+      cacheMetrics.value = await aiConfigApi.getCacheMetrics(selectedEntityId.value, 24);
     } catch {
       cacheMetrics.value = null;
     } finally {
@@ -996,7 +1001,7 @@ export function useAiConfigCenter() {
   async function runCacheInvalidate(): Promise<void> {
     if (!selectedEntityId.value) { toast.show('warning', '请先选择一个实体'); return; }
     try {
-      const result = await aiConfigV2.invalidateCache(selectedEntityId.value);
+      const result = await aiConfigApi.invalidateCache(selectedEntityId.value);
       toast.show('success', `缓存已失效: ${result.invalidated} 条`);
       await loadCacheMetrics();
     } catch (err) {
@@ -1011,7 +1016,7 @@ export function useAiConfigCenter() {
     }
     modelsTesting.value = true;
     try {
-      const result = await aiConfigV2.testConnectionWithCapabilities(selectedEntityId.value);
+      const result = await aiConfigApi.testConnectionWithCapabilities(selectedEntityId.value);
       const remoteModelNames = Array.isArray(result.models) ? result.models : [];
       const remoteModelOptions: AiModelOption[] = remoteModelNames.map((m: string) => ({ id: m, name: m }));
       let merged = mergeModelOptions([], remoteModelOptions, 'remote');
@@ -1030,7 +1035,7 @@ export function useAiConfigCenter() {
     }
   }
 
-  function loadAllV2Data(entityId: string): void {
+  function loadAllEntityData(entityId: string): void {
     loadCapabilitySnapshot(entityId);
     loadMcpData(entityId);
     loadSkillData(entityId);
@@ -1076,23 +1081,24 @@ export function useAiConfigCenter() {
     try {
       const skillBindings = parseSkillBindings(modelsForm.value.skills_bindings);
       const defaultModel = modelsForm.value.default_model.trim();
+      const existingMedia = asRecord(entityDetail.value?.media);
       const payload: AiEntitySavePayload = {
         config_version: modelsForm.value.config_version,
-        base_url: modelsForm.value.base_url,
-        api_key: modelsForm.value.api_key,
-        default_model: defaultModel,
-        asr_model: modelsForm.value.asr_model,
-        tts_model: modelsForm.value.tts_model,
-        tts_voice: modelsForm.value.tts_voice,
-        api_format: modelsForm.value.api_format,
-        timeout: modelsForm.value.timeout,
-        max_retries: modelsForm.value.max_retries,
-        retry_delay: modelsForm.value.retry_delay,
         system_prompt: modelsForm.value.system_prompt,
         task_template: modelsForm.value.task_template,
-        denied_tools: modelsForm.value.denied_tools,
-        allowed_tool_categories: modelsForm.value.allowed_tool_categories,
         providers: buildProvidersPayload(modelsForm.value),
+        media: {
+          ...existingMedia,
+          asr: {
+            ...asRecord(existingMedia.asr),
+            model: modelsForm.value.asr_model.trim() || null,
+          },
+          tts: {
+            ...asRecord(existingMedia.tts),
+            model: modelsForm.value.tts_model.trim() || null,
+            voice: modelsForm.value.tts_voice.trim() || null,
+          },
+        },
         model_routing: {
           default: defaultModel,
           chat: modelsForm.value.chat_model.trim() || defaultModel,

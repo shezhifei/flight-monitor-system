@@ -3,7 +3,7 @@ import type {
   EnrichedCapabilitySnapshot,
   ValidationResult,
   CacheMetricsSummary,
-} from '../aiConfigTypesV2';
+} from '../aiConfigTypes';
 import type { NormalizedModelOption, ModelsTabForm } from '../composables/useAiConfigCenter';
 import CapabilityOverviewSection from './CapabilityOverviewSection.vue';
 import ModelBasicConfigSection from './ModelBasicConfigSection.vue';

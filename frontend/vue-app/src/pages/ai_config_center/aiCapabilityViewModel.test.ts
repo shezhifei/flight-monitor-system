@@ -16,8 +16,8 @@ import {
   validationBadges,
   summarizeValidation,
 } from './aiCapabilityViewModel';
-import type { EnrichedCapabilitySnapshot, CacheMetricsSummary } from './aiConfigTypesV2';
-import { computeHitRate } from './aiConfigTypesV2';
+import type { EnrichedCapabilitySnapshot, CacheMetricsSummary } from './aiConfigTypes';
+import { computeHitRate } from './aiConfigTypes';
 
 function makeSnapshot(overrides: Partial<EnrichedCapabilitySnapshot> = {}): EnrichedCapabilitySnapshot {
   return {

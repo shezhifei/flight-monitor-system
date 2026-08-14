@@ -4,7 +4,7 @@ import type {
   EnrichedCapabilitySnapshot,
   ValidationResult,
   CacheMetricsSummary,
-} from '../aiConfigTypesV2';
+} from '../aiConfigTypes';
 import type { ModelsTabForm, NormalizedModelOption } from '../composables/useAiConfigCenter';
 import SvgIcon from '../../../components/ui/SvgIcon.vue';
 

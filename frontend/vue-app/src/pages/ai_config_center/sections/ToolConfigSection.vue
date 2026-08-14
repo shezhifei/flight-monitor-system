@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ModelsTabForm } from '../composables/useAiConfigCenter';
-import type { McpServerDefinition, McpEntityBinding, SkillRegistryEntry, SkillEntityBinding } from '../aiConfigTypesV2';
+import type { McpServerDefinition, McpEntityBinding, SkillRegistryEntry, SkillEntityBinding } from '../aiConfigTypes';
 
 defineProps<{
   modelsForm: ModelsTabForm;

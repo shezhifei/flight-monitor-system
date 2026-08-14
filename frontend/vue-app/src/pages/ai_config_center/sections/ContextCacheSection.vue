@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ModelsTabForm } from '../composables/useAiConfigCenter';
-import type { CacheMetricsSummary } from '../aiConfigTypesV2';
+import type { CacheMetricsSummary } from '../aiConfigTypes';
 
 defineProps<{
   modelsForm: ModelsTabForm;

@@ -264,7 +264,7 @@ import type {
   EnrichedCapabilitySnapshot,
   ValidationResult,
   CacheMetricsSummary,
-} from './aiConfigTypesV2';
+} from './aiConfigTypes';
 import {
   snapshotToViewModel,
   validationBadges,

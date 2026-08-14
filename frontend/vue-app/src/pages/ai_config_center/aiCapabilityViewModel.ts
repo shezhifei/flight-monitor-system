@@ -11,8 +11,8 @@ import type {
   ValidationResult,
   McpServerDiscoveryEntry,
   CacheMetricsSummary,
-} from './aiConfigTypesV2';
-import { computeHitRate } from './aiConfigTypesV2';
+} from './aiConfigTypes';
+import { computeHitRate } from './aiConfigTypes';
 
 // === Status Badge Types ===
 

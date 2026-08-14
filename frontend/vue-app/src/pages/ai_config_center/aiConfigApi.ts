@@ -1,5 +1,16 @@
 import type { ApiResult } from '@/composables/useApi';
 import { useApi } from '@/composables/useApi';
+import { readApiErrorMessage, unwrapApiDataOrThrow } from '@/shared/apiEnvelope';
+import type {
+  McpServerDefinition,
+  McpServerCapabilities,
+  McpEntityBinding,
+  SkillRegistryEntry,
+  SkillEntityBinding,
+  EnrichedCapabilitySnapshot,
+  ValidationResult,
+  CacheMetricsSummary,
+} from './aiConfigTypes';
 
 const AI_BASE = '/api/v2/ai';
 
@@ -9,24 +20,13 @@ export interface AiEntitySummary {
 
 export interface AiEntityDetail {
   id?: string;
-  base_url?: string;
-  api_key?: string;
-  default_model?: string;
-  asr_model?: string;
-  tts_model?: string;
-  tts_voice?: string;
-  api_format?: string;
-  timeout?: number;
-  max_retries?: number;
-  retry_delay?: number;
   system_prompt?: string;
   task_template?: string;
-  denied_tools?: string[];
-  /**
-   * 多 provider 字典（键如 'default'/'asr'/'tts'）。后端 normalizer 会用顶层
-   * base_url/api_key/api_format 补齐 providers['default']，旧 config 缺省即只有 'default'。
-   */
   providers?: Record<string, unknown>;
+  model_routing?: Record<string, unknown>;
+  models?: Record<string, unknown>;
+  tooling?: Record<string, unknown>;
+  media?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -120,25 +120,13 @@ export interface AiOntologyActionRouteRow {
 
 export interface AiEntitySavePayload {
   config_version?: number;
-  base_url?: string;
-  api_key?: string;
-  default_model?: string;
-  asr_model?: string;
-  tts_model?: string;
-  tts_voice?: string;
-  api_format?: string;
-  timeout?: number;
-  max_retries?: number;
-  retry_delay?: number;
   system_prompt?: string;
   task_template?: string;
-  denied_tools?: string[];
-  allowed_tool_categories?: string[];
-  // 多 provider 字典；'default' 与顶层 base_url/api_key/api_format 镜像保持一致。
   providers?: Record<string, unknown>;
   model_routing?: Record<string, unknown>;
   models?: Record<string, unknown>;
   tooling?: Record<string, unknown>;
+  media?: Record<string, unknown>;
   mcp?: Record<string, unknown>;
   skills?: Record<string, unknown>;
   subagents?: Record<string, unknown>;
@@ -148,30 +136,15 @@ export interface AiEntitySavePayload {
 }
 
 function unwrapEnvelope<T>(result: ApiResult<unknown>): T {
-  const body = result.data as Record<string, unknown> | null;
-  if (body && typeof body === 'object' && 'data' in body) {
-    return body.data as T;
+  if (!result.data || typeof result.data !== 'object') {
+    throw new Error('AI 服务响应缺少数据负载');
   }
-  return (body ?? {}) as T;
-}
-
-function readErrorMessage(result: ApiResult<unknown>, fallback: string): string {
-  const body = result.data as Record<string, unknown> | null;
-  if (body && typeof body === 'object') {
-    const err = body.error;
-    if (typeof err === 'string' && err) return err;
-    if (err && typeof err === 'object' && typeof (err as { message?: unknown }).message === 'string') {
-      return (err as { message: string }).message;
-    }
-    const msg = body.message;
-    if (typeof msg === 'string' && msg) return msg;
-  }
-  return `${fallback} (HTTP ${result.status})`;
+  return unwrapApiDataOrThrow<T>(result.data, readApiErrorMessage(result, 'AI 服务请求失败'));
 }
 
 function requireOk<T>(result: ApiResult<unknown>, fallbackMessage: string): T {
   if (!result.ok) {
-    throw new Error(readErrorMessage(result, fallbackMessage));
+    throw new Error(readApiErrorMessage(result, fallbackMessage));
   }
   return unwrapEnvelope<T>(result);
 }
@@ -252,6 +225,94 @@ export function useAiConfigApi() {
     return Array.isArray(payload.items) ? payload.items : [];
   }
 
+  async function getEntityCapabilities(entityId: string): Promise<EnrichedCapabilitySnapshot> {
+    const result = await api.get<EnrichedCapabilitySnapshot>(`${AI_BASE}/entities/${entityId}/capabilities`);
+    return requireOk<EnrichedCapabilitySnapshot>(result, '加载能力快照失败');
+  }
+
+  async function validateEntityCapabilities(entityId: string): Promise<ValidationResult> {
+    const result = await api.post(`${AI_BASE}/entities/${entityId}/capabilities/validate`);
+    return requireOk<ValidationResult>(result, '校验能力失败');
+  }
+
+  async function listMcpServers(entityId: string): Promise<McpServerDefinition[]> {
+    const result = await api.get<McpServerDefinition[]>(`${AI_BASE}/entities/${entityId}/mcp/servers`);
+    return requireOk<McpServerDefinition[]>(result, '加载 MCP 服务器失败');
+  }
+
+  async function probeMcpServer(
+    entityId: string,
+    serverId: string,
+  ): Promise<{ status: string; capabilities?: McpServerCapabilities }> {
+    const result = await api.post(`${AI_BASE}/entities/${entityId}/mcp/servers/${serverId}/probe`);
+    return requireOk(result, '探测 MCP 服务器失败');
+  }
+
+  async function listMcpBindings(entityId: string): Promise<McpEntityBinding[]> {
+    const result = await api.get<McpEntityBinding[]>(`${AI_BASE}/entities/${entityId}/mcp/bindings`);
+    return requireOk<McpEntityBinding[]>(result, '加载 MCP 绑定失败');
+  }
+
+  async function saveMcpBinding(
+    entityId: string,
+    binding: Partial<McpEntityBinding>,
+  ): Promise<McpEntityBinding> {
+    const result = await api.post(`${AI_BASE}/entities/${entityId}/mcp/bindings`, binding);
+    return requireOk<McpEntityBinding>(result, '保存 MCP 绑定失败');
+  }
+
+  async function listSkillRegistry(): Promise<SkillRegistryEntry[]> {
+    const result = await api.get<SkillRegistryEntry[]>(`${AI_BASE}/skills`);
+    return requireOk<SkillRegistryEntry[]>(result, '加载 Skill 注册表失败');
+  }
+
+  async function listEntitySkills(entityId: string): Promise<SkillEntityBinding[]> {
+    const result = await api.get<SkillEntityBinding[]>(`${AI_BASE}/entities/${entityId}/skills`);
+    return requireOk<SkillEntityBinding[]>(result, '加载实体 Skill 失败');
+  }
+
+  async function saveSkillBinding(
+    entityId: string,
+    binding: Partial<SkillEntityBinding>,
+  ): Promise<SkillEntityBinding> {
+    const result = await api.post(`${AI_BASE}/entities/${entityId}/skills/bindings`, binding);
+    return requireOk<SkillEntityBinding>(result, '保存 Skill 绑定失败');
+  }
+
+  async function deleteSkillBinding(entityId: string, bindingId: string): Promise<boolean> {
+    const result = await api.delete<boolean>(`${AI_BASE}/entities/${entityId}/skills/bindings/${bindingId}`);
+    return requireOk<boolean>(result, '删除 Skill 绑定失败');
+  }
+
+  async function getCacheMetrics(entityId?: string, hours: number = 24): Promise<CacheMetricsSummary> {
+    const params = new URLSearchParams();
+    if (entityId) params.set('entity_id', entityId);
+    params.set('hours', hours.toString());
+    const result = await api.get<CacheMetricsSummary>(`${AI_BASE}/cache/metrics?${params.toString()}`);
+    return requireOk<CacheMetricsSummary>(result, '加载缓存指标失败');
+  }
+
+  async function invalidateCache(entityId: string, cacheType?: string): Promise<{ invalidated: number }> {
+    const result = await api.post(`${AI_BASE}/cache/invalidate`, {
+      entity_id: entityId,
+      cache_type: cacheType,
+    });
+    return requireOk(result, '失效缓存失败');
+  }
+
+  async function testConnectionWithCapabilities(entityId: string): Promise<{
+    connected: boolean;
+    models: string[];
+    capabilities: Record<string, unknown>;
+  }> {
+    const result = await api.post(`${AI_BASE}/connection/test`, {
+      entity_id: entityId,
+      include_models: true,
+      include_capabilities: true,
+    });
+    return requireOk(result, '连通测试失败');
+  }
+
   return {
     listEntities,
     getEntity,
@@ -261,5 +322,18 @@ export function useAiConfigApi() {
     testConnection,
     listOntologyObjects,
     listOntologyActions,
+    getEntityCapabilities,
+    validateEntityCapabilities,
+    listMcpServers,
+    probeMcpServer,
+    listMcpBindings,
+    saveMcpBinding,
+    listSkillRegistry,
+    listEntitySkills,
+    saveSkillBinding,
+    deleteSkillBinding,
+    getCacheMetrics,
+    invalidateCache,
+    testConnectionWithCapabilities,
   };
 }

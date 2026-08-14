@@ -5,7 +5,7 @@ import type {
   McpEntityBinding,
   SkillRegistryEntry,
   SkillEntityBinding,
-} from '../aiConfigTypesV2';
+} from '../aiConfigTypes';
 
 defineProps<{
   modelsForm: ModelsTabForm;

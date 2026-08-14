@@ -1,7 +1,7 @@
 /**
- * AI 配置 v2 TypeScript 类型定义
- * 
- * 与后端 AiEntityConfigV2 对齐的前端类型。
+ * AI 配置 TypeScript 类型定义
+ *
+ * 与后端 AiEntityConfig 对齐的前端类型。
  */
 
 // === 枚举 ===
@@ -36,7 +36,7 @@ export interface ModelCost {
   cached_input_per_1k: number;
 }
 
-export interface ModelConfigV2 {
+export interface ModelConfig {
   provider_model: string;
   api_format: ApiFormat;
   context_window: number;
@@ -45,15 +45,15 @@ export interface ModelConfigV2 {
   capabilities: ModelCapabilities;
   cost: ModelCost;
   /**
-   * 指向 AiEntityConfigV2.providers 的键（如 'default'/'asr'/'tts'）。
-   * 缺省 'default'，解析端缺失时回退 'default'。向后兼容：旧 config 升级后该字段恒为 'default'。
+   * 指向 AiEntityConfig.providers 的键（如 'default'/'asr'/'tts'）。
+   * 缺省为 'default'，解析端在键缺失时回退到 'default'。
    */
   provider_ref: string;
 }
 
 // === Provider 配置 ===
 
-export interface ProviderConfigV2 {
+export interface ProviderConfig {
   type: string;
   base_url: string;
   api_key: string;
@@ -177,7 +177,7 @@ export interface CachePolicyConfig {
 
 // === 安全配置 ===
 
-export interface SecurityConfigV2 {
+export interface SecurityConfig {
   mask_sensitive: boolean;
   log_prompts: boolean;
   max_input_bytes: number;
@@ -186,27 +186,19 @@ export interface SecurityConfigV2 {
 
 // === 顶层实体配置 ===
 
-export interface AiEntityConfigV2 {
+export interface AiEntityConfig {
   config_version: number;
-  /**
-   * 顶层 provider 字段：保留作向后兼容；为 providers['default'] 的镜像/别名。
-   * 单-provider 配置仅依赖该字段时行为零变化。
-   */
-  provider: ProviderConfigV2;
-  /**
-   * 多 provider 字典，键如 'default'/'asr'/'tts'。'default' 应与顶层 provider 保持一致。
-   * model.provider_ref 指向此字典的键。
-   */
-  providers: Record<string, ProviderConfigV2>;
+  /** provider 字典，键如 'default'/'asr'/'tts'。模型通过 provider_ref 引用。 */
+  providers: Record<string, ProviderConfig>;
   model_routing: ModelRouting;
-  models: Record<string, ModelConfigV2>;
+  models: Record<string, ModelConfig>;
   tooling: ToolingConfig;
   mcp: McpConfig;
   skills: SkillsConfig;
   subagents: SubagentsConfig;
   context_policy: ContextPolicyConfig;
   cache_policy: CachePolicyConfig;
-  security: SecurityConfigV2;
+  security: SecurityConfig;
   system_prompt: string;
   task_template?: string;
 }
@@ -312,7 +304,7 @@ export interface ResolvedCapabilitySnapshot {
   output_modalities: ModalityType[];
   // 后端快照已携带 security（含 allowed_input_mime_types / max_input_bytes）；
   // 前端据此约束聊天输入的文件 accept 白名单。
-  security?: SecurityConfigV2;
+  security?: SecurityConfig;
   tool_count: number;
   mcp_enabled: boolean;
   skills_enabled: boolean;
@@ -437,41 +429,20 @@ export function computeHitRate(hits: number, misses: number): string {
   return `${((hits / total) * 100).toFixed(1)}%`;
 }
 
-// === 多 Provider 规范化 ===
-
 /**
- * 把旧/部分 config 升级为多-provider 形态，对齐后端 normalizer 契约：
- *  - 若缺少 providers，把顶层 provider 放入 providers['default']。
- *  - 若有 providers 但缺 'default'，用顶层 provider 补齐 'default'。
- *  - 顶层 provider 始终作为 providers['default'] 的镜像/别名同步回写。
- * 现有单-provider 配置经此函数后行为零变化（providers 仅多出 'default' 镜像）。
- */
-export function normalizeProviders(
-  provider: ProviderConfigV2,
-  providers?: Record<string, ProviderConfigV2> | null,
-): { provider: ProviderConfigV2; providers: Record<string, ProviderConfigV2> } {
-  const next: Record<string, ProviderConfigV2> = { ...(providers || {}) };
-  if (!next.default) {
-    next.default = { ...provider };
-  }
-  // 顶层 provider 镜像 providers['default']
-  return { provider: { ...next.default }, providers: next };
-}
-
-/**
- * 解析端按 model.provider_ref 取 provider，缺失/未知键回退 'default'。
+ * 按 model.provider_ref 取 provider，缺失/未知键回退 'default'。
  */
 export function resolveProviderRef(
-  providers: Record<string, ProviderConfigV2>,
+  providers: Record<string, ProviderConfig>,
   providerRef?: string | null,
-): ProviderConfigV2 {
+): ProviderConfig {
   const ref = providerRef || 'default';
   return providers[ref] ?? providers.default;
 }
 
 // === 默认值工厂函数 ===
 
-export function createDefaultModelConfigV2(): ModelConfigV2 {
+export function createDefaultModelConfig(): ModelConfig {
   return {
     provider_model: 'gpt-4o',
     api_format: 'chat_completions',
@@ -498,7 +469,7 @@ export function createDefaultModelConfigV2(): ModelConfigV2 {
   };
 }
 
-export function createDefaultProviderConfigV2(): ProviderConfigV2 {
+export function createDefaultProviderConfig(): ProviderConfig {
   return {
     type: 'openai_compatible',
     base_url: 'https://api.openai.com/v1',
@@ -589,7 +560,7 @@ export function createDefaultCachePolicy(): CachePolicyConfig {
   };
 }
 
-export function createDefaultSecurityConfig(): SecurityConfigV2 {
+export function createDefaultSecurityConfig(): SecurityConfig {
   return {
     mask_sensitive: true,
     log_prompts: false,
@@ -598,12 +569,10 @@ export function createDefaultSecurityConfig(): SecurityConfigV2 {
   };
 }
 
-export function createDefaultEntityConfigV2(): AiEntityConfigV2 {
-  const defaultProvider = createDefaultProviderConfigV2();
+export function createDefaultEntityConfig(): AiEntityConfig {
+  const defaultProvider = createDefaultProviderConfig();
   return {
     config_version: 2,
-    provider: defaultProvider,
-    // providers['default'] 镜像顶层 provider，保证单-provider 配置零行为变化。
     providers: { default: { ...defaultProvider } },
     model_routing: {
       default: 'gpt-4o',
