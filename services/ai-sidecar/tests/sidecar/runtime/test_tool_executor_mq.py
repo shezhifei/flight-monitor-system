@@ -47,6 +47,8 @@ from src.infrastructure.ai.tools.tool_executor import (
 )
 from src.infrastructure.ai.tools.tool_registry_snapshot import ToolDefinition
 
+from tests.sidecar.tool_executor_test_support import FakeReadOnlyBackend
+
 # ---------------------------------------------------------------------------
 # Fakes
 # ---------------------------------------------------------------------------
@@ -189,9 +191,9 @@ def _build_gate(
         publisher=publisher,
         poller=poller,
         tool_definition_lookup=lookup,
-        tool_type_resolver=lambda name: "read_only" if name in {"flight_status_lookup", "weather_at_airport"} else (
-            "write_action" if name in WRITE_ACTION_TOOLS else "unknown"
-        ),
+        tool_type_resolver=lambda name: "read_only"
+        if name in {"flight_status_lookup", "search_flights_advanced"}
+        else ("write_action" if name in WRITE_ACTION_TOOLS else "unknown"),
         run_owner=run_owner,
         heartbeat_interval_seconds=heartbeat_interval,
         wait_poll_interval_seconds=wait_poll_interval,
@@ -212,7 +214,7 @@ async def test_public_l0_tool_executes_locally_and_publishes_result_event() -> N
     publisher = FakePublisher()
     poller = FakePoller()
     gate, publisher, _poller = _build_gate(tools=tools, publisher=publisher, poller=poller)
-    executor = ToolExecutor(mq_gate=gate)
+    executor = ToolExecutor(mq_gate=gate, read_only_backend=FakeReadOnlyBackend())
     envelope = _envelope()
     tool_call = {
         "tool_call_id": "call-1",
@@ -246,7 +248,7 @@ async def test_public_l0_tool_with_publish_failure_still_executes() -> None:
     publisher = FakePublisher(fail_first_n=1)
     poller = FakePoller()
     gate, publisher, _poller = _build_gate(tools=tools, publisher=publisher, poller=poller)
-    executor = ToolExecutor(mq_gate=gate)
+    executor = ToolExecutor(mq_gate=gate, read_only_backend=FakeReadOnlyBackend())
     envelope = _envelope()
     tool_call = {
         "tool_call_id": "call-1",
@@ -372,7 +374,7 @@ async def test_protected_tool_with_proposal_only_command_skips_execution() -> No
     """A protected read-only tool that Rust returns ``proposal_only`` for must be turned into a proposal."""
     tools = [
         _tool_definition(
-            "weather_at_airport",
+            "search_flights_advanced",
             source="builtin",
             side_effect=False,
             governance={
@@ -389,12 +391,12 @@ async def test_protected_tool_with_proposal_only_command_skips_execution() -> No
     poller = FakePoller(commands=[decision])
     publisher = FakePublisher()
     gate, publisher, poller = _build_gate(tools=tools, publisher=publisher, poller=poller)
-    executor = ToolExecutor(mq_gate=gate)
+    executor = ToolExecutor(mq_gate=gate, read_only_backend=FakeReadOnlyBackend())
     envelope = _envelope()
     tool_call = {
         "tool_call_id": "call-1",
-        "tool_name": "weather_at_airport",
-        "arguments": {"airport_code": "PEK"},
+        "tool_name": "search_flights_advanced",
+        "arguments": {"filters": {"airport": "PEK"}},
     }
 
     result = await executor.execute(
@@ -780,7 +782,7 @@ def test_make_tool_call_pk_is_deterministic() -> None:
 
 @pytest.mark.asyncio
 async def test_public_l0_tool_executes_locally_without_gate() -> None:
-    executor = ToolExecutor()
+    executor = ToolExecutor(read_only_backend=FakeReadOnlyBackend())
     tool_call = {
         "tool_call_id": "call-1",
         "tool_name": "flight_status_lookup",
@@ -807,19 +809,19 @@ async def test_executor_batch_propagates_round_index_and_job_id() -> None:
         },
         {
             "tool_call_id": "call-2",
-            "tool_name": "weather_at_airport",
-            "arguments": {"airport_code": "PEK"},
+            "tool_name": "search_flights_advanced",
+            "arguments": {"filters": {"airport": "PEK"}},
         },
     ]
     tool_definitions = [
-        _tool_definition("weather_at_airport"),
+        _tool_definition("search_flights_advanced"),
     ]
     gate, publisher, _poller = _build_gate(
         tools=tools + tool_definitions,
         publisher=publisher,
         poller=poller,
     )
-    executor = ToolExecutor(mq_gate=gate)
+    executor = ToolExecutor(mq_gate=gate, read_only_backend=FakeReadOnlyBackend())
 
     results = await executor.execute_batch(
         tool_calls,

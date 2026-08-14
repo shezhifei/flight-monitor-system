@@ -18,7 +18,7 @@ it and to emit a single clean ``completed`` event.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import patch
 
@@ -70,6 +70,24 @@ def _make_capturing_runner(capture: dict[str, Any]):
     return _FakeRunner
 
 
+@dataclass
+class _FakeTool:
+    """Minimal resolved-tool stand-in (same surface as ResolvedToolConfig)."""
+
+    name: str
+    description: str = "d"
+    parameters: dict[str, Any] = field(default_factory=dict)
+    risk_level: str = "low"
+    cacheable: bool = False
+    side_effect: bool = False
+
+    def to_schema(self) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {"name": self.name, "description": self.description, "parameters": self.parameters},
+        }
+
+
 class _FakeCacheManager:
     """Minimal context-cache backend capturing the post-response write."""
 
@@ -115,6 +133,8 @@ def _service(capture, cache_manager=None, context_cache=False):
 
     config = FakeResolvedConfig()
     config.cache_policy = FakeCachePolicy(enabled=True, context_cache_enabled=context_cache)
+    # Task A2: the stream only runs with a non-empty resolved tool snapshot.
+    config.tools = [_FakeTool("flight_status_lookup")]
     resolver = FakeCapabilityResolver(resolved_config=config)
 
     class _LLM:

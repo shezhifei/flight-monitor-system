@@ -26,7 +26,6 @@ from src.infrastructure.ai.runtime_llm import (
     LlmClient,
     StreamingLlmClient,
 )
-from src.infrastructure.ai.tools.read_only_tools import READ_ONLY_TOOL_SCHEMAS
 from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 from src.infrastructure.common.exceptions import LLM_EXCEPTIONS
 
@@ -436,6 +435,7 @@ def _build_default_capability_resolver() -> Any | None:
             resolve_model_catalog_repo,
             resolve_skill_repo,
         )
+        from src.infrastructure.ai.ai_runtime_bootstrap import _builtin_tool_catalog
         from src.infrastructure.ai.capability_resolver import CapabilityResolver
 
         # Try to get config store from the global container or build one
@@ -457,7 +457,7 @@ def _build_default_capability_resolver() -> Any | None:
             model_catalog_repo=model_catalog_repo,
             mcp_repo=mcp_repo,
             skill_repo=skill_repo,
-            builtin_tools=list(READ_ONLY_TOOL_SCHEMAS),
+            builtin_tools=_builtin_tool_catalog(),
         )
     except Exception as exc:  # noqa: BLE001 - bootstrap must catch all init failures
         logger.debug("Failed to build default CapabilityResolver: %s", exc)

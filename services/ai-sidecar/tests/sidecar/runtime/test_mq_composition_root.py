@@ -46,6 +46,8 @@ from src.infrastructure.ai.tools.mq_gate import (
 )
 from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 
+from tests.sidecar.tool_executor_test_support import FakeReadOnlyBackend
+
 # ---------------------------------------------------------------------------
 # Fakes
 # ---------------------------------------------------------------------------
@@ -496,9 +498,9 @@ def test_stream_runner_round_index_increments_per_round() -> None:
 
 
 @pytest.mark.asyncio
-async def test_executor_without_gate_keeps_legacy_behavior() -> None:
-    """The existing ``mq_gate=None`` fallback is preserved for tests / degraded mode."""
-    executor = ToolExecutor()
+async def test_executor_without_gate_executes_with_wired_backend() -> None:
+    """The gate-less path executes read-only tools against the wired backend."""
+    executor = ToolExecutor(read_only_backend=FakeReadOnlyBackend())
     tool_call = {
         "tool_call_id": "call-1",
         "tool_name": "flight_status_lookup",
@@ -507,3 +509,8 @@ async def test_executor_without_gate_keeps_legacy_behavior() -> None:
     result = await executor.execute(tool_call, run_id="run-1")
     assert result.success is True
     assert result.result["flight_id"] == "CA1234"
+
+    backendless = ToolExecutor()
+    failed = await backendless.execute(tool_call, run_id="run-2")
+    assert failed.success is False
+    assert "READ_ONLY_BACKEND_NOT_CONFIGURED" in failed.error

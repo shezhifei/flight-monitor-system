@@ -12,7 +12,7 @@ Two layers:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import patch
 
@@ -137,6 +137,24 @@ def _make_client_capturing_runner(capture: dict[str, Any]):
     return _FakeRunner
 
 
+@dataclass
+class _FakeTool:
+    """Minimal resolved-tool stand-in with the same surface as ResolvedToolConfig."""
+
+    name: str
+    description: str = "d"
+    parameters: dict[str, Any] = field(default_factory=dict)
+    risk_level: str = "low"
+    cacheable: bool = False
+    side_effect: bool = False
+
+    def to_schema(self) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {"name": self.name, "description": self.description, "parameters": self.parameters},
+        }
+
+
 @pytest.mark.asyncio
 async def test_stream_run_hands_resolved_gateway_to_runner(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -148,6 +166,9 @@ async def test_stream_run_hands_resolved_gateway_to_runner(monkeypatch):
     cfg.api_key = "entity-secret"
     cfg.base_url = "https://entity-gw.example/v1"
     cfg.model = FakeModel(model_id="gpt-4o", provider_model="entity-gpt")
+    # Task A2: no heuristic fallback — the stream only runs when the resolved
+    # snapshot carries a non-empty tool list.
+    cfg.tools = [_FakeTool("flight_status_lookup")]
     resolver = FakeCapabilityResolver(resolved_config=cfg)
 
     capture: dict[str, Any] = {}

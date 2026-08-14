@@ -24,7 +24,6 @@ from src.infrastructure.ai.structured_output import (
     ReasoningStep,
     TokenUsage,
 )
-from src.infrastructure.ai.tools.read_only_tools import READ_ONLY_TOOL_SCHEMAS
 from src.infrastructure.common.exceptions import REDIS_EXCEPTIONS
 
 from ._constants import CONTRACT_VERSION, STATUS_FAILED, STATUS_SUCCEEDED
@@ -245,6 +244,7 @@ class _StreamingToolsMixin:
             )
             return
 
+        last_round_index = 0
         try:
             # Import through the package so tests can patch
             # ``src.infrastructure.ai.runtime_service.LLMStreamRunner``.
@@ -338,10 +338,33 @@ class _StreamingToolsMixin:
             ]
             tool_proposals: list[OutputProposal] = []
 
-            # Use resolved tools if available, otherwise fall back to READ_ONLY_TOOL_SCHEMAS
-            tools = READ_ONLY_TOOL_SCHEMAS
-            if resolved_config and resolved_config.tools:
-                tools = [t.to_schema() for t in resolved_config.tools]
+            # Hybrid agent Task A2: fail closed without a resolved tool snapshot.
+            # The resolved entity snapshot is the ONLY tool source for a
+            # production run — there is no mock/default fallback anymore
+            # (docs/architecture/AGENT_RUNTIME_LOOP.md).
+            if resolved_config is None or not resolved_config.tools:
+                output = self._failed_output(
+                    run_id=run_id,
+                    answer=(
+                        "AI_TOOL_SNAPSHOT_MISSING: no resolved tool snapshot for this run; "
+                        "refusing to fall back to mock/default tools"
+                    ),
+                    duration_ms=self._elapsed_ms(started),
+                )
+                yield _sse_event("run.fail", structured_output_to_response_dict(output))
+                await _publish_run_fail_mq(
+                    _resolve_mq_publisher(),
+                    run_id=run_id,
+                    job_id=getattr(envelope, "job_id", "") or "",
+                    round_index=0,
+                    event_sequence=1,
+                    error_code="AI_TOOL_SNAPSHOT_MISSING",
+                    error_message="no resolved tool snapshot for this run",
+                    terminal_event_id=None,
+                )
+                return
+
+            tools = [t.to_schema() for t in resolved_config.tools]
 
             # Add subagent tool if enabled
             if resolved_config and resolved_config.subagents.enabled:
@@ -436,7 +459,6 @@ class _StreamingToolsMixin:
             # drain between the parent runner's own events and re-emit as SSE
             # type='subagent_event' (sanitized like the parent's tool.result frames).
             subagent_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-            last_round_index = 0
             run_completed_emitted = False
 
             async def _on_child_event(child_event: Any) -> None:

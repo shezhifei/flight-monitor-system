@@ -175,7 +175,7 @@ class TestToolCacheEnabled:
 
         assert result.success is True
         assert result.result == {"flight": "CA123", "status": "on_time"}
-        mock_exec.assert_called_once_with("flight_status_lookup", {"flight_id": "CA123"})
+        mock_exec.assert_called_once_with("flight_status_lookup", {"flight_id": "CA123"}, backend=None)
         mock_cache.set_tool_result.assert_called_once_with(
             tool_name="flight_status_lookup",
             args={"flight_id": "CA123"},

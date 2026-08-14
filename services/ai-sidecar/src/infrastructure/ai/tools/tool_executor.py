@@ -26,7 +26,12 @@ from typing import TYPE_CHECKING, Any
 from src.infrastructure.ai.capability_resolver import is_tool_allowed, normalized_mcp_binding_tool_acl
 from src.infrastructure.ai.governance.governance_resolver import is_public_l0_tool
 from src.infrastructure.ai.mcp.annotations import normalize_mcp_tool_annotations
-from src.infrastructure.ai.tools.read_only_tools import READ_ONLY_TOOLS, execute_read_only_tool, is_read_only_tool
+from src.infrastructure.ai.tools.read_only_tools import (
+    READ_ONLY_TOOLS,
+    execute_read_only_tool,
+    get_read_only_tool_names,
+    is_read_only_tool,
+)
 from src.infrastructure.common.exceptions import JSON_EXCEPTIONS
 from src.infrastructure.logging.core import get_logger
 
@@ -132,8 +137,10 @@ class ToolExecutor:
         subagent_dispatcher=None,
         cache_manager=None,
         mq_gate: Any | None = None,
+        read_only_backend: Any | None = None,
     ):
         self._read_only_tools = READ_ONLY_TOOLS
+        self._read_only_backend = read_only_backend
         self._mcp_client_manager = mcp_client_manager
         self._mcp_repo = mcp_repo
         self._subagent_dispatcher = subagent_dispatcher
@@ -142,7 +149,7 @@ class ToolExecutor:
         logger.debug("ToolExecutor initialized with %d read-only tools", len(self._read_only_tools))
 
     def get_available_tools(self) -> list[str]:
-        builtin = list(self._read_only_tools.keys()) + list(WRITE_ACTION_TOOLS.keys())
+        builtin = get_read_only_tool_names() + list(WRITE_ACTION_TOOLS.keys())
         return builtin
 
     def is_read_only_tool(self, tool_name: str) -> bool:
@@ -652,7 +659,11 @@ class ToolExecutor:
                 )
 
         try:
-            result = await execute_read_only_tool(tool_name, arguments)
+            result = await execute_read_only_tool(
+                tool_name,
+                arguments,
+                backend=self._read_only_backend,
+            )
 
             # Write to tool result cache
             if use_cache:
