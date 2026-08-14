@@ -9,10 +9,10 @@ import type {
 import { DEFAULT_BUSINESS_FILTERS, DEFAULT_SEARCH_FIELDS, DEFAULT_SORT_CONFIG } from './useFlightDataConstants';
 import {
   getAnomalyCountForFlight,
-  getLegFieldV2,
-  getMissionSearchTextV2,
-  getFlightTypeSummaryV2,
-  getRouteEndpointV2,
+  getLegField,
+  getMissionSearchText,
+  getFlightTypeSummary,
+  getRouteEndpoint,
   hasVipMarker,
   isDelayedFlight,
   isWideBodyAircraft,
@@ -163,10 +163,6 @@ export function filterFlights(query: string, options: FilterFlightsOptions = {})
   const searchFields = normalizeSearchFields(options.searchFields);
   const businessFilters = options.businessFilters ?? {};
   const helperOptions = options.helperOptions ?? {};
-  const getLegField = options.getLegField ?? getLegFieldV2;
-  const getRouteEndpoint = options.getRouteEndpoint ?? getRouteEndpointV2;
-  const getMissionSearchText = options.getMissionSearchText ?? getMissionSearchTextV2;
-  const getFlightTypeSummary = options.getFlightTypeSummary ?? getFlightTypeSummaryV2;
   const filteredByBusinessRules = applyBusinessFilters(sourceFlights, businessFilters, helperOptions);
 
   if (!query || !query.trim()) {

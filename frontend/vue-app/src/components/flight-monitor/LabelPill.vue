@@ -21,6 +21,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import { useApi } from '@/composables/useApi';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 
 export interface LabelDef {
   code: string;
@@ -49,7 +50,7 @@ async function loadLabelDefs() {
   if (cacheLoaded) return;
   try {
     const resp = await api.get<{ success?: boolean; data?: LabelDef[] } | LabelDef[]>('/api/v2/labels');
-    const payload = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+    const payload = unwrapApiData<LabelDef[]>(resp.data);
     if (resp.ok && Array.isArray(payload)) {
       const map = new Map<string, LabelDef>();
       for (const d of payload) {

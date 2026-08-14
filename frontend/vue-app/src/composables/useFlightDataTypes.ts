@@ -172,10 +172,6 @@ export interface FilterFlightsOptions {
   searchFields?: Partial<SearchFields>;
   businessFilters?: Partial<BusinessFilters>;
   helperOptions?: FlightFilterHelperOptions;
-  getLegField?: (flight: Flight, legType: LegType, fieldName: keyof FlightLeg | string) => string;
-  getRouteEndpoint?: (flight: Flight, legType: LegType, fieldMode?: 'code' | 'name') => string;
-  getMissionSearchText?: (flight: Flight) => string;
-  getFlightTypeSummary?: (flight: Flight) => string;
 }
 
 export interface DispatchTimelineUpdateOptions {

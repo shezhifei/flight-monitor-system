@@ -6,7 +6,7 @@ import type {
   LoadFlightsPagedDataOptions,
   RetryOptions,
 } from './useFlightDataTypes';
-import { normalizeAirportContextV2, normalizeFlightId, preprocessFlightTimes } from './useFlightField';
+import { normalizeAirportContext, normalizeFlightId, preprocessFlightTimes } from './useFlightField';
 
 function wait(delayMs: number): Promise<void> {
   return new Promise((resolve) => {
@@ -220,7 +220,7 @@ export function getSampleFlights(): Flight[] {
   ];
 }
 
-export async function loadAirportContextV2(options: {
+export async function loadAirportContext(options: {
   apiBase: string;
   authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   fallbackContext?: Partial<AirportContext>;
@@ -231,8 +231,8 @@ export async function loadAirportContextV2(options: {
     if (!response.ok) {
       throw new Error(payload.detail || payload.message || `HTTP ${response.status}`);
     }
-    return normalizeAirportContextV2(payload);
+    return normalizeAirportContext(payload);
   } catch {
-    return normalizeAirportContextV2(options.fallbackContext);
+    return normalizeAirportContext(options.fallbackContext);
   }
 }

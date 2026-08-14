@@ -57,7 +57,7 @@ beforeEach(() => {
 });
 
 describe('useFlightMonitorList 列配置', () => {
-  it('无保存配置时默认可见列对齐 legacy 9 列', () => {
+  it('无保存配置时使用默认可见列集合', () => {
     const list = useFlightMonitorList(makeOptions());
     expect(list.visibleColumns.value).toEqual([...DEFAULT_VISIBLE_COLUMN_KEYS]);
   });
@@ -71,9 +71,9 @@ describe('useFlightMonitorList 列配置', () => {
     expect(list.columnConfigState.value.items).toContain('aircraft_check_remarks');
   });
 
-  it('兼容旧 key 的保存配置：显式布尔值优先，未记录的新列按 legacy 默认', () => {
-    // 旧版本配置：只有 16 个旧列的显式 true
-    const legacySaved = {
+  it('存档中显式布尔值优先，未记录的列按默认可见集合补齐', () => {
+    // 存档：只含 16 个列的显式 true
+    const savedConfig = {
       flight_number: true,
       route: true,
       status: true,
@@ -91,14 +91,14 @@ describe('useFlightMonitorList 列配置', () => {
       tags: true,
       remarks: true,
     };
-    localStorage.setItem('flight_monitor_columns', JSON.stringify(legacySaved));
+    localStorage.setItem('flight_monitor_columns', JSON.stringify(savedConfig));
     const list = useFlightMonitorList(makeOptions());
     const visible = list.visibleColumns.value;
-    // 旧配置显式 true 的列保持可见
+    // 存档显式 true 的列保持可见
     expect(visible).toContain('cobt_time');
     expect(visible).toContain('tags');
     expect(visible).toContain('remarks');
-    // 旧配置没有的新列按 legacy 默认：flight_type/gate 默认可见，codt/打卡列默认隐藏
+    // 存档未记录的列按默认集合：flight_type/gate 默认可见，codt/打卡列默认隐藏
     expect(visible).toContain('flight_type');
     expect(visible).toContain('gate');
     expect(visible).not.toContain('codt');
@@ -114,13 +114,13 @@ describe('useFlightMonitorList 列配置', () => {
     expect(list.visibleColumns.value).toContain('codt');
   });
 
-  it('损坏的配置回退到 legacy 默认', () => {
+  it('损坏的存档回退到默认可见集合', () => {
     localStorage.setItem('flight_monitor_columns', '{not-json');
     const list = useFlightMonitorList(makeOptions());
     expect(list.visibleColumns.value).toEqual([...DEFAULT_VISIBLE_COLUMN_KEYS]);
   });
 
-  it('resetColumnConfig 恢复 legacy 默认可见列', () => {
+  it('resetColumnConfig 恢复默认可见列', () => {
     localStorage.setItem('flight_monitor_columns', JSON.stringify({ flight_number: false, codt: true }));
     const list = useFlightMonitorList(makeOptions());
     expect(list.visibleColumns.value).toContain('codt');
@@ -128,7 +128,7 @@ describe('useFlightMonitorList 列配置', () => {
     expect(list.visibleColumns.value).toEqual([...DEFAULT_VISIBLE_COLUMN_KEYS]);
   });
 
-  it('handleColumnSave 仍写入 flight_monitor_columns key', () => {
+  it('handleColumnSave 写入 flight_monitor_columns key', () => {
     const list = useFlightMonitorList(makeOptions());
     list.handleColumnSave();
     const raw = localStorage.getItem('flight_monitor_columns');
@@ -149,7 +149,7 @@ describe('useFlightMonitorList 列配置', () => {
     expect(items).toContain('gate');
   });
 
-  it('reorderColumnItems 按 legacy 规则重排', () => {
+  it('reorderColumnItems 按位置互换规则重排', () => {
     const list = useFlightMonitorList(makeOptions());
     const before = [...list.columnConfigState.value.items];
     const a = before[0];

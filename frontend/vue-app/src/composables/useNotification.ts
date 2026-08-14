@@ -204,13 +204,11 @@ export function useNotification() {
   }
 
   async function fetchHistoryDetail(groupId: string): Promise<SentReceiptGroupDetailResponse | null> {
-    // 后端直接返回明细 payload（无 success/data 包裹），这里兼容两种返回格式
-    const { ok, data } = await api.get<SentReceiptGroupDetailResponse & { data?: SentReceiptGroupDetailResponse }>(`${auth.apiBase.value}/notifications/receipt-groups/${encodeURIComponent(groupId)}`);
-    if (!ok || !data) {
+    const { ok, data } = await api.get<SentReceiptGroupDetailResponse>(`${auth.apiBase.value}/notifications/receipt-groups/${encodeURIComponent(groupId)}`);
+    if (!ok || !data || !Array.isArray(data.items)) {
       return null;
     }
-    const payload = data.data && Array.isArray(data.data.items) ? data.data : data;
-    return Array.isArray(payload.items) ? payload : null;
+    return data;
   }
 
   async function updateUnreadCount(): Promise<void> {

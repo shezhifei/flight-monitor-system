@@ -69,10 +69,8 @@ const defaultBusinessFilters: BusinessFilters = { ...DEFAULT_BUSINESS_FILTERS, c
 const defaultVisibleColumnKeys = new Set(DEFAULT_VISIBLE_COLUMN_KEYS);
 
 /**
- * Column visibility defaults follow the legacy DEFAULT_VISIBLE_COLUMNS set
- * (9 columns). Saved configs (localStorage key `flight_monitor_columns`) hold
- * explicit per-column booleans; columns missing from a saved config — e.g.
- * newly added columns in an old config — fall back to the legacy default.
+ * 列可见性：默认取当前默认可见集合；localStorage key `flight_monitor_columns`
+ * 保存每列显式布尔值；存档中未记录的列（例如后来新增的列）按当前默认集合补齐。
  */
 function loadColumnVisibility(): Record<string, boolean> {
   const visibility = BASE_COLUMNS.reduce(
@@ -88,7 +86,7 @@ function loadColumnVisibility(): Record<string, boolean> {
       }
     }
   } catch {
-    // ignore corrupt config; fall back to legacy defaults
+    // 存档损坏时按默认可见集合回退
   }
   return visibility;
 }
@@ -277,7 +275,7 @@ export function useFlightMonitorList(options: UseFlightMonitorListOptions): UseF
     columnConfigState.value.items = BASE_COLUMNS.map((c) => c.key);
   }
 
-  /** 配置列弹窗内拖拽重排（对齐 legacy handleConfigDrop） */
+  /** 配置列弹窗内拖拽重排 */
   function reorderColumnItems(fromKey: string, toKey: string): void {
     if (!fromKey || !toKey || fromKey === toKey) return;
     const items = [...columnConfigState.value.items];
@@ -285,7 +283,7 @@ export function useFlightMonitorList(options: UseFlightMonitorListOptions): UseF
     const toIdx = items.indexOf(toKey);
     if (fromIdx < 0 || toIdx < 0) return;
     items.splice(fromIdx, 1);
-    // legacy: 源在目标后 → after(target)；源在目标前 → before(target)
+    // 源在目标后 → after(target)；源在目标前 → before(target)
     // 等价于：移除后按目标当前下标插入（from < to 时目标下标会 -1，再 +1 即 after）
     const insertAt = fromIdx < toIdx ? toIdx : toIdx;
     items.splice(insertAt, 0, fromKey);

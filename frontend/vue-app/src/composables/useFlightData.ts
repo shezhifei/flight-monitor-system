@@ -20,7 +20,7 @@ import {
 } from './useFlightDataConstants';
 import {
   findFlightById,
-  normalizeAirportContextV2,
+  normalizeAirportContext,
   normalizeFlightId,
   preprocessFlightsBatch,
 } from './useFlightField';
@@ -36,7 +36,7 @@ import {
   writeDispatchTimelineField,
 } from './useFlightSync';
 import {
-  loadAirportContextV2,
+  loadAirportContext as loadAirportContextRequest,
   loadFlightsPagedData,
 } from './useFlightFetch';
 import {
@@ -46,13 +46,13 @@ import {
   fetchCollaborationGroupByFlight,
   fetchFlightEventJourney,
   fetchFlightHistoryReport,
-  loadBusinessCaseTypesV2,
+  loadBusinessCaseTypes as loadBusinessCaseTypesRequest,
   patchFlightField,
   updateBusinessCaseStatusRequest,
   updateBusinessCaseTypeAiConfigRequest,
 } from './useFlightCrud';
 
-// Re-export the split modules so existing imports from './useFlightData' keep working.
+// 组合入口：本文件装配 useFlightData() 组合函数，拆分的纯逻辑子模块从这里统一对外。
 export * from './useFlightDataTypes';
 export * from './useFlightDataConstants';
 export * from './useFlightField';
@@ -109,7 +109,7 @@ export function useFlightData(initialOptions: UseFlightDataOptions = {}): UseFli
 
   const flights = ref<Flight[]>(preprocessFlightsBatch(initialOptions.flights ?? []));
   const originalFlights = ref<Flight[]>(preprocessFlightsBatch(initialOptions.originalFlights ?? initialOptions.flights ?? []));
-  const airportContext = ref<AirportContext>(normalizeAirportContextV2(initialOptions.airportContext));
+  const airportContext = ref<AirportContext>(normalizeAirportContext(initialOptions.airportContext));
   const businessFilters = ref<BusinessFilters>(normalizeBusinessFilters(initialOptions.businessFilters));
   const searchFields = ref<SearchFields>(normalizeSearchFields(initialOptions.searchFields));
   const searchQuery = ref(String(initialOptions.searchQuery ?? ''));
@@ -135,7 +135,7 @@ export function useFlightData(initialOptions: UseFlightDataOptions = {}): UseFli
   }
 
   function setAirportContext(nextContext: Partial<AirportContext>): AirportContext {
-    airportContext.value = normalizeAirportContextV2(nextContext);
+    airportContext.value = normalizeAirportContext(nextContext);
     return airportContext.value;
   }
 
@@ -173,7 +173,7 @@ export function useFlightData(initialOptions: UseFlightDataOptions = {}): UseFli
   }
 
   async function loadAirportContext(): Promise<AirportContext> {
-    const nextContext = await loadAirportContextV2({
+    const nextContext = await loadAirportContextRequest({
       apiBase: auth.apiBase.value,
       authFetch: auth.fetch,
       fallbackContext: airportContext.value,
@@ -227,7 +227,7 @@ export function useFlightData(initialOptions: UseFlightDataOptions = {}): UseFli
   }
 
   async function loadBusinessCaseTypes() {
-    return loadBusinessCaseTypesV2({
+    return loadBusinessCaseTypesRequest({
       apiBase: auth.apiBase.value,
       authFetch: auth.fetch,
     });

@@ -46,25 +46,16 @@ export function useAiCapabilities() {
     loading.value = true;
     error.value = '';
     try {
-      const res = await api.get<{ success?: boolean; data?: AiCapabilitiesData } & AiCapabilitiesData>('/api/v2/ai/capabilities');
-      if (res.ok && res.data) {
-        // 兼容 { success, data } 与扁平 payload
-        const body = res.data as { success?: boolean; data?: AiCapabilitiesData } & AiCapabilitiesData;
-        const payload = (body.data && typeof body.data === 'object' && 'ai_ready' in (body.data as object))
-          ? body.data
-          : body;
-        if (payload && typeof payload === 'object' && ('ai_ready' in payload || 'ai_execute_permission' in payload)) {
-          capabilities.value = {
-            ai_ready: Boolean(payload.ai_ready),
-            ai_execute_permission: Boolean(payload.ai_execute_permission),
-            ai_chat_permission: Boolean(payload.ai_chat_permission),
-            missing_reasons: Array.isArray(payload.missing_reasons) ? payload.missing_reasons : [],
-          };
-        } else {
-          error.value = `AI 能力加载失败 (${res.status})`;
-        }
+      const res = await api.get<{ success?: boolean; data?: AiCapabilitiesData }>('/api/v2/ai/capabilities');
+      const payload = res.data?.data;
+      if (res.ok && payload && typeof payload === 'object') {
+        capabilities.value = {
+          ai_ready: Boolean(payload.ai_ready),
+          ai_execute_permission: Boolean(payload.ai_execute_permission),
+          ai_chat_permission: Boolean(payload.ai_chat_permission),
+          missing_reasons: Array.isArray(payload.missing_reasons) ? payload.missing_reasons : [],
+        };
       } else {
-        // 后端 500 / 未登录：不弹 toast 打扰建模，仅禁用 AI 按钮
         error.value = `AI 能力暂不可用 (${res.status || 'error'})`;
       }
     } catch (err) {

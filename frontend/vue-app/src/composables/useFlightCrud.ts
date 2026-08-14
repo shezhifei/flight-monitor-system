@@ -155,37 +155,7 @@ function sanitizeBusinessCaseCreatePayload(caseData: BusinessCaseCreatePayload):
   return payload;
 }
 
-function buildLegacyBusinessCaseCreatePayload(
-  caseData: BusinessCaseCreatePayload,
-): BusinessCaseCreatePayload {
-  const legacyPayload: BusinessCaseCreatePayload = { ...caseData };
-  delete legacyPayload.visibility_scope;
-  delete legacyPayload.department_id;
-  delete legacyPayload.department_name_snapshot;
-  return legacyPayload;
-}
-
-function shouldRetryBusinessCaseCreateWithLegacyPayload(
-  response: Response,
-  payload: Record<string, unknown>,
-): boolean {
-  if (![400, 422].includes(response.status)) {
-    return false;
-  }
-
-  const detailText = JSON.stringify(payload ?? {}).toLowerCase();
-  return [
-    'visibility_scope',
-    'department_id',
-    'department_name_snapshot',
-    'extra inputs are not permitted',
-    'field required',
-    'unknown field',
-    'unexpected',
-  ].some((keyword) => detailText.includes(keyword));
-}
-
-export async function loadBusinessCaseTypesV2(options: {
+export async function loadBusinessCaseTypes(options: {
   apiBase: string;
   authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }): Promise<BusinessCaseTypeDefinition[]> {
@@ -229,36 +199,16 @@ export async function createBusinessCase(
   }
 ): Promise<Record<string, unknown>> {
   const normalizedPayload = sanitizeBusinessCaseCreatePayload(caseData);
-  const legacyPayload = buildLegacyBusinessCaseCreatePayload(normalizedPayload);
-  const attemptPayloads = JSON.stringify(normalizedPayload) === JSON.stringify(legacyPayload)
-    ? [normalizedPayload]
-    : [normalizedPayload, legacyPayload];
-
-  let lastPayload: Record<string, unknown> | null = null;
-  let lastStatus = 0;
-
-  for (let index = 0; index < attemptPayloads.length; index += 1) {
-    const response = await options.authFetch(`${options.apiBase}/business-cases`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(attemptPayloads[index]),
-    });
-    const payload = await parseResponsePayload(response);
-
-    if (response.ok && payload?.success !== false) {
-      return payload;
-    }
-
-    lastPayload = payload;
-    lastStatus = response.status;
-
-    const hasNextAttempt = index < attemptPayloads.length - 1;
-    if (!hasNextAttempt || !shouldRetryBusinessCaseCreateWithLegacyPayload(response, payload)) {
-      break;
-    }
+  const response = await options.authFetch(`${options.apiBase}/business-cases`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(normalizedPayload),
+  });
+  const payload = await parseResponsePayload(response);
+  if (!response.ok || payload?.success === false) {
+    throw new Error(buildErrorMessage(payload, `创建失败 (${response.status})`));
   }
-
-  throw new Error(buildErrorMessage(lastPayload ?? {}, `创建失败 (${lastStatus || 0})`));
+  return payload;
 }
 
 export async function updateBusinessCaseStatusRequest(

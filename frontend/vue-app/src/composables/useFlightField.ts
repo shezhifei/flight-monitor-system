@@ -45,7 +45,7 @@ export function findFlightById(
     ?? null;
 }
 
-export function normalizeAirportContextV2(rawContext: Partial<AirportContext> | null | undefined): AirportContext {
+export function normalizeAirportContext(rawContext: Partial<AirportContext> | null | undefined): AirportContext {
   const context = rawContext && typeof rawContext === 'object' ? rawContext : {};
   const aliases = Array.isArray(context.name_aliases)
     ? context.name_aliases.map((alias) => String(alias ?? '').trim()).filter(Boolean)
@@ -58,18 +58,18 @@ export function normalizeAirportContextV2(rawContext: Partial<AirportContext> | 
   };
 }
 
-export function getAirportDisplayValueV2(
+export function getAirportDisplayValue(
   airportContext: Partial<AirportContext> | null | undefined,
   fieldMode: 'code' | 'name' = 'code',
 ): string {
-  const normalized = normalizeAirportContextV2(airportContext);
+  const normalized = normalizeAirportContext(airportContext);
   if (fieldMode === 'name') {
     return normalized.display_name || normalized.code || '本站';
   }
   return normalized.code || normalized.display_name || '本站';
 }
 
-export function normalizeRouteStationV2(rawStation: unknown): Station | null {
+export function normalizeRouteStation(rawStation: unknown): Station | null {
   if (!rawStation || typeof rawStation !== 'object') {
     return null;
   }
@@ -83,7 +83,7 @@ export function normalizeRouteStationV2(rawStation: unknown): Station | null {
   return { ...(rawStation as Record<string, unknown>), code, name: name || null } as Station;
 }
 
-export function normalizeRouteStationsV2(stations: unknown): Station[] {
+export function normalizeRouteStations(stations: unknown): Station[] {
   if (!Array.isArray(stations)) {
     return [];
   }
@@ -91,7 +91,7 @@ export function normalizeRouteStationsV2(stations: unknown): Station[] {
   const seen = new Set<string>();
   const normalized: Station[] = [];
   stations.forEach((station) => {
-    const nextStation = normalizeRouteStationV2(station);
+    const nextStation = normalizeRouteStation(station);
     if (!nextStation) {
       return;
     }
@@ -105,7 +105,7 @@ export function normalizeRouteStationsV2(stations: unknown): Station[] {
   return normalized;
 }
 
-export function parseLegPayloadV2(rawLeg: unknown, expectedLegType: LegType): FlightLeg | null {
+export function parseLegPayload(rawLeg: unknown, expectedLegType: LegType): FlightLeg | null {
   if (!rawLeg || typeof rawLeg !== 'object') {
     return null;
   }
@@ -126,32 +126,32 @@ export function parseLegPayloadV2(rawLeg: unknown, expectedLegType: LegType): Fl
     leg_type: normalizedType as LegType,
     flight_no: flightNo,
     flight_type: String(next.flight_type ?? 'domestic').trim().toLowerCase(),
-    origin_stations: normalizeRouteStationsV2(next.origin_stations),
-    destination_stations: normalizeRouteStationsV2(next.destination_stations),
+    origin_stations: normalizeRouteStations(next.origin_stations),
+    destination_stations: normalizeRouteStations(next.destination_stations),
   } as FlightLeg;
 }
 
-export function getLegPayloadV2(flight: Flight | null | undefined, legType: LegType): FlightLeg | null {
+export function getLegPayload(flight: Flight | null | undefined, legType: LegType): FlightLeg | null {
   if (!flight || typeof flight !== 'object') {
     return null;
   }
   const key = legType === 'inbound' ? 'inbound_leg' : 'outbound_leg';
-  return parseLegPayloadV2(flight[key], legType);
+  return parseLegPayload(flight[key], legType);
 }
 
-export function getLegStationsV2(
+export function getLegStations(
   flight: Flight | null | undefined,
   legType: LegType,
   fieldName: keyof Pick<FlightLeg, 'origin_stations' | 'destination_stations'>,
 ): Station[] {
-  const leg = getLegPayloadV2(flight, legType);
+  const leg = getLegPayload(flight, legType);
   if (!leg) {
     return [];
   }
-  return normalizeRouteStationsV2(leg[fieldName]);
+  return normalizeRouteStations(leg[fieldName]);
 }
 
-export function getStationDisplayValueV2(station: Station | null | undefined, fieldMode: 'code' | 'name' = 'code'): string {
+export function getStationDisplayValue(station: Station | null | undefined, fieldMode: 'code' | 'name' = 'code'): string {
   if (!station || typeof station !== 'object') {
     return '';
   }
@@ -161,31 +161,31 @@ export function getStationDisplayValueV2(station: Station | null | undefined, fi
   return String(station.code ?? station.name ?? '').trim();
 }
 
-export function getStationListDisplayV2(
+export function getStationListDisplay(
   flight: Flight | null | undefined,
   legType: LegType,
   fieldName: keyof Pick<FlightLeg, 'origin_stations' | 'destination_stations'>,
   fieldMode: 'code' | 'name' = 'code',
 ): string {
-  return getLegStationsV2(flight, legType, fieldName)
-    .map((station) => getStationDisplayValueV2(station, fieldMode))
+  return getLegStations(flight, legType, fieldName)
+    .map((station) => getStationDisplayValue(station, fieldMode))
     .filter(Boolean)
     .join(', ');
 }
 
-export function getLegFieldV2(
+export function getLegField(
   flight: Flight | null | undefined,
   legType: LegType,
   fieldName: keyof FlightLeg | string,
 ): string {
-  const leg = getLegPayloadV2(flight, legType);
+  const leg = getLegPayload(flight, legType);
   if (!leg) {
     return '';
   }
   return String((leg as Record<string, unknown>)[fieldName] ?? '').trim();
 }
 
-export function normalizeFlightTypeLabelV2(rawType: unknown): string {
+export function normalizeFlightTypeLabel(rawType: unknown): string {
   const type = String(rawType ?? '').trim().toLowerCase();
   if (type === 'intl' || type === 'international') return '国际';
   if (type === 'region') return '地区';
@@ -193,23 +193,23 @@ export function normalizeFlightTypeLabelV2(rawType: unknown): string {
   return '';
 }
 
-export function getPrimaryFlightNoV2(flight: Flight): string {
-  const outbound = getLegFieldV2(flight, 'outbound', 'flight_no');
-  const inbound = getLegFieldV2(flight, 'inbound', 'flight_no');
+export function getPrimaryFlightNo(flight: Flight): string {
+  const outbound = getLegField(flight, 'outbound', 'flight_no');
+  const inbound = getLegField(flight, 'inbound', 'flight_no');
   return outbound || inbound || String(flight?.flight_number ?? flight?.flight_id ?? '').trim();
 }
 
-export function getRouteDisplayTextV2(
+export function getRouteDisplayText(
   flight: Flight,
   airportContext: Partial<AirportContext> | null | undefined,
 ): string {
-  const inboundOrigin = getStationListDisplayV2(flight, 'inbound', 'origin_stations', 'name');
-  const inboundDestination = getStationListDisplayV2(flight, 'inbound', 'destination_stations', 'name');
-  const outboundOrigin = getStationListDisplayV2(flight, 'outbound', 'origin_stations', 'name');
-  const outboundDestination = getStationListDisplayV2(flight, 'outbound', 'destination_stations', 'name');
-  const inboundNo = getLegFieldV2(flight, 'inbound', 'flight_no');
-  const outboundNo = getLegFieldV2(flight, 'outbound', 'flight_no');
-  const airportName = getAirportDisplayValueV2(airportContext, 'name');
+  const inboundOrigin = getStationListDisplay(flight, 'inbound', 'origin_stations', 'name');
+  const inboundDestination = getStationListDisplay(flight, 'inbound', 'destination_stations', 'name');
+  const outboundOrigin = getStationListDisplay(flight, 'outbound', 'origin_stations', 'name');
+  const outboundDestination = getStationListDisplay(flight, 'outbound', 'destination_stations', 'name');
+  const inboundNo = getLegField(flight, 'inbound', 'flight_no');
+  const outboundNo = getLegField(flight, 'outbound', 'flight_no');
+  const airportName = getAirportDisplayValue(airportContext, 'name');
 
   if (inboundNo && outboundNo) {
     return `${inboundOrigin || '-'} -> ${airportName} -> ${outboundDestination || '-'}`;
@@ -217,19 +217,19 @@ export function getRouteDisplayTextV2(
   return `${inboundOrigin || outboundOrigin || '-'} -> ${outboundDestination || inboundDestination || '-'}`;
 }
 
-export function normalizeFlightTypeCodeV2(rawType: unknown): 'intl' | 'region' | 'domestic' {
+export function normalizeFlightTypeCode(rawType: unknown): 'intl' | 'region' | 'domestic' {
   const type = String(rawType ?? '').trim().toLowerCase();
   if (type === 'intl' || type === 'international' || type === '国际') return 'intl';
   if (type === 'region' || type === '地区') return 'region';
   return 'domestic';
 }
 
-export function getLegFlightTypeLabelV2(flight: Flight, legType: LegType): string {
-  const leg = getLegPayloadV2(flight, legType);
+export function getLegFlightTypeLabel(flight: Flight, legType: LegType): string {
+  const leg = getLegPayload(flight, legType);
   if (!leg) {
     return '';
   }
-  return normalizeFlightTypeLabelV2(leg.flight_type);
+  return normalizeFlightTypeLabel(leg.flight_type);
 }
 
 export function normalizeMissionKey(rawMission: unknown): string {
@@ -292,25 +292,25 @@ export function collectMissionSearchTerms(rawMission: unknown): string[] {
   return Array.from(new Set([parsed.raw, parsed.key, parsed.label, parsed.suffix].filter(Boolean)));
 }
 
-export function collectRawMissionValuesV2(flight: Flight): string[] {
+export function collectRawMissionValues(flight: Flight): string[] {
   return ['inbound', 'outbound']
     .map((legType) => {
-      const leg = getLegPayloadV2(flight, legType as LegType);
+      const leg = getLegPayload(flight, legType as LegType);
       return leg ? String(leg.mission ?? '').trim() : '';
     })
     .filter(Boolean);
 }
 
-export function getLegMissionLabelV2(flight: Flight, legType: LegType): string {
-  const leg = getLegPayloadV2(flight, legType);
+export function getLegMissionLabel(flight: Flight, legType: LegType): string {
+  const leg = getLegPayload(flight, legType);
   if (!leg) {
     return '';
   }
   return formatMissionLabel(leg.mission);
 }
 
-export function getMissionSummaryV2(flight: Flight): string {
-  const missions = collectRawMissionValuesV2(flight)
+export function getMissionSummary(flight: Flight): string {
+  const missions = collectRawMissionValues(flight)
     .map((mission) => formatMissionLabel(mission))
     .filter(Boolean);
   if (!missions.length) {
@@ -319,81 +319,81 @@ export function getMissionSummaryV2(flight: Flight): string {
   return Array.from(new Set(missions)).join(' | ');
 }
 
-export function getMissionSearchTextV2(flight: Flight): string {
-  const terms = collectRawMissionValuesV2(flight).flatMap((mission) => collectMissionSearchTerms(mission));
+export function getMissionSearchText(flight: Flight): string {
+  const terms = collectRawMissionValues(flight).flatMap((mission) => collectMissionSearchTerms(mission));
   if (!terms.length) {
     return '';
   }
   return Array.from(new Set(terms)).join(' ');
 }
 
-export function getFlightTypeSummaryV2(flight: Flight): string {
-  const types = [getLegFlightTypeLabelV2(flight, 'inbound'), getLegFlightTypeLabelV2(flight, 'outbound')].filter(Boolean);
+export function getFlightTypeSummary(flight: Flight): string {
+  const types = [getLegFlightTypeLabel(flight, 'inbound'), getLegFlightTypeLabel(flight, 'outbound')].filter(Boolean);
   if (!types.length) {
     return '';
   }
   return Array.from(new Set(types)).join('|');
 }
 
-export function getLegVipFlagV2(flight: Flight, legType: LegType): boolean {
-  const leg = getLegPayloadV2(flight, legType);
+export function getLegVipFlag(flight: Flight, legType: LegType): boolean {
+  const leg = getLegPayload(flight, legType);
   return Boolean(leg?.is_vip);
 }
 
-export function getFlightNumberByLegV2(flight: Flight, legType: LegType): string {
-  return getLegFieldV2(flight, legType, 'flight_no');
+export function getFlightNumberByLeg(flight: Flight, legType: LegType): string {
+  return getLegField(flight, legType, 'flight_no');
 }
 
-export function hasLegFlightV2(flight: Flight, legType: LegType): boolean {
-  return Boolean(getFlightNumberByLegV2(flight, legType));
+export function hasLegFlight(flight: Flight, legType: LegType): boolean {
+  return Boolean(getFlightNumberByLeg(flight, legType));
 }
 
-export function getFlightNumberDisplayV2(flight: Flight): string {
-  const inboundFlightNo = getFlightNumberByLegV2(flight, 'inbound');
-  const outboundFlightNo = getFlightNumberByLegV2(flight, 'outbound');
+export function getFlightNumberDisplay(flight: Flight): string {
+  const inboundFlightNo = getFlightNumberByLeg(flight, 'inbound');
+  const outboundFlightNo = getFlightNumberByLeg(flight, 'outbound');
   if (inboundFlightNo && outboundFlightNo) {
     return `${inboundFlightNo}|${outboundFlightNo}`;
   }
   return outboundFlightNo || inboundFlightNo || '';
 }
 
-export function getFlightTypeLabelsV2(flight: Flight): { inbound: string; outbound: string } {
+export function getFlightTypeLabels(flight: Flight): { inbound: string; outbound: string } {
   return {
-    inbound: getLegFlightTypeLabelV2(flight, 'inbound'),
-    outbound: getLegFlightTypeLabelV2(flight, 'outbound'),
+    inbound: getLegFlightTypeLabel(flight, 'inbound'),
+    outbound: getLegFlightTypeLabel(flight, 'outbound'),
   };
 }
 
-export function getPrimaryFlightTypeLabelV2(flight: Flight): string {
-  const labels = getFlightTypeLabelsV2(flight);
+export function getPrimaryFlightTypeLabel(flight: Flight): string {
+  const labels = getFlightTypeLabels(flight);
   return labels.outbound || labels.inbound || '';
 }
 
-export function getMissionInputValueV2(flight: Flight): string {
-  return collectRawMissionValuesV2(flight).join(',');
+export function getMissionInputValue(flight: Flight): string {
+  return collectRawMissionValues(flight).join(',');
 }
 
-export function getRouteEndpointV2(
+export function getRouteEndpoint(
   flight: Flight,
   legType: LegType,
   fieldMode: 'code' | 'name' = 'code',
 ): string {
   const fieldName = legType === 'inbound' ? 'origin_stations' : 'destination_stations';
-  return getStationListDisplayV2(flight, legType, fieldName, fieldMode);
+  return getStationListDisplay(flight, legType, fieldName, fieldMode);
 }
 
-export function getRouteSummaryV2(
+export function getRouteSummary(
   flight: Flight,
   airportContext: Partial<AirportContext> | null | undefined,
   fieldMode: 'code' | 'name' = 'code',
 ): string {
-  const inboundNo = getLegFieldV2(flight, 'inbound', 'flight_no');
-  const outboundNo = getLegFieldV2(flight, 'outbound', 'flight_no');
-  const origin = getRouteEndpointV2(flight, 'inbound', fieldMode)
-    || getStationListDisplayV2(flight, 'outbound', 'origin_stations', fieldMode);
-  const destination = getRouteEndpointV2(flight, 'outbound', fieldMode)
-    || getStationListDisplayV2(flight, 'inbound', 'destination_stations', fieldMode);
-  const airportLabel = getAirportDisplayValueV2(airportContext, fieldMode);
+  const inboundNo = getLegField(flight, 'inbound', 'flight_no');
+  const outboundNo = getLegField(flight, 'outbound', 'flight_no');
+  const origin = getRouteEndpoint(flight, 'inbound', fieldMode)
+    || getStationListDisplay(flight, 'outbound', 'origin_stations', fieldMode);
+  const destination = getRouteEndpoint(flight, 'outbound', fieldMode)
+    || getStationListDisplay(flight, 'inbound', 'destination_stations', fieldMode);
+  const airportLabel = getAirportDisplayValue(airportContext, fieldMode);
 
   if (inboundNo && outboundNo) {
     return `${origin || '--'} -> ${airportLabel} -> ${destination || '--'}`;
@@ -522,12 +522,12 @@ export function formatTimeValue(isoString: unknown): string | null {
   }
 }
 
-export function hydrateFlightLegViewV2(
+export function hydrateFlightLegView(
   flight: Flight,
   options: { dispatchTimelineCache?: DispatchTimelineCache } = {},
 ): Flight {
-  flight.inbound_leg = getLegPayloadV2(flight, 'inbound');
-  flight.outbound_leg = getLegPayloadV2(flight, 'outbound');
+  flight.inbound_leg = getLegPayload(flight, 'inbound');
+  flight.outbound_leg = getLegPayload(flight, 'outbound');
   flight.anomaly_summary = normalizeAnomalySummary(flight.anomaly_summary);
   syncFlightTimelineFieldsFromCache(flight, options.dispatchTimelineCache);
   return flight;
@@ -537,7 +537,7 @@ export function preprocessFlightTimes(
   flight: Flight,
   options: { dispatchTimelineCache?: DispatchTimelineCache } = {},
 ): Flight {
-  hydrateFlightLegViewV2(flight, options);
+  hydrateFlightLegView(flight, options);
   if (!flight._timesFormatted) {
     flight._fmt = {};
     (TIME_FIELDS as readonly string[]).forEach((field) => {

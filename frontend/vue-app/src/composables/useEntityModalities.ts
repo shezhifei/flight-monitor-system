@@ -1,18 +1,16 @@
 /**
- * 按 entity 拉取「模型能力快照」中的输入模态与允许的 MIME 类型，
- * 直接喂给 <AiChatModal> 的 inputModalities / allowedInputMimeTypes props，
- * 从而让聊天输入的文件 accept 白名单与该实体所用 LLM 的模态范围对齐。
+ * 按实体拉取能力快照中的输入模态与 MIME 白名单，
+ * 供聊天输入的 accept 与该实体所用模型对齐。
  *
- * 数据源：GET /api/v2/ai/entities/{id}/capabilities（已含 input_modalities + security）。
- * 这是 P0b/P1a 的连接件：后端已提供数据，此处把它接到任意聊天界面。
+ * 数据源：GET /api/v2/ai/entities/{id}/capabilities。
  */
 import { ref, computed } from 'vue';
-import { useAiConfigApiV2 } from '../pages/ai_config_center/aiConfigApiV2';
+import { useAiConfigApi } from '../pages/ai_config_center/aiConfigApi';
 import { deriveInputAccept } from '../utils/aiInputAccept';
-import type { ModalityType } from '../pages/ai_config_center/aiConfigTypesV2';
+import type { ModalityType } from '../pages/ai_config_center/aiConfigTypes';
 
 export function useEntityModalities() {
-  const api = useAiConfigApiV2();
+  const api = useAiConfigApi();
 
   const inputModalities = ref<ModalityType[]>(['text']);
   const allowedInputMimeTypes = ref<string[]>([]);

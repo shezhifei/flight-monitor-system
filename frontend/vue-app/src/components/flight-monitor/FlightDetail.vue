@@ -16,7 +16,7 @@ import {
   getFlightNumbers,
   getMissionDisplay,
 } from './helpers';
-import { getLegFlightTypeLabelV2 } from '../../composables/useFlightField';
+import { getLegFlightTypeLabel } from '../../composables/useFlightField';
 import FlightHeaderCard from './detail/FlightHeaderCard.vue';
 import FlightLegInfo from './detail/FlightLegInfo.vue';
 import FlightMilestoneSection from './detail/FlightMilestoneSection.vue';
@@ -77,13 +77,13 @@ const detailItems = computed(() => {
   if (hasInbound) {
     items.push(
       { label: '进港航班号', value: flightNumbers.value?.inbound || '--' },
-      { label: '进港类别', value: getLegFlightTypeLabelV2(model, 'inbound') || '--' },
+      { label: '进港类别', value: getLegFlightTypeLabel(model, 'inbound') || '--' },
     );
   }
   if (hasOutbound) {
     items.push(
       { label: '出港航班号', value: flightNumbers.value?.outbound || '--' },
-      { label: '出港类别', value: getLegFlightTypeLabelV2(model, 'outbound') || '--' },
+      { label: '出港类别', value: getLegFlightTypeLabel(model, 'outbound') || '--' },
       { label: '结束登机', value: formatTimeValue(raw.end_boarding_time) },
       { label: '登机限制', value: flight.has_boarding_restriction ? '是' : '否' },
       { label: '撤轮挡', value: formatTimeValue(raw.off_blocks_time), field: 'off_blocks_time', type: 'datetime-local' },

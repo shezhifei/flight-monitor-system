@@ -3,21 +3,21 @@ import {
   EMPTY_DISPLAY_TEXT,
   formatMissionLabel,
   formatTimeValue,
-  getAirportDisplayValueV2,
+  getAirportDisplayValue,
   getAnomalyCountForFlight,
-  getFlightNumberDisplayV2,
-  getLegFieldV2,
-  getMissionSummaryV2,
-  getRouteEndpointV2,
+  getFlightNumberDisplay,
+  getLegField,
+  getMissionSummary,
+  getRouteEndpoint,
   hasVipMarker,
   isDelayedFlight,
   isWideBodyAircraft,
   normalizeFlightId,
   normalizeSignedFlag,
-  getLegVipFlagV2,
-  getLegPayloadV2,
-  normalizeFlightTypeCodeV2,
-  getFlightTypeSummaryV2,
+  getLegVipFlag,
+  getLegPayload,
+  normalizeFlightTypeCode,
+  getFlightTypeSummary,
   type AirportContext,
   type Flight as FlightModel,
   type SearchFields,
@@ -110,12 +110,12 @@ export function deriveOperationDateLabel(flight: Flight): string {
 
 export function getFlightNumbers(flight: Flight): { inbound: string; outbound: string; combined: string } {
   const model = asFlightModel(flight);
-  const inbound = getLegFieldV2(model, 'inbound', 'flight_no');
-  const outbound = getLegFieldV2(model, 'outbound', 'flight_no');
+  const inbound = getLegField(model, 'inbound', 'flight_no');
+  const outbound = getLegField(model, 'outbound', 'flight_no');
   return {
     inbound,
     outbound,
-    combined: getFlightNumberDisplayV2(model) || EMPTY_DISPLAY_TEXT,
+    combined: getFlightNumberDisplay(model) || EMPTY_DISPLAY_TEXT,
   };
 }
 
@@ -151,25 +151,25 @@ export function getFlightEndpoints(
   fieldMode: 'code' | 'name' = routeDisplayMode.value,
 ): { origin: string; airport: string; destination: string; hasInbound: boolean; hasOutbound: boolean } {
   const model = asFlightModel(flight);
-  const airport = getAirportDisplayValueV2(airportContext, fieldMode) || '本站';
-  const hasInbound = Boolean(getLegFieldV2(model, 'inbound', 'flight_no'));
-  const hasOutbound = Boolean(getLegFieldV2(model, 'outbound', 'flight_no'));
+  const airport = getAirportDisplayValue(airportContext, fieldMode) || '本站';
+  const hasInbound = Boolean(getLegField(model, 'inbound', 'flight_no'));
+  const hasOutbound = Boolean(getLegField(model, 'outbound', 'flight_no'));
 
   let origin: string;
   let destination: string;
 
   if (hasInbound && hasOutbound) {
     // 双腿：来源 → [本站] → 目的
-    origin = getRouteEndpointV2(model, 'inbound', fieldMode) || airport;
-    destination = getRouteEndpointV2(model, 'outbound', fieldMode) || airport;
+    origin = getRouteEndpoint(model, 'inbound', fieldMode) || airport;
+    destination = getRouteEndpoint(model, 'outbound', fieldMode) || airport;
   } else if (hasInbound) {
     // 仅进港：来源 → 本站
-    origin = getRouteEndpointV2(model, 'inbound', fieldMode) || '--';
+    origin = getRouteEndpoint(model, 'inbound', fieldMode) || '--';
     destination = airport;
   } else {
     // 仅出港：本站 → 目的
     origin = airport;
-    destination = getRouteEndpointV2(model, 'outbound', fieldMode) || '--';
+    destination = getRouteEndpoint(model, 'outbound', fieldMode) || '--';
   }
 
   return { origin: origin || '--', airport, destination: destination || '--', hasInbound, hasOutbound };
@@ -214,7 +214,7 @@ export function getTimeFieldRawValue(flight: Flight, field: string): string {
 
 /** 属性 column (legacy FIELD_MAP `flight_type`). */
 export function getFlightTypeColumnDisplay(flight: Flight): string {
-  return getFlightTypeSummaryV2(asFlightModel(flight)) || EMPTY_DISPLAY_TEXT;
+  return getFlightTypeSummary(asFlightModel(flight)) || EMPTY_DISPLAY_TEXT;
 }
 
 export function getTimeToneClass(tone: TimeTone): string {
@@ -225,7 +225,7 @@ export function getTimeToneClass(tone: TimeTone): string {
 
 export function getMissionDisplay(flight: Flight): string {
   const model = asFlightModel(flight);
-  return getMissionSummaryV2(model)
+  return getMissionSummary(model)
     || formatMissionLabel(model.outbound_leg?.mission)
     || formatMissionLabel(model.inbound_leg?.mission)
     || EMPTY_DISPLAY_TEXT;
@@ -258,9 +258,9 @@ export function getStandGateDisplay(flight: Flight): string {
 
 export function getFlightNumberStyleClass(flight: Flight, legType: 'inbound' | 'outbound'): string {
   const model = asFlightModel(flight);
-  const isVip = getLegVipFlagV2(model, legType);
-  const payload = getLegPayloadV2(model, legType);
-  const typeCode = normalizeFlightTypeCodeV2(payload?.flight_type);
+  const isVip = getLegVipFlag(model, legType);
+  const payload = getLegPayload(model, legType);
+  const typeCode = normalizeFlightTypeCode(payload?.flight_type);
   const isIntl = typeCode === 'intl' || typeCode === 'region';
 
   if (isVip && isIntl) return 'text-flight-vip-intl';
