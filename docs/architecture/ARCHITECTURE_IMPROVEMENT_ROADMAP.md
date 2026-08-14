@@ -365,7 +365,7 @@ W0-1 (panic 面)  ──并行──  W0-2 (乐观锁)
 | 范围 | proposal / pending action / compensation / checkpoint / run events |
 | 做法 | 状态落库与授权决策在 Rust；侧车上报事件与工具结果；避免双写两套状态机 |
 | 验收 | 控制面读写路径文档化；无「仅侧车内存为真相」的关键路径 |
-| 状态 | [ ] 未开始 |
+| 状态 | [x] 进行中 (2026-08-14) — 由 `docs/plans/2026-08-14-hybrid-agent-architecture.md` 驱动；执行环契约已冻结于 [AGENT_RUNTIME_LOOP.md](AGENT_RUNTIME_LOOP.md)（唯一生产环 `RuntimeService.stream_run_with_tools` → `LLMStreamRunner.stream_chat_with_tools`；禁止第四套运行时）。Phase A–D 交付 checkpoint / resume / proposal 读写路径文档化 |
 
 #### W2-5 宽泛异常收敛（TD-21）
 
@@ -584,3 +584,4 @@ W0-1 (panic 面)  ──并行──  W0-2 (乐观锁)
 | 2026-07-11 | W0-1 Done：核实生产代码已消除 sidecar 反序列化 panic 面；补 5 个畸形 payload 测试；发现 lib test 预存编译错误（jwt.rs / ai_execution_readiness tests.rs，属 W0-5 及独立问题）|
 | 2026-07-11 | Wave 3 继续：W3-12 Prometheus SLO 规则与 runbook 落库；核实 W3-14 chaos nightly、W3-15 mutation nightly 已满足验收；W3-13 因缺恢复行为测试保持进行中。 |
 | 2026-07-12 | W0-3 阻断收尾：拆分多语句 CONCURRENTLY（107–112）、095 补 ai_entities；空库 migrate 0→112 实测通过；同步 §4/§5 状态与 SOURCE_OF_TRUTH/QUICK_START/DEPLOYMENT 最新迁移编号。 |
+| 2026-08-14 | W2-4 对齐混合 Agent 计划（`docs/plans/2026-08-14-hybrid-agent-architecture.md`）：新增 [AGENT_RUNTIME_LOOP.md](AGENT_RUNTIME_LOOP.md) 冻结唯一生产环，禁止第四套运行时 / mock 工具回落 / LangGraph 追加业务节点。 |
