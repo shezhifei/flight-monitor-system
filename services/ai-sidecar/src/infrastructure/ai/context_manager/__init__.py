@@ -17,9 +17,6 @@ from .manager import (
     set_default_manager,
 )
 from .models import (
-    _DEFAULT_ACTIVE_CONTEXT_MESSAGE_CAP,
-    _LOCK_IDLE_TTL_SECONDS,
-    _LOCK_PRUNE_INTERVAL_SECONDS,
     Context,
     ContextCachePolicy,
     ContextError,
@@ -27,17 +24,9 @@ from .models import (
     ContextNotFoundError,
     ContextType,
     InvalidContextError,
-    _clamp,
-    _create_default_context,
-    _resolve_message_cap,
-    _trim_messages_to_limit,
-    _truncate_messages,
 )
 
 __all__ = [
-    "_DEFAULT_ACTIVE_CONTEXT_MESSAGE_CAP",
-    "_LOCK_IDLE_TTL_SECONDS",
-    "_LOCK_PRUNE_INTERVAL_SECONDS",
     # Dataclasses
     "Context",
     "ContextCachePolicy",
@@ -52,12 +41,6 @@ __all__ = [
     "InvalidContextError",
     "MemoryContextManager",
     "RedisContextManager",
-    "_clamp",
-    # Private helpers (re-exported for backward compatibility)
-    "_create_default_context",
-    "_resolve_message_cap",
-    "_trim_messages_to_limit",
-    "_truncate_messages",
     # Default manager helpers
     "get_default_manager",
     # Module-level logger

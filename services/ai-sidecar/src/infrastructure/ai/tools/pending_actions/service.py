@@ -318,28 +318,6 @@ class MemoryPendingActionStore:
                     expired_list.append(action)
         return expired_list
 
-    async def update_action_observation(
-        self,
-        action_id: str,
-        *,
-        status_code: str | None = None,
-        error_payload: Any | None = None,
-        execution_receipt: Any | None = None,
-    ) -> PendingAction:
-        now = utc_now()
-        async with self._lock:
-            action = self._actions.get(action_id)
-            if action is None:
-                raise KeyError(action_id)
-            if status_code is not None:
-                action.status_code = status_code
-            if error_payload is not None:
-                action.error_payload = error_payload
-            if execution_receipt is not None:
-                action.execution_receipt = execution_receipt
-            action.updated_at = now
-            return action
-
     async def clear(self) -> None:
         async with self._lock:
             self._actions.clear()
@@ -1125,61 +1103,6 @@ class PostgresPendingActionStore:
         await self._fallback.clear()
         if fallback_error:
             return
-
-    async def update_action_observation(
-        self,
-        action_id: str,
-        *,
-        status_code: str | None = None,
-        error_payload: Any | None = None,
-        execution_receipt: Any | None = None,
-    ) -> PendingAction:
-        if not await self._ensure_initialized():
-            return await self._fallback.update_action_observation(
-                action_id,
-                status_code=status_code,
-                error_payload=error_payload,
-                execution_receipt=execution_receipt,
-            )
-
-        now = utc_now()
-        query = f"""
-            UPDATE ai_pending_actions
-            SET status_code = COALESCE(%s, status_code),
-                error_payload = COALESCE(%s, error_payload),
-                execution_receipt = COALESCE(%s, execution_receipt),
-                updated_at = %s
-            WHERE action_id = %s
-            RETURNING {self._SELECT_COLUMNS}
-        """
-
-        try:
-            async with self._db_pool.connection_context() as conn:
-                row = await conn.fetchrow(
-                    query,
-                    (
-                        status_code,
-                        self._dumps_json(error_payload),
-                        self._dumps_json(execution_receipt),
-                        now,
-                        action_id,
-                    ),
-                )
-                await conn.connection.commit()
-
-            if not row:
-                raise KeyError(action_id)
-            return self._row_to_pending_action(row)
-        except KeyError:
-            raise
-        except POSTGRES_EXCEPTIONS as exc:
-            logger.warning(f"Update pending action observation in postgres failed, fallback to memory: {exc}")
-            return await self._fallback.update_action_observation(
-                action_id,
-                status_code=status_code,
-                error_payload=error_payload,
-                execution_receipt=execution_receipt,
-            )
 
     def clear_sync(self) -> None:
         # 同步上下文下仅清理内存回退存储，避免阻塞或意外删除生产数据。

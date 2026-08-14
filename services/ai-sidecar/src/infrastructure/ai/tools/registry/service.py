@@ -216,155 +216,6 @@ class ToolRegistry:
             return {}
 
     @staticmethod
-    def _normalize_runtime_status(status: Any) -> str:
-        raw = getattr(status, "value", status)
-        return str(raw or "").strip().lower()
-
-    async def _resolve_graph_executor(
-        self,
-        correlation_id: str | None,
-    ) -> tuple[Any | None, str | None]:
-        run_id = str(correlation_id or "").strip()
-        if not run_id:
-            return None, None
-
-        try:
-            from src.infrastructure.runtime.providers import get_runtime_container
-        except Exception as exc:  # noqa: BLE001 - bootstrap must catch all init failures
-            logger.debug(f"Graph runtime provider unavailable: {exc}")
-            return None, None
-
-        runtime_container = get_runtime_container()
-        executor = getattr(runtime_container, "ai_executor", None) if runtime_container is not None else None
-        if executor is None or not callable(getattr(executor, "resume_execution", None)):
-            return None, None
-
-        get_execution = getattr(executor, "get_execution", None)
-        if callable(get_execution):
-            try:
-                execution = await get_execution(run_id)
-            except Exception as exc:  # noqa: BLE001 - recovery handler must catch all errors
-                logger.warning(f"Graph execution lookup failed for run_id={run_id}: {exc}")
-                return None, None
-            if execution is None:
-                return None, None
-
-        return executor, run_id
-
-    async def _resume_graph_execution(
-        self,
-        *,
-        action: Any,
-        decision: str,
-        approver_id: str,
-        approver_roles: list[str] | None = None,
-        reason: str | None = None,
-        modified_arguments: dict[str, Any] | None = None,
-    ) -> ToolExecutionResult | None:
-        executor, run_id = await self._resolve_graph_executor(getattr(action, "correlation_id", None))
-        if executor is None or not run_id:
-            return None
-
-        resume_kwargs: dict[str, Any] = {
-            "pending_action_id": action.action_id,
-            "tool_call_id": action.tool_call_id,
-            "tool_name": action.tool_name,
-            "approver_id": approver_id,
-            "approver_roles": list(approver_roles or []),
-        }
-        if reason is not None:
-            resume_kwargs["reason"] = str(reason)
-        if modified_arguments is not None:
-            resume_kwargs["modified_arguments"] = dict(modified_arguments)
-
-        try:
-            runtime_result = await executor.resume_execution(
-                run_id=run_id,
-                action=decision,
-                **resume_kwargs,
-            )
-        except Exception as exc:  # noqa: BLE001 - recovery handler must catch all errors
-            logger.warning(
-                "Graph resume failed for action_id=%s run_id=%s decision=%s: %s",
-                action.action_id,
-                run_id,
-                decision,
-                exc,
-            )
-            return ToolExecutionResult(
-                tool_call_id=action.tool_call_id,
-                tool_name=action.tool_name,
-                status=ToolExecutionStatus.ERROR,
-                result={
-                    "run_id": run_id,
-                    "decision": decision,
-                },
-                error_message=str(exc),
-                code="GRAPH_RESUME_FAILED",
-                message="failed to resume graph execution after approval decision",
-                retryable=False,
-                metadata={"resume_mode": "graph"},
-            )
-
-        runtime_status = self._normalize_runtime_status(getattr(runtime_result, "status", None))
-        response_text = getattr(runtime_result, "response", None)
-        runtime_payload = {
-            "run_id": getattr(runtime_result, "run_id", run_id),
-            "todo_id": getattr(runtime_result, "todo_id", None),
-            "agent_status": runtime_status,
-            "response": response_text,
-            "total_steps": getattr(runtime_result, "total_steps", 0),
-            "total_tokens": getattr(runtime_result, "total_tokens", 0),
-            "total_tool_calls": getattr(runtime_result, "total_tool_calls", 0),
-            "duration_ms": getattr(runtime_result, "duration_ms", 0),
-            "error_message": getattr(runtime_result, "error_message", None),
-            "child_todos": list(getattr(runtime_result, "child_todos", []) or []),
-            "decision": decision,
-            "pending_action_id": action.action_id,
-        }
-        if modified_arguments is not None:
-            runtime_payload["modified_arguments"] = dict(modified_arguments)
-
-        if runtime_status in {"completed", "success"}:
-            return ToolExecutionResult(
-                tool_call_id=action.tool_call_id,
-                tool_name=action.tool_name,
-                status=ToolExecutionStatus.SUCCESS,
-                result=runtime_payload,
-                code="GRAPH_RESUME_SUCCESS",
-                message="graph execution resumed successfully",
-                metadata={"resume_mode": "graph"},
-            )
-
-        if runtime_status == ToolExecutionStatus.PENDING_APPROVAL.value:
-            return ToolExecutionResult(
-                tool_call_id=action.tool_call_id,
-                tool_name=action.tool_name,
-                status=ToolExecutionStatus.PENDING_APPROVAL,
-                result=runtime_payload,
-                code="GRAPH_RESUME_PENDING_APPROVAL",
-                message="graph execution resumed and is waiting for another approval",
-                retryable=False,
-                metadata={"resume_mode": "graph"},
-            )
-
-        return ToolExecutionResult(
-            tool_call_id=action.tool_call_id,
-            tool_name=action.tool_name,
-            status=ToolExecutionStatus.ERROR,
-            result=runtime_payload,
-            error_message=(
-                getattr(runtime_result, "error_message", None)
-                or response_text
-                or f"graph execution returned status '{runtime_status or 'unknown'}'"
-            ),
-            code="GRAPH_RESUME_UNSUCCESSFUL",
-            message="graph execution did not complete successfully after resume",
-            retryable=False,
-            metadata={"resume_mode": "graph"},
-        )
-
-    @staticmethod
     def _approval_result_payload(execution_result: ToolExecutionResult) -> dict[str, Any]:
         return {
             "status": execution_result.status.value,
@@ -376,80 +227,6 @@ class ToolRegistry:
             "result": execution_result.result,
             "error": execution_result.error_message,
         }
-
-    def _build_graph_execution_receipt(
-        self,
-        *,
-        action: Any,
-        execution_result: ToolExecutionResult,
-        modified_arguments: dict[str, Any] | None = None,
-        original_arguments: dict[str, Any] | None = None,
-        modifier_id: str | None = None,
-    ) -> dict[str, Any]:
-        result_payload = execution_result.result if isinstance(execution_result.result, dict) else {}
-        receipt: dict[str, Any] = {
-            "status": "applied"
-            if execution_result.status
-            in {
-                ToolExecutionStatus.SUCCESS,
-                ToolExecutionStatus.PENDING_APPROVAL,
-            }
-            else "failed",
-            "applied_at": utc_now().isoformat(),
-            "affected_rows": 0,
-            "side_effects": [],
-            "error": execution_result.error_message if execution_result.status != ToolExecutionStatus.SUCCESS else None,
-            "resume_mode": "graph",
-            "run_id": result_payload.get("run_id") or getattr(action, "correlation_id", None),
-            "agent_status": result_payload.get("agent_status"),
-        }
-        if modified_arguments is not None:
-            receipt["modification"] = {
-                "original_arguments": original_arguments or {},
-                "modified_arguments": dict(modified_arguments),
-                "modifier_id": modifier_id,
-            }
-        return receipt
-
-    async def _finalize_graph_pending_action(
-        self,
-        *,
-        pending_store: Any,
-        action_id: str,
-        execution_result: ToolExecutionResult,
-        execution_receipt: dict[str, Any],
-    ) -> Any:
-        if execution_result.status in {
-            ToolExecutionStatus.SUCCESS,
-            ToolExecutionStatus.PENDING_APPROVAL,
-        }:
-            try:
-                return await pending_store.mark_executed(
-                    action_id,
-                    execution_result.result,
-                    status_code=execution_result.code,
-                    execution_receipt=execution_receipt,
-                )
-            except TypeError:
-                return await pending_store.mark_executed(action_id, execution_result.result)
-
-        try:
-            return await pending_store.mark_failed(
-                action_id,
-                execution_result.error_message or execution_result.status.value,
-                status_code=execution_result.code,
-                error_payload={
-                    "status": execution_result.status.value,
-                    "code": execution_result.code,
-                    "message": execution_result.message or execution_result.error_message,
-                },
-                execution_receipt=execution_receipt,
-            )
-        except TypeError:
-            return await pending_store.mark_failed(
-                action_id,
-                execution_result.error_message or execution_result.status.value,
-            )
 
     @staticmethod
     def _derive_entity_type(tool_name: str, args: dict[str, Any]) -> str:
@@ -1048,79 +825,60 @@ class ToolRegistry:
             invocation_mode=action.invocation_mode,
         )
 
-        execution_result = await self._resume_graph_execution(
-            action=action,
-            decision="approved",
-            approver_id=approver_id,
-            approver_roles=approver_roles,
+        execution_result = await self.execute_tool_call(
+            tool_call_id=action.tool_call_id,
+            tool_name=action.tool_name,
+            arguments=action.arguments,
+            user_id=approver_id,
+            user_roles=approver_roles,
+            invocation_mode=InvocationMode.USER_REQUESTED,
         )
 
-        if execution_result is not None:
-            receipt = self._build_graph_execution_receipt(
-                action=action,
-                execution_result=execution_result,
-            )
-            latest = await self._finalize_graph_pending_action(
-                pending_store=pending_store,
-                action_id=action_id,
-                execution_result=execution_result,
-                execution_receipt=receipt,
-            )
+        receipt = {
+            "status": "applied" if execution_result.status == ToolExecutionStatus.SUCCESS else "failed",
+            "applied_at": utc_now().isoformat(),
+            "affected_rows": 0,
+            "side_effects": [],
+            "error": execution_result.error_message
+            if execution_result.status != ToolExecutionStatus.SUCCESS
+            else None,
+        }
+        if isinstance(execution_result.result, dict):
+            side_effects = execution_result.result.get("side_effects")
+            affected_rows = execution_result.result.get("affected_rows")
+            if isinstance(side_effects, list):
+                receipt["side_effects"] = side_effects
+            if isinstance(affected_rows, int):
+                receipt["affected_rows"] = affected_rows
+
+        if execution_result.status == ToolExecutionStatus.SUCCESS:
+            try:
+                latest = await pending_store.mark_executed(
+                    action_id,
+                    execution_result.result,
+                    status_code=execution_result.code,
+                    execution_receipt=receipt,
+                )
+            except TypeError:
+                latest = await pending_store.mark_executed(action_id, execution_result.result)
         else:
-            execution_result = await self.execute_tool_call(
-                tool_call_id=action.tool_call_id,
-                tool_name=action.tool_name,
-                arguments=action.arguments,
-                user_id=approver_id,
-                user_roles=approver_roles,
-                invocation_mode=InvocationMode.USER_REQUESTED,
-            )
-
-            receipt = {
-                "status": "applied" if execution_result.status == ToolExecutionStatus.SUCCESS else "failed",
-                "applied_at": utc_now().isoformat(),
-                "affected_rows": 0,
-                "side_effects": [],
-                "error": execution_result.error_message
-                if execution_result.status != ToolExecutionStatus.SUCCESS
-                else None,
-            }
-            if isinstance(execution_result.result, dict):
-                side_effects = execution_result.result.get("side_effects")
-                affected_rows = execution_result.result.get("affected_rows")
-                if isinstance(side_effects, list):
-                    receipt["side_effects"] = side_effects
-                if isinstance(affected_rows, int):
-                    receipt["affected_rows"] = affected_rows
-
-            if execution_result.status == ToolExecutionStatus.SUCCESS:
-                try:
-                    latest = await pending_store.mark_executed(
-                        action_id,
-                        execution_result.result,
-                        status_code=execution_result.code,
-                        execution_receipt=receipt,
-                    )
-                except TypeError:
-                    latest = await pending_store.mark_executed(action_id, execution_result.result)
-            else:
-                try:
-                    latest = await pending_store.mark_failed(
-                        action_id,
-                        execution_result.error_message or execution_result.status.value,
-                        status_code=execution_result.code,
-                        error_payload={
-                            "status": execution_result.status.value,
-                            "code": execution_result.code,
-                            "message": execution_result.message or execution_result.error_message,
-                        },
-                        execution_receipt=receipt,
-                    )
-                except TypeError:
-                    latest = await pending_store.mark_failed(
-                        action_id,
-                        execution_result.error_message or execution_result.status.value,
-                    )
+            try:
+                latest = await pending_store.mark_failed(
+                    action_id,
+                    execution_result.error_message or execution_result.status.value,
+                    status_code=execution_result.code,
+                    error_payload={
+                        "status": execution_result.status.value,
+                        "code": execution_result.code,
+                        "message": execution_result.message or execution_result.error_message,
+                    },
+                    execution_receipt=receipt,
+                )
+            except TypeError:
+                latest = await pending_store.mark_failed(
+                    action_id,
+                    execution_result.error_message or execution_result.status.value,
+                )
 
         self._log_approval_audit(
             approver_id=approver_id,
@@ -1157,38 +915,7 @@ class ToolRegistry:
             pending_action=action.to_dict(),
         )
 
-        execution_result = await self._resume_graph_execution(
-            action=action,
-            decision="rejected",
-            approver_id=approver_id,
-            reason=reason,
-        )
-
-        latest = action
-        if execution_result is not None:
-            receipt = self._build_graph_execution_receipt(
-                action=action,
-                execution_result=execution_result,
-            )
-            try:
-                latest = await pending_store.update_action_observation(
-                    action_id,
-                    status_code=execution_result.code,
-                    error_payload={
-                        "status": execution_result.status.value,
-                        "code": execution_result.code,
-                        "message": execution_result.message or execution_result.error_message,
-                    }
-                    if execution_result.status != ToolExecutionStatus.SUCCESS
-                    else None,
-                    execution_receipt=receipt,
-                )
-            except TypeError:
-                latest = action
-
-        payload = {"pending_action": latest.to_dict()}
-        if execution_result is not None:
-            payload["execution_result"] = self._approval_result_payload(execution_result)
+        payload = {"pending_action": action.to_dict()}
 
         return payload
 
@@ -1224,88 +951,65 @@ class ToolRegistry:
         merged_args = {**original_args, **modified_arguments}
         merged_arguments_json = json.dumps(merged_args, ensure_ascii=False)
 
-        execution_result = await self._resume_graph_execution(
-            action=action,
-            decision="approved",
-            approver_id=approver_id,
-            approver_roles=approver_roles,
-            modified_arguments=merged_args,
+        execution_result = await self.execute_tool_call(
+            tool_call_id=action.tool_call_id,
+            tool_name=action.tool_name,
+            arguments=merged_arguments_json,
+            user_id=approver_id,
+            user_roles=approver_roles,
+            invocation_mode=InvocationMode.USER_REQUESTED,
         )
 
-        if execution_result is not None:
-            receipt = self._build_graph_execution_receipt(
-                action=action,
-                execution_result=execution_result,
-                modified_arguments=merged_args,
-                original_arguments=original_args,
-                modifier_id=approver_id,
-            )
-            latest = await self._finalize_graph_pending_action(
-                pending_store=pending_store,
-                action_id=action_id,
-                execution_result=execution_result,
-                execution_receipt=receipt,
-            )
+        receipt = {
+            "status": "applied" if execution_result.status == ToolExecutionStatus.SUCCESS else "failed",
+            "applied_at": utc_now().isoformat(),
+            "affected_rows": 0,
+            "side_effects": [],
+            "error": execution_result.error_message
+            if execution_result.status != ToolExecutionStatus.SUCCESS
+            else None,
+            "modification": {
+                "original_arguments": original_args,
+                "modified_arguments": merged_args,
+                "modifier_id": approver_id,
+            },
+        }
+        if isinstance(execution_result.result, dict):
+            side_effects = execution_result.result.get("side_effects")
+            affected_rows = execution_result.result.get("affected_rows")
+            if isinstance(side_effects, list):
+                receipt["side_effects"] = side_effects
+            if isinstance(affected_rows, int):
+                receipt["affected_rows"] = affected_rows
+
+        if execution_result.status == ToolExecutionStatus.SUCCESS:
+            try:
+                latest = await pending_store.mark_executed(
+                    action_id,
+                    execution_result.result,
+                    status_code=execution_result.code,
+                    execution_receipt=receipt,
+                )
+            except TypeError:
+                latest = await pending_store.mark_executed(action_id, execution_result.result)
         else:
-            execution_result = await self.execute_tool_call(
-                tool_call_id=action.tool_call_id,
-                tool_name=action.tool_name,
-                arguments=merged_arguments_json,
-                user_id=approver_id,
-                user_roles=approver_roles,
-                invocation_mode=InvocationMode.USER_REQUESTED,
-            )
-
-            receipt = {
-                "status": "applied" if execution_result.status == ToolExecutionStatus.SUCCESS else "failed",
-                "applied_at": utc_now().isoformat(),
-                "affected_rows": 0,
-                "side_effects": [],
-                "error": execution_result.error_message
-                if execution_result.status != ToolExecutionStatus.SUCCESS
-                else None,
-                "modification": {
-                    "original_arguments": original_args,
-                    "modified_arguments": merged_args,
-                    "modifier_id": approver_id,
-                },
-            }
-            if isinstance(execution_result.result, dict):
-                side_effects = execution_result.result.get("side_effects")
-                affected_rows = execution_result.result.get("affected_rows")
-                if isinstance(side_effects, list):
-                    receipt["side_effects"] = side_effects
-                if isinstance(affected_rows, int):
-                    receipt["affected_rows"] = affected_rows
-
-            if execution_result.status == ToolExecutionStatus.SUCCESS:
-                try:
-                    latest = await pending_store.mark_executed(
-                        action_id,
-                        execution_result.result,
-                        status_code=execution_result.code,
-                        execution_receipt=receipt,
-                    )
-                except TypeError:
-                    latest = await pending_store.mark_executed(action_id, execution_result.result)
-            else:
-                try:
-                    latest = await pending_store.mark_failed(
-                        action_id,
-                        execution_result.error_message or execution_result.status.value,
-                        status_code=execution_result.code,
-                        error_payload={
-                            "status": execution_result.status.value,
-                            "code": execution_result.code,
-                            "message": execution_result.message or execution_result.error_message,
-                        },
-                        execution_receipt=receipt,
-                    )
-                except TypeError:
-                    latest = await pending_store.mark_failed(
-                        action_id,
-                        execution_result.error_message or execution_result.status.value,
-                    )
+            try:
+                latest = await pending_store.mark_failed(
+                    action_id,
+                    execution_result.error_message or execution_result.status.value,
+                    status_code=execution_result.code,
+                    error_payload={
+                        "status": execution_result.status.value,
+                        "code": execution_result.code,
+                        "message": execution_result.message or execution_result.error_message,
+                    },
+                    execution_receipt=receipt,
+                )
+            except TypeError:
+                latest = await pending_store.mark_failed(
+                    action_id,
+                    execution_result.error_message or execution_result.status.value,
+                )
 
         self._log_approval_audit(
             approver_id=approver_id,

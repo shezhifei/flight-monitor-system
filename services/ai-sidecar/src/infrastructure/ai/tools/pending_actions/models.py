@@ -205,15 +205,6 @@ class PendingActionStoreProtocol(Protocol):
         execution_receipt: Any | None = None,
     ) -> PendingAction: ...
 
-    async def update_action_observation(
-        self,
-        action_id: str,
-        *,
-        status_code: str | None = None,
-        error_payload: Any | None = None,
-        execution_receipt: Any | None = None,
-    ) -> PendingAction: ...
-
     async def expire_stale_actions(self, before: Any) -> list[PendingAction]: ...
 
     async def clear(self) -> None: ...
