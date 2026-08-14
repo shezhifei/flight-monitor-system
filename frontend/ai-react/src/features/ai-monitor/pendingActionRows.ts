@@ -30,7 +30,7 @@ function toPendingRow(action: Record<string, unknown>, previous?: PendingRow): P
   };
 }
 
-export function applyPendingActionPatch(
+export function applyPendingActionEvent(
   rows: PendingRow[],
   semantic: string,
   action: Record<string, unknown> | null | undefined,

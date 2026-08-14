@@ -6,7 +6,7 @@ import { AiPageNavigation } from '@/components/shell/AiPageNavigation';
 import { getAiCapabilities, getExecutionVisibilityMetrics, getReportSchemaMetrics, getRoutingMetrics, listPendingActions, approvePendingAction, rejectPendingAction, listAiJobs, getAiJobStats, getProposalStats, getRolloutStatus, executeProposal, listProposals, type RolloutStatusResponse, type ProposalRow } from '@/lib/api/aiApi';
 import { EventSourceClient } from '@/lib/sse/eventSourceClient';
 import { normalizeTime } from '@/lib/utils';
-import { applyPendingActionPatch, type PendingRow } from '@/features/ai-monitor/pendingActionPatches';
+import { applyPendingActionEvent, type PendingRow } from '@/features/ai-monitor/pendingActionRows';
 
 function ReadinessBanner({ status }: { status: RolloutStatusResponse | null }): JSX.Element | null {
   if (!status?.readiness) return null;
@@ -178,7 +178,7 @@ export function AiMonitorPage(): JSX.Element {
           ? runtimeRecord.pending_action as Record<string, unknown>
           : null;
         if ((semantic === 'approval_required' || semantic === 'approval_result') && pendingAction) {
-          setPendingRows((prev) => applyPendingActionPatch(prev, semantic, pendingAction));
+          setPendingRows((prev) => applyPendingActionEvent(prev, semantic, pendingAction));
         }
       },
       onError: () => {

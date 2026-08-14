@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyPendingActionPatch, type PendingRow } from '@/features/ai-monitor/pendingActionPatches';
+import { applyPendingActionEvent, type PendingRow } from '@/features/ai-monitor/pendingActionRows';
 
-describe('applyPendingActionPatch', () => {
+describe('applyPendingActionEvent', () => {
   it('adds a pending action without rebuilding unrelated rows', () => {
     const rows: PendingRow[] = [];
 
-    const next = applyPendingActionPatch(rows, 'approval_required', {
+    const next = applyPendingActionEvent(rows, 'approval_required', {
       action_id: 'act-1',
       tool_name: 'approve_slot',
       status: 'pending',
@@ -53,7 +53,7 @@ describe('applyPendingActionPatch', () => {
       },
     ];
 
-    const next = applyPendingActionPatch(rows, 'approval_result', {
+    const next = applyPendingActionEvent(rows, 'approval_result', {
       action_id: 'act-1',
     });
 

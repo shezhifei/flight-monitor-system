@@ -79,11 +79,11 @@
 | `/api/v2/ai/entities*` | 实体配置、prompt、tools、模型与连接测试 | `routes/ai/` |
 | `/api/v2/ai/executions*` | 执行查询与取消 | `routes/ai/` |
 | `/api/v2/ai/events/stream` | AI 事件流（可转发侧车） | `routes/ai/` |
-| `/api/v2/ai/skills*` | Skills 列表 | `routes/ai_config_v2.rs`（挂入 `/api/v2/ai`） |
-| `/api/v2/ai/entities/{id}/capabilities*` | 实体能力声明与校验 | `routes/ai_config_v2.rs` |
-| `/api/v2/ai/entities/{id}/mcp*` | MCP 服务器、绑定、probe | `routes/ai_config_v2.rs` |
-| `/api/v2/ai/entities/{id}/skills*` | Skills 绑定与 probe | `routes/ai_config_v2.rs` |
-| `/api/v2/ai/cache/*` | 缓存指标与失效 | `routes/ai_config_v2.rs` |
+| `/api/v2/ai/skills*` | Skills 列表 | `routes/ai_config_proxy.rs`（挂入 `/api/v2/ai`） |
+| `/api/v2/ai/entities/{id}/capabilities*` | 实体能力声明与校验 | `routes/ai_config_proxy.rs` |
+| `/api/v2/ai/entities/{id}/mcp*` | MCP 服务器、绑定、probe | `routes/ai_config_proxy.rs` |
+| `/api/v2/ai/entities/{id}/skills*` | Skills 绑定与 probe | `routes/ai_config_proxy.rs` |
+| `/api/v2/ai/cache/*` | 缓存指标与失效 | `routes/ai_config_proxy.rs` |
 | `/api/v2/ai/execution-readiness*` | 执行就绪报告与相关状态 | `routes/ai_execution_readiness/` |
 
 源码根路径：`services/api-server/crates/api/src/`。
@@ -121,7 +121,7 @@
 |---|---|---|
 | `/api/v2/todos*` | Todo CRUD、状态、agent context | `routes/todos.rs` |
 
-> `ai_config_v2` / `ai_execution_readiness` 挂在 `/api/v2/ai` 父 scope 下，不要再单独挂一层同名 scope（actix 前缀会互斥）。`ai_sidecar_dependency.rs` 只做依赖元数据。
+> `ai_config_proxy` / `ai_execution_readiness` 挂在 `/api/v2/ai` 父 scope 下，不要再单独挂一层同名 scope（actix 前缀会互斥）。`ai_sidecar_dependency.rs` 只做依赖元数据。
 
 ## 7. 通知、交接班、移动端与参考数据
 
