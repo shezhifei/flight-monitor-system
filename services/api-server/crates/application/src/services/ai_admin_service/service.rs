@@ -22,8 +22,9 @@ use super::catalog::{
     tool_categories_map, validate_tool_names,
 };
 use super::config::{
-    default_entity_config, mask_config, merge_objects, merged_entity_config, metrics_to_value, remove_api_key,
-    EntityRuntimeMetrics,
+    canonicalize_entity_document, default_entity_config, has_api_key, mask_config, merge_objects,
+    merged_entity_config, metrics_to_value, provider_number, provider_string, remove_api_key,
+    routed_model, EntityRuntimeMetrics,
 };
 use super::schemas::{AiBatchRequestItem, AiBatchResultItem};
 
@@ -54,13 +55,9 @@ impl AiAdminService {
 
     pub async fn has_usable_ai_config(&self) -> Result<bool, DomainError> {
         let items = self.repo.find_all().await?;
-        Ok(items.iter().any(|item| {
-            item.config
-                .get("api_key")
-                .and_then(serde_json::Value::as_str)
-                .map(str::trim)
-                .is_some_and(|value| !value.is_empty())
-        }))
+        Ok(items
+            .iter()
+            .any(|item| has_api_key(&serde_json::Value::Object(merged_entity_config(&item.config)))))
     }
 
     pub async fn list_entities_payload(&self) -> Result<serde_json::Value, DomainError> {
@@ -68,22 +65,21 @@ impl AiAdminService {
         let entities = items
             .into_iter()
             .map(|item| {
+                let config = serde_json::Value::Object(merged_entity_config(&item.config));
                 serde_json::json!({
                     "id": item.id,
-                    "model": item.config.get("default_model").unwrap_or(&JSON_NULL),
-                    "base_url": item.config.get("base_url").unwrap_or(&JSON_NULL),
-                    "has_api_key": item.config.get("api_key").and_then(serde_json::Value::as_str).map(str::trim).is_some_and(|value| !value.is_empty()),
-                    "asr_model": item.config.get("asr_model").unwrap_or(&JSON_NULL),
-                    "tts_model": item.config.get("tts_model").unwrap_or(&JSON_NULL),
-                    "tts_voice": item.config.get("tts_voice").unwrap_or(&JSON_NULL),
-                    "media": item.config.get("media").unwrap_or(&JSON_NULL),
-                    "realtime_audio_enabled": item.config
-                        .get("media")
-                        .and_then(|m| m.get("realtime"))
-                        .and_then(|r| r.get("enabled"))
+                    "model": config.pointer("/model_routing/default").unwrap_or(&JSON_NULL),
+                    "base_url": config.pointer("/providers/default/base_url").unwrap_or(&JSON_NULL),
+                    "has_api_key": has_api_key(&config),
+                    "asr_model": config.pointer("/media/asr/model").unwrap_or(&JSON_NULL),
+                    "tts_model": config.pointer("/media/tts/model").unwrap_or(&JSON_NULL),
+                    "tts_voice": config.pointer("/media/tts/voice").unwrap_or(&JSON_NULL),
+                    "media": config.get("media").unwrap_or(&JSON_NULL),
+                    "realtime_audio_enabled": config
+                        .pointer("/media/realtime/enabled")
                         .and_then(serde_json::Value::as_bool)
                         .unwrap_or(false),
-                    "tool_categories": item.config.get("allowed_tool_categories").cloned().unwrap_or_else(|| serde_json::json!([])),
+                    "tool_categories": config.pointer("/tooling/allowed_tool_categories").cloned().unwrap_or_else(|| serde_json::json!([])),
                 })
             })
             .collect::<Vec<_>>();
@@ -102,7 +98,8 @@ impl AiAdminService {
                 serde_json::json!({
                     "id": item.id,
                     "model": config
-                        .get("default_model")
+                        .get("model_routing")
+                        .and_then(|routing| routing.get("default"))
                         .cloned()
                         .unwrap_or_else(|| serde_json::json!("gpt-3.5-turbo")),
                     "status": "active",
@@ -115,7 +112,7 @@ impl AiAdminService {
         let Some(record) = self.repo.find_by_id(entity_id).await? else {
             return Ok(None);
         };
-        Ok(Some(mask_config(record.config)))
+        Ok(Some(mask_config(serde_json::Value::Object(merged_entity_config(&record.config)))))
     }
 
     pub async fn get_entity_runtime_config(&self, entity_id: &str) -> Result<Option<serde_json::Value>, DomainError> {
@@ -130,21 +127,7 @@ impl AiAdminService {
         entity_id: &str,
         update: EntityConfigUpdate,
     ) -> Result<serde_json::Value, DomainError> {
-        let mut patch = serde_json::to_value(update).map_err(|error| DomainError::Internal(error.to_string()))?;
-
-        if let Some(enabled) = patch.get("realtime_audio_enabled").and_then(serde_json::Value::as_bool) {
-            if let Some(patch_obj) = patch.as_object_mut() {
-                let media = patch_obj.entry("media").or_insert_with(|| serde_json::json!({}));
-                if let Some(media_obj) = media.as_object_mut() {
-                    let realtime = media_obj.entry("realtime").or_insert_with(|| serde_json::json!({}));
-                    if let Some(rt_obj) = realtime.as_object_mut() {
-                        rt_obj.insert("enabled".to_string(), serde_json::json!(enabled));
-                    }
-                }
-                patch_obj.remove("realtime_audio_enabled");
-            }
-        }
-
+        let patch = serde_json::to_value(update).map_err(|error| DomainError::Internal(error.to_string()))?;
         let merged = self.merge_entity_config(entity_id, patch).await?;
         Ok(remove_api_key(merged))
     }
@@ -244,10 +227,11 @@ impl AiAdminService {
         let Some(record) = self.repo.find_by_id(entity_id).await? else {
             return Ok(None);
         };
+        let config = serde_json::Value::Object(merged_entity_config(&record.config));
         Ok(Some(serde_json::json!({
-            "allowed_tool_categories": record.config.get("allowed_tool_categories").cloned().unwrap_or_else(|| serde_json::json!([])),
-            "allowed_tools": record.config.get("allowed_tools").unwrap_or(&JSON_NULL),
-            "denied_tools": record.config.get("denied_tools").cloned().unwrap_or_else(|| serde_json::json!([])),
+            "allowed_tool_categories": config.pointer("/tooling/allowed_tool_categories").cloned().unwrap_or_else(|| serde_json::json!([])),
+            "allowed_tools": config.pointer("/tooling/allowed_tools").unwrap_or(&JSON_NULL),
+            "denied_tools": config.pointer("/tooling/denied_tools").cloned().unwrap_or_else(|| serde_json::json!([])),
         })))
     }
 
@@ -264,7 +248,17 @@ impl AiAdminService {
         let known_categories = tool_categories_map();
 
         let payload = serde_json::to_value(data).map_err(|error| DomainError::Internal(error.to_string()))?;
-        let mut normalized = serde_json::Map::new();
+        let current = self
+            .repo
+            .find_by_id(entity_id)
+            .await?
+            .map(|record| merged_entity_config(&record.config))
+            .unwrap_or_else(default_entity_config);
+        let mut tooling = current
+            .get("tooling")
+            .and_then(serde_json::Value::as_object)
+            .cloned()
+            .unwrap_or_default();
 
         if let Some(items) = payload
             .get("allowed_tool_categories")
@@ -285,7 +279,7 @@ impl AiAdminService {
                     invalid.join(", ")
                 )));
             }
-            normalized.insert(
+            tooling.insert(
                 "allowed_tool_categories".to_string(),
                 serde_json::json!(dedupe(categories)),
             );
@@ -294,22 +288,24 @@ impl AiAdminService {
         if let Some(items) = payload.get("allowed_tools").and_then(serde_json::Value::as_array) {
             let tools = normalize_string_list(items);
             validate_tool_names(&tools, &known_tools)?;
-            normalized.insert("allowed_tools".to_string(), serde_json::json!(dedupe(tools)));
+            tooling.insert("allowed_tools".to_string(), serde_json::json!(dedupe(tools)));
         }
 
         if let Some(items) = payload.get("denied_tools").and_then(serde_json::Value::as_array) {
             let tools = normalize_string_list(items);
             validate_tool_names(&tools, &known_tools)?;
-            normalized.insert("denied_tools".to_string(), serde_json::json!(dedupe(tools)));
+            tooling.insert("denied_tools".to_string(), serde_json::json!(dedupe(tools)));
         }
 
+        let mut normalized = serde_json::Map::new();
+        normalized.insert("tooling".to_string(), serde_json::Value::Object(tooling));
         let merged = self
             .merge_entity_config(entity_id, serde_json::Value::Object(normalized))
             .await?;
         Ok(serde_json::json!({
-            "allowed_tool_categories": merged.get("allowed_tool_categories").cloned().unwrap_or_else(|| serde_json::json!([])),
-            "allowed_tools": merged.get("allowed_tools").unwrap_or(&JSON_NULL),
-            "denied_tools": merged.get("denied_tools").cloned().unwrap_or_else(|| serde_json::json!([])),
+            "allowed_tool_categories": merged.pointer("/tooling/allowed_tool_categories").cloned().unwrap_or_else(|| serde_json::json!([])),
+            "allowed_tools": merged.pointer("/tooling/allowed_tools").unwrap_or(&JSON_NULL),
+            "denied_tools": merged.pointer("/tooling/denied_tools").cloned().unwrap_or_else(|| serde_json::json!([])),
         }))
     }
 
@@ -456,18 +452,10 @@ impl AiAdminService {
                 serde_json::Value::String(api_key.trim().to_string()),
             );
         }
+        canonicalize_entity_document(&mut config);
 
-        let base_url = config
-            .get("base_url")
-            .and_then(serde_json::Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("https://api.openai.com/v1");
-        let api_key = config
-            .get("api_key")
-            .and_then(serde_json::Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
+        let base_url = provider_string(&config, "base_url").unwrap_or("https://api.openai.com/v1");
+        let api_key = provider_string(&config, "api_key")
             .ok_or_else(|| DomainError::ValidationError("缺少 API Key，请先输入或保存有效密钥".to_string()))?;
 
         let models_url = format!("{}/models", base_url.trim_end_matches('/'));
@@ -539,6 +527,7 @@ impl AiAdminService {
             .filter(|(_, value)| !value.is_null())
             .collect::<serde_json::Map<String, serde_json::Value>>();
         merge_objects(&mut config, patch_object);
+        canonicalize_entity_document(&mut config);
         let saved = self
             .repo
             .save(entity_id, &serde_json::Value::Object(config.clone()))
@@ -558,51 +547,21 @@ impl AiAdminService {
 
         let config = merged_entity_config(&record.config);
         Ok(BatchExecutionConfig {
-            base_url: config
-                .get("base_url")
-                .and_then(serde_json::Value::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
+            base_url: provider_string(&config, "base_url")
                 .unwrap_or("https://api.openai.com/v1")
                 .trim_end_matches('/')
                 .to_string(),
-            api_key: config
-                .get("api_key")
-                .and_then(serde_json::Value::as_str)
-                .map(str::trim)
-                .unwrap_or_default()
-                .to_string(),
-            default_model: config
-                .get("default_model")
-                .and_then(serde_json::Value::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
+            api_key: provider_string(&config, "api_key").unwrap_or_default().to_string(),
+            default_model: routed_model(&config, "default")
                 .unwrap_or("gpt-3.5-turbo")
                 .to_string(),
-            api_format: normalize_api_format(
-                config
-                    .get("api_format")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("chat_completions"),
-            )
-            .to_string(),
+            api_format: normalize_api_format(provider_string(&config, "api_format").unwrap_or("chat_completions"))
+                .to_string(),
             temperature: config.get("temperature").and_then(serde_json::Value::as_f64),
             max_tokens: config.get("max_tokens").and_then(serde_json::Value::as_u64),
-            timeout_seconds: config
-                .get("timeout")
-                .and_then(serde_json::Value::as_f64)
-                .unwrap_or(30.0)
-                .clamp(1.0, 120.0) as u64,
-            max_retries: config
-                .get("max_retries")
-                .and_then(serde_json::Value::as_u64)
-                .unwrap_or(3)
-                .min(8) as usize,
-            retry_delay_seconds: config
-                .get("retry_delay")
-                .and_then(serde_json::Value::as_f64)
-                .unwrap_or(0.5)
-                .clamp(0.0, 30.0),
+            timeout_seconds: provider_number(&config, "timeout").unwrap_or(30.0).clamp(1.0, 120.0) as u64,
+            max_retries: provider_number(&config, "max_retries").unwrap_or(3.0).min(8.0) as usize,
+            retry_delay_seconds: provider_number(&config, "retry_delay").unwrap_or(0.5).clamp(0.0, 30.0),
             cost_per_1k_input: config
                 .get("cost_per_1k_input")
                 .and_then(serde_json::Value::as_f64)

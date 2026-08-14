@@ -1,7 +1,7 @@
 //! API 路由注册
 
 pub mod ai;
-pub mod ai_config_v2;
+pub mod ai_config_proxy;
 pub mod ai_copilot;
 pub mod ai_eval;
 pub mod ai_execution_readiness;
@@ -85,7 +85,7 @@ mod tests {
             .configure(super::ai_eval::configure)
             .configure(super::nl_query::configure)
             .configure(super::system::configure)
-            // ai_config_v2 routes are composed into super::ai's single /api/v2/ai
+            // ai_config_proxy routes are composed into super::ai's single /api/v2/ai
             // scope (registering it separately would shadow ai's routes).
             .configure(super::ai_ontology::configure)
             .configure(super::ai_proposals::configure)
@@ -138,7 +138,7 @@ mod tests {
             .configure(super::workflow_dispatch::configure)
             .configure(super::ai_eval::configure)
             .configure(super::nl_query::configure)
-            // ai_config_v2 routes are composed into super::ai's single /api/v2/ai
+            // ai_config_proxy routes are composed into super::ai's single /api/v2/ai
             // scope (registering it separately would shadow ai's routes).
             .configure(super::ai_ontology::configure)
             .configure(super::ai_proposals::configure)

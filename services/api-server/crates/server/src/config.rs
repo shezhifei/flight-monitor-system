@@ -627,23 +627,6 @@ pub fn resolve_jwt_audiences() -> io::Result<Vec<String>> {
     resolve_jwt_audiences_for_environment(std::env::var("JWT_AUDIENCE").ok().as_deref(), environment.as_deref())
 }
 
-pub fn resolve_flowable_password_from(
-    admin_password: Option<&str>,
-    legacy_password: Option<&str>,
-) -> io::Result<String> {
-    for value in [admin_password, legacy_password].into_iter().flatten() {
-        let trimmed = value.trim();
-        if !trimmed.is_empty() {
-            return Ok(trimmed.to_string());
-        }
-    }
-
-    Err(io::Error::new(
-        io::ErrorKind::InvalidInput,
-        "FLOWABLE_ADMIN_PASSWORD or FLOWABLE_PASSWORD must be set via Vault rendered env",
-    ))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -862,19 +845,6 @@ mod tests {
             "postgres://redacted:redacted@db.example.com/app"
         );
         assert_eq!(redact_url_credentials("not a url"), "<redacted-url>");
-    }
-
-    #[test]
-    fn flowable_password_resolution_prefers_admin_secret() {
-        assert_eq!(
-            resolve_flowable_password_from(Some(" admin-secret "), Some("legacy-secret")).expect("admin secret"),
-            "admin-secret"
-        );
-        assert_eq!(
-            resolve_flowable_password_from(None, Some("legacy-secret")).expect("legacy secret"),
-            "legacy-secret"
-        );
-        assert!(resolve_flowable_password_from(Some(" "), None).is_err());
     }
 
     #[test]

@@ -169,16 +169,14 @@ impl PgRunAuthorizationContextLoader {
         };
 
         let mut tools = Vec::new();
-        if let Some(allowed) = entity.config.get("allowed_tools").and_then(|v| v.as_array()) {
+        let allowed = entity
+            .config
+            .pointer("/tooling/allowed_tools")
+            .or_else(|| entity.config.get("allowed_tools"))
+            .and_then(|v| v.as_array());
+        if let Some(allowed) = allowed {
             for t in allowed {
                 if let Some(name) = t.as_str() {
-                    tools.push(name.to_string());
-                }
-            }
-        }
-        if let Some(tool_defs) = entity.config.get("tools").and_then(|v| v.as_array()) {
-            for t in tool_defs {
-                if let Some(name) = t.get("name").and_then(|v| v.as_str()) {
                     tools.push(name.to_string());
                 }
             }

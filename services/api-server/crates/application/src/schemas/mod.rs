@@ -1,6 +1,5 @@
 //! 请求/响应 DTO 定义
 
-pub mod ai_config_v2_types;
 pub mod ai_schemas;
 pub mod auth_schemas;
 pub mod business_case_workflow_schemas;

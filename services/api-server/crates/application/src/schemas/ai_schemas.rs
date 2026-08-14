@@ -29,6 +29,7 @@ pub struct EntityConfigUpdate {
     pub task_template: Option<String>,
     pub allowed_tool_categories: Option<Vec<String>>,
     pub allowed_tools: Option<serde_json::Value>,
+    pub providers: Option<serde_json::Value>,
     pub model_routing: Option<serde_json::Value>,
     pub models: Option<serde_json::Value>,
     pub tooling: Option<serde_json::Value>,
@@ -170,6 +171,37 @@ mod tests {
         );
         assert!(update.cache_policy.is_some());
         assert!(update.security.is_some());
+    }
+
+    #[test]
+    fn entity_config_update_accepts_providers() {
+        let payload = r#"{
+            "providers": {
+                "default": {
+                    "type": "openai_compatible",
+                    "base_url": "https://api.example.com/v1",
+                    "api_key": "sk-test"
+                },
+                "asr": {
+                    "type": "openai_compatible",
+                    "base_url": "https://asr.example.com/v1"
+                }
+            }
+        }"#;
+
+        let update: EntityConfigUpdate = serde_json::from_str(payload).unwrap();
+        let default_url = update
+            .providers
+            .as_ref()
+            .and_then(|value| value.get("default"))
+            .and_then(|value| value.get("base_url"))
+            .and_then(serde_json::Value::as_str);
+        assert_eq!(default_url, Some("https://api.example.com/v1"));
+        assert!(update
+            .providers
+            .as_ref()
+            .and_then(|value| value.get("asr"))
+            .is_some());
     }
 
     #[test]

@@ -46,8 +46,10 @@ pub struct JwtSecret(pub String);
 #[derive(Clone, Default)]
 pub struct JwtAudience(pub Vec<String>);
 
-/// Compatibility switch for legacy browser EventSource clients that still send
-/// bearer tokens in the URL query string. Keep disabled by default.
+/// 开关：允许 EventSource / WebSocket 客户端通过 URL query 传递 `sse_token`。
+///
+/// 这类客户端无法设置 Authorization 头，只能带 query 参数；默认关闭，仅对
+/// `QUERY_TOKEN_ALLOWED_PREFIXES` 内的 stream/audio 路径生效。
 #[derive(Clone, Copy, Default)]
 pub struct SseQueryTokenAuth(pub bool);
 
@@ -246,7 +248,6 @@ fn extract_query_token(req: &HttpRequest) -> Option<RequestToken> {
     params
         .sse_token
         .as_deref()
-        .or(params.token.as_deref())
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(|token| RequestToken {
@@ -434,7 +435,6 @@ fn token_value_hash(token: &str) -> String {
 #[derive(serde::Deserialize)]
 struct QueryTokenParams {
     sse_token: Option<String>,
-    token: Option<String>,
 }
 
 /// 可选 JWT 提取（用于公共 + 认证双模路由）
@@ -476,15 +476,6 @@ mod tests {
     }
 
     #[test]
-    fn query_token_accepts_legacy_token_parameter_for_event_source_fallback() {
-        let request = TestRequest::with_uri("/api/v2/flights/stream?token=legacy").to_http_request();
-        let token = extract_query_token(&request).expect("legacy query token should be extracted");
-
-        assert_eq!(token.value, "legacy");
-        assert!(matches!(token.kind, TokenKind::Sse));
-    }
-
-    #[test]
     fn query_token_rejects_access_token_parameter() {
         let request = TestRequest::with_uri("/api/v2/flights/stream?access_token=good-access").to_http_request();
 
@@ -496,7 +487,6 @@ mod tests {
     fn request_token_rejects_sse_query_tokens_by_default() {
         for uri in [
             "/api/v2/flights/stream?sse_token=good",
-            "/api/v2/flights/stream?token=legacy",
         ] {
             let request = TestRequest::with_uri(uri).to_http_request();
 
@@ -508,11 +498,11 @@ mod tests {
     }
 
     #[test]
-    fn request_token_allows_sse_query_tokens_when_compatibility_switch_is_enabled() {
+    fn request_token_allows_sse_query_tokens_when_switch_is_enabled() {
         let request = TestRequest::with_uri("/api/v2/flights/stream?sse_token=good")
             .app_data(web::Data::new(SseQueryTokenAuth(true)))
             .to_http_request();
-        let token = extract_request_token(&request).expect("compatibility switch should allow legacy SSE query token");
+        let token = extract_request_token(&request).expect("sse_token query parameter should be accepted for stream paths");
 
         assert_eq!(token.value, "good");
         assert!(matches!(token.kind, TokenKind::Sse));

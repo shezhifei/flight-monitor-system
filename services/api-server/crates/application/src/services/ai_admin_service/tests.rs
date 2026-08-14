@@ -90,23 +90,24 @@ async fn get_entity_status_does_not_leak_api_key() {
         config.get("api_key").is_none(),
         "api_key must not appear in status response"
     );
-    assert_eq!(config["base_url"], "https://api.example.com");
-    assert_eq!(config["default_model"], "gpt-4");
+    assert!(config.get("base_url").is_none(), "connection lives in providers.default");
+    assert_eq!(
+        config.pointer("/providers/default/base_url"),
+        Some(&serde_json::json!("https://api.example.com"))
+    );
+    assert!(config.pointer("/providers/default/api_key").is_none());
+    assert_eq!(
+        config.pointer("/model_routing/default"),
+        Some(&serde_json::json!("gpt-4"))
+    );
     let serialized = serde_json::to_string(&status).unwrap();
     assert!(!serialized.contains("sk-live-secret-key"));
 }
 
-fn v2_entity_config_with_nested_credentials() -> serde_json::Value {
+fn entity_config_with_nested_credentials() -> serde_json::Value {
     serde_json::json!({
         "config_version": 2,
-        "base_url": "https://api.example.com/v1",
-        "default_model": "gpt-4",
-        "api_key": "",
-        "provider": {
-            "type": "openai_compatible",
-            "base_url": "https://api.example.com/v1",
-            "api_key": "sk-provider-nested-secret"
-        },
+        "model_routing": { "default": "gpt-4" },
         "providers": {
             "default": {
                 "type": "openai_compatible",
@@ -129,22 +130,18 @@ fn v2_entity_config_with_nested_credentials() -> serde_json::Value {
 #[tokio::test]
 async fn get_entity_masked_config_masks_nested_provider_api_keys() {
     let repo = Arc::new(InMemoryAiEntityConfigRepository::new([(
-        "entity-v2".to_string(),
-        v2_entity_config_with_nested_credentials(),
+        "entity-1".to_string(),
+        entity_config_with_nested_credentials(),
     )]));
     let service = AiAdminService::new(repo);
 
     let masked = service
-        .get_entity_masked_config("entity-v2")
+        .get_entity_masked_config("entity-1")
         .await
         .unwrap()
         .expect("entity should exist");
 
     let serialized = serde_json::to_string(&masked).unwrap();
-    assert!(
-        !serialized.contains("sk-provider-nested-secret"),
-        "provider.api_key must be masked, got: {serialized}"
-    );
     assert!(
         !serialized.contains("sk-default-nested-secret"),
         "providers.default.api_key must be masked, got: {serialized}"
@@ -155,10 +152,9 @@ async fn get_entity_masked_config_masks_nested_provider_api_keys() {
     );
 
     let provider_key = masked
-        .get("provider")
-        .and_then(|p| p.get("api_key"))
+        .pointer("/providers/default/api_key")
         .and_then(serde_json::Value::as_str)
-        .expect("provider.api_key must remain present (masked)");
+        .expect("providers.default.api_key must remain present (masked)");
     assert!(
         provider_key.contains("..."),
         "expected a masked preview, got {provider_key}"
@@ -173,19 +169,15 @@ async fn get_entity_masked_config_masks_nested_provider_api_keys() {
 #[tokio::test]
 async fn get_entity_status_removes_nested_provider_api_keys() {
     let repo = Arc::new(InMemoryAiEntityConfigRepository::new([(
-        "entity-v2".to_string(),
-        v2_entity_config_with_nested_credentials(),
+        "entity-1".to_string(),
+        entity_config_with_nested_credentials(),
     )]));
     let service = AiAdminService::new(repo);
 
-    let status = service.get_entity_status("entity-v2").await.unwrap();
+    let status = service.get_entity_status("entity-1").await.unwrap();
     let config = &status["config"];
 
     let serialized = serde_json::to_string(&status).unwrap();
-    assert!(
-        !serialized.contains("sk-provider-nested-secret"),
-        "provider.api_key must be stripped, got: {serialized}"
-    );
     assert!(
         !serialized.contains("sk-default-nested-secret"),
         "providers.default.api_key must be stripped, got: {serialized}"
@@ -196,10 +188,6 @@ async fn get_entity_status_removes_nested_provider_api_keys() {
     );
 
     assert!(
-        config.get("provider").and_then(|p| p.get("api_key")).is_none(),
-        "provider.api_key key must be absent"
-    );
-    assert!(
         config
             .get("providers")
             .and_then(|p| p.get("default"))
@@ -208,11 +196,10 @@ async fn get_entity_status_removes_nested_provider_api_keys() {
         "providers.default.api_key key must be absent"
     );
     assert_eq!(
-        config.get("provider").and_then(|p| p.get("base_url")),
+        config.pointer("/providers/default/base_url"),
         Some(&serde_json::json!("https://api.example.com/v1")),
         "non-sensitive provider fields must be preserved"
     );
-    assert_eq!(config["base_url"], "https://api.example.com/v1");
 }
 
 #[test]
@@ -284,4 +271,59 @@ fn remove_api_key_strips_nested_sensitive_keys() {
         redacted.get("provider").and_then(|p| p.get("base_url")),
         Some(&serde_json::json!("https://x.example.com"))
     );
+}
+
+#[test]
+fn canonicalize_lifts_flat_aliases_into_the_document() {
+    let mut config = serde_json::json!({
+        "base_url": "https://api.example.com/v1",
+        "api_key": "sk-test",
+        "default_model": "gpt-4.1",
+        "allowed_tool_categories": ["flight"],
+        "asr_model": "whisper-large-v3",
+        "tts_model": "tts-1-hd",
+        "tts_voice": "verse"
+    })
+    .as_object()
+    .cloned()
+    .unwrap();
+
+    super::config::canonicalize_entity_document(&mut config);
+    let document = serde_json::Value::Object(config.clone());
+
+    assert_eq!(
+        document.pointer("/providers/default/base_url"),
+        Some(&serde_json::json!("https://api.example.com/v1"))
+    );
+    assert_eq!(
+        document.pointer("/providers/default/api_key"),
+        Some(&serde_json::json!("sk-test"))
+    );
+    assert_eq!(
+        document.pointer("/model_routing/default"),
+        Some(&serde_json::json!("gpt-4.1"))
+    );
+    assert_eq!(
+        document.pointer("/tooling/allowed_tool_categories"),
+        Some(&serde_json::json!(["flight"]))
+    );
+    assert_eq!(
+        document.pointer("/media/asr/model"),
+        Some(&serde_json::json!("whisper-large-v3"))
+    );
+    assert_eq!(
+        document.pointer("/media/tts/voice"),
+        Some(&serde_json::json!("verse"))
+    );
+    for alias in [
+        "base_url",
+        "api_key",
+        "default_model",
+        "allowed_tool_categories",
+        "asr_model",
+        "tts_model",
+        "tts_voice",
+    ] {
+        assert!(config.get(alias).is_none(), "{alias} must not remain at the top level");
+    }
 }

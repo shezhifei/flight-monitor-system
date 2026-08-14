@@ -24,7 +24,7 @@ mod tests;
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v2/ai")
-            .configure(super::ai_config_v2::register_scoped_routes)
+            .configure(super::ai_config_proxy::register_scoped_routes)
             .configure(super::ai_execution_readiness::register_scoped_routes)
             .route("/capabilities", web::get().to(capabilities_and_tools::capabilities))
             .route("/tools", web::get().to(capabilities_and_tools::list_tools))

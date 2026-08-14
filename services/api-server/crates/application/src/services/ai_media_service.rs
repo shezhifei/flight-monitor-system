@@ -439,7 +439,7 @@ impl AiMediaService {
             .ok_or_else(|| AiMediaError::Configuration(format!("AI 实体 '{entity_id_str}' 配置为空")))?;
 
         let base_url = config
-            .get("base_url")
+            .pointer("/providers/default/base_url")
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|v| !v.is_empty())
@@ -447,7 +447,7 @@ impl AiMediaService {
             .to_string();
 
         let api_key = config
-            .get("api_key")
+            .pointer("/providers/default/api_key")
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|v| !v.is_empty())
@@ -553,8 +553,11 @@ fn resolve_asr_model(config: &Value, requested: &str) -> String {
     resolve_media_string(
         requested,
         config,
-        &["asr_model"],
-        &[&["media", "asr", "model"], &["media", "asr_model"]],
+        &[],
+        &[
+            &["media", "asr", "model"],
+            &["model_routing", "audio_transcription"],
+        ],
         &env_string("AI_MEDIA_ASR_DEFAULT_MODEL", "whisper-1"),
     )
 }
@@ -563,8 +566,8 @@ fn resolve_tts_model(config: &Value, requested: &str) -> String {
     resolve_media_string(
         requested,
         config,
-        &["tts_model"],
-        &[&["media", "tts", "model"], &["media", "tts_model"]],
+        &[],
+        &[&["media", "tts", "model"], &["model_routing", "audio_speech"]],
         &env_string("AI_MEDIA_TTS_DEFAULT_MODEL", "tts-1"),
     )
 }
@@ -573,8 +576,8 @@ fn resolve_tts_voice(config: &Value, requested: &str) -> String {
     resolve_media_string(
         requested,
         config,
-        &["tts_voice"],
-        &[&["media", "tts", "voice"], &["media", "tts_voice"]],
+        &[],
+        &[&["media", "tts", "voice"]],
         &env_string("AI_MEDIA_TTS_DEFAULT_VOICE", "alloy"),
     )
 }
@@ -682,19 +685,6 @@ mod tests {
     }
 
     #[test]
-    fn entity_media_defaults_resolve_from_flat_config() {
-        let config = json!({
-            "asr_model": "whisper-large-v3",
-            "tts_model": "gpt-4o-mini-tts",
-            "tts_voice": "verse"
-        });
-
-        assert_eq!(resolve_asr_model(&config, ""), "whisper-large-v3");
-        assert_eq!(resolve_tts_model(&config, ""), "gpt-4o-mini-tts");
-        assert_eq!(resolve_tts_voice(&config, ""), "verse");
-    }
-
-    #[test]
     fn entity_media_defaults_resolve_from_nested_config() {
         let config = json!({
             "media": {
@@ -709,28 +699,12 @@ mod tests {
     }
 
     #[test]
-    fn flat_media_fields_override_nested_defaults() {
-        let config = json!({
-            "asr_model": "entity-asr",
-            "tts_model": "entity-tts",
-            "tts_voice": "entity-voice",
-            "media": {
-                "asr": {"model": "default-asr"},
-                "tts": {"model": "default-tts", "voice": "default-voice"}
-            }
-        });
-
-        assert_eq!(resolve_asr_model(&config, ""), "entity-asr");
-        assert_eq!(resolve_tts_model(&config, ""), "entity-tts");
-        assert_eq!(resolve_tts_voice(&config, ""), "entity-voice");
-    }
-
-    #[test]
     fn request_media_params_override_entity_defaults() {
         let config = json!({
-            "asr_model": "entity-asr",
-            "tts_model": "entity-tts",
-            "tts_voice": "entity-voice"
+            "media": {
+                "asr": {"model": "entity-asr"},
+                "tts": {"model": "entity-tts", "voice": "entity-voice"}
+            }
         });
 
         assert_eq!(resolve_asr_model(&config, "request-asr"), "request-asr");
