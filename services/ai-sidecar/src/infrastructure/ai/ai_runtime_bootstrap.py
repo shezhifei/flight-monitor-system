@@ -33,6 +33,70 @@ from src.infrastructure.logging.core import get_logger
 logger = get_logger(__name__)
 
 
+def _builtin_tool_catalog() -> list[dict[str, Any]]:
+    """Real builtin tool schema source for the capability resolver (Task A2/A3).
+
+    Composed from the query catalog (``query_tools.QUERY_TOOL_DEFINITIONS``)
+    plus the domain read-only adapters. Flat dicts so the resolver's
+    ``is_tool_allowed`` / ``ResolvedToolConfig`` fields line up — the old
+    OpenAI-wrapped ``READ_ONLY_TOOL_SCHEMAS`` shape never populated names.
+    """
+    from src.infrastructure.ai.tools.query_tools import QUERY_TOOL_DEFINITIONS
+
+    catalog: list[dict[str, Any]] = [
+        {
+            "name": definition.name,
+            "description": definition.description,
+            "parameters": {
+                "type": "object",
+                "properties": definition.parameters,
+                "required": list(definition.required_params or []),
+            },
+            "category": getattr(definition.category, "value", None) or "query",
+            "operation_level": getattr(definition.operation_level, "value", "l0_read"),
+            "risk_level": "low",
+            "cacheable": False,
+            "side_effect": False,
+        }
+        for definition in QUERY_TOOL_DEFINITIONS
+    ]
+    catalog.append(
+        {
+            "name": "flight_status_lookup",
+            "description": "Look up the current status of a flight by its identifier.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "flight_id": {
+                        "type": "string",
+                        "description": "The unique flight identifier (e.g., CA1234)",
+                    },
+                },
+                "required": ["flight_id"],
+            },
+            "category": "flight",
+            "operation_level": "l0_read",
+            "risk_level": "low",
+            "cacheable": False,
+            "side_effect": False,
+        }
+    )
+    return catalog
+
+
+def _build_read_only_backend(db_pool: Any) -> Any | None:
+    """Build the real read-only backend over the ``ai_query`` views.
+
+    Returns ``None`` (fail-closed at execution time) when the pool is absent —
+    never a mock backend.
+    """
+    if db_pool is None:
+        return None
+    from src.infrastructure.ai.tools.query_tool_executor.ai_query_backend import AiQueryReadOnlyBackend
+
+    return AiQueryReadOnlyBackend(db_pool)
+
+
 # ---------------------------------------------------------------------------
 # Component wiring
 # ---------------------------------------------------------------------------
@@ -82,7 +146,7 @@ def build_and_register_runtime(
     from src.infrastructure.ai.mcp_repository import PostgresMcpRepository
     from src.infrastructure.ai.model_catalog_repository import PostgresModelCatalogRepository
     from src.infrastructure.ai.skill_repository import PostgresSkillRepository
-    from src.infrastructure.ai.tools.read_only_tools import READ_ONLY_TOOL_SCHEMAS
+    from src.infrastructure.ai.tools.read_only_tools import set_read_only_backend
 
     container = get_ai_container()
 
@@ -90,6 +154,15 @@ def build_and_register_runtime(
     if config_store is None:
         config_store = AsyncpgAIConfigStore(db_pool)
     container.register("config_store", config_store)
+
+    # --- real read-only backend over ai_query views (no mock fallback) ---
+    read_only_backend = _build_read_only_backend(db_pool)
+    if read_only_backend is not None:
+        container.register("read_only_backend", read_only_backend)
+        set_read_only_backend(read_only_backend)
+        logger.info("AI read-only backend registered (ai_query views)")
+    else:
+        logger.warning("AI read-only backend NOT registered: DB pool unavailable; read-only tools will fail closed")
 
     # --- repositories (separate asset tables) ---
     mcp_repo = PostgresMcpRepository(db_pool)
@@ -137,7 +210,7 @@ def build_and_register_runtime(
             model_catalog_repo=model_catalog_repo,
             mcp_repo=mcp_repo,
             skill_repo=skill_repo,
-            builtin_tools=list(READ_ONLY_TOOL_SCHEMAS),
+            builtin_tools=_builtin_tool_catalog(),
         )
     )
 
@@ -185,6 +258,7 @@ def _register_mq_components(mq_components: Any) -> None:
         subagent_dispatcher=None,
         cache_manager=cont.resolve("cache_manager", None),
         mq_gate=mq_components.gate,
+        read_only_backend=cont.resolve("read_only_backend", None),
     )
     register_tool_executor(tool_executor)
 
