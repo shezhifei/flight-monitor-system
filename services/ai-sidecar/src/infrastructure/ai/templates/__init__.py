@@ -9,11 +9,13 @@ from __future__ import annotations
 
 from .anomaly_ops import ANOMALY_OPS_TEMPLATE
 from .base import TaskTemplate, template_allows_tool
+from .dispatch_ops import DISPATCH_OPS_TEMPLATE
 from .query_ops import QUERY_OPS_TEMPLATE
 
 _TASK_TEMPLATES: dict[str, TaskTemplate] = {
     QUERY_OPS_TEMPLATE.task_type: QUERY_OPS_TEMPLATE,
     ANOMALY_OPS_TEMPLATE.task_type: ANOMALY_OPS_TEMPLATE,
+    DISPATCH_OPS_TEMPLATE.task_type: DISPATCH_OPS_TEMPLATE,
 }
 
 
@@ -25,6 +27,7 @@ def get_task_template(task_type: str | None) -> TaskTemplate | None:
 
 __all__ = [
     "ANOMALY_OPS_TEMPLATE",
+    "DISPATCH_OPS_TEMPLATE",
     "QUERY_OPS_TEMPLATE",
     "TaskTemplate",
     "get_task_template",
