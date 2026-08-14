@@ -96,7 +96,8 @@ class TestAsyncpgConfigStore:
 
         result = _run(store.get("default"))
         assert result is not None
-        assert result["default_model"] == "gpt-4o"
+        assert result["model_routing"]["default"] == "gpt-4o"
+        assert "default_model" not in result
         assert result["_config_revision"] == 7
 
     def test_get_handles_dict_jsonb(self):
@@ -105,7 +106,8 @@ class TestAsyncpgConfigStore:
         row = {"config": {"default_model": "gpt-4o-mini"}, "config_revision": 1}
         store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)), seed_on_start=False)
         result = _run(store.get("default"))
-        assert result["default_model"] == "gpt-4o-mini"
+        assert result["model_routing"]["default"] == "gpt-4o-mini"
+        assert "default_model" not in result
 
     def test_get_missing_entity_returns_none(self):
         from src.infrastructure.ai.asyncpg_config_store import AsyncpgAIConfigStore
@@ -125,7 +127,8 @@ class TestAsyncpgConfigStore:
         row = {"config": json.dumps(stored), "config_revision": 2}
         store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)), seed_on_start=False)
         result = _run(store.get("default"))
-        assert result["api_key"] == "sk-secret"
+        assert result["providers"]["default"]["api_key"] == "sk-secret"
+        assert "api_key" not in result
         assert "_key_encoded" not in result
 
     def test_get_all_maps_rows(self):
@@ -157,8 +160,10 @@ class TestAsyncpgConfigStore:
         store = AsyncpgAIConfigStore(FakePool(conn), seed_on_start=False)
 
         merged = _run(store.update("default", {"default_model": "new", "_config_revision": 99}))
-        assert merged["default_model"] == "new"
-        assert merged["base_url"] == "u"
+        assert merged["model_routing"]["default"] == "new"
+        assert merged["providers"]["default"]["base_url"] == "u"
+        assert "default_model" not in merged
+        assert "base_url" not in merged
         # Transient revision marker must not be persisted.
         assert "_config_revision" not in merged
         # The persisted JSON payload (2nd execute arg) must not carry the marker.

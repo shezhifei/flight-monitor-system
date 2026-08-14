@@ -321,18 +321,15 @@ class FlightInsightService:
         if not config:
             return None, None
 
-        entity_config = AIEntityConfig(
-            api_key=str(config.get("api_key") or "").strip(),
-            base_url=str(config.get("base_url") or "https://api.openai.com/v1"),
-            default_model=str(config.get("default_model") or "gpt-4o-mini"),
-            api_format=self._normalize_api_format(config.get("api_format")),
+        entity_config = AIEntityConfig.from_document(
+            config,
             temperature=self.AI_TEMPERATURE,
             max_tokens=int(config.get("max_tokens", self.AI_MAX_TOKENS) or self.AI_MAX_TOKENS),
             timeout=self.AI_TIMEOUT_SECONDS,
             max_retries=self.AI_MAX_RETRIES,
-            retry_delay=float(config.get("retry_delay", 0.5) or 0.5),
             system_prompt=str(config.get("system_prompt") or "") or None,
         )
+        entity_config.api_format = self._normalize_api_format(entity_config.api_format)
         entity = AIEntity(config=entity_config, entity_id=f"flight_insight_{entity_id or 'default'}")
         await entity._ensure_initialized()
         return entity, entity_config.default_model
@@ -351,14 +348,16 @@ class FlightInsightService:
         if not isinstance(all_configs, dict) or not all_configs:
             return None, None
 
+        from src.infrastructure.ai.config.config_normalizer import document_has_api_key
+
         default_config = all_configs.get("default")
-        if isinstance(default_config, dict) and str(default_config.get("api_key") or "").strip():
+        if isinstance(default_config, dict) and document_has_api_key(default_config):
             return "default", default_config
 
         for entity_id, config in all_configs.items():
             if not isinstance(config, dict):
                 continue
-            if str(config.get("api_key") or "").strip():
+            if document_has_api_key(config):
                 return str(entity_id), config
 
         return None, None

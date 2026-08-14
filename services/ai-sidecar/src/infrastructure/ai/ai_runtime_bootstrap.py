@@ -1,6 +1,6 @@
 """AI sidecar 运行时装配（生产 DI bootstrap）。
 
-把 v2 能力栈的各组件显式地构建并注册进 :class:`AiServiceContainer`，让
+把 AI 运行时能力栈的各组件显式地构建并注册进 :class:`AiServiceContainer`，让
 ``runtime_service.get_runtime_service`` 与 ``management_routes`` 在生产启动时拿到真实的
 依赖（config store / repos / cache / skill / mcp / capability resolver），而不是退化到
 ``None`` / 503。
@@ -45,14 +45,14 @@ def build_and_register_runtime(
     config_store: Any = None,
     skill_roots: list[str] | None = None,
 ) -> None:
-    """构建并注册 v2 能力栈的全部组件到全局 AI container。
+    """构建并注册 AI 运行时能力栈的全部组件到全局 AI container。
 
     幂等性：可多次调用（例如测试），后注册的实例覆盖先前的。调用结束会把
     ``runtime_service`` 的模块级缓存重置为 ``None``，以便下次 ``get_runtime_service``
     使用最新注册的依赖重建。
 
     Args:
-        db_pool: asyncpg 连接池，驱动全部 v2 repo 与（缺省时）config store。
+        db_pool: asyncpg 连接池，驱动全部 repo 与（缺省时）config store。
         redis_client: 可选 async redis 客户端，驱动缓存读写路径。
         config_store: 可选的 config store；缺省用 ``AsyncpgAIConfigStore(db_pool)``。
         skill_roots: 可选的 skill 文件根目录白名单（传给 SkillLoader）。
@@ -149,7 +149,7 @@ def build_and_register_runtime(
     except Exception as exc:  # pragma: no cover - defensive  # noqa: BLE001 - defensive import reset
         logger.warning("Could not reset default runtime service: %s", exc)
 
-    logger.info("AI runtime DI bootstrap complete (v2 capability stack registered)")
+    logger.info("AI runtime DI bootstrap complete (capability stack registered)")
 
 
 def _register_mq_components(mq_components: Any) -> None:

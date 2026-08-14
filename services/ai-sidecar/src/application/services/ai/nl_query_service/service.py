@@ -537,20 +537,18 @@ class NLQueryService:
     async def _build_query_entity(self) -> AIEntity | None:
         config = await self._load_default_ai_config()
 
-        if not config or not config.get("api_key"):
+        if not config:
             return None
 
-        entity_config = AIEntityConfig(
-            api_key=config.get("api_key"),
-            base_url=config.get("base_url", "https://api.openai.com/v1"),
-            default_model=config.get("default_model", "gpt-4o-mini"),
-            api_format=str(config.get("api_format", "chat_completions")),
+        from src.infrastructure.ai.config.config_normalizer import document_has_api_key
+
+        if not document_has_api_key(config):
+            return None
+
+        entity_config = AIEntityConfig.from_document(
+            config,
             temperature=float(config.get("temperature", 0.2)),
             max_tokens=int(config.get("max_tokens", self.DEFAULT_CONVERSATION_MAX_TOKENS)),
-            context_window=int(config.get("context_window", 128000)),
-            timeout=float(config.get("timeout", 30.0)),
-            max_retries=int(config.get("max_retries", 2)),
-            retry_delay=float(config.get("retry_delay", 0.5)),
             system_prompt=NL_QUERY_SYSTEM_PROMPT,
             allowed_tool_categories=[ToolCategory.QUERY.value, ToolCategory.ANOMALY.value],
         )

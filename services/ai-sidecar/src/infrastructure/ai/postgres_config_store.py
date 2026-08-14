@@ -19,6 +19,7 @@ from src.infrastructure.logging.core import get_logger
 
 from .config.ai_config_crypto import ConfigEncryptor, get_config_encryptor
 from .config.cache_mixin import ConfigCacheMixin
+from .config.config_normalizer import normalize_config
 from .config_store import (
     AIConfigStoreInterface,
     build_default_entity_config,
@@ -83,7 +84,7 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
                 result = {}
                 for row in rows:
                     config = row["config"] if isinstance(row["config"], dict) else json.loads(row["config"])
-                    result[row["id"]] = self._encryptor.decrypt_config(config)
+                    result[row["id"]] = normalize_config(self._encryptor.decrypt_config(config))
 
                 return result
         except POSTGRES_EXCEPTIONS as e:
@@ -116,7 +117,7 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
 
                 config = row["config"] if isinstance(row["config"], dict) else json.loads(row["config"])
                 config["_config_revision"] = row.get("config_revision", 1)
-                decrypted = self._encryptor.decrypt_config(config)
+                decrypted = normalize_config(self._encryptor.decrypt_config(config))
                 self._set_cached(entity_id, decrypted)
                 return decrypted
         except POSTGRES_EXCEPTIONS as e:
@@ -131,12 +132,11 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         if current_config is None:
             current_config = build_default_entity_config()
 
-        # 合并新配置
         for key, value in config.items():
             if value is not None:
                 current_config[key] = value
 
-        # 加密并保存
+        current_config = normalize_config(current_config)
         encrypted_config = self._encryptor.encrypt_config(current_config)
 
         try:

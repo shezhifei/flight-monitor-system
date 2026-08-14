@@ -1,4 +1,4 @@
-"""AI Configuration Management API - Internal endpoints for V2 config management.
+"""AI Configuration Management API - Internal endpoints for AI config management.
 
 Provides CRUD for MCP servers/bindings, Agent Skills, Cache metrics,
 and Capability resolution/validation.
@@ -263,7 +263,7 @@ def _snapshot_to_dict(snapshot: Any) -> dict[str, Any]:
         return obj
 
     result = _dc_to_dict(snapshot)
-    # Flatten for frontend compatibility
+    # 能力快照对外同时给出嵌套对象与顶层摘要字段，供配置中心与聊天输入直接消费。
     if isinstance(result, dict):
         model = result.get("model", {})
         if isinstance(model, dict):

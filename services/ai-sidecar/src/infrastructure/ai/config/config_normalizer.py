@@ -1,133 +1,97 @@
-"""AI 配置标准化器 - 旧配置到 v2 的迁移"""
+"""AI entity document: one stored shape, lift inbound aliases at the boundary."""
 
-import logging
 from copy import deepcopy
 from typing import Any
 
-logger = logging.getLogger(__name__)
+_REVISION_KEYS = ("_config_revision", "config_revision", "configRevision")
+
+_CONNECTION_KEYS = (
+    "base_url",
+    "api_key",
+    "api_format",
+    "timeout",
+    "max_retries",
+    "retry_delay",
+)
+
+_TOOLING_ALIAS_KEYS = ("allowed_tool_categories", "allowed_tools", "denied_tools")
+
+_DOCUMENT_ALIASES = (
+    *_CONNECTION_KEYS,
+    *_TOOLING_ALIAS_KEYS,
+    "default_model",
+    "provider",
+    "type",
+    "asr_model",
+    "tts_model",
+    "tts_voice",
+    "realtime_audio_enabled",
+    "prompt_cache",
+)
+
+_DEFAULT_PROVIDER: dict[str, Any] = {
+    "type": "openai_compatible",
+    "base_url": "https://api.openai.com/v1",
+    "api_key": "",
+    "api_format": "chat_completions",
+    "timeout": 30.0,
+    "max_retries": 3,
+    "retry_delay": 0.5,
+}
 
 
-def normalize_config_to_v2(raw_config: dict[str, Any]) -> dict[str, Any]:
-    """
-    将旧配置标准化为 v2 格式。
-
-    如果配置已有 config_version=2，直接返回。
-    否则执行 v1 -> v2 的迁移。
-
-    Args:
-        raw_config: 原始配置字典
-
-    Returns:
-        v2 格式的配置字典
-    """
-    config = deepcopy(raw_config)
-
-    # 如果已经是 v2，直接返回
-    if config.get("config_version") == 2:
-        return _ensure_v2_defaults(config)
-
-    logger.info("Migrating config from v1 to v2 format")
-
-    # 提取旧字段
-    api_key = config.get("api_key", "")
-    base_url = config.get("base_url", "https://api.openai.com/v1")
-    default_model = config.get("default_model", "gpt-3.5-turbo")
-    api_format = config.get("api_format", "chat_completions")
-    timeout = config.get("timeout", 30.0)
-    max_retries = config.get("max_retries", 3)
-    retry_delay = config.get("retry_delay", 0.5)
-    context_window = config.get("context_window", 128000)
-    cost_per_1k_input = config.get("cost_per_1k_input", 0.0015)
-    cost_per_1k_output = config.get("cost_per_1k_output", 0.002)
-    system_prompt = config.get("system_prompt", "你是一个航班监控系统的 AI 助手。")
-    task_template = config.get("task_template")
-
-    # 旧配置只有单一 provider，迁移后放入 providers['default']，
-    # 并保留顶层 provider 字段作为其镜像（向后兼容）。
-    default_provider = {
-        "type": "openai_compatible",
-        "base_url": base_url,
-        "api_key": api_key,
-        "api_format": api_format,
-        "timeout": timeout,
-        "max_retries": max_retries,
-        "retry_delay": retry_delay,
-    }
-
-    # 构建 v2 结构
-    v2_config = {
+def default_entity_document() -> dict[str, Any]:
+    """Current entity document. Callers get an isolated copy."""
+    return {
         "config_version": 2,
-        "provider": deepcopy(default_provider),
-        "providers": {"default": deepcopy(default_provider)},
-        "model_routing": {
-            "default": default_model,
-            "chat": default_model,
-            "summary": _infer_summary_model(default_model),
-            "vision": None,
-            "audio_transcription": None,
-            "audio_speech": None,
-            "embedding": None,
-        },
-        "models": _build_models_v2(
-            config, default_model, api_format, context_window, cost_per_1k_input, cost_per_1k_output
-        ),
-        "tooling": _build_tooling_v2(config),
-        "mcp": {
-            "enabled": False,
-            "servers": [],
-            "tool_name_prefix": "mcp",
-            "discovery_cache_ttl_seconds": 300,
-            "fail_closed": False,
-        },
-        "skills": {
-            "enabled": False,
-            "allowlist": [],
-            "bindings": [],
-            "fail_closed": False,
-        },
-        "subagents": {
-            "enabled": False,
-            "mode": "entity_handoff",
-            "allowed_entity_ids": [],
-            "max_depth": 1,
-            "max_concurrency": 2,
-            "inherit_parent_context": True,
-            "require_tool_calling_capability": True,
-            "handoff_prompt": None,
-        },
-        "context_policy": _build_context_policy_v2(config),
-        "cache_policy": _build_cache_policy_v2(config),
-        "security": _build_security_v2(config),
-        "system_prompt": system_prompt,
-        "task_template": task_template,
-    }
-
-    return v2_config
-
-
-def _ensure_v2_defaults(config: dict[str, Any]) -> dict[str, Any]:
-    """确保 v2 配置包含所有必需的默认值"""
-    default_provider = {
-        "type": "openai_compatible",
-        "base_url": "https://api.openai.com/v1",
-        "api_key": "",
-        "api_format": "chat_completions",
-        "timeout": 30.0,
-        "max_retries": 3,
-        "retry_delay": 0.5,
-    }
-    defaults = {
-        "config_version": 2,
-        "provider": deepcopy(default_provider),
-        "providers": {"default": deepcopy(default_provider)},
-        "model_routing": {"default": "gpt-4o"},
+        "providers": {"default": dict(_DEFAULT_PROVIDER)},
+        "model_routing": {"default": "gpt-4o", "chat": "gpt-4o"},
         "models": {},
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "top_p": 0.95,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "cost_per_1k_input": 0.0015,
+        "cost_per_1k_output": 0.002,
+        "context_window": 128000,
+        "tools": {
+            "timeout": 30,
+            "max_retries": 3,
+            "retry_delay": 1.0,
+            "auto_execute": True,
+        },
+        "monitoring": {
+            "metrics_enabled": True,
+            "trace_enabled": False,
+            "log_prompts": False,
+            "mask_sensitive": True,
+        },
+        "media": {
+            "asr": {"model": "whisper-1", "language": None, "response_format": "json"},
+            "tts": {"model": "tts-1", "voice": "alloy", "response_format": "mp3", "speed": 1.0},
+            "realtime": {
+                "enabled": False,
+                "provider": None,
+                "asr_streaming_model": None,
+                "tts_streaming_model": None,
+                "input_sample_rate_hz": 16000,
+                "output_sample_rate_hz": 24000,
+                "chunk_ms": 40,
+                "latency_budget_ms": 800,
+                "vad_enabled": True,
+                "barge_in_enabled": True,
+                "max_session_seconds": 300,
+                "max_frame_bytes": 65536,
+            },
+        },
+        "endpoints": {"chat": None, "vision": None, "asr": None, "tts": None},
         "tooling": {
             "enabled": True,
             "max_rounds": 5,
             "allow_parallel": False,
             "allowed_tool_sources": ["builtin"],
-            "allowed_tool_categories": [],
+            "allowed_tool_categories": ["flight", "flight_event", "todo", "business_case"],
             "allowed_tools": None,
             "denied_tools": [],
             "write_action_policy": "proposal_only",
@@ -141,34 +105,203 @@ def _ensure_v2_defaults(config: dict[str, Any]) -> dict[str, Any]:
             "compression_threshold_tokens": 48000,
             "preserve_recent_messages": 12,
         },
-        "cache_policy": {"enabled": True},
+        "cache_policy": {
+            "enabled": True,
+            "provider_prompt_cache": {
+                "enabled": False,
+                "retention": None,
+                "key_namespace": "flight_monitor",
+            },
+        },
         "security": {"mask_sensitive": True, "log_prompts": False},
-        "system_prompt": "你是一个航班监控系统的 AI 助手。",
+        "todo_agent_graph_enabled": False,
+        "todo_agent_graph_runtime_enabled": False,
+        "graph_runtime_enabled": False,
+        "system_prompt": "你是一个航班监控系统的AI助手，可以帮助用户查询航班信息、管理航班事件和待办事项。",
         "task_template": None,
     }
 
-    # 深度合并，保留已有值
-    merged = _deep_merge(defaults, config)
 
-    # 既有 v2 配置可能只有顶层 provider 而无 providers：
-    # 若 config 未显式提供 providers，则 providers['default'] 必须镜像实际的
-    # 顶层 provider（而非默认占位 provider），保证单-provider 配置零行为变化。
-    if "providers" not in config:
-        merged["providers"] = {"default": deepcopy(merged["provider"])}
-    elif "default" not in merged.get("providers", {}):
-        merged["providers"]["default"] = deepcopy(merged["provider"])
+def normalize_config(raw_config: dict[str, Any]) -> dict[str, Any]:
+    """Return the current entity document. Inbound aliases are lifted then dropped."""
+    revisions = {key: raw_config[key] for key in _REVISION_KEYS if key in raw_config}
+    config = _deep_merge(default_entity_document(), deepcopy(raw_config))
+    for key in _REVISION_KEYS:
+        config.pop(key, None)
+    _lift_aliases(config)
+    _strip_aliases(config)
+    config["config_version"] = 2
+    config.update(revisions)
+    return config
 
-    # 确保每个 model 都带有 provider_ref（默认 'default'）。
-    for model_config in merged.get("models", {}).values():
-        if isinstance(model_config, dict):
-            model_config.setdefault("provider_ref", "default")
 
-    return merged
+def connection_settings(config: dict[str, Any]) -> dict[str, Any]:
+    providers = config.get("providers")
+    if not isinstance(providers, dict):
+        return {}
+    default = providers.get("default")
+    return default if isinstance(default, dict) else {}
+
+
+def default_model_id(config: dict[str, Any], fallback: str = "gpt-4o") -> str:
+    routing = config.get("model_routing")
+    if isinstance(routing, dict):
+        model = routing.get("default")
+        if isinstance(model, str) and model.strip():
+            return model.strip()
+    return fallback
+
+
+def tooling_policy(config: dict[str, Any]) -> dict[str, Any]:
+    tooling = config.get("tooling")
+    return tooling if isinstance(tooling, dict) else {}
+
+
+def document_has_api_key(config: dict[str, Any]) -> bool:
+    api_key = connection_settings(config).get("api_key")
+    return bool(isinstance(api_key, str) and api_key.strip())
+
+
+def get_config_version(config: dict[str, Any]) -> int:
+    try:
+        return int(config.get("config_version") or 2)
+    except (TypeError, ValueError):
+        return 2
+
+
+def _lift_aliases(config: dict[str, Any]) -> None:
+    _lift_connection(config)
+    _lift_model_routing(config)
+    _lift_tooling(config)
+    _lift_media(config)
+    _lift_prompt_cache(config)
+
+
+def _lift_connection(config: dict[str, Any]) -> None:
+    providers = config.get("providers")
+    if not isinstance(providers, dict):
+        providers = {}
+        config["providers"] = providers
+
+    single = config.get("provider")
+    if isinstance(single, dict) and "default" not in providers:
+        providers["default"] = deepcopy(single)
+
+    default = providers.get("default")
+    if not isinstance(default, dict):
+        default = dict(_DEFAULT_PROVIDER)
+        providers["default"] = default
+
+    if isinstance(single, dict):
+        for key, value in single.items():
+            if not _is_blank(value):
+                default[key] = value
+
+    if isinstance(config.get("type"), str) and config["type"].strip():
+        default["type"] = config["type"]
+
+    for key in _CONNECTION_KEYS:
+        value = config.get(key)
+        if not _is_blank(value):
+            default[key] = value
+
+
+def _lift_model_routing(config: dict[str, Any]) -> None:
+    routing = config.get("model_routing")
+    if not isinstance(routing, dict):
+        routing = {}
+        config["model_routing"] = routing
+    model = config.get("default_model")
+    if isinstance(model, str) and model.strip():
+        routing["default"] = model.strip()
+
+
+def _lift_tooling(config: dict[str, Any]) -> None:
+    tooling = config.get("tooling")
+    if not isinstance(tooling, dict):
+        tooling = {}
+        config["tooling"] = tooling
+    for key in _TOOLING_ALIAS_KEYS:
+        if key in config:
+            tooling[key] = config[key]
+
+
+def _lift_media(config: dict[str, Any]) -> None:
+    media = config.get("media")
+    if not isinstance(media, dict):
+        media = {}
+        config["media"] = media
+    routing = config.get("model_routing")
+    if not isinstance(routing, dict):
+        routing = {}
+        config["model_routing"] = routing
+
+    asr = media.get("asr")
+    if not isinstance(asr, dict):
+        asr = {}
+        media["asr"] = asr
+    tts = media.get("tts")
+    if not isinstance(tts, dict):
+        tts = {}
+        media["tts"] = tts
+    realtime = media.get("realtime")
+    if not isinstance(realtime, dict):
+        realtime = {}
+        media["realtime"] = realtime
+
+    asr_model = config.get("asr_model")
+    if isinstance(asr_model, str) and asr_model.strip():
+        asr["model"] = asr_model.strip()
+        routing["audio_transcription"] = asr_model.strip()
+
+    tts_model = config.get("tts_model")
+    if isinstance(tts_model, str) and tts_model.strip():
+        tts["model"] = tts_model.strip()
+        routing["audio_speech"] = tts_model.strip()
+
+    tts_voice = config.get("tts_voice")
+    if isinstance(tts_voice, str) and tts_voice.strip():
+        tts["voice"] = tts_voice.strip()
+
+    if "realtime_audio_enabled" in config:
+        realtime["enabled"] = bool(config.get("realtime_audio_enabled"))
+
+
+def _lift_prompt_cache(config: dict[str, Any]) -> None:
+    prompt_cache = config.get("prompt_cache")
+    if not isinstance(prompt_cache, dict):
+        return
+    cache_policy = config.get("cache_policy")
+    if not isinstance(cache_policy, dict):
+        cache_policy = {}
+        config["cache_policy"] = cache_policy
+    provider_cache = cache_policy.get("provider_prompt_cache")
+    if not isinstance(provider_cache, dict):
+        provider_cache = {}
+        cache_policy["provider_prompt_cache"] = provider_cache
+    if "enabled" in prompt_cache:
+        provider_cache["enabled"] = bool(prompt_cache.get("enabled"))
+    if prompt_cache.get("retention") is not None:
+        provider_cache["retention"] = prompt_cache.get("retention")
+    if prompt_cache.get("namespace"):
+        provider_cache["key_namespace"] = prompt_cache.get("namespace")
+
+
+def _strip_aliases(config: dict[str, Any]) -> None:
+    for key in _DOCUMENT_ALIASES:
+        config.pop(key, None)
+
+
+def _is_blank(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip()
+    return False
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """深度合并两个字典"""
-    result = base.copy()
+    result = deepcopy(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = _deep_merge(result[key], value)
@@ -177,166 +310,12 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return result
 
 
-def _infer_summary_model(default_model: str) -> str:
-    """根据默认模型推断摘要模型"""
-    # 常见的 mini 模型映射
-    mini_mappings = {
-        "gpt-4o": "gpt-4o-mini",
-        "gpt-4.1": "gpt-4.1-mini",
-        "gpt-4": "gpt-4o-mini",
-        "deepseek-chat": "deepseek-chat",
-    }
-    return mini_mappings.get(default_model, default_model)
-
-
-def _build_models_v2(
-    config: dict[str, Any],
-    default_model: str,
-    api_format: str,
-    context_window: int,
-    cost_per_1k_input: float,
-    cost_per_1k_output: float,
-) -> dict[str, Any]:
-    """构建 v2 models 配置"""
-    models = {}
-
-    # 从旧配置推断模型能力
-    supports_vision = config.get("supports_vision", False)
-    supports_audio = config.get("supports_audio_transcription", False)
-
-    # 构建默认模型配置
-    input_modalities = ["text"]
-    if supports_vision:
-        input_modalities.append("image")
-    if supports_audio:
-        input_modalities.append("audio")
-
-    models[default_model] = {
-        "provider_model": default_model,
-        "provider_ref": "default",
-        "api_format": api_format,
-        "context_window": context_window,
-        "max_output_tokens": config.get("max_tokens", 4096),
-        "modalities": {
-            "input": input_modalities,
-            "output": ["text"],
-        },
-        "capabilities": {
-            "tool_calling": config.get("supports_function_calling", True),
-            "parallel_tool_calls": False,
-            "streaming": config.get("supports_streaming", True),
-            "structured_output": False,
-            "prompt_cache": config.get("prompt_cache", {}).get("enabled", False),
-        },
-        "cost": {
-            "currency": "USD",
-            "input_per_1k": cost_per_1k_input,
-            "output_per_1k": cost_per_1k_output,
-            "cached_input_per_1k": 0.0,
-        },
-    }
-
-    # 合并旧的 models 配置
-    old_models = config.get("models", {})
-    for model_name, model_config in old_models.items():
-        if isinstance(model_config, dict):
-            models[model_name] = _deep_merge(
-                models.get(default_model, {}),
-                {
-                    "provider_model": model_config.get("name", model_name),
-                    "context_window": model_config.get("context_window", context_window),
-                    "max_output_tokens": model_config.get("max_tokens", 4096),
-                },
-            )
-
-    return models
-
-
-def _build_tooling_v2(config: dict[str, Any]) -> dict[str, Any]:
-    """构建 v2 tooling 配置"""
-    allowed_categories = config.get("allowed_tool_categories", [])
-    allowed_tools = config.get("allowed_tools")
-    denied_tools = config.get("denied_tools", [])
-
-    return {
-        "enabled": True,
-        "max_rounds": 5,
-        "allow_parallel": False,
-        "allowed_tool_sources": ["builtin"],
-        "allowed_tool_categories": allowed_categories,
-        "allowed_tools": allowed_tools,
-        "denied_tools": denied_tools,
-        "write_action_policy": "proposal_only",
-    }
-
-
-def _build_context_policy_v2(config: dict[str, Any]) -> dict[str, Any]:
-    """构建 v2 context_policy 配置"""
-    context = config.get("context", {})
-
-    return {
-        "strategy": context.get("strategy", "hybrid"),
-        "max_context_tokens": context.get("max_tokens", 64000),
-        "compression_threshold_tokens": context.get("compression_threshold", 48000),
-        "preserve_recent_messages": 12,
-        "summary_model": context.get("summary_model"),
-        "summary_max_tokens": 1200,
-        "persist_summaries": True,
-    }
-
-
-def _build_cache_policy_v2(config: dict[str, Any]) -> dict[str, Any]:
-    """构建 v2 cache_policy 配置"""
-    prompt_cache = config.get("prompt_cache", {})
-    cache = config.get("cache", {})
-
-    return {
-        "enabled": cache.get("enabled", True),
-        "provider_prompt_cache": {
-            "enabled": prompt_cache.get("enabled", False),
-            "retention": prompt_cache.get("retention", "24h") or "24h",
-            "key_namespace": prompt_cache.get("namespace", "flight_monitor"),
-        },
-        "context_cache": {
-            "backend": "redis",
-            "ttl_seconds": 86400,
-        },
-        "tool_result_cache": {
-            "enabled": False,
-            "ttl_seconds": 60,
-            "cacheable_tools": [],
-        },
-        "mcp_resource_cache": {
-            "enabled": False,
-            "ttl_seconds": 300,
-        },
-    }
-
-
-def _build_security_v2(config: dict[str, Any]) -> dict[str, Any]:
-    """构建 v2 security 配置"""
-    monitoring = config.get("monitoring", {})
-
-    return {
-        "mask_sensitive": monitoring.get("mask_sensitive", True),
-        "log_prompts": monitoring.get("log_prompts", False),
-        "max_input_bytes": 26214400,
-        "allowed_input_mime_types": ["text/plain", "image/png", "image/jpeg", "audio/wav"],
-    }
-
-
-def get_config_version(config: dict[str, Any]) -> int:
-    """获取配置版本号"""
-    return config.get("config_version", 1)
-
-
-def needs_migration(config: dict[str, Any]) -> bool:
-    """检查配置是否需要迁移"""
-    return get_config_version(config) < 2
-
-
 __all__ = [
+    "connection_settings",
+    "default_entity_document",
+    "default_model_id",
+    "document_has_api_key",
     "get_config_version",
-    "needs_migration",
-    "normalize_config_to_v2",
+    "normalize_config",
+    "tooling_policy",
 ]

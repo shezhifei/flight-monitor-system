@@ -1,5 +1,1 @@
-"""AI模块配置模块"""
-
-from .ai_config_loader import AIConfigLoader, AIHotReloadConfigLoader
-
-__all__ = ["AIConfigLoader", "AIHotReloadConfigLoader"]
+"""AI 配置模块：文档形状规范化、加密与持久化。"""

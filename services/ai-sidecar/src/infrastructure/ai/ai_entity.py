@@ -412,12 +412,10 @@ class AIEntity:
 # Keep Config class but expanded
 @dataclass
 class AIEntityConfig:
-    # 基础配置
     api_key: str | None = None
     base_url: str = "https://api.openai.com/v1"
     default_model: str = "gpt-3.5-turbo"
 
-    # 运行参数 (原 Providers 配置)
     timeout: float = 30.0
     max_retries: int = 3
     retry_delay: float = 0.5
@@ -445,5 +443,47 @@ class AIEntityConfig:
     enable_prompt_cache: bool = False
     prompt_cache_retention: str | None = None  # "in_memory" | "24h"
 
-    # Responses Session Chaining 配置
     enable_responses_session_chain: bool = False
+
+    @classmethod
+    def from_document(cls, document: dict[str, Any], **overrides: Any) -> "AIEntityConfig":
+        """Project the persisted entity document onto the runtime client config."""
+        from src.infrastructure.ai.config.config_normalizer import (
+            connection_settings,
+            default_model_id,
+            normalize_config,
+            tooling_policy,
+        )
+
+        config = normalize_config(document)
+        conn = connection_settings(config)
+        tooling = tooling_policy(config)
+        cache_policy = config.get("cache_policy") if isinstance(config.get("cache_policy"), dict) else {}
+        provider_cache = (
+            cache_policy.get("provider_prompt_cache")
+            if isinstance(cache_policy.get("provider_prompt_cache"), dict)
+            else {}
+        )
+        values: dict[str, Any] = {
+            "api_key": conn.get("api_key") or None,
+            "base_url": conn.get("base_url") or "https://api.openai.com/v1",
+            "default_model": default_model_id(config, "gpt-3.5-turbo"),
+            "api_format": conn.get("api_format") or "chat_completions",
+            "timeout": conn.get("timeout", 30.0),
+            "max_retries": conn.get("max_retries", 3),
+            "retry_delay": conn.get("retry_delay", 0.5),
+            "temperature": config.get("temperature", 0.7),
+            "max_tokens": config.get("max_tokens", 1000),
+            "cost_per_1k_input": config.get("cost_per_1k_input", 0.0),
+            "cost_per_1k_output": config.get("cost_per_1k_output", 0.0),
+            "context_window": config.get("context_window", 128000),
+            "system_prompt": config.get("system_prompt"),
+            "task_template": config.get("task_template"),
+            "allowed_tool_categories": tooling.get("allowed_tool_categories") or [],
+            "allowed_tools": tooling.get("allowed_tools"),
+            "denied_tools": tooling.get("denied_tools") or [],
+            "enable_prompt_cache": bool(provider_cache.get("enabled")),
+            "prompt_cache_retention": provider_cache.get("retention"),
+        }
+        values.update(overrides)
+        return cls(**values)

@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+from copy import deepcopy
 from typing import Any
 
 from src.infrastructure.logging.core import get_logger
@@ -132,64 +133,90 @@ class ConfigEncryptor:
     # Public API
     # ------------------------------------------------------------------
     def decrypt_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """解密配置中的 API Key，并剥离内部存储元字段。"""
-        config_copy = dict(config)
+        """Decrypt every api_key in the document and drop storage markers."""
+        config_copy = deepcopy(config)
         encrypted = bool(config_copy.get("_key_encrypted"))
         encoded = bool(config_copy.get("_key_encoded"))
-        api_key = config_copy.get("api_key")
-
-        if encrypted and api_key:
-            if not self._fernet:
-                logger.error("Cannot decrypt AI API key: encryption is enabled but fernet is unavailable")
-                config_copy["api_key"] = ""
-            else:
-                try:
-                    key = self._fernet.decrypt(str(api_key).encode("utf-8")).decode("utf-8")
-                    config_copy["api_key"] = key
-                except Exception as exc:  # noqa: BLE001 - fernet decrypt may fail in various ways
-                    logger.warning("fernet_api_key_decrypt_failed", exc_info=exc)
-                    config_copy["api_key"] = ""
-        elif encoded and api_key:
-            if self._require_encryption:
-                logger.warning(
-                    "Loaded legacy base64 AI API key while encrypted storage is required. "
-                    "Please rotate and re-save AI config with fernet enabled."
-                )
-            try:
-                key = base64.b64decode(str(api_key)).decode("utf-8")
-                config_copy["api_key"] = key
-            except Exception as exc:  # noqa: BLE001 - base64 decode may fail in various ways
-                logger.warning("base64_api_key_decode_failed", exc_info=exc)
-                config_copy["api_key"] = ""
-
+        self._transform_api_keys(config_copy, lambda value: self._decrypt_value(value, encrypted, encoded))
         config_copy.pop("_key_encoded", None)
         config_copy.pop("_key_encrypted", None)
         config_copy.pop("_key_encryption", None)
         return config_copy
 
     def encrypt_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """加密配置中的 API Key，写入对应的存储元字段。"""
-        config_copy = dict(config)
-        if config_copy.get("api_key"):
-            key = str(config_copy["api_key"])
-
-            if self._fernet:
-                token = self._fernet.encrypt(key.encode("utf-8")).decode("utf-8")
-                config_copy["api_key"] = token
-                config_copy["_key_encrypted"] = True
-                config_copy["_key_encryption"] = "fernet_v1"
-                config_copy.pop("_key_encoded", None)
-            else:
-                if self._require_encryption:
-                    raise RuntimeError(
-                        "Encrypted AI config is required in this environment but fernet is "
-                        "unavailable. Set AI_CONFIG_ENCRYPTION_KEY and install cryptography."
-                    )
-                config_copy["api_key"] = base64.b64encode(key.encode("utf-8")).decode("utf-8")
-                config_copy["_key_encoded"] = True
-                config_copy.pop("_key_encrypted", None)
-                config_copy.pop("_key_encryption", None)
+        """Encrypt every api_key in the document and write storage markers."""
+        config_copy = deepcopy(config)
+        if not self._has_api_key(config_copy):
+            return config_copy
+        if not self._fernet and self._require_encryption:
+            raise RuntimeError(
+                "Encrypted AI config is required in this environment but fernet is "
+                "unavailable. Set AI_CONFIG_ENCRYPTION_KEY and install cryptography."
+            )
+        self._transform_api_keys(config_copy, self._encrypt_value)
+        if self._fernet:
+            config_copy["_key_encrypted"] = True
+            config_copy["_key_encryption"] = "fernet_v1"
+            config_copy.pop("_key_encoded", None)
+        else:
+            config_copy["_key_encoded"] = True
+            config_copy.pop("_key_encrypted", None)
+            config_copy.pop("_key_encryption", None)
         return config_copy
+
+    def _has_api_key(self, value: Any) -> bool:
+        if isinstance(value, dict):
+            api_key = value.get("api_key")
+            if isinstance(api_key, str) and api_key:
+                return True
+            return any(self._has_api_key(child) for child in value.values())
+        if isinstance(value, list):
+            return any(self._has_api_key(item) for item in value)
+        return False
+
+    def _transform_api_keys(self, value: Any, transform) -> bool:
+        found = False
+        if isinstance(value, dict):
+            api_key = value.get("api_key")
+            if isinstance(api_key, str) and api_key:
+                value["api_key"] = transform(api_key)
+                found = True
+            for key, child in value.items():
+                if key == "api_key":
+                    continue
+                found = self._transform_api_keys(child, transform) or found
+        elif isinstance(value, list):
+            for item in value:
+                found = self._transform_api_keys(item, transform) or found
+        return found
+
+    def _encrypt_value(self, key: str) -> str:
+        if self._fernet:
+            return self._fernet.encrypt(key.encode("utf-8")).decode("utf-8")
+        return base64.b64encode(key.encode("utf-8")).decode("utf-8")
+
+    def _decrypt_value(self, api_key: str, encrypted: bool, encoded: bool) -> str:
+        if encrypted:
+            if not self._fernet:
+                logger.error("Cannot decrypt AI API key: encryption is enabled but fernet is unavailable")
+                return ""
+            try:
+                return self._fernet.decrypt(str(api_key).encode("utf-8")).decode("utf-8")
+            except Exception as exc:  # noqa: BLE001 - fernet decrypt may fail in various ways
+                logger.warning("fernet_api_key_decrypt_failed", exc_info=exc)
+                return ""
+        if encoded:
+            if self._require_encryption:
+                logger.warning(
+                    "Loaded legacy base64 AI API key while encrypted storage is required. "
+                    "Please rotate and re-save AI config with fernet enabled."
+                )
+            try:
+                return base64.b64decode(str(api_key)).decode("utf-8")
+            except Exception as exc:  # noqa: BLE001 - base64 decode may fail in various ways
+                logger.warning("base64_api_key_decode_failed", exc_info=exc)
+                return ""
+        return api_key
 
 
 _default_encryptor: ConfigEncryptor | None = None

@@ -271,7 +271,7 @@ class CapabilityResolver:
 
     职责：
     1. 读取实体配置
-    2. 若 config_version 缺失，执行兼容迁移
+    2. 将配置标准化为当前 schema
     3. 解析 model_routing，选择本次 run 的模型用途
     4. 校验输入模态是否被目标模型允许
     5. 合并 builtin/MCP tools，并组合 Agent Skill instructions
@@ -315,10 +315,10 @@ class CapabilityResolver:
         # 1. 读取实体配置
         raw_config = await self._load_entity_config(entity_id)
 
-        # 2. 标准化为 v2
-        from src.infrastructure.ai.config.config_normalizer import normalize_config_to_v2
+        # 2. 标准化配置
+        from src.infrastructure.ai.config.config_normalizer import normalize_config
 
-        config = normalize_config_to_v2(raw_config)
+        config = normalize_config(raw_config)
 
         config_version = config.get("config_version", 2)
         config_revision = (
@@ -437,13 +437,7 @@ class CapabilityResolver:
         config: dict[str, Any],
         provider_ref: str,
     ) -> dict[str, Any]:
-        """按 provider_ref 选择 provider 配置
-
-        消费多 provider 契约：config["providers"] 为键控字典（'default'/'asr'/'tts' 等），
-        config["provider"] 为 providers['default'] 的镜像（向后兼容）。
-        缺失 provider_ref 时回退 'default'，仍缺失则回退顶层 provider 镜像，
-        保证现有单-provider 配置零行为变化。
-        """
+        """按 provider_ref 从 providers 字典取连接配置，缺失回退 default。"""
         providers = config.get("providers") or {}
         provider = providers.get(provider_ref)
         if provider is not None:
@@ -451,7 +445,7 @@ class CapabilityResolver:
         default_provider = providers.get("default")
         if default_provider is not None:
             return default_provider
-        return config.get("provider", {})
+        return {}
 
     async def _get_model_from_catalog(self, model_id: str) -> dict[str, Any]:
         """从模型目录获取模型配置"""
@@ -801,7 +795,7 @@ class CapabilityResolver:
 
         在透传原有 security 字段的基础上，确保 runtime 输入闸门所需的
         allowed_input_mime_types / max_input_bytes 始终存在（缺则补默认值），
-        默认值与 SecurityConfigV2 保持一致。
+        默认值与 SecurityConfig 保持一致。
         """
         security = dict(security_config or {})
         security.setdefault(

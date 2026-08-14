@@ -54,6 +54,26 @@ class TestFernetRoundTrip:
         decrypted = enc.decrypt_config(encrypted)
         assert decrypted["api_key"] == "sk-secret-123"
         assert decrypted["base_url"] == "x"
+
+    def test_encrypt_then_decrypt_recovers_nested_provider_keys(self, monkeypatch):
+        monkeypatch.setenv("AI_CONFIG_ENCRYPTION_KEY", _make_fernet_key())
+        enc = ConfigEncryptor()
+        encrypted = enc.encrypt_config(
+            {
+                "providers": {
+                    "default": {"api_key": "sk-default", "base_url": "https://x"},
+                    "asr": {"api_key": "sk-asr"},
+                }
+            }
+        )
+        assert encrypted["providers"]["default"]["api_key"] != "sk-default"
+        assert encrypted["providers"]["asr"]["api_key"] != "sk-asr"
+        assert encrypted["_key_encrypted"] is True
+
+        decrypted = enc.decrypt_config(encrypted)
+        assert decrypted["providers"]["default"]["api_key"] == "sk-default"
+        assert decrypted["providers"]["asr"]["api_key"] == "sk-asr"
+        assert decrypted["providers"]["default"]["base_url"] == "https://x"
         # Internal markers must never leak to callers.
         assert "_key_encrypted" not in decrypted
         assert "_key_encryption" not in decrypted

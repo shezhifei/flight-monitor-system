@@ -72,14 +72,8 @@ async def generate_plan(
     from src.infrastructure.ai.openai_client import Message, MessageRole
     from src.infrastructure.ai.prompts import PLANNER_SYSTEM_PROMPT
 
-    entity_config = AIEntityConfig(
-        api_key=config.get("api_key"),
-        base_url=config.get("base_url", "https://api.openai.com/v1"),
-        default_model=config.get("default_model", "gpt-4o"),
-        api_format=_normalize_api_format(config.get("api_format")),
-        temperature=0.7,
-        system_prompt=config.get("system_prompt"),
-    )
+    entity_config = AIEntityConfig.from_document(config, temperature=0.7)
+    entity_config.api_format = _normalize_api_format(entity_config.api_format)
     entity = AIEntity(config=entity_config)
     await entity._ensure_initialized()
 
