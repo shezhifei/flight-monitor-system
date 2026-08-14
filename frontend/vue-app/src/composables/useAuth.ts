@@ -203,19 +203,11 @@ function navigateAfterLogin(target: string): void {
   window.location.href = target;
 }
 
-/** 解析 refresh/login 返回体（兼容扁平 Token 与 { data: Token }） */
-function unwrapTokenPayload(raw: unknown): AuthTokenData {
+function asAuthToken(raw: unknown): AuthTokenData | null {
   if (!raw || typeof raw !== 'object') {
-    return {} as AuthTokenData;
+    return null;
   }
-  const record = raw as Record<string, unknown>;
-  if (typeof record.access_token === 'string') {
-    return record as unknown as AuthTokenData;
-  }
-  if (record.data && typeof record.data === 'object' && typeof (record.data as AuthTokenData).access_token === 'string') {
-    return record.data as AuthTokenData;
-  }
-  return record as unknown as AuthTokenData;
+  return raw as AuthTokenData;
 }
 
 async function withCrossFrameRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -242,7 +234,7 @@ async function withCrossFrameRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
       // ignore
     }
     try {
-      // 通知其它帧可以继续（兼容监听方）
+      // 通知其它帧锁已释放，可继续执行 refresh
       new BroadcastChannel(REFRESH_LOCK_CHANNEL).postMessage({ type: 'unlock' });
     } catch {
       // ignore
@@ -734,11 +726,10 @@ function getClientInstanceId(scope = 'default'): string {
   return instanceId;
 }
 
-function saveToken(tokenData: AuthTokenData, rememberMe: boolean | null = null): void {
+function saveToken(tokenData: AuthTokenData): void {
   const sessionStorageRef = getSessionStorageSafe();
 
-  // Access/refresh tokens are intentionally not persisted to storage;
-  // they are sent as HttpOnly cookies by the backend.
+  // Access/refresh tokens stay in memory; the backend delivers them as HttpOnly cookies.
   memoryAccessToken = tokenData.access_token || null;
   memoryRefreshToken = tokenData.refresh_token || null;
   memoryTokenExpiresAt = Date.now() + ((tokenData.expires_in ?? 3600) * 1000);
@@ -755,9 +746,6 @@ function saveToken(tokenData: AuthTokenData, rememberMe: boolean | null = null):
   if (!hasSSEToken) {
     void refreshSSEToken();
   }
-
-  // `rememberMe` no longer selects a storage backend; kept for API compatibility.
-  void rememberMe;
 }
 
 async function refreshToken(options: { refreshSSE?: boolean } = {}): Promise<boolean> {
@@ -789,7 +777,7 @@ async function refreshToken(options: { refreshSSE?: boolean } = {}): Promise<boo
         return false;
       }
 
-      const tokenData = unwrapTokenPayload(await response.json());
+      const tokenData = asAuthToken(await response.json()) ?? ({} as AuthTokenData);
       const sessionStorageRef = getSessionStorageSafe();
 
       // Web 面 access_token 在 JSON；同时 HttpOnly cookie 已由 Set-Cookie 更新

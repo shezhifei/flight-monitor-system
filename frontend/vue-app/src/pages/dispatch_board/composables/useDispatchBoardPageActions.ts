@@ -18,12 +18,12 @@ import {
   type SafetyGateFilter,
 } from '@/composables/useDispatchBoardData';
 import { formatDetailDateTime } from '@/composables/useDispatchBoardDetail';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 import {
   type EmployeeAnalyticsBucket,
   type EmployeeAnalyticsItem,
   type AiSuggestion,
   toTimestamp,
-  unwrapEnvelope,
   normalizeOrderIds,
   splitCommaSeparatedIds,
   parseScenarioDelayInput,
@@ -163,7 +163,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
       params.set('window_end', new Date(p.windowEndMs.value).toISOString());
       params.set('limit', '200');
       const res = await api.get<unknown>(`/api/v2/dispatch-orders/conflicts?${params.toString()}`);
-      const payload = unwrapEnvelope<{ conflicts?: ConflictItem[] }>(res.data);
+      const payload = unwrapApiData<{ conflicts?: ConflictItem[] }>(res.data);
       if (res.ok && payload) {
         p.conflictRawList.value = (payload.conflicts || []).map(c => ({ ...c, description: String(c.description || c.message || c.conflict_type || '').trim() }));
         updateConflictList();
@@ -347,7 +347,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
         delayed_orders: delayedOrdersResult.items,
         frozen_order_ids: splitCommaSeparatedIds(p.scenarioFrozen.value),
       });
-      const payload = unwrapEnvelope<Record<string, unknown>>(res.data);
+      const payload = unwrapApiData<Record<string, unknown>>(res.data);
       if (!res.ok) { toast.show('error', `场景预览失败: HTTP ${res.status}`); return; }
       if (res.ok && payload) {
         const recommendations = Array.isArray(payload.recommendations) ? payload.recommendations : [];
@@ -404,7 +404,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
       const prompt = `当前系统有 ${pendingOrders.length} 个待派工单, ${p.conflictList.value.length} 个冲突。当前目标：${p.aiObjective.value}。请提供调度建议。`;
       const res = await api.post<Record<string, unknown>>('/api/v2/ai/tools/execute', { tool_name: 'get_handling_recommendation', tool_args: { incident_description: prompt, urgency } });
       if (res.ok) {
-        const payload = unwrapEnvelope<Record<string, unknown>>(res.data);
+        const payload = unwrapApiData<Record<string, unknown>>(res.data);
         const payloadRec = payload as Record<string, unknown> | null;
         const resultData = (payloadRec?.result_data as Record<string, unknown> | undefined) || {};
         const text = String(resultData.output || resultData.summary || '').trim();
@@ -482,7 +482,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
     if (p.selectedOrderIds.value.length === 0) { toast.show('warning', '请先选择要发布的工单'); return; }
     try {
       const res = await api.post('/api/v2/dispatch-orders/batch-publish-drafts', { order_ids: p.selectedOrderIds.value });
-      const payload = unwrapEnvelope<{ published?: number; failed?: number }>(res.data);
+      const payload = unwrapApiData<{ published?: number; failed?: number }>(res.data);
       if (res.ok && payload) {
         if (payload.published) toast.show('success', `已发布 ${payload.published} 条工单`);
         if (payload.failed) toast.show('error', `发布失败 ${payload.failed} 条`);

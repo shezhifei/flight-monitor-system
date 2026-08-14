@@ -1,5 +1,6 @@
 import { useApi } from './useApi';
 import { useAuth } from './useAuth';
+import { unwrapApiDataOrThrow } from '@/shared/apiEnvelope';
 
 export interface CopilotMatchedFlight {
   flight_id: string;
@@ -161,22 +162,6 @@ interface ApiEnvelope<T> {
   error?: unknown;
 }
 
-function unwrapEnvelope<T>(payload: ApiEnvelope<T> | T | null, fallback: string): T {
-  if (!payload) {
-    throw new Error(fallback);
-  }
-  if (typeof payload === 'object' && 'success' in payload && (payload as ApiEnvelope<T>).success === false) {
-    throw new Error((payload as ApiEnvelope<T>).message || fallback);
-  }
-  if (typeof payload === 'object' && 'data' in payload) {
-    const data = (payload as ApiEnvelope<T>).data;
-    if (data !== undefined) {
-      return data;
-    }
-  }
-  return payload as T;
-}
-
 function idempotencyKey(batchId: string): string {
   const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -206,7 +191,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `生成草稿失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotDraftResponse>(data, '生成草稿失败');
+    return unwrapApiDataOrThrow<CopilotDraftResponse>(data, '生成草稿失败');
   }
 
   async function diagnoseDraft(input: {
@@ -227,7 +212,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `草稿诊断失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotDraftDiagnosticResponse>(data, '草稿诊断失败');
+    return unwrapApiDataOrThrow<CopilotDraftDiagnosticResponse>(data, '草稿诊断失败');
   }
 
   async function commitBatch(
@@ -245,7 +230,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `批量创建失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotCommitResponse>(data, '批量创建失败');
+    return unwrapApiDataOrThrow<CopilotCommitResponse>(data, '批量创建失败');
   }
 
   async function listBatches(input: {
@@ -267,7 +252,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `读取批次列表失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotBatchListResponse>(data, '读取批次列表失败');
+    return unwrapApiDataOrThrow<CopilotBatchListResponse>(data, '读取批次列表失败');
   }
 
   async function resolveFailedBatch(input: {
@@ -285,7 +270,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `处理失败批次失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotBatchStatusResponse>(data, '处理失败批次失败');
+    return unwrapApiDataOrThrow<CopilotBatchStatusResponse>(data, '处理失败批次失败');
   }
 
   async function getOperationalMetrics(input: {
@@ -304,7 +289,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `读取运行指标失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotOperationalMetrics>(data, '读取运行指标失败');
+    return unwrapApiDataOrThrow<CopilotOperationalMetrics>(data, '读取运行指标失败');
   }
 
   async function retryWorkflowDispatch(batchId: string): Promise<CopilotBatchStatusResponse> {
@@ -315,7 +300,7 @@ export function useAiBusinessCaseCopilot() {
     if (!ok) {
       throw new Error((data as ApiEnvelope<unknown> | null)?.message || `重试流程派发失败 (${status})`);
     }
-    return unwrapEnvelope<CopilotBatchStatusResponse>(data, '重试流程派发失败');
+    return unwrapApiDataOrThrow<CopilotBatchStatusResponse>(data, '重试流程派发失败');
   }
 
   return {

@@ -118,7 +118,7 @@ beforeEach(() => {
   toastCalls.length = 0;
 });
 
-describe('frontend empty/fake implementation fixes', () => {
+describe('composables backend integration contract', () => {
   it('loads system flags from the backend envelope shape', async () => {
     responders.push((record) => {
       if (record.method === 'GET' && record.url === '/api/v2/system/flags') {
@@ -146,14 +146,14 @@ describe('frontend empty/fake implementation fixes', () => {
 
     expect(api.flags.value).toHaveLength(1);
     expect(api.flags.value[0]?.path).toBe('dispatch.auto');
-    // Preferred taxonomy only (legacy sidebar). Unknown keys still filter under `all`.
+    // 分类仅展示预置 taxonomy，未知键归入 `all`
     expect(api.categories.value).toEqual(['all']);
     expect(api.categoryCounts.value.all).toBe(1);
     expect(api.categoryCounts.value.dispatch).toBe(1);
     unmount();
   });
 
-  it('does not show a fake success when a system flag update fails', async () => {
+  it('surfaces the failure when a system flag update fails', async () => {
     const { api, unmount } = await mountComposable(useSystemFlags);
     recorded.length = 0;
     responders.push((record) => {
@@ -242,7 +242,7 @@ describe('frontend empty/fake implementation fixes', () => {
     unmount();
   });
 
-  it('uses real KPI endpoints for ops review report and replay flows', async () => {
+  it('derives ops review report and replay data from KPI endpoints', async () => {
     const { api, unmount } = await mountComposable(useOpsReview);
     recorded.length = 0;
 

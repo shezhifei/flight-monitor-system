@@ -124,6 +124,7 @@ import { useAiStream } from '../../composables/useAiStream';
 import { renderMarkdown } from '../../lib/marked';
 import { downloadTextFile } from '../../lib/download';
 import { useToast } from '../../composables/useToast';
+import { unwrapApiData } from '../../shared/apiEnvelope';
 import AIVisualization from './AIVisualization.vue';
 
 const props = defineProps<{
@@ -183,12 +184,6 @@ const scrollToBottom = async () => {
   }
 };
 
-const unwrapEnvelope = <T,>(payload: unknown): T | null => {
-  if (!payload || typeof payload !== 'object') return null;
-  const record = payload as Record<string, unknown>;
-  return ('data' in record ? record.data ?? null : payload) as T | null;
-};
-
 const buildNlContext = () => ({
   source_page: 'flight_monitor',
   selected_flight_id: effectiveSelectedFlightId.value || undefined,
@@ -233,7 +228,7 @@ const sendMessage = async () => {
       throw new Error(`AI Gateway Error: ${response.status}`);
     }
     
-    const payload = unwrapEnvelope<{ answer?: string; summary?: string; conversation_id?: string; structured_data?: Record<string, unknown>; visualization_hint?: Record<string, unknown> }>(await response.json());
+    const payload = unwrapApiData<{ answer?: string; summary?: string; conversation_id?: string; structured_data?: Record<string, unknown>; visualization_hint?: Record<string, unknown> }>(await response.json());
     conversationId.value = String(payload?.conversation_id || requestConversationId);
     
     chatHistory.value.push({
@@ -279,7 +274,7 @@ const triggerDiagnosis = async (flightId: string, flightNo: string) => {
     });
     
     if (!response.ok) throw new Error('Diagnosis Request Failed');
-    const payload = unwrapEnvelope<Record<string, unknown>>(await response.json());
+    const payload = unwrapApiData<Record<string, unknown>>(await response.json());
     const resultData = (payload?.result_data || {}) as Record<string, unknown>;
     
     chatHistory.value.push({

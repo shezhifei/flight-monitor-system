@@ -1,3 +1,4 @@
+import { unwrapApiData } from '@/shared/apiEnvelope';
 import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
 import { batchCompleteOrders, type BatchProcessState, type DispatchOrder } from '@/composables/useDispatchBoardData';
@@ -15,12 +16,6 @@ export interface UseDispatchBoardPageBatchReturn {
   handleBatchComplete: () => Promise<void>;
   handleBatchPublish: () => Promise<void>;
   handleBatchClear: () => void;
-}
-
-function unwrapEnvelope<T>(payload: unknown): T | null {
-  if (!payload || typeof payload !== 'object') return null;
-  const rec = payload as Record<string, unknown>;
-  return ('data' in rec ? rec.data ?? null : payload) as T | null;
 }
 
 export function useDispatchBoardPageBatch(options: UseDispatchBoardPageBatchOptions): UseDispatchBoardPageBatchReturn {
@@ -81,7 +76,7 @@ export function useDispatchBoardPageBatch(options: UseDispatchBoardPageBatchOpti
     }
     try {
       const res = await api.post('/api/v2/dispatch-orders/batch-publish-drafts', { order_ids: selectedOrderIds.value });
-      const payload = unwrapEnvelope<{ published?: number; failed?: number }>(res.data);
+      const payload = unwrapApiData<{ published?: number; failed?: number }>(res.data);
       if (res.ok && payload) {
         if (payload.published) toast.show('success', `已发布 ${payload.published} 条工单`);
         if (payload.failed) toast.show('error', `发布失败 ${payload.failed} 条`);

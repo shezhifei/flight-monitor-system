@@ -1,13 +1,8 @@
 import type { ApiResult } from '@/composables/useApi';
 import type { DispatchBoardApiError } from './useDispatchBoardOrders';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 
-export function unwrapApiData<T>(payload: T | { data?: T } | null | undefined): T | null | undefined {
-  if (payload === null || payload === undefined) return payload;
-  if (typeof payload !== 'object') return payload as T;
-  const obj = payload as Record<string, unknown>;
-  return (obj.data !== undefined ? obj.data : payload) as T;
-}
-
+export { unwrapApiData };
 
 export function toStringArray(value: unknown): string[] {
   return (Array.isArray(value) ? value : [])

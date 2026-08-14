@@ -2,12 +2,12 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 import {
   type AiSuggestion,
   normalizeOrderIds,
   splitCommaSeparatedIds,
   parseScenarioDelayInput,
-  unwrapEnvelope,
 } from './useDispatchBoardPageAiTypes';
 
 export interface UseDispatchBoardPageAiScenarioOptions {
@@ -65,7 +65,7 @@ export function useDispatchBoardPageAiScenario(options: UseDispatchBoardPageAiSc
         delayed_orders: delayedOrdersResult.items,
         frozen_order_ids: splitCommaSeparatedIds(scenarioFrozen.value),
       });
-      const payload = unwrapEnvelope<Record<string, unknown>>(res.data);
+      const payload = unwrapApiData<Record<string, unknown>>(res.data);
       if (!res.ok) {
         toast.show('error', `场景预览失败: HTTP ${res.status}`);
         return;

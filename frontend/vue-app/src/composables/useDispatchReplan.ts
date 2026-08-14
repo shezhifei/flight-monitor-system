@@ -11,6 +11,7 @@
 import { computed, ref } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 import type { ReplanStrategy } from '@/composables/useDispatchBoardData';
 
 export type ReplanMode = 'idle' | 'snapshotting' | 'solving' | 'previewing' | 'applying' | 'error';
@@ -39,19 +40,6 @@ export interface ReplanSuggestion {
 interface ReplanWindowOptions {
   windowStartMs?: number | null;
   windowEndMs?: number | null;
-}
-
-function unwrapEnvelope<T>(payload: unknown): T | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const record = payload as Record<string, unknown>;
-  if ('data' in record) {
-    return (record.data ?? null) as T | null;
-  }
-
-  return payload as T;
 }
 
 // Simple Worker Pool manager
@@ -151,7 +139,7 @@ export function useDispatchReplan() {
       const snapRes = await api.get<Record<string, unknown>>(
         `/api/v2/dispatch-orders/replan-snapshot?${params.toString()}`,
       );
-      const snapPayload = unwrapEnvelope<Record<string, unknown>>(snapRes.data);
+      const snapPayload = unwrapApiData<Record<string, unknown>>(snapRes.data);
       if (!snapRes.ok || !snapPayload) throw new Error('Failed to fetch replan snapshot');
       
       snapshot.value = snapPayload;
@@ -210,7 +198,7 @@ export function useDispatchReplan() {
         objective_breakdown: solverPayload.objective_breakdown || {},
         solver_run_metadata: solverPayload.solver_run_metadata || solverPayload.solver_metadata || {},
       });
-      const applyPayload = unwrapEnvelope<Record<string, unknown>>(res.data);
+      const applyPayload = unwrapApiData<Record<string, unknown>>(res.data);
 
       if (!res.ok || !applyPayload) throw new Error('Apply failed');
 

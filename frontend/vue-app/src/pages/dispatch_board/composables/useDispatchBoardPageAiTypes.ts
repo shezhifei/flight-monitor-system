@@ -32,12 +32,6 @@ export interface AiSuggestion {
   suggestionType?: string;
 }
 
-export function unwrapEnvelope<T>(payload: unknown): T | null {
-  if (!payload || typeof payload !== 'object') return null;
-  const rec = payload as Record<string, unknown>;
-  return ('data' in rec ? rec.data ?? null : payload) as T | null;
-}
-
 export function toTimestamp(value: unknown): number {
   if (!value) return 0;
   const ts = Date.parse(String(value));

@@ -1,6 +1,5 @@
 /**
- * 标签管理已并入派工规则页（左右分栏 · section=labels）。
- * 保留此入口做兼容跳转，避免旧书签/外链 404。
+ * 标签管理入口 —— 统一重定向至派工规则中心的标签分区（section=labels）。
  */
 import { pageUrl } from '@/shared/page-routes';
 import { bootstrapProtectedPage, markWorkspaceEmbed } from '@/shared/bootstrapProtectedPage';

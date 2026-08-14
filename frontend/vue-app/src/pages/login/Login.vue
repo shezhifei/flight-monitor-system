@@ -8,7 +8,6 @@ import SvgIcon from '@/components/ui/SvgIcon.vue';
 
 const username = ref('');
 const password = ref('');
-const rememberMe = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
@@ -156,7 +155,7 @@ async function handleLogin(event: Event): Promise<void> {
         throw new Error(extractLoginErrorMessage(result.data, '登录失败'));
     }
 
-    auth.saveToken(result.data as unknown as AuthTokenData, rememberMe.value);
+    auth.saveToken(result.data as unknown as AuthTokenData);
     
     successMessage.value = '登录成功，正在跳转...';
 
@@ -283,10 +282,6 @@ async function handleLogin(event: Event): Promise<void> {
           </div>
 
           <div class="login-options">
-            <label class="remember-me">
-              <input id="rememberMe" v-model="rememberMe" type="checkbox">
-              <span>记住我</span>
-            </label>
             <button
               id="forgotPasswordLink"
               type="button"

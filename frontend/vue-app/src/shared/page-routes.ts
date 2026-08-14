@@ -1,18 +1,8 @@
 /**
  * 页面路由常量 —— 所有前端页面内跳转的单一来源。
  *
- * 策略说明：
- * - Canonical 路径：`/frontend/<page>.html`
- *   这些是 Vite 构建后 `vue-app/dist/<page>.html` 通过 Python
- *   FastAPI static mount 对外暴露的路径（base = '/frontend/'）。
- * - 兼容路径：`/frontend/html/<page>.html`
- *   这些是遗留 HTML 入口，当前生产环境仍可用。
- *   本次不切断兼容路径，但所有新代码必须使用 canonical 路径。
- *
- * 后续迁移：
- * - 当 Python 静态文件挂载切换为优先服务 `vue-app/dist/`
- *   且遗留 `frontend/html/` 入口确认不再使用后，
- *   可将兼容路径从代码中移除。
+ * 路径统一为 `/frontend/<page>.html`，对应 Vite 构建产物 `vue-app/dist/<page>.html`，
+ * 由边缘静态服务对外暴露。页面跳转必须经由 `pageUrl()`，禁止硬编码路径。
  */
 
 export const PAGE_ROUTES = {

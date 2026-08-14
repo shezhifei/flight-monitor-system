@@ -4,11 +4,11 @@ import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
 import { useDispatchReplan, type ReplanSuggestion } from '@/composables/useDispatchReplan';
 import { buildResourceFocus, type DispatchOrder, type ResourceFocus, type TimelineData } from '@/composables/useDispatchBoardData';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 import {
   type AiSuggestion,
   type EmployeeAnalyticsItem,
   toTimestamp,
-  unwrapEnvelope,
 } from './useDispatchBoardPageAiTypes';
 import { useDispatchBoardPageAiAnalytics } from './useDispatchBoardPageAiAnalytics';
 import { useDispatchBoardPageAiScenario } from './useDispatchBoardPageAiScenario';
@@ -267,7 +267,7 @@ export function useDispatchBoardPageAi(options: UseDispatchBoardPageAiOptions): 
         tool_args: { incident_description: prompt, urgency },
       });
       if (res.ok) {
-        const payload = unwrapEnvelope<Record<string, unknown>>(res.data);
+        const payload = unwrapApiData<Record<string, unknown>>(res.data);
         const payloadRec = payload as Record<string, unknown> | null;
         const resultData = (payloadRec?.result_data as Record<string, unknown> | undefined) || {};
         const text = String(resultData.output || resultData.summary || '').trim();

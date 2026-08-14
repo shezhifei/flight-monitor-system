@@ -9,10 +9,10 @@ import {
   type DispatchOrder,
   type TimelineData,
 } from '@/composables/useDispatchBoardData';
+import { unwrapApiData } from '@/shared/apiEnvelope';
 import {
   type EmployeeAnalyticsBucket,
   type EmployeeAnalyticsItem,
-  unwrapEnvelope,
   toTimestamp,
 } from './useDispatchBoardPageAiTypes';
 import { renderTrendChartInto } from './useTrendChart';
@@ -82,7 +82,7 @@ export function useDispatchBoardPageAiAnalytics(options: UseDispatchBoardPageAiA
       params.set('window_end', new Date(windowEndMs.value).toISOString());
       params.set('limit', '200');
       const res = await api.get<unknown>(`/api/v2/dispatch-orders/conflicts?${params.toString()}`);
-      const payload = unwrapEnvelope<{ conflicts?: ConflictItem[] }>(res.data);
+      const payload = unwrapApiData<{ conflicts?: ConflictItem[] }>(res.data);
       if (res.ok && payload) {
         conflictRawList.value = (payload.conflicts || []).map((c) => ({
           ...c,
