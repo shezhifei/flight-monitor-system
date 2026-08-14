@@ -18,12 +18,28 @@ let svgInstanceCounter = 0;
  * 内联 SVG 前的最后一道净化：移除 script、事件处理器（onload 等）、
  * javascript: URL 与 foreignObject 等危险结构，只保留 SVG 图形元素。
  * 仅靠正则剔除 <script> 无法防御事件属性类 XSS。
+ * 注意：DOMPurify 3.2+ 出于安全默认剥离 <use> 元素，但图标雪碧依赖它，
+ * 故放行 <use>，再经 restrictUseRefs 只保留站内片段引用（#id）。
  */
 function sanitizeInlineSvg(svgText: string): string {
   return DOMPurify.sanitize(svgText, {
     USE_PROFILES: { svg: true, svgFilters: true },
     ADD_ATTR: ['href', 'xlink:href'],
+    ADD_TAGS: ['use'],
   });
+}
+
+/**
+ * <use> 只能引用站内片段（#id），禁止引用外部资源或空引用，
+ * 防止经 SVG 外链注入任意图形/脚本。
+ */
+function restrictUseRefs(svgText: string): string {
+  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  for (const use of Array.from(doc.querySelectorAll('use'))) {
+    const ref = use.getAttribute('href') ?? use.getAttribute('xlink:href');
+    if (!ref?.startsWith('#')) use.remove();
+  }
+  return new XMLSerializer().serializeToString(doc);
 }
 
 /**
@@ -102,7 +118,8 @@ function loadSvg(src: string): Promise<string> {
               .replace(/<!DOCTYPE[^>]*>/gi, ''),
           ),
         ),
-      );
+      )
+      .then(restrictUseRefs);
     svgCache.set(src, pending);
   }
   return pending;
