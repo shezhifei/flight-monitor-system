@@ -183,6 +183,7 @@ pub enum CheckpointType {
     BeforeProposalIngest,
     BeforeDomainAction,
     AfterDomainAction,
+    AfterCompletion,
 }
 
 impl CheckpointType {
@@ -195,6 +196,7 @@ impl CheckpointType {
             Self::BeforeProposalIngest => "before_proposal_ingest",
             Self::BeforeDomainAction => "before_domain_action",
             Self::AfterDomainAction => "after_domain_action",
+            Self::AfterCompletion => "after_completion",
         }
     }
 }
@@ -320,6 +322,7 @@ mod tests {
             CheckpointType::AfterTool,
             CheckpointType::BeforeDomainAction,
             CheckpointType::AfterDomainAction,
+            CheckpointType::AfterCompletion,
         ] {
             let s = value.as_str();
             let parsed = serde_json::from_str::<CheckpointType>(&format!("\"{s}\"")).unwrap();

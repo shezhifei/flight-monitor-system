@@ -27,6 +27,7 @@ from src.infrastructure.ai.llm_stream_runner import (
     StreamCompletionResult,
     StreamEvent,
 )
+from src.infrastructure.ai.openai_client import Message
 
 
 # ============================================================================
@@ -65,9 +66,14 @@ class TestCheckpointLifecyclePoints:
             round_index=0,
         )
         
-        # Simulate stream events
+        # Simulate stream events; like the real ``_stream_chat_impl``, the
+        # mock populates the runner's per-round result object.
         events_consumed = []
         async def mock_impl(*args, **kwargs):
+            run_result = kwargs.get("result")
+            if run_result is not None:
+                run_result.tool_calls = list(result.tool_calls)
+                run_result.text = result.text
             yield tool_call_event
             yield completed_event
         
@@ -124,6 +130,10 @@ class TestCheckpointLifecyclePoints:
         completed_event = StreamEvent(type="completed", result=result, round_index=0)
         
         async def mock_impl(*args, **kwargs):
+            run_result = kwargs.get("result")
+            if run_result is not None:
+                run_result.tool_calls = list(result.tool_calls)
+                run_result.text = result.text
             yield tool_call_event
             yield completed_event
         
@@ -175,6 +185,10 @@ class TestCheckpointLifecyclePoints:
         result.tool_calls = [{"id": "tool_1", "function": {"name": "list_anomalies"}}]
         
         async def mock_impl(*args, **kwargs):
+            run_result = kwargs.get("result")
+            if run_result is not None:
+                run_result.tool_calls = list(result.tool_calls)
+                run_result.text = result.text
             yield StreamEvent(type="tool_call", tool_call={})
             yield StreamEvent(type="completed", result=result, round_index=0)
         
@@ -193,7 +207,7 @@ class TestCheckpointLifecyclePoints:
         runner._tool_executor = mock_executor
         
         async for _event in runner.stream_chat_with_tools(
-            messages=[],
+            messages=[Message(role="user", content="查询异常列表")],
             model="test-model",
             run_id="test_run_789",
             envelope=MagicMock(),
@@ -326,12 +340,16 @@ class TestCheckpointContent:
         result = StreamCompletionResult(model="test-model", text="Done")
         
         async def mock_impl(*args, **kwargs):
+            run_result = kwargs.get("result")
+            if run_result is not None:
+                run_result.tool_calls = []
+                run_result.text = result.text
             yield StreamEvent(type="completed", result=result, round_index=0)
         
         runner._stream_chat_impl = mock_impl
         
         async for _event in runner.stream_chat_with_tools(
-            messages=[],
+            messages=[Message(role="user", content="hi")],
             model="test-model",
             run_id="final_check",
             envelope=MagicMock(),
@@ -422,6 +440,10 @@ class TestResumeReadiness:
         result.tool_calls = [{"id": "t1", "function": {"name": "query"}}]
         
         async def mock_impl(*args, **kwargs):
+            run_result = kwargs.get("result")
+            if run_result is not None:
+                run_result.tool_calls = list(result.tool_calls)
+                run_result.text = result.text
             yield StreamEvent(type="tool_call", tool_call={})
             yield StreamEvent(type="completed", result=result, round_index=1)
         
@@ -495,8 +517,19 @@ class TestCheckpointIntegration:
             call_count[0] += 1
             
             if idx < 3:
+                run_result = kwargs.get("result")
+                if run_result is not None:
+                    run_result.tool_calls = list(round_results[idx].tool_calls)
+                    run_result.text = round_results[idx].text
                 yield StreamEvent(type="tool_call", tool_call={})
                 yield StreamEvent(type="completed", result=round_results[idx], round_index=idx)
+            else:
+                # Round 4+: no tool calls — the loop must stop here.
+                run_result = kwargs.get("result")
+                if run_result is not None:
+                    run_result.tool_calls = []
+                    run_result.text = "final answer"
+                yield StreamEvent(type="completed", result=round_results[0], round_index=3)
         
         runner._stream_chat_impl = mock_impl
         
@@ -529,3 +562,249 @@ class TestCheckpointIntegration:
         # Should have multiple checkpoints across rounds
         total_checkpoints = len([e for e in checkpoint_events if e.get("type") == "checkpoint"])
         assert total_checkpoints >= 3  # At least one checkpoint per round type
+
+
+# ============================================================================
+# Test MQ Durable Publish Path (Task D1)
+# ============================================================================
+
+class _FakeMqPublisher:
+    """Records every envelope handed to the MQ gateway."""
+
+    def __init__(self):
+        self.published: list[dict] = []
+
+    async def publish(self, envelope):
+        self.published.append(envelope)
+
+
+def _checkpoint_envelopes(publisher: _FakeMqPublisher) -> list[dict]:
+    return [e for e in publisher.published if e.get("event_type") == "checkpoint"]
+
+
+def _install_fake_mq(monkeypatch, publisher: _FakeMqPublisher) -> None:
+    """Route the runner's durable publish path to the fake publisher."""
+    import src.infrastructure.ai.runtime_service._mq_publish as mq_publish
+
+    monkeypatch.setattr(mq_publish, "_resolve_mq_publisher", lambda: publisher)
+    monkeypatch.setattr(mq_publish, "_resolve_mq_gate", lambda: None)
+
+
+def _mock_executor():
+    from src.infrastructure.ai.tools.tool_executor import ToolExecutor
+
+    mock_executor = MagicMock(spec=ToolExecutor)
+    mock_execution_result = MagicMock()
+    mock_execution_result.error = None
+    mock_execution_result.result = {"data": []}
+    mock_execution_result.to_sse_payload.return_value = {"tool_name": "list_flights"}
+    mock_execution_result.to_dict.return_value = {"result": {"data": []}}
+    mock_executor.execute_batch = AsyncMock(return_value=[mock_execution_result])
+    return mock_executor
+
+
+def _tool_calling_impl(tool_name: str = "list_flights", rounds: int = 1):
+    """Fake ``_stream_chat_impl``: ``rounds`` tool-calling rounds, then done."""
+    call_count = [0]
+
+    async def mock_impl(*args, **kwargs):
+        idx = call_count[0]
+        call_count[0] += 1
+        run_result = kwargs.get("result")
+        if run_result is not None:
+            if idx < rounds:
+                run_result.tool_calls = [
+                    {"id": f"tool_{idx}", "function": {"name": tool_name, "arguments": "{}"}}
+                ]
+                run_result.text = ""
+            else:
+                run_result.tool_calls = []
+                run_result.text = "final answer"
+        yield StreamEvent(type="completed", result=run_result, round_index=idx)
+
+    return mock_impl
+
+
+class TestCheckpointMqPublish:
+    """D1: every emission point also publishes a durable checkpoint over MQ."""
+
+    @pytest.mark.asyncio
+    async def test_before_tool_checkpoint_published_over_mq(self, monkeypatch):
+        publisher = _FakeMqPublisher()
+        _install_fake_mq(monkeypatch, publisher)
+
+        from src.infrastructure.ai.working_memory import WorkingMemory
+
+        working_memory = WorkingMemory(run_id="mq_run_before")
+        working_memory.write_plan("# Plan\n- [ ] step 1")
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _tool_calling_impl(rounds=1)
+        runner._tool_executor = _mock_executor()
+
+        async for _ in runner.stream_chat_with_tools(
+            messages=[Message(role="user", content="hi")],
+            model="test-model",
+            run_id="mq_run_before",
+            envelope=MagicMock(job_id="job-1"),
+            on_child_event=None,
+            max_tool_rounds=5,
+            working_memory=working_memory,
+        ):
+            pass
+
+        before_tool = [
+            e for e in _checkpoint_envelopes(publisher)
+            if e["payload"]["checkpoint_type"] == "before_tool"
+        ]
+        assert len(before_tool) == 1, "one durable before_tool checkpoint per round"
+        payload = before_tool[0]["payload"]
+        assert before_tool[0]["run_id"] == "mq_run_before"
+        assert before_tool[0]["job_id"] == "job-1"
+        assert payload["snapshot"]["tool_calls"][0]["tool_name"] == "list_flights"
+        # Working memory snapshot rides the checkpoint payload (Task B2/D1).
+        assert payload["snapshot"]["working_memory"]["plan.md"].startswith("# Plan")
+        assert payload["snapshot_hash"]
+        assert payload["snapshot_size_bytes"] > 0
+        assert payload["sequence_no"] > 0
+
+    @pytest.mark.asyncio
+    async def test_after_tool_checkpoint_published_over_mq(self, monkeypatch):
+        publisher = _FakeMqPublisher()
+        _install_fake_mq(monkeypatch, publisher)
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _tool_calling_impl(rounds=1)
+        runner._tool_executor = _mock_executor()
+
+        async for _ in runner.stream_chat_with_tools(
+            messages=[Message(role="user", content="hi")],
+            model="test-model",
+            run_id="mq_run_after",
+            envelope=MagicMock(job_id="job-1"),
+            on_child_event=None,
+            max_tool_rounds=5,
+        ):
+            pass
+
+        after_tool = [
+            e for e in _checkpoint_envelopes(publisher)
+            if e["payload"]["checkpoint_type"] == "after_tool"
+        ]
+        assert len(after_tool) == 1
+        snapshot = after_tool[0]["payload"]["snapshot"]
+        assert snapshot["tool_calls_executed"] == 1
+        assert snapshot["results"], "tool results ride the snapshot for resume"
+
+    @pytest.mark.asyncio
+    async def test_before_proposal_maps_to_rust_checkpoint_type(self, monkeypatch):
+        publisher = _FakeMqPublisher()
+        _install_fake_mq(monkeypatch, publisher)
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _tool_calling_impl(rounds=1)
+        runner._tool_executor = _mock_executor()
+
+        async for _ in runner.stream_chat_with_tools(
+            messages=[Message(role="user", content="hi")],
+            model="test-model",
+            run_id="mq_run_proposal",
+            envelope=MagicMock(job_id="job-1"),
+            on_child_event=None,
+            max_tool_rounds=5,
+        ):
+            pass
+
+        proposal = [
+            e for e in _checkpoint_envelopes(publisher)
+            if e["payload"]["checkpoint_type"] == "before_proposal_ingest"
+        ]
+        assert len(proposal) == 1, "sidecar before_proposal maps to Rust before_proposal_ingest"
+        assert "working_memory" in proposal[0]["payload"]["snapshot"]
+
+    @pytest.mark.asyncio
+    async def test_after_completion_checkpoint_published_over_mq(self, monkeypatch):
+        publisher = _FakeMqPublisher()
+        _install_fake_mq(monkeypatch, publisher)
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _tool_calling_impl(rounds=0)  # no tool calls
+
+        async for _ in runner.stream_chat_with_tools(
+            messages=[Message(role="user", content="hi")],
+            model="test-model",
+            run_id="mq_run_done",
+            envelope=MagicMock(job_id="job-1"),
+            on_child_event=None,
+            max_tool_rounds=5,
+        ):
+            pass
+
+        completion = [
+            e for e in _checkpoint_envelopes(publisher)
+            if e["payload"]["checkpoint_type"] == "after_completion"
+        ]
+        assert len(completion) == 1
+        assert completion[0]["payload"]["snapshot"]["final_result"]["text"] == "final answer"
+
+
+    @pytest.mark.asyncio
+    async def test_sse_callback_and_mq_both_receive_checkpoints(self, monkeypatch):
+        """MQ publish is additive: the SSE subagent queue path is unchanged."""
+        publisher = _FakeMqPublisher()
+        _install_fake_mq(monkeypatch, publisher)
+
+        sse_checkpoints = []
+
+        async def on_child_event(event):
+            if event.get("type") == "checkpoint":
+                sse_checkpoints.append(event)
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _tool_calling_impl(rounds=1)
+        runner._tool_executor = _mock_executor()
+
+        async for _ in runner.stream_chat_with_tools(
+            messages=[Message(role="user", content="hi")],
+            model="test-model",
+            run_id="mq_run_dual",
+            envelope=MagicMock(job_id="job-1"),
+            on_child_event=on_child_event,
+            max_tool_rounds=5,
+        ):
+            pass
+
+        sse_types = {e["checkpoint_type"] for e in sse_checkpoints}
+        mq_types = {e["payload"]["checkpoint_type"] for e in _checkpoint_envelopes(publisher)}
+        assert {"before_tool", "after_tool", "before_proposal", "after_completion"} <= sse_types
+        assert {"before_tool", "after_tool", "before_proposal_ingest", "after_completion"} <= mq_types
+
+    @pytest.mark.asyncio
+    async def test_publish_failure_does_not_break_stream(self, monkeypatch):
+        """A failing MQ publish never raises into the streaming loop."""
+        import src.infrastructure.ai.runtime_service._mq_publish as mq_publish
+
+        class _FailingPublisher:
+            async def publish(self, envelope):
+                raise ConnectionError("mq-gateway down")
+
+        # Zero out retry backoff so the test stays fast.
+        monkeypatch.setattr(mq_publish, "_resolve_mq_publisher", lambda: _FailingPublisher())
+        monkeypatch.setattr(mq_publish, "_resolve_mq_gate", lambda: None)
+        monkeypatch.setattr(mq_publish.asyncio, "sleep", AsyncMock())
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _tool_calling_impl(rounds=0)
+
+        events = []
+        async for event in runner.stream_chat_with_tools(
+            messages=[Message(role="user", content="hi")],
+            model="test-model",
+            run_id="mq_run_degraded",
+            envelope=MagicMock(job_id="job-1"),
+            on_child_event=None,
+            max_tool_rounds=5,
+        ):
+            events.append(event)
+
+        assert any(e.type == "completed" for e in events)

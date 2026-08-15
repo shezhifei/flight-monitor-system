@@ -49,6 +49,47 @@ def _extract_tool_object_id(result: Any) -> str:
     return ""
 
 
+async def _publish_stream_checkpoint(
+    *,
+    run_id: str,
+    envelope: Any,
+    checkpoint_type: str,
+    round_index: int,
+    snapshot: dict[str, Any],
+) -> None:
+    """D1: publish a durable ``checkpoint`` event over RocketMQ.
+
+    Best-effort: when the MQ control plane is not wired (or the publish
+    fails after retries) the run continues — resume then falls back to an
+    earlier checkpoint. Never raises into the streaming loop; the SSE-only
+    ``on_child_event`` path remains the UI channel.
+    """
+    try:
+        from src.infrastructure.ai.runtime_service._mq_publish import (
+            _publish_checkpoint_mq,
+            _resolve_mq_gate,
+            _resolve_mq_publisher,
+        )
+
+        publisher = _resolve_mq_publisher()
+        if publisher is None:
+            return
+        job_id = getattr(envelope, "job_id", "") if envelope is not None else ""
+        if not isinstance(job_id, str):
+            job_id = ""
+        await _publish_checkpoint_mq(
+            publisher,
+            _resolve_mq_gate(),
+            run_id=run_id,
+            job_id=job_id,
+            round_index=round_index,
+            checkpoint_type=checkpoint_type,
+            snapshot=snapshot,
+        )
+    except Exception:  # noqa: BLE001 - checkpoint publish must never break the stream
+        logger.debug("checkpoint MQ publish skipped", exc_info=True)
+
+
 # ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
@@ -379,11 +420,27 @@ class LLMStreamRunner:
                 }
                 if on_child_event:
                     await on_child_event(checkpoint_event)
-                
+
                 yield StreamEvent(
                     type="tool_call",
                     tool_call=pc,
                 )
+
+            # D1: durable before_tool checkpoint over MQ (once per round),
+            # carrying the working-memory snapshot for resume.
+            await _publish_stream_checkpoint(
+                run_id=run_id,
+                envelope=envelope,
+                checkpoint_type="before_tool",
+                round_index=round_index,
+                snapshot={
+                    "round_index": round_index,
+                    "tool_calls": parsed_calls,
+                    "messages_count": len(current_messages),
+                    "working_memory": working_memory.to_dict() if working_memory is not None else {},
+                    "timestamp": time.time(),
+                },
+            )
 
             # C2: PreToolUse lifecycle hooks (schema / object existence / lease
             # preflight). A denied call never reaches the executor; it becomes
@@ -500,6 +557,24 @@ class LLMStreamRunner:
             if on_child_event:
                 await on_child_event(checkpoint_after_tool)
 
+            # D1: durable after_tool checkpoint over MQ. This is the primary
+            # resume point, so the snapshot carries the working memory and
+            # the tool results needed to rebuild the transcript summary.
+            await _publish_stream_checkpoint(
+                run_id=run_id,
+                envelope=envelope,
+                checkpoint_type="after_tool",
+                round_index=round_index,
+                snapshot={
+                    "round_index": round_index,
+                    "tool_calls_executed": len(parsed_calls),
+                    "results": [er.to_sse_payload() for er in execution_results],
+                    "messages_count": len(current_messages),
+                    "working_memory": working_memory.to_dict() if working_memory is not None else {},
+                    "timestamp": time.time(),
+                },
+            )
+
             # Track success/failure based on execution results
             any_success = any(er.error is None and er.result is not None for er in execution_results)
             if not any_success:
@@ -593,6 +668,20 @@ class LLMStreamRunner:
             if on_child_event:
                 await on_child_event(checkpoint_before_proposal)
 
+            # D1: durable before_proposal checkpoint over MQ (mapped to the
+            # Rust ``before_proposal_ingest`` checkpoint type).
+            await _publish_stream_checkpoint(
+                run_id=run_id,
+                envelope=envelope,
+                checkpoint_type="before_proposal",
+                round_index=round_index,
+                snapshot={
+                    **checkpoint_before_proposal["context_snapshot"],
+                    "round_index": round_index,
+                    "pending_results": checkpoint_before_proposal["pending_results"],
+                },
+            )
+
             tool_calls_list = []
             for tc in result.tool_calls:
                 fn = tc.get("function")
@@ -647,6 +736,21 @@ class LLMStreamRunner:
         }
         if on_child_event:
             await on_child_event(final_checkpoint)
+
+        # D1: durable after_completion checkpoint over MQ.
+        await _publish_stream_checkpoint(
+            run_id=run_id,
+            envelope=envelope,
+            checkpoint_type="after_completion",
+            round_index=last_round_index,
+            snapshot={
+                "round_index": last_round_index,
+                "final_result": {"text": result.text, "tool_calls_count": len(result.tool_calls)} if result else {},
+                "messages_count": len(current_messages),
+                "working_memory": working_memory.to_dict() if working_memory is not None else {},
+                "timestamp": time.time(),
+            },
+        )
 
         yield StreamEvent(type="completed", result=result, round_index=last_round_index)
 

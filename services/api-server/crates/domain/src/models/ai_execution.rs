@@ -337,6 +337,7 @@ pub enum AiRunCheckpointType {
     BeforeProposalIngest,
     BeforeDomainAction,
     AfterDomainAction,
+    AfterCompletion,
 }
 
 impl AiRunCheckpointType {
@@ -349,6 +350,7 @@ impl AiRunCheckpointType {
             Self::BeforeProposalIngest => "before_proposal_ingest",
             Self::BeforeDomainAction => "before_domain_action",
             Self::AfterDomainAction => "after_domain_action",
+            Self::AfterCompletion => "after_completion",
         }
     }
 
@@ -361,6 +363,7 @@ impl AiRunCheckpointType {
             "before_proposal_ingest" => Some(Self::BeforeProposalIngest),
             "before_domain_action" => Some(Self::BeforeDomainAction),
             "after_domain_action" => Some(Self::AfterDomainAction),
+            "after_completion" => Some(Self::AfterCompletion),
             _ => None,
         }
     }

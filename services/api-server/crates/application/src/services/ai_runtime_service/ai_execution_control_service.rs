@@ -950,6 +950,7 @@ fn map_checkpoint_type(value: fms_domain::ai_runtime_event::CheckpointType) -> A
         Src::BeforeProposalIngest => AiRunCheckpointType::BeforeProposalIngest,
         Src::BeforeDomainAction => AiRunCheckpointType::BeforeDomainAction,
         Src::AfterDomainAction => AiRunCheckpointType::AfterDomainAction,
+        Src::AfterCompletion => AiRunCheckpointType::AfterCompletion,
     }
 }
 
