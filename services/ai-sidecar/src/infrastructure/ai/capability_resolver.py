@@ -73,7 +73,11 @@ class ResolvedMcpConfig:
 
 @dataclass
 class ResolvedSkillBinding:
-    """解析后的单个 Skill binding 详情"""
+    """解析后的单个 Skill binding 详情
+
+    渐进披露（Task C3）：快照只携带短描述元数据（name/description），
+    skill 全文与 references 经 load_skill / read_skill_reference 工具按需加载。
+    """
 
     binding_id: str
     skill_slug: str
@@ -82,6 +86,7 @@ class ResolvedSkillBinding:
     max_instruction_tokens: int
     priority: int
     allowed_task_types: list[str] = field(default_factory=list)
+    description: str = ""
 
 
 @dataclass
@@ -364,6 +369,35 @@ class CapabilityResolver:
         # 9. 解析 Skills
         skills_config = config.get("skills", {})
         resolved_skills = await self._resolve_skills(entity_id, skills_config)
+
+        # 9b. Skill 渐进披露工具面：skills 启用时把 load_skill / read_skill_reference
+        # 挂进快照（只读工具），全文按需加载。这两个工具是渐进披露机制本身，
+        # 不受 allowed_tool_categories 限制（skills.enabled 即授权），但实体仍可通过
+        # denied_tools / allowed_tools 显式收窄。
+        if resolved_skills.enabled and resolved_skills.skill_count > 0:
+            from src.infrastructure.ai.tools.skill_tools import SkillProgressiveDiscloser
+
+            denied_tools = tooling_config.get("denied_tools", [])
+            allowed_tools = tooling_config.get("allowed_tools")
+            for schema in SkillProgressiveDiscloser.SCHEMA_TOOLS:
+                func = schema["function"]
+                if func["name"] in denied_tools:
+                    continue
+                if allowed_tools is not None and func["name"] not in allowed_tools:
+                    continue
+                tools.append(
+                    ResolvedToolConfig(
+                        source="skill",
+                        name=func["name"],
+                        display_name=func["name"],
+                        description=func["description"],
+                        parameters=func["parameters"],
+                        risk_level="low",
+                        cacheable=False,
+                        side_effect=False,
+                        category="skill",
+                    )
+                )
 
         # 10. 解析子代理
         subagents_config = config.get("subagents", {})
@@ -727,6 +761,8 @@ class CapabilityResolver:
                             max_instruction_tokens=b.get("max_instruction_tokens", 3000),
                             priority=b.get("priority", 100),
                             allowed_task_types=b.get("allowed_task_types", []),
+                            # 短描述元数据：渐进披露下快照只暴露 description，不内联全文
+                            description=b.get("description", "") or b.get("skill_description", ""),
                         )
                     )
 

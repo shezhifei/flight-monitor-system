@@ -44,17 +44,18 @@ class ComposedInstructions:
 
 
 class SkillInstructionComposer:
-    """Skill 指令组合器
+    """Skill 指令组合器（渐进披露模式，Task C3）
 
     职责：
     1. 根据实体配置和任务类型选择需要加载的 skills
-    2. 加载 skill 内容和允许的 references
-    3. 按优先级排序并组合为指令片段
+    2. 加载 skill 元数据（name/description）与 content hash
+    3. 按优先级排序并组合为短描述指令片段
     4. 应用上下文预算限制
-    5. 生成可用于 prompt 的组合指令
+    5. 生成可用于开场 prompt 的组合指令
 
-    安全约束：
-    - 只加载 approved 且 content_hash 匹配的 skill
+    渐进披露约束（docs/plans/2026-08-14-hybrid-agent-architecture.md Task C3）：
+    - 开场 prompt 只含每个 skill 的 name + description（短文本）
+    - skill 全文和 references 不内联，经 load_skill / read_skill_reference 只读工具按需加载
     - 不执行 scripts/
     - 应用 max_instruction_tokens 限制
     """
@@ -75,7 +76,11 @@ class SkillInstructionComposer:
         task_type: str | None = None,
         max_total_tokens: int = 3000,
     ) -> ComposedInstructions | None:
-        """为实体组合 skill 指令
+        """为实体组合 skill 指令（短描述模式）
+
+        开场 prompt 只内联每个 skill 的 name + description 短文本；
+        skill 全文与 references 由 load_skill / read_skill_reference
+        只读工具按需加载（见 tools/skill_tools.py）。
 
         Args:
             entity_id: 实体 ID
@@ -104,7 +109,7 @@ class SkillInstructionComposer:
         # 按优先级排序
         active_bindings.sort(key=lambda b: b.get("priority", 100))
 
-        # 加载并组合指令
+        # 加载并组合短描述指令（渐进披露：全文不内联）
         fragments = []
         total_tokens = 0
         skill_hashes = []
@@ -118,7 +123,7 @@ class SkillInstructionComposer:
             allowed_refs = binding.get("allowed_reference_paths", [])
             max_tokens = binding.get("max_instruction_tokens", 3000)
 
-            # 加载 skill
+            # 加载 skill（仅需元数据与 content hash；全文不进入开场 prompt）
             if not self._skill_loader:
                 continue
 
@@ -131,9 +136,11 @@ class SkillInstructionComposer:
             if not skill:
                 continue
 
-            # 计算 token 数
-            instruction_tokens = self._count_tokens(skill.content)
-            ref_tokens = sum(self._count_tokens(content) for content in skill.references.values())
+            # 短描述片段：name + description + 按需加载指引
+            short_instruction = self._build_short_instruction(skill, allowed_refs)
+
+            # 计算 token 数（短描述通常远小于预算）
+            instruction_tokens = self._count_tokens(short_instruction)
 
             # 应用单个 skill 的 token 限制
             remaining_budget = max_total_tokens - total_tokens
@@ -150,9 +157,9 @@ class SkillInstructionComposer:
                 skill_slug=skill.slug,
                 skill_version=skill.version,
                 content_hash=skill.content_hash,
-                instruction=skill.content,
-                references=skill.references,
-                token_count=instruction_tokens + ref_tokens,
+                instruction=short_instruction,
+                references={},  # references 不内联，按需经 read_skill_reference 加载
+                token_count=instruction_tokens,
             )
 
             fragments.append(fragment)
@@ -162,14 +169,14 @@ class SkillInstructionComposer:
         if not fragments:
             return None
 
-        # 组合文本
-        combined_parts = []
+        # 组合文本：短描述列表 + 按需加载指引
+        combined_parts = [
+            "以下技能已启用（仅显示短描述）。需要完整指令时调用 load_skill 工具；"
+            "需要参考文档时调用 read_skill_reference 工具。scripts/ 目录不可读取或执行。"
+        ]
         for frag in fragments:
             combined_parts.append(f"<!-- Skill: {frag.skill_slug}@{frag.skill_version} -->")
             combined_parts.append(frag.instruction)
-            for ref_name, ref_content in frag.references.items():
-                combined_parts.append(f"\n### Reference: {ref_name}\n")
-                combined_parts.append(ref_content)
 
         combined_text = "\n\n".join(combined_parts)
 
@@ -186,6 +193,14 @@ class SkillInstructionComposer:
         )
 
         return composed
+
+    def _build_short_instruction(self, skill: Any, allowed_refs: list[str]) -> str:
+        """构建 skill 短描述片段（name + description + 按需加载指引）"""
+        description = getattr(skill, "description", "") or "(no description)"
+        lines = [f"- {skill.name} (slug={skill.slug}@{skill.version}): {description}"]
+        if allowed_refs:
+            lines.append(f"  references: {', '.join(allowed_refs)}")
+        return "\n".join(lines)
 
     def _is_binding_active_for_task(
         self,

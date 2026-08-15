@@ -154,19 +154,21 @@ class TestToolSchemas:
     def test_read_skill_reference_schema_exists(self):
         """read_skill_reference tool schema is valid."""
         schemas = SkillProgressiveDiscloser.SCHEMA_TOOLS
-        
-        ref_tool = next((t for t in schemas if t["function"]["name"] == "read_skill_reference"), None)
-        
-        assert ref_tool is not None
-        assert "reference_url" in ref_tool["function"]["parameters"]["properties"]
 
-    def test_schemas_included_in_registration(self):
+        ref_tool = next((t for t in schemas if t["function"]["name"] == "read_skill_reference"), None)
+
+        assert ref_tool is not None
+        props = ref_tool["function"]["parameters"]["properties"]
+        assert "skill_id" in props
+        assert "reference_path" in props
+        assert ref_tool["function"]["parameters"]["required"] == ["skill_id", "reference_path"]
+
+    @pytest.mark.asyncio
+    async def test_schemas_included_in_registration(self):
         """Tools added to list when registered."""
         initial_tools = [{"existing": "tool"}]
         
-        # register_skills_tools is module-level, not class method
-        import asyncio
-        result = register_skills_tools(initial_tools.copy())
+        result = await register_skills_tools(initial_tools.copy())
         
         assert len(result) >= 3  # Original + 2 new tools
 
@@ -214,17 +216,16 @@ class TestScriptProhibition:
     def test_scripts_path_not_in_tool_schemas(self):
         """Tool schemas don't expose script execution."""
         schemas = SkillProgressiveDiscloser.SCHEMA_TOOLS
-        
+
         for schema in schemas:
             func = schema["function"]
-            
-            # None of the schemas should mention scripts/
+
+            # Schemas may mention scripts/ only as a rejection note, never as
+            # an execution capability
             description = func.get("description", "").lower()
-            params_desc = str(func.get("parameters", {})).lower()
-            
-            assert "scripts/" not in description
-            assert "scripts/" not in params_desc
-            
+            if "scripts/" in description:
+                assert "reject" in description
+
             # Parameter names should not allow script paths
             param_names = func["parameters"]["properties"].keys()
             assert "script_path" not in param_names
@@ -267,3 +268,265 @@ class TestSkillToolIntegration:
         
         # 3. Result is data, not execution
         assert isinstance(loaded, type(None)) or isinstance(loaded, SkillContent)
+
+
+# ============================================================================
+# Real-behavior tests (Task C3): real SkillLoader storage path
+# ============================================================================
+
+SKILL_MD = """---
+name: Flight Query
+slug: flight_query
+version: 1.2.0
+description: Query flight information and status
+---
+
+# Flight Query Skill
+
+FULL_BODY_MARKER: step-by-step instructions for querying flights.
+"""
+
+POLICY_MD = "POLICY_REF_MARKER: flight query policy reference."
+
+OUTSIDE_MD = "OUTSIDE_SECRET_MARKER"
+
+
+@pytest.fixture()
+def skill_root(tmp_path):
+    """Real skill directory tree on disk (loaded via SkillLoader)."""
+    root = tmp_path / "skills"
+    skill_dir = root / "flight_query"
+    (skill_dir / "references").mkdir(parents=True)
+    (skill_dir / "scripts").mkdir()
+    (skill_dir / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
+    (skill_dir / "references" / "policy.md").write_text(POLICY_MD, encoding="utf-8")
+    (skill_dir / "scripts" / "run.sh").write_text("echo should-never-run", encoding="utf-8")
+    # File outside any skill dir (traversal target)
+    (tmp_path / "outside.md").write_text(OUTSIDE_MD, encoding="utf-8")
+    return root
+
+
+@pytest.fixture()
+def skill_loader(skill_root):
+    from src.infrastructure.ai.agent_skills.skill_loader import SkillLoader
+
+    return SkillLoader(allowed_roots=[str(skill_root)])
+
+
+class _FakeSkillRepo:
+    def __init__(self, bindings):
+        self._bindings = bindings
+
+    async def find_bindings_by_entity(self, entity_id: str):
+        return self._bindings
+
+
+class TestRealInitialPromptShortOnly:
+    """开场 prompt 只含 name + description，不内联全文与 references。"""
+
+    @pytest.mark.asyncio
+    async def test_discloser_initial_block_is_short(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        block = await discloser.agenerate_initial_instruction_block(["flight_query"])
+
+        assert "Flight Query" in block
+        assert "Query flight information and status" in block
+        # 全文不进入开场块
+        assert "FULL_BODY_MARKER" not in block
+        assert "POLICY_REF_MARKER" not in block
+
+    @pytest.mark.asyncio
+    async def test_composer_combined_text_is_short(self, skill_loader):
+        from src.infrastructure.ai.agent_skills.instruction_composer import (
+            SkillInstructionComposer,
+        )
+
+        repo = _FakeSkillRepo(
+            [
+                {
+                    "enabled": True,
+                    "skill_slug": "flight_query",
+                    "allowed_reference_paths": ["references/policy.md"],
+                    "priority": 1,
+                }
+            ]
+        )
+        composer = SkillInstructionComposer(skill_loader=skill_loader, skill_repo=repo)
+
+        composed = await composer.compose(entity_id="test-entity")
+
+        assert composed is not None
+        assert "Flight Query" in composed.combined_text
+        assert "Query flight information and status" in composed.combined_text
+        assert "load_skill" in composed.combined_text  # 按需加载指引
+        # 全文与 reference 内容不内联
+        assert "FULL_BODY_MARKER" not in composed.combined_text
+        assert "POLICY_REF_MARKER" not in composed.combined_text
+        # 短描述远小于全文 token 预算
+        assert composed.total_tokens < 500
+        # references 列出路径供 read_skill_reference 使用，但内容不内联
+        assert "references/policy.md" in composed.combined_text
+
+
+class TestRealLoadSkillTool:
+    """load_skill 返回完整内容。"""
+
+    @pytest.mark.asyncio
+    async def test_load_full_skill_returns_full_content(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        content = await discloser.load_full_skill("flight_query")
+
+        assert content is not None
+        assert "FULL_BODY_MARKER" in content.full_instructions
+        assert content.skill_id == "flight_query"
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_load_skill(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        result = await discloser.execute_tool("load_skill", {"skill_id": "flight_query"})
+
+        assert result["success"] is True
+        assert "FULL_BODY_MARKER" in result["content"]
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_load_unknown_skill(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        result = await discloser.execute_tool("load_skill", {"skill_id": "no_such_skill"})
+
+        assert result["success"] is False
+        assert "SKILL_NOT_FOUND" in result["error"]
+
+
+class TestRealReadSkillReference:
+    """read_skill_reference 返回 reference 内容，只读且防穿越。"""
+
+    @pytest.mark.asyncio
+    async def test_read_reference_returns_content(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        text = await discloser.read_reference("flight_query", "references/policy.md")
+
+        assert text is not None
+        assert "POLICY_REF_MARKER" in text
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_read_reference(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        result = await discloser.execute_tool(
+            "read_skill_reference",
+            {"skill_id": "flight_query", "reference_path": "references/policy.md"},
+        )
+
+        assert result["success"] is True
+        assert "POLICY_REF_MARKER" in result["content"]
+
+    @pytest.mark.asyncio
+    async def test_scripts_path_rejected(self, skill_loader):
+        """scripts/ 路径永远被拒（计划硬约束：不执行 scripts/）。"""
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        assert await discloser.read_reference("flight_query", "scripts/run.sh") is None
+        assert await discloser.read_reference("flight_query", "scripts\\run.sh") is None
+
+        result = await discloser.execute_tool(
+            "read_skill_reference",
+            {"skill_id": "flight_query", "reference_path": "scripts/run.sh"},
+        )
+        assert result["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_directory_traversal_rejected(self, skill_loader, tmp_path):
+        """目录穿越被拒：.. 段与绝对路径都无法逃出 skill 目录。"""
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        assert await discloser.read_reference("flight_query", "../../outside.md") is None
+        assert await discloser.read_reference("flight_query", "..\\..\\outside.md") is None
+        assert await discloser.read_reference("flight_query", str(tmp_path / "outside.md")) is None
+        assert await discloser.read_reference("flight_query", "") is None
+
+    @pytest.mark.asyncio
+    async def test_missing_reference_returns_none(self, skill_loader):
+        discloser = SkillProgressiveDiscloser(skill_loader=skill_loader)
+
+        assert await discloser.read_reference("flight_query", "references/missing.md") is None
+
+
+class TestCapabilityResolverSkillSurface:
+    """capability resolver 默认只暴露短描述元数据 + 按需加载工具。"""
+
+    class _FakeConfigStore:
+        def __init__(self, doc):
+            self._doc = doc
+
+        async def get(self, entity_id: str):
+            return {"entity_id": entity_id, **self._doc}
+
+    def _resolver(self, doc, bindings):
+        from src.infrastructure.ai.capability_resolver import CapabilityResolver
+
+        return CapabilityResolver(
+            config_store=self._FakeConfigStore(doc),
+            skill_repo=_FakeSkillRepo(bindings),
+            builtin_tools=[],
+        )
+
+    @pytest.mark.asyncio
+    async def test_snapshot_exposes_short_descriptions_and_skill_tools(self):
+        bindings = [
+            {
+                "enabled": True,
+                "binding_id": "b1",
+                "skill_slug": "flight_query",
+                "version": "1.2.0",
+                "description": "Query flight information and status",
+            }
+        ]
+        resolver = self._resolver({"skills": {"enabled": True}}, bindings)
+
+        snapshot = await resolver.resolve("test-entity")
+
+        # 短描述元数据在快照中，全文不在
+        assert snapshot.skills.enabled is True
+        assert snapshot.skills.skill_count == 1
+        assert snapshot.skills.bindings[0].description == "Query flight information and status"
+
+        # load_skill / read_skill_reference 挂进工具面（只读、source=skill）
+        skill_tools = [t for t in snapshot.tools if t.source == "skill"]
+        names = {t.name for t in skill_tools}
+        assert names == {"load_skill", "read_skill_reference"}
+        for tool in skill_tools:
+            assert tool.side_effect is False
+            assert tool.risk_level == "low"
+            assert tool.category == "skill"
+
+    @pytest.mark.asyncio
+    async def test_skill_tools_absent_when_skills_disabled(self):
+        resolver = self._resolver({"skills": {"enabled": False}}, [])
+
+        snapshot = await resolver.resolve("test-entity")
+
+        assert snapshot.skills.enabled is False
+        assert [t for t in snapshot.tools if t.source == "skill"] == []
+
+    @pytest.mark.asyncio
+    async def test_skill_tools_respect_denied_tools_acl(self):
+        bindings = [
+            {"enabled": True, "binding_id": "b1", "skill_slug": "flight_query", "version": "1.2.0"}
+        ]
+        resolver = self._resolver(
+            {
+                "skills": {"enabled": True},
+                "tooling": {"denied_tools": ["read_skill_reference"]},
+            },
+            bindings,
+        )
+
+        snapshot = await resolver.resolve("test-entity")
+
+        names = {t.name for t in snapshot.tools if t.source == "skill"}
+        assert names == {"load_skill"}
