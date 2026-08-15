@@ -114,6 +114,9 @@ Host 适合排障，不替代 Docker 作为验收基线。
 **一条链**：Rust 管 HTTP、鉴权、proposal 与受控写；Python 侧车跑 LLM/工具/MCP。
 侧车只写控制面表（`ai_*`、`agent_*`、`todo_agent_context`、`ai_runtime_commands` 等），不直写航班/派工/todo；写域走 `DomainActionExecutor` 或内部 JWT。侧车本体能力只镜像 Rust schema，不维护独立 AIP 动作栈。
 
+**补偿范围（rollback）**：只允许回滚本 run 或同一 proposal chain 内已执行的 proposal，不承诺通用 undo。
+路由 `POST /api/v2/ai/proposals/{proposal_id}/rollback`（另有 `GET .../compensation-plan`、`POST .../compensation/{id}/approve`）走 `RollbackService`：执行前显式校验请求的 run/proposal chain 与 receipt 一致，不匹配返回 `CrossRunRollbackRejected`（403）；`irreversible` 计划返回 409，需改发 correction proposal；对象版本漂移返回 `ObjectVersionConflict`（409）；审批人缺 `ai:execute` 权限返回 `ApproverNotPermitted`（403）。补偿执行只追加新 receipt，不改写原 receipt。
+
 ### 5.6 Observability
 
 `/api/v2/health/*`、`/api/v2/system/*`、scheduler/streaming、运行时错误监控与 SSE hub。

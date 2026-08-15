@@ -56,6 +56,18 @@ pub enum RollbackError {
     },
     #[error("compensation plan is irreversible; rollback is not possible, generate a correction proposal instead")]
     Irreversible,
+    #[error(
+        "rollback rejected: compensation {compensation_id} belongs to run {receipt_run_id} / proposal \
+         {receipt_proposal_id}, outside the requested scope (run '{requested_run_id}', proposal \
+         '{requested_proposal_id}')"
+    )]
+    CrossRunRollbackRejected {
+        compensation_id: String,
+        receipt_run_id: String,
+        receipt_proposal_id: String,
+        requested_run_id: String,
+        requested_proposal_id: String,
+    },
     #[error("compensation planner: {0}")]
     Planner(#[from] CompensationError),
     #[error("repository: {0}")]
@@ -91,6 +103,18 @@ pub struct RollbackRequest {
     pub approver_id: String,
     pub approver_permissions: Vec<String>,
     pub executor_id: String,
+}
+
+/// Scope a rollback request is allowed to touch: one run, or one
+/// proposal chain. `run_id` may be `None` when the caller only keys
+/// on the proposal chain (the HTTP route is proposal-scoped); the
+/// proposal check is always enforced. Compensation plans that fall
+/// outside the scope are rejected with
+/// [`RollbackError::CrossRunRollbackRejected`].
+#[derive(Debug, Clone)]
+pub struct RollbackScope {
+    pub proposal_id: String,
+    pub run_id: Option<String>,
 }
 
 #[derive(Clone)]
@@ -489,6 +513,65 @@ impl RollbackService {
         // ontology-derived check; the static fallback below keeps the
         // service self-contained for tests.
         approver_permissions.iter().any(|p| p == "*" || p == "ai:execute")
+    }
+
+    /// Verify that the compensation plan (and its backing receipt)
+    /// sits inside the requested run / proposal-chain scope. Returns
+    /// [`RollbackError::CrossRunRollbackRejected`] when the plan or the
+    /// receipt belongs to a different proposal chain, or when the
+    /// receipt's run differs from `scope.run_id`.
+    pub async fn assert_compensation_in_scope(
+        &self,
+        compensation_id: &str,
+        scope: &RollbackScope,
+    ) -> Result<(), RollbackError> {
+        let Some(plan) = self.plan_repo.get(compensation_id).await? else {
+            return Err(RollbackError::CompensationNotFound {
+                compensation_id: compensation_id.to_string(),
+            });
+        };
+        let receipt = self
+            .receipt_repo
+            .get(&plan.receipt_id)
+            .await?
+            .ok_or_else(|| {
+                RollbackError::Internal(format!(
+                    "receipt {} referenced by compensation {} not found",
+                    plan.receipt_id, compensation_id
+                ))
+            })?;
+        let proposal_matches =
+            plan.proposal_id == scope.proposal_id && receipt.proposal_id == scope.proposal_id;
+        let run_matches = scope
+            .run_id
+            .as_deref()
+            .map(|run_id| receipt.run_id == run_id)
+            .unwrap_or(true);
+        if !(proposal_matches && run_matches) {
+            return Err(RollbackError::CrossRunRollbackRejected {
+                compensation_id: compensation_id.to_string(),
+                receipt_run_id: receipt.run_id.clone(),
+                receipt_proposal_id: receipt.proposal_id.clone(),
+                requested_run_id: scope.run_id.clone().unwrap_or_default(),
+                requested_proposal_id: scope.proposal_id.clone(),
+            });
+        }
+        Ok(())
+    }
+
+    /// Execute a compensation after enforcing the rollback scope.
+    /// This is the entry point for caller-driven rollbacks (the HTTP
+    /// route); the scheduler uses the unscoped
+    /// [`RollbackService::execute_compensation`] because it only picks
+    /// up plans derived from receipts of the same run.
+    pub async fn execute_compensation_in_scope(
+        &self,
+        compensation_id: &str,
+        scope: &RollbackScope,
+        executor_id: &str,
+    ) -> Result<AiCompensationPlanRecord, RollbackError> {
+        self.assert_compensation_in_scope(compensation_id, scope).await?;
+        self.execute_compensation(compensation_id, executor_id).await
     }
 
     /// Run a single compensation. Re-entrant: invoking this on a

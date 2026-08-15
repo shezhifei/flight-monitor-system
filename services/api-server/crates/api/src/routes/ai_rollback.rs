@@ -27,7 +27,9 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 
-use fms_application::services::ai_runtime_service::rollback_service::{RollbackError, RollbackService};
+use fms_application::services::ai_runtime_service::rollback_service::{
+    RollbackError, RollbackScope, RollbackService,
+};
 use fms_domain::models::ai_execution::AiCompensationStatus;
 
 #[derive(Debug, Deserialize)]
@@ -106,6 +108,17 @@ fn map_rollback_error(err: RollbackError) -> ApiError {
             "compensation plan is irreversible; rollback is not possible, generate a correction proposal instead"
                 .to_string(),
         ),
+        RollbackError::CrossRunRollbackRejected {
+            compensation_id,
+            receipt_run_id,
+            receipt_proposal_id,
+            requested_run_id,
+            requested_proposal_id,
+        } => ApiError::Forbidden(format!(
+            "rollback rejected: compensation {compensation_id} belongs to run {receipt_run_id} / proposal \
+             {receipt_proposal_id}, outside the requested scope (run '{requested_run_id}', proposal \
+             '{requested_proposal_id}')"
+        )),
         RollbackError::Planner(err) => ApiError::Internal(err.to_string()),
         RollbackError::Repository(err) => ApiError::Internal(err.to_string()),
         RollbackError::DomainExecutorUnavailable(msg) => ApiError::Internal(msg),
@@ -223,8 +236,16 @@ async fn rollback_proposal(
             .map_err(map_rollback_error)?;
     }
 
+    // The route is proposal-scoped; the service re-verifies the scope
+    // against the plan's backing receipt (proposal chain + run when
+    // known) so a compensation from another run cannot be executed
+    // through this proposal.
+    let scope = RollbackScope {
+        proposal_id: proposal_id.clone(),
+        run_id: None,
+    };
     let after = rollback
-        .execute_compensation(&body.compensation_id, &actor)
+        .execute_compensation_in_scope(&body.compensation_id, &scope, &actor)
         .await
         .map_err(map_rollback_error)?;
 

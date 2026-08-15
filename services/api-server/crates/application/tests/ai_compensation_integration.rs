@@ -14,7 +14,9 @@ use fms_application::services::ai_runtime_service::compensation_planner::{
 use fms_application::services::ai_runtime_service::in_memory_repos::{
     InMemoryActionReceiptRepository, InMemoryCheckpointRepository, InMemoryCompensationPlanRepository,
 };
-use fms_application::services::ai_runtime_service::rollback_service::{ExecuteProposalReceiptInput, RollbackService};
+use fms_application::services::ai_runtime_service::rollback_service::{
+    ExecuteProposalReceiptInput, RollbackScope, RollbackService,
+};
 use fms_domain::models::ai_execution::{AiActionReceiptRecord, AiCompensationMode, AiCompensationStatus};
 use fms_domain::models::ai_proposal::ActionProposalStatus;
 use fms_domain::ports::ai_execution_repository::{
@@ -352,6 +354,93 @@ async fn approve_compensation_accepts_authorized_approver() {
         .unwrap();
     assert_eq!(approved.status, AiCompensationStatus::Approved);
     assert_eq!(approved.approved_by.as_deref(), Some("ops-lead"));
+}
+
+#[tokio::test]
+async fn execute_compensation_in_scope_rejects_cross_run_and_cross_chain() {
+    use fms_application::services::ai_runtime_service::rollback_service::RollbackError;
+
+    let (service, receipts, plans, _checkpoints, _version) = build_rollback_service();
+    let receipt = AiActionReceiptRecord {
+        receipt_id: "rcp-1".into(),
+        proposal_id: "prop-1".into(),
+        job_id: "job-1".into(),
+        run_id: "run-1".into(),
+        tool_call_pk: None,
+        object_type: "Flight".into(),
+        object_id: "flt-1".into(),
+        action_name: "update_status".into(),
+        idempotency_key: "idem-scope-1".into(),
+        before_checkpoint_id: None,
+        after_checkpoint_id: None,
+        outbox_event_id: None,
+        execution_result: json!({"status": "BOARDING"}),
+        executed_by: "executor-1".into(),
+        executed_at: Utc::now(),
+    };
+    receipts.upsert(receipt).await.unwrap();
+    let plan = sample_plan(
+        "cmp-1",
+        "rcp-1",
+        AiCompensationStatus::Planned,
+        AiCompensationMode::InverseAction,
+    );
+    plans.upsert(plan).await.unwrap();
+
+    // Cross-run: same proposal chain, but the caller claims run-2.
+    let err = service
+        .execute_compensation_in_scope(
+            "cmp-1",
+            &RollbackScope {
+                proposal_id: "prop-1".into(),
+                run_id: Some("run-2".into()),
+            },
+            "executor-x",
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, RollbackError::CrossRunRollbackRejected { .. }),
+        "expected CrossRunRollbackRejected, got {err:?}"
+    );
+
+    // Cross proposal chain: same run is not enough.
+    let err = service
+        .execute_compensation_in_scope(
+            "cmp-1",
+            &RollbackScope {
+                proposal_id: "prop-9".into(),
+                run_id: Some("run-1".into()),
+            },
+            "executor-x",
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, RollbackError::CrossRunRollbackRejected { .. }),
+        "expected CrossRunRollbackRejected, got {err:?}"
+    );
+
+    // The rejected attempts must not have consumed the plan.
+    let stored = plans.get("cmp-1").await.unwrap().unwrap();
+    assert_eq!(stored.status, AiCompensationStatus::Planned);
+
+    // Same run / chain passes the scope gate; execution then fails
+    // only because no DomainActionExecutor is wired in this test
+    // composition (mirrors execute_compensation_marks_plan_executing_then_failed_without_executor).
+    let after = service
+        .execute_compensation_in_scope(
+            "cmp-1",
+            &RollbackScope {
+                proposal_id: "prop-1".into(),
+                run_id: Some("run-1".into()),
+            },
+            "executor-x",
+        )
+        .await
+        .unwrap();
+    assert_eq!(after.status, AiCompensationStatus::Failed);
+    assert!(after.execution_error.is_some());
 }
 
 #[tokio::test]
