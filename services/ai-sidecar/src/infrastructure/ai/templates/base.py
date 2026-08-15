@@ -31,6 +31,10 @@ class TaskTemplate:
         default_llm_summary: Default LLM summary policy for conversations of
             this task type (Task B3). On by default; query_ops opts out. A
             per-conversation ``enable_llm_summary`` override always wins.
+        requires_plan_first: When True (high-risk templates, Task C1), the run
+            exposes the plan-board tools and the first round must establish a
+            plan via ``update_plan`` before any proposal-class write tool call
+            is allowed (enforced by the PreToolUse PlanFirstHook).
     """
 
     task_type: str
@@ -41,6 +45,7 @@ class TaskTemplate:
     default_max_tool_rounds: int
     hard_max_tool_rounds: int
     default_llm_summary: bool = True
+    requires_plan_first: bool = False
 
 
 def template_allows_tool(

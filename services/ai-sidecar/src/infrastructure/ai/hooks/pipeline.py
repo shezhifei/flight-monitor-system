@@ -115,6 +115,12 @@ class LeaseCheckHook(BaseHook):
         if not ctx.tool_name or is_read_only_tool(ctx.tool_name):
             return True
 
+        # No-op planning tools never hold leases (they run in-process).
+        from src.infrastructure.ai.tools.plan_tools import is_plan_tool
+
+        if is_plan_tool(ctx.tool_name):
+            return True
+
         gate = ctx.mq_gate
         if gate is None:
             try:
@@ -357,6 +363,57 @@ class NoPromisesHook(BaseHook):
             return False
 
 
+class PlanFirstHook(BaseHook):
+    """PreToolUse hook: high-risk templates must establish a plan first (Task C1).
+
+    When the run's task template is plan-first (``anomaly_ops`` /
+    ``dispatch_ops``), proposal-class write tools are rejected until the run's
+    WorkingMemory holds a non-empty plan (``update_plan`` writes ``plan.md``).
+    Read-only tools and the plan tools themselves are never gated.
+    """
+
+    @property
+    def phase(self) -> str:
+        return "PreToolUse"
+
+    async def execute(self, ctx: HookContext) -> bool:
+        envelope_task = getattr(ctx.envelope, "task", None)
+        task_type = getattr(envelope_task, "task_type", None)
+        if not isinstance(task_type, str):
+            return True
+
+        from src.infrastructure.ai.templates import get_task_template
+        from src.infrastructure.ai.tools.plan_tools import is_plan_tool
+
+        template = get_task_template(task_type)
+        if template is None or not getattr(template, "requires_plan_first", False):
+            return True
+
+        tool_name = ctx.tool_name
+        if not tool_name or is_plan_tool(tool_name) or is_read_only_tool(tool_name):
+            return True
+
+        # Only proposal-class write tools are gated; anything else (unknown /
+        # MCP) is the responsibility of the ACL snapshot and the MQ gate.
+        from src.infrastructure.ai.tools.tool_executor import is_write_action_tool
+
+        if not is_write_action_tool(tool_name):
+            return True
+
+        has_plan = bool(
+            ctx.working_memory is not None and (ctx.working_memory.read_plan() or "").strip()
+        )
+        if has_plan:
+            return True
+
+        ctx.add_error(
+            f"PLAN_REQUIRED: task_type={task_type} is plan-first; call update_plan "
+            f"to establish an execution plan before requesting {tool_name}"
+        )
+        logger.warning(f"PlanFirstHook blocked {tool_name} (no plan yet), run={ctx.run_id}")
+        return False
+
+
 class OutputGuardrailHook(BaseHook):
     """Stop hook: run the legacy output guardrail inside the hook pipeline.
 
@@ -483,6 +540,7 @@ def is_read_only_tool(tool_name: str) -> bool:
 def get_builtin_hooks() -> list[BaseHook]:
     """Get default set of built-in hooks."""
     return [
+        PlanFirstHook(),            # PreToolUse - plan-first enforcement (high-risk templates)
         LeaseCheckHook(),           # PreToolUse - lease preflight (fail-closed)
         SchemaValidationHook(),     # PreToolUse - argument validation
         ObjectExistenceCheckHook(), # PreToolUse - entity existence (advisory)
@@ -512,6 +570,7 @@ __all__ = [
     "IDPreservationHook",
     "NoPromisesHook",
     "OutputGuardrailHook",
+    "PlanFirstHook",
     "HookPipeline",
     "extract_critical_ids",
     "is_read_only_tool",

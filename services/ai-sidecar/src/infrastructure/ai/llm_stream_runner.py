@@ -423,10 +423,47 @@ class LLMStreamRunner:
                             )
                         )
 
+            # C1: plan-board tools are no-op planning primitives executed
+            # in-process against the run's WorkingMemory (plan.md) — they never
+            # go through the executor or the MQ gate.
+            from src.infrastructure.ai.tools.plan_tools import execute_plan_tool, is_plan_tool
+
+            plan_calls = [pc for pc in calls_for_execution if is_plan_tool(pc.get("tool_name") or "")]
+            executor_calls = [pc for pc in calls_for_execution if not is_plan_tool(pc.get("tool_name") or "")]
+
+            plan_results: list[ToolExecutionResult] = []
+            for pc in plan_calls:
+                raw_args = pc.get("arguments")
+                try:
+                    plan_args = json.loads(raw_args) if isinstance(raw_args, str) else dict(raw_args or {})
+                except (ValueError, TypeError):
+                    plan_args = {}
+                plan_envelope = envelope
+                if plan_envelope is None:
+                    from types import SimpleNamespace
+
+                    plan_envelope = SimpleNamespace(run_id=run_id, task=SimpleNamespace(task_type="general"))
+                result_dict = await execute_plan_tool(
+                    pc.get("tool_name") or "",
+                    plan_args,
+                    envelope=plan_envelope,
+                    working_memory=working_memory,
+                )
+                succeeded = str(result_dict.get("status", "")) in ("succeeded", "success")
+                plan_results.append(
+                    ToolExecutionResult(
+                        tool_call_id=pc.get("tool_call_id", ""),
+                        tool_name=pc.get("tool_name", ""),
+                        success=succeeded,
+                        result=result_dict if succeeded else None,
+                        error=None if succeeded else result_dict.get("answer", "plan tool failed"),
+                    )
+                )
+
             execution_results = []
-            if calls_for_execution:
+            if executor_calls:
                 execution_results = await executor.execute_batch(
-                    calls_for_execution,
+                    executor_calls,
                     run_id=run_id,
                     envelope=envelope,
                     cache_policy=tool_cache_policy,
@@ -438,7 +475,7 @@ class LLMStreamRunner:
                     # Job = long-running experiment (days); Run = single execution (minutes)
                     job_id=getattr(envelope, "job_id", None) or run_id,  # Use envelope's job_id if available
                 )
-            execution_results = list(execution_results) + hook_blocked_results
+            execution_results = plan_results + list(execution_results) + hook_blocked_results
 
             # P0-6-D: Check cancellation after tool response (identity check,
             # see the pre-call guard above for the rationale).

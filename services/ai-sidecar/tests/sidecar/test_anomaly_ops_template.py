@@ -230,7 +230,15 @@ def test_anomaly_ops_run_keeps_proposal_tools_and_drops_out_of_scope() -> None:
         raise AssertionError(f"Mock runner.tools is None after stream_chat_with_tools call!")
     
     names = [t["function"]["name"] for t in runner.tools]
-    assert names == ["list_anomalies", "get_delayed_flights", "assign_gate"]
+    # C1: anomaly_ops is plan-first — the plan-board tools are injected too.
+    assert names == [
+        "list_anomalies",
+        "get_delayed_flights",
+        "assign_gate",
+        "update_plan",
+        "complete_plan_step",
+        "list_plan_steps",
+    ]
     assert ANOMALY_OPS_TEMPLATE.system_prompt_addendum in capture["runner"].system_prompt
     # Note: Python 3.14 asyncio generator cleanup issue prevents checking run.complete event
     # The mock runner is instantiated and called correctly (see test_b1_round_budget.py)

@@ -307,6 +307,21 @@ class _StreamingToolsMixin:
                 )
             ]
 
+            # C1: plan-first templates (anomaly_ops / dispatch_ops) additionally
+            # expose the no-op plan-board tools. This is additive policy from the
+            # task template, not part of the entity snapshot — the tools execute
+            # in-process against the run's WorkingMemory and never reach the
+            # executor's ACL / MQ gate path.
+            if task_template is not None and getattr(task_template, "requires_plan_first", False):
+                from src.infrastructure.ai.tools.plan_tools import plan_schemas_for_task_type
+
+                existing_tool_names = {
+                    (t.get("function") or {}).get("name") for t in tools if isinstance(t, dict)
+                }
+                for schema in plan_schemas_for_task_type(task_template.task_type):
+                    if (schema.get("function") or {}).get("name") not in existing_tool_names:
+                        tools.append(schema)
+
             # Add subagent tool if enabled
             if resolved_config and resolved_config.subagents.enabled:
                 from src.infrastructure.ai.subagents.dispatcher import SUBAGENT_TOOL_SCHEMA

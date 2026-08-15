@@ -20,6 +20,30 @@ from typing import Any
 
 from src.infrastructure.ai.context_envelope import ContextEnvelope
 
+# Names of the no-op planning tools. They are executed in-process against the
+# run's WorkingMemory (never through the MQ gate / executor pipeline).
+PLAN_TOOL_NAMES: frozenset[str] = frozenset({"update_plan", "complete_plan_step", "list_plan_steps"})
+
+
+def is_plan_tool(tool_name: str) -> bool:
+    """Check if a tool name is one of the plan-board tools."""
+    return tool_name in PLAN_TOOL_NAMES
+
+
+def plan_schemas_for_task_type(task_type: str | None) -> list[dict[str, Any]]:
+    """Return plan-tool schemas when the task template is plan-first.
+
+    High-risk templates (``anomaly_ops`` / ``dispatch_ops``) expose
+    ``update_plan`` / ``complete_plan_step`` / ``list_plan_steps``; other
+    task types (e.g. ``query_ops``) get an empty list.
+    """
+    from src.infrastructure.ai.templates import get_task_template
+
+    template = get_task_template(task_type)
+    if template is None or not getattr(template, "requires_plan_first", False):
+        return []
+    return [dict(schema) for schema in PlanBoardTools.SCHEMA_TOOLS]
+
 
 @dataclass
 class PlanStep:
@@ -150,13 +174,50 @@ class PlanBoardTools:
     SCHEMA_TOOLS = [UPDATE_PLAN_TOOL, COMPLETE_STEP_TOOL, LIST_STEPS_TOOL]
 
     def __init__(self):
-        self._plans: dict[str, ExecutionPlan] = {}
+        # Legacy in-memory fallback, used only when no WorkingMemory workspace
+        # is provided. In the production runner path the plan state lives in
+        # WorkingMemory (plan_state + rendered plan.md) — a single source of
+        # truth that also rides the checkpoint snapshot.
+        self._plans: dict[str, dict[str, Any]] = {}
+
+    # ---- state backend -------------------------------------------------
+
+    @staticmethod
+    def _plan_id(envelope: ContextEnvelope) -> str:
+        return f"plan-{envelope.run_id}"
+
+    def _load_state(self, envelope: ContextEnvelope, working_memory: Any | None) -> dict[str, Any] | None:
+        if working_memory is not None:
+            return working_memory.read_plan_state()
+        return self._plans.get(self._plan_id(envelope))
+
+    def _store_state(self, envelope: ContextEnvelope, working_memory: Any | None, state: dict[str, Any]) -> None:
+        if working_memory is not None:
+            working_memory.write_plan_state(state)
+        else:
+            self._plans[self._plan_id(envelope)] = state
+
+    @staticmethod
+    def _new_state(envelope: ContextEnvelope, plan_description: str) -> dict[str, Any]:
+        return {
+            "plan_id": PlanBoardTools._plan_id(envelope),
+            "task_type": getattr(envelope.task, "task_type", "general"),
+            "created_at": time.time(),
+            "description": plan_description,
+            "steps": [],
+            "metadata": {},
+        }
+
+    @staticmethod
+    def _incomplete_count(state: dict[str, Any]) -> int:
+        return sum(1 for s in state["steps"] if s.get("status") != "completed")
 
     async def update_plan(
         self,
         envelope: ContextEnvelope,
         plan_description: str,
         steps: list[dict[str, Any]] | None = None,
+        working_memory: Any | None = None,
     ) -> dict[str, Any]:
         """Update or create an execution plan.
 
@@ -164,50 +225,52 @@ class PlanBoardTools:
             envelope: Current run context
             plan_description: What the plan aims to accomplish
             steps: Optional list of step definitions to add
+            working_memory: Optional WorkingMemory workspace; when given, the
+                plan state is stored there (and rendered into ``plan.md``)
+                instead of the in-memory fallback.
 
         Returns:
             Plan overview with step count and status
         """
-        plan_id = f"plan-{envelope.run_id}"
         now = time.time()
 
-        if plan_id in self._plans:
-            plan = self._plans[plan_id]
-        else:
-            plan = ExecutionPlan(
-                plan_id=plan_id,
-                task_type=getattr(envelope.task, "task_type", "general"),
-                created_at=now,
-                description=plan_description,
-            )
-            self._plans[plan_id] = plan
+        state = self._load_state(envelope, working_memory)
+        if state is None:
+            state = self._new_state(envelope, plan_description)
+        state["description"] = plan_description
 
         # Add/update steps
         if steps:
             for step_def in steps:
-                step_id = step_def.get("id", f"step-{len(plan.steps)}")
-                existing = next((s for s in plan.steps if s.id == step_id), None)
+                step_id = step_def.get("id", f"step-{len(state['steps'])}")
+                existing = next((s for s in state["steps"] if s.get("id") == step_id), None)
 
                 if existing:
                     # Update existing step
-                    existing.description = step_def.get("description", existing.description)
-                    existing.assigned_to = step_def.get("assigned_to", existing.assigned_to)
+                    existing["description"] = step_def.get("description", existing.get("description", ""))
+                    existing["assigned_to"] = step_def.get("assigned_to", existing.get("assigned_to"))
                 else:
                     # Add new step
-                    plan.steps.append(
-                        PlanStep(
-                            id=step_id,
-                            description=step_def.get("description", ""),
-                            assigned_to=step_def.get("assigned_to", "llm"),
-                        )
+                    state["steps"].append(
+                        {
+                            "id": step_id,
+                            "description": step_def.get("description", ""),
+                            "status": "pending",
+                            "assigned_to": step_def.get("assigned_to", "llm"),
+                            "started_at": None,
+                            "completed_at": None,
+                            "error": None,
+                        }
                     )
+
+        self._store_state(envelope, working_memory, state)
 
         return {
             "status": "succeeded",
-            "answer": f"Plan updated: {plan_id} with {len(plan.steps)} steps",
-            "plan_id": plan_id,
-            "step_count": len(plan.steps),
-            "incomplete_steps": plan.incomplete_count,
+            "answer": f"Plan updated: {state['plan_id']} with {len(state['steps'])} steps",
+            "plan_id": state["plan_id"],
+            "step_count": len(state["steps"]),
+            "incomplete_steps": self._incomplete_count(state),
             "metadata": {"updated_at": now},
         }
 
@@ -217,6 +280,7 @@ class PlanBoardTools:
         step_id: str,
         result_summary: str | None = None,
         errors: list[str] | None = None,
+        working_memory: Any | None = None,
     ) -> dict[str, Any]:
         """Mark a plan step as completed.
 
@@ -225,21 +289,21 @@ class PlanBoardTools:
             step_id: ID of step to complete
             result_summary: How the step was accomplished
             errors: Any errors encountered
+            working_memory: Optional WorkingMemory workspace (see update_plan)
 
         Returns:
             Updated plan status
         """
-        plan_id = f"plan-{envelope.run_id}"
-        plan = self._plans.get(plan_id)
+        state = self._load_state(envelope, working_memory)
 
-        if not plan:
+        if not state:
             return {
                 "status": "failed",
-                "answer": f"No active plan found for {plan_id}",
+                "answer": f"No active plan found for {self._plan_id(envelope)}",
                 "error_code": "PLAN_NOT_FOUND",
             }
 
-        step = next((s for s in plan.steps if s.id == step_id), None)
+        step = next((s for s in state["steps"] if s.get("id") == step_id), None)
         if not step:
             return {
                 "status": "failed",
@@ -247,35 +311,42 @@ class PlanBoardTools:
                 "error_code": "STEP_NOT_FOUND",
             }
 
-        step.status = "completed"
-        step.completed_at = time.time()
+        step["status"] = "completed"
+        step["completed_at"] = time.time()
         if result_summary:
-            step.error = None  # Clear any previous errors
+            step["error"] = None  # Clear any previous errors
         if errors:
-            step.error = "; ".join(errors)
+            step["error"] = "; ".join(errors)
 
+        self._store_state(envelope, working_memory, state)
+
+        all_completed = all(s.get("status") == "completed" for s in state["steps"])
         return {
             "status": "succeeded",
             "answer": f"Step {step_id} completed",
-            "plan_id": plan_id,
+            "plan_id": state["plan_id"],
             "step_id": step_id,
-            "remaining_steps": plan.incomplete_count,
-            "all_completed": plan.all_completed,
+            "remaining_steps": self._incomplete_count(state),
+            "all_completed": all_completed,
         }
 
-    async def list_plan_steps(self, envelope: ContextEnvelope) -> dict[str, Any]:
+    async def list_plan_steps(
+        self,
+        envelope: ContextEnvelope,
+        working_memory: Any | None = None,
+    ) -> dict[str, Any]:
         """List all steps in the current plan.
 
         Args:
             envelope: Current run context
+            working_memory: Optional WorkingMemory workspace (see update_plan)
 
         Returns:
             Full plan breakdown with all steps
         """
-        plan_id = f"plan-{envelope.run_id}"
-        plan = self._plans.get(plan_id)
+        state = self._load_state(envelope, working_memory)
 
-        if not plan:
+        if not state:
             return {
                 "status": "success",
                 "answer": "No active plan",
@@ -284,25 +355,26 @@ class PlanBoardTools:
                 "incomplete_steps": 0,
             }
 
+        all_completed = all(s.get("status") == "completed" for s in state["steps"])
         return {
             "status": "success",
-            "answer": f"Plan {plan_id} with {len(plan.steps)} steps",
-            "plan_id": plan_id,
+            "answer": f"Plan {state['plan_id']} with {len(state['steps'])} steps",
+            "plan_id": state["plan_id"],
             "steps": [
                 {
-                    "id": s.id,
-                    "description": s.description,
-                    "status": s.status,
-                    "assigned_to": s.assigned_to,
-                    "started_at": s.started_at,
-                    "completed_at": s.completed_at,
-                    "error": s.error,
+                    "id": s.get("id"),
+                    "description": s.get("description"),
+                    "status": s.get("status"),
+                    "assigned_to": s.get("assigned_to"),
+                    "started_at": s.get("started_at"),
+                    "completed_at": s.get("completed_at"),
+                    "error": s.get("error"),
                 }
-                for s in plan.steps
+                for s in state["steps"]
             ],
-            "total_steps": len(plan.steps),
-            "incomplete_steps": plan.incomplete_count,
-            "all_completed": plan.all_completed,
+            "total_steps": len(state["steps"]),
+            "incomplete_steps": self._incomplete_count(state),
+            "all_completed": all_completed,
         }
 
 
@@ -314,6 +386,55 @@ def get_plan_board_tools() -> PlanBoardTools:
     if not hasattr(executor, "_plan_board"):
         executor._plan_board = PlanBoardTools()
     return executor._plan_board
+
+
+_FALLBACK_BOARD: PlanBoardTools | None = None
+
+
+def _get_fallback_board() -> PlanBoardTools:
+    """Module-level board used when no WorkingMemory workspace is available."""
+    global _FALLBACK_BOARD
+    if _FALLBACK_BOARD is None:
+        _FALLBACK_BOARD = PlanBoardTools()
+    return _FALLBACK_BOARD
+
+
+async def execute_plan_tool(
+    tool_name: str,
+    arguments: dict[str, Any],
+    *,
+    envelope: ContextEnvelope,
+    working_memory: Any | None = None,
+) -> dict[str, Any]:
+    """Execute a plan-board tool call in-process.
+
+    Plan tools are no-op planning primitives: they never touch the MQ gate,
+    the executor, or business tables. When ``working_memory`` is provided the
+    plan state is stored in the run's workspace (rendered into ``plan.md``).
+    """
+    board = _get_fallback_board()
+    if tool_name == "update_plan":
+        return await board.update_plan(
+            envelope=envelope,
+            plan_description=str(arguments.get("plan_description") or ""),
+            steps=arguments.get("steps"),
+            working_memory=working_memory,
+        )
+    if tool_name == "complete_plan_step":
+        return await board.complete_plan_step(
+            envelope=envelope,
+            step_id=str(arguments.get("step_id") or ""),
+            result_summary=arguments.get("result_summary"),
+            errors=arguments.get("errors"),
+            working_memory=working_memory,
+        )
+    if tool_name == "list_plan_steps":
+        return await board.list_plan_steps(envelope=envelope, working_memory=working_memory)
+    return {
+        "status": "failed",
+        "answer": f"Unknown plan tool: {tool_name}",
+        "error_code": "UNKNOWN_PLAN_TOOL",
+    }
 
 
 async def register_plan_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -330,9 +451,13 @@ async def register_plan_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any
 
 
 __all__ = [
+    "PLAN_TOOL_NAMES",
     "PlanBoardTools",
     "ExecutionPlan",
     "PlanStep",
+    "execute_plan_tool",
     "get_plan_board_tools",
+    "is_plan_tool",
+    "plan_schemas_for_task_type",
     "register_plan_tools",
 ]

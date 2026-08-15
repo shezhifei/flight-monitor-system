@@ -40,6 +40,8 @@ DISPATCH_OPS_TEMPLATE = TaskTemplate(
         "- Use ontology.lookup to fetch aircraft-gate compatibility constraints before proposing changes.\n"
         "- Use ontology.explain_constraints() to validate any proposed gate reassignment or crew change.\n"
         "- Use ontology.propose_action(problem_state, available_actions) to generate only registered action candidates.\n"
+        "- Plan first: on your first round, call update_plan to lay out the advisory steps before "
+        "requesting any proposal-class write tool; mark steps with complete_plan_step as you go.\n"
     ),
     # Read-only situational surface: dispatch read models, flight state,
     # aggregate queries, and anomaly conflicts.
@@ -50,6 +52,7 @@ DISPATCH_OPS_TEMPLATE = TaskTemplate(
     denied_tools=_APPLY_SCHEDULE_TOOL_NAMES,
     default_max_tool_rounds=16,
     hard_max_tool_rounds=20,
+    requires_plan_first=True,
 )
 
 

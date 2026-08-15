@@ -215,6 +215,13 @@ def test_dispatch_ops_run_hides_apply_schedule_and_keeps_proposal_face() -> None
         events = _collect(svc, _envelope("dispatch_ops"))
 
     names = [t["function"]["name"] for t in capture["runner"].tools]
-    assert names == ["list_dispatch_orders", "assign_gate"]
+    # C1: dispatch_ops is plan-first — the plan-board tools are injected too.
+    assert names == [
+        "list_dispatch_orders",
+        "assign_gate",
+        "update_plan",
+        "complete_plan_step",
+        "list_plan_steps",
+    ]
     assert DISPATCH_OPS_TEMPLATE.system_prompt_addendum in capture["runner"].system_prompt
     assert any(e.get("event") == "run.complete" for e in events)

@@ -27,6 +27,8 @@ ANOMALY_OPS_TEMPLATE = TaskTemplate(
         "control plane and never claim they were executed.\n"
         "- Use ontology.lookup(entity_id) to retrieve constraint violations and relationships when analyzing anomalies.\n"
         "- Use ontology.propose_action(problem_state, available_actions) to generate compliant action candidates.\n"
+        "- Plan first: on your first round, call update_plan to lay out the triage steps before "
+        "requesting any proposal-class write tool; mark steps with complete_plan_step as you go.\n"
     ),
     # Read-only triage surface: anomaly events, flight details, KPI queries,
     # dispatch read models, and advisor knowledge retrieval.
@@ -37,6 +39,7 @@ ANOMALY_OPS_TEMPLATE = TaskTemplate(
     denied_tools=frozenset(),
     default_max_tool_rounds=12,
     hard_max_tool_rounds=16,
+    requires_plan_first=True,
 )
 
 

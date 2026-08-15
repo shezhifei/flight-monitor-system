@@ -23,6 +23,7 @@ from typing import Any
 PLAN_FILE = "plan.md"
 NOTES_FILE = "notes.md"
 EVIDENCE_FILE = "evidence.json"
+PLAN_STATE_KEY = "plan_state"
 
 # Roughly 2k tokens; results above this spill to the workspace.
 DEFAULT_SPILL_TOKEN_THRESHOLD = 2000
@@ -91,6 +92,11 @@ class WorkingMemory:
         self._plan: str = ""
         self._notes: str = ""
         self._evidence: list[EvidenceRecord] = []
+        # Task C1: structured plan state. This is the single source of truth
+        # for the run's execution plan; ``plan.md`` is a derived rendering
+        # regenerated on every mutation. JSON-serializable so it rides the
+        # checkpoint snapshot like the rest of the workspace.
+        self._plan_state: dict[str, Any] | None = None
 
     # ---- plan.md -----------------------------------------------------
 
@@ -99,6 +105,31 @@ class WorkingMemory:
 
     def write_plan(self, content: str) -> None:
         self._plan = content or ""
+
+    # ---- structured plan state (Task C1) ------------------------------
+
+    def read_plan_state(self) -> dict[str, Any] | None:
+        """Return the structured plan (``{"description", "steps", ...}``) or None."""
+        return self._plan_state
+
+    def write_plan_state(self, state: dict[str, Any]) -> None:
+        """Store the structured plan and re-render ``plan.md`` from it."""
+        self._plan_state = state
+        self._plan = self._render_plan_markdown(state)
+
+    @staticmethod
+    def _render_plan_markdown(state: dict[str, Any]) -> str:
+        """Render the structured plan as the human-readable ``plan.md``."""
+        if not state:
+            return ""
+        lines = [f"# Plan: {state.get('description', '')}".rstrip()]
+        for step in state.get("steps") or []:
+            status = step.get("status", "pending")
+            mark = "x" if status == "completed" else " "
+            assigned = step.get("assigned_to")
+            suffix = f" ({assigned})" if assigned else ""
+            lines.append(f"- [{mark}] {step.get('id', '')}: {step.get('description', '')}{suffix}")
+        return "\n".join(lines)
 
     # ---- notes.md ----------------------------------------------------
 
@@ -175,6 +206,7 @@ class WorkingMemory:
             PLAN_FILE: self._plan,
             NOTES_FILE: self._notes,
             EVIDENCE_FILE: [record.to_dict() for record in self._evidence],
+            PLAN_STATE_KEY: self._plan_state,
         }
 
     @classmethod
@@ -200,6 +232,12 @@ class WorkingMemory:
             for item in data.get(EVIDENCE_FILE, []) or []
             if isinstance(item, dict)
         ]
+        plan_state = data.get(PLAN_STATE_KEY)
+        if isinstance(plan_state, dict):
+            memory._plan_state = plan_state
+            if not memory._plan:
+                # Re-render plan.md from the structured state on restore.
+                memory._plan = memory._render_plan_markdown(plan_state)
         return memory
 
 
@@ -208,6 +246,7 @@ __all__ = [
     "EVIDENCE_FILE",
     "NOTES_FILE",
     "PLAN_FILE",
+    "PLAN_STATE_KEY",
     "EvidenceRecord",
     "WorkingMemory",
     "estimate_tokens",
