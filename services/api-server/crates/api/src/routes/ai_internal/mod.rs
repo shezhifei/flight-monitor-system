@@ -6,6 +6,7 @@ pub(crate) use shared::*;
 mod tests;
 
 pub mod ingest_run_event;
+pub mod runtime_health;
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/internal/ai/v1")
@@ -23,6 +24,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 "/runs/{run_id}/complete",
                 web::post().to(ingest_run_event::complete_run),
             )
-            .route("/runs/{run_id}/fail", web::post().to(ingest_run_event::fail_run)),
+            .route("/runs/{run_id}/fail", web::post().to(ingest_run_event::fail_run))
+            .route("/health", web::get().to(runtime_health::runtime_health)),
     );
 }
