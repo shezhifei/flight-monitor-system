@@ -13,6 +13,8 @@ class OutputEvidence(BaseModel):
     object_id: str
     field: str | None = None
     source: str
+    as_of: str | None = None  # P1-1-A: ISO8601 timestamp when data was valid
+    freshness_seconds: int | None = None  # P1-1-A: How fresh the data is
 
 
 class OutputProposal(BaseModel):

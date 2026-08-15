@@ -8,9 +8,14 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
+from datetime import datetime, timezone
 from typing import Any
 
 from src.infrastructure.ai.context_envelope import ContextEnvelope
+from src.infrastructure.ai.evidence_metadata import (
+    compute_freshness_seconds,
+    generate_object_id,
+)
 from src.infrastructure.ai.intent_router import IntentCategory
 from src.infrastructure.ai.structured_output import (
     AiStructuredOutput,
@@ -86,24 +91,48 @@ def build_system_prompt(envelope: ContextEnvelope) -> str:
 
 
 def build_evidence(envelope: ContextEnvelope) -> list[OutputEvidence]:
+    """Build evidence chain with P1-1-A metadata (as_of, freshness)."""
+    from datetime import timezone
+    
+    now = datetime.now(timezone.utc)
+    
     evidence: list[OutputEvidence] = []
     for item in envelope.context.evidence:
+        # Compute freshness if as_of provided
+        as_of = getattr(item, 'as_of', None)
+        freshness_seconds = None
+        if as_of is not None:
+            try:
+                freshness_seconds = compute_freshness_seconds(as_of, now)
+            except Exception:  # noqa: BLE001
+                pass
+        
         evidence.append(
             OutputEvidence(
                 object_type=item.object_type,
                 object_id=item.object_id,
                 source=item.source,
                 field=None,
+                as_of=str(as_of) if as_of else None,
+                freshness_seconds=freshness_seconds,
             )
         )
     if not evidence and envelope.context.objects:
         for obj in envelope.context.objects:
+            # Generate timestamped object ID
+            obj_id = generate_object_id(
+                object_type=obj.object_type,
+                identifier=obj.object_id,
+                timestamp=now
+            )
             evidence.append(
                 OutputEvidence(
                     object_type=obj.object_type,
-                    object_id=obj.object_id,
+                    object_id=obj_id,
                     source=f"ai_query.v_{obj.object_type.lower()}",
                     field=None,
+                    as_of=now.isoformat(),
+                    freshness_seconds=0,
                 )
             )
     if not evidence:
@@ -113,6 +142,8 @@ def build_evidence(envelope: ContextEnvelope) -> list[OutputEvidence]:
                 object_id="runtime",
                 source="ai_runtime.context_envelope",
                 field=None,
+                as_of=now.isoformat(),
+                freshness_seconds=0,
             )
         )
     return evidence

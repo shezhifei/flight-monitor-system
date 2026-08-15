@@ -14,7 +14,7 @@
       "EnvelopeTask": ["task_type", "user_message"]
     },
     "python_internal_fields": {
-      "ContextEnvelope": ["conversation_history"],
+      "ContextEnvelope": ["conversation_history", "cancelled"],
       "EnvelopeRequester": ["permissions"]
     }
   },
@@ -28,6 +28,8 @@
       "OutputMetrics": ["model", "duration_ms"],
       "TokenUsage": ["prompt_tokens", "completion_tokens", "total_tokens"]
     },
-    "python_internal_fields": {}
+    "python_internal_fields": {
+      "OutputEvidence": ["as_of", "freshness_seconds"]
+    }
   }
 }
