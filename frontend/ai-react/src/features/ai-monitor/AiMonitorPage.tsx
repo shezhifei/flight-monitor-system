@@ -3,7 +3,13 @@ import { Badge, Button, Card, Space, Statistic, Table, Tag, Typography, message,
 import { ReloadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined, ScheduleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { ChatMessage } from '@/components/chat/AiChatShell';
 import { AiPageNavigation } from '@/components/shell/AiPageNavigation';
+import { PlanBoard } from '@/components/chat/PlanBoard';
+import { SubagentTree } from '@/components/chat/SubagentTree';
+import { applyPlanToolEvent, type PlanBoardModel } from '@/components/chat/planBoardModel';
+import { toCompressionNotice, type CompressionNoticeModel } from '@/components/chat/runResume';
+import { applyDelegateToolEvent, applySubagentStreamEvent, type SubagentNodeModel } from '@/components/chat/subagentTreeModel';
 import { getAiCapabilities, getExecutionVisibilityMetrics, getReportSchemaMetrics, getRoutingMetrics, listPendingActions, approvePendingAction, rejectPendingAction, listAiJobs, getAiJobStats, getProposalStats, getRolloutStatus, executeProposal, listProposals, type RolloutStatusResponse, type ProposalRow } from '@/lib/api/aiApi';
+import { resolveEntryFeatures } from '@/lib/shell/entryRegistry';
 import { EventSourceClient } from '@/lib/sse/eventSourceClient';
 import { normalizeTime } from '@/lib/utils';
 import { applyPendingActionEvent, type PendingRow } from '@/features/ai-monitor/pendingActionRows';
@@ -67,6 +73,10 @@ export function AiMonitorPage(): JSX.Element {
   const [rolloutStatus, setRolloutStatus] = useState<RolloutStatusResponse | null>(null);
   const [approvedProposals, setApprovedProposals] = useState<ProposalRow[]>([]);
   const [optionalLoadErrors, setOptionalLoadErrors] = useState<string[]>([]);
+  const [planBoard, setPlanBoard] = useState<PlanBoardModel | null>(null);
+  const [subagents, setSubagents] = useState<SubagentNodeModel[]>([]);
+  const [compressionNotice, setCompressionNotice] = useState<CompressionNoticeModel | null>(null);
+  const features = useMemo(() => resolveEntryFeatures('ai_monitor'), []);
 
   const loadPageData = async (): Promise<void> => {
     setLoading(true);
@@ -180,6 +190,27 @@ export function AiMonitorPage(): JSX.Element {
         if ((semantic === 'approval_required' || semantic === 'approval_result') && pendingAction) {
           setPendingRows((prev) => applyPendingActionEvent(prev, semantic, pendingAction));
         }
+        // C5 playground panels: plan board / subagent tree / compression notice.
+        if (semantic === 'subagent_event' && features.has('subagent-tree')) {
+          setSubagents((prev) => applySubagentStreamEvent(prev, runtimeRecord));
+        } else if (semantic === 'context.compressed' && features.has('compression-notice')) {
+          setCompressionNotice(toCompressionNotice(runtimeRecord));
+        } else if (semantic.includes('tool')) {
+          const toolName = String(runtimeRecord.tool_name || '').trim();
+          if (toolName) {
+            const phase = semantic.includes('result') ? 'result' : 'call';
+            const toolStatus = String(runtimeRecord.result_status || runtimeRecord.status || '');
+            if (features.has('plan-board')) {
+              setPlanBoard((prev) => {
+                const next = applyPlanToolEvent(prev, { toolName, phase, status: toolStatus, args: runtimeRecord.arguments });
+                return next === undefined ? prev : next;
+              });
+            }
+            if (features.has('subagent-tree')) {
+              setSubagents((prev) => applyDelegateToolEvent(prev, { toolName, phase, status: toolStatus, args: runtimeRecord.arguments }) ?? prev);
+            }
+          }
+        }
       },
       onError: () => {
         message.warning('AI 实时事件流断开，等待自动重连');
@@ -238,6 +269,29 @@ export function AiMonitorPage(): JSX.Element {
             message="部分 AI 监控指标加载失败"
             description={optionalLoadErrors.join('；')}
           />
+        ) : null}
+
+        {/* ---- Playground Panels: Plan Board / Subagent Tree / Compression ---- */}
+        {compressionNotice ? (
+          <Alert
+            type="info"
+            showIcon
+            message={
+              <span style={{ fontSize: 12 }}>
+                上下文已压缩
+                {compressionNotice.strategy ? `（${compressionNotice.strategy}）` : ''}
+                {compressionNotice.beforeTokens && compressionNotice.afterTokens
+                  ? `：${compressionNotice.beforeTokens} → ${compressionNotice.afterTokens} tokens`
+                  : ''}
+              </span>
+            }
+          />
+        ) : null}
+        {(planBoard && planBoard.steps.length > 0) || subagents.length > 0 ? (
+          <div className="ai-grid-auto-lg ai-reveal ai-reveal-2">
+            {planBoard && planBoard.steps.length > 0 ? <PlanBoard board={planBoard} /> : null}
+            {subagents.length > 0 ? <SubagentTree nodes={subagents} /> : null}
+          </div>
         ) : null}
 
         {/* ---- Status Dashboard ---- */}

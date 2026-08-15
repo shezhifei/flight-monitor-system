@@ -1,11 +1,17 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { Bubble, Sender } from '@ant-design/x';
-import { Button, Collapse, Space, Typography } from 'antd';
-import { ToolOutlined, BulbOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Alert, Button, Collapse, Space, Typography } from 'antd';
+import { ToolOutlined, BulbOutlined, ApartmentOutlined, ScheduleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { InsightRenderer } from '@/components/chat/InsightRenderer';
 import { PendingActionCard, PendingActionCardModel } from '@/components/chat/PendingActionCard';
+import { PlanBoard } from '@/components/chat/PlanBoard';
+import { RunResumeBar } from '@/components/chat/RunResumeBar';
+import { SubagentTree } from '@/components/chat/SubagentTree';
 import { ToolCallTimeline, ToolTimelineItem } from '@/components/chat/ToolCallTimeline';
+import { planIncompleteCount, type PlanBoardModel } from '@/components/chat/planBoardModel';
+import type { CompressionNoticeModel } from '@/components/chat/runResume';
+import type { SubagentNodeModel } from '@/components/chat/subagentTreeModel';
 
 export interface ChatMessage {
   id: string;
@@ -29,6 +35,12 @@ export function AiChatShell(props: {
   onRejectAction?: (actionId: string) => Promise<void> | void;
   insightMarkdown?: string;
   insightJson?: unknown;
+  planBoard?: PlanBoardModel | null;
+  subagents?: SubagentNodeModel[];
+  compressionNotice?: CompressionNoticeModel | null;
+  resumableRun?: { runId: string; jobId?: string } | null;
+  onRunResumed?: () => void;
+  onRunCancelled?: () => void;
 }): JSX.Element {
   const {
     testId,
@@ -45,6 +57,12 @@ export function AiChatShell(props: {
     onRejectAction,
     insightMarkdown,
     insightJson,
+    planBoard = null,
+    subagents = [],
+    compressionNotice = null,
+    resumableRun = null,
+    onRunResumed,
+    onRunCancelled,
   } = props;
 
   const bubbleItems = useMemo(
@@ -65,6 +83,8 @@ export function AiChatShell(props: {
   const hasToolItems = toolItems.length > 0;
   const hasInsight = Boolean(insightMarkdown || insightJson);
   const hasPending = pendingActions.length > 0 && onApproveAction && onRejectAction;
+  const hasPlanBoard = Boolean(planBoard && planBoard.steps.length > 0);
+  const hasSubagents = subagents.length > 0;
 
   const handleApprove = useCallback(async (actionId: string) => {
     if (!onApproveAction) return;
@@ -101,6 +121,30 @@ export function AiChatShell(props: {
         children: <ToolCallTimeline items={toolItems} />,
       });
     }
+    if (hasPlanBoard && planBoard) {
+      items.push({
+        key: 'plan',
+        label: (
+          <span style={{ fontSize: 12, color: 'var(--ai-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <ScheduleOutlined style={{ marginRight: 6 }} />
+            执行计划 (剩余 {planIncompleteCount(planBoard)})
+          </span>
+        ),
+        children: <PlanBoard board={planBoard} />,
+      });
+    }
+    if (hasSubagents) {
+      items.push({
+        key: 'subagents',
+        label: (
+          <span style={{ fontSize: 12, color: 'var(--ai-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <ApartmentOutlined style={{ marginRight: 6 }} />
+            子代理树 ({subagents.length})
+          </span>
+        ),
+        children: <SubagentTree nodes={subagents} />,
+      });
+    }
     if (hasInsight) {
       items.push({
         key: 'insight',
@@ -114,7 +158,7 @@ export function AiChatShell(props: {
       });
     }
     return items;
-  }, [hasToolItems, hasInsight, toolItems, insightMarkdown, insightJson]);
+  }, [hasToolItems, hasInsight, hasPlanBoard, hasSubagents, toolItems, planBoard, subagents, insightMarkdown, insightJson]);
 
   return (
     <div className="ai-chat-immersive" data-testid={testId}>
@@ -130,6 +174,36 @@ export function AiChatShell(props: {
           }
         />
       </div>
+
+      {/* ---- Compression Notice (context.compressed) ---- */}
+      {compressionNotice ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 8 }}
+          message={
+            <span style={{ fontSize: 12 }}>
+              上下文已压缩
+              {compressionNotice.strategy ? `（${compressionNotice.strategy}）` : ''}
+              {compressionNotice.beforeTokens && compressionNotice.afterTokens
+                ? `：${compressionNotice.beforeTokens} → ${compressionNotice.afterTokens} tokens`
+                : ''}
+            </span>
+          }
+        />
+      ) : null}
+
+      {/* ---- Resume Entry (interrupted run) ---- */}
+      {resumableRun ? (
+        <div style={{ marginBottom: 8 }}>
+          <RunResumeBar
+            runId={resumableRun.runId}
+            jobId={resumableRun.jobId}
+            onResumed={onRunResumed}
+            onCancelled={onRunCancelled}
+          />
+        </div>
+      ) : null}
 
       {/* ---- Pending Actions (float above input when present) ---- */}
       {hasPending ? (

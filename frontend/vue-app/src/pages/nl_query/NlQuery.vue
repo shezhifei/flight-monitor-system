@@ -2,7 +2,11 @@
   <div class="workspace-page nl-query-page">
     <div id="header-host" />
     <div id="breadcrumb-host" />
-    <AiReactEntryShell :entry-name="'nl_query'" surface="page" />
+    <AiReactEntryShell
+      :entry-name="'nl_query'"
+      surface="page"
+      :entry-features="['plan-board', 'subagent-tree', 'run-resume', 'compression-notice']"
+    />
     <ThemeToggle />
   </div>
 </template>

@@ -3,8 +3,16 @@ import { Button, Card, Select, Space, Steps, Tag, Timeline, Typography, message 
 import { BulbOutlined, FileSearchOutlined, PlusOutlined, DeleteOutlined, MessageOutlined } from '@ant-design/icons';
 import { AiChatShell, ChatMessage } from '@/components/chat/AiChatShell';
 import { AiPageNavigation } from '@/components/shell/AiPageNavigation';
+import { applyPlanToolEvent, type PlanBoardModel } from '@/components/chat/planBoardModel';
+import { toCompressionNotice, type CompressionNoticeModel } from '@/components/chat/runResume';
+import {
+  applyDelegateToolEvent,
+  applySubagentStreamEvent,
+  type SubagentNodeModel,
+} from '@/components/chat/subagentTreeModel';
 import { approvePendingAction, rejectPendingAction } from '@/lib/api/aiApi';
 import { deleteConversation, listConversationMessages, listConversations, listSuggestions, streamQuery } from '@/lib/api/nlQueryApi';
+import { resolveEntryFeatures } from '@/lib/shell/entryRegistry';
 import { EventSourceClient } from '@/lib/sse/eventSourceClient';
 import { ExecutionPollFallback } from '@/lib/sse/executionPollFallback';
 import { createRequestId, normalizeTime } from '@/lib/utils';
@@ -72,10 +80,17 @@ export function NLQueryPage(): JSX.Element {
   const [insightJson, setInsightJson] = useState<unknown>(null);
   const [evidenceObjectTypeFilter, setEvidenceObjectTypeFilter] = useState<string>('all');
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [planBoard, setPlanBoard] = useState<PlanBoardModel | null>(null);
+  const [subagents, setSubagents] = useState<SubagentNodeModel[]>([]);
+  const [compressionNotice, setCompressionNotice] = useState<CompressionNoticeModel | null>(null);
+  const [resumableRun, setResumableRun] = useState<{ runId: string; jobId?: string } | null>(null);
   const activeAssistantIdRef = useRef<string | null>(null);
   const activeExecutionIdRef = useRef<string>('');
+  const activeRunIdRef = useRef<string>('');
+  const activeJobIdRef = useRef<string>('');
   const pollFallbackRef = useRef<ExecutionPollFallback | null>(null);
   const historyLoadedRef = useRef(false);
+  const features = useMemo(() => resolveEntryFeatures('nl_query'), []);
 
   const resetConversationView = (): void => {
     setMessagesState([]);
@@ -83,6 +98,57 @@ export function NLQueryPage(): JSX.Element {
     setInsightJson(null);
     setToolItems([]);
     setPendingActions([]);
+    setPlanBoard(null);
+    setSubagents([]);
+    setCompressionNotice(null);
+    setResumableRun(null);
+  };
+
+  // Fold one runtime payload (nl-query stream or broadcast stream) into the
+  // playground panels. Event contracts:
+  // - tool.call / tool.result frames (tool_name, arguments?, result_status?)
+  //   feed the plan board and the delegate/handoff nodes of the subagent tree.
+  // - subagent_event frames bubble child-run activity.
+  // - context.compressed frames surface the compression notice.
+  const ingestPlaygroundEvent = (semantic: string, record: Record<string, unknown>): void => {
+    const runId = String(record.run_id || '').trim();
+    if (runId) activeRunIdRef.current = runId;
+    const jobId = String(record.job_id || '').trim();
+    if (jobId) activeJobIdRef.current = jobId;
+
+    if (semantic === 'subagent_event' || semantic === 'subagent.event') {
+      if (features.has('subagent-tree')) {
+        setSubagents((prev) => applySubagentStreamEvent(prev, record));
+      }
+      return;
+    }
+    if (semantic === 'context.compressed' || semantic === 'context_compressed') {
+      if (features.has('compression-notice')) {
+        setCompressionNotice(toCompressionNotice(record));
+      }
+      return;
+    }
+    if (semantic.includes('tool')) {
+      const toolName = String(record.tool_name || '').trim();
+      if (!toolName) return;
+      const phase = semantic.includes('result') ? 'result' : 'call';
+      const status = String(record.result_status || record.status || '');
+      if (features.has('plan-board')) {
+        setPlanBoard((prev) => {
+          const next = applyPlanToolEvent(prev, { toolName, phase, status, args: record.arguments, result: record.result });
+          return next === undefined ? prev : next;
+        });
+      }
+      if (features.has('subagent-tree')) {
+        setSubagents((prev) => applyDelegateToolEvent(prev, { toolName, phase, status, args: record.arguments }) ?? prev);
+      }
+    }
+    if (features.has('run-resume') && (semantic === 'run.fail' || semantic === 'run.cancelled' || semantic === 'cancelled')) {
+      const failedRunId = activeRunIdRef.current;
+      if (failedRunId) {
+        setResumableRun({ runId: failedRunId, jobId: activeJobIdRef.current || undefined });
+      }
+    }
   };
 
   const appendMessage = (messageItem: ChatMessage): void => {
@@ -190,6 +256,7 @@ export function NLQueryPage(): JSX.Element {
           ? runtime as Record<string, unknown>
           : {};
         const semantic = String(runtimeRecord.event || payload.type || '').toLowerCase();
+        ingestPlaygroundEvent(semantic, runtimeRecord);
         const action = runtimeRecord.pending_action && typeof runtimeRecord.pending_action === 'object'
           ? (runtimeRecord.pending_action as Record<string, unknown>)
           : null;
@@ -256,6 +323,12 @@ export function NLQueryPage(): JSX.Element {
     setInputValue('');
     setInsightText('');
     setInsightJson(null);
+    setPlanBoard(null);
+    setSubagents([]);
+    setCompressionNotice(null);
+    setResumableRun(null);
+    activeRunIdRef.current = '';
+    activeJobIdRef.current = '';
     appendMessage({ id: `u_${Date.now()}`, role: 'user', content: question });
     const assistantId = `a_${Date.now()}`;
     activeAssistantIdRef.current = assistantId;
@@ -282,6 +355,7 @@ export function NLQueryPage(): JSX.Element {
           if (executionId) {
             activeExecutionIdRef.current = executionId;
           }
+          ingestPlaygroundEvent(semantic, payload);
           if (semantic === 'text_delta') {
             const delta = String(payload.delta || payload.text || '');
             assistantText = `${assistantText}${delta}`;
@@ -326,6 +400,9 @@ export function NLQueryPage(): JSX.Element {
         message: msg,
         time: new Date().toLocaleTimeString(),
       }));
+      if (features.has('run-resume') && activeRunIdRef.current) {
+        setResumableRun({ runId: activeRunIdRef.current, jobId: activeJobIdRef.current || undefined });
+      }
     } finally {
       setSending(false);
       activeAssistantIdRef.current = null;
@@ -520,6 +597,12 @@ export function NLQueryPage(): JSX.Element {
               }}
               insightMarkdown={insightText}
               insightJson={insightJson}
+              planBoard={features.has('plan-board') ? planBoard : null}
+              subagents={features.has('subagent-tree') ? subagents : []}
+              compressionNotice={features.has('compression-notice') ? compressionNotice : null}
+              resumableRun={features.has('run-resume') ? resumableRun : null}
+              onRunResumed={() => setResumableRun(null)}
+              onRunCancelled={() => setResumableRun(null)}
             />
           </div>
         </div>

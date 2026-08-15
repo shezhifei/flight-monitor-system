@@ -172,6 +172,32 @@ export async function getAiJobStats(): Promise<Record<string, unknown>> {
   return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/jobs/stats`);
 }
 
+// ---- Run resume / checkpoints (crates/api/src/routes/ai_resume.rs) ----
+
+export async function listAiRunCheckpoints(
+  jobId: string,
+  runId: string,
+): Promise<Array<Record<string, unknown>>> {
+  const payload = await requestEnvelope<{ items: Array<Record<string, unknown>> }>(
+    `${AI_BASE}/jobs/${encodeURIComponent(jobId)}/runs/${encodeURIComponent(runId)}/checkpoints`,
+  );
+  return payload.items || [];
+}
+
+export async function resumeAiRun(runId: string, fromCheckpointId?: string): Promise<Record<string, unknown>> {
+  return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/runs/${encodeURIComponent(runId)}/resume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fromCheckpointId ? { from_checkpoint_id: fromCheckpointId } : {}),
+  });
+}
+
+export async function cancelAiJob(jobId: string): Promise<Record<string, unknown>> {
+  return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/jobs/${encodeURIComponent(jobId)}`, {
+    method: 'DELETE',
+  });
+}
+
 // ---- Flight Risk Micro Model ----
 
 export async function executeFlightRiskModel(flightId: string): Promise<Record<string, unknown>> {

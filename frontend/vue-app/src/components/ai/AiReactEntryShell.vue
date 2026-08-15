@@ -8,6 +8,7 @@
       ref="hostEl"
       class="ai-react-entry-shell__host"
       :data-ai-entry="entryName"
+      :data-ai-features="featuresAttr || undefined"
     />
 
     <div
@@ -65,12 +66,22 @@ const props = withDefaults(
     entryName: AiEntryName;
     surface?: AiReactEntrySurface;
     loadingLabel?: string;
+    /**
+     * Playground capabilities (Task C5) to enable in the React entry, e.g.
+     * ['plan-board', 'subagent-tree', 'run-resume', 'compression-notice'].
+     * Forwarded as the host's `data-ai-features` attribute; when omitted the
+     * React side keeps every feature enabled (legacy-host behavior).
+     */
+    entryFeatures?: string[];
   }>(),
   {
     surface: 'page',
     loadingLabel: '加载 AI 模块中…',
+    entryFeatures: undefined,
   },
 );
+
+const featuresAttr = computed(() => (props.entryFeatures || []).join(','));
 
 const AI_ENTRY_HOST_IDS: Record<AiEntryName, string> = {
   ai_monitor: 'ai-react-root',
