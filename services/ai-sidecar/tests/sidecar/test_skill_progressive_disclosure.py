@@ -530,3 +530,96 @@ class TestCapabilityResolverSkillSurface:
 
         names = {t.name for t in snapshot.tools if t.source == "skill"}
         assert names == {"load_skill"}
+
+
+# ============================================================================
+# Test Skill Tool Routing in the Runner (C3 follow-up)
+# ============================================================================
+
+class TestSkillToolRunnerRouting:
+    """load_skill / read_skill_reference execute in-process, bypassing the executor."""
+
+    @pytest.mark.asyncio
+    async def test_load_skill_bypasses_executor(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        from src.infrastructure.ai.context_envelope import (
+            ContextEnvelope,
+            EnvelopeContext,
+            EnvelopeLimits,
+            EnvelopeOntology,
+            EnvelopeRequester,
+            EnvelopeTask,
+        )
+        from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner, StreamEvent
+
+        executor_calls: list = []
+
+        class _FakeExecutor:
+            async def execute_batch(self, parsed_calls, **kwargs):
+                executor_calls.extend(parsed_calls)
+                return []
+
+        async def fake_execute_tool(self, tool_name, arguments):
+            assert tool_name == "load_skill"
+            return {
+                "success": True,
+                "skill_id": arguments.get("skill_id"),
+                "content": "full skill text",
+                "references": [],
+            }
+
+        monkeypatch.setattr(SkillProgressiveDiscloser, "execute_tool", fake_execute_tool)
+
+        rounds = [
+            {
+                "tool_calls": [
+                    {
+                        "id": "t1",
+                        "function": {"name": "load_skill", "arguments": '{"skill_id": "flight_ops"}'},
+                    }
+                ],
+                "text": "",
+            },
+            {"tool_calls": [], "text": "done"},
+        ]
+        state = {"idx": 0}
+
+        async def scripted_impl(*args, **kwargs):
+            run_result = kwargs.get("result")
+            spec = rounds[min(state["idx"], len(rounds) - 1)]
+            state["idx"] += 1
+            if run_result is not None:
+                run_result.tool_calls = [dict(tc) for tc in spec["tool_calls"]]
+                run_result.text = spec["text"]
+            yield StreamEvent(type="completed", result=run_result, round_index=state["idx"] - 1)
+
+        envelope = ContextEnvelope(
+            job_id="job-skill-run-1",
+            run_id="skill-run-1",
+            entity_id="test_entity",
+            requester=EnvelopeRequester(user_id="test_user", permissions=["read"]),
+            ontology=EnvelopeOntology(),
+            context=EnvelopeContext(limits=EnvelopeLimits(redaction="standard")),
+            task=EnvelopeTask(task_type="query_ops", user_message="load the flight_ops skill"),
+        )
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = scripted_impl
+        runner._tool_executor = _FakeExecutor()
+
+        events = []
+        async for event in runner.stream_chat_with_tools(
+            messages=[],
+            model="test-model",
+            run_id="skill-run-1",
+            envelope=envelope,
+            max_tool_rounds=3,
+        ):
+            events.append(event)
+
+        # The skill tool never reached the executor; result came back in-process.
+        assert executor_calls == []
+        tool_results = [e for e in events if e.type == "tool_result"]
+        assert tool_results, "expected a tool_result event for load_skill"
+        assert tool_results[0].tool_call.get("result", {}).get("skill_id") == "flight_ops"

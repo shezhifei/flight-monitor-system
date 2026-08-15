@@ -342,6 +342,9 @@ class SkillProgressiveDiscloser:
         return "\n".join(parts)
 
 
+SKILL_TOOL_NAMES = frozenset({"load_skill", "read_skill_reference"})
+
+
 def get_skill_discloser() -> SkillProgressiveDiscloser:
     """Get singleton instance of SkillProgressiveDiscloser."""
     from src.infrastructure.ai.tool_registry import get_tool_executor
@@ -359,6 +362,7 @@ async def register_skills_tools(tools: list[dict[str, Any]]) -> list[dict[str, A
 
 
 __all__ = [
+    "SKILL_TOOL_NAMES",
     "SkillContent",
     "SkillMetadata",
     "SkillProgressiveDiscloser",

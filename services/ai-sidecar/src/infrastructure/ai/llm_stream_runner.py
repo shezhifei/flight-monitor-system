@@ -486,9 +486,46 @@ class LLMStreamRunner:
             # in-process against the run's WorkingMemory (plan.md) — they never
             # go through the executor or the MQ gate.
             from src.infrastructure.ai.tools.plan_tools import execute_plan_tool, is_plan_tool
+            from src.infrastructure.ai.tools.skill_tools import SKILL_TOOL_NAMES
 
             plan_calls = [pc for pc in calls_for_execution if is_plan_tool(pc.get("tool_name") or "")]
-            executor_calls = [pc for pc in calls_for_execution if not is_plan_tool(pc.get("tool_name") or "")]
+            skill_calls = [
+                pc
+                for pc in calls_for_execution
+                if (pc.get("tool_name") or "") in SKILL_TOOL_NAMES
+            ]
+            executor_calls = [
+                pc
+                for pc in calls_for_execution
+                if not is_plan_tool(pc.get("tool_name") or "")
+                and (pc.get("tool_name") or "") not in SKILL_TOOL_NAMES
+            ]
+
+            # C3: load_skill / read_skill_reference are read-only local file
+            # reads against allowlisted skill roots — executed in-process like
+            # the plan tools, never through the executor or the MQ gate.
+            skill_results: list[ToolExecutionResult] = []
+            if skill_calls:
+                from src.infrastructure.ai.tools.skill_tools import SkillProgressiveDiscloser
+
+                discloser = SkillProgressiveDiscloser()
+                for pc in skill_calls:
+                    raw_args = pc.get("arguments")
+                    try:
+                        skill_args = json.loads(raw_args) if isinstance(raw_args, str) else dict(raw_args or {})
+                    except (ValueError, TypeError):
+                        skill_args = {}
+                    result_dict = await discloser.execute_tool(pc.get("tool_name") or "", skill_args)
+                    succeeded = bool(result_dict.get("success"))
+                    skill_results.append(
+                        ToolExecutionResult(
+                            tool_call_id=pc.get("tool_call_id", ""),
+                            tool_name=pc.get("tool_name", ""),
+                            success=succeeded,
+                            result=result_dict if succeeded else None,
+                            error=None if succeeded else result_dict.get("error", "skill tool failed"),
+                        )
+                    )
 
             plan_results: list[ToolExecutionResult] = []
             for pc in plan_calls:
@@ -534,7 +571,7 @@ class LLMStreamRunner:
                     # Job = long-running experiment (days); Run = single execution (minutes)
                     job_id=getattr(envelope, "job_id", None) or run_id,  # Use envelope's job_id if available
                 )
-            execution_results = plan_results + list(execution_results) + hook_blocked_results
+            execution_results = plan_results + skill_results + list(execution_results) + hook_blocked_results
 
             # P0-6-D: Check cancellation after tool response (identity check,
             # see the pre-call guard above for the rationale).
