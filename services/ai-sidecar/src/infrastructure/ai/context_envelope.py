@@ -73,3 +73,5 @@ class ContextEnvelope(BaseModel):
     # what activates budget-driven context compression. Any caller-supplied "system"
     # role entries are ignored — the system prompt is always rebuilt from config.
     conversation_history: list[dict[str, Any]] = Field(default_factory=list)
+    # P0-6-D: Cancellation tracking
+    cancelled: bool = False

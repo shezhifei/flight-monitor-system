@@ -345,6 +345,26 @@ impl AiJobService {
                         .run_repo
                         .update_status(&run.run_id, AiRunStatus::Cancelled.as_str())
                         .await;
+                    // D4: also enqueue a `cancel_run` runtime command so the
+                    // worker owning the run stops it at the next round
+                    // boundary (commands only go through ai_runtime_commands).
+                    // The DB state above is already the source of truth, so
+                    // enqueue failures are logged but never roll it back.
+                    if let Some(control) = &self.control_service {
+                        let requester = job.requester_user_id.as_deref().unwrap_or("system");
+                        if let Err(error) = control
+                            .enqueue_cancel_run(job_id, &run.run_id, requester)
+                            .await
+                        {
+                            tracing::warn!(
+                                target: "ai_job_service",
+                                job_id = %job_id,
+                                run_id = %run.run_id,
+                                error = %error,
+                                "cancel_job: failed to enqueue cancel_run command (DB state already cancelled)"
+                            );
+                        }
+                    }
                 }
             }
         }

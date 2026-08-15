@@ -107,6 +107,10 @@ class CommandDispatcher:
         self._lease_ttl_seconds = max(1, int(lease_ttl_seconds))
         self._cancelling_runs: set[str] = set()
         self._running_runs: dict[str, asyncio.Task[None]] = {}
+        # D4: live envelopes per running run, so cancel_run can flip
+        # ``envelope.cancelled`` and let the runner stop at the next round
+        # boundary instead of hard-cancelling the task mid-tool.
+        self._run_envelopes: dict[str, ContextEnvelope] = {}
         self._lock = asyncio.Lock()
         self._gate_notify_tasks: set[asyncio.Task[Any]] = set()
 
@@ -201,18 +205,30 @@ class CommandDispatcher:
             finally:
                 async with self._lock:
                     self._running_runs.pop(run_id, None)
+                    self._run_envelopes.pop(run_id, None)
                     self._cancelling_runs.discard(run_id)
 
         task = asyncio.create_task(_run(), name=f"run-{run_id}")
         async with self._lock:
             self._running_runs[run_id] = task
+            self._run_envelopes[run_id] = envelope
 
     async def _handle_cancel_run(self, command: dict[str, Any]) -> None:
         run_id = command.get("run_id", "")
         async with self._lock:
             self._cancelling_runs.add(run_id)
+            envelope = self._run_envelopes.get(run_id)
             task = self._running_runs.get(run_id)
 
+        if envelope is not None:
+            # D4: cooperative cancellation — the runner checks
+            # ``envelope.cancelled`` at round boundaries, stops cleanly and
+            # emits the terminal event itself. No mid-tool task.cancel().
+            envelope.cancelled = True
+            return
+
+        # Fallback for runs whose envelope we never saw (e.g. started by
+        # another worker or a stale running entry): hard-cancel the task.
         if task is not None and not task.done():
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):

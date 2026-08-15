@@ -362,6 +362,7 @@ class LLMStreamRunner:
         current_messages = list(messages)
         last_round_index = 0
         consecutive_failures = 0
+        run_cancelled = False
         effective_max_rounds = min(max_tool_rounds or GLOBAL_MAX_TOOL_ROUNDS, GLOBAL_MAX_TOOL_ROUNDS)
 
         for round_index in range(effective_max_rounds):
@@ -373,8 +374,9 @@ class LLMStreamRunner:
             # auto-materialize attributes never read as cancelled.
             if envelope and getattr(envelope, "cancelled", False) is True:
                 logger.info(f"[P0-6-D] Request cancelled before LLM API call, stopping round {round_index}")
+                run_cancelled = True
                 yield StreamEvent(
-                    type="budget_exhausted",
+                    type="cancelled",
                     round_index=last_round_index,
                 )
                 break
@@ -538,8 +540,9 @@ class LLMStreamRunner:
             # see the pre-call guard above for the rationale).
             if envelope and getattr(envelope, "cancelled", False) is True:
                 logger.info(f"[P0-6-D] Request cancelled after tool response at round {round_index}, stopping")
+                run_cancelled = True
                 yield StreamEvent(
-                    type="budget_exhausted",
+                    type="cancelled",
                     round_index=last_round_index,
                 )
                 break
@@ -702,6 +705,13 @@ class LLMStreamRunner:
             }
             current_messages.append(assistant_message)
             current_messages.extend(tool_results_for_llm)
+
+        # D4: a cancelled run stops at the round boundary — no Stop-hook
+        # screening, no after_completion checkpoint, no "completed" event.
+        # The caller (_streaming_tools) emits the terminal run.fail /
+        # RUN_CANCELLED frame instead.
+        if run_cancelled:
+            return
 
         # C2: Stop hooks (NoPromises / OutputGuardrail) screen the final answer.
         # Tokens were already streamed, so a flagged answer is annotated with a

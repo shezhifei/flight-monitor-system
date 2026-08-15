@@ -369,6 +369,30 @@ impl RunLifecycleHook for PgRunLifecycleHook {
             .await
             .map_err(|e| ControlServiceError::InvalidState(format!("fail_run failed: {e}")))?;
 
+        // D4: a cancelled run emits run.fail(RUN_CANCELLED) *after*
+        // `cancel_job` already moved the job to a terminal state. Transitioning
+        // a terminal job would fail with Conflict and send the MQ event into
+        // a retry storm, so treat it as an idempotent duplicate instead.
+        let job = self
+            .job_svc
+            .get_job(&run.job_id)
+            .await
+            .map_err(|e| ControlServiceError::InvalidState(format!("get_job failed: {e}")))?;
+        if AiJobStatus::from_str(&job.status)
+            .map(|s| s.is_terminal())
+            .unwrap_or(false)
+        {
+            tracing::info!(
+                target: "ai_execution_control",
+                run_id = %run_id,
+                job_id = %run.job_id,
+                job_status = %job.status,
+                error_code = %error_code,
+                "run.fail: job already terminal; skipping transition (idempotent)"
+            );
+            return Ok(());
+        }
+
         self.job_svc
             .transition_job(&run.job_id, AiJobStatus::FailedTerminal)
             .await

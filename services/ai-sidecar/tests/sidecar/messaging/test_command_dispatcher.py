@@ -115,11 +115,15 @@ async def test_dispatch_start_run_without_handler_fails() -> None:
 
 
 @pytest.mark.asyncio
-async def test_dispatch_cancel_run_cancels_running_task() -> None:
+async def test_dispatch_cancel_run_sets_envelope_cancelled_without_killing_task() -> None:
+    """D4: cancel_run flips ``envelope.cancelled`` so the runner stops at the
+    next round boundary; the task is NOT hard-cancelled mid-tool."""
     started = asyncio.Event()
     run_block = asyncio.Event()
+    seen: list[ContextEnvelope] = []
 
     async def run_starter(envelope: ContextEnvelope) -> None:
+        seen.append(envelope)
         started.set()
         await run_block.wait()
 
@@ -149,7 +153,48 @@ async def test_dispatch_cancel_run_cancels_running_task() -> None:
     }
     await dispatcher.dispatch(cancel_cmd)
 
+    # Cooperative cancellation: flag set, task still alive at its boundary.
+    assert seen[0].cancelled is True
+    assert "run-1" in dispatcher.running_runs
+    assert "run-1" in dispatcher.cancelling_runs
+
+    # The run finishes cleanly on its own once the boundary is reached.
+    run_block.set()
+    await asyncio.sleep(0.05)
     assert "run-1" not in dispatcher.running_runs
+    assert "run-1" not in dispatcher.cancelling_runs
+
+
+@pytest.mark.asyncio
+async def test_dispatch_cancel_run_without_envelope_falls_back_to_task_cancel() -> None:
+    """Unknown/stale running entries keep the legacy hard-cancel fallback."""
+    dispatcher = CommandDispatcher(
+        worker_id="worker-1",
+        poller=_FakePoller(),
+        run_starter=lambda env: None,
+        heartbeat_interval_seconds=0.01,
+    )
+
+    never = asyncio.Event()
+
+    async def _orphan() -> None:
+        await never.wait()
+
+    task = asyncio.create_task(_orphan())
+    async with dispatcher._lock:
+        dispatcher._running_runs["run-orphan"] = task
+
+    await dispatcher.dispatch(
+        {
+            "command_id": "c-9",
+            "command_type": "cancel_run",
+            "run_id": "run-orphan",
+            "payload": {},
+        }
+    )
+
+    assert task.cancelled()
+    assert "run-orphan" in dispatcher.cancelling_runs
 
 
 @pytest.mark.asyncio

@@ -437,6 +437,7 @@ class _StreamingToolsMixin:
             # type='subagent_event' (sanitized like the parent's tool.result frames).
             subagent_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
             run_completed_emitted = False
+            llm_stream = None
 
             async def _on_child_event(child_event: Any) -> None:
                 subagent_queue.put_nowait(self._sanitize_subagent_event(child_event, run_id))
@@ -447,7 +448,7 @@ class _StreamingToolsMixin:
                     drained.append(subagent_queue.get_nowait())
                 return drained
 
-            async for event in runner.stream_chat_with_tools(
+            llm_stream = runner.stream_chat_with_tools(
                 messages=messages,
                 model=(
                     (
@@ -467,7 +468,8 @@ class _StreamingToolsMixin:
                 working_memory=working_memory,
                 hook_pipeline=hook_pipeline,
                 **prompt_cache_params,
-            ):
+            )
+            async for event in llm_stream:
                 # Bubble any sub-agent events accumulated since the last parent event.
                 for sub_sse in _drain_subagent_queue():
                     yield _sse_event("subagent_event", sub_sse)
@@ -482,6 +484,39 @@ class _StreamingToolsMixin:
                             tool_proposals.append(OutputProposal(**prop_data))
                 elif event.type == "tool_result":
                     yield _sse_event("tool.result", _sanitize_tool_result_event(event.tool_call or {}))
+                elif event.type == "cancelled":
+                    # D4: the runner stopped at a round boundary after the
+                    # cancel_run command flipped envelope.cancelled. Emit the
+                    # terminal frame over SSE and durably over MQ; the Rust
+                    # consumer treats RUN_CANCELLED run.fail as the run's
+                    # terminal state.
+                    last_round_index = getattr(event, "round_index", last_round_index) or last_round_index
+                    output = self._failed_output(
+                        run_id=run_id,
+                        answer="RUN_CANCELLED: run cancelled by operator",
+                        duration_ms=self._elapsed_ms(started),
+                    )
+                    yield _sse_event("run.fail", structured_output_to_response_dict(output))
+                    gate = _resolve_mq_gate()
+                    terminal_sequence = 1
+                    if gate is not None:
+                        try:
+                            terminal_sequence = await gate.next_event_sequence(run_id)
+                        except Exception:  # noqa: BLE001
+                            terminal_sequence = 1
+                    await _publish_run_fail_mq(
+                        _resolve_mq_publisher(),
+                        run_id=run_id,
+                        job_id=getattr(envelope, "job_id", "") or "",
+                        round_index=last_round_index,
+                        event_sequence=terminal_sequence,
+                        error_code="RUN_CANCELLED",
+                        error_message="run cancelled by operator",
+                        require_durable_ack=True,
+                    )
+                    if llm_stream is not None:
+                        await llm_stream.aclose()
+                    return
                 elif event.type == "completed":
                     if run_completed_emitted:
                         continue
