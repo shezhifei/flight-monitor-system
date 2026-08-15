@@ -1,7 +1,19 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
+use fms_application::services::ai_job_service::AiJobServiceError;
+
+/// Map `AiJobServiceError` to an API error. Concurrency-limit rejections
+/// surface as 409 Conflict (carrying `concurrency_limit_exceeded`, the
+/// scope and current/limit values) instead of a generic 500.
+pub(crate) fn map_job_error(err: AiJobServiceError) -> ApiError {
+    match err {
+        AiJobServiceError::ConcurrencyLimitExceeded { .. } => ApiError::Conflict(err.to_string()),
+        other => ApiError::Internal(other.to_string()),
+    }
+}
 
 pub(crate) fn current_user_id(claims: &JwtAuth) -> String {
     claims

@@ -57,6 +57,7 @@ fn map_job_error(err: AiJobServiceError) -> ApiError {
         AiJobServiceError::NotFound(id) => ApiError::NotFound(id),
         AiJobServiceError::Validation(msg) => ApiError::BadRequest(msg),
         AiJobServiceError::Conflict(msg) => ApiError::Conflict(msg),
+        AiJobServiceError::ConcurrencyLimitExceeded { .. } => ApiError::Conflict(err.to_string()),
         AiJobServiceError::Internal(msg) => ApiError::Internal(msg),
     }
 }

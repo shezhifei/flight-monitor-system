@@ -22,8 +22,54 @@ pub enum AiJobServiceError {
     NotFound(String),
     #[error("{0}")]
     Conflict(String),
+    /// The run was rejected because an AI run concurrency limit
+    /// (per-entity or global) is already saturated. The message carries
+    /// the machine-readable code `concurrency_limit_exceeded` plus the
+    /// scope, current active count and configured limit.
+    #[error("concurrency_limit_exceeded ({scope}): {current} active run(s) >= limit {limit}")]
+    ConcurrencyLimitExceeded {
+        scope: ConcurrencyLimitScope,
+        current: i64,
+        limit: i64,
+    },
     #[error("{0}")]
     Internal(String),
+}
+
+/// Which concurrency limit rejected the run creation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConcurrencyLimitScope {
+    /// Per-entity limit (`max_concurrent_runs_per_entity`).
+    Entity,
+    /// Global limit across all entities (`max_concurrent_runs_global`).
+    Global,
+}
+
+impl std::fmt::Display for ConcurrencyLimitScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Entity => "entity",
+            Self::Global => "global",
+        })
+    }
+}
+
+/// Concurrency limits enforced on the run creation path
+/// (`AiJobService::create_run`). Defaults follow the hybrid agent
+/// architecture plan: 4 active runs per entity x 32 globally.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AiRunConcurrencyLimits {
+    pub max_concurrent_runs_per_entity: i64,
+    pub max_concurrent_runs_global: i64,
+}
+
+impl Default for AiRunConcurrencyLimits {
+    fn default() -> Self {
+        Self {
+            max_concurrent_runs_per_entity: 4,
+            max_concurrent_runs_global: 32,
+        }
+    }
 }
 
 impl From<AiJobRepositoryError> for AiJobServiceError {
@@ -183,6 +229,8 @@ pub struct AiJobService {
     /// Connection pool used to begin the outbox write transaction.
     /// Required when `outbox_repo` is `Some`.
     pool: Option<sqlx::PgPool>,
+    /// Concurrency limits enforced in `create_run`.
+    concurrency_limits: AiRunConcurrencyLimits,
 }
 
 impl AiJobService {
@@ -198,7 +246,14 @@ impl AiJobService {
             control_service: None,
             outbox_repo: None,
             pool: None,
+            concurrency_limits: AiRunConcurrencyLimits::default(),
         }
+    }
+
+    /// Override the concurrency limits enforced in `create_run`.
+    pub fn with_concurrency_limits(mut self, limits: AiRunConcurrencyLimits) -> Self {
+        self.concurrency_limits = limits;
+        self
     }
 
     pub fn with_control_service(mut self, control_service: Arc<AiExecutionControlService>) -> Self {
@@ -312,12 +367,45 @@ impl AiJobService {
         model_id: Option<&str>,
         input_envelope: Option<Value>,
     ) -> Result<AiRun, AiJobServiceError> {
+        self.enforce_concurrency_limits(input_envelope.as_ref()).await?;
         let run_id = format!("run_{}", uuid::Uuid::new_v4());
         let record = self
             .run_repo
             .insert(&run_id, job_id, runtime_engine, model_id, input_envelope)
             .await?;
         Ok(record.into())
+    }
+
+    /// Reject run creation when the per-entity or global active-run
+    /// ceiling is already saturated. "Active" follows
+    /// [`AiRunStatus::is_active`] (pending / claimed / running).
+    ///
+    /// The entity id is read from the input envelope using the same
+    /// convention as `PgAiAuthContextLoader`: `entity_id` or
+    /// `context.entity_id`. Runs created without an entity id only
+    /// count towards (and are checked against) the global limit.
+    async fn enforce_concurrency_limits(&self, input_envelope: Option<&Value>) -> Result<(), AiJobServiceError> {
+        if let Some(entity_id) = input_envelope.and_then(extract_envelope_entity_id) {
+            let current = self.run_repo.count_active(Some(entity_id)).await?;
+            let limit = self.concurrency_limits.max_concurrent_runs_per_entity;
+            if current >= limit {
+                return Err(AiJobServiceError::ConcurrencyLimitExceeded {
+                    scope: ConcurrencyLimitScope::Entity,
+                    current,
+                    limit,
+                });
+            }
+        }
+        let current = self.run_repo.count_active(None).await?;
+        let limit = self.concurrency_limits.max_concurrent_runs_global;
+        if current >= limit {
+            return Err(AiJobServiceError::ConcurrencyLimitExceeded {
+                scope: ConcurrencyLimitScope::Global,
+                current,
+                limit,
+            });
+        }
+        Ok(())
     }
 
     pub async fn get_run(&self, run_id: &str) -> Result<AiRun, AiJobServiceError> {
@@ -697,6 +785,18 @@ impl AiJobService {
             );
         }
     }
+}
+
+/// Extract the entity id from an input envelope, following the same
+/// convention as `PgAiAuthContextLoader`: `entity_id` first, then
+/// `context.entity_id`.
+fn extract_envelope_entity_id(envelope: &Value) -> Option<&str> {
+    envelope.get("entity_id").and_then(|v| v.as_str()).or_else(|| {
+        envelope
+            .get("context")
+            .and_then(|c| c.get("entity_id"))
+            .and_then(|v| v.as_str())
+    })
 }
 
 fn derive_run_input_summary(run: &AiRun, input_envelope: &Value) -> RunInputCheckpointSummary {

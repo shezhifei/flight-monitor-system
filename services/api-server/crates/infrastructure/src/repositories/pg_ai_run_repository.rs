@@ -86,6 +86,30 @@ impl AiRunRepository for PgAiRunRepository {
         rows.iter().map(Self::row_to_run).collect()
     }
 
+    async fn count_active(&self, entity_id: Option<&str>) -> Result<i64, AiRunRepositoryError> {
+        // Active statuses mirror AiRunStatus::active_statuses().
+        // Entity id follows the same convention as PgAiAuthContextLoader:
+        // `input_envelope.entity_id` or `input_envelope.context.entity_id`.
+        let count: i64 = match entity_id {
+            Some(entity_id) => sqlx::query_scalar(
+                "SELECT COUNT(*) FROM ai_runs
+                     WHERE status IN ('pending', 'claimed', 'running')
+                       AND COALESCE(input_envelope->>'entity_id', input_envelope->'context'->>'entity_id') = $1",
+            )
+            .bind(entity_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(db_err)?,
+            None => {
+                sqlx::query_scalar("SELECT COUNT(*) FROM ai_runs WHERE status IN ('pending', 'claimed', 'running')")
+                    .fetch_one(&self.pool)
+                    .await
+                    .map_err(db_err)?
+            }
+        };
+        Ok(count)
+    }
+
     async fn update_status(&self, run_id: &str, new_status: &str) -> Result<AiRunRecord, AiRunRepositoryError> {
         let sql = format!(
             "UPDATE ai_runs SET

@@ -56,7 +56,7 @@ pub(crate) async fn query_natural_language_stream(
     let run = job_service
         .create_run(&job.job_id, "python-ai-runtime", None, None)
         .await
-        .map_err(|e| ApiError::Internal(e.to_string()))?;
+        .map_err(super::shared::map_job_error)?;
 
     let _ = job_service
         .append_event(&job.job_id, &run.run_id, evt::RUNTIME_STARTED, None)

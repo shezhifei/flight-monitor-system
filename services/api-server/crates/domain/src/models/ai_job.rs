@@ -211,6 +211,19 @@ impl AiRunStatus {
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Succeeded | Self::FailedTerminal | Self::Cancelled)
     }
+
+    /// Whether the run still occupies execution capacity for concurrency
+    /// limiting: queued (`Pending`), leased (`Claimed`) or actively
+    /// executing (`Running`). Recoverable/stale runs do not occupy a
+    /// worker until they re-enter `Running`.
+    pub fn is_active(&self) -> bool {
+        matches!(self, Self::Pending | Self::Claimed | Self::Running)
+    }
+
+    /// Status strings matching [`AiRunStatus::is_active`], for SQL queries.
+    pub fn active_statuses() -> [&'static str; 3] {
+        [Self::Pending.as_str(), Self::Claimed.as_str(), Self::Running.as_str()]
+    }
 }
 
 impl std::fmt::Display for AiRunStatus {

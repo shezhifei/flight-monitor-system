@@ -20,6 +20,13 @@ pub trait AiRunRepository: Send + Sync {
 
     async fn list_for_job(&self, job_id: &str) -> Result<Vec<AiRunRecord>, AiRunRepositoryError>;
 
+    /// Count runs that still occupy execution capacity (see
+    /// [`crate::models::ai_job::AiRunStatus::is_active`]).
+    /// When `entity_id` is `Some`, only runs whose `input_envelope`
+    /// carries that entity id (`entity_id` or `context.entity_id`) are
+    /// counted; `None` counts all active runs globally.
+    async fn count_active(&self, entity_id: Option<&str>) -> Result<i64, AiRunRepositoryError>;
+
     async fn update_status(&self, run_id: &str, new_status: &str) -> Result<AiRunRecord, AiRunRepositoryError>;
 
     async fn update_input_envelope(&self, run_id: &str, input_envelope: Value) -> Result<(), AiRunRepositoryError>;
@@ -136,6 +143,9 @@ mod tests {
             }
             async fn list_for_job(&self, _job_id: &str) -> Result<Vec<AiRunRecord>, AiRunRepositoryError> {
                 Ok(vec![])
+            }
+            async fn count_active(&self, _entity_id: Option<&str>) -> Result<i64, AiRunRepositoryError> {
+                Ok(0)
             }
             async fn update_status(&self, run_id: &str, new_status: &str) -> Result<AiRunRecord, AiRunRepositoryError> {
                 Ok(AiRunRecord {
