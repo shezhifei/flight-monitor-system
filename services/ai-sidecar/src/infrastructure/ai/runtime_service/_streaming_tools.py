@@ -60,11 +60,17 @@ class _StreamingToolsMixin:
     async def stream_run_with_tools(
         self,
         envelope: ContextEnvelope,
+        *,
+        resume_working_memory: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Async streaming run with full tool execution loop.
 
         Uses LLMStreamRunner.stream_chat_with_tools() for multi-turn tool execution.
         Read-only tools execute locally; write actions generate OutputProposals.
+
+        ``resume_working_memory`` (Task D2): when resuming from a checkpoint,
+        the restored :class:`WorkingMemory` workspace; a fresh one is created
+        otherwise.
         """
         started = time.monotonic()
         run_id = (envelope.run_id or "").strip() or f"run_{uuid.uuid4().hex[:12]}"
@@ -166,10 +172,15 @@ class _StreamingToolsMixin:
 
             # B2: per-run working memory workspace (plan.md / notes.md /
             # evidence.json). Large tool results spill here; the model only
-            # receives summary + pointer.
+            # receives summary + pointer. On resume (Task D2) the workspace
+            # restored from the checkpoint is injected instead.
             from src.infrastructure.ai.working_memory import WorkingMemory
 
-            working_memory = WorkingMemory(run_id=run_id)
+            working_memory = (
+                resume_working_memory
+                if resume_working_memory is not None
+                else WorkingMemory(run_id=run_id)
+            )
 
             # C2: per-run lifecycle hook pipeline (PreToolUse / PostToolUse /
             # PreCompact / Stop). Hooks are synchronous pure functions over the
