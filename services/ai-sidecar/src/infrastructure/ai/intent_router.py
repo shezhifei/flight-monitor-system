@@ -3,9 +3,14 @@
 
 在 LLM 调用之前，基于规则对用户输入进行轻量级意图分类，
 动态裁剪工具集，减少 LLM 面对的工具数量，提高选择准确率并节省 token。
+
+**重要决策**: E4 - task_type/configuration 优先于关键词匹配
+    - 当实体配置明确指定 task_type 时，直接使用（置信度 1.0）
+    - 关键词路由仅作为 fail-open 降级路径（置信度 0.7）
 """
 
 import re
+from dataclasses import dataclass, field
 from typing import Any
 
 from src.infrastructure.logging.core import get_logger
@@ -15,7 +20,7 @@ logger = get_logger(__name__)
 
 class IntentCategory:
     """意图分类常量"""
-
+    
     QUERY_FLIGHT = "query_flight"
     QUERY_ANOMALY = "query_anomaly"
     QUERY_STATS = "query_stats"
@@ -29,6 +34,13 @@ class IntentCategory:
     QUERY_STAND = "query_stand"
     QUERY_DISPATCH = "query_dispatch"
     GENERAL = "general"
+    
+    # Task template aliases (maps to ops templates)
+    TASK_TYPE_ALIAS = {
+        "query_ops": QUERY_FLIGHT,
+        "anomaly_ops": QUERY_ANOMALY,
+        "dispatch_ops": DISPATCH_OPS,
+    }
 
 
 # 预编译正则
@@ -248,22 +260,200 @@ _INTENT_TOOL_MAP: dict[str, list[str]] = {
 }
 
 
+# ============================================================================
+# Task Type Based Routing (E4 Implementation)
+# ============================================================================
+
+@dataclass
+class RouteDecision:
+    """路由决策结果。"""
+    
+    template: str                        # ops template name ("query_ops", "dispatch_ops")
+    confidence: float                    # 0.0-1.0 confidence score
+    source: str                          # "entity_config" | "keyword_fallback" | "default"
+    intent_category: str | None = None   # Legacy intent category (optional)
+    filtered_tools: list[dict[str, Any]] | None = None
+    
+    def is_high_confidence(self) -> bool:
+        """High confidence routing decisions."""
+        return self.confidence >= 0.9
+
+
+class IntentRouter:
+    """意图路由器 - 支持配置优先和关键词降级策略。"""
+    
+    def __init__(self):
+        self._keyword_router = KeywordRouter()
+    
+    async def route(
+        self,
+        user_query: str,
+        envelope: Any | None = None,  # Can be dict, object, or None
+        all_tools: list[dict[str, Any]] | None = None,
+    ) -> RouteDecision:
+        """
+        路由决策：task_type 优先级高于关键词匹配。
+        
+        Args:
+            user_query: User input text
+            envelope: Optional context envelope (object with attributes or dict)
+                     Can be None for keyword-only routing
+            all_tools: Full tool set for filtering. Defaults to empty list.
+            
+        Returns:
+            RouteDecision with template, confidence, and filtered tools
+        """
+        if all_tools is None:
+            all_tools = []
+        # Step 1: Extract task_type from entity configuration (highest priority)
+        task_type = await self._extract_task_type(envelope)
+        
+        if task_type:
+            logger.info(f"[E4] Using configured task_type: {task_type} (confidence=1.0)")
+            
+            # Map to ops template
+            template = f"{task_type}_ops"
+            filtered_tools = self._filter_by_template(template, all_tools)
+            
+            return RouteDecision(
+                template=template,
+                confidence=1.0,
+                source="entity_config",
+                filtered_tools=filtered_tools,
+            )
+        
+        # Step 2: Fallback to keyword-based classification (fail-open)
+        intent_category = self._keyword_router.classify(user_query)
+        
+        if intent_category != IntentCategory.GENERAL:
+            logger.debug(f"[E4] Keyword fallback: {intent_category} (confidence=0.7)")
+            template = f"{intent_category}_ops"
+            filtered_tools = self._filter_by_template(template, all_tools)
+            
+            return RouteDecision(
+                template=template,
+                confidence=0.7,
+                source="keyword_fallback",
+                intent_category=intent_category,
+                filtered_tools=filtered_tools,
+            )
+        
+        # Step 3: Default - no filtering
+        logger.debug("[E4] Default routing: GENERAL (confidence=0.0)")
+        return RouteDecision(
+            template="general_ops",
+            confidence=0.0,
+            source="default",
+            filtered_tools=all_tools,
+        )
+    
+    async def _extract_task_type(self, envelope: Any | None) -> str | None:
+        """Extract task_type from envelope or entity config."""
+        # Check envelope.task.task_type first
+        if hasattr(envelope, 'task') and envelope.task:
+            task_type = getattr(envelope.task, 'task_type', None)
+            if task_type:
+                return task_type
+        
+        # Fallback: extract from entity_id pattern (last resort)
+        # e.g., "dispatch_opt_001" → "dispatch"
+        entity_id = getattr(envelope, 'entity_id', '')
+        
+        # Pattern matching for entity types
+        patterns = {
+            'dispatch': ['dispatch_opt', 'dispatch_optimizer'],
+            'anomaly': ['anomaly_triage', 'anomaly_investigator'],
+            'query': ['flight_query', 'status_checker'],
+        }
+        
+        for task_prefix, aliases in patterns.items():
+            if any(alias in entity_id.lower() for alias in aliases):
+                logger.warning(f"[E4] Inferring task_type={task_prefix} from entity_id (low reliability)")
+                return task_prefix
+        
+        return None
+    
+    def _filter_by_template(
+        self, 
+        template: str, 
+        all_tools: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Filter tools based on ops template requirements."""
+        
+        # Define tool sets per template
+        TEMPLATE_TOOLS = {
+            "query_ops": ["QUERY"],  # Read-only only
+            "anomaly_ops": ["QUERY", "list_anomalies", "get_anomaly_detail"],
+            "dispatch_ops": [
+                "QUERY", "list_anomalies", 
+                "change_stand", "notify_teams",  # Write actions require proposal_only
+            ],
+            "general_ops": [],  # No filtering - return all tools
+        }
+        
+        allowed_names = set(TEMPLATE_TOOLS.get(template, []))
+        if not allowed_names:
+            # Empty list means 'no filtering' for general_ops
+            if template == "general_ops":
+                return all_tools
+            return all_tools
+        
+        filtered = [
+            tool for tool in all_tools 
+            if tool.get("function", {}).get("name", "") in allowed_names
+        ]
+        
+        # Safety check: fall back to full set if too few tools
+        if len(filtered) < 2:
+            logger.warning(
+                f"Template '{template}' filtered to {len(filtered)} tools, "
+                f"falling back to full tool set"
+            )
+            return all_tools
+        
+        logger.debug(f"[E4] Template '{template}' → {len(filtered)}/{len(all_tools)} tools")
+        return filtered
+
+
+class KeywordRouter:
+    """Legacy keyword-based intent classifier (used as fallback)."""
+    
+    def classify(self, user_input: str) -> str:
+        """Classify intent using keyword rules."""
+        if not user_input or user_input.isspace():
+            return IntentCategory.GENERAL
+        
+        text = user_input.lower().strip()
+        
+        # Flight number detection
+        if _FLIGHT_NUMBER_RE.search(user_input):
+            return IntentCategory.QUERY_FLIGHT
+        
+        # Match against rules (existing logic)
+        for keywords, category in _INTENT_RULES:
+            for keyword in keywords:
+                if keyword in text:
+                    return category
+        
+        return IntentCategory.GENERAL
+
+
 def classify_intent(user_input: str) -> str:
     """
     基于关键词规则对用户输入进行意图分类。
 
     Args:
-        user_input: 用户输入文本
+        user_input: User input text
 
     Returns:
-        意图分类字符串
+        Intent classification string
     """
     if not user_input or user_input.isspace():
         return IntentCategory.GENERAL
 
     text = user_input.lower().strip()
 
-    # 检测航班号模式（如 CA1234, MU5678, CZ3022）
+    # Detect flight number pattern (e.g., CA1234, MU5678, CZ3022)
     if _FLIGHT_NUMBER_RE.search(user_input):
         return IntentCategory.QUERY_FLIGHT
 
@@ -282,15 +472,15 @@ def filter_tools_by_intent(
     """
     根据意图分类裁剪工具集。
 
-    如果意图为 GENERAL 或无法识别，返回全量工具。
-    否则只返回该意图关联的工具子集。
+    If intent is GENERAL or unrecognized, return full tool set.
+    Otherwise, only return the tool subset associated with that intent.
 
     Args:
-        intent: 意图分类
-        all_tools: 全量工具列表（OpenAI schema格式）
+        intent: Intent classification
+        all_tools: Full tool list (OpenAI schema format)
 
     Returns:
-        裁剪后的工具列表
+        Filtered tool list
     """
     if intent == IntentCategory.GENERAL:
         return all_tools
@@ -301,7 +491,7 @@ def filter_tools_by_intent(
 
     filtered = [tool for tool in all_tools if tool.get("function", {}).get("name", "") in allowed_names]
 
-    # 安全保障：如果过滤后工具太少（<2），回退到全量
+    # Safety guarantee: if filtered tools are too few (<2), fall back to full set
     if len(filtered) < 2:
         logger.warning(f"Intent '{intent}' filtered to {len(filtered)} tools, falling back to full tool set")
         return all_tools
@@ -315,14 +505,14 @@ def route_tools(
     all_tools: list[dict[str, Any]],
 ) -> tuple[str, list[dict[str, Any]]]:
     """
-    一步完成意图分类 + 工具裁剪。
+    One-step intent classification + tool filtering.
 
     Args:
-        user_input: 用户输入文本
-        all_tools: 全量工具列表
+        user_input: User input text
+        all_tools: Full tool list
 
     Returns:
-        (intent, filtered_tools) 元组
+        (intent, filtered_tools) tuple
     """
     intent = classify_intent(user_input)
     filtered = filter_tools_by_intent(intent, all_tools)

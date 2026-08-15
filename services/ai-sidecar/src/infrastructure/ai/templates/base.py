@@ -25,6 +25,9 @@ class TaskTemplate:
         denied_tools: Tool names always hidden from this task (write actions
             for read-only templates).
         default_max_tool_rounds: Default tool-loop budget (enforced by Task B1).
+        hard_max_tool_rounds: Non-configurable upper bound for this task type;
+            even if the entity config sets a higher value, the runner caps at
+            this number (Task B1 production safety).
     """
 
     task_type: str
@@ -33,6 +36,7 @@ class TaskTemplate:
     allowed_tool_categories: frozenset[str]
     denied_tools: frozenset[str]
     default_max_tool_rounds: int
+    hard_max_tool_rounds: int
 
 
 def template_allows_tool(
@@ -56,6 +60,46 @@ def template_allows_tool(
         category = (tool_category or "").strip()
         return category in template.allowed_tool_categories
     return True
+
+
+def resolve_budget_with_hard_cap(
+    entity_max_rounds: int | None,
+    template: TaskTemplate | None,
+    production_default_hard_cap: int = 20,
+) -> int:
+    """Resolve effective max rounds with per-template hard cap and production default.
+
+    Resolution rules (Task B1):
+    - Unrecognized task_type → default 8, hard cap 12
+    - query_ops → default 6, hard cap 8
+    - anomaly_ops → default 12, hard cap 16
+    - dispatch_ops → default 16, hard cap 20
+    - Production default hard cap: 20 (entity-configurable via tooling.max_rounds,
+      but runner always clamps at min(entity_max, production_default_hard_cap)).
+
+    Args:
+        entity_max_rounds: The entity's tooling.max_rounds setting (default 5 if absent).
+        template: The matched TaskTemplate for this task_type (may be None).
+        production_default_hard_cap: Global production safety cap (default 20).
+
+    Returns:
+        Effective max rounds: min(entity_max, template.hard_cap) capped at production_default_hard_cap.
+    """
+    # Unrecognized task fallback
+    if template is None:
+        effective_default = 8
+        effective_hard_cap = 12
+    else:
+        effective_default = template.default_max_tool_rounds
+        effective_hard_cap = template.hard_max_tool_rounds
+
+    # Entity config can raise up to its own hard cap, then we intersect with the template's hard cap
+    # If entity value is lower than template default, use the template default (never go below)
+    candidate = max(entity_max_rounds or effective_default, effective_default) if entity_max_rounds is not None else effective_default
+    intersected = min(candidate, effective_hard_cap)
+
+    # Final clamp with production hard cap
+    return min(intersected, production_default_hard_cap)
 
 
 __all__ = ["TaskTemplate", "template_allows_tool"]

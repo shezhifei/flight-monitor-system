@@ -24,7 +24,11 @@ from src.infrastructure.ai.structured_output import (
     ReasoningStep,
     TokenUsage,
 )
-from src.infrastructure.ai.templates import get_task_template, template_allows_tool
+from src.infrastructure.ai.templates import (
+    get_task_template,
+    resolve_budget_with_hard_cap,
+    template_allows_tool,
+)
 from src.infrastructure.common.exceptions import REDIS_EXCEPTIONS
 
 from ._constants import CONTRACT_VERSION, STATUS_FAILED, STATUS_SUCCEEDED
@@ -415,6 +419,15 @@ class _StreamingToolsMixin:
                     },
                 )
 
+            # B1: inject round budget from capability snapshot's tool_policy and task template.
+            # Resolution priority (Task B1):
+            #   1. Retrieve entity's tooling.max_rounds from the snapshot
+            #   2. Apply template default + hard cap
+            #   3. Final clamp with production default (20)
+            entity_max_rounds = resolved_config.tool_policy.get("max_rounds", 5)
+            task_template = get_task_template(getattr(envelope.task, "task_type", None))
+            effective_max_tool_rounds = resolve_budget_with_hard_cap(entity_max_rounds, task_template, production_default_hard_cap=20)
+
             # Note: the context cache write-through happens AFTER the model responds
             # (see the "completed" branch below) so the assistant turn is captured in
             # the stored transcript; writing here would persist a stale, reply-less
@@ -500,6 +513,7 @@ class _StreamingToolsMixin:
                 tool_cache_policy=tool_cache_policy,
                 on_child_event=_on_child_event,
                 entity_id=entity_id,
+                max_tool_rounds=effective_max_tool_rounds,
                 **prompt_cache_params,
             ):
                 # Bubble any sub-agent events accumulated since the last parent event.

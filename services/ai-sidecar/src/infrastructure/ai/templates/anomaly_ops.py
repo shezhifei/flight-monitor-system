@@ -24,7 +24,9 @@ ANOMALY_OPS_TEMPLATE = TaskTemplate(
         "decide thresholds yourself.\n"
         "- Cite evidence (tool name + object id) for every fact; mark assumptions as assumptions.\n"
         "- Write actions are proposal-only: submit them as proposals for approval through the "
-        "control plane and never claim they were executed."
+        "control plane and never claim they were executed.\n"
+        "- Use ontology.lookup(entity_id) to retrieve constraint violations and relationships when analyzing anomalies.\n"
+        "- Use ontology.propose_action(problem_state, available_actions) to generate compliant action candidates.\n"
     ),
     # Read-only triage surface: anomaly events, flight details, KPI queries,
     # dispatch read models, and advisor knowledge retrieval.
@@ -34,6 +36,7 @@ ANOMALY_OPS_TEMPLATE = TaskTemplate(
     # = proposal_only). The model proposes; the Rust control plane executes.
     denied_tools=frozenset(),
     default_max_tool_rounds=12,
+    hard_max_tool_rounds=16,
 )
 
 

@@ -36,7 +36,10 @@ DISPATCH_OPS_TEMPLATE = TaskTemplate(
         "the Rust control plane after approval — never claim a schedule was applied or a crew "
         "was reassigned.\n"
         "- Cite evidence (tool name + object id) for every fact; label trade-off reasoning and "
-        "assumptions explicitly."
+        "assumptions explicitly.\n"
+        "- Use ontology.lookup to fetch aircraft-gate compatibility constraints before proposing changes.\n"
+        "- Use ontology.explain_constraints() to validate any proposed gate reassignment or crew change.\n"
+        "- Use ontology.propose_action(problem_state, available_actions) to generate only registered action candidates.\n"
     ),
     # Read-only situational surface: dispatch read models, flight state,
     # aggregate queries, and anomaly conflicts.
@@ -46,6 +49,7 @@ DISPATCH_OPS_TEMPLATE = TaskTemplate(
     # them into OutputProposals for approval.
     denied_tools=_APPLY_SCHEDULE_TOOL_NAMES,
     default_max_tool_rounds=16,
+    hard_max_tool_rounds=20,
 )
 
 

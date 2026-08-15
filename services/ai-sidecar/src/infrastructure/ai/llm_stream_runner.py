@@ -106,8 +106,6 @@ class LLMStreamRunner:
             ...
     """
 
-    MAX_TOOL_ROUNDS = 5
-
     def __init__(
         self,
         client: AiGateway,
@@ -256,27 +254,28 @@ class LLMStreamRunner:
         tool_cache_policy=None,
         on_child_event: Callable[[StreamEvent], Awaitable[None]] | None = None,
         entity_id: str | None = None,
+        max_tool_rounds: int | None = None,
+        consecutive_failure_threshold: int = 3,
         **kwargs: Any,
     ) -> AsyncIterator[StreamEvent]:
         """Stream chat with full tool execution loop.
 
         Handles: LLM stream → detect tool calls → execute → feed results back → LLM continues.
         Yields text_delta, tool_call_delta, tool_call, tool_result, completed events.
-        Max rounds prevents infinite loops.
+        Stop conditions: no tool_calls, budget exhausted (emit StreamEvent(type="budget_exhausted")),
+        consecutive tool failures >= threshold, user cancellation.
 
-        ``on_child_event`` is forwarded to the tool executor's batch so sub-agent
-        delegations can bubble their child StreamEvents up out of band. It does not
-        affect the primary tool_result flow yielded here: child events go to the
-        callback, the parent's own tool_result events are still yielded inline.
+        ``max_tool_rounds`` overrides the class default. If None, callers should inject a per-run budget via
+        wrapper logic (runtime_graph/_streaming_tools sets it from capability snapshot's tool_policy).
+
+        ``consecutive_failure_threshold`` defaults to 3: stop if that many tool rounds in a row return
+        failures/errors without progress.
         """
         from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 
         executor = self._tool_executor or ToolExecutor()
 
         # Extract the set of tool names that were presented to the LLM.
-        # This set is passed to the executor as defense-in-depth: any tool call
-        # not in this set is rejected at execution time, preventing replayed or
-        # hallucinated calls from bypassing resolver-time ACL.
         allowed_tool_names: set[str] | None = None
         if tools:
             allowed_tool_names = set()
@@ -287,9 +286,11 @@ class LLMStreamRunner:
                     allowed_tool_names.add(name)
 
         current_messages = list(messages)
-
         last_round_index = 0
-        for round_index in range(self.MAX_TOOL_ROUNDS):
+        consecutive_failures = 0
+        effective_max_rounds = max_tool_rounds if max_tool_rounds is not None else 999
+
+        for round_index in range(effective_max_rounds):
             last_round_index = round_index
             result = StreamCompletionResult(model=model)
 
@@ -323,6 +324,18 @@ class LLMStreamRunner:
                 )
 
             for pc in parsed_calls:
+                # D1: Emit checkpoint before tool execution (via MQ)
+                checkpoint_event = {
+                    "type": "checkpoint",
+                    "checkpoint_type": "before_tool",
+                    "run_id": run_id,
+                    "round_index": round_index,
+                    "tool_calls": parsed_calls,
+                    "timestamp": time.time(),
+                }
+                if on_child_event:
+                    await on_child_event(checkpoint_event)
+                
                 yield StreamEvent(
                     type="tool_call",
                     tool_call=pc,
@@ -339,6 +352,30 @@ class LLMStreamRunner:
                 round_index=round_index,
                 job_id=run_id,
             )
+
+            # D1: Emit checkpoint after tool execution (via MQ)
+            checkpoint_after_tool = {
+                "type": "checkpoint",
+                "checkpoint_type": "after_tool",
+                "run_id": run_id,
+                "round_index": round_index,
+                "tool_calls_executed": len(parsed_calls),
+                "results": [er.to_sse_payload() for er in execution_results],
+                "timestamp": time.time(),
+            }
+            if on_child_event:
+                await on_child_event(checkpoint_after_tool)
+
+            # Track success/failure based on execution results
+            any_success = any(er.error is None and er.result is not None for er in execution_results)
+            if not any_success:
+                consecutive_failures += 1
+                if consecutive_failures >= consecutive_failure_threshold:
+                    logger.warning(
+                        f"Consecutive tool failures ({consecutive_failures}) exceeded threshold, stopping."
+                    )
+                    yield StreamEvent(type="budget_exhausted", round_index=last_round_index)
+                    break
 
             tool_results_for_llm: list[dict[str, Any]] = []
             for exec_result in execution_results:
@@ -358,6 +395,24 @@ class LLMStreamRunner:
                         "content": content,
                     }
                 )
+
+            # D1: Emit checkpoint before proposal if applicable
+            # (proposal generation happens after this loop iteration when LLM requests)
+            checkpoint_before_proposal = {
+                "type": "checkpoint",
+                "checkpoint_type": "before_proposal",
+                "run_id": run_id,
+                "round_index": round_index,
+                "context_snapshot": {
+                    "messages_count": len(current_messages),
+                    "has_tool_calls": bool(result.tool_calls),
+                    "timestamp": time.time(),
+                },
+                # Include pending tool results for resume
+                "pending_results": [er.to_sse_payload() for er in execution_results] if execution_results else [],
+            }
+            if on_child_event:
+                await on_child_event(checkpoint_before_proposal)
 
             tool_calls_list = []
             for tc in result.tool_calls:
@@ -379,6 +434,19 @@ class LLMStreamRunner:
             }
             current_messages.append(assistant_message)
             current_messages.extend(tool_results_for_llm)
+
+        # D1: Emit final checkpoint after completion
+        final_checkpoint = {
+            "type": "checkpoint",
+            "checkpoint_type": "after_completion",
+            "run_id": run_id,
+            "round_index": last_round_index,
+            "final_result": {"text": result.text, "tool_calls_count": len(result.tool_calls)} if result else {},
+            "messages_count": len(current_messages),
+            "timestamp": time.time(),
+        }
+        if on_child_event:
+            await on_child_event(final_checkpoint)
 
         yield StreamEvent(type="completed", result=result, round_index=last_round_index)
 

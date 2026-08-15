@@ -63,14 +63,18 @@ FEW_SHOT_CASES = """
 
 
 class SimpleKnowledgeBase:
-    """知识库服务：移除本地 RAG，仅通过 PageIndex 检索，失败时回退文件名匹配。"""
+    """知识库服务：通过 HybridRetriever 实现 PostgreSQL 混合检索 (关键词 + 向量)。
+    
+    PageIndex 已弃用，HybridRetriever 提供：
+    - PostgreSQL ts_vector 全文搜索
+    - pgvector 向量相似度检索
+    - RRF 融合算法 (k=60)
+    """
 
     def __init__(
         self,
         base_path: str = "knowledge_base",
         db_pool: Any | None = None,
-        pageindex_api_key: str | None = None,
-        pageindex_client: Any | None = None,
     ):
         self.base_path = Path(base_path)
         self.supported_extensions = {
@@ -84,31 +88,27 @@ class SimpleKnowledgeBase:
             ".yaml",
             ".yml",
         }
-        self.pageindex_extensions = {".pdf"}
+        self._db_pool = db_pool
         self._index: list[dict[str, Any]] = []
         self._extract_errors: list[dict[str, str]] = []
-        self._db_pool = db_pool  # backward compatibility only
-        self._pageindex_api_key = str(pageindex_api_key or os.getenv("PAGEINDEX_API_KEY", "")).strip()
-        self._pageindex_client = pageindex_client
         self._doc_registry: dict[str, dict[str, Any]] = {}
-        self._poll_interval_seconds = 0.8
-        self._poll_max_attempts = 8
+        logger.info(f"[Advisor] SimpleKnowledgeBase initialized with HybridRetriever support")
 
     def index_files(self) -> int:
-        """构建文件索引；不再做本地抽取和分块。"""
+        """构建文件索引；仅用于文档管理（不再用于检索）。"""
         self._index = []
         self._extract_errors = []
         if not self.base_path.exists():
-            logger.warning(f"知识库目录不存在: {self.base_path}")
+            logger.warning(f"知识库目录不存在：{self.base_path}")
             return 0
-
+    
         file_paths: list[Path] = [
             path
             for path in self.base_path.rglob("*")
             if path.is_file() and path.suffix.lower() in self.supported_extensions
         ]
         file_paths.sort(key=lambda path: str(path))
-
+    
         for file_path in file_paths:
             ext = file_path.suffix.lower()
             path_str = str(file_path)
@@ -120,238 +120,97 @@ class SimpleKnowledgeBase:
                 "extract_error": None,
                 "content_hash": content_hash,
             }
-
-            if ext not in self.pageindex_extensions:
-                message = f"unsupported_by_pageindex:{ext}"
-                entry["extract_error"] = message
-                self._upsert_extract_error(path_str, message)
-            else:
-                registry_entry = self._doc_registry.get(path_str) or {}
-                if registry_entry.get("content_hash") != content_hash:
-                    self._doc_registry[path_str] = {
-                        "doc_id": None,
-                        "content_hash": content_hash,
-                        "name": file_path.name,
-                        "category": file_path.parent.name,
-                    }
-
+    
+            # Document registry kept for backward compatibility (not used by HybridRetriever)
+            self._doc_registry[path_str] = {
+                "content_hash": content_hash,
+                "name": file_path.name,
+                "category": file_path.parent.name,
+            }
+    
             self._index.append(entry)
-
-        logger.info(
-            f"已索引 {len(self._index)} 个知识库文件, "
-            f"pageindex_candidates={len([i for i in self._index if not i.get('extract_error')])}, "
-            f"extract_errors={len(self._extract_errors)}"
-        )
+    
+        logger.info(f"已索引 {len(self._index)} 个知识库文件 (仅供文档管理参考)")
         return len(self._index)
 
     async def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
-        """通过 PageIndex 执行检索，失败时回退文件名匹配。"""
-        if not self._index:
-            self.index_files()
-
+        """Use HybridRetriever for PostgreSQL full-text + vector search.
+        
+        Falls back to filename matching when HybridRetriever unavailable.
+        """
+        if not self._db_pool:
+            logger.warning("[Advisor] Database connection pool not available, fallback to filename retrieval")
+            return self._fallback_filename_results(query=query, max_results=max_results)
+        
+        try:
+            from src.infrastructure.ai.hybrid_retriever import HybridRetriever
+        except ImportError as exc:
+            logger.warning(f"[Advisor] Failed to import HybridRetriever: {exc}, fallback to filename retrieval")
+            return self._fallback_filename_results(query=query, max_results=max_results)
+        
         safe_limit = max(1, int(max_results or 5))
         normalized_query = str(query or "").strip()
-        keywords = self._extract_keywords(normalized_query)
-        if not keywords and normalized_query:
-            keywords = [normalized_query.lower()]
+        
         if not normalized_query:
             return []
-
-        pageindex_docs = [item for item in self._index if not item.get("extract_error")]
-        if not pageindex_docs:
-            return self._fallback_filename_results(keywords=keywords, max_results=safe_limit)
-
-        client = self._get_pageindex_client()
-        if client is None:
-            return self._fallback_filename_results(keywords=keywords, max_results=safe_limit)
-
-        await self._ensure_pageindex_documents(client=client, docs=pageindex_docs)
-        retrieval_hits = await self._search_via_pageindex(
-            client=client,
-            docs=pageindex_docs,
-            query=normalized_query,
-            max_results=safe_limit,
-            keywords=keywords,
-        )
-        if retrieval_hits:
-            return retrieval_hits[:safe_limit]
-
+        
+        retriever = HybridRetriever(db_pool=self._db_pool)
+        
+        try:
+            scores = await retriever.search(
+                query=normalized_query,
+                top_k=safe_limit,
+                min_keyword_score=0.3,
+                min_vector_score=0.4,
+            )
+            
+            # Convert SearchScore to dict format expected by callers
+            results = [
+                {
+                    "name": score.chunk.metadata.get("name", Path(score.chunk.source_uri).name),
+                    "path": score.chunk.source_uri,
+                    "category": score.chunk.metadata.get("category", "unknown"),
+                    "chunk_id": str(score.chunk.id),
+                    "chunk_index": score.chunk.chunk_index,
+                    "snippet": str(score.chunk.content)[:280],
+                    "score": round(float(score.combined_score), 4),
+                    "retrieval_mode": "hybrid_rrf",
+                }
+                for score in scores
+            ]
+            
+            if results:
+                logger.info(f"[Advisor] Retrieved {len(results)} chunks via HybridRetriever")
+                return results
+                
+        except Exception as exc:
+            logger.warning(f"[Advisor] HybridRetriever search failed: {exc}")
+        
+        # Fallback to filename matching when HybridRetriever fails
+        keywords = self._extract_keywords(normalized_query)
+        if not keywords:
+            keywords = [normalized_query.lower()] if normalized_query else []
+        
         return self._fallback_filename_results(keywords=keywords, max_results=safe_limit)
 
-    def _get_pageindex_client(self) -> Any | None:
-        if self._pageindex_client is not None:
-            return self._pageindex_client
-        if not self._pageindex_api_key:
-            return None
-        if PageIndexClient is None:
-            logger.warning("pageindex package unavailable, fallback to filename retrieval")
-            return None
-        try:
-            self._pageindex_client = PageIndexClient(api_key=self._pageindex_api_key)
-        except Exception as exc:  # noqa: BLE001 - third-party PageIndex client init may raise arbitrary errors
-            logger.warning(f"初始化 PageIndex 客户端失败: {exc}")
-            return None
-        return self._pageindex_client
+    
 
-    async def _ensure_pageindex_documents(self, client: Any, docs: list[dict[str, Any]]) -> None:
-        for doc in docs:
-            path = str(doc.get("path") or "").strip()
-            if not path:
-                continue
-            content_hash = str(doc.get("content_hash") or "")
-            registry_entry = self._doc_registry.setdefault(
-                path,
-                {
-                    "doc_id": None,
-                    "content_hash": content_hash,
-                    "name": doc.get("name"),
-                    "category": doc.get("category"),
-                },
-            )
-            if registry_entry.get("doc_id") and registry_entry.get("content_hash") == content_hash:
-                continue
 
-            try:
-                resp = await self._run_in_thread(client.submit_document, path)
-                doc_id = self._extract_doc_id(resp)
-                if not doc_id:
-                    raise RuntimeError("doc_id missing in PageIndex submit response")
-                registry_entry["doc_id"] = doc_id
-                registry_entry["content_hash"] = content_hash
-            except (PageIndexAPIError, Exception) as exc:  # noqa: BLE001 - third-party PageIndex client call may raise arbitrary errors
-                message = f"pageindex_submit_failed:{exc}"
-                doc["extract_error"] = message
-                self._upsert_extract_error(path, message)
-                logger.warning(f"PageIndex 文档提交失败 path={path}: {exc}")
 
-    async def _search_via_pageindex(
-        self,
-        *,
-        client: Any,
-        docs: list[dict[str, Any]],
-        query: str,
-        max_results: int,
-        keywords: list[str],
-    ) -> list[dict[str, Any]]:
-        results: list[dict[str, Any]] = []
-        for doc in docs:
-            path = str(doc.get("path") or "").strip()
-            if not path:
-                continue
-            doc_registry = self._doc_registry.get(path) or {}
-            doc_id = str(doc_registry.get("doc_id") or "").strip()
-            if not doc_id:
-                continue
-
-            try:
-                if not await self._run_in_thread(client.is_retrieval_ready, doc_id):
-                    continue
-
-                query_resp = await self._run_in_thread(client.submit_query, doc_id, query, False)
-                retrieval_id = self._extract_retrieval_id(query_resp)
-                if not retrieval_id:
-                    logger.warning(f"PageIndex 查询返回缺少 retrieval_id, path={path}")
-                    continue
-
-                payload = await self._poll_retrieval_result(client, retrieval_id)
-                hits = self._normalize_retrieval_hits(
-                    payload=payload,
-                    doc=doc,
-                    retrieval_id=retrieval_id,
-                    keywords=keywords,
-                )
-                results.extend(hits)
-            except (PageIndexAPIError, Exception) as exc:  # noqa: BLE001 - third-party PageIndex client call may raise arbitrary errors
-                logger.warning(f"PageIndex 查询失败 doc_id={doc_id}: {exc}")
-
-        results.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
-        return results[: max(1, int(max_results or 5))]
-
-    async def _poll_retrieval_result(self, client: Any, retrieval_id: str) -> dict[str, Any]:
-        last_payload: dict[str, Any] = {}
-        for attempt in range(self._poll_max_attempts):
-            payload = await self._run_in_thread(client.get_retrieval, retrieval_id)
-            if isinstance(payload, dict):
-                last_payload = payload
-                if self._iter_retrieval_candidates(payload):
-                    return payload
-                status = str(payload.get("status") or payload.get("state") or "").lower().strip()
-                if status in {"failed", "error", "cancelled", "timeout"}:
-                    raise RuntimeError(f"retrieval status={status}")
-            if attempt < self._poll_max_attempts - 1:
-                await asyncio.sleep(self._poll_interval_seconds)
-        return last_payload
-
-    def _normalize_retrieval_hits(
-        self,
-        *,
-        payload: dict[str, Any],
-        doc: dict[str, Any],
-        retrieval_id: str,
-        keywords: list[str],
-    ) -> list[dict[str, Any]]:
-        hits: list[dict[str, Any]] = []
-        candidates = self._iter_retrieval_candidates(payload)
-        for idx, raw_item in enumerate(candidates):
-            item = raw_item if isinstance(raw_item, dict) else {"text": str(raw_item)}
-            snippet = str(
-                item.get("snippet") or item.get("text") or item.get("content") or item.get("chunk_text") or ""
-            )
-            if not snippet:
-                snippet = self._build_snippet(str(payload), keywords)
-            score = float(item.get("score") or item.get("similarity") or item.get("relevance") or 0.1)
-            chunk_id = item.get("chunk_id") or item.get("id") or f"{retrieval_id}#{idx}"
-            chunk_index = item.get("chunk_index")
-            if chunk_index is None:
-                chunk_index = item.get("index", idx)
-
-            hits.append(
-                {
-                    "name": item.get("name") or doc.get("name"),
-                    "path": item.get("path") or doc.get("path"),
-                    "category": item.get("category") or doc.get("category"),
-                    "chunk_id": chunk_id,
-                    "chunk_index": chunk_index,
-                    "snippet": str(snippet)[:280],
-                    "score": round(score, 4),
-                    "retrieval_mode": item.get("retrieval_mode") or "pageindex_retrieval",
-                }
-            )
-        return hits
-
-    @staticmethod
-    def _iter_retrieval_candidates(payload: dict[str, Any]) -> list[Any]:
-        if not isinstance(payload, dict):
-            return []
-
-        direct_candidates = payload.get("results") or payload.get("result") or payload.get("chunks")
-        if isinstance(direct_candidates, list):
-            return direct_candidates
-
-        data = payload.get("data")
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            for key in ("results", "chunks", "items", "matches", "nodes"):
-                values = data.get(key)
-                if isinstance(values, list):
-                    return values
-        return []
-
-    @staticmethod
-    def _extract_doc_id(resp: Any) -> str | None:
-        if not isinstance(resp, dict):
-            return None
-        return str(resp.get("doc_id") or resp.get("document_id") or resp.get("id") or "").strip() or None
-
-    @staticmethod
-    def _extract_retrieval_id(resp: Any) -> str | None:
-        if not isinstance(resp, dict):
-            return None
-        return str(resp.get("retrieval_id") or resp.get("id") or "").strip() or None
-
-    def _fallback_filename_results(self, keywords: list[str], max_results: int) -> list[dict[str, Any]]:
+    def _fallback_filename_results(self, query: str | None = None, keywords: list[str] | None = None, max_results: int = 5) -> list[dict[str, Any]]:
+        """Fallback to filename matching when HybridRetriever unavailable."""
         fallback_results: list[dict[str, Any]] = []
+            
+        # Extract keywords from query if not provided
+        if keywords is None:
+            query_str = str(query or "").strip()
+            keywords = self._extract_keywords(query_str) if query_str else []
+            if not keywords and query_str:
+                keywords = [query_str.lower()]
+            
+        if not keywords:
+            return []
+            
         for item in self._index:
             name_lower = str(item.get("name", "")).lower()
             if any(keyword in name_lower for keyword in keywords if keyword):
@@ -360,13 +219,14 @@ class SimpleKnowledgeBase:
                         **item,
                         "chunk_id": None,
                         "chunk_index": None,
-                        "snippet": f"文件名匹配: {item.get('name')}",
+                        "snippet": f"文件名匹配：{item.get('name')}",
                         "score": 0.01,
                         "retrieval_mode": "fallback_filename",
                     }
                 )
                 if len(fallback_results) >= max(1, int(max_results or 5)):
                     break
+            
         return fallback_results
 
     def _upsert_extract_error(self, path: str, error: str) -> None:
@@ -392,17 +252,14 @@ class SimpleKnowledgeBase:
         return await asyncio.to_thread(func, *args, **kwargs)
 
     def get_file_list(self) -> list[dict[str, Any]]:
-        """获取所有已索引文件列表。"""
+        """获取所有已索引文件列表（用于文档管理，不再用于检索）。"""
         if not self._index:
             self.index_files()
         return self._index
 
     def get_extract_errors(self, limit: int = 20) -> list[dict[str, str]]:
-        """返回文档抽取失败列表，用于前端提示部分文档不可读。"""
-        safe_limit = max(0, int(limit or 0))
-        if safe_limit == 0:
-            return []
-        return self._extract_errors[:safe_limit]
+        """Return empty - HybridRetriever does not track extraction errors."""
+        return []
 
     @staticmethod
     def _extract_keywords(query: str) -> list[str]:
