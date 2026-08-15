@@ -39,6 +39,16 @@ from src.infrastructure.logging.core import get_logger
 logger = get_logger(__name__)
 
 
+def _extract_tool_object_id(result: Any) -> str:
+    """Best-effort object_id extraction from a tool result for evidence provenance."""
+    if isinstance(result, dict):
+        for key in ("object_id", "flight_id", "anomaly_id", "proposal_id", "order_id", "id"):
+            value = result.get(key)
+            if value:
+                return str(value)
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
@@ -256,6 +266,7 @@ class LLMStreamRunner:
         entity_id: str | None = None,
         max_tool_rounds: int | None = None,
         consecutive_failure_threshold: int = 3,
+        working_memory=None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamEvent]:
         """Stream chat with full tool execution loop.
@@ -270,6 +281,10 @@ class LLMStreamRunner:
 
         ``consecutive_failure_threshold`` defaults to 3: stop if that many tool rounds in a row return
         failures/errors without progress.
+
+        ``working_memory`` (Task B2): optional :class:`WorkingMemory` workspace. Tool results
+        above its spill threshold are written to ``evidence.json`` and the model receives only
+        ``summary + pointer`` instead of the raw payload.
         """
         from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 
@@ -285,14 +300,28 @@ class LLMStreamRunner:
                 if name:
                     allowed_tool_names.add(name)
 
+        # P0-6-A: Enforce global hard cap (never exceed 50 rounds regardless of template)
+        GLOBAL_MAX_TOOL_ROUNDS = 50
+        
         current_messages = list(messages)
         last_round_index = 0
         consecutive_failures = 0
-        effective_max_rounds = max_tool_rounds if max_tool_rounds is not None else 999
+        effective_max_rounds = min(max_tool_rounds or GLOBAL_MAX_TOOL_ROUNDS, GLOBAL_MAX_TOOL_ROUNDS)
 
         for round_index in range(effective_max_rounds):
             last_round_index = round_index
             result = StreamCompletionResult(model=model)
+
+            # P0-6-D: Check cancellation before LLM API call.
+            # ``is True`` (not truthiness) so mock/stub envelopes that
+            # auto-materialize attributes never read as cancelled.
+            if envelope and getattr(envelope, "cancelled", False) is True:
+                logger.info(f"[P0-6-D] Request cancelled before LLM API call, stopping round {round_index}")
+                yield StreamEvent(
+                    type="budget_exhausted",
+                    round_index=last_round_index,
+                )
+                break
 
             async for event in self._stream_chat_impl(
                 messages=current_messages,
@@ -350,8 +379,20 @@ class LLMStreamRunner:
                 entity_id=entity_id,
                 allowed_tool_names=allowed_tool_names,
                 round_index=round_index,
-                job_id=run_id,
+                # P0-6-C: Pass run_id as run_id, not mixed with job_id
+                # Job = long-running experiment (days); Run = single execution (minutes)
+                job_id=getattr(envelope, "job_id", None) or run_id,  # Use envelope's job_id if available
             )
+
+            # P0-6-D: Check cancellation after tool response (identity check,
+            # see the pre-call guard above for the rationale).
+            if envelope and getattr(envelope, "cancelled", False) is True:
+                logger.info(f"[P0-6-D] Request cancelled after tool response at round {round_index}, stopping")
+                yield StreamEvent(
+                    type="budget_exhausted",
+                    round_index=last_round_index,
+                )
+                break
 
             # D1: Emit checkpoint after tool execution (via MQ)
             checkpoint_after_tool = {
@@ -376,6 +417,9 @@ class LLMStreamRunner:
                     )
                     yield StreamEvent(type="budget_exhausted", round_index=last_round_index)
                     break
+            else:
+                # P0-6-B: Reset failure counter after successful round
+                consecutive_failures = 0
 
             tool_results_for_llm: list[dict[str, Any]] = []
             for exec_result in execution_results:
@@ -388,6 +432,18 @@ class LLMStreamRunner:
                 content = (
                     json.dumps(exec_result.result) if exec_result.result is not None else f"Error: {exec_result.error}"
                 )
+                # B2: large results spill into the working-memory workspace; the
+                # model only receives summary + pointer (full text in evidence.json).
+                if (
+                    working_memory is not None
+                    and exec_result.result is not None
+                    and working_memory.should_spill(content)
+                ):
+                    content = working_memory.spill_tool_result(
+                        tool_name=exec_result.tool_name,
+                        content=content,
+                        object_id=_extract_tool_object_id(exec_result.result),
+                    )
                 tool_results_for_llm.append(
                     {
                         "role": "tool",
@@ -407,6 +463,10 @@ class LLMStreamRunner:
                     "messages_count": len(current_messages),
                     "has_tool_calls": bool(result.tool_calls),
                     "timestamp": time.time(),
+                    # B2: working memory snapshot rides the existing checkpoint
+                    # payload (ai_run_checkpoints JSONB); resume restores it via
+                    # ResumeContext.working_memory.
+                    "working_memory": working_memory.to_dict() if working_memory is not None else {},
                 },
                 # Include pending tool results for resume
                 "pending_results": [er.to_sse_payload() for er in execution_results] if execution_results else [],

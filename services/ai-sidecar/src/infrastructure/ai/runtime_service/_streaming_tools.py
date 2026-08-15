@@ -32,6 +32,12 @@ from src.infrastructure.ai.templates import (
 from src.infrastructure.common.exceptions import REDIS_EXCEPTIONS
 
 from ._constants import CONTRACT_VERSION, STATUS_FAILED, STATUS_SUCCEEDED
+from ._mq_publish import (
+    _publish_run_complete_mq,
+    _publish_run_fail_mq,
+    _resolve_mq_gate,
+    _resolve_mq_publisher,
+)
 from .helpers import (
     _iter_answer_chunks,
     _sanitize_tool_call_event,
@@ -48,106 +54,6 @@ from .helpers import (
 from .models import _RunContext
 
 logger = logging.getLogger(__name__)
-
-
-def _resolve_mq_publisher() -> Any | None:
-    """Return the process-wide MQ event publisher, or ``None`` when absent.
-
-    The publisher is registered by the MQ composition root. When
-    absent (degraded mode, no mq-gateway URL configured) the run
-    terminal events go out only over SSE — the durable guarantee is
-    silently skipped.
-    """
-    try:
-        from src.infrastructure.ai.ai_container import get_ai_container
-
-        return get_ai_container().resolve("mq_event_publisher", None)
-    except Exception:  # noqa: BLE001 - composition root lookups are best-effort
-        return None
-
-
-def _resolve_mq_gate() -> Any | None:
-    """Return the process-wide :class:`ToolMqGate`, or ``None`` when absent."""
-    try:
-        from src.infrastructure.ai.ai_container import get_ai_container
-
-        return get_ai_container().resolve("tool_mq_gate", None)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-async def _publish_run_complete_mq(
-    publisher: Any | None,
-    gate: Any | None,
-    *,
-    run_id: str,
-    job_id: str,
-    round_index: int,
-    event_sequence: int,
-    output: dict[str, Any],
-    proposal_ids: list[str] | None = None,
-    terminal_event_id: str | None = None,
-) -> None:
-    """Publish a ``run.complete`` MQ event. Best-effort; never raises."""
-    if publisher is None:
-        return
-    try:
-        from src.infrastructure.ai.messaging import build_run_complete
-
-        envelope = build_run_complete(
-            run_id=run_id,
-            job_id=job_id,
-            round_index=round_index,
-            event_sequence=event_sequence,
-            idempotency_key=f"{run_id}:complete:{terminal_event_id or ''}".rstrip(":"),
-            output_raw=output,
-            token_usage=output.get("token_usage") if isinstance(output, dict) else None,
-            proposal_ids=proposal_ids or [],
-            terminal_event_id=terminal_event_id,
-        )
-        await publisher.publish(envelope)
-    except Exception as exc:  # noqa: BLE001 - MQ publish is best-effort
-        logger.warning(
-            "ai_mq_run_complete_publish_failed run_id=%s err=%s",
-            run_id,
-            exc,
-        )
-
-
-async def _publish_run_fail_mq(
-    publisher: Any | None,
-    *,
-    run_id: str,
-    job_id: str,
-    round_index: int,
-    event_sequence: int,
-    error_code: str,
-    error_message: str,
-    terminal_event_id: str | None = None,
-) -> None:
-    """Publish a ``run.fail`` MQ event. Best-effort; never raises."""
-    if publisher is None:
-        return
-    try:
-        from src.infrastructure.ai.messaging import build_run_fail
-
-        envelope = build_run_fail(
-            run_id=run_id,
-            job_id=job_id,
-            round_index=round_index,
-            event_sequence=event_sequence,
-            idempotency_key=f"{run_id}:fail:{terminal_event_id or ''}".rstrip(":"),
-            error_code=error_code,
-            error_message=error_message,
-            terminal_event_id=terminal_event_id,
-        )
-        await publisher.publish(envelope)
-    except Exception as exc:  # noqa: BLE001 - MQ publish is best-effort
-        logger.warning(
-            "ai_mq_run_fail_publish_failed run_id=%s err=%s",
-            run_id,
-            exc,
-        )
 
 
 class _StreamingToolsMixin:
@@ -171,7 +77,7 @@ class _StreamingToolsMixin:
                 duration_ms=self._elapsed_ms(started),
             )
             yield _sse_event("run.complete", structured_output_to_response_dict(output))
-            await _publish_run_fail_mq(
+            success = await _publish_run_fail_mq(
                 _resolve_mq_publisher(),
                 run_id=run_id,
                 job_id=getattr(envelope, "job_id", "") or "",
@@ -179,7 +85,10 @@ class _StreamingToolsMixin:
                 event_sequence=1,
                 error_code="VALIDATION_FAILED",
                 error_message="; ".join(validation_errors),
+                require_durable_ack=True,
             )
+            if not success:
+                logger.error(f"Failed to publish durable run.fail for validation error, run={run_id}")
             return
 
         # Resolve entity capabilities (shared preamble; tool path reuses cache).
@@ -254,6 +163,13 @@ class _StreamingToolsMixin:
             # Import through the package so tests can patch
             # ``src.infrastructure.ai.runtime_service.LLMStreamRunner``.
             from src.infrastructure.ai.runtime_service import LLMStreamRunner
+
+            # B2: per-run working memory workspace (plan.md / notes.md /
+            # evidence.json). Large tool results spill here; the model only
+            # receives summary + pointer.
+            from src.infrastructure.ai.working_memory import WorkingMemory
+
+            working_memory = WorkingMemory(run_id=run_id)
 
             runner = LLMStreamRunner(
                 client=gateway,
@@ -409,6 +325,7 @@ class _StreamingToolsMixin:
                 tools=tools,
                 resolved_config=resolved_config,
                 skill_instruction_tokens=skill_instruction_tokens,
+                envelope=envelope,
             )
             if compression_payload is not None:
                 yield _sse_event(
@@ -514,6 +431,7 @@ class _StreamingToolsMixin:
                 on_child_event=_on_child_event,
                 entity_id=entity_id,
                 max_tool_rounds=effective_max_tool_rounds,
+                working_memory=working_memory,
                 **prompt_cache_params,
             ):
                 # Bubble any sub-agent events accumulated since the last parent event.
@@ -611,7 +529,8 @@ class _StreamingToolsMixin:
                             terminal_sequence = await gate.next_event_sequence(run_id)
                         except Exception:  # noqa: BLE001
                             terminal_sequence = 1
-                    await _publish_run_complete_mq(
+
+                    mq_success = await _publish_run_complete_mq(
                         publisher,
                         gate,
                         run_id=run_id,
@@ -621,7 +540,22 @@ class _StreamingToolsMixin:
                         output=output_dict,
                         proposal_ids=[p.proposal_id for p in all_proposals if getattr(p, "proposal_id", None)],
                         terminal_event_id=terminal_event_id,
+                        require_durable_ack=True,
                     )
+
+                    if not mq_success:
+                        logger.error(
+                            "Critical: Failed to publish durable run.complete after 3 attempts. "
+                            "Run may appear stuck in running state. "
+                            f"run_id={run_id}"
+                        )
+                        # Mark as failed without durable event
+                        output = self._failed_output(
+                            run_id=run_id,
+                            answer="DURABLE_EVENT_PUBLISH_FAILED: Terminal event could not be durably published",
+                            duration_ms=self._elapsed_ms(started),
+                        )
+                        yield _sse_event("run.fail", structured_output_to_response_dict(output))
 
                     # Context cache write-through: persist the running transcript so the
                     # next turn can reuse it as prior history. Excludes the system prompt

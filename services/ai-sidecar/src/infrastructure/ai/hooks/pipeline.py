@@ -38,6 +38,7 @@ class HookContext:
     tool_result: dict[str, Any] | None = None
     messages: list[dict[str, Any]] | None = None
     envelope: Any | None = None
+    working_memory: Any | None = None  # WorkingMemory workspace (Task B2), shared across phases
     errors: list[str] = field(default_factory=list)
 
     def add_error(self, error: str) -> None:
@@ -179,8 +180,10 @@ class ObjectExistenceCheckHook(BaseHook):
 class ResultSanitizationHook(BaseHook):
     """PostToolUse hook: sanitize tool results before returning.
     
-    Removes sensitive information, clips large payloads, and ensures
-    results conform to SSE delivery constraints.
+    Removes sensitive information and spills oversized payloads into the
+    working-memory workspace (Task B2): the full result goes to
+    ``evidence.json`` and the model only receives ``summary + pointer``
+    instead of the old discard-style "... [truncated]" clip.
     """
 
     @property
@@ -196,10 +199,14 @@ class ResultSanitizationHook(BaseHook):
         try:
             result = ctx.tool_result
             
-            # Clip if too large
+            # Spill oversized content to the working-memory workspace.
             if isinstance(result.get("content"), str) and len(result["content"]) > MAX_RESULT_SIZE:
-                result["content"] = result["content"][:MAX_RESULT_SIZE] + "... [truncated]"
-                logger.warning(f"Result clipped for {ctx.tool_name} (exceeded {MAX_RESULT_SIZE} bytes)")
+                memory = self._resolve_working_memory(ctx)
+                result["content"] = memory.spill_tool_result(
+                    tool_name=ctx.tool_name or "unknown_tool",
+                    content=result["content"],
+                )
+                logger.warning(f"Result spilled to working memory for {ctx.tool_name} (exceeded {MAX_RESULT_SIZE} bytes)")
                 
             # Remove sensitive fields (implement based on policy)
             self._remove_sensitive_data(result)
@@ -207,9 +214,18 @@ class ResultSanitizationHook(BaseHook):
             logger.debug(f"Result sanitized for {ctx.tool_name}")
             return True
             
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"Result sanitization failed: {exc}")
             return False
+
+    @staticmethod
+    def _resolve_working_memory(ctx: HookContext):
+        """Reuse the run's workspace when present; otherwise create one per context."""
+        from src.infrastructure.ai.working_memory import WorkingMemory
+
+        if ctx.working_memory is None:
+            ctx.working_memory = WorkingMemory(run_id=ctx.run_id)
+        return ctx.working_memory
     
     def _remove_sensitive_data(self, result: dict[str, Any]) -> None:
         """Remove or mask sensitive fields."""
