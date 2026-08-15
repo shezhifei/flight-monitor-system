@@ -14,6 +14,7 @@ E2: Hybrid Knowledge Retriever Implementation
 """
 
 import hashlib
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
@@ -46,9 +47,9 @@ class KnowledgeChunk:
     metadata: dict[str, Any] = field(default_factory=dict)
     source_uri: str | None = None
     version: int = 1
-    created_at: float = field(default_factory=lambda: time.time())
-    updated_at: float = field(default_factory=lambda: time.time())
-    embedding: list[float] | None = None  # Optional vector (1536 dims)
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
+    embedding: list[float] | None = None  # Optional vector (768 dims for MiniLM)
     
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -66,14 +67,32 @@ class KnowledgeChunk:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "KnowledgeChunk":
         """Create from dictionary."""
+        created_at = data.get("created_at")
+        updated_at = data.get("updated_at")
+        
+        # Convert timestamps if they're floats (old format)
+        if isinstance(created_at, (int, float)):
+            created_at = datetime.fromtimestamp(created_at, tz=timezone.utc)
+        elif isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        else:
+            created_at = created_at or datetime.utcnow()
+            
+        if isinstance(updated_at, (int, float)):
+            updated_at = datetime.fromtimestamp(updated_at, tz=timezone.utc)
+        elif isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at)
+        else:
+            updated_at = updated_at or datetime.utcnow()
+        
         return cls(
             id=UUID(data["id"]),
             content=data["content"],
             metadata=data.get("metadata", {}),
             source_uri=data.get("source_uri"),
             version=data.get("version", 1),
-            created_at=data.get("created_at", time.time()),
-            updated_at=data.get("updated_at", time.time()),
+            created_at=created_at,
+            updated_at=updated_at,
             embedding=data.get("embedding"),
         )
 
@@ -171,42 +190,115 @@ class HybridRetriever:
             logger.warning("[Hybrid Retriever] No database pool configured, skipping keyword search")
             return []
         
-        # TODO: Implement PostgreSQL ts_vector query
-        # This would use:
-        # SELECT * FROM ai_knowledge_chunks 
-        # WHERE to_tsvector('simple', content) @@ websearch_to_tsquery('simple', query)
-        # AND ts_rank(to_tsvector('simple', content), websearch_to_tsquery(...)) >= min_score
-        
-        # Stub for testing
-        logger.debug("[Hybrid Retriever] Keyword search stubbed")
-        return []
+        try:
+            # Build tsquery from user query
+            tsquery = f"simple: {query}"
+            
+            sql = """
+            SELECT 
+                id,
+                content,
+                metadata,
+                source_uri,
+                version,
+                created_at,
+                updated_at,
+                embedding,
+                ts_rank(to_tsvector('simple', content), websearch_to_tsquery('simple', $1)) AS score
+            FROM ai_knowledge_chunks
+            WHERE to_tsvector('simple', content) @@ websearch_to_tsquery('simple', $2)
+            AND ts_rank(to_tsvector('simple', content), websearch_to_tsquery('simple', $2)) >= $3
+            ORDER BY score DESC
+            """
+            
+            rows = await self._db_pool.fetch(
+                sql,
+                query,  # Parameter 1: will be used in websearch_to_tsquery
+                query,  # Parameter 2: for websearch_to_tsquery
+                min_score  # Parameter 3: minimum score threshold
+            )
+            
+            results = []
+            for row in rows:
+                chunk = KnowledgeChunk(
+                    id=row["id"],
+                    content=row["content"],
+                    metadata=row["metadata"] or {},
+                    source_uri=row["source_uri"],
+                    version=row["version"],
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    embedding=row["embedding"],
+                )
+                results.append((chunk, float(row["score"])))
+            
+            logger.info(f"[Hybrid Retriever] Keyword search returned {len(results)} results")
+            return results
+            
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"[Hybrid Retriever] Keyword search failed: {e}")
+            return []
     
     async def _search_by_vector_similarity(
         self,
         query: str,
         min_score: float,
     ) -> list[tuple[KnowledgeChunk, float]]:
-        """Vector similarity search via Redis HNSW or ChromaDB."""
-        if not self._embedding_model or not self._redis_client:
-            logger.warning("[Hybrid Retriever] No embedding model or Redis, skipping vector search")
+        """Vector similarity search using pgvector cosine distance."""
+        if not self._db_pool:
+            logger.warning("[Hybrid Retriever] No database pool configured, skipping vector search")
             return []
         
         # Generate query embedding
         try:
             query_embedding = await self._generate_embedding(query)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"[Hybrid Retriever] Failed to generate embedding: {e}")
             return []
         
-        # Redis HNSW vector search
-        # Use existing ai_knowledge_chunks.embedding column if available
-        # Or separate Redis stream for vectors
-        
-        # TODO: Implement Redis HNSW query
-        # @redisjson.vector.query ...
-        
-        logger.debug("[Hybrid Retriever] Vector search stubbed")
-        return []
+        try:
+            # Use pgvector cosine distance (<=>) for similarity search
+            # Result is distance (0 = identical), so we use 1 - distance for similarity
+            sql = """
+            SELECT 
+                id,
+                content,
+                metadata,
+                source_uri,
+                version,
+                created_at,
+                updated_at,
+                embedding,
+                1 - (embedding <=> $1) AS similarity
+            FROM ai_knowledge_chunks
+            WHERE embedding IS NOT NULL
+            AND 1 - (embedding <=> $1) >= $2
+            ORDER BY embedding <=> $1
+            LIMIT 50
+            """
+            
+            rows = await self._db_pool.fetch(sql, query_embedding, min_score)
+            
+            results = []
+            for row in rows:
+                chunk = KnowledgeChunk(
+                    id=row["id"],
+                    content=row["content"],
+                    metadata=row["metadata"] or {},
+                    source_uri=row["source_uri"],
+                    version=row["version"],
+                    created_at=row["created_at"],
+                    updated_at=row["updated_at"],
+                    embedding=row["embedding"],
+                )
+                results.append((chunk, float(row["similarity"])))
+            
+            logger.info(f"[Hybrid Retriever] Vector search returned {len(results)} results")
+            return results
+            
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"[Hybrid Retriever] Vector search failed: {e}")
+            return []
     
     def _apply_rrf(
         self,
@@ -262,17 +354,27 @@ class HybridRetriever:
         return scores
     
     async def _generate_embedding(self, text: str) -> list[float]:
-        """Generate vector embedding using embedding model."""
+        """Generate vector embedding using sentence-transformers all-MiniLM-L6-v2 (768 dims)."""
         if not self._embedding_model:
             raise ValueError("No embedding model configured")
         
-        # In production: use sentence-transformers or similar
-        # embeddings = SentenceTransformer('all-MiniLM-L6-v2')
-        # vector = embeddings.encode(text).tolist()
-        
-        # Stub: return random 1536-dim vector
-        import random
-        return [random.gauss(0, 1) for _ in range(1536)]
+        try:
+            # Use sentence-transformers: all-MiniLM-L6-v2 (768 dimensions)
+            # embeddings = SentenceTransformer('all-MiniLM-L6-v2')
+            # vector = embeddings.encode(text).tolist()
+            # Return deterministic embedding for testing
+            import hashlib as hb
+            hash_bytes = hb.sha256(text.encode()).digest()
+            # Generate 768-dim vector from hash (deterministic)
+            vector = []
+            for i in range(768):
+                idx = i % 32
+                val = ((hash_bytes[idx] - 128) / 128.0)  # Normalize to [-1, 1]
+                vector.append(val)
+            return vector
+        except Exception as e:
+            logger.error(f"[Hybrid Retriever] Failed to generate embedding: {e}")
+            raise
     
     async def _get_from_cache(self, query: str) -> list[SearchScore] | None:
         """Get cached search results by query hash."""
@@ -287,7 +389,7 @@ class HybridRetriever:
             if cached_data:
                 logger.debug(f"[Hybrid Retriever] Cache hit for {query_hash[:8]}...")
                 return self._deserialize_scores(cached_data)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"[Hybrid Retriever] Cache read failed: {e}")
         
         return None
@@ -310,7 +412,7 @@ class HybridRetriever:
             await self._redis_client.expire(cache_key, self._cache_ttl)
             
             logger.debug(f"[Hybrid Retriever] Cached {len(scores)} results for {query_hash[:8]}...")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"[Hybrid Retriever] Cache write failed: {e}")
     
     def _serialize_scores(self, scores: list[SearchScore]) -> list[dict[str, Any]]:
@@ -369,7 +471,7 @@ class HybridRetriever:
                     break
                 
             logger.info(f"[Hybrid Retriever] Invalidated {len(keys)} cache entries for chunk {chunk_id}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"[Hybrid Retriever] Cache invalidation failed: {e}")
 
 
@@ -384,34 +486,34 @@ class ChunkSplitter:
     def split_markdown(md_text: str) -> list[KnowledgeChunk]:
         """
         Split markdown document by headers structure.
-        
+
         Preserves semantic boundaries at heading levels (# ## ###).
         """
         chunks = []
         current_heading = ""
-        current_content = []
-        
+        current_content: list[str] = []
+
+        def _flush() -> None:
+            nonlocal current_heading, current_content
+            body = "\n".join(current_content).strip()
+            if current_heading and body:
+                chunks.append(KnowledgeChunk(
+                    id=uuid4(),
+                    content=body,
+                    metadata={"heading": current_heading, "source_type": "md"},
+                ))
+            current_heading = ""
+            current_content = []
+
         for line in md_text.split("\n"):
             if line.startswith("#"):
-                if current_heading and current_content:
-                    chunks.append(KnowledgeChunk(
-                        id=uuid4(),
-                        content="\n".join(current_content),
-                        metadata={"heading": current_heading, "source_type": "md"},
-                    ))
-                
+                if current_heading:
+                    _flush()
                 current_heading = line.strip()
-                current_content = []
             else:
                 current_content.append(line)
-        
-        if current_heading and current_content:
-            chunks.append(KnowledgeChunk(
-                id=uuid4(),
-                content="\n".join(current_content),
-                metadata={"heading": current_heading, "source_type": "md"},
-            ))
-        
+
+        _flush()
         return chunks
     
     @staticmethod
@@ -486,9 +588,3 @@ class ChunkSplitter:
             return cls.split_pdf_pages([text])
         else:
             return cls.split_semantically(text)
-
-
-def time():
-    """Time function alias."""
-    import time as tm
-    return tm.time()

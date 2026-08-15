@@ -135,24 +135,32 @@ class SimpleKnowledgeBase:
 
     async def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
         """Use HybridRetriever for PostgreSQL full-text + vector search.
-        
-        Falls back to filename matching when HybridRetriever unavailable.
+
+        Falls back to body-text keyword matching over locally readable
+        files (returns snippet + provenance, never a bare filename list),
+        then to filename matching as the last resort.
         """
-        if not self._db_pool:
-            logger.warning("[Advisor] Database connection pool not available, fallback to filename retrieval")
-            return self._fallback_filename_results(query=query, max_results=max_results)
-        
-        try:
-            from src.infrastructure.ai.hybrid_retriever import HybridRetriever
-        except ImportError as exc:
-            logger.warning(f"[Advisor] Failed to import HybridRetriever: {exc}, fallback to filename retrieval")
-            return self._fallback_filename_results(query=query, max_results=max_results)
-        
         safe_limit = max(1, int(max_results or 5))
         normalized_query = str(query or "").strip()
         
         if not normalized_query:
             return []
+        
+        if not self._db_pool:
+            logger.warning("[Advisor] Database connection pool not available, fallback to body-text retrieval")
+            body_hits = self._fallback_body_text_results(normalized_query, safe_limit)
+            if body_hits:
+                return body_hits
+            return self._fallback_filename_results(query=normalized_query, max_results=safe_limit)
+        
+        try:
+            from src.infrastructure.ai.hybrid_retriever import HybridRetriever
+        except ImportError as exc:
+            logger.warning(f"[Advisor] Failed to import HybridRetriever: {exc}, fallback to body-text retrieval")
+            body_hits = self._fallback_body_text_results(normalized_query, safe_limit)
+            if body_hits:
+                return body_hits
+            return self._fallback_filename_results(query=normalized_query, max_results=safe_limit)
         
         retriever = HybridRetriever(db_pool=self._db_pool)
         
@@ -167,11 +175,10 @@ class SimpleKnowledgeBase:
             # Convert SearchScore to dict format expected by callers
             results = [
                 {
-                    "name": score.chunk.metadata.get("name", Path(score.chunk.source_uri).name),
+                    "name": Path(score.chunk.source_uri).name,
                     "path": score.chunk.source_uri,
                     "category": score.chunk.metadata.get("category", "unknown"),
                     "chunk_id": str(score.chunk.id),
-                    "chunk_index": score.chunk.chunk_index,
                     "snippet": str(score.chunk.content)[:280],
                     "score": round(float(score.combined_score), 4),
                     "retrieval_mode": "hybrid_rrf",
@@ -183,15 +190,65 @@ class SimpleKnowledgeBase:
                 logger.info(f"[Advisor] Retrieved {len(results)} chunks via HybridRetriever")
                 return results
                 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.warning(f"[Advisor] HybridRetriever search failed: {exc}")
         
-        # Fallback to filename matching when HybridRetriever fails
+        # Fallback to body-text matching, then filename matching.
+        body_hits = self._fallback_body_text_results(normalized_query, safe_limit)
+        if body_hits:
+            return body_hits
         keywords = self._extract_keywords(normalized_query)
         if not keywords:
             keywords = [normalized_query.lower()] if normalized_query else []
         
         return self._fallback_filename_results(keywords=keywords, max_results=safe_limit)
+
+    def _fallback_body_text_results(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
+        """Body-text keyword matching over locally readable KB files.
+
+        Returns snippet + provenance per plan E2 ("SOP 能按正文命中",
+        "返回片段和出处，不返回文件名列表"). Binary formats (pdf/docx/xlsx)
+        are skipped here — they are served by the DB-backed retriever.
+        """
+        if not self._index:
+            self.index_files()
+        
+        keywords = self._extract_keywords(query)
+        if not keywords:
+            keywords = [str(query).strip().lower()] if str(query).strip() else []
+        if not keywords:
+            return []
+        
+        text_exts = {".md", ".txt", ".csv", ".json", ".yaml", ".yml"}
+        results: list[dict[str, Any]] = []
+        
+        for item in self._index:
+            path = Path(item.get("path", ""))
+            if path.suffix.lower() not in text_exts:
+                continue
+            try:
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            lower = content.lower()
+            if any(keyword in lower for keyword in keywords):
+                snippet = self._build_snippet(content, keywords)
+                results.append(
+                    {
+                        **item,
+                        "chunk_id": None,
+                        "chunk_index": None,
+                        "snippet": snippet,
+                        "score": 0.5,
+                        "retrieval_mode": "fallback_body_text",
+                    }
+                )
+                if len(results) >= max(1, int(max_results or 5)):
+                    break
+        
+        if results:
+            logger.info(f"[Advisor] Body-text fallback matched {len(results)} documents")
+        return results
 
     
 
