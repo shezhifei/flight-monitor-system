@@ -267,6 +267,7 @@ class LLMStreamRunner:
         max_tool_rounds: int | None = None,
         consecutive_failure_threshold: int = 3,
         working_memory=None,
+        hook_pipeline=None,
         **kwargs: Any,
     ) -> AsyncIterator[StreamEvent]:
         """Stream chat with full tool execution loop.
@@ -285,10 +286,24 @@ class LLMStreamRunner:
         ``working_memory`` (Task B2): optional :class:`WorkingMemory` workspace. Tool results
         above its spill threshold are written to ``evidence.json`` and the model receives only
         ``summary + pointer`` instead of the raw payload.
+
+        ``hook_pipeline`` (Task C2): optional :class:`HookPipeline`. When provided,
+        ``PreToolUse`` hooks gate every tool call (a denied call becomes an error
+        result fed back to the model and never reaches the executor),
+        ``PostToolUse`` hooks sanitize/spill each tool result, and ``Stop``
+        hooks screen the final answer (a flagged answer is annotated with a
+        warning marker, since its tokens were already streamed).
         """
-        from src.infrastructure.ai.tools.tool_executor import ToolExecutor
+        from src.infrastructure.ai.tools.tool_executor import ToolExecutionResult, ToolExecutor
 
         executor = self._tool_executor or ToolExecutor()
+
+        # C2: lifecycle hook context type, imported once when a pipeline is wired.
+        HookContext = None
+        if hook_pipeline is not None:
+            from src.infrastructure.ai.hooks.pipeline import HookContext as _HookContext
+
+            HookContext = _HookContext
 
         # Extract the set of tool names that were presented to the LLM.
         allowed_tool_names: set[str] | None = None
@@ -370,19 +385,60 @@ class LLMStreamRunner:
                     tool_call=pc,
                 )
 
-            execution_results = await executor.execute_batch(
-                parsed_calls,
-                run_id=run_id,
-                envelope=envelope,
-                cache_policy=tool_cache_policy,
-                on_child_event=on_child_event,
-                entity_id=entity_id,
-                allowed_tool_names=allowed_tool_names,
-                round_index=round_index,
-                # P0-6-C: Pass run_id as run_id, not mixed with job_id
-                # Job = long-running experiment (days); Run = single execution (minutes)
-                job_id=getattr(envelope, "job_id", None) or run_id,  # Use envelope's job_id if available
-            )
+            # C2: PreToolUse lifecycle hooks (schema / object existence / lease
+            # preflight). A denied call never reaches the executor; it becomes
+            # an error result fed back to the model.
+            hook_blocked_results: list[ToolExecutionResult] = []
+            calls_for_execution = parsed_calls
+            if hook_pipeline is not None:
+                calls_for_execution = []
+                for pc in parsed_calls:
+                    raw_args = pc.get("arguments")
+                    try:
+                        hook_args = json.loads(raw_args) if isinstance(raw_args, str) else dict(raw_args or {})
+                    except (ValueError, TypeError):
+                        hook_args = {}
+                    hook_ctx = HookContext(
+                        phase="PreToolUse",
+                        run_id=run_id,
+                        tool_name=pc.get("tool_name") or "",
+                        tool_args=hook_args,
+                        envelope=envelope,
+                        working_memory=working_memory,
+                        mq_gate=getattr(executor, "mq_gate", None),
+                    )
+                    if await hook_pipeline.execute_phase("PreToolUse", hook_ctx):
+                        calls_for_execution.append(pc)
+                    else:
+                        reason = "; ".join(hook_ctx.errors) or "blocked by PreToolUse hook"
+                        logger.warning(
+                            f"Tool call {pc.get('tool_name')} blocked by PreToolUse hooks, run={run_id}: {reason}"
+                        )
+                        hook_blocked_results.append(
+                            ToolExecutionResult(
+                                tool_call_id=pc.get("tool_call_id", ""),
+                                tool_name=pc.get("tool_name", ""),
+                                success=False,
+                                error=f"HOOK_BLOCKED: {reason}",
+                            )
+                        )
+
+            execution_results = []
+            if calls_for_execution:
+                execution_results = await executor.execute_batch(
+                    calls_for_execution,
+                    run_id=run_id,
+                    envelope=envelope,
+                    cache_policy=tool_cache_policy,
+                    on_child_event=on_child_event,
+                    entity_id=entity_id,
+                    allowed_tool_names=allowed_tool_names,
+                    round_index=round_index,
+                    # P0-6-C: Pass run_id as run_id, not mixed with job_id
+                    # Job = long-running experiment (days); Run = single execution (minutes)
+                    job_id=getattr(envelope, "job_id", None) or run_id,  # Use envelope's job_id if available
+                )
+            execution_results = list(execution_results) + hook_blocked_results
 
             # P0-6-D: Check cancellation after tool response (identity check,
             # see the pre-call guard above for the rationale).
@@ -429,9 +485,35 @@ class LLMStreamRunner:
                     type="tool_result",
                     tool_call=payload,
                 )
-                content = (
-                    json.dumps(exec_result.result) if exec_result.result is not None else f"Error: {exec_result.error}"
-                )
+                # C2: PostToolUse hooks (result sanitization, sensitive-field
+                # stripping, oversized-content spill into working memory).
+                hook_content_override: str | None = None
+                if hook_pipeline is not None:
+                    if isinstance(exec_result.result, dict):
+                        hook_result = exec_result.result  # mutated in place
+                    elif exec_result.result is not None:
+                        hook_result = {"content": json.dumps(exec_result.result, default=str)}
+                    else:
+                        hook_result = {"content": f"Error: {exec_result.error}"}
+                    post_ctx = HookContext(
+                        phase="PostToolUse",
+                        run_id=run_id,
+                        tool_name=exec_result.tool_name,
+                        tool_result=hook_result,
+                        envelope=envelope,
+                        working_memory=working_memory,
+                    )
+                    await hook_pipeline.execute_phase("PostToolUse", post_ctx)
+                    if not isinstance(exec_result.result, dict):
+                        overridden = hook_result.get("content")
+                        if isinstance(overridden, str):
+                            hook_content_override = overridden
+                if hook_content_override is not None:
+                    content = hook_content_override
+                else:
+                    content = (
+                        json.dumps(exec_result.result) if exec_result.result is not None else f"Error: {exec_result.error}"
+                    )
                 # B2: large results spill into the working-memory workspace; the
                 # model only receives summary + pointer (full text in evidence.json).
                 if (
@@ -494,6 +576,27 @@ class LLMStreamRunner:
             }
             current_messages.append(assistant_message)
             current_messages.extend(tool_results_for_llm)
+
+        # C2: Stop hooks (NoPromises / OutputGuardrail) screen the final answer.
+        # Tokens were already streamed, so a flagged answer is annotated with a
+        # warning marker rather than suppressed.
+        if hook_pipeline is not None:
+            stop_messages = [
+                m if isinstance(m, dict) else m.to_dict() for m in current_messages
+            ]
+            if result is not None and result.text:
+                stop_messages.append({"role": "assistant", "content": result.text})
+            stop_ctx = HookContext(
+                phase="Stop",
+                run_id=run_id,
+                messages=stop_messages,
+                envelope=envelope,
+                working_memory=working_memory,
+            )
+            if not await hook_pipeline.execute_phase("Stop", stop_ctx):
+                reason = "; ".join(stop_ctx.errors) or "blocked by Stop hook"
+                logger.warning(f"Stop hooks flagged final answer for run={run_id}: {reason}")
+                result.text = (result.text or "") + f"\n\n---\n⚠️ 输出安全钩子拦截：{reason}"
 
         # D1: Emit final checkpoint after completion
         final_checkpoint = {

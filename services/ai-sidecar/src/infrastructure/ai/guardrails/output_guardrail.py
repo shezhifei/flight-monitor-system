@@ -3,6 +3,9 @@
 
 对 LLM 最终回复进行轻量级规则检查，
 检测幻觉（编造的航班号/数据）、内部信息泄露、承诺不存在的能力等。
+
+Task C2 起，主路径经 ``hooks.pipeline.OutputGuardrailHook``（Stop 相）调用本模块；
+``OutputGuardrail.validate`` / ``apply_guardrail_warnings`` 保留为兼容入口。
 """
 
 import re

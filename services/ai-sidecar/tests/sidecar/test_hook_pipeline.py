@@ -363,3 +363,210 @@ class TestHookContext:
         assert ctx.tool_name is None
         assert ctx.tool_args is None
         assert ctx.errors == []
+
+
+# ============================================================================
+# Wiring-level tests: hook pipeline inside LLMStreamRunner (Task C2)
+# ============================================================================
+
+from unittest.mock import MagicMock  # noqa: E402
+
+from src.infrastructure.ai.llm_stream_runner import (  # noqa: E402
+    LLMStreamRunner,
+    StreamEvent,
+)
+from src.infrastructure.ai.tools.tool_executor import ToolExecutionResult  # noqa: E402
+
+
+class _RecordingHook(BaseHook):
+    """Records every context it sees for a given phase."""
+
+    def __init__(self, phase: str):
+        self._phase = phase
+        self.contexts: list[HookContext] = []
+
+    @property
+    def phase(self) -> str:
+        return self._phase
+
+    async def execute(self, ctx: HookContext) -> bool:
+        self.contexts.append(ctx)
+        return True
+
+
+class _FakeExecutor:
+    """Minimal executor stand-in with an explicit (empty) MQ gate slot."""
+
+    mq_gate = None
+
+    def __init__(self, results: list[ToolExecutionResult] | None = None):
+        self.calls: list[list[dict]] = []
+        self._results = results or []
+
+    async def execute_batch(self, parsed_calls, **kwargs):
+        self.calls.append(list(parsed_calls))
+        if self._results:
+            return list(self._results)
+        return [
+            ToolExecutionResult(
+                tool_call_id=pc.get("tool_call_id", ""),
+                tool_name=pc.get("tool_name", ""),
+                success=True,
+                result={"ok": True},
+            )
+            for pc in parsed_calls
+        ]
+
+
+def _scripted_impl(rounds: list[dict]):
+    """Build a _stream_chat_impl stand-in playing back scripted rounds.
+
+    Each round dict: {"tool_calls": [...], "text": str}.
+    """
+    state = {"idx": 0}
+
+    async def mock_impl(*args, **kwargs):
+        run_result = kwargs.get("result")
+        spec = rounds[min(state["idx"], len(rounds) - 1)]
+        state["idx"] += 1
+        if run_result is not None:
+            run_result.tool_calls = [dict(tc) for tc in spec["tool_calls"]]
+            run_result.text = spec["text"]
+        yield StreamEvent(type="completed", result=run_result, round_index=state["idx"] - 1)
+
+    return mock_impl
+
+
+async def _collect_runner_events(runner: LLMStreamRunner, **kwargs) -> list[StreamEvent]:
+    events: list[StreamEvent] = []
+    async for event in runner.stream_chat_with_tools(
+        messages=[],
+        model="test-model",
+        run_id="hook-wiring-run",
+        envelope=None,
+        max_tool_rounds=5,
+        **kwargs,
+    ):
+        events.append(event)
+    return events
+
+
+class TestRunnerHookWiring:
+    """Assert the pipeline is actually invoked on the runner tool loop."""
+
+    @pytest.mark.asyncio
+    async def test_pre_and_post_hooks_called_for_tool_round(self):
+        """Pre/PostToolUse hooks fire around a real tool execution."""
+        pipeline = HookPipeline()
+        pre = _RecordingHook("PreToolUse")
+        post = _RecordingHook("PostToolUse")
+        pipeline.register_hook(pre)
+        pipeline.register_hook(post)
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _scripted_impl([
+            {"tool_calls": [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}], "text": ""},
+            {"tool_calls": [], "text": "查询完成"},
+        ])
+        executor = _FakeExecutor()
+        runner._tool_executor = executor
+
+        events = await _collect_runner_events(runner, hook_pipeline=pipeline)
+
+        assert len(executor.calls) == 1
+        assert [c.tool_name for c in pre.contexts] == ["list_flights"]
+        assert [c.tool_name for c in post.contexts] == ["list_flights"]
+        assert post.contexts[0].tool_result == {"ok": True}
+        assert events[-1].type == "completed"
+
+    @pytest.mark.asyncio
+    async def test_lease_denied_blocks_write_tool_execution(self, monkeypatch):
+        """Write tool without a wired MQ gate is blocked at PreToolUse."""
+        monkeypatch.setattr(
+            "src.infrastructure.ai.ai_container.resolve_tool_mq_gate",
+            lambda default=None: None,
+        )
+        pipeline = build_default_pipeline()
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _scripted_impl([
+            {
+                "tool_calls": [
+                    {"id": "t1", "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'}}
+                ],
+                "text": "",
+            },
+            {"tool_calls": [], "text": "已改为提交提案"},
+        ])
+        executor = _FakeExecutor()
+        runner._tool_executor = executor
+
+        events = await _collect_runner_events(runner, hook_pipeline=pipeline)
+
+        # Executor never saw the call — the hook blocked it beforehand.
+        assert executor.calls == []
+        tool_results = [e for e in events if e.type == "tool_result"]
+        assert len(tool_results) == 1
+        error = tool_results[0].tool_call.get("error", "")
+        assert "HOOK_BLOCKED" in error
+        assert "LEASE_GATE_UNAVAILABLE" in error
+
+    @pytest.mark.asyncio
+    async def test_read_only_tool_passes_default_pipeline_without_gate(self, monkeypatch):
+        """Read-only tools skip the lease preflight and execute normally."""
+        monkeypatch.setattr(
+            "src.infrastructure.ai.ai_container.resolve_tool_mq_gate",
+            lambda default=None: None,
+        )
+        pipeline = build_default_pipeline()
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _scripted_impl([
+            {"tool_calls": [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}], "text": ""},
+            {"tool_calls": [], "text": "航班 F1234 准点"},
+        ])
+        executor = _FakeExecutor(
+            results=[ToolExecutionResult(tool_call_id="t1", tool_name="list_flights", success=True, result={"flights": ["F1234"]})]
+        )
+        runner._tool_executor = executor
+
+        events = await _collect_runner_events(runner, hook_pipeline=pipeline)
+
+        assert len(executor.calls) == 1
+        completed = events[-1]
+        assert completed.type == "completed"
+        assert "拦截" not in (completed.result.text or "")
+
+    @pytest.mark.asyncio
+    async def test_stop_hook_intercepts_promise_output(self):
+        """Promise-style final answers are flagged by the Stop phase."""
+        pipeline = build_default_pipeline()
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _scripted_impl([
+            {"tool_calls": [], "text": "我已经为您改机位到 A12"},
+        ])
+        runner._tool_executor = _FakeExecutor()
+
+        events = await _collect_runner_events(runner, hook_pipeline=pipeline)
+
+        completed = events[-1]
+        assert completed.type == "completed"
+        assert "输出安全钩子拦截" in (completed.result.text or "")
+
+    @pytest.mark.asyncio
+    async def test_no_pipeline_keeps_legacy_behaviour(self):
+        """Without a pipeline the loop behaves exactly as before."""
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _scripted_impl([
+            {"tool_calls": [{"id": "t1", "function": {"name": "assign_gate", "arguments": "{}"}}], "text": ""},
+            {"tool_calls": [], "text": "done"},
+        ])
+        executor = _FakeExecutor()
+        runner._tool_executor = executor
+
+        events = await _collect_runner_events(runner)
+
+        # No hooks: the (write) call reaches the executor as before C2.
+        assert len(executor.calls) == 1
+        assert events[-1].type == "completed"

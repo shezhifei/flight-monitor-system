@@ -64,6 +64,7 @@ class HookContext:
     messages: list[dict[str, Any]] | None = None
     envelope: Any | None = None
     working_memory: Any | None = None  # WorkingMemory workspace (Task B2), shared across phases
+    mq_gate: Any | None = None  # ToolMqGate for the run, when wired (lease preflight)
     errors: list[str] = field(default_factory=list)
 
     def add_error(self, error: str) -> None:
@@ -95,10 +96,14 @@ class BaseHook(ABC):
 # ============================================================================
 
 class LeaseCheckHook(BaseHook):
-    """PreToolUse hook: acquire/release leases for write actions.
-    
-    Prevents concurrent modifications by acquiring a lease before
-    executing write tools. Releases lease after successful completion.
+    """PreToolUse hook: fail-closed lease preflight for write actions.
+
+    The actual lease is acquired by the MQ gate inside
+    ``ToolExecutor._execute_with_gate`` (publish ``tool.call.requested`` →
+    wait for the Rust ``tool_lease`` command). This hook is the PreToolUse
+    preflight for that flow: a protected (non-read-only) tool must not even
+    reach the executor when no gate is wired — the same fail-closed semantics
+    as the executor's ``MQ_GATE_UNAVAILABLE`` path, surfaced one step earlier.
     """
 
     @property
@@ -106,30 +111,29 @@ class LeaseCheckHook(BaseHook):
         return "PreToolUse"
 
     async def execute(self, ctx: HookContext) -> bool:
-        from src.infrastructure.ai.tools.mq_gate import ToolMqGate
-        
         # Only needed for write actions
         if not ctx.tool_name or is_read_only_tool(ctx.tool_name):
             return True
-            
-        gate = ToolMqGate.get_instance()
+
+        gate = ctx.mq_gate
         if gate is None:
-            logger.warning(f"No MQ gate available for lease check {ctx.tool_name}")
-            return True
-            
-        try:
-            # Try to acquire lease
-            acquired = await gate.acquire_lease(ctx.tool_name, ctx.run_id)
-            if not acquired:
-                ctx.add_error(f"Failed to acquire lease for {ctx.tool_name}")
-                return False
-                
-            logger.debug(f"Lease acquired for {ctx.tool_name} run={ctx.run_id}")
-            return True
-            
-        except Exception as exc:  # noqa: BLE001
-            ctx.add_error(f"Lease check failed: {exc}")
+            try:
+                from src.infrastructure.ai.ai_container import resolve_tool_mq_gate
+
+                gate = resolve_tool_mq_gate(None)
+            except Exception:  # noqa: BLE001 - container lookup must never break the hook
+                gate = None
+
+        if gate is None:
+            ctx.add_error(
+                f"LEASE_GATE_UNAVAILABLE: no MQ gate wired; refusing write tool {ctx.tool_name} "
+                "(protected tools require a Rust authorization lease)"
+            )
+            logger.warning(f"LeaseCheckHook denied {ctx.tool_name}: no MQ gate available, run={ctx.run_id}")
             return False
+
+        logger.debug(f"Lease preflight passed for {ctx.tool_name} run={ctx.run_id}")
+        return True
 
 
 class SchemaValidationHook(BaseHook):
@@ -173,33 +177,39 @@ class ObjectExistenceCheckHook(BaseHook):
     async def execute(self, ctx: HookContext) -> bool:
         if not ctx.tool_args or not ctx.envelope:
             return True
-            
+
         # Extract object_id from tool args
         object_id = ctx.tool_args.get("object_id") or ctx.tool_args.get("flight_id")
         if not object_id:
             return True
-            
-        # Query object existence through read-only path
+
+        # Advisory pre-check only: the authoritative ACL/lease decision is the
+        # MQ gate's. When no existence checker is wired (or it errors), fail
+        # OPEN here so a missing advisory dependency can never block a call
+        # that the control plane would have authorized.
         try:
             from src.infrastructure.ai.tools.query_tool_executor import QueryToolExecutor
-            
-            executor = QueryToolExecutor.get_instance()
-            if not executor:
+
+            get_instance = getattr(QueryToolExecutor, "get_instance", None)
+            object_exists = None
+            executor = get_instance() if callable(get_instance) else None
+            if executor is not None:
+                object_exists = getattr(executor, "object_exists", None)
+            if not callable(object_exists):
+                logger.debug(f"Object existence check skipped (no checker wired) for {object_id}")
                 return True
-                
-            # Check if object exists (implementation depends on entity type)
-            exists = await executor.object_exists(object_id)
-            
+
+            exists = await object_exists(object_id)
             if not exists:
                 ctx.add_error(f"Object {object_id} does not exist")
                 return False
-                
+
             logger.debug(f"Object existence verified: {object_id}")
             return True
-            
-        except Exception as exc:  # noqa: BLE001
-            ctx.add_error(f"Object existence check failed: {exc}")
-            return False
+
+        except Exception as exc:  # noqa: BLE001 - advisory check fails open
+            logger.warning(f"Object existence check unavailable for {object_id}: {exc}")
+            return True
 
 
 class ResultSanitizationHook(BaseHook):
@@ -347,6 +357,62 @@ class NoPromisesHook(BaseHook):
             return False
 
 
+class OutputGuardrailHook(BaseHook):
+    """Stop hook: run the legacy output guardrail inside the hook pipeline.
+
+    Migrates ``guardrails/output_guardrail.py`` (internal-id leakage,
+    flight-number consistency against this run's tool results, false
+    operation claims) into the ``Stop`` phase as a parallel implementation
+    next to :class:`NoPromisesHook`. The original module keeps its entry
+    points (``OutputGuardrail.validate`` / ``apply_guardrail_warnings``) for
+    compatibility; the main runtime path goes through this hook.
+    """
+
+    @property
+    def phase(self) -> str:
+        return "Stop"
+
+    async def execute(self, ctx: HookContext) -> bool:
+        if not ctx.messages:
+            return True
+
+        try:
+            from src.infrastructure.ai.guardrails.output_guardrail import OutputGuardrail
+
+            last_message = None
+            for msg in reversed(ctx.messages):
+                if msg.get("role") == "assistant":
+                    last_message = msg
+                    break
+            if not last_message:
+                return True
+
+            content = last_message.get("content") or ""
+            if not isinstance(content, str) or not content.strip():
+                return True
+
+            tool_results = [
+                str(msg.get("content"))
+                for msg in ctx.messages
+                if msg.get("role") == "tool" and msg.get("content")
+            ]
+
+            # Writes are proposal-only in this runtime — the model never
+            # executes them, so false-claim checks always apply.
+            result = OutputGuardrail().validate(
+                response_text=content,
+                tool_results=tool_results or None,
+                had_write_operations=False,
+            )
+            for warning in result.warnings:
+                ctx.add_error(f"OutputGuardrail: {warning}")
+            return result.passed
+
+        except Exception as exc:  # noqa: BLE001
+            ctx.add_error(f"OutputGuardrailHook failed: {exc}")
+            return False
+
+
 # ============================================================================
 # Hook Pipeline
 # ============================================================================
@@ -417,12 +483,13 @@ def is_read_only_tool(tool_name: str) -> bool:
 def get_builtin_hooks() -> list[BaseHook]:
     """Get default set of built-in hooks."""
     return [
-        LeaseCheckHook(),           # PreToolUse - lease management
+        LeaseCheckHook(),           # PreToolUse - lease preflight (fail-closed)
         SchemaValidationHook(),     # PreToolUse - argument validation
-        ObjectExistenceCheckHook(), # PreToolUse - entity existence
+        ObjectExistenceCheckHook(), # PreToolUse - entity existence (advisory)
         ResultSanitizationHook(),   # PostToolUse - result clipping
         IDPreservationHook(),       # PreCompact - ID protection
         NoPromisesHook(),           # Stop - anti-promises
+        OutputGuardrailHook(),      # Stop - output guardrail (leakage / flight consistency)
     ]
 
 
@@ -444,6 +511,7 @@ __all__ = [
     "ResultSanitizationHook",
     "IDPreservationHook",
     "NoPromisesHook",
+    "OutputGuardrailHook",
     "HookPipeline",
     "extract_critical_ids",
     "is_read_only_tool",

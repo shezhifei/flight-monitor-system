@@ -171,6 +171,13 @@ class _StreamingToolsMixin:
 
             working_memory = WorkingMemory(run_id=run_id)
 
+            # C2: per-run lifecycle hook pipeline (PreToolUse / PostToolUse /
+            # PreCompact / Stop). Hooks are synchronous pure functions over the
+            # run context — no shell, no external calls.
+            from src.infrastructure.ai.hooks.pipeline import build_default_pipeline
+
+            hook_pipeline = build_default_pipeline()
+
             runner = LLMStreamRunner(
                 client=gateway,
                 tool_executor=self._tool_executor,
@@ -432,6 +439,7 @@ class _StreamingToolsMixin:
                 entity_id=entity_id,
                 max_tool_rounds=effective_max_tool_rounds,
                 working_memory=working_memory,
+                hook_pipeline=hook_pipeline,
                 **prompt_cache_params,
             ):
                 # Bubble any sub-agent events accumulated since the last parent event.
