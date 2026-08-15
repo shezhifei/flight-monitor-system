@@ -1,0 +1,43 @@
+# Golden Test Quality Gates Configuration
+# 
+# This file defines the acceptance criteria for golden test validation runs.
+# Modify these values to adjust strictness based on project needs.
+#
+# Usage: Configure CI/CD systems to check these thresholds before allowing merges
+
+validation:
+  # Minimum pass rate required (0.0 to 1.0)
+  minimum_pass_rate: 0.95
+  
+  # Maximum allowed execution time in seconds (for full suite)
+  max_execution_time_seconds: 300
+  
+  # Require all tests to have basic structure
+  require_basic_structure: true
+  
+  # Percentage of tests that must include ground truth (optional field)
+  minimum_ground_truth_percentage: 0.50
+  
+  # Allow skipping slow tests in quick mode
+  allow_partial_coverage_in_quick_mode: true
+
+coverage:
+  # Minimum coverage across operational domains (set of domain names)
+  required_domains:
+    - flight_status
+    - delay_analysis
+    - stand_management
+    - statistics
+  
+  # Each domain must have at least this many tests
+  minimum_tests_per_domain: 2
+
+reporting:
+  # Include per-domain breakdown in reports
+  include_domain_breakdown: true
+  
+  # Show test case IDs in failure summary
+  show_failed_test_ids: true
+  
+  # Generate machine-readable JSON report alongside human-readable output
+  generate_json_report: true

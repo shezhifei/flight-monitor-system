@@ -1,0 +1,16 @@
+{
+  "test_id": "mu5102_current_state",
+  "user_query": "MU5102 当前状态、机位和关联派工是什么？",
+  "expected_action": "lookup_flight_status",
+  "required_tools": [
+    "flights.lookup",
+    "stands.current",
+    "dispatch_orders.by_flight"
+  ],
+  "max_hallucinations": 0,
+  "tool_accuracy_min": 0.95,
+  "hallucination_rate_max": 0.05,
+  "zero_violations_required": true,
+  "avg_rounds_target": 8,
+  "plan_board_compliance_min": 0.90
+}
