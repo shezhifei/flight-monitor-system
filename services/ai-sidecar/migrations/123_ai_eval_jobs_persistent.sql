@@ -33,6 +33,9 @@ CREATE TABLE ai_eval_jobs (
     -- Error handling
     error_message TEXT,
     
+    -- Budget tracking
+    total_cost_usd DOUBLE PRECISION DEFAULT 0.0,
+    
     CONSTRAINT chk_status_valid CHECK (status IN ('pending', 'running', 'completed', 'failed')),
     CONSTRAINT chk_progress_range CHECK (progress_percent >= 0.0 AND progress_percent <= 100.0),
     CONSTRAINT chk_runs_positive CHECK (total_runs >= 0 AND completed_runs >= 0),
@@ -65,17 +68,20 @@ CREATE TABLE ai_eval_spans (
     
     -- Performance metrics
     metrics JSONB NOT NULL DEFAULT '{}',
-    # {
-    #   "tokens_used": {"input": 2500, "output": 450},
-    #   "duration_ms": 5500,
-    #   "success": true,
-    #   "cost_usd": 0.012
-    # },
+    -- {
+    --   "tokens_used": {"input": 2500, "output": 450},
+    --   "duration_ms": 5500,
+    --   "success": true,
+    --   "cost_usd": 0.012
+    -- },
     
     -- Optional LLM-specific fields
     model_name VARCHAR(100),
     input_tokens INTEGER DEFAULT 0,
     output_tokens INTEGER DEFAULT 0,
+    
+    -- Cost tracking
+    total_cost_usd DOUBLE PRECISION DEFAULT 0.0,
     
     -- Error details (if any)
     error_message TEXT,
@@ -99,15 +105,13 @@ CREATE TABLE ai_eval_metrics_summary (
     
     -- Association
     job_id UUID NOT NULL REFERENCES ai_eval_jobs(job_id) ON DELETE CASCADE,
-    
-    -- Metric definition
     metric_name VARCHAR(100) NOT NULL,
     value FLOAT NOT NULL,
     threshold FLOAT NOT NULL,
     
     -- Pass/fail/warn status
-    status VARCHAR(20) NOT NULL,  # pass | fail | warn
-    details JSONB DEFAULT '{}',  # Additional context
+    status VARCHAR(20) NOT NULL,  -- pass | fail | warn
+    details JSONB DEFAULT '{}',   -- Additional context
     
     -- Snapshot timestamp
     snapshot_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

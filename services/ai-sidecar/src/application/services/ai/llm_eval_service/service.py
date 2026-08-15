@@ -195,13 +195,17 @@ class EvaluationService:
                 
                 span = await self._execute_single_test(job, test_case)
                 
-                # Evaluate against gate metrics
-                gate_results = await self._evaluate_gates(job, span)
+                # Evaluate against gate metrics and persist results
+                gate_summary = await self._evaluate_gates(job, span)
                 
-                for gate in gate_results.passing:
-                    passed_gates.append(gate.metric_name)
-                for gate in gate_results.failing:
-                    failed_gates.append(gate.metric_name)
+                # Check if overall result passed or failed
+                if gate_summary.status == "fail":
+                    failed_gates.append(gate_summary.metric_name)
+                    logger.warning(
+                        f"[Eval Service] Gate failed at run {job.completed_runs}/{job.total_runs}"
+                    )
+                else:
+                    passed_gates.append(gate_summary.metric_name)
             
             # Determine final status
             if len(failed_gates) > 0:
@@ -258,76 +262,128 @@ class EvaluationService:
         self,
         job: EvalJob,
         span: EvalSpan,
-    ) -> tuple[list[GateMetricsSummary], list[GateMetricsSummary]]:
-        """Evaluate against configured metrics gates."""
+    ) -> GateMetricsSummary:
+        """Evaluate against configured metrics gates and return aggregated summary."""
+        config = job.metrics_config
         passing = []
         failing = []
         
-        config = job.metrics_config
-        
-        # Tool accuracy gate
+        # 1. Tool accuracy gate (should be >= threshold)
         tool_correctness = await self._calculate_tool_correctness(span.result)
         expected_accuracy = config.get("tool_accuracy_min", 0.95)
         
-        gate_result = self._check_gate(
+        gate_result = self._check_gate_for_minimum(
             "tool_accuracy",
             tool_correctness,
             expected_accuracy,
-            "pass",
-            "fail",
-            config.get("gate_warning_threshold", 0.90),
+            job.job_id,
         )
+        passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
         
-        (passing if gate_result.status == "pass" else failing).append(gate_result)
-        
-        # Hallucination rate gate
+        # 2. Hallucination rate gate (should be <= threshold)
         hallucination_rate = await self._calculate_hallucination_rate(span.result)
         max_hallucination = config.get("hallucination_rate_max", 0.05)
         
-        gate_result = self._check_gate(
+        gate_result = self._check_gate_for_maximum(
             "hallucination_rate",
             hallucination_rate,
             max_hallucination,
-            "pass",
-            "fail",
-            max_hallucination * 1.5,
+            job.job_id,
+        )
+        passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
+        
+        # 3. Zero violations required (boolean check)
+        violations = span.metrics.get("constraint_violations", 0)
+        zero_violations_required = config.get("zero_violations_required", True)
+        
+        if zero_violations_required:
+            is_pass = violations == 0
+            status = "pass" if is_pass else "fail"
+            gate_result = GateMetricsSummary(
+                job_id=job.job_id,
+                metric_name="zero_violations",
+                value=float(violations),
+                threshold=0.0,
+                status=status,
+                details={"actual_violations": violations},
+            )
+            passing.append(gate_result) if is_pass else failing.append(gate_result)
+        
+        # 4. Average rounds target (should be <= threshold)
+        total_rounds = span.metrics.get("total_tool_rounds", 0)
+        avg_rounds_target = config.get("avg_rounds_target", 8)
+        
+        gate_result = self._check_gate_for_maximum(
+            "avg_rounds",
+            float(total_rounds),
+            avg_rounds_target,
+            job.job_id,
+        )
+        passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
+        
+        # Persist all gates to database
+        for gate in passing + failing:
+            await self._persist_gate_metric(gate)
+        
+        # Return aggregated summary
+        summary = GateMetricsSummary(
+            job_id=job.job_id,
+            metric_name="overall_result",
+            value=float(len(passing)) / float(max(len(passing) + len(failing), 1)),
+            threshold=0.8,  # 80% gates must pass
+            status="pass" if not failing else "fail",
+            details={
+                "passing_count": len(passing),
+                "failing_count": len(failing),
+                "passing_metrics": [g.metric_name for g in passing],
+                "failing_metrics": [g.metric_name for g in failing],
+            },
         )
         
-        (passing if gate_result.status == "pass" else failing).append(gate_result)
+        logger.info(
+            f"[Eval Service] Gates evaluated: {len(passing)} passing, {len(failing)} failing"
+        )
         
-        return passing, failing
+        return summary
     
-    def _check_gate(
+    def _check_gate_for_minimum(
         self,
         metric_name: str,
         actual_value: float,
-        threshold: float,
-        pass_status: str,
-        fail_status: str,
-        warning_threshold: float | None = None,
+        min_threshold: float,
+        job_id: UUID | None = None,
     ) -> GateMetricsSummary:
-        """Check a single metric gate."""
-        
-        # For boolean thresholds (like zero_violations_required)
-        if isinstance(threshold, bool):
-            is_pass = actual_value == threshold
-        else:
-            # Numeric thresholds: pass if within bounds
-            is_pass = actual_value <= threshold if threshold > 0 else actual_value == threshold
-        
-        status = pass_status if is_pass else fail_status
-        
-        # Add warning if between threshold and warning_threshold
-        if warning_threshold:
-            if is_pass and actual_value > warning_threshold:
-                status = "warn"
+        """Check minimum threshold gate (value should be >= threshold)."""
+        is_pass = actual_value >= min_threshold
+        status = "pass" if is_pass else "fail"
         
         return GateMetricsSummary(
-            job_id=None,  # Will be set when persisted
+            job_id=job_id,
             metric_name=metric_name,
             value=actual_value,
-            threshold=threshold,
+            threshold=min_threshold,
             status=status,
+            details={"direction": "minimum_required"},
+        )
+    
+    def _check_gate_for_maximum(
+        self,
+        metric_name: str,
+        actual_value: float,
+        max_threshold: float,
+        job_id: UUID | None = None,
+    ) -> GateMetricsSummary:
+        """Check maximum threshold gate (value should be <= threshold)."""
+        is_pass = actual_value <= max_threshold
+        status = "pass" if is_pass else "fail"
+        
+        return GateMetricsSummary(
+            job_id=job_id,
+            metric_name=metric_name,
+            value=actual_value,
+            threshold=max_threshold,
+            status=status,
+            details={"direction": "maximum_allowed"},
         )
     
     async def _calculate_tool_correctness(self, result: dict[str, Any]) -> float:
@@ -415,6 +471,25 @@ class EvaluationService:
                     passing.append(gate)  # warn treated as pass for now
         
         return passing, failing
+    
+    async def _persist_gate_metric(self, gate: GateMetricsSummary):
+        """Persist gate metric to PostgreSQL table."""
+        async with self._db_pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO ai_eval_metrics_summary (
+                    job_id, metric_name, value, threshold,
+                    status, details, snapshot_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                """,
+                gate.job_id,
+                gate.metric_name,
+                gate.value,
+                gate.threshold,
+                gate.status,
+                json.dumps(gate.details),
+                gate.snapshot_at,
+            )
     
     # Helper methods (stubs for testing)
     async def _load_test_dataset(self, path: str) -> list[dict[str, Any]]:

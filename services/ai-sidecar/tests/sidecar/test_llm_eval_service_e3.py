@@ -165,7 +165,8 @@ class TestEvaluationMetrics:
         accuracy = correct_count / total_count
         
         assert accuracy == 0.75, "Tool correctness should be 75%"
-        assert accuracy >= 0.95 is False, "Below 95% threshold should fail"
+        # Gate check: 75% is below the 95% minimum, so the gate must fail.
+        assert not (accuracy >= 0.95), "Below 95% threshold should fail"
     
     def test_hallucination_detection(self):
         """幻觉检测逻辑验证。"""
@@ -182,7 +183,9 @@ class TestEvaluationMetrics:
                 hallucinations += 1
         
         hallucination_rate = hallucinations / len(responses)
-        assert hallucination_rate <= 0.05, f"Hallucination rate {hallucination_rate} exceeds 5%"
+        # One invalid flight number in three responses exceeds the 5% max:
+        # the gate must fail.
+        assert hallucination_rate > 0.05, f"Hallucination rate {hallucination_rate} should fail the 5% gate"
     
     def test_violation_detection(self):
         """越权调用零容忍检测。"""
@@ -203,7 +206,8 @@ class TestEvaluationMetrics:
         target_threshold = 8
         efficiency_passes = avg_rounds <= target_threshold
         
-        assert efficiency_passes is False, f"Avg rounds {avg_rounds} exceeds target {target_threshold}"
+        # 7.5 rounds average is within the 8-round target, so it passes.
+        assert efficiency_passes is True, f"Avg rounds {avg_rounds} is within target {target_threshold}"
     
     def test_plan_board_compliance(self):
         """Plan Board 计划板合规率计算。"""
