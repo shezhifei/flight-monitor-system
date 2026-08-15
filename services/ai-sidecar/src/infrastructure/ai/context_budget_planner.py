@@ -91,6 +91,7 @@ class ContextBudgetPlanner:
         summary_model: str | None = None,
         summary_max_tokens: int = 1200,
         persist_summaries: bool = True,
+        protected_ids: list[str] | None = None,
     ) -> tuple[list[dict[str, Any]], CompressionResult | None]:
         """压缩上下文
 
@@ -102,6 +103,9 @@ class ContextBudgetPlanner:
             summary_model: 摘要模型
             summary_max_tokens: 摘要最大 token 数
             persist_summaries: 是否持久化摘要
+            protected_ids: 必须保住的关键标识（Task B3：航班号 / flight_id /
+                工单号 / anomaly id / pending proposal id）。压缩后仍缺失的
+                ID 会以一条 system 消息重新注入。
 
         Returns:
             (压缩后的消息列表, 压缩结果)
@@ -112,15 +116,23 @@ class ContextBudgetPlanner:
         self._count_messages_tokens(messages)
 
         if strategy == "sliding_window":
-            return await self._sliding_window_compression(messages, budget, preserve_recent)
+            result_messages, result = await self._sliding_window_compression(messages, budget, preserve_recent)
         elif strategy == "summary_compression":
-            return await self._summary_compression(
+            result_messages, result = await self._summary_compression(
                 messages, budget, summary_model, summary_max_tokens, persist_summaries
             )
         else:  # hybrid
-            return await self._hybrid_compression(
+            result_messages, result = await self._hybrid_compression(
                 messages, budget, preserve_recent, summary_model, summary_max_tokens, persist_summaries
             )
+
+        # Task B3: re-inject critical identifiers lost to compression.
+        if result is not None and protected_ids:
+            result_messages = self._ensure_protected_ids(result_messages, protected_ids)
+            result.preserved_messages = result_messages
+            result.after_tokens = self._count_messages_tokens(result_messages)
+
+        return result_messages, result
 
     async def _sliding_window_compression(
         self,
@@ -283,6 +295,35 @@ class ContextBudgetPlanner:
         logger.info(f"Hybrid compression: {before_tokens} -> {after_tokens} tokens")
 
         return result_messages, result
+
+    def _ensure_protected_ids(
+        self,
+        messages: list[dict[str, Any]],
+        protected_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        """重新注入压缩后丢失的关键标识（Task B3）。
+
+        逐条检查 protected_ids 是否仍出现在压缩后的消息文本中；缺失的
+        ID 汇总成一条 system 消息插在 system 消息之后，保证压缩后
+        航班号 / flight_id / 工单号 / anomaly id / proposal id 仍在 messages。
+        """
+        visible_text = "\n".join(
+            msg.get("content", "")
+            for msg in messages
+            if isinstance(msg.get("content"), str)
+        )
+        missing = [pid for pid in dict.fromkeys(protected_ids) if pid and pid not in visible_text]
+        if not missing:
+            return messages
+
+        guard_message = {
+            "role": "system",
+            "content": "[保留的关键标识]\n" + "\n".join(f"- {pid}" for pid in missing),
+        }
+        system_msgs = [m for m in messages if m.get("role") == "system"]
+        non_system_msgs = [m for m in messages if m.get("role") != "system"]
+        logger.info(f"Re-injected {len(missing)} protected IDs lost during compression")
+        return [*system_msgs, guard_message, *non_system_msgs]
 
     def _count_tokens(self, text: str) -> int:
         """估算 token 数"""

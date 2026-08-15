@@ -23,6 +23,31 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+# Critical identifier patterns (Task B3): flight numbers, anomaly ids,
+# proposal ids, order ids. Shared by IDPreservationHook (PreCompact) and the
+# context compression path so there is exactly one definition.
+CRITICAL_ID_PATTERNS = [
+    r"F[0-9]{4,}",  # Flight numbers like F1234
+    r"ANOMALY-[A-Z0-9]+",  # Anomaly IDs
+    r"PROP-[A-Z0-9]+",  # Proposal IDs
+    r"ORDER-[A-Z0-9]+",  # Order IDs
+]
+
+
+def extract_critical_ids(messages: list[dict[str, Any]] | None) -> list[str]:
+    """Extract critical identifiers from message contents (deduped)."""
+    import re
+
+    protected_ids: list[str] = []
+    for msg in messages or []:
+        content = msg.get("content", "") or ""
+        if not isinstance(content, str):
+            continue
+        for pattern in CRITICAL_ID_PATTERNS:
+            protected_ids.extend(re.findall(pattern, content))
+    return list(set(protected_ids))
+
+
 # ============================================================================
 # Hook Phases and Types
 # ============================================================================
@@ -102,7 +127,7 @@ class LeaseCheckHook(BaseHook):
             logger.debug(f"Lease acquired for {ctx.tool_name} run={ctx.run_id}")
             return True
             
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"Lease check failed: {exc}")
             return False
 
@@ -129,7 +154,7 @@ class SchemaValidationHook(BaseHook):
             logger.debug(f"Schema validation passed for {ctx.tool_name}")
             return True
             
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"Schema validation failed: {exc}")
             return False
 
@@ -172,7 +197,7 @@ class ObjectExistenceCheckHook(BaseHook):
             logger.debug(f"Object existence verified: {object_id}")
             return True
             
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"Object existence check failed: {exc}")
             return False
 
@@ -252,34 +277,19 @@ class IDPreservationHook(BaseHook):
         if not ctx.messages:
             return True
             
-        CRITICAL_PATTERNS = [
-            r"F[0-9]{4,}",  # Flight numbers like F1234
-            r"ANOMALY-[A-Z0-9]+",  # Anomaly IDs
-            r"PROP-[A-Z0-9]+",  # Proposal IDs  
-            r"ORDER-[A-Z0-9]+",  # Order IDs
-        ]
-        
         try:
-            protected_ids = []
-            
-            # Find all critical IDs in current messages
-            for msg in ctx.messages:
-                content = msg.get("content", "") or ""
-                for pattern in CRITICAL_PATTERNS:
-                    import re
-                    ids = re.findall(pattern, content)
-                    protected_ids.extend(ids)
+            protected_ids = extract_critical_ids(ctx.messages)
             
             if protected_ids:
                 logger.debug(f"Identified {len(protected_ids)} critical IDs for preservation")
                 
                 # Store in metadata for compression step
                 if ctx.envelope and hasattr(ctx.envelope, "metadata"):
-                    ctx.envelope.metadata["_protected_ids"] = list(set(protected_ids))
+                    ctx.envelope.metadata["_protected_ids"] = protected_ids
                     
             return True
             
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"ID preservation failed: {exc}")
             return False
 
@@ -332,7 +342,7 @@ class NoPromisesHook(BaseHook):
             logger.debug("NoPromisesHook passed: no unauthorized promises detected")
             return True
             
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"NoPromisesHook failed: {exc}")
             return False
 
@@ -363,7 +373,7 @@ class HookPipeline:
                 if not await hook.execute(ctx):
                     logger.error(f"Hook {type(hook).__name__} failed at phase {phase}")
                     return False
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 ctx.add_error(f"Hook {type(hook).__name__} exception: {exc}")
                 return False
                 
@@ -425,6 +435,7 @@ def build_default_pipeline() -> HookPipeline:
 
 
 __all__ = [
+    "CRITICAL_ID_PATTERNS",
     "HookContext",
     "BaseHook",
     "LeaseCheckHook",
@@ -434,6 +445,7 @@ __all__ = [
     "IDPreservationHook",
     "NoPromisesHook",
     "HookPipeline",
+    "extract_critical_ids",
     "is_read_only_tool",
     "get_builtin_hooks",
     "build_default_pipeline",

@@ -11,6 +11,7 @@ from .pipeline import (
     ResultSanitizationHook,
     SchemaValidationHook,
     build_default_pipeline,
+    extract_critical_ids,
     get_builtin_hooks,
     is_read_only_tool,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "ResultSanitizationHook",
     "SchemaValidationHook",
     "build_default_pipeline",
+    "extract_critical_ids",
     "get_builtin_hooks",
     "is_read_only_tool",
 ]

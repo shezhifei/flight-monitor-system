@@ -21,6 +21,7 @@ class _ContextCacheMixin:
         tools: list[dict[str, Any]],
         resolved_config: Any,
         skill_instruction_tokens: int,
+        envelope: ContextEnvelope | None = None,
     ) -> tuple[list[Message], dict[str, Any] | None]:
         """Budget-driven context compression for the assembled run messages.
 
@@ -55,6 +56,16 @@ class _ContextCacheMixin:
                 return messages, None
 
             dict_messages = [m.to_dict() for m in messages]
+            # Task B3: collect critical identifiers that must survive compression.
+            # Sources: the PreCompact IDPreservationHook stash on envelope metadata
+            # plus a direct scan of the outgoing messages (same shared patterns).
+            from src.infrastructure.ai.hooks.pipeline import extract_critical_ids
+
+            protected_ids = extract_critical_ids(dict_messages)
+            envelope_metadata = getattr(envelope, "metadata", None) or {}
+            for pid in envelope_metadata.get("_protected_ids") or []:
+                if pid and pid not in protected_ids:
+                    protected_ids.append(pid)
             compressed_dicts, result = await planner.compress(
                 messages=dict_messages,
                 budget=budget,
@@ -63,6 +74,7 @@ class _ContextCacheMixin:
                 summary_model=policy.summary_model,
                 summary_max_tokens=policy.summary_max_tokens,
                 persist_summaries=policy.persist_summaries,
+                protected_ids=protected_ids,
             )
         except Exception as exc:  # noqa: BLE001 - best-effort side effect must not abort main flow
             # Compression is best-effort: never fail a run because budgeting errored.

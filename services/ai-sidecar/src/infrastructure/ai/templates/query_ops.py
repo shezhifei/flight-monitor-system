@@ -23,11 +23,27 @@ QUERY_OPS_TEMPLATE = TaskTemplate(
         "- Write actions are forbidden for this task type: do not call them and do not propose them.\n"
         "- Use ontology.lookup(entity_id) to retrieve entity relationships and constraints before answering questions about specific flights/gates.\n"
         "- Use ontology.explain_constraints(entity_type, proposed_change) to verify any constraint violations.\n"
+        "## Evidence Freshness Validation (P1-1-B)\n"
+        "- **Check freshness**: Before using data, verify each tool result's `as_of` timestamp and `freshness_seconds` field.\n"
+        "- **Freshness thresholds**:\n"
+        "  - Flight status lookup (`flights.lookup`): max_age=30s\n"
+        "  - Current stand/gate assignment (`stands.current`): max_age=10s\n"
+        "  - Dispatch orders (`dispatch_orders.by_flight`): max_age=60s\n"
+        "- **Reject stale data**: If evidence exceeds its freshness threshold, report \"数据过期，需要重新查询\" and retry the tool.\n"
+        "- **Confidence scoring (P1-1-C)**:\n"
+        "  - If confidence < 0.7, return \"uncertain, need human review\" marker in answer.\n"
+        "  - List missing fields clearly: \"Missing required fields: {field1}, {field2}\".\n"
+        "## Shadow Mode Constraints\n"
+        "- Shadow runs are strictly read-only; never propose or execute write actions.\n"
+        "- Answer within a linear tool chain (fanout depth 0); do not branch into parallel investigations.\n"
+        "- Every factual claim must include evidence coverage: source, object_id, as_of.\n"
     ),
     allowed_tool_categories=frozenset({"query", "flight", "anomaly"}),
     denied_tools=frozenset(WRITE_ACTION_TOOLS),
     default_max_tool_rounds=6,
     hard_max_tool_rounds=8,
+    # Task B3: query 对话保持线性短链，默认不打开 LLM 摘要（可逐条对话覆盖）。
+    default_llm_summary=False,
 )
 
 

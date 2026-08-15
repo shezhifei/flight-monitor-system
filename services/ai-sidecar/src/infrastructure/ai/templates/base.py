@@ -28,6 +28,9 @@ class TaskTemplate:
         hard_max_tool_rounds: Non-configurable upper bound for this task type;
             even if the entity config sets a higher value, the runner caps at
             this number (Task B1 production safety).
+        default_llm_summary: Default LLM summary policy for conversations of
+            this task type (Task B3). On by default; query_ops opts out. A
+            per-conversation ``enable_llm_summary`` override always wins.
     """
 
     task_type: str
@@ -37,6 +40,7 @@ class TaskTemplate:
     denied_tools: frozenset[str]
     default_max_tool_rounds: int
     hard_max_tool_rounds: int
+    default_llm_summary: bool = True
 
 
 def template_allows_tool(

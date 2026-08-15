@@ -555,6 +555,14 @@ class MemoryConversationManager(ConversationManager):
         # 检查对话级别的设置
         if "enable_llm_summary" in conversation.metadata.custom_data:
             enable_summary = bool(conversation.metadata.custom_data["enable_llm_summary"])
+        else:
+            # Task B3: 默认摘要策略按任务模板打开（query_ops 模板默认关闭），
+            # 对话级 enable_llm_summary 覆盖始终优先（见上方分支）。
+            from ..templates import get_task_template
+
+            template = get_task_template(conversation.metadata.custom_data.get("task_type"))
+            if template is not None:
+                enable_summary = template.default_llm_summary
 
         if not enable_summary or not self._ai_client:
             return messages
