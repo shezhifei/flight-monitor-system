@@ -262,6 +262,11 @@ class SubagentDispatcher:
                 child_envelope.metadata = {}
             child_envelope.metadata["subagent_depth"] = subagent_depth
             child_envelope.metadata["subagent_trace"] = subagent_trace
+            # ContextEnvelope drops unknown kwargs (extra=ignore), so entity_id must be
+            # attached explicitly for the runtime to resolve the CHILD entity config
+            # (getattr(envelope, "entity_id", ...) in RuntimeService), per docstring:
+            # "child run inherits tool/MCP/skills/cache policy from child entity config".
+            object.__setattr__(child_envelope, "entity_id", target_entity_id)
 
             # Get runtime service for child entity (factory injects dispatcher into child)
             runtime_service = self._runtime_service_factory(target_entity_id)
