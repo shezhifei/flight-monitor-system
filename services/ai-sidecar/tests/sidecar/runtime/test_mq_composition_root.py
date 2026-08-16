@@ -298,6 +298,32 @@ async def test_publish_run_fail_emits_envelope_to_publisher() -> None:
     assert event["event_type"] == "run_fail"
     assert event["payload"]["error_code"] == "AI_RUNTIME_PROCESSING_ERROR"
     assert event["payload"]["error_message"] == "boom"
+    assert "blocked_by" not in event["payload"]
+
+
+@pytest.mark.asyncio
+async def test_publish_run_fail_forwards_block_fields() -> None:
+    from src.infrastructure.ai.runtime_service._streaming_tools import (
+        _publish_run_fail_mq,
+    )
+
+    publisher = FakePublisher()
+    await _publish_run_fail_mq(
+        publisher,
+        run_id="run-snap",
+        job_id="job-snap",
+        round_index=0,
+        event_sequence=1,
+        error_code="AI_TOOL_SNAPSHOT_MISSING",
+        error_message="no resolved tool snapshot for this run",
+        blocked_by="snapshot",
+        rule="AI_TOOL_SNAPSHOT_MISSING",
+        detail="no resolved tool snapshot for this run",
+    )
+    event = publisher.published[0]
+    assert event["payload"]["blocked_by"] == "snapshot"
+    assert event["payload"]["rule"] == "AI_TOOL_SNAPSHOT_MISSING"
+    assert event["payload"]["detail"] == "no resolved tool snapshot for this run"
 
 
 @pytest.mark.asyncio

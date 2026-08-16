@@ -95,13 +95,13 @@ def _collect(svc, envelope):
         loop.close()
 
 
-def _fail_answers(events) -> list[str]:
-    return [e["data"]["answer"] for e in events if e.get("event") == "run.fail"]
-
-
 @pytest.fixture(autouse=True)
 def _no_env_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+
+def _fail_events(events) -> list[dict]:
+    return [e for e in events if e.get("event") == "run.fail"]
 
 
 def test_missing_snapshot_fails_closed() -> None:
@@ -110,9 +110,13 @@ def test_missing_snapshot_fails_closed() -> None:
         llm_client=_ConfiguredLLM(),
     )
     events = _collect(svc, FakeEnvelope())
-    answers = _fail_answers(events)
-    assert len(answers) == 1, [e.get("event") for e in events]
-    assert "AI_TOOL_SNAPSHOT_MISSING" in answers[0]
+    fails = _fail_events(events)
+    assert len(fails) == 1, [e.get("event") for e in events]
+    payload = fails[0]["data"]
+    assert "AI_TOOL_SNAPSHOT_MISSING" in payload["answer"]
+    assert payload["blocked_by"] == "snapshot"
+    assert payload["rule"] == "AI_TOOL_SNAPSHOT_MISSING"
+    assert payload["detail"] == "no resolved tool snapshot for this run"
 
 
 def test_empty_tools_snapshot_fails_closed() -> None:
@@ -123,9 +127,13 @@ def test_empty_tools_snapshot_fails_closed() -> None:
         llm_client=_ConfiguredLLM(),
     )
     events = _collect(svc, FakeEnvelope())
-    answers = _fail_answers(events)
-    assert len(answers) == 1, [e.get("event") for e in events]
-    assert "AI_TOOL_SNAPSHOT_MISSING" in answers[0]
+    fails = _fail_events(events)
+    assert len(fails) == 1, [e.get("event") for e in events]
+    payload = fails[0]["data"]
+    assert "AI_TOOL_SNAPSHOT_MISSING" in payload["answer"]
+    assert payload["blocked_by"] == "snapshot"
+    assert payload["rule"] == "AI_TOOL_SNAPSHOT_MISSING"
+    assert payload["detail"] == "no resolved tool snapshot for this run"
 
 
 def test_snapshot_tools_are_passed_verbatim_without_fallback() -> None:

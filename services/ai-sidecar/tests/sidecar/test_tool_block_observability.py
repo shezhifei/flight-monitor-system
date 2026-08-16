@@ -17,6 +17,7 @@ from src.infrastructure.ai.hooks.pipeline import (
     LeaseCheckHook,
     PlanFirstHook,
 )
+from src.infrastructure.ai.llm_stream_runner import StreamEvent
 from src.infrastructure.ai.tools.tool_executor import (
     BLOCKED_BY_ACL,
     BLOCKED_BY_HOOK,
@@ -134,24 +135,72 @@ class TestHookBlockedByFields:
         assert any("LEASE_GATE_UNAVAILABLE" in e for e in ctx.errors)
 
     @pytest.mark.asyncio
-    async def test_hook_blocked_result_factory_shape(self):
-        """Mirror of llm_stream_runner hook-block construction."""
-        reason = "LEASE_GATE_UNAVAILABLE: no MQ gate wired; refusing write tool assign_gate"
-        result = ToolExecutionResult.blocked(
-            tool_call_id="t1",
-            tool_name="assign_gate",
-            blocked_by=BLOCKED_BY_HOOK,
-            rule="LeaseCheckHook",
-            detail=reason,
-            error=f"HOOK_BLOCKED: {reason}",
+    async def test_pretooluse_hook_block_surfaces_on_runner_tool_result(self):
+        """Write tool → PreToolUse intercept → tool_result blocked_by=hook."""
+        from src.infrastructure.ai.context_envelope import (
+            ContextEnvelope,
+            EnvelopeContext,
+            EnvelopeLimits,
+            EnvelopeOntology,
+            EnvelopeRequester,
+            EnvelopeTask,
         )
-        assert result.success is False
-        assert result.blocked_by == "hook"
-        assert result.rule == "LeaseCheckHook"
-        assert "HOOK_BLOCKED" in (result.error or "")
-        payload = result.to_sse_payload()
-        assert payload["blocked_by"] == "hook"
-        assert payload["rule"] == "LeaseCheckHook"
+        from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner
+        from src.infrastructure.ai.working_memory import WorkingMemory
+
+        pipeline = HookPipeline()
+        pipeline.register_hook(PlanFirstHook())
+
+        runner = LLMStreamRunner(client=MagicMock())
+        runner._stream_chat_impl = _scripted_stream_impl(
+            [
+                {
+                    "tool_calls": [
+                        {
+                            "id": "t1",
+                            "function": {
+                                "name": "assign_gate",
+                                "arguments": '{"flight_id": "F1234", "gate": "A12"}',
+                            },
+                        }
+                    ],
+                    "text": "",
+                },
+                {"tool_calls": [], "text": "blocked"},
+            ]
+        )
+        executor = _RecordingExecutor()
+        runner._tool_executor = executor
+        memory = WorkingMemory(run_id="hook-obs-1")
+        envelope = ContextEnvelope(
+            job_id="job-hook-obs-1",
+            run_id="hook-obs-1",
+            entity_id="test_entity",
+            requester=EnvelopeRequester(user_id="test_user", permissions=["read"]),
+            ontology=EnvelopeOntology(),
+            context=EnvelopeContext(limits=EnvelopeLimits(redaction="standard")),
+            task=EnvelopeTask(task_type="dispatch_ops", user_message="assign a gate"),
+        )
+
+        events: list[StreamEvent] = []
+        async for event in runner.stream_chat_with_tools(
+            messages=[],
+            model="test-model",
+            run_id="hook-obs-1",
+            envelope=envelope,
+            max_tool_rounds=4,
+            working_memory=memory,
+            hook_pipeline=pipeline,
+        ):
+            events.append(event)
+
+        tool_results = [e for e in events if e.type == "tool_result"]
+        assert tool_results, [e.type for e in events]
+        payload = tool_results[0].tool_call or {}
+        assert payload["blocked_by"] == BLOCKED_BY_HOOK
+        assert payload["rule"] == "PlanFirstHook"
+        assert "HOOK_BLOCKED" in (payload.get("error") or "")
+        assert executor.calls == []
 
     @pytest.mark.asyncio
     async def test_plan_first_hook_rule_name(self):
@@ -196,3 +245,39 @@ def _async_return(value):
         return value
 
     return _inner
+
+
+class _RecordingExecutor:
+    """Minimal executor stand-in; records batches that actually reach it."""
+
+    mq_gate = None
+
+    def __init__(self):
+        self.calls: list[list[dict]] = []
+
+    async def execute_batch(self, parsed_calls, **kwargs):
+        self.calls.append(list(parsed_calls))
+        return [
+            ToolExecutionResult(
+                tool_call_id=pc.get("tool_call_id", ""),
+                tool_name=pc.get("tool_name", ""),
+                success=True,
+                result={"ok": True},
+            )
+            for pc in parsed_calls
+        ]
+
+
+def _scripted_stream_impl(rounds: list[dict]):
+    state = {"idx": 0}
+
+    async def mock_impl(*args, **kwargs):
+        run_result = kwargs.get("result")
+        spec = rounds[min(state["idx"], len(rounds) - 1)]
+        state["idx"] += 1
+        if run_result is not None:
+            run_result.tool_calls = [dict(tc) for tc in spec["tool_calls"]]
+            run_result.text = spec["text"]
+        yield StreamEvent(type="completed", result=run_result, round_index=state["idx"] - 1)
+
+    return mock_impl

@@ -16,8 +16,8 @@ from src.infrastructure.ai.governance.governance_resolver import is_public_l0_to
 from src.infrastructure.ai.templates import get_task_template, template_allows_tool
 from src.infrastructure.ai.tools.tool_executor import (
     BLOCKED_BY_ACL,
-    BLOCKED_BY_LEASE,
     BLOCKED_BY_SNAPSHOT,
+    BLOCKED_BY_TEMPLATE,
     is_write_action_tool,
 )
 
@@ -172,18 +172,10 @@ def explain_tool_access(
         }
     )
 
-    # Final decision: first hard deny wins. Snapshot absence is a deny even
-    # when tooling_config is missing; denied_tools is attributed to ACL.
-    if acl_denied:
-        return _deny_payload(
-            entity_id=entity_id,
-            tool_name=name,
-            checks=checks,
-            blocked_by=BLOCKED_BY_ACL,
-            rule=acl_rule or "ACL_DENIED",
-            detail=acl_detail or f"Tool '{name}' denied by entity ACL",
-            lease_required=lease_required,
-        )
+    # Final decision: first hard deny wins, matching the runtime first
+    # impression. denied_tools are already filtered out of the snapshot at
+    # resolver build, so snapshot membership precedes ACL. Template policy
+    # is its own gate (not ACL).
     if not in_snapshot:
         return _deny_payload(
             entity_id=entity_id,
@@ -194,12 +186,22 @@ def explain_tool_access(
             detail=f"Tool '{name}' is not present in the resolved entity tool snapshot",
             lease_required=lease_required,
         )
-    if template_denied:
+    if acl_denied:
         return _deny_payload(
             entity_id=entity_id,
             tool_name=name,
             checks=checks,
             blocked_by=BLOCKED_BY_ACL,
+            rule=acl_rule or "ACL_DENIED",
+            detail=acl_detail or f"Tool '{name}' denied by entity ACL",
+            lease_required=lease_required,
+        )
+    if template_denied:
+        return _deny_payload(
+            entity_id=entity_id,
+            tool_name=name,
+            checks=checks,
+            blocked_by=BLOCKED_BY_TEMPLATE,
             rule=template_rule or "TEMPLATE_DENIED",
             detail=template_detail or f"Tool '{name}' denied by task template",
             lease_required=lease_required,

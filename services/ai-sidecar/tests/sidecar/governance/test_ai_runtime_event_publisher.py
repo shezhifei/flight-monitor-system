@@ -138,6 +138,27 @@ def test_build_run_fail_envelope_shape() -> None:
     assert envelope["event_type"] == "run_fail"
     assert envelope["payload"]["error_code"] == "MODEL_TIMEOUT"
     assert envelope["payload"]["error_message"] == "stream aborted"
+    assert "blocked_by" not in envelope["payload"]
+    assert "rule" not in envelope["payload"]
+    assert "detail" not in envelope["payload"]
+
+
+def test_build_run_fail_includes_optional_block_fields() -> None:
+    envelope = build_run_fail(
+        run_id="run-1",
+        job_id="job-1",
+        round_index=0,
+        event_sequence=1,
+        idempotency_key="run-fail-snapshot",
+        error_code="AI_TOOL_SNAPSHOT_MISSING",
+        error_message="no resolved tool snapshot for this run",
+        blocked_by="snapshot",
+        rule="AI_TOOL_SNAPSHOT_MISSING",
+        detail="no resolved tool snapshot for this run",
+    )
+    assert envelope["payload"]["blocked_by"] == "snapshot"
+    assert envelope["payload"]["rule"] == "AI_TOOL_SNAPSHOT_MISSING"
+    assert envelope["payload"]["detail"] == "no resolved tool snapshot for this run"
 
 
 def test_build_tool_result_envelope_shape() -> None:

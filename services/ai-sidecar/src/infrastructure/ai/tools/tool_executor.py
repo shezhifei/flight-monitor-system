@@ -70,12 +70,15 @@ class ToolResultCachePolicy:
 
 
 # Machine-readable gate identifiers for governance rejections.
-# Values are stable contracts for SSE tool_result payloads and the explain endpoint.
+# Values are stable contracts for SSE tool_result / run.fail payloads and explain.
+# Budget exhaustion (StreamEvent type=budget_exhausted) is a run-loop stop that
+# still emits ``completed``; it is not a single-tool governance deny, so there
+# is no BLOCKED_BY_BUDGET constant.
 BLOCKED_BY_SNAPSHOT = "snapshot"
 BLOCKED_BY_HOOK = "hook"
 BLOCKED_BY_ACL = "acl"
 BLOCKED_BY_LEASE = "lease"
-BLOCKED_BY_BUDGET = "budget"
+BLOCKED_BY_TEMPLATE = "template"
 
 
 @dataclass

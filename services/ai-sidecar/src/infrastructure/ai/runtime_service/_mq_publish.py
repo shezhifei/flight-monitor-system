@@ -253,6 +253,9 @@ async def _publish_run_fail_mq(
     error_message: str,
     terminal_event_id: str | None = None,
     require_durable_ack: bool = True,
+    blocked_by: str | None = None,
+    rule: str | None = None,
+    detail: str | None = None,
 ) -> bool:
     """Publish a ``run.fail`` MQ event with durability guarantees.
 
@@ -280,6 +283,9 @@ async def _publish_run_fail_mq(
                 error_code=error_code,
                 error_message=error_message,
                 terminal_event_id=terminal_event_id,
+                blocked_by=blocked_by,
+                rule=rule,
+                detail=detail,
             )
             await publisher.publish(envelope)
             logger.info(f"[P0-5] Durable run.fail published successfully after {attempt + 1} attempt(s)")

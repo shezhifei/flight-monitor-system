@@ -203,28 +203,12 @@ async def explain_tool_governance(request: Request) -> JSONResponse:
 
 async def _load_entity_tooling_config(resolver: Any, entity_id: str) -> dict[str, Any]:
     """Best-effort load of raw entity tooling config for ACL attribution."""
-    config_store = getattr(resolver, "_config_store", None)
-    if config_store is None:
-        return {}
     try:
-        # config_store APIs vary slightly across implementations.
-        if hasattr(config_store, "get_entity_config"):
-            raw = await config_store.get_entity_config(entity_id)
-        elif hasattr(config_store, "get"):
-            raw = await config_store.get(entity_id)
-        else:
-            return {}
-        if isinstance(raw, dict):
-            tooling = raw.get("tooling")
-            return dict(tooling) if isinstance(tooling, dict) else {}
-        # Some stores wrap the document.
-        config = getattr(raw, "config", None)
-        if isinstance(config, dict):
-            tooling = config.get("tooling")
-            return dict(tooling) if isinstance(tooling, dict) else {}
+        tooling = await resolver.get_entity_tooling_config(entity_id)
     except Exception:  # noqa: BLE001 - explain must still return snapshot chain
         logger.debug("tool_explain_tooling_config_unavailable", extra={"entity_id": entity_id})
-    return {}
+        return {}
+    return dict(tooling) if isinstance(tooling, dict) else {}
 
 
 @router.post("/entities/{entity_id}/capabilities/validate")

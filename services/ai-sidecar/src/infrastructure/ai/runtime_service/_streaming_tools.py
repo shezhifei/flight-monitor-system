@@ -29,6 +29,7 @@ from src.infrastructure.ai.templates import (
     resolve_budget_with_hard_cap,
     template_allows_tool,
 )
+from src.infrastructure.ai.tools.tool_executor import BLOCKED_BY_SNAPSHOT
 from src.infrastructure.common.exceptions import REDIS_EXCEPTIONS
 
 from ._constants import CONTRACT_VERSION, STATUS_FAILED, STATUS_SUCCEEDED
@@ -282,6 +283,7 @@ class _StreamingToolsMixin:
             # production run — there is no mock/default fallback anymore
             # (docs/architecture/AGENT_RUNTIME_LOOP.md).
             if resolved_config is None or not resolved_config.tools:
+                snapshot_detail = "no resolved tool snapshot for this run"
                 output = self._failed_output(
                     run_id=run_id,
                     answer=(
@@ -290,7 +292,11 @@ class _StreamingToolsMixin:
                     ),
                     duration_ms=self._elapsed_ms(started),
                 )
-                yield _sse_event("run.fail", structured_output_to_response_dict(output))
+                fail_payload = structured_output_to_response_dict(output)
+                fail_payload["blocked_by"] = BLOCKED_BY_SNAPSHOT
+                fail_payload["rule"] = "AI_TOOL_SNAPSHOT_MISSING"
+                fail_payload["detail"] = snapshot_detail
+                yield _sse_event("run.fail", fail_payload)
                 await _publish_run_fail_mq(
                     _resolve_mq_publisher(),
                     run_id=run_id,
@@ -298,8 +304,11 @@ class _StreamingToolsMixin:
                     round_index=0,
                     event_sequence=1,
                     error_code="AI_TOOL_SNAPSHOT_MISSING",
-                    error_message="no resolved tool snapshot for this run",
+                    error_message=snapshot_detail,
                     terminal_event_id=None,
+                    blocked_by=BLOCKED_BY_SNAPSHOT,
+                    rule="AI_TOOL_SNAPSHOT_MISSING",
+                    detail=snapshot_detail,
                 )
                 return
 

@@ -456,6 +456,17 @@ class CapabilityResolver:
                 return config
         return {}
 
+    async def get_entity_tooling_config(self, entity_id: str) -> dict[str, Any]:
+        """Public: raw entity ``tooling`` block for explain / ACL attribution.
+
+        Wraps the config store's ``get`` (never probe ``_config_store`` from
+        callers). Returns ``{}`` when the store is missing, the entity is
+        unknown, or the document has no tooling object.
+        """
+        raw = await self._load_entity_config(entity_id)
+        tooling = raw.get("tooling") if isinstance(raw, dict) else None
+        return dict(tooling) if isinstance(tooling, dict) else {}
+
     def _resolve_model_id(
         self,
         model_routing: dict[str, Any],

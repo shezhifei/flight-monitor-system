@@ -1,14 +1,18 @@
 """Unit tests for entity × tool governance explain chain.
 
-Covers the three acceptance cases:
+Covers the acceptance cases:
 1. Tool missing from snapshot → deny / blocked_by=snapshot
-2. denied_tools hit → deny / blocked_by=acl
-3. Normal allow path
+2. denied_tools already filtered from snapshot → snapshot wins over ACL
+3. denied_tools still present in snapshot (inconsistent) → deny / blocked_by=acl
+4. Template policy deny → deny / blocked_by=template
+5. Normal allow path
 """
 
 from __future__ import annotations
 
 from types import SimpleNamespace
+
+import pytest
 
 from src.infrastructure.ai.tools.tool_explain import explain_from_snapshot, explain_tool_access
 
@@ -29,7 +33,8 @@ def test_explain_snapshot_missing_tool():
     assert steps["snapshot"]["result"] == "missing"
 
 
-def test_explain_denied_tools_hit():
+def test_explain_denied_tools_filtered_from_snapshot_is_snapshot():
+    """Runtime first impression: denied_tools never appear in the snapshot."""
     result = explain_tool_access(
         entity_id="ent-1",
         tool_name="assign_gate",
@@ -41,12 +46,31 @@ def test_explain_denied_tools_hit():
         },
     )
     assert result["decision"] == "deny"
+    assert result["blocked_by"] == "snapshot"
+    assert result["rule"] == "TOOL_NOT_IN_SNAPSHOT"
+    steps = {c["step"]: c for c in result["checks"]}
+    assert steps["acl"]["result"] == "deny"
+    assert steps["snapshot"]["result"] == "missing"
+
+
+def test_explain_denied_tools_still_in_snapshot_is_acl():
+    """ACL attribution only when the tool is still in the snapshot."""
+    result = explain_tool_access(
+        entity_id="ent-1",
+        tool_name="assign_gate",
+        snapshot_tools=[{"name": "assign_gate", "category": "write"}],
+        tooling_config={
+            "denied_tools": ["assign_gate"],
+            "allowed_tools": None,
+        },
+    )
+    assert result["decision"] == "deny"
     assert result["blocked_by"] == "acl"
     assert result["rule"] == "DENIED_TOOLS"
     assert "denied_tools" in result["detail"]
     steps = {c["step"]: c for c in result["checks"]}
+    assert steps["snapshot"]["result"] == "present"
     assert steps["acl"]["result"] == "deny"
-    assert steps["snapshot"]["result"] == "missing"
 
 
 def test_explain_allow_when_present_and_not_denied():
@@ -93,7 +117,7 @@ def test_explain_not_in_allowed_tools_list():
     result = explain_tool_access(
         entity_id="ent-1",
         tool_name="assign_gate",
-        snapshot_tools=[],
+        snapshot_tools=[{"name": "assign_gate", "category": "write"}],
         tooling_config={
             "denied_tools": [],
             "allowed_tools": ["list_flights"],
@@ -114,5 +138,35 @@ def test_explain_template_denies_write_for_query_ops():
     )
     # query_ops template denies write tools / restricts categories
     assert result["decision"] == "deny"
-    assert result["blocked_by"] == "acl"
+    assert result["blocked_by"] == "template"
     assert result["rule"] in ("TEMPLATE_DENIED_TOOLS", "TEMPLATE_CATEGORY_FILTER")
+
+
+@pytest.mark.asyncio
+async def test_resolver_get_entity_tooling_config_uses_store_get():
+    from src.infrastructure.ai.capability_resolver import CapabilityResolver
+
+    class _Store:
+        async def get(self, entity_id: str):
+            assert entity_id == "ent-x"
+            return {"tooling": {"denied_tools": ["assign_gate"], "allowed_tools": None}}
+
+    resolver = CapabilityResolver(config_store=_Store())
+    tooling = await resolver.get_entity_tooling_config("ent-x")
+    assert tooling == {"denied_tools": ["assign_gate"], "allowed_tools": None}
+
+
+@pytest.mark.asyncio
+async def test_load_entity_tooling_config_uses_public_resolver_api():
+    from src.infrastructure.ai.management_routes import _load_entity_tooling_config
+
+    class _Resolver:
+        def __init__(self) -> None:
+            self._config_store = object()  # must not be probed
+
+        async def get_entity_tooling_config(self, entity_id: str):
+            assert entity_id == "ent-1"
+            return {"denied_tools": ["x"]}
+
+    tooling = await _load_entity_tooling_config(_Resolver(), "ent-1")
+    assert tooling == {"denied_tools": ["x"]}

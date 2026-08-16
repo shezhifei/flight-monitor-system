@@ -332,12 +332,21 @@ def build_run_fail(
     error_message: str,
     terminal_event_id: str | None = None,
     event_id: str | None = None,
+    blocked_by: str | None = None,
+    rule: str | None = None,
+    detail: str | None = None,
 ) -> dict[str, Any]:
     payload = {
         "error_code": error_code,
         "error_message": error_message,
         "terminal_event_id": terminal_event_id,
     }
+    if blocked_by is not None:
+        payload["blocked_by"] = blocked_by
+    if rule is not None:
+        payload["rule"] = rule
+    if detail is not None:
+        payload["detail"] = detail
     return _make_envelope(
         "run_fail",
         run_id,
