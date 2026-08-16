@@ -367,8 +367,11 @@ export function NLQueryPage(): JSX.Element {
               id: createRequestId('tool'),
               toolName: String(payload.tool_name || 'tool'),
               status: String(payload.status || semantic),
-              message: String(payload.message || semantic),
+              message: String(payload.message || payload.error || semantic),
               time: new Date().toLocaleTimeString(),
+              blockedBy: payload.blocked_by ? String(payload.blocked_by) : undefined,
+              rule: payload.rule ? String(payload.rule) : undefined,
+              detail: payload.detail ? String(payload.detail) : undefined,
             }));
           }
         },

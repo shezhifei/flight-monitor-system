@@ -4,6 +4,9 @@ export interface ToolTimelineItem {
   status: string;
   message?: string;
   time?: string;
+  blockedBy?: string;
+  rule?: string;
+  detail?: string;
 }
 
 export function upsertToolTimelineEntry(

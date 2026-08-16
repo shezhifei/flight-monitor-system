@@ -470,14 +470,17 @@ class LLMStreamRunner:
                         calls_for_execution.append(pc)
                     else:
                         reason = "; ".join(hook_ctx.errors) or "blocked by PreToolUse hook"
+                        rule = hook_ctx.blocked_rule or "PreToolUse"
                         logger.warning(
                             f"Tool call {pc.get('tool_name')} blocked by PreToolUse hooks, run={run_id}: {reason}"
                         )
                         hook_blocked_results.append(
-                            ToolExecutionResult(
+                            ToolExecutionResult.blocked(
                                 tool_call_id=pc.get("tool_call_id", ""),
                                 tool_name=pc.get("tool_name", ""),
-                                success=False,
+                                blocked_by="hook",
+                                rule=rule,
+                                detail=reason,
                                 error=f"HOOK_BLOCKED: {reason}",
                             )
                         )

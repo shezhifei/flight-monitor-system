@@ -151,6 +151,82 @@ async def get_entity_capabilities(request: Request, entity_id: str) -> JSONRespo
     return _ok(data)
 
 
+@router.get("/tools/explain")
+async def explain_tool_governance(request: Request) -> JSONResponse:
+    """Explain entity × tool governance decisions (debug / observability).
+
+    Query params:
+        entity: entity id (required)
+        tool: tool name (required)
+        task_type: optional envelope task type for template narrowing
+    """
+    require_service_identity(request)
+    params = request.query_params
+    entity_id = (params.get("entity") or "").strip()
+    tool_name = (params.get("tool") or "").strip()
+    task_type = (params.get("task_type") or "").strip() or None
+    if not entity_id or not tool_name:
+        return _err(
+            "Query params 'entity' and 'tool' are required",
+            400,
+            "MISSING_QUERY_PARAMS",
+        )
+
+    repos = _resolve_repos()
+    resolver = repos["capability_resolver"]
+    if not resolver:
+        return _err("CapabilityResolver not configured", 503, "SERVICE_NOT_CONFIGURED")
+
+    tooling_config: dict[str, Any] = {}
+    try:
+        snapshot = await resolver.resolve(entity_id=entity_id, model_purpose="chat")
+        # Best-effort raw tooling config for ACL attribution (denied_tools etc.).
+        tooling_config = await _load_entity_tooling_config(resolver, entity_id)
+    except ValueError as exc:
+        logger.error("tool_explain_capability_validation_failed", exc_info=exc)
+        return _err("Capability validation failed", 422, "CAPABILITY_VALIDATION_FAILED")
+    except Exception as exc:
+        logger.error("tool_explain_capability_resolution_failed", exc_info=exc)
+        return _err("Capability resolution failed", 500, "CAPABILITY_RESOLUTION_FAILED")
+
+    from src.infrastructure.ai.tools.tool_explain import explain_from_snapshot
+
+    data = explain_from_snapshot(
+        entity_id=entity_id,
+        tool_name=tool_name,
+        snapshot=snapshot,
+        tooling_config=tooling_config or None,
+        task_type=task_type,
+    )
+    return _ok(data)
+
+
+async def _load_entity_tooling_config(resolver: Any, entity_id: str) -> dict[str, Any]:
+    """Best-effort load of raw entity tooling config for ACL attribution."""
+    config_store = getattr(resolver, "_config_store", None)
+    if config_store is None:
+        return {}
+    try:
+        # config_store APIs vary slightly across implementations.
+        if hasattr(config_store, "get_entity_config"):
+            raw = await config_store.get_entity_config(entity_id)
+        elif hasattr(config_store, "get"):
+            raw = await config_store.get(entity_id)
+        else:
+            return {}
+        if isinstance(raw, dict):
+            tooling = raw.get("tooling")
+            return dict(tooling) if isinstance(tooling, dict) else {}
+        # Some stores wrap the document.
+        config = getattr(raw, "config", None)
+        if isinstance(config, dict):
+            tooling = config.get("tooling")
+            return dict(tooling) if isinstance(tooling, dict) else {}
+    except Exception:  # noqa: BLE001 - explain must still return snapshot chain
+        logger.debug("tool_explain_tooling_config_unavailable", extra={"entity_id": entity_id})
+    return {}
+
+
 @router.post("/entities/{entity_id}/capabilities/validate")
 async def validate_entity_capabilities(request: Request, entity_id: str) -> JSONResponse:
     require_service_identity(request)

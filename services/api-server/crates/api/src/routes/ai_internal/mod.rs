@@ -7,6 +7,7 @@ mod tests;
 
 pub mod ingest_run_event;
 pub mod runtime_health;
+pub mod tools_explain;
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/internal/ai/v1")
@@ -25,6 +26,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 web::post().to(ingest_run_event::complete_run),
             )
             .route("/runs/{run_id}/fail", web::post().to(ingest_run_event::fail_run))
-            .route("/health", web::get().to(runtime_health::runtime_health)),
+            .route("/health", web::get().to(runtime_health::runtime_health))
+            .route("/tools/explain", web::get().to(tools_explain::tools_explain)),
     );
 }

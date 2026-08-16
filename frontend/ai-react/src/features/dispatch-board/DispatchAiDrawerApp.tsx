@@ -40,7 +40,16 @@ export function DispatchAiDrawerApp(): JSX.Element {
   const [question, setQuestion] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [toolItems, setToolItems] = useState<Array<{ id: string; toolName: string; status: string; message?: string; time?: string }>>([]);
+  const [toolItems, setToolItems] = useState<Array<{
+    id: string;
+    toolName: string;
+    status: string;
+    message?: string;
+    time?: string;
+    blockedBy?: string;
+    rule?: string;
+    detail?: string;
+  }>>([]);
   const [conflicts, setConflicts] = useState<DispatchConflictRow[]>([]);
   const [severityFilter, setSeverityFilter] = useState('all');
   const [queryFilter, setQueryFilter] = useState('');
@@ -142,8 +151,11 @@ export function DispatchAiDrawerApp(): JSX.Element {
                 id: createRequestId('tool'),
                 toolName: String(payload.tool_name || 'dispatch_tool'),
                 status: String(payload.status || semantic),
-                message: String(payload.message || semantic),
+                message: String(payload.message || payload.error || semantic),
                 time: normalizeTime(new Date().toISOString()),
+                blockedBy: payload.blocked_by ? String(payload.blocked_by) : undefined,
+                rule: payload.rule ? String(payload.rule) : undefined,
+                detail: payload.detail ? String(payload.detail) : undefined,
               },
             ]);
           }

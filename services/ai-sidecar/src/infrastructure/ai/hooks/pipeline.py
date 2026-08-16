@@ -66,6 +66,8 @@ class HookContext:
     working_memory: Any | None = None  # WorkingMemory workspace (Task B2), shared across phases
     mq_gate: Any | None = None  # ToolMqGate for the run, when wired (lease preflight)
     errors: list[str] = field(default_factory=list)
+    # Observability only: set by HookPipeline when a hook returns False.
+    blocked_rule: str | None = None
 
     def add_error(self, error: str) -> None:
         self.errors.append(error)
@@ -492,12 +494,18 @@ class HookPipeline:
         hooks = self._hooks_by_phase.get(phase, [])
         
         for hook in hooks:
+            hook_name = type(hook).__name__
             try:
                 if not await hook.execute(ctx):
-                    logger.error(f"Hook {type(hook).__name__} failed at phase {phase}")
+                    # Observability only — does not change allow/deny semantics.
+                    if not ctx.blocked_rule:
+                        ctx.blocked_rule = hook_name
+                    logger.error(f"Hook {hook_name} failed at phase {phase}")
                     return False
             except Exception as exc:  # noqa: BLE001
-                ctx.add_error(f"Hook {type(hook).__name__} exception: {exc}")
+                if not ctx.blocked_rule:
+                    ctx.blocked_rule = hook_name
+                ctx.add_error(f"Hook {hook_name} exception: {exc}")
                 return False
                 
         return True

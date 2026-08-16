@@ -69,9 +69,24 @@ class ToolResultCachePolicy:
         return tool_name in tools
 
 
+# Machine-readable gate identifiers for governance rejections.
+# Values are stable contracts for SSE tool_result payloads and the explain endpoint.
+BLOCKED_BY_SNAPSHOT = "snapshot"
+BLOCKED_BY_HOOK = "hook"
+BLOCKED_BY_ACL = "acl"
+BLOCKED_BY_LEASE = "lease"
+BLOCKED_BY_BUDGET = "budget"
+
+
 @dataclass
 class ToolExecutionResult:
-    """Result of executing a single tool call during streaming inference."""
+    """Result of executing a single tool call during streaming inference.
+
+    On governance rejection, ``blocked_by`` / ``rule`` / ``detail`` identify
+    which gate stopped the call. ``error`` keeps the legacy human-readable
+    string (including codes like ``TOOL_NOT_IN_ALLOWED_SET``) for model feedback
+    and existing tests; structured fields are additive observability only.
+    """
 
     tool_call_id: str
     tool_name: str
@@ -79,6 +94,9 @@ class ToolExecutionResult:
     result: Any | None = None
     error: str | None = None
     proposal: dict[str, Any] | None = None
+    blocked_by: str | None = None
+    rule: str | None = None
+    detail: str | None = None
 
     def to_sse_payload(self) -> dict[str, Any]:
         """Convert to SSE tool.result payload format."""
@@ -90,7 +108,35 @@ class ToolExecutionResult:
             payload["result"] = self.result
         else:
             payload["error"] = self.error
+            if self.blocked_by is not None:
+                payload["blocked_by"] = self.blocked_by
+            if self.rule is not None:
+                payload["rule"] = self.rule
+            if self.detail is not None:
+                payload["detail"] = self.detail
         return payload
+
+    @classmethod
+    def blocked(
+        cls,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        blocked_by: str,
+        rule: str,
+        detail: str,
+        error: str | None = None,
+    ) -> "ToolExecutionResult":
+        """Build a failed result with structured rejection metadata."""
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            success=False,
+            error=error if error is not None else f"{rule}: {detail}",
+            blocked_by=blocked_by,
+            rule=rule,
+            detail=detail,
+        )
 
 
 # Tools that require Rust-side execution (write actions)
@@ -206,15 +252,17 @@ class ToolExecutor:
         # This prevents replayed/hallucinated tool calls that were not in the
         # resolver's allowed set from executing, even if LLM produces them.
         if allowed_tool_names is not None and tool_name not in allowed_tool_names:
-            return ToolExecutionResult(
+            detail = (
+                f"Tool '{tool_name}' is not in the resolved allowed tool set for this run. "
+                "This may indicate a replayed or hallucinated tool call."
+            )
+            return ToolExecutionResult.blocked(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
-                success=False,
-                error=(
-                    f"TOOL_NOT_IN_ALLOWED_SET: Tool '{tool_name}' is not in the resolved "
-                    f"allowed tool set for this run. This may indicate a replayed or "
-                    f"hallucinated tool call."
-                ),
+                blocked_by=BLOCKED_BY_ACL,
+                rule="TOOL_NOT_IN_ALLOWED_SET",
+                detail=detail,
+                error=f"TOOL_NOT_IN_ALLOWED_SET: {detail}",
             )
 
         tool_type = self.get_tool_type(tool_name)
@@ -260,15 +308,18 @@ class ToolExecutor:
                 "job_id": job_id,
             },
         )
-        return ToolExecutionResult(
+        detail = (
+            f"Authorization gate is not available; protected tool '{tool_name}' "
+            "cannot execute without Rust authorization. Verify RocketMQ connectivity "
+            "and restart the sidecar."
+        )
+        return ToolExecutionResult.blocked(
             tool_call_id=tool_call_id,
             tool_name=tool_name,
-            success=False,
-            error=(
-                "MQ_GATE_UNAVAILABLE: Authorization gate is not available; "
-                f"protected tool '{tool_name}' cannot execute without Rust "
-                "authorization. Verify RocketMQ connectivity and restart the sidecar."
-            ),
+            blocked_by=BLOCKED_BY_LEASE,
+            rule="MQ_GATE_UNAVAILABLE",
+            detail=detail,
+            error=f"MQ_GATE_UNAVAILABLE: {detail}",
         )
 
     async def _execute_with_gate(
@@ -305,24 +356,31 @@ class ToolExecutor:
                 tool_type=tool_type,
             )
         except ToolAuthContextRequired as exc:
-            return ToolExecutionResult(
+            return ToolExecutionResult.blocked(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
-                success=False,
+                blocked_by=BLOCKED_BY_LEASE,
+                rule="TOOL_AUTH_CONTEXT_REQUIRED",
+                detail=str(exc),
                 error=str(exc),
             )
         except ToolAuthorizationTimeout as exc:
-            return ToolExecutionResult(
+            return ToolExecutionResult.blocked(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
-                success=False,
+                blocked_by=BLOCKED_BY_LEASE,
+                rule="TOOL_AUTHORIZATION_TIMEOUT",
+                detail=str(exc),
                 error=str(exc),
             )
         except ToolAuthorizationError as exc:
-            return ToolExecutionResult(
+            code = getattr(exc, "code", None) or "TOOL_AUTHORIZATION_ERROR"
+            return ToolExecutionResult.blocked(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
-                success=False,
+                blocked_by=BLOCKED_BY_LEASE,
+                rule=str(code),
+                detail=str(exc),
                 error=str(exc),
             )
 
@@ -457,18 +515,20 @@ class ToolExecutor:
         from .mq_gate import ToolDeniedByRust
 
         message = decision.denial_message or "denied by Rust"
-        return ToolExecutionResult(
+        denial_code = decision.denial_code or "TOOL_ACTOR_PERMISSION_DENIED"
+        denied_exc = ToolDeniedByRust(
+            tool_name=tool_name,
+            tool_call_id=tool_call_id,
+            code=denial_code,
+            message=message,
+        )
+        return ToolExecutionResult.blocked(
             tool_call_id=tool_call_id,
             tool_name=tool_name,
-            success=False,
-            error=str(
-                ToolDeniedByRust(
-                    tool_name=tool_name,
-                    tool_call_id=tool_call_id,
-                    code=decision.denial_code or "TOOL_ACTOR_PERMISSION_DENIED",
-                    message=message,
-                )
-            ),
+            blocked_by=BLOCKED_BY_LEASE,
+            rule=denial_code,
+            detail=message,
+            error=str(denied_exc),
         )
 
     def _build_proposal_for_mode(
