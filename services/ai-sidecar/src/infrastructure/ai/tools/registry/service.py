@@ -811,8 +811,12 @@ class ToolRegistry:
         approver_roles: list[str] | None = None,
     ) -> dict[str, Any]:
         """批准待审批动作并尝试执行原工具。"""
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_proposal
+
         pending_store = get_pending_action_store()
         action = await pending_store.approve_action(action_id, approver_id)
+        # J1: proposal lifecycle counter (approved).
+        inc_proposal(action.tool_name or "unknown", "approved")
         level = self._get_tool_operation_level(action.tool_name)
         self._emit_write_audit(
             event_status="approved",
@@ -861,6 +865,8 @@ class ToolRegistry:
                 )
             except TypeError:
                 latest = await pending_store.mark_executed(action_id, execution_result.result)
+            # J1: proposal lifecycle counter (executed).
+            inc_proposal(action.tool_name or "unknown", "executed")
         else:
             try:
                 latest = await pending_store.mark_failed(
@@ -879,6 +885,8 @@ class ToolRegistry:
                     action_id,
                     execution_result.error_message or execution_result.status.value,
                 )
+            # J1: proposal lifecycle counter (failed).
+            inc_proposal(action.tool_name or "unknown", "failed")
 
         self._log_approval_audit(
             approver_id=approver_id,
@@ -897,8 +905,12 @@ class ToolRegistry:
         reason: str | None = None,
     ) -> dict[str, Any]:
         """拒绝待审批动作。"""
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_proposal
+
         pending_store = get_pending_action_store()
         action = await pending_store.reject_action(action_id, approver_id, reason)
+        # J1: proposal lifecycle counter (rejected).
+        inc_proposal(action.tool_name or "unknown", "rejected")
         level = self._get_tool_operation_level(action.tool_name)
         self._emit_write_audit(
             event_status="rejected",
@@ -932,8 +944,12 @@ class ToolRegistry:
         微调 AI 提出的参数（例如修改建议的机位分配）。系统会同时保留
         原始参数和修改后参数，用于后续偏好数据收集。
         """
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_proposal
+
         pending_store = get_pending_action_store()
         action = await pending_store.approve_action(action_id, approver_id)
+        # J1: proposal lifecycle counter (approved).
+        inc_proposal(action.tool_name or "unknown", "approved")
         level = self._get_tool_operation_level(action.tool_name)
         self._emit_write_audit(
             event_status="approved",
@@ -992,6 +1008,8 @@ class ToolRegistry:
                 )
             except TypeError:
                 latest = await pending_store.mark_executed(action_id, execution_result.result)
+            # J1: proposal lifecycle counter (executed).
+            inc_proposal(action.tool_name or "unknown", "executed")
         else:
             try:
                 latest = await pending_store.mark_failed(
@@ -1010,6 +1028,8 @@ class ToolRegistry:
                     action_id,
                     execution_result.error_message or execution_result.status.value,
                 )
+            # J1: proposal lifecycle counter (failed).
+            inc_proposal(action.tool_name or "unknown", "failed")
 
         self._log_approval_audit(
             approver_id=approver_id,

@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from src.infrastructure.ai.context_envelope import ContextEnvelope
+from src.infrastructure.ai.monitoring.prometheus_exporter import begin_metric_context, end_metric_context
 from src.infrastructure.ai.openai_client import Message
 from src.infrastructure.ai.runtime_context import enhance_context
 from src.infrastructure.ai.runtime_graph import graph_result_to_output
@@ -100,6 +101,10 @@ class _StreamingToolsMixin:
 
         # Resolve entity capabilities (shared preamble; tool path reuses cache).
         entity_id = getattr(envelope, "entity_id", None) or "default"
+        # J1: bind run-scoped metric labels (task_type x entity_id) for all
+        # per-run Prometheus counters observed below this point.
+        task_type = getattr(envelope.task, "task_type", None) if hasattr(envelope, "task") else None
+        _metric_ctx_tokens = begin_metric_context(task_type=task_type, entity_id=entity_id)
         prep = await self._prepare_capabilities(envelope, run_id, started, read_context_cache=True)
         for evt in prep.progress_events:
             yield evt
@@ -203,7 +208,6 @@ class _StreamingToolsMixin:
 
             if resolved_config and resolved_config.skills.enabled and self._skill_instruction_composer:
                 try:
-                    task_type = getattr(envelope.task, "task_type", None) if hasattr(envelope, "task") else None
                     composed = await self._skill_instruction_composer.compose(
                         entity_id=entity_id,
                         task_type=task_type,
@@ -671,6 +675,9 @@ class _StreamingToolsMixin:
                 error_code="AI_RUNTIME_PROCESSING_ERROR",
                 error_message=sanitize_provider_error(exc),
             )
+        finally:
+            # J1: release the run-scoped metric label binding.
+            end_metric_context(_metric_ctx_tokens)
 
     def _prepare_run_context(self, envelope: ContextEnvelope, intent: str) -> _RunContext:
         ctx = _RunContext(

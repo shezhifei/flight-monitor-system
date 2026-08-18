@@ -390,10 +390,16 @@ class ResumeHandler:
         Yields:
             Events from the resumed execution
         """
+        # Restore state (J1: resume outcome counter, success/failure).
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_resume
         from src.infrastructure.ai.working_memory import WorkingMemory
 
-        # Restore state
-        context = await self.handle_resume(command)
+        try:
+            context = await self.handle_resume(command)
+        except Exception:
+            inc_resume("failed")
+            raise
+        inc_resume("success")
         context.allowed_tool_names = set(allowed_tools or set())
 
         # B2: rebuild the workspace from the checkpoint snapshot; the runner
@@ -453,10 +459,17 @@ class ResumeHandler:
         summary as ``conversation_history`` and injects the restored working
         memory, then consumes the run to completion.
         """
+        # J1: resume outcome counter, success/failure.
         from src.infrastructure.ai.context_envelope import ContextEnvelope
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_resume
         from src.infrastructure.ai.working_memory import WorkingMemory
 
-        context = await self.handle_resume(command)
+        try:
+            context = await self.handle_resume(command)
+        except Exception:
+            inc_resume("failed")
+            raise
+        inc_resume("success")
 
         input_snapshot = await self._loader.load_run_input_snapshot(context.run_id)
         if not input_snapshot:

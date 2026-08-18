@@ -269,6 +269,54 @@ class ToolExecutor:
         round_index: int = 0,
         job_id: str = "",
     ) -> ToolExecutionResult:
+        """Execute a tool call and record J1 metrics (tool x task_type x status x blocked_by).
+
+        Single instrumentation point: every routed tool call — local,
+        gated, blocked or failed — is counted here exactly once.
+        """
+        from src.infrastructure.ai.monitoring.prometheus_exporter import (
+            inc_tool_call,
+            observe_tool_duration,
+        )
+
+        tool_name = str(tool_call.get("tool_name", "") or "unknown")
+        started = time.monotonic()
+        try:
+            result = await self._execute_inner(
+                tool_call,
+                run_id,
+                envelope=envelope,
+                cache_policy=cache_policy,
+                on_child_event=on_child_event,
+                entity_id=entity_id,
+                allowed_tool_names=allowed_tool_names,
+                round_index=round_index,
+                job_id=job_id,
+            )
+        except Exception:
+            inc_tool_call(tool_name, "error")
+            observe_tool_duration(tool_name, time.monotonic() - started)
+            raise
+        if result.blocked_by is not None:
+            status = "blocked"
+        else:
+            status = "success" if result.success else "error"
+        inc_tool_call(tool_name, status, blocked_by=result.blocked_by)
+        observe_tool_duration(tool_name, time.monotonic() - started)
+        return result
+
+    async def _execute_inner(
+        self,
+        tool_call: dict[str, Any],
+        run_id: str,
+        envelope: Any | None = None,
+        cache_policy: ToolResultCachePolicy | None = None,
+        on_child_event: OnChildEvent | None = None,
+        entity_id: str | None = None,
+        allowed_tool_names: set[str] | None = None,
+        round_index: int = 0,
+        job_id: str = "",
+    ) -> ToolExecutionResult:
         tool_call_id = tool_call.get("tool_call_id", "unknown")
         tool_name = tool_call.get("tool_name", "")
         arguments = tool_call.get("arguments", {})

@@ -106,6 +106,11 @@ class MemoryPendingActionStore:
             self._order.append(action.action_id)
             self._trim_if_needed()
 
+        # J1: proposal lifecycle counter (created).
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_proposal
+
+        inc_proposal(tool_name or "unknown", "created")
+
         return action
 
     async def get_action(self, action_id: str) -> PendingAction | None:
@@ -592,6 +597,12 @@ class PostgresPendingActionStore:
                     ),
                 )
                 await conn.connection.commit()
+
+            # J1: proposal lifecycle counter (created) for the postgres path;
+            # the memory fallback records its own "created" in its create_action.
+            from src.infrastructure.ai.monitoring.prometheus_exporter import inc_proposal
+
+            inc_proposal(tool_name or "unknown", "created")
 
             return PendingAction(
                 action_id=action_id,

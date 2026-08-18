@@ -6,6 +6,7 @@ from typing import Any
 from src.infrastructure.ai.monitoring.prometheus_exporter import (
     inc_error,
     inc_tool_call,
+    observe_first_progress,
     observe_request_latency,
     observe_tokens,
     observe_tool_duration,
@@ -316,6 +317,9 @@ def record_execution_visibility_sample(
         latency = max(0.0, float(first_progress_latency_ms))
         metrics.observe_histogram("ai_execution_first_progress_latency_ms", latency)
         metrics.inc_counter("ai_execution_first_progress_total", 1)
+        # J1: Prometheus histogram sliceable by task_type (bound by the run
+        # entry point); alerts on p95 > 3s live in fms-slo-alerts.yml.
+        observe_first_progress(latency / 1000.0)
         if latency > FIRST_PROGRESS_TARGET_MS:
             metrics.inc_counter("ai_execution_first_progress_violation_total", 1)
 

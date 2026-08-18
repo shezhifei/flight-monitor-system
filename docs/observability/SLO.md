@@ -91,17 +91,47 @@ outbox_backlog = sum(fms_outbox_pending_events)
 - SLO: `outbox_backlog < 100`.
 - Also monitor publish duration: `histogram_quantile(0.99, sum(rate(fms_outbox_publish_duration_seconds_bucket[5m])) by (le))`.
 
-### 6. AI runtime (supporting, no hard SLO)
+### 6. AI Agent（Task J1，健康指标 + 费用核算）
 
-Health indicators only — not tied to an availability budget:
+所有 Agent 指标按 `task_type`（`query_ops` / `dispatch_ops` / `anomaly_ops` …）× `entity_id`
+切开；run 入口（`stream_run_with_tools`）绑定标签上下文，桥接函数缺省从上下文取值。
 
+| 指标 | labels | 用途 |
+|---|---|---|
+| `fms_ai_llm_calls_total` | `model`, `task_type`, `entity_id`, `status` | 按任务类型看 LLM 调用与失败率 |
+| `fms_ai_tool_calls_total` | `tool`, `task_type`, `status`, `blocked_by` | 拦截可切片（`blocked_by`：acl/lease/snapshot/hook/template/none） |
+| `fms_ai_tokens_total` | `model`, `type`, `task_type` | 费用分子 |
+| `fms_ai_run_cost_usd` | `task_type`, `entity_id` | 估算 LLM 费用（价目表 `monitoring/model_prices.py`，每 1M token USD） |
+| `fms_ai_price_missing_total` | — | 未收录模型的调用数；其 cost 记 0，不得高估支出 |
+| `fms_ai_first_progress_seconds` | `task_type` | 首 progress 延迟（目标 ≤ 1.5s，告警 3s） |
+| `fms_ai_resume_total` | `status` | 断线恢复成功/失败 |
+| `fms_ai_proposal_total` | `action`, `status` | created / approved / rejected / executed / failed |
+| `fms_ai_mq_gate_decisions_total` | `decision` | MQ 门禁决策分支 |
+
+性能口径（混合计划目标，本节使其可观测）：
+
+| 指标 | 目标 |
+|---|---|
+| 控制面 P99（不含 LLM） | ≤ 200ms |
+| 只读本体动作 P99 | ≤ 500ms |
+| 首 progress | ≤ 1.5s（告警 3s） |
+| 并发 run | 每实体 4 × 全局 32 |
+| 越权当成功 | 0（`fms_ai_tool_calls_total{status="blocked"}` 永不等于 success） |
+
+费用口径：`fms_ai_run_cost_usd` 由价目表常量估算，未知模型记 0 并使
+`fms_ai_price_missing_total` +1；费用告警在 `fms-slo-alerts.yml`（Task J2）。
+
+``` 
+# 按任务类型的失败率
+sum by (task_type) (rate(fms_ai_llm_calls_total{status="error"}[15m]))
+  / sum by (task_type) (rate(fms_ai_llm_calls_total[15m]))
+# 按任务类型的 token 消耗
+sum by (task_type) (rate(fms_ai_tokens_total[1h]))
+# 首 progress p95
+histogram_quantile(0.95, sum by (le, task_type) (rate(fms_ai_first_progress_seconds_bucket[15m])))
 ```
-fms_ai_llm_calls_total     # LLM invocation count (by model/status)
-fms_ai_tool_calls_total    # tool/function execution count (by tool/status)
-fms_ai_mq_gate_decisions_total  # MQ-gate allow/deny decisions
-```
 
-Surface anomalies (error rate of calls) but no formal SLO.
+以上为健康指标，暂不占用可用性错误预算；`FmsAiSidecarDown` 仍为正式告警。
 
 ## Error budgets
 
@@ -140,5 +170,6 @@ Burn-rate alerts (multi-window, multi-burn-rate):
 - Metrics flow: `fms_http_requests_total`, `fms_http_request_duration_seconds`,
   `fms_db_pool_connections`, `fms_redis_commands_total`, `fms_mq_publish_total`,
   `fms_mq_consume_total`, `fms_ai_llm_calls_total`, `fms_ai_tool_calls_total`,
-  `fms_ai_mq_gate_decisions_total`, `fms_outbox_pending_events`,
-  `fms_outbox_publish_duration_seconds`.
+  `fms_ai_tokens_total`, `fms_ai_run_cost_usd`, `fms_ai_first_progress_seconds`,
+  `fms_ai_resume_total`, `fms_ai_proposal_total`, `fms_ai_mq_gate_decisions_total`,
+  `fms_outbox_pending_events`, `fms_outbox_publish_duration_seconds`.

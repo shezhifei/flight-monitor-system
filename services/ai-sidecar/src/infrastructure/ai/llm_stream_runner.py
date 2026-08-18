@@ -846,9 +846,7 @@ class LLMStreamRunner:
         # tool-call delta accumulators: index -> {id, type, function: {name, arguments}}
         tc_accum: dict[int, dict[str, Any]] = {}
 
-        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_llm_call
-
-        inc_llm_call(model)
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_llm_call, observe_run_cost
 
         stream = await self._client.chat_completion(
             messages=messages,
@@ -905,8 +903,18 @@ class LLMStreamRunner:
                     result.usage = chunk_usage
         except Exception as exc:
             logger.error("Chat completion stream error: %s", exc)
+            inc_llm_call(model, status="error")
             yield StreamEvent(type="error", raw=exc)
             raise
+
+        # J1: count the call at completion so the status label is truthful,
+        # and fold token usage into the per-task-type cost counter.
+        inc_llm_call(model, status="ok")
+        observe_run_cost(
+            result.model or model,
+            int((result.usage or {}).get("prompt_tokens", 0) or 0),
+            int((result.usage or {}).get("completion_tokens", 0) or 0),
+        )
 
         result.text = "".join(text_parts)
         result.tool_calls = [tc_accum[i] for i in sorted(tc_accum)]
@@ -947,9 +955,7 @@ class LLMStreamRunner:
         start = time.monotonic()
         text_parts: list[str] = []
 
-        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_llm_call
-
-        inc_llm_call(model)
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_llm_call, observe_run_cost
 
         # Session chain injection
         session_kwargs: dict[str, Any] = {}
@@ -1005,8 +1011,12 @@ class LLMStreamRunner:
 
         except Exception as exc:
             logger.error("Responses stream error: %s", exc)
+            inc_llm_call(model, status="error")
             yield StreamEvent(type="error", raw=exc)
             raise
+
+        # J1: count the call at completion with a real status label.
+        inc_llm_call(model, status="ok")
 
         # Reconstruct from completed payload
         if completed_payload:
@@ -1034,6 +1044,14 @@ class LLMStreamRunner:
         result.text = "".join(text_parts)
         result.cached_tokens = parse_cached_tokens(result.usage)
         result.latency_ms = int((time.monotonic() - start) * 1000)
+
+        # J1: Responses API usage rides the completed payload; fold it into
+        # the per-task-type cost counter after reconstruction.
+        observe_run_cost(
+            result.model or model,
+            int((result.usage or {}).get("input_tokens", 0) or 0),
+            int((result.usage or {}).get("output_tokens", 0) or 0),
+        )
 
         # Advance session chain on success
         if self._session_manager and conversation_id and result.response_id:
