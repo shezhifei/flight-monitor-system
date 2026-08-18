@@ -67,9 +67,12 @@ def test_query_ops_template_policy_shape() -> None:
     assert QUERY_OPS_TEMPLATE.default_max_tool_rounds == 6
     # Read-only face: every registered write action tool is denied.
     assert set(WRITE_ACTION_TOOLS) <= QUERY_OPS_TEMPLATE.denied_tools
+    # Task F5: SQL leaves the production query face.
+    assert "sql_query_readonly" in QUERY_OPS_TEMPLATE.denied_tools
     # Default tool surface: search_flights_* / count_* / get_delayed_flights
     # live in the "query" category, flight_status_lookup in "flight".
-    assert {"query", "flight", "anomaly"} <= QUERY_OPS_TEMPLATE.allowed_tool_categories
+    # Task F5: ontology tools join the query face.
+    assert {"query", "flight", "anomaly", "ontology"} <= QUERY_OPS_TEMPLATE.allowed_tool_categories
     # Facts-only policy text must demand evidence and admit uncertainty.
     addendum = QUERY_OPS_TEMPLATE.system_prompt_addendum.lower()
     assert "evidence" in addendum
@@ -122,10 +125,15 @@ def test_template_allows_tool_semantics() -> None:
     # Write actions are denied even when their category would pass.
     assert allows("assign_gate", "flight") is False
     assert allows("update_flight_status", "query") is False
+    # Task F5: SQL is denied on the production query face.
+    assert allows("sql_query_readonly", "query") is False
     # Read-only query catalog and flight adapter pass.
     assert allows("search_flights_advanced", "query") is True
     assert allows("flight_status_lookup", "flight") is True
     assert allows("list_anomalies", "anomaly") is True
+    # Task F5: ontology tools pass the query_ops template.
+    assert allows("ontology.lookup", "ontology") is True
+    assert allows("ontology.explain_constraints", "ontology") is True
     # Out-of-category tools are hidden (templates only narrow).
     assert allows("get_team_roster", "team") is False
     # Unknown category fails closed — never shown just because unclassified.
@@ -291,6 +299,10 @@ def test_resolved_snapshot_carries_category_for_template_filtering() -> None:
 def test_default_entity_document_grants_read_only_query_categories() -> None:
     tooling = default_entity_document()["tooling"]
     assert {"query", "flight", "anomaly"} <= set(tooling["allowed_tool_categories"])
+    # Task F5: ontology tools are granted out of the box; SQL is denied on
+    # the production entity (debug SQL lives on a separate entity).
+    assert "ontology" in tooling["allowed_tool_categories"]
+    assert "sql_query_readonly" in tooling["denied_tools"]
 
 
 def test_template_modules_do_not_import_the_execution_loop() -> None:

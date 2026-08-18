@@ -66,7 +66,15 @@ def test_dispatch_ops_template_policy_shape() -> None:
     assert DISPATCH_OPS_TEMPLATE.default_max_tool_rounds == 16
     # Situational-awareness surface: dispatch read models, flight state,
     # aggregate queries, anomaly conflicts.
-    assert {"dispatch_query", "flight", "query", "anomaly"} <= DISPATCH_OPS_TEMPLATE.allowed_tool_categories
+    assert {"dispatch_query", "flight", "query", "anomaly", "ontology"} <= (
+        DISPATCH_OPS_TEMPLATE.allowed_tool_categories
+    )
+    # Task F5: ontology tools pass the dispatch_ops template.
+    assert template_allows_tool(DISPATCH_OPS_TEMPLATE, tool_name="ontology.lookup", tool_category="ontology") is True
+    assert (
+        template_allows_tool(DISPATCH_OPS_TEMPLATE, tool_name="ontology.propose_action", tool_category="ontology")
+        is True
+    )
 
 
 def test_addendum_pins_the_approval_workflow() -> None:

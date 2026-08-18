@@ -63,7 +63,11 @@ def test_anomaly_ops_template_policy_shape() -> None:
     # Triage surface: list_anomalies (anomaly), flight details (flight),
     # KPI queries (query), dispatch read models (dispatch_query), advisor
     # knowledge retrieval (advisor).
-    assert {"anomaly", "flight", "query", "dispatch_query", "advisor"} <= ANOMALY_OPS_TEMPLATE.allowed_tool_categories
+    assert {"anomaly", "flight", "query", "dispatch_query", "advisor", "ontology"} <= (
+        ANOMALY_OPS_TEMPLATE.allowed_tool_categories
+    )
+    # Task F5: ontology tools pass the anomaly_ops template.
+    assert template_allows_tool(ANOMALY_OPS_TEMPLATE, tool_name="ontology.lookup", tool_category="ontology") is True
 
 
 def test_addendum_forbids_llm_threshold_decisions() -> None:

@@ -26,13 +26,14 @@ ANOMALY_OPS_TEMPLATE = TaskTemplate(
         "- Write actions are proposal-only: submit them as proposals for approval through the "
         "control plane and never claim they were executed.\n"
         "- Use ontology.lookup(entity_id) to retrieve constraint violations and relationships when analyzing anomalies.\n"
-        "- Use ontology.propose_action(problem_state, available_actions) to generate compliant action candidates.\n"
+        "- Use ontology.propose_action(action_name, parameters) to generate compliant action candidates.\n"
         "- Plan first: on your first round, call update_plan to lay out the triage steps before "
         "requesting any proposal-class write tool; mark steps with complete_plan_step as you go.\n"
     ),
     # Read-only triage surface: anomaly events, flight details, KPI queries,
-    # dispatch read models, and advisor knowledge retrieval.
-    allowed_tool_categories=frozenset({"anomaly", "flight", "query", "dispatch_query", "advisor"}),
+    # dispatch read models, advisor knowledge retrieval, and ontology lookups
+    # (Task F5).
+    allowed_tool_categories=frozenset({"anomaly", "flight", "query", "dispatch_query", "advisor", "ontology"}),
     # Write actions are NOT denied here (unlike query_ops): they stay visible
     # so the executor can turn them into OutputProposals (write_action_policy
     # = proposal_only). The model proposes; the Rust control plane executes.

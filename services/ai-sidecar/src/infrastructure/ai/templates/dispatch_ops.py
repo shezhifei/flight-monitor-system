@@ -37,15 +37,15 @@ DISPATCH_OPS_TEMPLATE = TaskTemplate(
         "was reassigned.\n"
         "- Cite evidence (tool name + object id) for every fact; label trade-off reasoning and "
         "assumptions explicitly.\n"
-        "- Use ontology.lookup to fetch aircraft-gate compatibility constraints before proposing changes.\n"
-        "- Use ontology.explain_constraints() to validate any proposed gate reassignment or crew change.\n"
-        "- Use ontology.propose_action(problem_state, available_actions) to generate only registered action candidates.\n"
+        "- Use ontology.lookup(entity_id) to fetch aircraft-gate compatibility constraints before proposing changes.\n"
+        "- Use ontology.explain_constraints(entity_type, proposed_change) to validate any proposed gate reassignment or crew change.\n"
+        "- Use ontology.propose_action(action_name, parameters) to generate only registered action candidates.\n"
         "- Plan first: on your first round, call update_plan to lay out the advisory steps before "
         "requesting any proposal-class write tool; mark steps with complete_plan_step as you go.\n"
     ),
     # Read-only situational surface: dispatch read models, flight state,
-    # aggregate queries, and anomaly conflicts.
-    allowed_tool_categories=frozenset({"dispatch_query", "flight", "query", "anomaly"}),
+    # aggregate queries, anomaly conflicts, and ontology lookups (Task F5).
+    allowed_tool_categories=frozenset({"dispatch_query", "flight", "query", "anomaly", "ontology"}),
     # Direct schedule application is forbidden (plan Task A6). Proposal-path
     # write actions (e.g. assign_gate) stay visible — the executor converts
     # them into OutputProposals for approval.

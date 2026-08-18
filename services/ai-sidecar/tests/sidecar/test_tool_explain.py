@@ -142,6 +142,20 @@ def test_explain_template_denies_write_for_query_ops():
     assert result["rule"] in ("TEMPLATE_DENIED_TOOLS", "TEMPLATE_CATEGORY_FILTER")
 
 
+def test_explain_template_denies_sql_for_query_ops():
+    """Task F5: sql_query_readonly is denied by the query_ops template."""
+    result = explain_tool_access(
+        entity_id="ent-1",
+        tool_name="sql_query_readonly",
+        snapshot_tools=[{"name": "sql_query_readonly", "category": "query"}],
+        tooling_config={"denied_tools": []},
+        task_type="query_ops",
+    )
+    assert result["decision"] == "deny"
+    assert result["blocked_by"] == "template"
+    assert result["rule"] in ("TEMPLATE_DENIED_TOOLS", "TEMPLATE_CATEGORY_FILTER")
+
+
 @pytest.mark.asyncio
 async def test_resolver_get_entity_tooling_config_uses_store_get():
     from src.infrastructure.ai.capability_resolver import CapabilityResolver

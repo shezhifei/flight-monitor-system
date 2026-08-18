@@ -92,8 +92,9 @@ def default_entity_document() -> dict[str, Any]:
             "allow_parallel": False,
             "allowed_tool_sources": ["builtin"],
             # Read-only categories the default entity grants out of the box
-            # (query catalog, flight adapter, anomaly read tools); task
-            # templates narrow further per task_type (Task A4).
+            # (query catalog, flight adapter, anomaly read tools, ontology
+            # lookups); task templates narrow further per task_type (Task A4,
+            # Task F5).
             "allowed_tool_categories": [
                 "flight",
                 "flight_event",
@@ -101,9 +102,11 @@ def default_entity_document() -> dict[str, Any]:
                 "anomaly",
                 "todo",
                 "business_case",
+                "ontology",
             ],
             "allowed_tools": None,
-            "denied_tools": [],
+            # Task F5: SQL exits the production query face by default.
+            "denied_tools": ["sql_query_readonly"],
             "write_action_policy": "proposal_only",
         },
         "mcp": {"enabled": False, "servers": []},
