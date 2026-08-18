@@ -216,6 +216,9 @@ class ChatCompletionChunk:
     model: str
     choices: list[dict[str, Any]]
     system_fingerprint: str | None = None
+    # J4: the final streamed chunk carries usage (include_usage); without this
+    # field the parse layer silently dropped tokens and run cost stayed 0.
+    usage: dict[str, Any] | None = None
 
 
 @dataclass
@@ -609,6 +612,12 @@ class OpenAIClient(AiGateway):
             "model": model,
             "stream": bool(stream),
         }
+        if stream:
+            # J4: ask the provider to attach token usage on the final chunk;
+            # without it streamed runs can never be costed (fms_ai_run_cost_usd).
+            stream_options = dict(kwargs.get("stream_options") or {})
+            stream_options.setdefault("include_usage", True)
+            kwargs = {**kwargs, "stream_options": stream_options}
         self._merge_non_none(
             request_data,
             {
