@@ -14,6 +14,7 @@ from typing import Any
 from src.infrastructure.ai.capability_resolver import is_tool_allowed
 from src.infrastructure.ai.governance.governance_resolver import is_public_l0_tool
 from src.infrastructure.ai.templates import get_task_template, template_allows_tool
+from src.infrastructure.ai.tools.ontology_tool_definitions import is_ontology_tool
 from src.infrastructure.ai.tools.tool_executor import (
     BLOCKED_BY_ACL,
     BLOCKED_BY_SNAPSHOT,
@@ -157,6 +158,7 @@ def explain_tool_access(
     # Lease requirement (classification only — no MQ call).
     public_l0 = is_public_l0_tool(name)
     write_action = is_write_action_tool(name)
+    ontology = is_ontology_tool(name)
     lease_required = not public_l0
     checks.append(
         {
@@ -164,6 +166,7 @@ def explain_tool_access(
             "result": "required" if lease_required else "not_required",
             "public_l0": public_l0,
             "write_action": write_action,
+            "ontology": ontology,
             "detail": (
                 f"Tool '{name}' is public L0; may execute without Rust lease"
                 if public_l0

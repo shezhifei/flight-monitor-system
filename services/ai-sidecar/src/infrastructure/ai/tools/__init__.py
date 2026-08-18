@@ -68,6 +68,13 @@ from .flight_tools import (
     FlightToolName,
     get_flight_tools,
 )
+
+# 本体工具（Rust 动作面的瘦适配）
+from .ontology_tool_definitions import (
+    ONTOLOGY_TOOL_DEFINITIONS,
+    ONTOLOGY_TOOL_NAMES,
+    is_ontology_tool,
+)
 from .pending_actions import (
     MemoryPendingActionStore,
     PendingAction,
@@ -149,6 +156,9 @@ __all__ = [
     # 航班
     "FLIGHT_TOOLS",
     "FLIGHT_TOOL_DEFINITIONS",
+    # 本体
+    "ONTOLOGY_TOOL_DEFINITIONS",
+    "ONTOLOGY_TOOL_NAMES",
     "QUERY_TOOLS",
     # 查询
     "QUERY_TOOL_DEFINITIONS",
@@ -211,6 +221,7 @@ __all__ = [
     "get_flight_tools",
     "get_pending_action_store",
     "get_query_tools",
+    "is_ontology_tool",
     "get_report_tools",
     "get_sql_query_tools",
     "get_stand_tools",

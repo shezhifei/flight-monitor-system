@@ -60,6 +60,26 @@ def _builtin_tool_catalog() -> list[dict[str, Any]]:
         }
         for definition in QUERY_TOOL_DEFINITIONS
     ]
+    # Task F4: ontology tools (Rust-owned action surface, fail-closed client).
+    from src.infrastructure.ai.tools.ontology_tool_definitions import ONTOLOGY_TOOL_DEFINITIONS
+
+    catalog.extend(
+        {
+            "name": definition.name,
+            "description": definition.description,
+            "parameters": {
+                "type": "object",
+                "properties": definition.parameters,
+                "required": list(definition.required_params or []),
+            },
+            "category": getattr(definition.category, "value", None) or "ontology",
+            "operation_level": getattr(definition.operation_level, "value", "l0_read"),
+            "risk_level": "medium" if definition.name == "ontology.propose_action" else "low",
+            "cacheable": False,
+            "side_effect": False,
+        }
+        for definition in ONTOLOGY_TOOL_DEFINITIONS
+    )
     catalog.append(
         {
             "name": "flight_status_lookup",
@@ -95,6 +115,22 @@ def _build_read_only_backend(db_pool: Any) -> Any | None:
     from src.infrastructure.ai.tools.query_tool_executor.ai_query_backend import AiQueryReadOnlyBackend
 
     return AiQueryReadOnlyBackend(db_pool)
+
+
+def _build_ontology_tools() -> Any | None:
+    """Build the OntologyTools adapter over the fail-closed action client.
+
+    Returns ``None`` (fail-closed at execution time) when the Rust API base
+    URL or the service identity secret is unavailable — never a stub.
+    """
+    try:
+        from src.infrastructure.ai.ontology.action_client import OntologyActionClient
+        from src.infrastructure.ai.ontology_tools import OntologyTools
+
+        return OntologyTools(client=OntologyActionClient())
+    except Exception as exc:  # noqa: BLE001 - degraded wiring must not crash bootstrap
+        logger.warning("Ontology action client not wired (degraded): %s", exc)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +295,7 @@ def _register_mq_components(mq_components: Any) -> None:
         cache_manager=cont.resolve("cache_manager", None),
         mq_gate=mq_components.gate,
         read_only_backend=cont.resolve("read_only_backend", None),
+        ontology_tools=_build_ontology_tools(),
     )
     register_tool_executor(tool_executor)
 

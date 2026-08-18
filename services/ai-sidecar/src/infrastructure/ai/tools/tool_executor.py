@@ -26,11 +26,21 @@ from typing import TYPE_CHECKING, Any
 from src.infrastructure.ai.capability_resolver import is_tool_allowed, normalized_mcp_binding_tool_acl
 from src.infrastructure.ai.governance.governance_resolver import is_public_l0_tool
 from src.infrastructure.ai.mcp.annotations import normalize_mcp_tool_annotations
+from src.infrastructure.ai.ontology.action_client import OntologyActionClientError
+from src.infrastructure.ai.ontology_tools import (
+    ADVISORY_ACTIONS,
+    CONTROLLED_WRITE_ACTIONS,
+    UnregisteredActionError,
+)
 from src.infrastructure.ai.tools.read_only_tools import (
     READ_ONLY_TOOLS,
     execute_read_only_tool,
     get_read_only_tool_names,
     is_read_only_tool,
+)
+from src.infrastructure.ai.tools.ontology_tool_definitions import (
+    ONTOLOGY_TOOL_NAMES,
+    is_ontology_tool,
 )
 from src.infrastructure.common.exceptions import JSON_EXCEPTIONS
 from src.infrastructure.logging.core import get_logger
@@ -187,6 +197,7 @@ class ToolExecutor:
         cache_manager=None,
         mq_gate: Any | None = None,
         read_only_backend: Any | None = None,
+        ontology_tools: Any | None = None,
     ):
         self._read_only_tools = READ_ONLY_TOOLS
         self._read_only_backend = read_only_backend
@@ -195,10 +206,13 @@ class ToolExecutor:
         self._subagent_dispatcher = subagent_dispatcher
         self._cache_manager = cache_manager
         self._mq_gate = mq_gate
+        # OntologyTools adapter over the fail-closed OntologyActionClient.
+        # None → ontology.* calls fail closed (never stubbed).
+        self._ontology_tools = ontology_tools
         logger.debug("ToolExecutor initialized with %d read-only tools", len(self._read_only_tools))
 
     def get_available_tools(self) -> list[str]:
-        builtin = get_read_only_tool_names() + list(WRITE_ACTION_TOOLS.keys())
+        builtin = get_read_only_tool_names() + list(WRITE_ACTION_TOOLS.keys()) + list(ONTOLOGY_TOOL_NAMES)
         return builtin
 
     def is_read_only_tool(self, tool_name: str) -> bool:
@@ -211,6 +225,8 @@ class ToolExecutor:
             return "read_only"
         if is_write_action_tool(tool_name):
             return "write_action"
+        if is_ontology_tool(tool_name):
+            return "ontology"
         if is_mcp_tool(tool_name):
             return "mcp"
         return "unknown"
@@ -546,6 +562,24 @@ class ToolExecutor:
     ) -> ToolExecutionResult:
         if tool_type == "write_action":
             return self._build_write_proposal(tool_call_id, tool_name, arguments, run_id, envelope)
+        if tool_type == "ontology":
+            if tool_name == "ontology.propose_action":
+                return self._build_ontology_write_proposal(
+                    tool_call_id,
+                    tool_name,
+                    arguments,
+                    run_id,
+                    envelope,
+                    action_name=str(arguments.get("action_name") or ""),
+                    parameters=arguments.get("parameters") or {},
+                )
+            return self._build_ontology_read_proposal(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                run_id=run_id,
+                envelope=envelope,
+            )
         if tool_type == "mcp":
             return self._build_mcp_proposal_for_proposal_only_mode(
                 tool_call_id=tool_call_id,
@@ -668,6 +702,14 @@ class ToolExecutor:
             )
         if tool_type == "write_action":
             return self._build_write_proposal(tool_call_id, tool_name, arguments, run_id, envelope)
+        if tool_type == "ontology":
+            return await self._execute_ontology(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                run_id=run_id,
+                envelope=envelope,
+            )
         if tool_type == "mcp":
             return await self._execute_mcp_tool(tool_call_id, tool_name, arguments, run_id, envelope)
         if tool_type == "subagent":
@@ -766,6 +808,231 @@ class ToolExecutor:
                 success=False,
                 error=f"Tool execution failed: {exc}",
             )
+
+    async def _execute_ontology(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+        run_id: str,
+        envelope: Any | None,
+    ) -> ToolExecutionResult:
+        """Route ontology.* tools through the fail-closed Rust-backed adapter.
+
+        Read/explain calls are forwarded to ``OntologyTools`` (which calls
+        the Rust internal endpoints). ``ontology.propose_action`` forwards
+        advisory actions and turns controlled writes into approval
+        proposals — they are never executed here. Without a wired adapter
+        the call fails closed; no results are fabricated.
+        """
+        if self._ontology_tools is None:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=(
+                    "ONTOLOGY_CLIENT_NOT_CONFIGURED: ontology action client is not wired; "
+                    "refusing to fabricate results"
+                ),
+            )
+        try:
+            if tool_name == "ontology.lookup":
+                entity_id = str(arguments.get("entity_id") or "").strip()
+                if not entity_id:
+                    return ToolExecutionResult(
+                        tool_call_id=tool_call_id,
+                        tool_name=tool_name,
+                        success=False,
+                        error="Invalid arguments: entity_id is required for ontology.lookup",
+                    )
+                include_relations = bool(arguments.get("include_relations", True))
+                result = await self._ontology_tools.lookup(
+                    run_id=run_id,
+                    entity_id=entity_id,
+                    include_relations=include_relations,
+                )
+            elif tool_name == "ontology.explain_constraints":
+                entity_type = str(arguments.get("entity_type") or "").strip() or "Flight"
+                proposed_change = arguments.get("proposed_change") or {}
+                if not isinstance(proposed_change, dict):
+                    return ToolExecutionResult(
+                        tool_call_id=tool_call_id,
+                        tool_name=tool_name,
+                        success=False,
+                        error="Invalid arguments: proposed_change must be an object",
+                    )
+                result = await self._ontology_tools.explain_constraints(
+                    run_id=run_id,
+                    entity_type=entity_type,
+                    proposed_change=proposed_change,
+                )
+            elif tool_name == "ontology.propose_action":
+                action_name = str(arguments.get("action_name") or "").strip()
+                if not action_name:
+                    return ToolExecutionResult(
+                        tool_call_id=tool_call_id,
+                        tool_name=tool_name,
+                        success=False,
+                        error="Invalid arguments: action_name is required for ontology.propose_action",
+                    )
+                parameters = arguments.get("parameters") or {}
+                if not isinstance(parameters, dict):
+                    return ToolExecutionResult(
+                        tool_call_id=tool_call_id,
+                        tool_name=tool_name,
+                        success=False,
+                        error="Invalid arguments: parameters must be an object",
+                    )
+                outcome = await self._ontology_tools.propose_action(
+                    run_id=run_id,
+                    action_name=action_name,
+                    parameters=parameters,
+                    allowed_actions=sorted(ADVISORY_ACTIONS | CONTROLLED_WRITE_ACTIONS),
+                )
+                if isinstance(outcome, dict) and outcome.get("execution_mode") == "proposal_only":
+                    return self._build_ontology_write_proposal(
+                        tool_call_id,
+                        tool_name,
+                        arguments,
+                        run_id,
+                        envelope,
+                        action_name=action_name,
+                        parameters=parameters,
+                    )
+                result = outcome
+            else:
+                return ToolExecutionResult(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    success=False,
+                    error=f"Unknown ontology tool: {tool_name}",
+                )
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=True,
+                result=result,
+            )
+        except UnregisteredActionError as exc:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=f"UNREGISTERED_ACTION: {exc}",
+            )
+        except OntologyActionClientError as exc:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=f"ONTOLOGY_ACTION_FAILED [{exc.error_code}]: {exc}",
+            )
+        except ValueError as exc:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=f"Invalid arguments: {exc}",
+            )
+        except Exception as exc:  # noqa: BLE001 - ontology adapter backends may vary
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=f"Tool execution failed: {exc}",
+            )
+
+    def _build_ontology_write_proposal(
+        self,
+        tool_call_id: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+        run_id: str,
+        envelope: Any | None = None,
+        *,
+        action_name: str = "",
+        parameters: dict[str, Any] | None = None,
+    ) -> ToolExecutionResult:
+        """Build an approval proposal for a controlled ontology write.
+
+        Controlled writes (e.g. ``Flight.change_stand``) are never
+        executed by the sidecar: the only outcome is a proposal routed
+        through the existing approval surface.
+        """
+        resolved_action = action_name or str(arguments.get("action_name") or "")
+        resolved_params = parameters if parameters is not None else (arguments.get("parameters") or {})
+        object_type, _, action = resolved_action.partition(".")
+        object_id = (
+            resolved_params.get("flight_id")
+            or resolved_params.get("object_id")
+            or resolved_params.get("dispatch_order_id")
+            or ""
+        )
+        user_id = getattr(envelope, "user_id", None) if envelope else None
+
+        proposal: dict[str, Any] = {
+            "object_type": object_type or "Flight",
+            "object_id": str(object_id) if object_id else "",
+            "action_name": action or resolved_action,
+            "arguments": resolved_params,
+            "risk_level": "high",
+            "confidence": 0.75,
+            "reasoning": (
+                f"LLM requested controlled write '{resolved_action}' via ontology.propose_action"
+            ),
+            "requires_approval": True,
+            "execution_mode": "proposal_only",
+            "source": "streaming_tool_execution",
+            "run_id": run_id,
+            "tool_call_id": tool_call_id,
+        }
+        if user_id:
+            proposal["requester_user_id"] = user_id
+
+        return ToolExecutionResult(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            success=True,
+            result={"status": "proposal_created", "proposal": proposal},
+            proposal=proposal,
+        )
+
+    def _build_ontology_read_proposal(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+        run_id: str,
+        envelope: Any | None,
+    ) -> ToolExecutionResult:
+        """Proposal-only fallback for ontology read/explain tools under Rust proposal_only."""
+        proposal: dict[str, Any] = {
+            "object_type": "OntologyTool",
+            "object_id": tool_name,
+            "action_name": "invoke",
+            "arguments": arguments,
+            "risk_level": "low",
+            "confidence": 0.75,
+            "reasoning": (
+                f"LLM requested ontology tool '{tool_name}' but Rust required proposal_only path"
+            ),
+            "requires_approval": True,
+            "source": "streaming_tool_execution",
+            "run_id": run_id,
+            "tool_call_id": tool_call_id,
+        }
+        user_id = getattr(envelope, "user_id", None) if envelope else None
+        if user_id:
+            proposal["requester_user_id"] = user_id
+        return ToolExecutionResult(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            success=True,
+            result={"status": "proposal_created", "proposal": proposal},
+            proposal=proposal,
+        )
 
     async def _execute_subagent(
         self,

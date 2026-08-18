@@ -24,7 +24,11 @@ import pytest
 from src.infrastructure.ai.ai_runtime_bootstrap import _builtin_tool_catalog
 from src.infrastructure.ai.capability_resolver import CapabilityResolver
 from src.infrastructure.ai.tools.read_only_tools import is_read_only_tool
-from src.infrastructure.ai.tools.tool_executor import WRITE_ACTION_TOOLS, ToolExecutor
+from src.infrastructure.ai.tools.tool_executor import (
+    WRITE_ACTION_TOOLS,
+    ToolExecutor,
+    is_ontology_tool,
+)
 
 from tests.sidecar.tool_executor_test_support import (
     AuthorizedToolMqGate,
@@ -76,10 +80,27 @@ def test_catalog_has_real_names_and_schema_shape() -> None:
     assert "flight_status_lookup" in names
     assert "search_flights_advanced" in names
     assert "QUERY" in names
+    # Task F4: the three ontology tools are registered in the catalog.
+    assert {"ontology.lookup", "ontology.explain_constraints", "ontology.propose_action"} <= names
     for tool in catalog:
         assert tool["name"], "builtin tool must have a non-empty name"
         assert tool["description"], f"{tool['name']} must have a description"
         assert "parameters" in tool, f"{tool['name']} must carry an OpenAI parameters object"
+    for tool in catalog:
+        if is_ontology_tool(tool["name"]):
+            assert tool["category"] == "ontology"
+            schema = {
+                "type": "function",
+                "function": {
+                    "name": tool["name"],
+                    "description": tool["description"],
+                    "parameters": tool["parameters"],
+                },
+            }
+            # Governance fields never leak into the LLM function schema.
+            assert "governance" not in schema["function"]
+            assert "required_account_permissions" not in schema["function"]
+            assert "category" not in schema["function"]
 
 
 def test_resolver_snapshot_contains_catalog_tools() -> None:
@@ -90,6 +111,26 @@ def test_resolver_snapshot_contains_catalog_tools() -> None:
     assert "search_flights_advanced" in names
     assert "get_delayed_flights" in names
     assert all(name for name in names), "resolved tools must carry non-empty names"
+
+
+def test_resolver_snapshot_contains_ontology_tools_when_category_allowed() -> None:
+    resolver = CapabilityResolver(
+        config_store=_FakeConfigStore(
+            {"tooling": {"allowed_tool_categories": ["query", "ontology"]}}
+        ),
+        builtin_tools=_builtin_tool_catalog(),
+    )
+    snapshot = _run(resolver.resolve("test-entity"))
+    names = [t.name for t in snapshot.tools]
+    assert "ontology.lookup" in names
+    assert "ontology.explain_constraints" in names
+    assert "ontology.propose_action" in names
+    for tool in snapshot.tools:
+        if not is_ontology_tool(tool.name):
+            continue
+        schema = tool.to_schema()
+        assert set(schema.keys()) == {"type", "function"}
+        assert set(schema["function"].keys()) <= {"name", "description", "parameters"}
 
 
 def test_schema_payload_has_no_governance_fields() -> None:
@@ -117,9 +158,11 @@ def test_every_builtin_tool_routes_to_non_mock_implementation() -> None:
 
     for tool in snapshot.tools:
         name = tool.name
-        assert is_read_only_tool(name) or name in WRITE_ACTION_TOOLS, (
-            f"builtin tool {name} routes to neither the read-only backend nor a write-action proposal"
+        assert is_read_only_tool(name) or name in WRITE_ACTION_TOOLS or is_ontology_tool(name), (
+            f"builtin tool {name} routes to neither the read-only backend, a write-action proposal nor the ontology client"
         )
+        if is_ontology_tool(name):
+            continue  # ontology routing is covered by test_ontology_tool_executor.py
         result = _run(
             executor.execute(
                 {"tool_call_id": "call-1", "tool_name": name, "arguments": {}},

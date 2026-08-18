@@ -40,6 +40,7 @@ class ToolCategory(StrEnum):
     EQUIPMENT = "equipment"
     STAND = "stand"
     DISPATCH_QUERY = "dispatch_query"
+    ONTOLOGY = "ontology"
 
 
 class OperationLevel(StrEnum):
