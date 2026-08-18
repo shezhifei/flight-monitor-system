@@ -17,14 +17,12 @@ from src.infrastructure.ai.hooks import (
     HookContext,
     HookPipeline,
     IDPreservationHook,
-    LeaseCheckHook,
     NoPromisesHook,
     ResultSanitizationHook,
     build_default_pipeline,
     get_builtin_hooks,  # Added for builtin pipeline tests
     is_read_only_tool,
 )
-
 
 # ============================================================================
 # Helper Hooks for Testing
@@ -72,15 +70,15 @@ class TestHookPipelineExecution:
         """Single hook executes successfully."""
         pipeline = HookPipeline()
         pipeline.register_hook(MockPreToolHook())
-        
+
         ctx = HookContext(
             phase="PreToolUse",
             run_id="test-1",
             tool_name="list_flights",
         )
-        
+
         result = await pipeline.execute_phase("PreToolUse", ctx)
-        
+
         assert result is True
         assert len(ctx.errors) == 0
 
@@ -89,11 +87,11 @@ class TestHookPipelineExecution:
         """Failed hook prevents further execution."""
         pipeline = HookPipeline()
         pipeline.register_hook(MockPreToolHook(should_succeed=False))
-        
+
         ctx = HookContext(phase="PreToolUse", run_id="test-2")
-        
+
         result = await pipeline.execute_phase("PreToolUse", ctx)
-        
+
         assert result is False
         assert len(ctx.errors) == 1
         assert "failed intentionally" in ctx.errors[0]
@@ -104,11 +102,11 @@ class TestHookPipelineExecution:
         pipeline = HookPipeline()
         pipeline.register_hook(MockPreToolHook(True))
         pipeline.register_hook(MockPreToolHook(True))
-        
+
         ctx = HookContext(phase="PreToolUse", run_id="test-3")
-        
+
         result = await pipeline.execute_phase("PreToolUse", ctx)
-        
+
         assert result is True
         assert len(ctx.errors) == 0
 
@@ -118,12 +116,12 @@ class TestHookPipelineExecution:
         pipeline = HookPipeline()
         pipeline.register_hook(MockPreToolHook())
         pipeline.register_hook(MockPostToolHook())
-        
+
         # Execute all phases
         result = await pipeline.execute_all_phases(
             HookContext(phase="all", run_id="test-4")
         )
-        
+
         assert result is True
 
 
@@ -138,18 +136,18 @@ class TestResultSanitizationHook:
     async def test_clips_large_results(self):
         """Large content gets clipped."""
         hook = ResultSanitizationHook()
-        
+
         large_content = "X" * (11 * 1024)  # 11KB - exceeds 10KB limit
-        
+
         ctx = HookContext(
             phase="PostToolUse",
             run_id="test-5",
             tool_name="search_data",
             tool_result={"content": large_content},
         )
-        
+
         result = await hook.execute(ctx)
-        
+
         assert result is True
         assert len(ctx.tool_result["content"]) <= 10 * 1024 + 16  # + truncation message
 
@@ -161,7 +159,7 @@ class TestIDPreservationHook:
     async def test_preserves_flight_numbers(self):
         """Flight numbers are identified and protected."""
         hook = IDPreservationHook()
-        
+
         ctx = HookContext(
             phase="PreCompact",
             run_id="test-6",
@@ -170,16 +168,16 @@ class TestIDPreservationHook:
                 {"role": "assistant", "content": "F1234 is on time"},
             ],
         )
-        
+
         # Create mock envelope with metadata
         class MockEnv:
             def __init__(self):
                 self.metadata = {}
-        
+
         ctx.envelope = MockEnv()
-        
+
         result = await hook.execute(ctx)
-        
+
         assert result is True
         assert "_protected_ids" in ctx.envelope.metadata
         assert "F1234" in ctx.envelope.metadata["_protected_ids"]
@@ -188,7 +186,7 @@ class TestIDPreservationHook:
     async def test_preserves_anomaly_ids(self):
         """Anomaly IDs are protected."""
         hook = IDPreservationHook()
-        
+
         ctx = HookContext(
             phase="PreCompact",
             run_id="test-7",
@@ -196,15 +194,15 @@ class TestIDPreservationHook:
                 {"role": "assistant", "content": "ANOMALY-GT123 detected at gate"},
             ],
         )
-        
+
         class MockEnv:
             def __init__(self):
                 self.metadata = {}
-        
+
         ctx.envelope = MockEnv()
-        
+
         await hook.execute(ctx)
-        
+
         assert "ANOMALY-GT123" in ctx.envelope.metadata["_protected_ids"]
 
 
@@ -215,7 +213,7 @@ class TestNoPromisesHook:
     async def test_blocks_already_changed_claim(self):
         """Claims of already performed actions are blocked."""
         hook = NoPromisesHook()
-        
+
         ctx = HookContext(
             phase="Stop",
             run_id="test-8",
@@ -223,9 +221,9 @@ class TestNoPromisesHook:
                 {"role": "assistant", "content": "我已经为您改机位到 A12"},
             ],
         )
-        
+
         result = await hook.execute(ctx)
-        
+
         assert result is False
         assert len(ctx.errors) == 1
 
@@ -233,7 +231,7 @@ class TestNoPromisesHook:
     async def test_blocks_completed_operation_claim(self):
         """Completed operation claims are blocked."""
         hook = NoPromisesHook()
-        
+
         ctx = HookContext(
             phase="Stop",
             run_id="test-9",
@@ -241,16 +239,16 @@ class TestNoPromisesHook:
                 {"role": "assistant", "content": "操作已完成，航班会准时到达"},
             ],
         )
-        
+
         result = await hook.execute(ctx)
-        
+
         assert result is False
 
     @pytest.mark.asyncio
     async def test_allows_proposal_language(self):
         """Proposal language is allowed (not claiming completion)."""
         hook = NoPromisesHook()
-        
+
         ctx = HookContext(
             phase="Stop",
             run_id="test-10",
@@ -258,9 +256,9 @@ class TestNoPromisesHook:
                 {"role": "assistant", "content": "建议提交调整派工提案待审批"},
             ],
         )
-        
+
         result = await hook.execute(ctx)
-        
+
         assert result is True
         assert len(ctx.errors) == 0
 
@@ -305,9 +303,9 @@ class TestBuiltinPipeline:
     def test_builtin_hooks_can_be_retrieved(self):
         """Default hooks are available."""
         hooks = get_builtin_hooks()
-        
+
         assert len(hooks) >= 4  # At minimum core hooks
-        
+
         phases = [h.phase for h in hooks]
         assert "PreToolUse" in phases
         assert "PostToolUse" in phases
@@ -316,9 +314,9 @@ class TestBuiltinPipeline:
     def test_default_pipeline_builds_successfully(self):
         """Default pipeline can be created."""
         pipeline = build_default_pipeline()
-        
+
         assert isinstance(pipeline, HookPipeline)
-        
+
         # All phases should have at least one hook
         for phase in ["PreToolUse", "PostToolUse", "PreCompact", "Stop"]:
             hooks = pipeline._hooks_by_phase.get(phase, [])
@@ -327,11 +325,55 @@ class TestBuiltinPipeline:
     def test_pipeline_with_all_builtins_executes(self):
         """Pipeline with all builtins works end-to-end."""
         pipeline = build_default_pipeline()
-        
+
         # All phases should have at least one hook
         for phase in ["PreToolUse", "PostToolUse", "PreCompact", "Stop"]:
             hooks = pipeline._hooks_by_phase.get(phase, [])
             assert len(hooks) > 0, f"No hooks registered for phase {phase}"
+
+    def test_freshness_and_grounding_hooks_wired_in_order(self):
+        """Task H3: the default pipeline carries the H1/H2 invariants."""
+        names = [type(h).__name__ for h in get_builtin_hooks()]
+        assert "FreshnessCheckHook" in names
+        assert "EvidenceCoverageHook" in names
+        # PostToolUse: sanitize first, then the freshness check.
+        assert names.index("ResultSanitizationHook") < names.index("FreshnessCheckHook")
+        # Stop: promises → grounding → output guardrail.
+        assert names.index("NoPromisesHook") < names.index("EvidenceCoverageHook")
+        assert names.index("EvidenceCoverageHook") < names.index("OutputGuardrailHook")
+
+    @pytest.mark.asyncio
+    async def test_default_pipeline_rewrites_stale_query_result(self):
+        """A governed query result without as_of is degraded by default."""
+        pipeline = build_default_pipeline()
+        result: dict = {"status": "delayed"}
+        ctx = HookContext(
+            phase="PostToolUse",
+            run_id="h3-run",
+            tool_name="flight_status_lookup",
+            tool_result=result,
+        )
+        assert await pipeline.execute_phase("PostToolUse", ctx) is True
+        assert result["error_code"] == "EVIDENCE_STALE"
+
+    @pytest.mark.asyncio
+    async def test_default_pipeline_degrades_ungrounded_final_answer(self):
+        """query_ops final text citing an unevidenced ID gets the override."""
+        from types import SimpleNamespace
+
+        from src.infrastructure.ai.working_memory import WorkingMemory
+
+        pipeline = build_default_pipeline()
+        ctx = HookContext(
+            phase="Stop",
+            run_id="h3-run",
+            messages=[{"role": "assistant", "content": "航班 MU5102 已起飞。"}],
+            envelope=SimpleNamespace(task=SimpleNamespace(task_type="query_ops")),
+            working_memory=WorkingMemory(run_id="h3-run"),
+        )
+        assert await pipeline.execute_phase("Stop", ctx) is False
+        assert ctx.final_text_override is not None
+        assert "MU5102" in ctx.final_text_override
 
 
 # ============================================================================
@@ -345,11 +387,11 @@ class TestHookContext:
     async def test_adds_errors_gracefully(self):
         """Errors accumulate without crashing."""
         ctx = HookContext(phase="PreToolUse", run_id="test-12")
-        
+
         ctx.add_error("First error")
         ctx.add_error("Second error")
         ctx.add_error("Third error")
-        
+
         assert len(ctx.errors) == 3
         assert "First error" in ctx.errors[0]
         assert "Third error" in ctx.errors[2]
@@ -358,7 +400,7 @@ class TestHookContext:
     async def test_empty_context_valid(self):
         """Empty context is valid."""
         ctx = HookContext(phase="PreToolUse", run_id="test-13")
-        
+
         assert ctx.run_id == "test-13"
         assert ctx.tool_name is None
         assert ctx.tool_args is None
@@ -369,13 +411,13 @@ class TestHookContext:
 # Wiring-level tests: hook pipeline inside LLMStreamRunner (Task C2)
 # ============================================================================
 
-from unittest.mock import MagicMock  # noqa: E402
+from unittest.mock import MagicMock
 
-from src.infrastructure.ai.llm_stream_runner import (  # noqa: E402
+from src.infrastructure.ai.llm_stream_runner import (
     LLMStreamRunner,
     StreamEvent,
 )
-from src.infrastructure.ai.tools.tool_executor import ToolExecutionResult  # noqa: E402
+from src.infrastructure.ai.tools.tool_executor import ToolExecutionResult
 
 
 class _RecordingHook(BaseHook):

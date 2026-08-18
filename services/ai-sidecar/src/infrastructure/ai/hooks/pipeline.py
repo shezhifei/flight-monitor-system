@@ -745,15 +745,23 @@ def is_read_only_tool(tool_name: str) -> bool:
 # ============================================================================
 
 def get_builtin_hooks() -> list[BaseHook]:
-    """Get default set of built-in hooks."""
+    """Get default set of built-in hooks.
+
+    Order matters within a phase (Task H3): PostToolUse sanitizes before
+    the freshness check, and the Stop phase screens promises before the
+    evidence-coverage grounding check, which runs before the output
+    guardrail.
+    """
     return [
         PlanFirstHook(),            # PreToolUse - plan-first enforcement (high-risk templates)
         LeaseCheckHook(),           # PreToolUse - lease preflight (fail-closed)
         SchemaValidationHook(),     # PreToolUse - argument validation
         ObjectExistenceCheckHook(), # PreToolUse - entity existence (advisory)
         ResultSanitizationHook(),   # PostToolUse - result clipping
+        FreshnessCheckHook(),       # PostToolUse - evidence freshness invariant (Task H1)
         IDPreservationHook(),       # PreCompact - ID protection
         NoPromisesHook(),           # Stop - anti-promises
+        EvidenceCoverageHook(),     # Stop - grounding degradation (Task H2)
         OutputGuardrailHook(),      # Stop - output guardrail (leakage / flight consistency)
     ]
 

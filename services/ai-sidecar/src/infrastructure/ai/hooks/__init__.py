@@ -2,6 +2,8 @@
 
 from .pipeline import (
     BaseHook,
+    EvidenceCoverageHook,
+    FreshnessCheckHook,
     HookContext,
     HookPipeline,
     IDPreservationHook,
@@ -20,6 +22,8 @@ from .pipeline import (
 
 __all__ = [
     "BaseHook",
+    "EvidenceCoverageHook",
+    "FreshnessCheckHook",
     "HookContext",
     "HookPipeline",
     "IDPreservationHook",
