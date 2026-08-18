@@ -1,5 +1,23 @@
 """LLM Evaluation Service - Application Layer."""
 
-from .service import EvaluationService, EvalJob, EvalSpan, GateMetricsSummary
+from .service import (
+    EvalAgentRunner,
+    EvalJob,
+    EvalRunnerUnavailableError,
+    EvalRunResult,
+    EvaluationService,
+    EvalSpan,
+    GateMetricsSummary,
+    RuntimeServiceEvalRunner,
+)
 
-__all__ = ["EvaluationService", "EvalJob", "EvalSpan", "GateMetricsSummary"]
+__all__ = [
+    "EvalAgentRunner",
+    "EvalJob",
+    "EvalRunResult",
+    "EvalRunnerUnavailableError",
+    "EvaluationService",
+    "EvalSpan",
+    "GateMetricsSummary",
+    "RuntimeServiceEvalRunner",
+]

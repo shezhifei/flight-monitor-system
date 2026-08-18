@@ -15,9 +15,11 @@ E3: LLM Agent Evaluation & Observability Service
 """
 
 import json
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Optional, Protocol
 from uuid import UUID, uuid4
 import re
 import time
@@ -119,16 +121,162 @@ class GateMetricsSummary:
 
 
 # ============================================================================
+# Agent runner protocol (Task G2)
+# ============================================================================
+
+
+class EvalRunnerUnavailableError(RuntimeError):
+    """Raised when an eval run is requested without a configured runner.
+
+    Fail-closed by design: the service must never fabricate a successful
+    result when it cannot actually execute the agent.
+    """
+
+
+@dataclass
+class EvalRunResult:
+    """Structured outcome of a single agent run (Task G2 runner protocol)."""
+
+    success: bool
+    agent_response: str
+    called_tools: list[str]
+    evidence_object_ids: list[str]
+    extracted_ids: list[str]  # flight numbers / flight ids / order ids in the answer
+    total_tool_rounds: int
+    plan_present: bool
+    unauthorized_attempts: int
+    tokens: dict[str, int]
+    duration_ms: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "success": self.success,
+            "agent_response": self.agent_response,
+            "called_tools": list(self.called_tools),
+            "evidence_object_ids": list(self.evidence_object_ids),
+            "extracted_ids": list(self.extracted_ids),
+            "total_tool_rounds": self.total_tool_rounds,
+            "plan_present": self.plan_present,
+            "unauthorized_attempts": self.unauthorized_attempts,
+            "tokens": dict(self.tokens),
+            "duration_ms": self.duration_ms,
+        }
+
+
+class EvalAgentRunner(Protocol):
+    """Executes one agent run and reports structured evidence (Task G2)."""
+
+    async def run(self, *, user_query: str, task_type: str, entity_id: str) -> EvalRunResult: ...
+
+
+# Lightweight ID extraction for the default runner: flight numbers and the
+# prefixed object ids used across the ontology tool face. Lookarounds instead
+# of ``\b`` because Chinese text counts as word characters in Unicode regex.
+_ID_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"(?<![A-Za-z0-9])[A-Z]{2}\d{3,4}(?![0-9])"),
+    re.compile(r"(?<![A-Za-z0-9_-])(?:flight|stand|dispatch|anomaly|order)-[A-Za-z0-9][A-Za-z0-9_-]*"),
+)
+
+
+def extract_answer_ids(answer: str) -> list[str]:
+    ids: list[str] = []
+    for pattern in _ID_PATTERNS:
+        ids.extend(pattern.findall(answer or ""))
+    return sorted(set(ids))
+
+
+class RuntimeServiceEvalRunner:
+    """Default production runner over ``RuntimeService.stream_run_with_tools``.
+
+    Streams one run and folds the SSE events into an :class:`EvalRunResult`:
+    tool.call names, terminal answer/evidence/token usage, and plan-board
+    presence. Injected into :class:`EvaluationService`; unit tests use fakes.
+    """
+
+    def __init__(self, runtime_service: Any):
+        self._runtime_service = runtime_service
+
+    async def run(self, *, user_query: str, task_type: str, entity_id: str) -> EvalRunResult:
+        from src.infrastructure.ai.context_envelope import (
+            ContextEnvelope,
+            EnvelopeContext,
+            EnvelopeOntology,
+            EnvelopeRequester,
+            EnvelopeTask,
+        )
+
+        started = time.monotonic()
+        envelope = ContextEnvelope(
+            run_id=f"eval-{uuid4()}",
+            requester=EnvelopeRequester(user_id="eval-harness", roles=["eval"]),
+            ontology=EnvelopeOntology(),
+            context=EnvelopeContext(),
+            task=EnvelopeTask(task_type=task_type, user_message=user_query),
+        )
+
+        called_tools: list[str] = []
+        tool_rounds = 0
+        success = False
+        answer = ""
+        evidence_ids: list[str] = []
+        tokens: dict[str, int] = {}
+
+        async for event in self._runtime_service.stream_run_with_tools(envelope):
+            event_type = event.get("event", "")
+            data = event.get("data") or {}
+            if event_type == "tool.call":
+                tool_name = data.get("tool_name") or ""
+                if tool_name:
+                    called_tools.append(tool_name)
+            elif event_type == "tool.result":
+                tool_rounds += 1
+            elif event_type == "run.complete":
+                success = True
+                answer = str(data.get("answer") or "")
+                evidence_ids = [
+                    entry.get("object_id")
+                    for entry in (data.get("evidence") or [])
+                    if isinstance(entry, dict) and entry.get("object_id")
+                ]
+                usage = data.get("token_usage") or {}
+                tokens = {
+                    key: int(value)
+                    for key, value in usage.items()
+                    if isinstance(value, int) or (isinstance(value, float) and value.is_integer())
+                }
+            elif event_type == "run.fail":
+                success = False
+                answer = str(data.get("answer") or "")
+
+        return EvalRunResult(
+            success=success,
+            agent_response=answer,
+            called_tools=called_tools,
+            evidence_object_ids=evidence_ids,
+            extracted_ids=extract_answer_ids(answer),
+            total_tool_rounds=tool_rounds,
+            plan_present="update_plan" in called_tools,
+            unauthorized_attempts=0,
+            tokens=tokens,
+            duration_ms=int((time.monotonic() - started) * 1000),
+        )
+
+
+# ============================================================================
 # Evaluation Service
 # ============================================================================
 
 class EvaluationService:
-    """生产级评估服务，支持在线/离线两种模式。"""
-    
-    _instance: "EvaluationService | None" = None
-    
-    def __init__(self, db_pool: Connection):
+    """生产级评估服务，支持在线/离线两种模式。
+
+    Task G2: the singleton ``get_instance`` is gone — callers construct the
+    service with a database pool and an injected :class:`EvalAgentRunner`.
+    Without a runner the service fails closed instead of faking success.
+    """
+
+    def __init__(self, db_pool: Connection, agent_runner: EvalAgentRunner | None = None):
         self._db_pool = db_pool
+        self._agent_runner = agent_runner
         self._traces = trace.get_tracer(__name__) if OTEL_AVAILABLE else None
         self._metrics = metrics.get_meter(__name__) if OTEL_AVAILABLE else None
         
@@ -142,13 +290,6 @@ class EvaluationService:
                 "eval_token_usage_total",
                 description="Token usage split by type",
             )
-    
-    @classmethod
-    def get_instance(cls, db_pool: Connection) -> "EvaluationService":
-        """Get singleton instance."""
-        if cls._instance is None:
-            cls._instance = EvaluationService(db_pool)
-        return cls._instance
     
     async def create_job(
         self,
@@ -233,24 +374,39 @@ class EvaluationService:
     ) -> EvalSpan:
         """Execute single test case and record span."""
         user_query = test_case["user_query"]
-        expected_action = test_case["expected_action"]
-        
-        with self._traces.start_as_current_span("eval.test_execution") as span:
-            # Execute agent against query
-            result = await self._run_agent_on_query(user_query, expected_action)
-            
+        task_type = test_case.get("task_type", "query_ops")
+        entity_id = test_case.get("entity_id", "default")
+
+        with (
+            self._traces.start_as_current_span("eval.test_execution")
+            if self._traces is not None
+            else nullcontext()
+        ):
+            # Execute agent against query through the injected runner.
+            run_result = await self._run_agent_on_query(
+                user_query=user_query,
+                task_type=task_type,
+                entity_id=entity_id,
+            )
+            result = run_result.to_dict()
+            started = time.time()
+
             # Record span to Postgres
             eval_span = EvalSpan(
-                run_id=f"{job.job_id}_{test_case.get('test_id', '')}",
+                run_id=f"{job.job_id}_{test_case.get('id', '')}",
                 span_type="llm_call",
-                start_time=result.get("start_time", time.time()),
-                end_time=result.get("end_time", time.time()),
-                context={"query": user_query},
+                start_time=started - run_result.duration_ms / 1000,
+                end_time=started,
+                context={"query": user_query, "task_type": task_type, "entity_id": entity_id},
                 result=result,
                 metrics={
-                    "tokens_used": result.get("tokens", {}),
-                    "duration_ms": result.get("duration_ms", 0),
-                    "success": result.get("success", False),
+                    "tokens_used": run_result.tokens,
+                    "duration_ms": run_result.duration_ms,
+                    "success": run_result.success,
+                    "total_tool_rounds": run_result.total_tool_rounds,
+                    "plan_present": run_result.plan_present,
+                    "plan_required": bool((test_case.get("expected") or {}).get("plan_required", False)),
+                    "constraint_violations": run_result.unauthorized_attempts,
                 },
             )
             
@@ -387,17 +543,33 @@ class EvaluationService:
         )
     
     async def _calculate_tool_correctness(self, result: dict[str, Any]) -> float:
-        """Calculate tool call correctness rate."""
+        """Calculate tool call correctness rate.
+
+        Task G2 shape: ``called_tools`` is a flat list of tool names reported
+        by the runner; policy correctness (allowed/forbidden sets) is scored
+        by the evidence-coverage gates in Task G3. Legacy dict entries keep
+        working until the gate rewrite.
+        """
         called_tools = result.get("called_tools", [])
-        correct_tools = sum(1 for t in called_tools if t.get("correct", False))
-        
-        return correct_tools / len(called_tools) if called_tools else 1.0
+        if not called_tools:
+            return 1.0
+        correct = sum(1 for t in called_tools if not isinstance(t, dict) or t.get("correct", False))
+        return correct / len(called_tools)
     
     async def _calculate_hallucination_rate(self, result: dict[str, Any]) -> float:
-        """Calculate hallucination detection rate."""
-        response = result.get("agent_response", "")
+        """Calculate hallucination detection rate.
+
+        Task G2 shape: ids extracted from the answer are hallucinated when no
+        tool evidence (``evidence_object_ids``) backs them. The legacy
+        flight-number regex path stays for pre-G2 span rows.
+        """
+        extracted_ids = result.get("extracted_ids", [])
+        if extracted_ids:
+            grounded = set(result.get("evidence_object_ids", []))
+            ungrounded = sum(1 for extracted in extracted_ids if extracted not in grounded)
+            return ungrounded / len(extracted_ids)
+
         flight_numbers_mentioned = result.get("extracted_flight_numbers", [])
-        
         invalid_count = 0
         for fn in flight_numbers_mentioned:
             # Simple validation: should match airline code pattern (XX####)
@@ -491,18 +663,42 @@ class EvaluationService:
                 gate.snapshot_at,
             )
     
-    # Helper methods (stubs for testing)
+    # Dataset loading and agent execution (Task G2)
     async def _load_test_dataset(self, path: str) -> list[dict[str, Any]]:
-        """Load JSONL test dataset."""
-        return []
+        """Load a JSONL eval dataset (one sample per non-comment line)."""
+        dataset_path = Path(path)
+        if not dataset_path.is_file():
+            raise FileNotFoundError(f"Eval dataset not found: {path}")
+        samples: list[dict[str, Any]] = []
+        for raw_line in dataset_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            samples.append(json.loads(line))
+        return samples
     
     async def _run_agent_on_query(
         self,
+        *,
         user_query: str,
-        expected_action: str,
-    ) -> dict[str, Any]:
-        """Run agent against user query."""
-        return {"success": True}
+        task_type: str,
+        entity_id: str,
+    ) -> EvalRunResult:
+        """Run the agent through the injected runner (Task G2).
+
+        Fail-closed: without a runner the eval raises instead of returning a
+        fabricated ``{"success": True}``.
+        """
+        if self._agent_runner is None:
+            raise EvalRunnerUnavailableError(
+                "EvaluationService has no agent runner configured; "
+                "refusing to fabricate a successful eval result"
+            )
+        return await self._agent_runner.run(
+            user_query=user_query,
+            task_type=task_type,
+            entity_id=entity_id,
+        )
     
     async def _save_eval_job(self, job: EvalJob):
         """Save eval job to PostgreSQL ai_eval_jobs table."""
@@ -544,8 +740,3 @@ class EvaluationService:
                 job.error_message or "",
                 job.job_id,
             )
-
-
-def time():
-    """Remove unused time wrapper function."""
-    pass

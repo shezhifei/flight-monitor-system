@@ -37,7 +37,7 @@ class TestEvalJobPersistence:
     async def test_create_and_retrieve_job(self, db_pool: Connection):
         """创建 Eval Job 并验证可检索."""
         # 创建服务实例
-        service = EvaluationService.get_instance(db_pool)
+        service = EvaluationService(db_pool)
         
         # 创建新的评估任务
         metrics_config = {
@@ -64,7 +64,7 @@ class TestEvalJobPersistence:
     @pytest.mark.asyncio
     async def test_update_job_status(self, db_pool: Connection):
         """更新 Eval Job 状态并持久化."""
-        service = EvaluationService.get_instance(db_pool)
+        service = EvaluationService(db_pool)
         
         job = await service.create_job(
             name="Status Update Test",
@@ -95,7 +95,7 @@ class TestEvalJobPersistence:
     @pytest.mark.asyncio
     async def test_persist_span_data(self, db_pool: Connection):
         """保存 Span 数据到 ai_eval_spans 表."""
-        service = EvaluationService.get_instance(db_pool)
+        service = EvaluationService(db_pool)
         
         # 创建关联的 job
         job = await service.create_job(
@@ -141,7 +141,7 @@ class TestEvalJobPersistence:
     @pytest.mark.asyncio
     async def test_gate_metrics_summary(self, db_pool: Connection):
         """存储门禁指标汇总到 ai_eval_metrics_summary 表."""
-        service = EvaluationService.get_instance(db_pool)
+        service = EvaluationService(db_pool)
         
         job = await service.create_job(
             name="Gate Metrics Test",
@@ -196,7 +196,7 @@ class TestEvalJobPersistence:
     async def test_job_survives_restart_simulation(self, db_pool: Connection):
         """验证 Job 在“进程重启”后仍然存在."""
         # 第一轮：创建 Job
-        service1 = EvaluationService.get_instance(db_pool)
+        service1 = EvaluationService(db_pool)
         job1 = await service1.create_job(
             name="Restart Survival Test",
             dataset_path="eval/test.jsonl",
@@ -206,11 +206,8 @@ class TestEvalJobPersistence:
         initial_id = job1.job_id
         initial_status = job1.status
         
-        # "进程重启" - 删除服务实例
-        EvaluationService._instance = None
-        
-        # 第二轮：新实例应能从数据库恢复 Job
-        service2 = EvaluationService.get_instance(db_pool)
+        # "进程重启" - 构造一个全新的服务实例（Task G2 后不再有单例）
+        service2 = EvaluationService(db_pool)
         
         async with db_pool.acquire() as conn:
             recovered = await conn.fetchrow(
