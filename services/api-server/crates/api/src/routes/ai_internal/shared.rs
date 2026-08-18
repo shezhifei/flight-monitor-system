@@ -50,3 +50,51 @@ fn default_lease_seconds() -> i64 {
 pub(crate) fn is_run_terminal(status: &str) -> bool {
     matches!(status, "succeeded" | "failed_terminal" | "cancelled")
 }
+
+/// Standard internal-face error body: `{ success, error_code, error, ...extras }`.
+pub(crate) fn error_json(error_code: &str, message: &str, extra: Value) -> Value {
+    let mut body = json!({
+        "success": false,
+        "error_code": error_code,
+        "error": message,
+    });
+    if let (Some(obj), Some(extra)) = (body.as_object_mut(), extra.as_object()) {
+        for (k, v) in extra {
+            obj.insert(k.clone(), v.clone());
+        }
+    }
+    body
+}
+
+/// Returns true when the persisted requester permissions satisfy `required`.
+/// Matches the user-facing `PermissionCheck` semantics: exact grant, global
+/// `*`, or a resource-level wildcard (`resource:*`).
+pub(crate) fn permissions_grant(permissions: &[String], required: &str) -> bool {
+    if permissions.iter().any(|p| p == "*" || p == required) {
+        return true;
+    }
+    if let Some((resource, _)) = required.split_once(':') {
+        let wildcard = format!("{resource}:*");
+        return permissions.iter().any(|p| p == &wildcard);
+    }
+    false
+}
+
+/// Maps authorization-context loader failures to the internal-face HTTP codes.
+pub(crate) fn map_loader_error(
+    err: fms_domain::ports::ai_auth_context_loader::AuthContextLoaderError,
+    run_id: &str,
+) -> ApiError {
+    use fms_domain::ports::ai_auth_context_loader::AuthContextLoaderError;
+    match err {
+        AuthContextLoaderError::RunNotFound(_) => ApiError::NotFound(format!("AI_RUN_NOT_FOUND {run_id}")),
+        AuthContextLoaderError::JobNotFound(_) | AuthContextLoaderError::RequesterNotFound(_) => {
+            // Fail closed: if we cannot establish who requested the run, we must
+            // not grant any action.
+            ApiError::Forbidden("TOOL_ACTOR_PERMISSION_DENIED".into())
+        }
+        AuthContextLoaderError::EntityConfigNotFound(_) | AuthContextLoaderError::Internal(_) => {
+            ApiError::Internal("internal error".into())
+        }
+    }
+}

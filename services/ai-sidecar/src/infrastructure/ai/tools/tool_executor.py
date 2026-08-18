@@ -32,15 +32,20 @@ from src.infrastructure.ai.ontology_tools import (
     CONTROLLED_WRITE_ACTIONS,
     UnregisteredActionError,
 )
+from src.infrastructure.ai.tools.ontology_tool_definitions import (
+    ONTOLOGY_TOOL_NAMES,
+    is_ontology_tool,
+)
 from src.infrastructure.ai.tools.read_only_tools import (
     READ_ONLY_TOOLS,
     execute_read_only_tool,
     get_read_only_tool_names,
     is_read_only_tool,
 )
-from src.infrastructure.ai.tools.ontology_tool_definitions import (
-    ONTOLOGY_TOOL_NAMES,
-    is_ontology_tool,
+from src.infrastructure.ai.tools.solver_tools import (
+    SOLVER_TOOL_NAMES,
+    SolverCandidateClientError,
+    is_solver_tool,
 )
 from src.infrastructure.common.exceptions import JSON_EXCEPTIONS
 from src.infrastructure.logging.core import get_logger
@@ -198,6 +203,7 @@ class ToolExecutor:
         mq_gate: Any | None = None,
         read_only_backend: Any | None = None,
         ontology_tools: Any | None = None,
+        solver_tools: Any | None = None,
     ):
         self._read_only_tools = READ_ONLY_TOOLS
         self._read_only_backend = read_only_backend
@@ -209,10 +215,18 @@ class ToolExecutor:
         # OntologyTools adapter over the fail-closed OntologyActionClient.
         # None → ontology.* calls fail closed (never stubbed).
         self._ontology_tools = ontology_tools
+        # SolverTools adapter over the fail-closed SolverCandidateClient.
+        # None → dispatch.list_solver_candidates fails closed (never stubbed).
+        self._solver_tools = solver_tools
         logger.debug("ToolExecutor initialized with %d read-only tools", len(self._read_only_tools))
 
     def get_available_tools(self) -> list[str]:
-        builtin = get_read_only_tool_names() + list(WRITE_ACTION_TOOLS.keys()) + list(ONTOLOGY_TOOL_NAMES)
+        builtin = (
+            get_read_only_tool_names()
+            + list(WRITE_ACTION_TOOLS.keys())
+            + list(ONTOLOGY_TOOL_NAMES)
+            + list(SOLVER_TOOL_NAMES)
+        )
         return builtin
 
     def is_read_only_tool(self, tool_name: str) -> bool:
@@ -227,6 +241,8 @@ class ToolExecutor:
             return "write_action"
         if is_ontology_tool(tool_name):
             return "ontology"
+        if is_solver_tool(tool_name):
+            return "solver"
         if is_mcp_tool(tool_name):
             return "mcp"
         return "unknown"
@@ -596,6 +612,16 @@ class ToolExecutor:
                 run_id=run_id,
                 envelope=envelope,
             )
+        if tool_type == "solver":
+            # Read-only surface; under proposal_only it degrades to the same
+            # approval-shaped record as other read-only tools.
+            return self._build_read_only_proposal(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                run_id=run_id,
+                envelope=envelope,
+            )
         return ToolExecutionResult(
             tool_call_id=tool_call_id,
             tool_name=tool_name,
@@ -712,6 +738,13 @@ class ToolExecutor:
             )
         if tool_type == "mcp":
             return await self._execute_mcp_tool(tool_call_id, tool_name, arguments, run_id, envelope)
+        if tool_type == "solver":
+            return await self._execute_solver(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                run_id=run_id,
+            )
         if tool_type == "subagent":
             return await self._execute_subagent(
                 tool_call_id, tool_name, arguments, run_id, envelope, on_child_event=on_child_event
@@ -936,6 +969,83 @@ class ToolExecutor:
                 error=f"Invalid arguments: {exc}",
             )
         except Exception as exc:  # noqa: BLE001 - ontology adapter backends may vary
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=f"Tool execution failed: {exc}",
+            )
+
+    async def _execute_solver(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+        run_id: str,
+    ) -> ToolExecutionResult:
+        """Route solver candidate tools through the fail-closed Rust-backed adapter.
+
+        Forwards ``dispatch.list_solver_candidates`` to ``SolverTools``
+        (which calls the Rust internal replan-snapshot endpoint). Without
+        a wired adapter the call fails closed; no candidates are
+        fabricated.
+        """
+        window_start = str(arguments.get("window_start") or "").strip()
+        window_end = str(arguments.get("window_end") or "").strip()
+        if not window_start or not window_end:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=(
+                    "INVALID_TOOL_ARGUMENTS: window_start and window_end are required "
+                    f"for {tool_name}"
+                ),
+            )
+        strategy = arguments.get("strategy")
+        strategy = str(strategy).strip() if strategy else None
+        order_ids = arguments.get("order_ids")
+        if order_ids is not None and not isinstance(order_ids, list):
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error="INVALID_TOOL_ARGUMENTS: order_ids must be an array",
+            )
+
+        if self._solver_tools is None:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=(
+                    "SOLVER_CLIENT_NOT_CONFIGURED: solver candidate client is not wired; "
+                    "refusing to fabricate candidates"
+                ),
+            )
+        try:
+            result = await self._solver_tools.list_solver_candidates(
+                run_id=run_id,
+                window_start=window_start,
+                window_end=window_end,
+                strategy=strategy or None,
+                order_ids=order_ids,
+            )
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=True,
+                result=result,
+            )
+        except SolverCandidateClientError as exc:
+            return ToolExecutionResult(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                success=False,
+                error=f"SOLVER_SNAPSHOT_FAILED [{exc.error_code}]: {exc}",
+            )
+        except Exception as exc:  # noqa: BLE001 - solver adapter backends may vary
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,

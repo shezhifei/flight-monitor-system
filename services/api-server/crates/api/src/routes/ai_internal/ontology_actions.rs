@@ -29,10 +29,12 @@ use fms_application::services::ai_job_service::{AiJobService, AiJobServiceError}
 use fms_application::services::ontology_actions::{
     advisory_action_permission, read_action_permission, OntologyActionError, OntologyActionServices,
 };
-use fms_domain::ports::ai_auth_context_loader::{AuthContextLoaderError, RunAuthorizationContextLoader};
+use fms_domain::ports::ai_auth_context_loader::RunAuthorizationContextLoader;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
+
+use super::shared::{error_json, map_loader_error, permissions_grant};
 
 /// Internal tool-call identifier used when loading the authorization context.
 /// Ontology actions are not persisted as `ai_tool_calls` rows by this path, so
@@ -49,48 +51,6 @@ pub(crate) struct InternalOntologyActionRequest {
 
 fn default_arguments() -> Value {
     json!({})
-}
-
-fn error_json(error_code: &str, message: &str, extra: Value) -> Value {
-    let mut body = json!({
-        "success": false,
-        "error_code": error_code,
-        "error": message,
-    });
-    if let (Some(obj), Some(extra)) = (body.as_object_mut(), extra.as_object()) {
-        for (k, v) in extra {
-            obj.insert(k.clone(), v.clone());
-        }
-    }
-    body
-}
-
-/// Returns true when the persisted requester permissions satisfy `required`.
-/// Matches the user-facing `PermissionCheck` semantics: exact grant, global
-/// `*`, or a resource-level wildcard (`resource:*`).
-fn permissions_grant(permissions: &[String], required: &str) -> bool {
-    if permissions.iter().any(|p| p == "*" || p == required) {
-        return true;
-    }
-    if let Some((resource, _)) = required.split_once(':') {
-        let wildcard = format!("{resource}:*");
-        return permissions.iter().any(|p| p == &wildcard);
-    }
-    false
-}
-
-fn map_loader_error(err: AuthContextLoaderError, run_id: &str) -> ApiError {
-    match err {
-        AuthContextLoaderError::RunNotFound(_) => ApiError::NotFound(format!("AI_RUN_NOT_FOUND {run_id}")),
-        AuthContextLoaderError::JobNotFound(_) | AuthContextLoaderError::RequesterNotFound(_) => {
-            // Fail closed: if we cannot establish who requested the run, we must
-            // not grant any ontology action.
-            ApiError::Forbidden("TOOL_ACTOR_PERMISSION_DENIED".into())
-        }
-        AuthContextLoaderError::EntityConfigNotFound(_) | AuthContextLoaderError::Internal(_) => {
-            ApiError::Internal("internal error".into())
-        }
-    }
 }
 
 fn map_action_error(error: OntologyActionError) -> ApiError {

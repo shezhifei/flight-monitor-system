@@ -40,6 +40,7 @@ TOOL_FRESHNESS_LIMITS: dict[str, int] = {
     "flight_status_lookup": 30,
     "get_delayed_flights": 30,
     "dispatch.get_status": 60,
+    "dispatch.list_solver_candidates": 60,
     "get_dispatch_order": 60,
     "get_dispatch_by_flight": 60,
     "get_dispatch_by_team": 60,

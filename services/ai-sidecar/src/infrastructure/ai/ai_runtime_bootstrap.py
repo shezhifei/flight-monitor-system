@@ -80,6 +80,10 @@ def _builtin_tool_catalog() -> list[dict[str, Any]]:
         }
         for definition in ONTOLOGY_TOOL_DEFINITIONS
     )
+    # Task I1: read-only solver candidate tool (Rust-owned replan snapshot).
+    from src.infrastructure.ai.tools.solver_tools import SOLVER_TOOL_DEFINITIONS
+
+    catalog.extend(dict(definition) for definition in SOLVER_TOOL_DEFINITIONS)
     catalog.append(
         {
             "name": "flight_status_lookup",
@@ -130,6 +134,21 @@ def _build_ontology_tools() -> Any | None:
         return OntologyTools(client=OntologyActionClient())
     except Exception as exc:  # noqa: BLE001 - degraded wiring must not crash bootstrap
         logger.warning("Ontology action client not wired (degraded): %s", exc)
+        return None
+
+
+def _build_solver_tools() -> Any | None:
+    """Build the SolverTools adapter over the fail-closed snapshot client.
+
+    Returns ``None`` (fail-closed at execution time) when the Rust API base
+    URL or the service identity secret is unavailable — never a stub.
+    """
+    try:
+        from src.infrastructure.ai.tools.solver_tools import SolverCandidateClient, SolverTools
+
+        return SolverTools(client=SolverCandidateClient())
+    except Exception as exc:  # noqa: BLE001 - degraded wiring must not crash bootstrap
+        logger.warning("Solver candidate client not wired (degraded): %s", exc)
         return None
 
 
@@ -296,6 +315,7 @@ def _register_mq_components(mq_components: Any) -> None:
         mq_gate=mq_components.gate,
         read_only_backend=cont.resolve("read_only_backend", None),
         ontology_tools=_build_ontology_tools(),
+        solver_tools=_build_solver_tools(),
     )
     register_tool_executor(tool_executor)
 

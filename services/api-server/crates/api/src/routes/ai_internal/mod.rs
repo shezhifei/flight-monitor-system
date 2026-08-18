@@ -8,8 +8,12 @@ mod tests;
 #[cfg(test)]
 mod ontology_actions_tests;
 
+#[cfg(test)]
+mod replan_snapshot_tests;
+
 pub mod ingest_run_event;
 pub mod ontology_actions;
+pub mod replan_snapshot;
 pub mod runtime_health;
 pub mod tools_explain;
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -37,6 +41,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route(
                 "/ontology/actions/advisory",
                 web::post().to(ontology_actions::execute_advisory_action_internal),
+            )
+            .route(
+                "/dispatch/replan-snapshot",
+                web::post().to(replan_snapshot::replan_snapshot_internal),
             )
             .route("/health", web::get().to(runtime_health::runtime_health))
             .route("/tools/explain", web::get().to(tools_explain::tools_explain)),
