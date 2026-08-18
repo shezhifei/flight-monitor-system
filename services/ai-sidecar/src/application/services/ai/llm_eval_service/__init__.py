@@ -9,6 +9,7 @@ from .service import (
     EvalSpan,
     GateMetricsSummary,
     RuntimeServiceEvalRunner,
+    build_eval_result_from_checkpoints,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "EvalSpan",
     "GateMetricsSummary",
     "RuntimeServiceEvalRunner",
+    "build_eval_result_from_checkpoints",
 ]

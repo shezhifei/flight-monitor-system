@@ -34,6 +34,7 @@ except ImportError:
     trace = None
     metrics = None
 
+from src.infrastructure.ai.working_memory import EVIDENCE_FILE, PLAN_STATE_KEY
 from src.infrastructure.logging.core import get_logger
 
 from .gates import (
@@ -267,6 +268,90 @@ class RuntimeServiceEvalRunner:
             tokens=tokens,
             duration_ms=int((time.monotonic() - started) * 1000),
         )
+
+
+# ============================================================================
+# Ledger sampling (Task G4)
+# ============================================================================
+
+
+def _checkpoint_snapshot(row: dict[str, Any]) -> dict[str, Any]:
+    """Decode a checkpoint row's snapshot (dict or JSONB string)."""
+    snapshot = row.get("snapshot")
+    if isinstance(snapshot, str):
+        try:
+            snapshot = json.loads(snapshot)
+        except ValueError:
+            snapshot = {}
+    return snapshot if isinstance(snapshot, dict) else {}
+
+
+def build_eval_result_from_checkpoints(rows: list[dict[str, Any]]) -> EvalRunResult:
+    """Fold ``ai_run_checkpoints`` rows of one run into an :class:`EvalRunResult`.
+
+    Task G4: production trajectories are sampled from the control-plane ledger
+    instead of building a second trace pipeline. ``after_tool`` snapshots
+    carry the executed tool names and the working-memory ``evidence.json``
+    object ids; ``after_completion`` marks a finished run and carries the
+    final answer. Pure function — locked by test_eval_ingest_from_checkpoint.
+    """
+    called_tools: list[str] = []
+    evidence_ids: list[str] = []
+    seen_evidence: set[str] = set()
+    tool_rounds = 0
+    unauthorized = 0
+    plan_present = False
+    completed = False
+    answer = ""
+    timestamps: list[float] = []
+
+    for row in rows:
+        checkpoint_type = str(row.get("checkpoint_type") or "")
+        snapshot = _checkpoint_snapshot(row)
+
+        ts = snapshot.get("timestamp")
+        if isinstance(ts, (int, float)):
+            timestamps.append(float(ts))
+
+        if checkpoint_type == "after_tool":
+            tool_rounds += 1
+            for entry in snapshot.get("results") or []:
+                if not isinstance(entry, dict):
+                    continue
+                tool_name = str(entry.get("tool_name") or "")
+                if tool_name:
+                    called_tools.append(tool_name)
+                if entry.get("blocked_by"):
+                    unauthorized += 1
+
+        memory = snapshot.get("working_memory")
+        if isinstance(memory, dict):
+            for record in memory.get(EVIDENCE_FILE) or []:
+                object_id = str(record.get("object_id") or "") if isinstance(record, dict) else ""
+                if object_id and object_id not in seen_evidence:
+                    seen_evidence.add(object_id)
+                    evidence_ids.append(object_id)
+            if memory.get(PLAN_STATE_KEY):
+                plan_present = True
+
+        if checkpoint_type == "after_completion":
+            completed = True
+            final_result = snapshot.get("final_result") or {}
+            answer = str(final_result.get("text") or "")
+
+    duration_ms = int((max(timestamps) - min(timestamps)) * 1000) if len(timestamps) >= 2 else 0
+    return EvalRunResult(
+        success=completed,
+        agent_response=answer,
+        called_tools=called_tools,
+        evidence_object_ids=evidence_ids,
+        extracted_ids=extract_answer_ids(answer),
+        total_tool_rounds=tool_rounds,
+        plan_present=plan_present or "update_plan" in called_tools,
+        unauthorized_attempts=unauthorized,
+        tokens={},
+        duration_ms=duration_ms,
+    )
 
 
 # ============================================================================
@@ -726,6 +811,25 @@ class EvaluationService:
             entity_id=entity_id,
         )
     
+    async def ingest_run_from_ledger(self, run_id: str) -> EvalRunResult:
+        """Sample a production run from ``ai_run_checkpoints`` (Task G4).
+
+        The sidecar already reads/writes the ``ai_*`` control-plane tables,
+        so no cross-language round trip is needed. Fail-closed: a run without
+        checkpoints raises instead of yielding a fabricated sample.
+        """
+        async with self._db_pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT checkpoint_type, snapshot FROM ai_run_checkpoints "
+                "WHERE run_id = $1 ORDER BY sequence_no",
+                run_id,
+            )
+        if not rows:
+            raise LookupError(
+                f"No checkpoints found for run {run_id}; refusing to fabricate an eval sample"
+            )
+        return build_eval_result_from_checkpoints([dict(row) for row in rows])
+
     async def _save_eval_job(self, job: EvalJob):
         """Save eval job to PostgreSQL ai_eval_jobs table."""
         async with self._db_pool.acquire() as conn:
