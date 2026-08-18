@@ -3,7 +3,8 @@
 This document defines the SLOs, SLIs, error budgets, and alerting thresholds for the
 Flight Monitor System (FMS). SLIs are derived from the Prometheus metrics scraped from the
 Rust API (`fms-rust-api`), the Python AI sidecar (`fms-ai-sidecar`), and Vault
-(`fms-vault`). Dashboards: `deploy/docker/grafana/dashboards/fms-overview.json`.
+(`fms-vault`). Dashboards: `deploy/docker/grafana/dashboards/fms-overview.json`
+and `deploy/docker/grafana/dashboards/fms-ai-agent.json` (Task J2).
 Versioned Prometheus rules: `deploy/docker/prometheus-rules/fms-slo-alerts.yml`.
 Response procedures: `docs/observability/ALERT_RESPONSE.md`.
 
@@ -106,6 +107,7 @@ outbox_backlog = sum(fms_outbox_pending_events)
 | `fms_ai_first_progress_seconds` | `task_type` | 首 progress 延迟（目标 ≤ 1.5s，告警 3s） |
 | `fms_ai_resume_total` | `status` | 断线恢复成功/失败 |
 | `fms_ai_proposal_total` | `action`, `status` | created / approved / rejected / executed / failed |
+| `fms_ai_run_stops_total` | `reason` | 工具循环 run 终止原因（completed / budget_exhausted），后者占比喂 `FmsAiBudgetExhausted` |
 | `fms_ai_mq_gate_decisions_total` | `decision` | MQ 门禁决策分支 |
 
 性能口径（混合计划目标，本节使其可观测）：
@@ -131,7 +133,9 @@ sum by (task_type) (rate(fms_ai_tokens_total[1h]))
 histogram_quantile(0.95, sum by (le, task_type) (rate(fms_ai_first_progress_seconds_bucket[15m])))
 ```
 
-以上为健康指标，暂不占用可用性错误预算；`FmsAiSidecarDown` 仍为正式告警。
+以上为健康指标，暂不占用可用性错误预算；四条 Agent 告警
+（`FmsAiUngroundedSpike` / `FmsAiSidecarDown` / `FmsAiBudgetExhausted` /
+`FmsAiFirstProgressSlow`）在 Task J2 落入规则文件，响应步骤见 runbook。
 
 ## Error budgets
 
@@ -157,6 +161,9 @@ Burn-rate alerts (multi-window, multi-burn-rate):
 | FmsOutboxPublishSlow | `histogram_quantile(0.99, sum(rate(fms_outbox_publish_duration_seconds_bucket[5m])) by (le)) > 1` | 10m | warning |
 | FmsAiSidecarDown | `up{job="fms-ai-sidecar"} == 0` | 2m | warning |
 | FmsRustApiDown | `up{job="fms-rust-api"} == 0` | 2m | critical |
+| FmsAiUngroundedSpike | `increase(fms_ai_errors_total{type="ungrounded"}[15m]) > 10` | 5m | warning |
+| FmsAiBudgetExhausted | `sum(rate(fms_ai_run_stops_total{reason="budget_exhausted"}[15m])) / sum(rate(fms_ai_run_stops_total[15m])) > 0.05` | 15m | warning |
+| FmsAiFirstProgressSlow | `histogram_quantile(0.95, sum(rate(fms_ai_first_progress_seconds_bucket[15m])) by (le)) > 3` | 15m | warning |
 
 ## Notes
 
@@ -171,5 +178,6 @@ Burn-rate alerts (multi-window, multi-burn-rate):
   `fms_db_pool_connections`, `fms_redis_commands_total`, `fms_mq_publish_total`,
   `fms_mq_consume_total`, `fms_ai_llm_calls_total`, `fms_ai_tool_calls_total`,
   `fms_ai_tokens_total`, `fms_ai_run_cost_usd`, `fms_ai_first_progress_seconds`,
-  `fms_ai_resume_total`, `fms_ai_proposal_total`, `fms_ai_mq_gate_decisions_total`,
+  `fms_ai_resume_total`, `fms_ai_proposal_total`, `fms_ai_run_stops_total`,
+  `fms_ai_mq_gate_decisions_total`,
   `fms_outbox_pending_events`, `fms_outbox_publish_duration_seconds`.

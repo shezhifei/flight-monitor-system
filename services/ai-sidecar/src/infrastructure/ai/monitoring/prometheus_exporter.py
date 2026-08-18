@@ -233,6 +233,12 @@ fms_ai_proposal_total: Any = _make_counter(
     ["action", "status"],
 )
 
+fms_ai_run_stops_total: Any = _make_counter(
+    "fms_ai_run_stops_total",
+    "Terminal outcomes of tool-loop runs labelled by stop reason (Task J2).",
+    ["reason"],
+)
+
 
 # ---------------------------------------------------------------------------
 # Bridge helpers (called by metrics.py recorders and the MQ gate)
@@ -335,3 +341,13 @@ def inc_resume(status: str) -> None:
 
 def inc_proposal(action: str, status: str) -> None:
     fms_ai_proposal_total.labels(action=_label(action), status=_label(status)).inc()
+
+
+def inc_run_stop(reason: str) -> None:
+    """Count one finished/stopped tool-loop run by terminal reason (Task J2).
+
+    Reasons: ``completed`` (normal finish) and ``budget_exhausted``
+    (consecutive tool failures exceeded the threshold). The ratio feeds
+    the ``FmsAiBudgetExhausted`` alert.
+    """
+    fms_ai_run_stops_total.labels(reason=_label(reason)).inc()

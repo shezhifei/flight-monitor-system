@@ -626,6 +626,10 @@ class LLMStreamRunner:
                     logger.warning(
                         f"Consecutive tool failures ({consecutive_failures}) exceeded threshold, stopping."
                     )
+                    # J2: terminal stop reason feeds the FmsAiBudgetExhausted alert.
+                    from src.infrastructure.ai.monitoring.prometheus_exporter import inc_run_stop
+
+                    inc_run_stop("budget_exhausted")
                     yield StreamEvent(type="budget_exhausted", round_index=last_round_index)
                     break
             else:
@@ -821,6 +825,11 @@ class LLMStreamRunner:
             },
         )
 
+        # J2: normal loop termination — the denominator of the
+        # FmsAiBudgetExhausted ratio alert.
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_run_stop
+
+        inc_run_stop("completed")
         yield StreamEvent(type="completed", result=result, round_index=last_round_index)
 
     # =====================================================================

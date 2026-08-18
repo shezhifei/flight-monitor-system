@@ -533,6 +533,11 @@ class EvidenceCoverageHook(BaseHook):
         ctx.final_text_override = override
         last_message["content"] = override
         ctx.add_error(f"EVIDENCE_COVERAGE: ungrounded identifiers: {', '.join(uncovered)}")
+        # J2: each degradation is one ungrounded event; the absolute count
+        # feeds the FmsAiUngroundedSpike alert.
+        from src.infrastructure.ai.monitoring.prometheus_exporter import inc_error
+
+        inc_error("ungrounded")
         logger.warning(
             f"EvidenceCoverageHook degraded final answer (uncovered: {uncovered}), run={ctx.run_id}"
         )

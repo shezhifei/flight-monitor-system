@@ -47,3 +47,60 @@ groups:
           summary: FMS outbox backlog is above the operational limit
           description: At least 100 unpublished outbox events have remained pending for five minutes.
           runbook_url: docs/observability/ALERT_RESPONSE.md#fmsoutboxbackloghigh
+
+      # --- AI agent SLO alerts (Task J2); conservative warning starts ---
+
+      - alert: FmsAiUngroundedSpike
+        expr: increase(fms_ai_errors_total{type="ungrounded"}[15m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: ai-sidecar
+        annotations:
+          summary: Too many ungrounded answers degraded by the evidence-coverage hook
+          description: More than 10 final answers cited identifiers without tool evidence in the last 15 minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmsaiungroundedspike
+
+      - alert: FmsAiSidecarDown
+        expr: up{job="fms-ai-sidecar"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: ai-sidecar
+        annotations:
+          summary: AI sidecar scrape target is down
+          description: Prometheus has not been able to scrape the fms-ai-sidecar job for two minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmsaisidecardown
+
+      - alert: FmsAiBudgetExhausted
+        expr: |
+          (
+            sum(rate(fms_ai_run_stops_total{reason="budget_exhausted"}[15m]))
+            /
+            sum(rate(fms_ai_run_stops_total[15m]))
+          ) > 0.05
+          and
+          sum(rate(fms_ai_run_stops_total[15m])) > 0
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-sidecar
+        annotations:
+          summary: More than 5% of agent runs stop on consecutive tool failures
+          description: The budget_exhausted share of finished tool-loop runs has stayed above 5% for 15 minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmsaibudgetexhausted
+
+      - alert: FmsAiFirstProgressSlow
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(fms_ai_first_progress_seconds_bucket[15m])) by (le)
+          ) > 3
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-sidecar
+        annotations:
+          summary: Time to first agent progress is above the alert threshold
+          description: The p95 time-to-first-progress of agent runs has exceeded three seconds for 15 minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmsaifirstprogressslow

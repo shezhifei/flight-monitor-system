@@ -105,6 +105,8 @@ def test_bridge_helpers_are_noop_safe():
         exporter.inc_resume("failed")
         exporter.inc_proposal("ontology.propose_action", "created")
         exporter.inc_proposal("ontology.propose_action", "approved")
+        exporter.inc_run_stop("completed")
+        exporter.inc_run_stop("budget_exhausted")
 
 
 def _counter_value(metric, **labels) -> float:
@@ -184,3 +186,15 @@ def test_first_progress_histogram_labelled_by_task_type():
     # Histogram exposes a labelled sum; assert the sample landed.
     labelled = exporter.fms_ai_first_progress_seconds.labels(task_type="query_ops")
     assert labelled._sum.get() >= 0.9
+
+
+@pytest.mark.skipif(not PROM, reason="prometheus_client not installed")
+def test_run_stop_counter_labelled_by_reason():
+    # The completed / budget_exhausted ratio feeds FmsAiBudgetExhausted.
+    before = _counter_value(exporter.fms_ai_run_stops_total, reason="budget_exhausted")
+    exporter.inc_run_stop("budget_exhausted")
+    assert _counter_value(exporter.fms_ai_run_stops_total, reason="budget_exhausted") == before + 1
+
+    before_completed = _counter_value(exporter.fms_ai_run_stops_total, reason="completed")
+    exporter.inc_run_stop("completed")
+    assert _counter_value(exporter.fms_ai_run_stops_total, reason="completed") == before_completed + 1

@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 39,
+  "title": "FMS AI Agent",
+  "uid": "fms-ai-agent",
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "tags": ["ai-sidecar", "slo"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "LLM Error Rate by Task Type",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_llm_calls_total{status=\"error\"}[5m])) by (task_type) / sum(rate(fms_ai_llm_calls_total[5m])) by (task_type)",
+          "legendFormat": "{{task_type}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Tokens by Task Type",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_tokens_total[5m])) by (type,task_type)",
+          "legendFormat": "{{type}} {{task_type}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "First Progress p95 by Task Type",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(fms_ai_first_progress_seconds_bucket[5m])) by (le,task_type))",
+          "legendFormat": "p95 {{task_type}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Run Cost USD / hour by Task Type",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_run_cost_usd[1h])) by (task_type) * 3600",
+          "legendFormat": "{{task_type}}"
+        },
+        {
+          "expr": "rate(fms_ai_price_missing_total[1h])",
+          "legendFormat": "price_missing calls/s"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Tool Calls by Status and Blocked Gate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_tool_calls_total[5m])) by (status,blocked_by)",
+          "legendFormat": "{{status}} blocked_by={{blocked_by}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Run Stops by Reason",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_run_stops_total[5m])) by (reason)",
+          "legendFormat": "{{reason}}"
+        },
+        {
+          "expr": "sum(rate(fms_ai_run_stops_total{reason=\"budget_exhausted\"}[15m])) / sum(rate(fms_ai_run_stops_total[15m]))",
+          "legendFormat": "budget_exhausted share (15m)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Resume Outcomes",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_resume_total[5m])) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Proposal Lifecycle",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_ai_proposal_total[5m])) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Ungrounded Degradations (15m increase)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "targets": [
+        {
+          "expr": "increase(fms_ai_errors_total{type=\"ungrounded\"}[15m])",
+          "legendFormat": "ungrounded"
+        }
+      ]
+    }
+  ]
+}
