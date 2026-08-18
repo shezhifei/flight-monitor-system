@@ -147,11 +147,13 @@ CREATE INDEX IF NOT EXISTS idx_eval_jobs_created_at ON ai_eval_jobs(created_at D
 COMMENT ON TABLE ai_eval_jobs IS 'Persistent evaluation job definitions and status tracking';
 
 -- Evaluation spans table
+-- K1: no FOREIGN KEY constraints after migration 120 — referential integrity
+-- is application-layer enforced (docs/plans/2026-08-12-remove-foreign-keys-spec.md).
 CREATE TABLE IF NOT EXISTS ai_eval_spans (
     span_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
-    -- Job and run association
-    job_id UUID NOT NULL REFERENCES ai_eval_jobs(job_id) ON DELETE CASCADE,
+    -- Job and run association (parent ai_eval_jobs enforced at application layer)
+    job_id UUID NOT NULL,
     run_id VARCHAR(100) NOT NULL,
     
     -- Span metadata
@@ -174,8 +176,8 @@ CREATE TABLE IF NOT EXISTS ai_eval_spans (
     -- Error details
     error_message TEXT,
     
-    -- Parent-child span relationship
-    parent_span_id UUID REFERENCES ai_eval_spans(span_id) ON DELETE SET NULL,
+    -- Parent-child span relationship (self-reference enforced at application layer)
+    parent_span_id UUID,
     
     CONSTRAINT chk_span_type_valid CHECK (span_type IN ('llm_call', 'tool_call', 'checkpoint', 'error'))
 );
@@ -191,8 +193,8 @@ COMMENT ON TABLE ai_eval_spans IS 'Detailed span traces for each evaluation run'
 CREATE TABLE IF NOT EXISTS ai_eval_metrics_summary (
     id SERIAL PRIMARY KEY,
     
-    -- Association
-    job_id UUID NOT NULL REFERENCES ai_eval_jobs(job_id) ON DELETE CASCADE,
+    -- Association (parent ai_eval_jobs enforced at application layer)
+    job_id UUID NOT NULL,
     
     -- Metric definition
     metric_name VARCHAR(100) NOT NULL,

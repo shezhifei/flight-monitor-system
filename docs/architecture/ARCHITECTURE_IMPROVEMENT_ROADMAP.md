@@ -546,7 +546,7 @@ W0-1 (panic 面)  ──并行──  W0-2 (乐观锁)
 | W2-1 | AI 契约 | 2 | Done (2026-07-11) | 2026-07-11 | 字段清单+穷举 fixture 双端漂移门禁；修复 token_usage 丢失；见 AI_CONTRACT_VERSIONING.md |
 | W2-2 | 侧车只做 AI | 2 | Done (2026-08-13) | 2026-08-13 | Sidecar 不直写核心域真相表；业务写只生成 proposal，并由 Rust `DomainActionExecutor` 执行。已删除未挂载的 AIP dual-mode 平行栈、AIP ontology CRUD/loader、Python 业务写 action handlers、legacy dispatch command 工具、旧 DI/AIPlugin 组合根和相应死实现测试。现行入口只装配 `infrastructure/ai/ai_container.py`，本体只保留 Rust schema mirror。 |
 | W2-3 | ADR-0004 job 路径 | 2 | Done (2026-07-12) | 2026-07-12 | ADR-0004 从 Proposed 升级为 Accepted。实现采用 Postgres leasing（SKIP LOCKED）替代 ADR 原设计的 Redis 队列，避免新增基础设施依赖。两层独立 lease：Rust 层 lease `ai_jobs` 表（控制面），Python 层 lease `ai_runtime_commands` 表（执行面）。SSE 经 outbox→CDC→SSE 路径发布。Python worker 通过 ServiceIdentity JWT 认证调用 Rust internal API（POST /internal/ai/v1/jobs/lease、heartbeat、runs、events、complete、fail）。NL 查询支持 async_mode 字段，异步模式返回 202 + job_id。Rust 侧新增 `ai_job_timeout_reaper_service`（spawn_tracked + interval scan）回收超时 job。Python 侧新增 `AiJobWorker` + `ServiceIdentityIssuer` + composition root（degrade-closed）。测试：45 个新测试全通过（JWT issuer round-trip + path mismatch + config + worker degrade-closed + 409 handling + aclose）。 |
-| W2-4 | 控制面源真相 | 2 | 进行中 (2026-08-14；后续 2026-08-18) | | 混合计划 A–D 已冻结单环并交付 checkpoint/resume/proposal。对象入环 / 评测 / 证据 hook 见 `docs/plans/2026-08-18-ai-agent-optimization.md`。 |
+| W2-4 | 控制面源真相 | 2 | 进行中 (2026-08-14；后续 2026-08-18) | | 混合计划 A–D 已冻结单环并交付 checkpoint/resume/proposal。对象入环 / 评测 / 证据 hook 见 `docs/plans/2026-08-18-ai-agent-optimization.md`；该计划 Phase F–J（本体动作入环、评测门禁、新鲜度/证据 hook、solver-first、SLO/费用观测）已于 2026-08-19 交付，剩 Phase K 收敛表面。 |
 | W2-5 | TD-21 异常 | 2 | 未开始 | | |
 | W2-6 | ConfigManager 死路径 | 2 | 未开始 | | |
 | W3-1～W3-11 | 见第 7 节 | 3 | 未开始 | | |

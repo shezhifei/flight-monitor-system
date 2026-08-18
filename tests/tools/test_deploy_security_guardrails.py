@@ -51,7 +51,7 @@ def test_setup_postgresql_ai_query_ro_has_no_password_literal():
 
 def test_android_token_storage_fails_closed_no_plaintext_fallback():
     """TokenStorage must never fall back to plaintext SharedPreferences."""
-    path = ROOT / "android/app/src/main/java/com/flightmonitor/mobile/session/TokenStorage.kt"
+    path = ROOT / "legacy/android-kotlin/app/src/main/java/com/flightmonitor/mobile/session/TokenStorage.kt"
     text = path.read_text(encoding="utf-8")
     assert "EncryptedSharedPreferences" in text
     assert "SecureTokenStorageException" in text
@@ -65,7 +65,7 @@ def test_android_token_storage_fails_closed_no_plaintext_fallback():
     assert "PREFS_NAME_LEGACY_PLAINTEXT" in text or "mobile_auth_tokens" in text
 
 def test_android_token_storage_wipe_checks_commit_and_fails_closed():
-    path = ROOT / "android/app/src/main/java/com/flightmonitor/mobile/session/TokenStorage.kt"
+    path = ROOT / "legacy/android-kotlin/app/src/main/java/com/flightmonitor/mobile/session/TokenStorage.kt"
     text = path.read_text(encoding="utf-8")
     assert "wipeLegacyPlaintextTokens" in text
     assert ".commit()" in text
@@ -124,7 +124,7 @@ def test_management_routes_do_not_echo_exceptions_on_500():
 
 def test_android_targets_api_35_or_higher():
     """Play requires ordinary apps to target Android 15 / API 35+ (2026-07)."""
-    gradle = (ROOT / "android/app/build.gradle.kts").read_text(encoding="utf-8")
+    gradle = (ROOT / "legacy/android-kotlin/app/build.gradle.kts").read_text(encoding="utf-8")
     m_compile = re.search(r"compileSdk\s*=\s*(\d+)", gradle)
     m_target = re.search(r"targetSdk\s*=\s*(\d+)", gradle)
     assert m_compile and m_target, "compileSdk/targetSdk missing from app build.gradle.kts"
@@ -132,9 +132,14 @@ def test_android_targets_api_35_or_higher():
     assert int(m_target.group(1)) >= 35
 
 def test_android_readme_matches_api_35_no_stale_sdk_docs():
-    """README version block must match build.gradle.kts and not advertise obsolete SDKs."""
-    readme = (ROOT / "android/README.md").read_text(encoding="utf-8")
-    gradle = (ROOT / "android/app/build.gradle.kts").read_text(encoding="utf-8")
+    """Archived Kotlin app: build.gradle.kts stays truthful; README must declare the archive.
+
+    The Kotlin client was archived to legacy/android-kotlin (bdb0832); its README
+    no longer documents SDK versions, but it must still identify the app as
+    archived and point at the active client so nobody ships the legacy app.
+    """
+    readme = (ROOT / "legacy/android-kotlin/README.md").read_text(encoding="utf-8")
+    gradle = (ROOT / "legacy/android-kotlin/app/build.gradle.kts").read_text(encoding="utf-8")
     m_compile = re.search(r"compileSdk\s*=\s*(\d+)", gradle)
     m_target = re.search(r"targetSdk\s*=\s*(\d+)", gradle)
     m_min = re.search(r"minSdk\s*=\s*(\d+)", gradle)
@@ -142,33 +147,20 @@ def test_android_readme_matches_api_35_no_stale_sdk_docs():
     assert int(m_compile.group(1)) >= 35
     assert int(m_target.group(1)) >= 35
     assert int(m_min.group(1)) >= 23
-    # Stale values that previously leaked into docs
-    assert "targetSdk = 26" not in readme
-    assert "compileSdk = 34" not in readme
-    assert "minSdk = 16" not in readme
-    assert f"targetSdk = {m_target.group(1)}" in readme or f"targetSdk = {m_target.group(1)}" in readme.replace(" ", "")
-    assert "targetSdk = 35" in readme
-    assert "compileSdk = 35" in readme
-    assert "minSdk = 23" in readme
+    lowered = readme.lower()
+    assert "archived" in lowered, "legacy android README must declare the archive"
+    assert "mobile/flutter-app" in readme or "mobile/core" in readme, (
+        "legacy android README must point at the active client"
+    )
 
 
-def test_aip_action_handlers_do_not_return_raw_exception_text():
-    """AIP client boundary must not surface str(exc)/formatted exc in error fields."""
+def test_removed_aip_module_stays_gone():
+    """K1: the AIP parallel stack was deleted (W2-2); guardrails must not resurrect it."""
+    aip_dir = ROOT / "services/ai-sidecar/src/infrastructure/ai/aip"
+    assert not any(aip_dir.glob("*.py")), "aip module must remain deleted (no .py sources)"
     for rel in (
         "services/ai-sidecar/src/infrastructure/ai/aip/action_handlers.py",
         "services/ai-sidecar/src/infrastructure/ai/aip/app.py",
     ):
-        text = (ROOT / rel).read_text(encoding="utf-8")
-        # Client-facing error payloads
-        assert '"error": str(exc)' not in text, f"{rel} returns str(exc)"
-        assert "'error': str(exc)" not in text, f"{rel} returns str(exc)"
-        assert re.search(r'["\']error["\']\s*:\s*str\(exc\)', text) is None
-        # Forbid f-string embedding of exception objects into error/message fields
-        bad_fields = re.findall(
-            r'["\'](?:error|message)["\']\s*:\s*f["\'][^"\']*\{(?:exc|e)\}',
-            text,
-        )
-        assert not bad_fields, f"{rel} formats exc into client fields: {bad_fields[:5]}"
-        # Forbid logger f-strings that only concatenate exc (prefer exc_info=)
-        bad_logs = re.findall(r'logger\.(?:error|warning|exception)\(f["\'][^"\']*\{exc\}', text)
-        assert not bad_logs, f"{rel} uses f-string logger with {{exc}}: {bad_logs[:5]}"
+        assert not (ROOT / rel).exists(), f"{rel} must not be reintroduced"
+

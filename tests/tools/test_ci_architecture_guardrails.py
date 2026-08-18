@@ -130,8 +130,11 @@ def test_nightly_installs_mutation_tool_and_supplies_compose_environment():
     assert "cargo install cargo-mutants --locked" in mutation_job
     for job in (performance_job, chaos_job):
         assert "- name: Generate minimal runtime env for stack" in job
-        assert job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
-        assert job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
+        # At least the compose bring-up and tear-down steps must receive the
+        # rendered runtime env; extra consumers (e.g. the referential-integrity
+        # patrol) are allowed.
+        assert job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") >= 2
+        assert job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") >= 2
 
 
 def test_frontend_audit_remains_blocking_at_high_severity():
