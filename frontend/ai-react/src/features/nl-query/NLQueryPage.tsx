@@ -5,6 +5,7 @@ import { AiChatShell, ChatMessage } from '@/components/chat/AiChatShell';
 import { AiPageNavigation } from '@/components/shell/AiPageNavigation';
 import { applyPlanToolEvent, type PlanBoardModel } from '@/components/chat/planBoardModel';
 import { toCompressionNotice, type CompressionNoticeModel } from '@/components/chat/runResume';
+import { toPendingActionCardModel, type PendingActionCardModel } from '@/components/chat/pendingActionDiff';
 import {
   applyDelegateToolEvent,
   applySubagentStreamEvent,
@@ -75,7 +76,7 @@ export function NLQueryPage(): JSX.Element {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [suggestions, setSuggestions] = useState<Array<{ label?: string; text?: string }>>([]);
   const [toolItems, setToolItems] = useState<Array<{ id: string; toolName: string; status: string; message?: string; time?: string }>>([]);
-  const [pendingActions, setPendingActions] = useState<Array<{ actionId: string; toolName?: string; status?: string; message?: string }>>([]);
+  const [pendingActions, setPendingActions] = useState<PendingActionCardModel[]>([]);
   const [insightText, setInsightText] = useState('');
   const [insightJson, setInsightJson] = useState<unknown>(null);
   const [evidenceObjectTypeFilter, setEvidenceObjectTypeFilter] = useState<string>('all');
@@ -261,19 +262,17 @@ export function NLQueryPage(): JSX.Element {
           ? (runtimeRecord.pending_action as Record<string, unknown>)
           : null;
         if (semantic === 'approval_required' && action) {
-          setPendingActions((prev) => {
-            const actionId = String(action.action_id || '');
-            const filtered = prev.filter((item) => item.actionId !== actionId);
-            return [
-              ...filtered,
-              {
-                actionId,
-                toolName: String(action.tool_name || ''),
-                status: String(action.status || 'pending'),
-                message: String(action.message || ''),
-              },
-            ];
-          });
+          // K3: fold the full pending-action payload (entity, before/after
+          // snapshots, constraint outcome, source run/tool) into the card
+          // model instead of dropping everything but id/status/message.
+          const model = toPendingActionCardModel(action);
+          if (!model.actionId) {
+            return;
+          }
+          setPendingActions((prev) => [
+            ...prev.filter((item) => item.actionId !== model.actionId),
+            model,
+          ]);
         }
         if (semantic === 'approval_result' && action) {
           const actionId = String(action.action_id || '');
@@ -417,16 +416,7 @@ export function NLQueryPage(): JSX.Element {
     }
   };
 
-  const pendingCards = useMemo(
-    () =>
-      pendingActions.map((item) => ({
-        actionId: item.actionId,
-        toolName: item.toolName,
-        status: item.status,
-        message: item.message,
-      })),
-    [pendingActions],
-  );
+  const pendingCards = useMemo(() => pendingActions, [pendingActions]);
 
   const structuredOutput = insightJson as Record<string, unknown> | null;
   const evidenceItems = (Array.isArray(structuredOutput?.evidence) ? structuredOutput.evidence : []) as Array<Record<string, string>>;

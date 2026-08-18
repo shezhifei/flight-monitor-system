@@ -3,6 +3,7 @@ import { Badge, Button, Card, Drawer, FloatButton, Input, Select, Space, Statist
 import { RobotOutlined } from '@ant-design/icons';
 import { AiChatShell, ChatMessage } from '@/components/chat/AiChatShell';
 import { PendingActionCardModel } from '@/components/chat/PendingActionCard';
+import { toPendingActionCardModel } from '@/components/chat/pendingActionDiff';
 import { applyPlanToolEvent, type PlanBoardModel } from '@/components/chat/planBoardModel';
 import { applyReplan, loadDispatchConflicts, previewReplan, type DispatchReplanRequest } from '@/lib/api/dispatchApi';
 import {
@@ -196,15 +197,15 @@ export function DispatchAiDrawerApp(): JSX.Element {
               ? (payload.pending_action as Record<string, unknown>)
               : null;
           if (semantic === 'approval_required' && pendingAction) {
-            const actionId = String(pendingAction.action_id || '');
+            // K3: keep the ontology-aware diff payload (entity, snapshots,
+            // constraint outcome) instead of collapsing to id/status/message.
+            const model = toPendingActionCardModel(pendingAction);
+            if (!model.actionId) {
+              return;
+            }
             setPendingActions((prev) => [
-              ...prev.filter((item) => item.actionId !== actionId),
-              {
-                actionId,
-                toolName: String(pendingAction.tool_name || ''),
-                status: String(pendingAction.status || 'pending'),
-                message: String(pendingAction.message || ''),
-              },
+              ...prev.filter((item) => item.actionId !== model.actionId),
+              model,
             ]);
             return;
           }
