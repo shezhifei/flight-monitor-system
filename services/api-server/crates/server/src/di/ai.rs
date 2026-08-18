@@ -111,6 +111,7 @@ pub(crate) struct AiServices {
     pub ai_recovery_orchestrator: Arc<RecoveryOrchestrator>,
     pub ai_event_consumer: Arc<AiEventConsumer>,
     pub ai_job_timeout_reaper: Arc<AiJobTimeoutReaperService>,
+    pub ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync>,
 }
 
 pub(crate) fn build_ai_services(
@@ -255,10 +256,20 @@ pub(crate) fn build_ai_services(
     );
     let ai_runtime_client = Arc::new(AiRuntimeClient::new());
 
+    // Shared authorization-context loader: the trust boundary that recomputes
+    // the requester's permissions from Rust-persisted data. Used both by the
+    // execution control service (tool authorization) and by the internal
+    // ontology action endpoints (agent-loop read/advisory actions).
+    let ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync> =
+        Arc::new(PgRunAuthorizationContextLoader::new(
+            pool.clone(),
+            repos.ai_entity_config_repo.clone(),
+        ));
+
     let ai_control_svc = Arc::new(build_ai_execution_control_service(
         pool.clone(),
-        repos.ai_entity_config_repo.clone(),
         ai_job_svc.clone(),
+        ai_run_auth_loader.clone(),
     ));
     let ai_rollback_svc = Arc::new(build_ai_rollback_service(
         ai_action_proposal_svc.clone(),
@@ -307,6 +318,7 @@ pub(crate) fn build_ai_services(
         ai_recovery_orchestrator,
         ai_event_consumer,
         ai_job_timeout_reaper,
+        ai_run_auth_loader,
     }
 }
 
@@ -411,10 +423,8 @@ impl RunLifecycleHook for PgRunLifecycleHook {
 
 fn build_ai_execution_control_service(
     pool: sqlx::PgPool,
-    entity_config_repo: Arc<
-        fms_infrastructure::repositories::pg_ai_entity_config_repository::PgAiEntityConfigRepository,
-    >,
     job_svc: Arc<AiJobService>,
+    auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync>,
 ) -> AiExecutionControlService {
     let tool_call_repo: Arc<dyn AiToolCallRepository + Send + Sync> =
         Arc::new(PgAiToolCallRepository::new(pool.clone()));
@@ -426,8 +436,6 @@ fn build_ai_execution_control_service(
         dyn fms_application::services::ai_runtime_service::tool_authorization_service::FeatureFlagSource,
     > = Arc::new(StaticFeatureFlagSource::empty());
     let authorization = Arc::new(ToolAuthorizationService::new(feature_flags));
-    let auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync> =
-        Arc::new(PgRunAuthorizationContextLoader::new(pool, entity_config_repo));
     let run_lifecycle: Arc<dyn RunLifecycleHook> = Arc::new(PgRunLifecycleHook { job_svc });
     AiExecutionControlService::new(tool_call_repo, command_repo, authorization)
         .with_checkpoint_repo(checkpoint_repo)

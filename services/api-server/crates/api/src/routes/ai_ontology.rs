@@ -89,6 +89,48 @@ fn map_action_error(error: OntologyActionError) -> ApiError {
     }
 }
 
+/// Shared dispatcher for read actions. Both the public user-facing route
+/// (`/api/v2/ai/ontology/actions/read`) and the internal agent route
+/// (`/internal/ai/v1/ontology/actions/read`) call through here so there is a
+/// single source of truth for action-name → service mapping. Callers MUST
+/// validate `action_name` against [`read_action_permission`] first.
+pub(crate) async fn dispatch_read_action(
+    actions: &OntologyActionServices,
+    action_name: &str,
+    arguments: &Value,
+) -> Result<Value, OntologyActionError> {
+    match action_name {
+        "flight.get_context" => actions.flight_context.get(arguments).await,
+        "flight.search" => actions.flight_search.search(arguments).await,
+        "dispatch.get_status" => actions.dispatch_status.get(arguments).await,
+        "anomaly.list_open" => actions.anomaly_open_list.list(arguments).await,
+        "stand.check_availability" => actions.stand_availability.check(arguments).await,
+        "report.generate_briefing" => actions.briefing.generate(arguments).await,
+        other => Err(OntologyActionError::InvalidArguments(format!(
+            "unknown read action: {other}"
+        ))),
+    }
+}
+
+/// Shared dispatcher for advisory actions. See [`dispatch_read_action`] for the
+/// same contract applied to the advisory surface.
+pub(crate) async fn dispatch_advisory_action(
+    actions: &OntologyActionServices,
+    action_name: &str,
+    arguments: &Value,
+) -> Result<Value, OntologyActionError> {
+    match action_name {
+        "flight.suggest_stand_adjustment" => actions.stand_recommendation.suggest(arguments).await,
+        "dispatch.suggest_replan" => actions.dispatch_replan.suggest(arguments).await,
+        "anomaly.suggest_escalation" => actions.anomaly_escalation.suggest(arguments).await,
+        "flight.suggest_delay_action" => actions.delay.suggest(arguments).await,
+        "notification.suggest_broadcast" => actions.notification_broadcast.suggest(arguments).await,
+        other => Err(OntologyActionError::InvalidArguments(format!(
+            "unknown advisory action: {other}"
+        ))),
+    }
+}
+
 async fn execute_read_action(
     claims: JwtAuth,
     actions: web::Data<Arc<OntologyActionServices>>,
@@ -98,16 +140,8 @@ async fn execute_read_action(
         .ok_or_else(|| ApiError::BadRequest(format!("unknown read action: {}", body.action_name)))?;
     claims.ensure_permission(permission)?;
 
-    let result = match body.action_name.as_str() {
-        "flight.get_context" => actions.flight_context.get(&body.arguments).await,
-        "flight.search" => actions.flight_search.search(&body.arguments).await,
-        "dispatch.get_status" => actions.dispatch_status.get(&body.arguments).await,
-        "anomaly.list_open" => actions.anomaly_open_list.list(&body.arguments).await,
-        "stand.check_availability" => actions.stand_availability.check(&body.arguments).await,
-        "report.generate_briefing" => actions.briefing.generate(&body.arguments).await,
-        other => return Err(ApiError::BadRequest(format!("unknown read action: {other}"))),
-    };
-    result
+    dispatch_read_action(&actions, &body.action_name, &body.arguments)
+        .await
         .map(|value| HttpResponse::Ok().json(value))
         .map_err(map_action_error)
 }
@@ -121,15 +155,8 @@ async fn execute_advisory_action(
         .ok_or_else(|| ApiError::BadRequest(format!("unknown advisory action: {}", body.action_name)))?;
     claims.ensure_permission(permission)?;
 
-    let result = match body.action_name.as_str() {
-        "flight.suggest_stand_adjustment" => actions.stand_recommendation.suggest(&body.arguments).await,
-        "dispatch.suggest_replan" => actions.dispatch_replan.suggest(&body.arguments).await,
-        "anomaly.suggest_escalation" => actions.anomaly_escalation.suggest(&body.arguments).await,
-        "flight.suggest_delay_action" => actions.delay.suggest(&body.arguments).await,
-        "notification.suggest_broadcast" => actions.notification_broadcast.suggest(&body.arguments).await,
-        other => return Err(ApiError::BadRequest(format!("unknown advisory action: {other}"))),
-    };
-    result
+    dispatch_advisory_action(&actions, &body.action_name, &body.arguments)
+        .await
         .map(|value| HttpResponse::Ok().json(value))
         .map_err(map_action_error)
 }

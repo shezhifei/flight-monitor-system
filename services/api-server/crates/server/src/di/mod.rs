@@ -62,6 +62,7 @@ use fms_application::services::system_flags_service::SystemFlagsService;
 use fms_application::services::system_ops_service::SystemOpsService;
 use fms_application::services::workflow_form_service::WorkflowFormService;
 
+use fms_domain::ports::ai_auth_context_loader::RunAuthorizationContextLoader;
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::nonce_replay_store::NonceReplayStore;
@@ -156,6 +157,7 @@ pub struct DiContainer {
     pub ai_recovery_orchestrator: Arc<RecoveryOrchestrator>,
     pub ai_event_consumer: Arc<AiEventConsumer>,
     pub ai_job_timeout_reaper: Arc<AiJobTimeoutReaperService>,
+    pub ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync>,
 
     // Missing service registrations
     pub business_case_svc: Arc<ConcreteBusinessCaseService>,
@@ -298,6 +300,7 @@ pub async fn build_di_container(
         ai_recovery_orchestrator: ai.ai_recovery_orchestrator.clone(),
         ai_event_consumer: ai.ai_event_consumer.clone(),
         ai_job_timeout_reaper: ai.ai_job_timeout_reaper.clone(),
+        ai_run_auth_loader: ai.ai_run_auth_loader.clone(),
 
         business_case_svc: business_case.business_case_svc.clone(),
         business_case_type_svc: business_case.business_case_type_svc.clone(),

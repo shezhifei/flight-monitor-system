@@ -5,7 +5,11 @@ pub(crate) use shared::*;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod ontology_actions_tests;
+
 pub mod ingest_run_event;
+pub mod ontology_actions;
 pub mod runtime_health;
 pub mod tools_explain;
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -26,6 +30,14 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 web::post().to(ingest_run_event::complete_run),
             )
             .route("/runs/{run_id}/fail", web::post().to(ingest_run_event::fail_run))
+            .route(
+                "/ontology/actions/read",
+                web::post().to(ontology_actions::execute_read_action_internal),
+            )
+            .route(
+                "/ontology/actions/advisory",
+                web::post().to(ontology_actions::execute_advisory_action_internal),
+            )
             .route("/health", web::get().to(runtime_health::runtime_health))
             .route("/tools/explain", web::get().to(tools_explain::tools_explain)),
     );

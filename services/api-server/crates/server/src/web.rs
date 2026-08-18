@@ -105,6 +105,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .app_data(web::Data::new(di.ai_context_svc.clone()))
         .app_data(web::Data::new(di.ai_control_svc.clone()))
         .app_data(web::Data::new(di.ai_rollback_svc.clone()))
+        .app_data(web::Data::new(di.ai_run_auth_loader.clone()))
         .app_data(web::Data::new(di.system_flags_svc.clone()))
         .app_data(web::Data::new(di.business_case_type_svc.clone()))
         .app_data(web::Data::new(di.flight_cache_svc.clone()))
