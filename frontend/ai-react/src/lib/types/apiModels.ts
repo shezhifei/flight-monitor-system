@@ -26,18 +26,37 @@ export interface NLQueryResult {
 
 export interface EvalJobSummary {
   job_id: string;
+  name?: string;
+  dataset_path?: string;
   status: string;
+  progress_percent?: number;
+  total_runs?: number;
+  completed_runs?: number;
   created_at?: string;
 }
 
+export interface EvalGateRow {
+  metric_name: string;
+  value: number;
+  threshold: number;
+  status: string; // pass | fail | warn
+}
+
 export interface EvalJobDetail extends EvalJobSummary {
-  progress?: {
-    total_attempts?: number;
-    completed_attempts?: number;
-    percentage?: number;
-  };
-  ranking?: Array<Record<string, unknown>>;
-  profiles?: Array<Record<string, unknown>>;
+  description?: string;
+  metrics_config?: Record<string, unknown>;
+  started_at?: string;
+  completed_at?: string;
+  error_message?: string | null;
+  gates?: EvalGateRow[];
+}
+
+export interface EvalJobCreatePayload {
+  name: string;
+  dataset_path: string;
+  description?: string;
+  metrics_config?: Record<string, unknown>;
+  run?: boolean;
 }
 
 export interface AiEntityConfig {

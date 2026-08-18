@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 
 from src.infrastructure.ai.api_routes import router as api_routes
 from src.infrastructure.ai.ai_runtime_bootstrap import ai_runtime_lifespan
+from src.infrastructure.ai.eval_routes import router as eval_routes
 from src.infrastructure.ai.management_routes import router as management_routes
 from src.infrastructure.ai.ontology.schema_mirror import schema_mirror
 from src.infrastructure.ai.service_identity import (
@@ -40,6 +41,7 @@ app = FastAPI(
 
 app.include_router(api_routes)
 app.include_router(management_routes)
+app.include_router(eval_routes)
 
 
 @app.exception_handler(Exception)

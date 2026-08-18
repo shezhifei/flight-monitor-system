@@ -77,11 +77,6 @@ async def db_pool():
                 "TRUNCATE ai_eval_jobs, ai_eval_spans, ai_eval_metrics_summary "
                 "RESTART IDENTITY CASCADE"
             )
-        # The service caches a singleton bound to whatever pool was passed in;
-        # drop it so each test binds to this fresh pool (same event loop).
-        from src.application.services.ai.llm_eval_service.service import EvaluationService
-
-        EvaluationService._instance = None
         yield pool
     finally:
         await pool.close()

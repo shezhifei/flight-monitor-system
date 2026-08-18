@@ -10,24 +10,24 @@ E3: LLM Agent Evaluation & Observability Service
 
 设计参考：
 - DeepEval agent evaluation framework
-- MorphLLM production eval best practices  
+- MorphLLM production eval best practices
 - Grafana Agent Observability OTLP export
 """
 
 import json
-from contextlib import nullcontext
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Optional, Protocol
-from uuid import UUID, uuid4
 import re
 import time
+from contextlib import nullcontext
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Protocol
+from uuid import UUID, uuid4
 
 from asyncpg import Connection
 
 try:
-    from opentelemetry import trace, metrics
+    from opentelemetry import metrics, trace
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
@@ -54,17 +54,17 @@ logger = get_logger(__name__)
 @dataclass
 class EvalJob:
     """评估作业定义。"""
-    
+
     job_id: UUID = field(default_factory=uuid4)
     name: str = ""
     dataset_path: str = ""  # Path to JSONL test dataset
     description: str = ""    # ADD THIS FIELD
-    
+
     status: str = "pending"  # pending | running | completed | failed
     progress_percent: float = 0.0
     total_runs: int = 0
     completed_runs: int = 0
-    
+
     metrics_config: dict[str, Any] = field(default_factory=dict)
     # {
     #   "tool_accuracy_min": 0.95,        # >=95%
@@ -73,17 +73,17 @@ class EvalJob:
     #   "avg_rounds_target": 8,          # <=8
     #   "plan_board_compliance_min": 0.90 # >=90%
     # }
-    
+
     created_at: datetime = field(default_factory=datetime.utcnow)
     started_at: datetime | None = None
     completed_at: datetime | None = None
-    
+
     error_message: str | None = None  # ADD THIS FIELD
-    
+
     def is_active(self) -> bool:
         """Check if job is still running."""
         return self.status in ("pending", "running")
-    
+
     def is_passed(self) -> bool:
         """Check if all gates passed."""
         return self.status == "completed"
@@ -92,21 +92,21 @@ class EvalJob:
 @dataclass
 class EvalSpan:
     """Span 数据结构（追踪单次运行细节）。"""
-    
+
     span_id: UUID = field(default_factory=uuid4)
     job_id: UUID | None = None  # ADD THIS FIELD
     run_id: str = ""           # Unique run identifier
     parent_span_id: UUID | None = None
-    
+
     span_type: str = ""        # llm_call | tool_call | checkpoint | error
     start_time: float = 0.0
     end_time: float = 0.0
-    
+
     context: dict[str, Any] = field(default_factory=dict)
     result: dict[str, Any] = field(default_factory=dict)
     metrics: dict[str, Any] = field(default_factory=dict)
     error_message: str | None = None
-    
+
     # Common for llm_call spans
     model_name: str = ""
     input_tokens: int = 0
@@ -117,13 +117,13 @@ class EvalSpan:
 @dataclass
 class GateMetricsSummary:
     """门禁指标汇总数据。"""
-    
+
     job_id: UUID
     metric_name: str
     value: float
     threshold: float
     status: str  # pass | fail | warn
-    
+
     snapshot_at: datetime = field(default_factory=datetime.utcnow)
     details: dict[str, Any] = field(default_factory=dict)
 
@@ -371,7 +371,7 @@ class EvaluationService:
         self._agent_runner = agent_runner
         self._traces = trace.get_tracer(__name__) if OTEL_AVAILABLE else None
         self._metrics = metrics.get_meter(__name__) if OTEL_AVAILABLE else None
-        
+
         # Create performance counters (only if OTel available)
         if OTEL_AVAILABLE:
             self.tool_calls_total = self._metrics.create_counter(
@@ -382,7 +382,7 @@ class EvaluationService:
                 "eval_token_usage_total",
                 description="Token usage split by type",
             )
-    
+
     async def create_job(
         self,
         name: str,
@@ -398,39 +398,39 @@ class EvaluationService:
             metrics_config=metrics_config,
             status="pending",
         )
-        
+
         # Persist to database
         await self._save_eval_job(job)
-        
+
         logger.info(f"[Eval Service] Created job id={job.job_id}, name='{job.name}'")
         return job
-    
+
     async def run_job(self, job: EvalJob) -> EvalJob:
         """Execute evaluation job against test dataset."""
         job.status = "running"
-        job.started_at = datetime.now(timezone.utc)
+        job.started_at = datetime.now(UTC)
         job.progress_percent = 0.0
-        
+
         await self._update_eval_job(job)
-        
+
         try:
             # Load test dataset (JSONL format)
             tests = await self._load_test_dataset(job.dataset_path)
             job.total_runs = len(tests)
-            
+
             # Execute each test case
             passed_gates = []
             failed_gates = []
-            
+
             for idx, test_case in enumerate(tests):
                 job.completed_runs = idx + 1
                 job.progress_percent = (idx / len(tests)) * 100
-                
+
                 span = await self._execute_single_test(job, test_case)
-                
+
                 # Evaluate against gate metrics and persist results
                 gate_summary = await self._evaluate_gates(job, span)
-                
+
                 # Check if overall result passed or failed
                 if gate_summary.status == "fail":
                     failed_gates.append(gate_summary.metric_name)
@@ -439,7 +439,7 @@ class EvaluationService:
                     )
                 else:
                     passed_gates.append(gate_summary.metric_name)
-            
+
             # Determine final status
             if len(failed_gates) > 0:
                 job.status = "failed"
@@ -447,18 +447,18 @@ class EvaluationService:
             else:
                 job.status = "completed"
                 logger.info(f"[Eval Service] Job completed: all {len(passed_gates)} gates passed")
-            
-            job.completed_at = datetime.now(timezone.utc)
+
+            job.completed_at = datetime.now(UTC)
             await self._update_eval_job(job)
-            
+
             return job
-            
+
         except Exception as e:
             job.status = "failed"
             job.error_message = str(e)
             await self._update_eval_job(job)
             raise
-    
+
     async def _execute_single_test(
         self,
         job: EvalJob,
@@ -506,11 +506,11 @@ class EvaluationService:
                     "constraint_violations": run_result.unauthorized_attempts,
                 },
             )
-            
+
             await self._persist_span(eval_span)
-            
+
             return eval_span
-    
+
     async def _evaluate_gates(
         self,
         job: EvalJob,
@@ -523,11 +523,11 @@ class EvaluationService:
         task_type = context.get("task_type") or "query_ops"
         passing = []
         failing = []
-        
+
         # 1. Tool policy gate: every called tool allowed, none forbidden.
         tool_correctness = await self._calculate_tool_correctness(span.result, expected)
         expected_accuracy = config.get("tool_accuracy_min", 0.95)
-        
+
         gate_result = self._check_gate_for_minimum(
             "tool_accuracy",
             tool_correctness,
@@ -535,14 +535,14 @@ class EvaluationService:
             job.job_id,
         )
         passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
-        
+
         # 2. Ungrounded id gate (was hallucination_rate): extracted answer ids
         # must be backed by tool evidence — never a flight-number regex.
         ungrounded_rate = await self._calculate_hallucination_rate(span.result)
         max_ungrounded = config.get(
             "ungrounded_id_rate_max", config.get("hallucination_rate_max", 0.05)
         )
-        
+
         gate_result = self._check_gate_for_maximum(
             "ungrounded_id_rate",
             ungrounded_rate,
@@ -550,11 +550,11 @@ class EvaluationService:
             job.job_id,
         )
         passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
-        
+
         # 3. Zero violations required (boolean check)
         violations = int(span.result.get("unauthorized_attempts", 0) or span.metrics.get("constraint_violations", 0))
         zero_violations_required = config.get("zero_violations_required", True)
-        
+
         if zero_violations_required:
             is_pass = violations == 0
             status = "pass" if is_pass else "fail"
@@ -567,13 +567,13 @@ class EvaluationService:
                 details={"actual_violations": violations},
             )
             passing.append(gate_result) if is_pass else failing.append(gate_result)
-        
+
         # 4. Average rounds target (should be <= template hard cap)
         total_rounds = span.metrics.get("total_tool_rounds", 0)
         avg_rounds_target = config.get(
             "avg_rounds_target", HARD_ROUND_CAPS.get(task_type, DEFAULT_ROUND_CAP)
         )
-        
+
         gate_result = self._check_gate_for_maximum(
             "avg_rounds",
             float(total_rounds),
@@ -592,11 +592,11 @@ class EvaluationService:
                 job.job_id,
             )
             passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
-        
+
         # Persist all gates to database
         for gate in passing + failing:
             await self._persist_gate_metric(gate)
-        
+
         # Return aggregated summary
         summary = GateMetricsSummary(
             job_id=job.job_id,
@@ -611,13 +611,13 @@ class EvaluationService:
                 "failing_metrics": [g.metric_name for g in failing],
             },
         )
-        
+
         logger.info(
             f"[Eval Service] Gates evaluated: {len(passing)} passing, {len(failing)} failing"
         )
-        
+
         return summary
-    
+
     def _check_gate_for_minimum(
         self,
         metric_name: str,
@@ -628,7 +628,7 @@ class EvaluationService:
         """Check minimum threshold gate (value should be >= threshold)."""
         is_pass = actual_value >= min_threshold
         status = "pass" if is_pass else "fail"
-        
+
         return GateMetricsSummary(
             job_id=job_id,
             metric_name=metric_name,
@@ -637,7 +637,7 @@ class EvaluationService:
             status=status,
             details={"direction": "minimum_required"},
         )
-    
+
     def _check_gate_for_maximum(
         self,
         metric_name: str,
@@ -648,7 +648,7 @@ class EvaluationService:
         """Check maximum threshold gate (value should be <= threshold)."""
         is_pass = actual_value <= max_threshold
         status = "pass" if is_pass else "fail"
-        
+
         return GateMetricsSummary(
             job_id=job_id,
             metric_name=metric_name,
@@ -657,7 +657,7 @@ class EvaluationService:
             status=status,
             details={"direction": "maximum_allowed"},
         )
-    
+
     async def _calculate_tool_correctness(
         self, result: dict[str, Any], expected: dict[str, Any] | None = None
     ) -> float:
@@ -672,7 +672,7 @@ class EvaluationService:
             expected.get("allowed_tools", []) or [],
             expected.get("forbidden_tools", []) or [],
         )
-    
+
     async def _calculate_hallucination_rate(self, result: dict[str, Any]) -> float:
         """Ungrounded id rate (Task G3): answer ids without evidence backing."""
         extracted_ids = result.get("extracted_ids", [])
@@ -686,15 +686,15 @@ class EvaluationService:
         for fn in flight_numbers_mentioned:
             if not self._validate_flight_number(fn):
                 invalid_count += 1
-        
+
         total = len(flight_numbers_mentioned)
         return invalid_count / total if total > 0 else 0.0
-    
+
     def _validate_flight_number(self, fn: str) -> bool:
         """Validate flight number format (e.g., CA1234, MU5678)."""
         pattern = r"^[A-Z]{2}\d{3,4}$"
         return bool(re.match(pattern, fn.strip().upper()))
-    
+
     async def _persist_span(self, span: EvalSpan):
         """Persist span to PostgreSQL eval_spans table."""
         async with self._db_pool.acquire() as conn:
@@ -723,18 +723,18 @@ class EvaluationService:
                 span.total_cost_usd,
                 span.error_message or "",
             )
-    
+
     async def _get_all_gates_for_job(self, job_id: UUID) -> tuple[list[GateMetricsSummary], list[GateMetricsSummary]]:
         """Retrieve all gate results for a job from PostgreSQL."""
         passing = []
         failing = []
-        
+
         async with self._db_pool.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT * FROM ai_eval_metrics_summary WHERE job_id = $1",
                 job_id,
             )
-            
+
             for row in rows:
                 gate = GateMetricsSummary(
                     job_id=row['job_id'],
@@ -745,16 +745,16 @@ class EvaluationService:
                     details=row.get('details', {}),
                     snapshot_at=row['snapshot_at'],
                 )
-                
+
                 if gate.status == 'pass':
                     passing.append(gate)
                 elif gate.status in ('fail', 'error'):
                     failing.append(gate)
                 else:
                     passing.append(gate)  # warn treated as pass for now
-        
+
         return passing, failing
-    
+
     async def _persist_gate_metric(self, gate: GateMetricsSummary):
         """Persist gate metric to PostgreSQL table."""
         async with self._db_pool.acquire() as conn:
@@ -773,7 +773,7 @@ class EvaluationService:
                 json.dumps(gate.details),
                 gate.snapshot_at,
             )
-    
+
     # Dataset loading and agent execution (Task G2)
     async def _load_test_dataset(self, path: str) -> list[dict[str, Any]]:
         """Load a JSONL eval dataset (one sample per non-comment line)."""
@@ -787,7 +787,7 @@ class EvaluationService:
                 continue
             samples.append(json.loads(line))
         return samples
-    
+
     async def _run_agent_on_query(
         self,
         *,
@@ -810,7 +810,7 @@ class EvaluationService:
             task_type=task_type,
             entity_id=entity_id,
         )
-    
+
     async def ingest_run_from_ledger(self, run_id: str) -> EvalRunResult:
         """Sample a production run from ``ai_run_checkpoints`` (Task G4).
 
@@ -829,6 +829,95 @@ class EvaluationService:
                 f"No checkpoints found for run {run_id}; refusing to fabricate an eval sample"
             )
         return build_eval_result_from_checkpoints([dict(row) for row in rows])
+
+    # ------------------------------------------------------------------
+    # Job queries for the Eval Lab HTTP surface (Task G5)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _job_row_to_dict(row: dict[str, Any]) -> dict[str, Any]:
+        """Normalize an ``ai_eval_jobs`` row for JSON responses."""
+        metrics_config = row.get("metrics_config")
+        if isinstance(metrics_config, str):
+            try:
+                metrics_config = json.loads(metrics_config)
+            except ValueError:
+                metrics_config = {}
+
+        def _iso(value: Any) -> str | None:
+            return value.isoformat() if hasattr(value, "isoformat") else value
+
+        return {
+            "job_id": str(row.get("job_id") or ""),
+            "name": str(row.get("name") or ""),
+            "description": str(row.get("description") or ""),
+            "dataset_path": str(row.get("dataset_path") or ""),
+            "status": str(row.get("status") or ""),
+            "progress_percent": float(row.get("progress_percent") or 0.0),
+            "total_runs": int(row.get("total_runs") or 0),
+            "completed_runs": int(row.get("completed_runs") or 0),
+            "metrics_config": metrics_config if isinstance(metrics_config, dict) else {},
+            "created_at": _iso(row.get("created_at")),
+            "started_at": _iso(row.get("started_at")),
+            "completed_at": _iso(row.get("completed_at")),
+            "error_message": str(row.get("error_message") or "") or None,
+        }
+
+    async def list_jobs(self, limit: int = 30) -> list[dict[str, Any]]:
+        """List eval jobs, newest first (Task G5)."""
+        capped = max(1, min(int(limit or 30), 200))
+        async with self._db_pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT job_id, name, description, dataset_path, status, "
+                "progress_percent, total_runs, completed_runs, metrics_config, "
+                "created_at, started_at, completed_at, error_message "
+                "FROM ai_eval_jobs ORDER BY created_at DESC LIMIT $1",
+                capped,
+            )
+        return [self._job_row_to_dict(dict(row)) for row in rows]
+
+    async def get_job_detail(self, job_id: UUID) -> dict[str, Any] | None:
+        """Fetch one job plus its gate table (Task G5)."""
+        async with self._db_pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT job_id, name, description, dataset_path, status, "
+                "progress_percent, total_runs, completed_runs, metrics_config, "
+                "created_at, started_at, completed_at, error_message "
+                "FROM ai_eval_jobs WHERE job_id = $1",
+                job_id,
+            )
+            if row is None:
+                return None
+            gate_rows = await conn.fetch(
+                "SELECT metric_name, value, threshold, status, details, snapshot_at "
+                "FROM ai_eval_metrics_summary WHERE job_id = $1 ORDER BY snapshot_at, id",
+                job_id,
+            )
+        detail = self._job_row_to_dict(dict(row))
+        detail["gates"] = [
+            {
+                "metric_name": str(gate.get("metric_name") or ""),
+                "value": float(gate.get("value") or 0.0),
+                "threshold": float(gate.get("threshold") or 0.0),
+                "status": str(gate.get("status") or ""),
+            }
+            for gate in (dict(g) for g in gate_rows)
+        ]
+        return detail
+
+    async def cancel_job(self, job_id: UUID) -> dict[str, Any] | None:
+        """Cancel an active job by marking it failed (Task G5)."""
+        async with self._db_pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "UPDATE ai_eval_jobs SET status = 'failed', "
+                "completed_at = NOW(), error_message = 'cancelled by user' "
+                "WHERE job_id = $1 AND status IN ('pending', 'running') "
+                "RETURNING job_id, name, description, dataset_path, status, "
+                "progress_percent, total_runs, completed_runs, metrics_config, "
+                "created_at, started_at, completed_at, error_message",
+                job_id,
+            )
+        return self._job_row_to_dict(dict(row)) if row is not None else None
 
     async def _save_eval_job(self, job: EvalJob):
         """Save eval job to PostgreSQL ai_eval_jobs table."""
@@ -850,7 +939,7 @@ class EvaluationService:
                 job.total_runs,
                 job.completed_runs,
             )
-    
+
     async def _update_eval_job(self, job: EvalJob):
         """Update eval job in PostgreSQL ai_eval_jobs table."""
         async with self._db_pool.acquire() as conn:
