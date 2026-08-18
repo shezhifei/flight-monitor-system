@@ -23,11 +23,17 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-# Critical identifier patterns (Task B3): flight numbers, anomaly ids,
-# proposal ids, order ids. Shared by IDPreservationHook (PreCompact) and the
-# context compression path so there is exactly one definition.
+# Critical identifier patterns (Task B3, extended by Task H2): flight
+# numbers (F1234, CA1832, MU5102, bare four-digit), UUID flight ids,
+# anomaly ids, proposal ids, order ids. Shared by IDPreservationHook
+# (PreCompact), EvidenceCoverageHook (Stop) and the context compression
+# path so there is exactly one definition. Lookarounds instead of ``\b``
+# because CJK characters are word characters.
 CRITICAL_ID_PATTERNS = [
     r"F[0-9]{4,}",  # Flight numbers like F1234
+    r"(?<![A-Za-z])[A-Z]{2}[0-9]{3,4}(?![0-9])",  # Domestic numbers like CA1832 / MU5102
+    r"(?<![A-Za-z0-9])[0-9]{4}(?![0-9A-Za-z])",  # Bare four-digit flight numbers
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",  # UUID flight ids
     r"ANOMALY-[A-Z0-9]+",  # Anomaly IDs
     r"PROP-[A-Z0-9]+",  # Proposal IDs
     r"ORDER-[A-Z0-9]+",  # Order IDs
@@ -68,6 +74,10 @@ class HookContext:
     errors: list[str] = field(default_factory=list)
     # Observability only: set by HookPipeline when a hook returns False.
     blocked_rule: str | None = None
+    # Stop phase (Task H2): a hook may replace the final answer entirely
+    # (e.g. the evidence-coverage degradation); the runner must use this
+    # text instead of the original one when it is set.
+    final_text_override: str | None = None
 
     def add_error(self, error: str) -> None:
         self.errors.append(error)
@@ -470,6 +480,90 @@ class NoPromisesHook(BaseHook):
             return False
 
 
+class EvidenceCoverageHook(BaseHook):
+    """Stop hook: the final answer may only cite identifiers backed by evidence (Task H2).
+
+    Every critical ID extracted from the last assistant text must appear in
+    the run's working-memory ``evidence.json`` (``object_id`` or
+    ``content``). Uncovered IDs mean the model is "pretending to know":
+    the locked behaviour is the rewrite option — the hook returns False and
+    exposes ``ctx.final_text_override`` with a fixed Chinese degradation,
+    which the runner uses instead of the original text.
+
+    Policy: enforced for ``query_ops``; ``anomaly_ops`` / ``dispatch_ops``
+    may carry hypothesis paragraphs and are left to :class:`NoPromisesHook`
+    (they still may not claim executed changes).
+    """
+
+    DEGRADATION_TEMPLATE = (
+        "以下编号缺少工具证据，不能当作事实：{ids}。"
+        "请先通过查询工具获取实时数据，再给出结论。"
+    )
+
+    @property
+    def phase(self) -> str:
+        return "Stop"
+
+    async def execute(self, ctx: HookContext) -> bool:
+        envelope_task = getattr(ctx.envelope, "task", None)
+        task_type = getattr(envelope_task, "task_type", None)
+        if task_type != "query_ops":
+            return True
+
+        last_message = None
+        for msg in reversed(ctx.messages or []):
+            content = msg.get("content")
+            if msg.get("role") == "assistant" and isinstance(content, str) and content.strip():
+                last_message = msg
+                break
+        if last_message is None:
+            return True
+
+        text = last_message["content"]
+        claimed_ids = self._extract_ids(text)
+        if not claimed_ids:
+            return True
+
+        evidence_blobs = self._evidence_blobs(ctx)
+        uncovered = [i for i in claimed_ids if not any(i in blob for blob in evidence_blobs)]
+        if not uncovered:
+            return True
+
+        override = self.DEGRADATION_TEMPLATE.format(ids="、".join(uncovered))
+        ctx.final_text_override = override
+        last_message["content"] = override
+        ctx.add_error(f"EVIDENCE_COVERAGE: ungrounded identifiers: {', '.join(uncovered)}")
+        logger.warning(
+            f"EvidenceCoverageHook degraded final answer (uncovered: {uncovered}), run={ctx.run_id}"
+        )
+        return False
+
+    @staticmethod
+    def _extract_ids(text: str) -> list[str]:
+        import re
+
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for pattern in CRITICAL_ID_PATTERNS:
+            for match in re.findall(pattern, text):
+                if match not in seen:
+                    seen.add(match)
+                    ordered.append(match)
+        return ordered
+
+    @staticmethod
+    def _evidence_blobs(ctx: HookContext) -> list[str]:
+        if ctx.working_memory is None:
+            return []
+        blobs: list[str] = []
+        for record in ctx.working_memory.read_evidence():
+            for key in ("object_id", "content", "summary"):
+                value = record.get(key)
+                if isinstance(value, str) and value:
+                    blobs.append(value)
+        return blobs
+
+
 class PlanFirstHook(BaseHook):
     """PreToolUse hook: high-risk templates must establish a plan first (Task C1).
 
@@ -675,6 +769,7 @@ def build_default_pipeline() -> HookPipeline:
 __all__ = [
     "CRITICAL_ID_PATTERNS",
     "BaseHook",
+    "EvidenceCoverageHook",
     "FreshnessCheckHook",
     "HookContext",
     "HookPipeline",

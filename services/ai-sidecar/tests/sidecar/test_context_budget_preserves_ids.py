@@ -26,7 +26,16 @@ def _run(coro):
     return asyncio.run(coro)
 
 
-_CRITICAL_IDS = ["F1234", "F5678", "ANOMALY-GT123", "PROP-AB12", "ORDER-77"]
+_CRITICAL_IDS = [
+    "F1234",
+    "F5678",
+    "CA1832",
+    "8899",
+    "3f2a9c1e-8b4d-4a67-9e2f-1c0d5b7a8e91",
+    "ANOMALY-GT123",
+    "PROP-AB12",
+    "ORDER-77",
+]
 
 
 def _conversation_with_ids(turns: int = 20) -> list[dict]:
@@ -36,8 +45,10 @@ def _conversation_with_ids(turns: int = 20) -> list[dict]:
         {
             "role": "user",
             "content": (
-                "排查航班 F1234 与 F5678 的机位冲突，关联异常 ANOMALY-GT123，"
-                "待审批提案 PROP-AB12，工单 ORDER-77。" + "背景细节。" * 40
+                "排查航班 F1234 与 F5678 的机位冲突，国内航班 CA1832 与四位数航班 8899，"
+                "flight_id 为 3f2a9c1e-8b4d-4a67-9e2f-1c0d5b7a8e91，"
+                "关联异常 ANOMALY-GT123，待审批提案 PROP-AB12，工单 ORDER-77。"
+                + "背景细节。" * 40
             ),
         }
     )

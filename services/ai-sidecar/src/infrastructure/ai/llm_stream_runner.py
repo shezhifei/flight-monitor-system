@@ -783,9 +783,15 @@ class LLMStreamRunner:
                 working_memory=working_memory,
             )
             if not await hook_pipeline.execute_phase("Stop", stop_ctx):
-                reason = "; ".join(stop_ctx.errors) or "blocked by Stop hook"
-                logger.warning(f"Stop hooks flagged final answer for run={run_id}: {reason}")
-                result.text = (result.text or "") + f"\n\n---\n⚠️ 输出安全钩子拦截：{reason}"
+                # Task H2: a hook may lock a full replacement for the final
+                # answer (evidence-coverage degradation). That override wins
+                # over the generic warning annotation.
+                if stop_ctx.final_text_override is not None:
+                    result.text = stop_ctx.final_text_override
+                else:
+                    reason = "; ".join(stop_ctx.errors) or "blocked by Stop hook"
+                    logger.warning(f"Stop hooks flagged final answer for run={run_id}: {reason}")
+                    result.text = (result.text or "") + f"\n\n---\n⚠️ 输出安全钩子拦截：{reason}"
 
         # D1: Emit final checkpoint after completion
         final_checkpoint = {
