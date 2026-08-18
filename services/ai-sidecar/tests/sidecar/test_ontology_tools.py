@@ -35,6 +35,28 @@ class RecordingClient:
         return self._advisory_result
 
 
+class ScriptedReadClient:
+    """Dispatches read results by action name (simulate performs two reads)."""
+
+    def __init__(self, *, availability: dict, flight_context: dict | None = None) -> None:
+        self.read_calls: list[dict] = []
+        self.advisory_calls: list[dict] = []
+        self._availability = availability
+        self._flight_context = flight_context or {}
+
+    async def read(self, *, run_id: str, action_name: str, arguments: dict) -> dict:
+        self.read_calls.append({"run_id": run_id, "action_name": action_name, "arguments": arguments})
+        if action_name == "stand.check_availability":
+            return self._availability
+        if action_name == "flight.get_context":
+            return self._flight_context
+        raise AssertionError(f"unexpected read action in simulate: {action_name}")
+
+    async def advisory(self, *, run_id: str, action_name: str, arguments: dict) -> dict:
+        self.advisory_calls.append({"run_id": run_id, "action_name": action_name, "arguments": arguments})
+        raise AssertionError("controlled writes never use the advisory surface")
+
+
 class FailingClient:
     def __init__(self) -> None:
         self.read_calls: list[dict] = []
@@ -99,8 +121,70 @@ async def test_propose_unregistered_action_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_propose_change_stand_is_proposal_only() -> None:
+async def test_propose_change_stand_simulates_before_proposal() -> None:
     assert "Flight.change_stand" in CONTROLLED_WRITE_ACTIONS
+    client = ScriptedReadClient(
+        availability={"is_available": True, "conflicts": []},
+        flight_context={"flight": {"flight_id": "F1", "stand": "B7"}},
+    )
+    tools = OntologyTools(client=client)
+    params = {
+        "flight_id": "F1",
+        "new_stand_id": "A12",
+        "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"},
+    }
+    result = await tools.propose_action(
+        run_id="run_1",
+        action_name="Flight.change_stand",
+        parameters=params,
+        allowed_actions=["Flight.change_stand"],
+    )
+    assert result["execution_mode"] == "proposal_only"
+    assert result["action_name"] == "Flight.change_stand"
+    assert result["parameters"] == params
+    # The proposal must carry a simulate block: before/after + constraints.
+    simulate = result["simulate"]
+    assert simulate["before"] == {"flight_id": "F1", "stand": "B7"}
+    assert simulate["after"] == {"stand": "A12"}
+    assert simulate["violations"] == []
+    assert simulate["availability"]["is_available"] is True
+    # Simulate first: constraint check, then the current state snapshot.
+    assert [call["action_name"] for call in client.read_calls] == [
+        "stand.check_availability",
+        "flight.get_context",
+    ]
+    assert client.advisory_calls == []
+
+
+@pytest.mark.asyncio
+async def test_propose_change_stand_hard_conflict_is_rejected() -> None:
+    client = ScriptedReadClient(
+        availability={
+            "is_available": False,
+            "conflicts": [{"flight_id": "F9", "reason": "stand occupied in requested window"}],
+        }
+    )
+    tools = OntologyTools(client=client)
+    result = await tools.propose_action(
+        run_id="run_1",
+        action_name="Flight.change_stand",
+        parameters={
+            "flight_id": "F1",
+            "new_stand_id": "A12",
+            "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"},
+        },
+        allowed_actions=["Flight.change_stand"],
+    )
+    # Hard constraint failure: no proposal is ever created.
+    assert result["execution_mode"] == "rejected"
+    assert result["hard_constraint_violations"][0]["rule_id"] == "stand_occupation_conflict"
+    assert "proposal" not in result
+    # Rejection short-circuits before fetching the before-state.
+    assert [call["action_name"] for call in client.read_calls] == ["stand.check_availability"]
+
+
+@pytest.mark.asyncio
+async def test_propose_change_stand_missing_time_window_is_rejected() -> None:
     client = RecordingClient()
     tools = OntologyTools(client=client)
     result = await tools.propose_action(
@@ -109,12 +193,26 @@ async def test_propose_change_stand_is_proposal_only() -> None:
         parameters={"flight_id": "F1", "new_stand_id": "A12"},
         allowed_actions=["Flight.change_stand"],
     )
-    assert result["execution_mode"] == "proposal_only"
-    assert result["action_name"] == "Flight.change_stand"
-    assert result["parameters"] == {"flight_id": "F1", "new_stand_id": "A12"}
-    # Controlled writes never hit the read/advisory HTTP surface.
-    assert client.advisory_calls == []
+    assert result["execution_mode"] == "rejected"
+    assert result["hard_constraint_violations"][0]["rule_id"] == "missing_constraint_inputs"
+    # Missing constraint inputs fail closed without any HTTP call.
     assert client.read_calls == []
+
+
+@pytest.mark.asyncio
+async def test_propose_change_stand_client_failure_propagates() -> None:
+    tools = OntologyTools(client=FailingClient())
+    with pytest.raises(OntologyActionClientError):
+        await tools.propose_action(
+            run_id="run_1",
+            action_name="Flight.change_stand",
+            parameters={
+                "flight_id": "F1",
+                "new_stand_id": "A12",
+                "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"},
+            },
+            allowed_actions=["Flight.change_stand"],
+        )
 
 
 @pytest.mark.asyncio

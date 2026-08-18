@@ -29,7 +29,6 @@ from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
     is_ontology_tool,
 )
-
 from tests.sidecar.tool_executor_test_support import (
     AuthorizedToolMqGate,
     FakeReadOnlyBackend,
@@ -181,6 +180,74 @@ async def test_propose_controlled_write_builds_approval_proposal() -> None:
     # Controlled writes never go through the read/advisory HTTP surface.
     assert fake.lookup_calls == []
     assert fake.explain_calls == []
+
+
+@pytest.mark.asyncio
+async def test_propose_rejected_outcome_fails_without_proposal() -> None:
+    fake = FakeOntologyTools(
+        propose_result={
+            "execution_mode": "rejected",
+            "action_name": "Flight.change_stand",
+            "parameters": {"flight_id": "F1", "new_stand_id": "A12"},
+            "hard_constraint_violations": [
+                {"severity": "hard", "rule_id": "stand_occupation_conflict", "reason": "occupied"}
+            ],
+            "simulate": {"violations": []},
+        }
+    )
+    executor = _executor(ontology_tools=fake)
+    result = await executor.execute(
+        {
+            "tool_call_id": "c3a",
+            "tool_name": "ontology.propose_action",
+            "arguments": {
+                "action_name": "Flight.change_stand",
+                "parameters": {"flight_id": "F1", "new_stand_id": "A12"},
+            },
+        },
+        run_id="run_3a",
+    )
+    # Hard constraint rejection: failure surfaced, no proposal created.
+    assert result.success is False
+    assert result.proposal is None
+    assert "HARD_CONSTRAINT_VIOLATION" in (result.error or "")
+    assert "stand_occupation_conflict" in (result.error or "")
+
+
+@pytest.mark.asyncio
+async def test_propose_controlled_write_proposal_carries_simulate() -> None:
+    simulate = {
+        "action_name": "Flight.change_stand",
+        "flight_id": "F1",
+        "before": {"flight_id": "F1", "stand": "B7"},
+        "after": {"stand": "A12"},
+        "violations": [],
+        "availability": {"is_available": True},
+    }
+    fake = FakeOntologyTools(
+        propose_result={
+            "execution_mode": "proposal_only",
+            "action_name": "Flight.change_stand",
+            "parameters": {"flight_id": "F1", "new_stand_id": "A12"},
+            "simulate": simulate,
+        }
+    )
+    executor = _executor(ontology_tools=fake)
+    result = await executor.execute(
+        {
+            "tool_call_id": "c3b",
+            "tool_name": "ontology.propose_action",
+            "arguments": {
+                "action_name": "Flight.change_stand",
+                "parameters": {"flight_id": "F1", "new_stand_id": "A12"},
+            },
+        },
+        run_id="run_3b",
+    )
+    assert result.success is True
+    assert result.proposal is not None
+    # The approval card must carry the simulate block (before/after diff).
+    assert result.proposal["simulate"] == simulate
 
 
 @pytest.mark.asyncio

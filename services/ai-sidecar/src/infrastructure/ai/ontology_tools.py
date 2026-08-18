@@ -11,8 +11,11 @@ adapter only:
 * refuses anything not registered (fail-closed, no invented rules).
 
 Controlled writes (e.g. ``Flight.change_stand``) are never executed by
-this adapter: they return ``execution_mode="proposal_only"`` so the
-proposal/approval path stays the single write surface.
+this adapter: they are simulated first (constraint check + before-state
+snapshot through registered read actions) and then return
+``execution_mode="proposal_only"`` with a ``simulate`` block, or
+``execution_mode="rejected"`` when a hard constraint is violated — in
+which case no proposal is created.
 """
 
 from __future__ import annotations
@@ -307,15 +310,91 @@ class OntologyTools:
             return await self._client.advisory(run_id=run_id, action_name=action_name, arguments=parameters or {})
 
         if action_name in CONTROLLED_WRITE_ACTIONS:
-            # Controlled writes are never executed here. The proposal /
-            # approval path is the single write surface.
-            return {
-                "execution_mode": "proposal_only",
-                "action_name": action_name,
-                "parameters": parameters or {},
-            }
+            # Controlled writes are never executed here. Simulate first
+            # (constraints + before-state); the proposal/approval path
+            # stays the single write surface.
+            return await self._simulate_controlled_write(
+                run_id=run_id,
+                action_name=action_name,
+                parameters=parameters or {},
+            )
 
         raise UnregisteredActionError(action_name)
+
+    async def _simulate_controlled_write(
+        self,
+        *,
+        run_id: str,
+        action_name: str,
+        parameters: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Simulate a controlled write before any proposal is created.
+
+        Reuses the registered constraint surface (``stand.check_availability``)
+        and a before-state snapshot (``flight.get_context``). Hard constraint
+        violations reject the write outright — no proposal is built. Client
+        errors propagate (fail-closed; nothing is fabricated).
+        """
+        flight_id = str(parameters.get("flight_id") or "").strip()
+        new_stand_id = str(parameters.get("new_stand_id") or "").strip()
+        explained = await self._explain_stand_change(
+            run_id=run_id,
+            entity_type="Flight",
+            change={
+                "action": "change_stand",
+                "new_stand_id": new_stand_id,
+                "time_window": parameters.get("time_window"),
+            },
+        )
+        violations = [v for v in explained.get("violations", []) if isinstance(v, dict)]
+        hard_violations = [v for v in violations if v.get("severity") == ConstraintSeverity.HARD.value]
+        availability = {k: v for k, v in explained.items() if k not in {"violations", "evidence"}}
+
+        if hard_violations:
+            logger.warning(
+                "ontology_propose_simulate_rejected run=%s action=%s rules=%s",
+                run_id,
+                action_name,
+                [v.get("rule_id") for v in hard_violations],
+            )
+            return {
+                "execution_mode": "rejected",
+                "action_name": action_name,
+                "parameters": parameters,
+                "hard_constraint_violations": hard_violations,
+                "simulate": {
+                    "action_name": action_name,
+                    "flight_id": flight_id,
+                    "before": None,
+                    "after": {"stand": new_stand_id},
+                    "violations": violations,
+                    "availability": availability,
+                },
+            }
+
+        before: dict[str, Any] = {"flight_id": flight_id, "stand": None}
+        if flight_id:
+            raw = await self._client.read(
+                run_id=run_id,
+                action_name="flight.get_context",
+                arguments={"flight_id": flight_id},
+            )
+            flight = raw.get("flight") if isinstance(raw.get("flight"), dict) else {}
+            before = {"flight_id": flight_id, "stand": flight.get("stand")}
+
+        return {
+            "execution_mode": "proposal_only",
+            "action_name": action_name,
+            "parameters": parameters,
+            "simulate": {
+                "action_name": action_name,
+                "flight_id": flight_id,
+                "before": before,
+                "after": {"stand": new_stand_id},
+                "violations": violations,
+                "availability": availability,
+            },
+        }
 
 
 __all__ = [

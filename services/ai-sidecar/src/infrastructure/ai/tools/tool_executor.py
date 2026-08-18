@@ -923,7 +923,25 @@ class ToolExecutor:
                     parameters=parameters,
                     allowed_actions=sorted(ADVISORY_ACTIONS | CONTROLLED_WRITE_ACTIONS),
                 )
+                if isinstance(outcome, dict) and outcome.get("execution_mode") == "rejected":
+                    # Simulate-before-proposal found hard constraint violations:
+                    # surface the failure, never create a proposal.
+                    violations = outcome.get("hard_constraint_violations") or []
+                    rule_ids = ", ".join(
+                        str(v.get("rule_id")) for v in violations if isinstance(v, dict)
+                    )
+                    return ToolExecutionResult(
+                        tool_call_id=tool_call_id,
+                        tool_name=tool_name,
+                        success=False,
+                        error=(
+                            f"HARD_CONSTRAINT_VIOLATION: controlled write '{action_name}' "
+                            f"rejected before proposal ({rule_ids}); no proposal created"
+                        ),
+                        result=outcome,
+                    )
                 if isinstance(outcome, dict) and outcome.get("execution_mode") == "proposal_only":
+                    simulate = outcome.get("simulate")
                     return self._build_ontology_write_proposal(
                         tool_call_id,
                         tool_name,
@@ -932,6 +950,7 @@ class ToolExecutor:
                         envelope,
                         action_name=action_name,
                         parameters=parameters,
+                        simulate=simulate if isinstance(simulate, dict) else None,
                     )
                 result = outcome
             else:
@@ -1063,12 +1082,15 @@ class ToolExecutor:
         *,
         action_name: str = "",
         parameters: dict[str, Any] | None = None,
+        simulate: dict[str, Any] | None = None,
     ) -> ToolExecutionResult:
         """Build an approval proposal for a controlled ontology write.
 
         Controlled writes (e.g. ``Flight.change_stand``) are never
         executed by the sidecar: the only outcome is a proposal routed
-        through the existing approval surface.
+        through the existing approval surface. When provided, the
+        ``simulate`` block (before/after + constraint outcome) rides on
+        the proposal so the approval card can render the diff.
         """
         resolved_action = action_name or str(arguments.get("action_name") or "")
         resolved_params = parameters if parameters is not None else (arguments.get("parameters") or {})
@@ -1099,6 +1121,8 @@ class ToolExecutor:
         }
         if user_id:
             proposal["requester_user_id"] = user_id
+        if simulate is not None:
+            proposal["simulate"] = simulate
 
         return ToolExecutionResult(
             tool_call_id=tool_call_id,
