@@ -18,6 +18,7 @@ proposal/approval path stays the single write surface.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -182,7 +183,12 @@ class OntologyTools:
             arguments = {**arguments, "include_relations": []}
         logger.info("ontology_lookup run=%s action=%s entity=%s", run_id, action_name, entity_id)
         raw = await self._client.read(run_id=run_id, action_name=action_name, arguments=arguments)
-        return attach_evidence(raw, source="ontology.lookup", object_id=_arguments_object_id(arguments))
+        result = attach_evidence(raw, source="ontology.lookup", object_id=_arguments_object_id(arguments))
+        # Task H1: freshness is a runtime invariant — every read stamps its
+        # own as_of unless the Rust evidence already carries one.
+        evidence = result["evidence"]
+        evidence.setdefault("as_of", datetime.now(UTC).isoformat())
+        return result
 
     async def explain_constraints(
         self,

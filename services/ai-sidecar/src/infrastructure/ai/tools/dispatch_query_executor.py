@@ -1,9 +1,15 @@
 """派工单查询工具执行器。"""
 
+from datetime import UTC, datetime
 from typing import Any
 
 from .base import BaseToolExecutor, ToolCategory, ToolExecutionError, ToolExecutionStatus
 from .dispatch_query_tools import DispatchQueryToolName
+
+
+def _as_of_now() -> str:
+    """Task H1: 只读查询结果必须携带 as_of，供新鲜度 hook 校验。"""
+    return datetime.now(UTC).isoformat()
 
 
 class DispatchQueryExecutor(BaseToolExecutor):
@@ -35,6 +41,7 @@ class DispatchQueryExecutor(BaseToolExecutor):
         return {
             "total": len(items),
             "items": [self._order_to_dict(o) for o in items],
+            "as_of": _as_of_now(),
         }
 
     async def _handle_get(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -46,7 +53,7 @@ class DispatchQueryExecutor(BaseToolExecutor):
                 f"未找到派工单: {order_id}",
                 ToolExecutionStatus.NOT_FOUND,
             )
-        return self._order_to_dict(item)
+        return {**self._order_to_dict(item), "as_of": _as_of_now()}
 
     async def _handle_by_flight(self, args: dict[str, Any]) -> dict[str, Any]:
         self._ensure_service()
@@ -55,6 +62,7 @@ class DispatchQueryExecutor(BaseToolExecutor):
         return {
             "total": len(items),
             "items": [self._order_to_dict(o) for o in items],
+            "as_of": _as_of_now(),
         }
 
     async def _handle_by_team(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -67,6 +75,7 @@ class DispatchQueryExecutor(BaseToolExecutor):
         return {
             "total": len(items),
             "items": [self._order_to_dict(o) for o in items],
+            "as_of": _as_of_now(),
         }
 
     def _ensure_service(self) -> None:

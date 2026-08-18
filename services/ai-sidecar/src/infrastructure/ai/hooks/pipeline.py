@@ -158,14 +158,14 @@ class SchemaValidationHook(BaseHook):
     async def execute(self, ctx: HookContext) -> bool:
         if not ctx.tool_args:
             return True
-            
+
         # Schema validation happens in ToolExecutor; this is a lightweight
         # pre-check for common issues like missing required fields
         try:
             # Future: integrate with actual tool schemas
             logger.debug(f"Schema validation passed for {ctx.tool_name}")
             return True
-            
+
         except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"Schema validation failed: {exc}")
             return False
@@ -236,12 +236,12 @@ class ResultSanitizationHook(BaseHook):
     async def execute(self, ctx: HookContext) -> bool:
         if not ctx.tool_result:
             return True
-            
+
         MAX_RESULT_SIZE = 10 * 1024  # 10KB limit for result content
-        
+
         try:
             result = ctx.tool_result
-            
+
             # Spill oversized content to the working-memory workspace.
             if isinstance(result.get("content"), str) and len(result["content"]) > MAX_RESULT_SIZE:
                 memory = self._resolve_working_memory(ctx)
@@ -250,13 +250,13 @@ class ResultSanitizationHook(BaseHook):
                     content=result["content"],
                 )
                 logger.warning(f"Result spilled to working memory for {ctx.tool_name} (exceeded {MAX_RESULT_SIZE} bytes)")
-                
+
             # Remove sensitive fields (implement based on policy)
             self._remove_sensitive_data(result)
-            
+
             logger.debug(f"Result sanitized for {ctx.tool_name}")
             return True
-            
+
         except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"Result sanitization failed: {exc}")
             return False
@@ -269,15 +269,120 @@ class ResultSanitizationHook(BaseHook):
         if ctx.working_memory is None:
             ctx.working_memory = WorkingMemory(run_id=ctx.run_id)
         return ctx.working_memory
-    
+
     def _remove_sensitive_data(self, result: dict[str, Any]) -> None:
         """Remove or mask sensitive fields."""
         SENSITIVE_FIELDS = ["password", "secret", "token", "api_key", "ssn"]
-        
+
         for key in list(result.keys()):
             if any(s in key.lower() for s in SENSITIVE_FIELDS):
                 logger.warning(f"Removed sensitive field: {key}")
                 del result[key]
+
+
+class FreshnessCheckHook(BaseHook):
+    """PostToolUse hook: read-only query evidence must be timestamped and fresh (Task H1).
+
+    The freshness rules that used to live only in the ``query_ops`` prompt
+    become a runtime invariant: a governed query tool (keys of
+    ``shadow_mode_config.TOOL_FRESHNESS_LIMITS``) whose result carries no
+    ``as_of`` — or one older than the per-tool threshold — has its result
+    rewritten in place to ``{ok: false, error_code: EVIDENCE_STALE, ...}``
+    so the model sees the failure and retries. The hook still returns True
+    (PostToolUse clips, it does not abort) and records the failure in the
+    run's working-memory evidence chain. Non-query tools (plan / skill /
+    propose) are never gated.
+    """
+
+    @property
+    def phase(self) -> str:
+        return "PostToolUse"
+
+    async def execute(self, ctx: HookContext) -> bool:
+        tool_name = ctx.tool_name or ""
+        result = ctx.tool_result
+
+        from src.infrastructure.ai.templates.shadow_mode_config import resolve_freshness_limit
+
+        max_age = resolve_freshness_limit(tool_name, ctx.tool_args)
+        if max_age is None or not isinstance(result, dict):
+            return True
+
+        as_of = result.get("as_of")
+        if as_of is None:
+            evidence = result.get("evidence")
+            if isinstance(evidence, dict):
+                as_of = evidence.get("as_of")
+
+        if as_of is None:
+            self._rewrite_stale(
+                ctx,
+                result,
+                detail="missing as_of",
+                max_age=max_age,
+            )
+            return True
+
+        from src.infrastructure.ai.evidence_metadata import compute_freshness_seconds
+
+        try:
+            freshness_seconds = compute_freshness_seconds(as_of)
+        except (ValueError, TypeError):
+            self._rewrite_stale(
+                ctx,
+                result,
+                detail="unparseable as_of",
+                max_age=max_age,
+            )
+            return True
+
+        if freshness_seconds > max_age:
+            self._rewrite_stale(
+                ctx,
+                result,
+                detail="evidence older than tool threshold",
+                max_age=max_age,
+                freshness_seconds=freshness_seconds,
+            )
+        return True
+
+    def _rewrite_stale(
+        self,
+        ctx: HookContext,
+        result: dict[str, Any],
+        *,
+        detail: str,
+        max_age: int,
+        freshness_seconds: int | None = None,
+    ) -> None:
+        """Replace the tool result with the EVIDENCE_STALE error payload."""
+        tool_name = ctx.tool_name or "unknown_tool"
+        payload: dict[str, Any] = {
+            "ok": False,
+            "error_code": "EVIDENCE_STALE",
+            "detail": detail,
+            "max_age": max_age,
+        }
+        if freshness_seconds is not None:
+            payload["freshness_seconds"] = freshness_seconds
+
+        result.clear()
+        result.update(payload)
+
+        # Record the failure so the evidence chain itself shows the gap.
+        if ctx.working_memory is not None:
+            import json as _json
+
+            ctx.working_memory.add_evidence(
+                source=tool_name,
+                object_id="",
+                summary=f"EVIDENCE_STALE: {detail}",
+                content=_json.dumps(payload, ensure_ascii=False),
+            )
+        logger.warning(
+            f"FreshnessCheckHook rewrote stale result for {tool_name} "
+            f"({detail}, max_age={max_age}), run={ctx.run_id}"
+        )
 
 
 class IDPreservationHook(BaseHook):
@@ -294,19 +399,19 @@ class IDPreservationHook(BaseHook):
     async def execute(self, ctx: HookContext) -> bool:
         if not ctx.messages:
             return True
-            
+
         try:
             protected_ids = extract_critical_ids(ctx.messages)
-            
+
             if protected_ids:
                 logger.debug(f"Identified {len(protected_ids)} critical IDs for preservation")
-                
+
                 # Store in metadata for compression step
                 if ctx.envelope and hasattr(ctx.envelope, "metadata"):
                     ctx.envelope.metadata["_protected_ids"] = protected_ids
-                    
+
             return True
-            
+
         except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"ID preservation failed: {exc}")
             return False
@@ -327,14 +432,14 @@ class NoPromisesHook(BaseHook):
     async def execute(self, ctx: HookContext) -> bool:
         if not ctx.messages:
             return True
-            
+
         FINAL_ANSWER_PATTERNS = [
             r".*\u5df2.*[\u4e3a\u4f60][\u60a8]?[\u6539\u66f4\u8c03\u6574].*",  # "Already changed/adjusted"
             r".*(\u5b8c\u6210|\u5b8c\u6bd5).*[\u64cd\u4f5c\u4fee\u6539].*",  # "Completed operation"
             r".*(\u4e3a\u60a8)(\u751f\u6210\u4e86|\u521b\u5efa\u4e86|\u5b89\u6392\u4e86).*",  # "Generated/created/scheduled for you"
             r".*\u64cd\u4f5c.*(\u5df2\u7ecf|\u5df1\. )?\u5b8c\u6210.*",  # "Operation already completed"
         ]
-        
+
         try:
             # Get final assistant message
             last_message = None
@@ -342,12 +447,12 @@ class NoPromisesHook(BaseHook):
                 if msg.get("role") == "assistant":
                     last_message = msg
                     break
-                    
+
             if not last_message:
                 return True
-                
+
             content = last_message.get("content", "").lower()
-            
+
             for pattern in FINAL_ANSWER_PATTERNS:
                 import re
                 if re.search(pattern, content):
@@ -356,10 +461,10 @@ class NoPromisesHook(BaseHook):
                     )
                     logger.warning(f"NoPromisesHook blocked: {content[:100]}")
                     return False
-                    
+
             logger.debug("NoPromisesHook passed: no unauthorized promises detected")
             return True
-            
+
         except Exception as exc:  # noqa: BLE001
             ctx.add_error(f"NoPromisesHook failed: {exc}")
             return False
@@ -492,7 +597,7 @@ class HookPipeline:
     async def execute_phase(self, phase: str, ctx: HookContext) -> bool:
         """Execute all hooks for a phase. Stops on first failure."""
         hooks = self._hooks_by_phase.get(phase, [])
-        
+
         for hook in hooks:
             hook_name = type(hook).__name__
             try:
@@ -507,21 +612,21 @@ class HookPipeline:
                     ctx.blocked_rule = hook_name
                 ctx.add_error(f"Hook {hook_name} exception: {exc}")
                 return False
-                
+
         return True
 
     async def execute_all_phases(self, ctx: HookContext) -> bool:
         """Execute all phases in order."""
         PHASE_ORDER = ["PreToolUse", "PostToolUse", "PreCompact", "Stop"]
-        
+
         for phase in PHASE_ORDER:
             if phase not in self._hooks_by_phase:
                 continue
-                
+
             if not await self.execute_phase(phase, ctx):
                 logger.error(f"Hooks stopped at phase {phase} for run={ctx.run_id}")
                 return False
-                
+
         return True
 
 
@@ -537,7 +642,7 @@ def is_read_only_tool(tool_name: str) -> bool:
         "check_status",
         "fetch_",
     ]
-    
+
     return any(tool_name.startswith(prefix) for prefix in READ_ONLY_PREFIXES)
 
 
@@ -569,19 +674,20 @@ def build_default_pipeline() -> HookPipeline:
 
 __all__ = [
     "CRITICAL_ID_PATTERNS",
-    "HookContext",
     "BaseHook",
-    "LeaseCheckHook",
-    "SchemaValidationHook",
-    "ObjectExistenceCheckHook",
-    "ResultSanitizationHook",
+    "FreshnessCheckHook",
+    "HookContext",
+    "HookPipeline",
     "IDPreservationHook",
+    "LeaseCheckHook",
     "NoPromisesHook",
+    "ObjectExistenceCheckHook",
     "OutputGuardrailHook",
     "PlanFirstHook",
-    "HookPipeline",
-    "extract_critical_ids",
-    "is_read_only_tool",
-    "get_builtin_hooks",
+    "ResultSanitizationHook",
+    "SchemaValidationHook",
     "build_default_pipeline",
+    "extract_critical_ids",
+    "get_builtin_hooks",
+    "is_read_only_tool",
 ]

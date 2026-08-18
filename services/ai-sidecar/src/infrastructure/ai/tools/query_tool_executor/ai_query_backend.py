@@ -13,13 +13,13 @@ Guarantees:
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from ..base import ToolExecutionStatus
 from ..query_tools import QueryToolName
 from .executor import QueryToolExecutor
-from .protocols import FlightAIQueryRepositoryReader, QueryScope
+from .protocols import QueryScope
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +261,11 @@ class AiQueryReadOnlyBackend:
             raise RuntimeError(
                 f"{tool_name} failed: {result.error_message or result.message or result.status}"
             )
-        return dict(result.result or {})
+        payload = dict(result.result or {})
+        # Task H1: freshness is a runtime invariant — stamp the read time so
+        # the PostToolUse freshness hook can verify evidence age.
+        payload.setdefault("as_of", datetime.now(UTC).isoformat())
+        return payload
 
     async def _flight_status_lookup(self, arguments: dict[str, Any]) -> dict[str, Any]:
         flight_id = str(arguments.get("flight_id") or "").strip()
@@ -281,6 +285,7 @@ class AiQueryReadOnlyBackend:
                 "flight_id": flight_id,
                 "status": "not_found",
                 "source": "ai_query.v_flights",
+                "as_of": datetime.now(UTC).isoformat(),
             }
         return {
             "flight_id": row["flight_id"],
@@ -300,6 +305,7 @@ class AiQueryReadOnlyBackend:
             "has_open_anomaly": bool(row["has_open_anomaly"]),
             "open_anomaly_count": int(row["open_anomaly_count"] or 0),
             "source": "ai_query.v_flights",
+            "as_of": datetime.now(UTC).isoformat(),
         }
 
 

@@ -358,7 +358,7 @@ class LLMStreamRunner:
 
         # P0-6-A: Enforce global hard cap (never exceed 50 rounds regardless of template)
         GLOBAL_MAX_TOOL_ROUNDS = 50
-        
+
         current_messages = list(messages)
         last_round_index = 0
         consecutive_failures = 0
@@ -632,6 +632,18 @@ class LLMStreamRunner:
                 # P0-6-B: Reset failure counter after successful round
                 consecutive_failures = 0
 
+            # C2: PostToolUse hooks need the parsed arguments of each call
+            # (e.g. ontology.lookup's entity namespace drives freshness limits).
+            post_args_by_call_id: dict[str, dict[str, Any]] = {}
+            for pc in parsed_calls:
+                raw_args = pc.get("arguments")
+                try:
+                    post_args_by_call_id[pc.get("tool_call_id", "")] = (
+                        json.loads(raw_args) if isinstance(raw_args, str) else dict(raw_args or {})
+                    )
+                except (ValueError, TypeError):
+                    post_args_by_call_id[pc.get("tool_call_id", "")] = {}
+
             tool_results_for_llm: list[dict[str, Any]] = []
             for exec_result in execution_results:
                 payload = exec_result.to_sse_payload()
@@ -654,6 +666,7 @@ class LLMStreamRunner:
                         phase="PostToolUse",
                         run_id=run_id,
                         tool_name=exec_result.tool_name,
+                        tool_args=post_args_by_call_id.get(exec_result.tool_call_id),
                         tool_result=hook_result,
                         envelope=envelope,
                         working_memory=working_memory,
