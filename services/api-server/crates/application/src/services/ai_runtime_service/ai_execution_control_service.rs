@@ -21,12 +21,17 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use async_trait::async_trait;
 use chrono::Utc;
 use serde_json::{json, Value};
 use thiserror::Error;
 use ulid::Ulid;
+
+use super::controlplane_metrics::{
+    observe_controlplane, ControlPlaneTimer, OP_CHECKPOINT, OP_COMMAND_ENQUEUE, OP_LEASE,
+};
 
 use fms_domain::ai_runtime_event::{
     AiRuntimeEventEnvelope, CheckpointPayload, HeartbeatPayload, RunCompletePayload, RunFailPayload,
@@ -324,6 +329,10 @@ impl AiExecutionControlService {
             return Ok(());
         }
 
+        // J3: control-plane latency probe for the lease path (context load +
+        // authorization decision + command enqueue); the LLM is excluded.
+        let _lease_probe = ControlPlaneTimer::new(OP_LEASE);
+
         let context = match &self.auth_context_loader {
             Some(loader) => {
                 let tool_args = envelope.payload.get("tool_args").cloned().unwrap_or(Value::Null);
@@ -365,7 +374,7 @@ impl AiExecutionControlService {
                 timeout_seconds,
             } => {
                 let command = self.build_lease_command(envelope, payload, &lease_id, max_retries, timeout_seconds)?;
-                self.command_repo.enqueue(command).await?;
+                self.enqueue_command_timed(command).await?;
                 self.tool_call_repo.mark_authorized(&payload.tool_call_pk).await?;
                 Ok(())
             }
@@ -379,7 +388,7 @@ impl AiExecutionControlService {
                         "reason": reason,
                     }),
                 )?;
-                self.command_repo.enqueue(command).await?;
+                self.enqueue_command_timed(command).await?;
                 self.tool_call_repo.mark_proposal_only(&payload.tool_call_pk).await?;
                 Ok(())
             }
@@ -395,7 +404,7 @@ impl AiExecutionControlService {
                         "message": message,
                     }),
                 )?;
-                self.command_repo.enqueue(command).await?;
+                self.enqueue_command_timed(command).await?;
                 self.tool_call_repo
                     .mark_denied(&payload.tool_call_pk, denial_code, &message)
                     .await?;
@@ -458,6 +467,15 @@ impl AiExecutionControlService {
         let counter = sequences.entry(run_id.to_string()).or_insert(0);
         *counter += 1;
         Ok(*counter)
+    }
+
+    /// J3: single instrumentation point for `ai_runtime_commands` enqueue
+    /// round-trips; every production enqueue goes through here.
+    async fn enqueue_command_timed(&self, command: AiRuntimeCommandRecord) -> Result<(), ControlServiceError> {
+        let started = Instant::now();
+        let result = self.command_repo.enqueue(command).await;
+        observe_controlplane(OP_COMMAND_ENQUEUE, started.elapsed());
+        result.map_err(ControlServiceError::from)
     }
 
     pub async fn handle_tool_result(&self, envelope: AiRuntimeEventEnvelope) -> Result<(), ControlServiceError> {
@@ -554,6 +572,10 @@ impl AiExecutionControlService {
             );
             return Ok(());
         };
+
+        // J3: control-plane latency probe for checkpoint persistence
+        // (upsert + supersede sweep), covering early returns too.
+        let _checkpoint_probe = ControlPlaneTimer::new(OP_CHECKPOINT);
 
         let checkpoint_type = map_checkpoint_type(payload.checkpoint_type);
         let record = AiRunCheckpointRecord {
@@ -738,7 +760,7 @@ impl AiExecutionControlService {
             last_heartbeat_at: None,
             run_owner_lock: None,
         };
-        self.command_repo.enqueue(record.clone()).await?;
+        self.enqueue_command_timed(record.clone()).await?;
         Ok(record)
     }
 
@@ -778,7 +800,7 @@ impl AiExecutionControlService {
             last_heartbeat_at: None,
             run_owner_lock: None,
         };
-        self.command_repo.enqueue(record.clone()).await?;
+        self.enqueue_command_timed(record.clone()).await?;
         Ok(record)
     }
 
@@ -813,7 +835,7 @@ impl AiExecutionControlService {
             last_heartbeat_at: None,
             run_owner_lock: None,
         };
-        self.command_repo.enqueue(record.clone()).await?;
+        self.enqueue_command_timed(record.clone()).await?;
         Ok(record)
     }
 
@@ -850,7 +872,7 @@ impl AiExecutionControlService {
             last_heartbeat_at: None,
             run_owner_lock: None,
         };
-        self.command_repo.enqueue(record.clone()).await?;
+        self.enqueue_command_timed(record.clone()).await?;
         Ok(record)
     }
 

@@ -108,6 +108,7 @@ outbox_backlog = sum(fms_outbox_pending_events)
 | `fms_ai_resume_total` | `status` | 断线恢复成功/失败 |
 | `fms_ai_proposal_total` | `action`, `status` | created / approved / rejected / executed / failed |
 | `fms_ai_run_stops_total` | `reason` | 工具循环 run 终止原因（completed / budget_exhausted），后者占比喂 `FmsAiBudgetExhausted` |
+| `fms_ai_controlplane_duration_seconds` | `op` | Rust 控制面延迟（lease / checkpoint / command_enqueue，不含 LLM；目标 P99 ≤ 200ms，Task J3） |
 | `fms_ai_mq_gate_decisions_total` | `decision` | MQ 门禁决策分支 |
 
 性能口径（混合计划目标，本节使其可观测）：
@@ -179,5 +180,5 @@ Burn-rate alerts (multi-window, multi-burn-rate):
   `fms_mq_consume_total`, `fms_ai_llm_calls_total`, `fms_ai_tool_calls_total`,
   `fms_ai_tokens_total`, `fms_ai_run_cost_usd`, `fms_ai_first_progress_seconds`,
   `fms_ai_resume_total`, `fms_ai_proposal_total`, `fms_ai_run_stops_total`,
-  `fms_ai_mq_gate_decisions_total`,
+  `fms_ai_controlplane_duration_seconds`, `fms_ai_mq_gate_decisions_total`,
   `fms_outbox_pending_events`, `fms_outbox_publish_duration_seconds`.

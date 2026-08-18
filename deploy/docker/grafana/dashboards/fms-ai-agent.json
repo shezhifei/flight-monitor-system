@@ -136,6 +136,19 @@
           "legendFormat": "ungrounded"
         }
       ]
+    },
+    {
+      "id": 10,
+      "title": "Control-Plane p99 by Op (target 200ms, LLM excluded)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 40 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(fms_ai_controlplane_duration_seconds_bucket[5m])) by (le,op))",
+          "legendFormat": "p99 {{op}}"
+        }
+      ]
     }
   ]
 }

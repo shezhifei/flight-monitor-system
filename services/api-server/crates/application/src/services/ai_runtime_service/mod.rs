@@ -1,6 +1,7 @@
 pub mod ai_event_consumer;
 pub mod ai_execution_control_service;
 pub mod compensation_planner;
+pub mod controlplane_metrics;
 mod helpers;
 pub mod in_memory_repos;
 pub mod recovery_orchestrator;
