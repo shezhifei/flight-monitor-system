@@ -8,13 +8,20 @@
 -- Import 122_ai_knowledge_chunks.sql (Hybrid Retriever Schema)
 -- ============================================================================
 
--- Enable pgvector extension if not already enabled with permission check
+-- Enable pgvector extension if available; degrade gracefully when the
+-- extension binaries are not installed on this server (keyword retrieval
+-- still works, vector search stays disabled).
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_extension WHERE extname = 'pgvector') THEN
-        -- Check if current user can create extensions
-        IF has_schema_privilege('public', 'CREATE') THEN
-            CREATE EXTENSION IF NOT EXISTS pgvector;
+        IF NOT EXISTS (SELECT FROM pg_available_extensions WHERE name = 'pgvector') THEN
+            RAISE NOTICE 'pgvector extension not available on this server; skipping vector search support';
+        ELSIF has_schema_privilege('public', 'CREATE') THEN
+            BEGIN
+                CREATE EXTENSION IF NOT EXISTS pgvector;
+            EXCEPTION WHEN OTHERS THEN
+                RAISE NOTICE 'Cannot create pgvector extension: %', SQLERRM;
+            END;
         ELSE
             RAISE NOTICE 'Cannot create pgvector extension: insufficient permissions';
         END IF;
@@ -38,14 +45,20 @@ CREATE TABLE IF NOT EXISTS ai_knowledge_chunks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
-    -- Optional embedding column for vector search
-    embedding VECTOR(1536),
-    
     -- Full-text search vector
     content_tsvector TSVECTOR,
     
     CONSTRAINT chk_version_positive CHECK (version >= 1)
 );
+
+-- Optional embedding column for vector search (only when pgvector exists)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_extension WHERE extname = 'pgvector') THEN
+        ALTER TABLE ai_knowledge_chunks ADD COLUMN IF NOT EXISTS embedding VECTOR(1536);
+    END IF;
+END
+$$;
 
 -- Create GIN index for full-text search
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_content_gin 
@@ -56,8 +69,9 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_uri
     ON ai_knowledge_chunks(source_uri);
 
 -- Create index on metadata -> 'document_type' for category filtering
+-- (btree: GIN has no default operator class for plain text expressions)
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_doc_type 
-    ON ai_knowledge_chunks USING gin((metadata->>'document_type'));
+    ON ai_knowledge_chunks((metadata->>'document_type'));
 
 -- Function to update tsvector on INSERT/UPDATE
 CREATE OR REPLACE FUNCTION ai_knowledge_chunks_update_tsvector()
@@ -75,8 +89,18 @@ CREATE TRIGGER tsvector_update_trigger
     FOR EACH ROW EXECUTE FUNCTION ai_knowledge_chunks_update_tsvector();
 
 COMMENT ON TABLE ai_knowledge_chunks IS 'Knowledge base chunks for hybrid retrieval (keyword + vector)';
-COMMENT ON COLUMN ai_knowledge_chunks.embedding IS 'Optional 1536-dim embedding vector for semantic search';
 COMMENT ON COLUMN ai_knowledge_chunks.content_tsvector IS 'Full-text search vector (PostgreSQL tsvector)';
+-- Embedding column comment only when pgvector was available
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'ai_knowledge_chunks' AND column_name = 'embedding'
+    ) THEN
+        EXECUTE 'COMMENT ON COLUMN ai_knowledge_chunks.embedding IS ''Optional 1536-dim embedding vector for semantic search''';
+    END IF;
+END
+$$;
 
 -- ============================================================================
 -- Import 123_ai_eval_jobs_persistent.sql (Eval Jobs Schema)
@@ -192,4 +216,11 @@ COMMENT ON TABLE ai_eval_metrics_summary IS 'Gate metrics summary for each evalu
 -- ============================================================================
 -- Migration Complete
 -- ============================================================================
-COMMENT ON VIEW IF EXISTS ai_migration_redirect IS 'Redirects to ai-sidecar migrations 122+123';
+-- COMMENT ON does not support IF EXISTS; only annotate when the view exists.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_views WHERE schemaname = current_schema() AND viewname = 'ai_migration_redirect') THEN
+        EXECUTE 'COMMENT ON VIEW ai_migration_redirect IS ''Redirects to ai-sidecar migrations 122+123''';
+    END IF;
+END
+$$;
