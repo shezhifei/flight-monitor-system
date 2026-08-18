@@ -1,12 +1,14 @@
 # Agent 运行时执行环契约（AGENT_RUNTIME_LOOP）
 
 > 本文是混合 Agent 架构（`docs/plans/2026-08-14-hybrid-agent-architecture.md`）的执行环冻结文档。
+> 后续对象入环 / 评测闭环 / 证据不变量：`docs/plans/2026-08-18-ai-agent-optimization.md`。
 > 目标是防止再造第四套运行时。任何新增 Agent 执行路径必须先与本文对齐，否则不得合入。
 
 | 字段 | 值 |
 |------|-----|
 | 状态 | Active（契约冻结） |
 | 编制日期 | 2026-08-14 |
+| 修订 | 2026-08-18 挂接优化计划（本体工具必须走 Rust 动作面，禁止 stub） |
 | 事实源 | `services/ai-sidecar/src/infrastructure/ai/`、`docs/SOURCE_OF_TRUTH.md` |
 
 ---
@@ -31,6 +33,7 @@ Rust DomainActionExecutor → 业务表 + outbox
 |----|------|------|
 | 生产入口 | `RuntimeService.stream_run_with_tools`（`runtime_service/_streaming_tools.py`） | 唯一允许被 job worker / 控制面调用的流式工具执行入口 |
 | 工具轮次环 | `LLMStreamRunner.stream_chat_with_tools`（`llm_stream_runner.py`） | 唯一的 LLM ↔ 工具多轮循环；轮次预算按模板配置，不再只依赖 `MAX_TOOL_ROUNDS = 5` 单一上限 |
+| 本体工具 | `ontology.lookup` / `explain_constraints` / `propose_action` | 必须经 Rust `/internal/ai/v1/ontology/actions/*` 打到 `OntologyActionServices`；禁止 sidecar stub 对象图；未注册动作 fail-closed |
 | 只读预分类 | `RuntimeGraph`（`runtime_graph.py`） | **可选**：validate → enrich → assemble_prompt 的只读前置；不得执行工具、不得写库、不得成为第二条业务环 |
 | LangGraph 试点 | `graph/builder.py` + `domain/ai/todo_graph_pilot.py` | 仅限 Todo 试点 + checkpoint/interrupt；**禁止**再增加业务节点 |
 | 失败语义 | `run.fail` + 结构化错误码 | 无工具快照（`AI_TOOL_SNAPSHOT_MISSING`）、capability 缺失均 fail-closed |
@@ -43,6 +46,8 @@ Rust DomainActionExecutor → 业务表 + outbox
 4. **禁止侧车直写业务表**（`flights` / `dispatch_orders` / `todos` / `business_cases` / `domain_event_outbox`）——写操作一律生成 proposal，由 Rust `DomainActionExecutor` 执行。
 5. **禁止生产路径 mock 工具回落**——`resolved_config` 缺失或 `tools == []` 时 fail-closed，不得回落到 `READ_ONLY_TOOL_SCHEMAS` 假数据。
 6. **禁止 Python 公共 HTTP / gRPC / Async-Stdio / 共享内存传输层**——控制事件只走 RocketMQ，命令只走 `ai_runtime_commands`。
+7. **禁止模板点名未注册工具**——system prompt 提到的工具名必须出现在 `_builtin_tool_catalog()`（或 MCP/skill 快照）里。
+8. **禁止 Python 重写 `ontology_v1_rules`**——约束由 Rust 动作面返回，侧车只展示。
 
 ## 2. 模板策略（不是新循环）
 

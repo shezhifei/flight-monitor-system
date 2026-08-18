@@ -201,10 +201,11 @@ docs/operations/*
 !docs/operations/dispatch-overrun-warning.md
 !docs/operations/ontology-v1-agent-handoff.md
 
-# Plans: keep only the tech-debt master plan
+# Plans: keep only the long-lived architecture / debt plans
 docs/plans/*
 !docs/plans/2026-06-29-tech-debt-sweep-master-plan.md
 !docs/plans/2026-05-11-ontology-v1-contract.md
+!docs/plans/2026-08-18-ai-agent-optimization.md
 
 # Playwright / e2e artifacts
 test-results/
