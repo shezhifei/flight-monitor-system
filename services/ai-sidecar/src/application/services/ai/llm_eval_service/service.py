@@ -36,6 +36,13 @@ except ImportError:
 
 from src.infrastructure.logging.core import get_logger
 
+from .gates import (
+    DEFAULT_ROUND_CAP,
+    HARD_ROUND_CAPS,
+    sample_tool_compliance,
+    sample_ungrounded_rate,
+)
+
 logger = get_logger(__name__)
 
 
@@ -397,7 +404,12 @@ class EvaluationService:
                 span_type="llm_call",
                 start_time=started - run_result.duration_ms / 1000,
                 end_time=started,
-                context={"query": user_query, "task_type": task_type, "entity_id": entity_id},
+                context={
+                    "query": user_query,
+                    "task_type": task_type,
+                    "entity_id": entity_id,
+                    "expected": test_case.get("expected") or {},
+                },
                 result=result,
                 metrics={
                     "tokens_used": run_result.tokens,
@@ -419,13 +431,16 @@ class EvaluationService:
         job: EvalJob,
         span: EvalSpan,
     ) -> GateMetricsSummary:
-        """Evaluate against configured metrics gates and return aggregated summary."""
+        """Evaluate evidence-coverage gates (Task G3) for one sample span."""
         config = job.metrics_config
+        context = span.context or {}
+        expected = context.get("expected") or {}
+        task_type = context.get("task_type") or "query_ops"
         passing = []
         failing = []
         
-        # 1. Tool accuracy gate (should be >= threshold)
-        tool_correctness = await self._calculate_tool_correctness(span.result)
+        # 1. Tool policy gate: every called tool allowed, none forbidden.
+        tool_correctness = await self._calculate_tool_correctness(span.result, expected)
         expected_accuracy = config.get("tool_accuracy_min", 0.95)
         
         gate_result = self._check_gate_for_minimum(
@@ -436,20 +451,23 @@ class EvaluationService:
         )
         passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
         
-        # 2. Hallucination rate gate (should be <= threshold)
-        hallucination_rate = await self._calculate_hallucination_rate(span.result)
-        max_hallucination = config.get("hallucination_rate_max", 0.05)
+        # 2. Ungrounded id gate (was hallucination_rate): extracted answer ids
+        # must be backed by tool evidence — never a flight-number regex.
+        ungrounded_rate = await self._calculate_hallucination_rate(span.result)
+        max_ungrounded = config.get(
+            "ungrounded_id_rate_max", config.get("hallucination_rate_max", 0.05)
+        )
         
         gate_result = self._check_gate_for_maximum(
-            "hallucination_rate",
-            hallucination_rate,
-            max_hallucination,
+            "ungrounded_id_rate",
+            ungrounded_rate,
+            max_ungrounded,
             job.job_id,
         )
         passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
         
         # 3. Zero violations required (boolean check)
-        violations = span.metrics.get("constraint_violations", 0)
+        violations = int(span.result.get("unauthorized_attempts", 0) or span.metrics.get("constraint_violations", 0))
         zero_violations_required = config.get("zero_violations_required", True)
         
         if zero_violations_required:
@@ -465,9 +483,11 @@ class EvaluationService:
             )
             passing.append(gate_result) if is_pass else failing.append(gate_result)
         
-        # 4. Average rounds target (should be <= threshold)
+        # 4. Average rounds target (should be <= template hard cap)
         total_rounds = span.metrics.get("total_tool_rounds", 0)
-        avg_rounds_target = config.get("avg_rounds_target", 8)
+        avg_rounds_target = config.get(
+            "avg_rounds_target", HARD_ROUND_CAPS.get(task_type, DEFAULT_ROUND_CAP)
+        )
         
         gate_result = self._check_gate_for_maximum(
             "avg_rounds",
@@ -476,6 +496,17 @@ class EvaluationService:
             job.job_id,
         )
         passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
+
+        # 5. Plan board compliance: plan_required samples must carry a plan.
+        if expected.get("plan_required", False):
+            plan_present = bool(span.metrics.get("plan_present", False))
+            gate_result = self._check_gate_for_minimum(
+                "plan_board_compliance",
+                1.0 if plan_present else 0.0,
+                config.get("plan_board_compliance_min", 0.90),
+                job.job_id,
+            )
+            passing.append(gate_result) if gate_result.status == "pass" else failing.append(gate_result)
         
         # Persist all gates to database
         for gate in passing + failing:
@@ -542,37 +573,32 @@ class EvaluationService:
             details={"direction": "maximum_allowed"},
         )
     
-    async def _calculate_tool_correctness(self, result: dict[str, Any]) -> float:
-        """Calculate tool call correctness rate.
-
-        Task G2 shape: ``called_tools`` is a flat list of tool names reported
-        by the runner; policy correctness (allowed/forbidden sets) is scored
-        by the evidence-coverage gates in Task G3. Legacy dict entries keep
-        working until the gate rewrite.
-        """
+    async def _calculate_tool_correctness(
+        self, result: dict[str, Any], expected: dict[str, Any] | None = None
+    ) -> float:
+        """Tool policy compliance (Task G3): every called tool must be in the
+        sample's ``allowed_tools`` and none in ``forbidden_tools``."""
         called_tools = result.get("called_tools", [])
-        if not called_tools:
+        if expected is None:
+            # Legacy span rows without expectations cannot be policy-scored.
             return 1.0
-        correct = sum(1 for t in called_tools if not isinstance(t, dict) or t.get("correct", False))
-        return correct / len(called_tools)
+        return sample_tool_compliance(
+            [tool if isinstance(tool, str) else tool.get("called", "") for tool in called_tools],
+            expected.get("allowed_tools", []) or [],
+            expected.get("forbidden_tools", []) or [],
+        )
     
     async def _calculate_hallucination_rate(self, result: dict[str, Any]) -> float:
-        """Calculate hallucination detection rate.
-
-        Task G2 shape: ids extracted from the answer are hallucinated when no
-        tool evidence (``evidence_object_ids``) backs them. The legacy
-        flight-number regex path stays for pre-G2 span rows.
-        """
+        """Ungrounded id rate (Task G3): answer ids without evidence backing."""
         extracted_ids = result.get("extracted_ids", [])
         if extracted_ids:
-            grounded = set(result.get("evidence_object_ids", []))
-            ungrounded = sum(1 for extracted in extracted_ids if extracted not in grounded)
-            return ungrounded / len(extracted_ids)
+            return sample_ungrounded_rate(extracted_ids, result.get("evidence_object_ids", []) or [])
 
+        # Legacy pre-G2 span rows: only the format check remains, kept as an
+        # extraction aid — it is no longer the gate's main path.
         flight_numbers_mentioned = result.get("extracted_flight_numbers", [])
         invalid_count = 0
         for fn in flight_numbers_mentioned:
-            # Simple validation: should match airline code pattern (XX####)
             if not self._validate_flight_number(fn):
                 invalid_count += 1
         
