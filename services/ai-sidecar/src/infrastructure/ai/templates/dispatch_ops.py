@@ -28,20 +28,19 @@ DISPATCH_OPS_TEMPLATE = TaskTemplate(
     display_name="派工建议",
     system_prompt_addendum=(
         "# Task Template: dispatch_ops (dispatch advisory)\n"
-        "- Workflow: build situational awareness from read-only tools first; use candidate "
-        "options produced by the existing solver path (OR-Tools / micro-model results surfaced "
-        "as tool data) when available; rank and explain the candidates; submit high-risk "
-        "changes as proposals awaiting approval (waiting_for_approval).\n"
+        "- Workflow order is enforced by the SolverFirst hook: (1) first call update_plan to lay "
+        "out the advisory steps; (2) then ground the decision with `dispatch.list_solver_candidates` "
+        "(deterministic solver candidates for the dispatch window) or ontology.explain_constraints "
+        "(constraint check for the intended change); (3) only then rank the candidates, explain "
+        "trade-offs, and submit high-risk changes as proposals via ontology.propose_action "
+        "(awaiting approval, waiting_for_approval). Proposals without a solver or constraint result "
+        "are blocked. Mark steps with complete_plan_step as you go.\n"
         "- You never apply a schedule. Solver output can only become a proposal executed by "
         "the Rust control plane after approval — never claim a schedule was applied or a crew "
         "was reassigned.\n"
         "- Cite evidence (tool name + object id) for every fact; label trade-off reasoning and "
         "assumptions explicitly.\n"
         "- Use ontology.lookup(entity_id) to fetch aircraft-gate compatibility constraints before proposing changes.\n"
-        "- Use ontology.explain_constraints(entity_type, proposed_change) to validate any proposed gate reassignment or crew change.\n"
-        "- Use ontology.propose_action(action_name, parameters) to generate only registered action candidates.\n"
-        "- Plan first: on your first round, call update_plan to lay out the advisory steps before "
-        "requesting any proposal-class write tool; mark steps with complete_plan_step as you go.\n"
     ),
     # Read-only situational surface: dispatch read models, flight state,
     # aggregate queries, anomaly conflicts, and ontology lookups (Task F5).

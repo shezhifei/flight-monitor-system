@@ -615,6 +615,121 @@ class PlanFirstHook(BaseHook):
         return False
 
 
+class SolverFirstHook(BaseHook):
+    """PreToolUse hook: dispatch proposals must be grounded in the solver first (Task I2).
+
+    For ``task_type=dispatch_ops``, proposal-class calls
+    (``ontology.propose_action`` and every ``WRITE_ACTION_TOOLS`` member)
+    are rejected until this run has a successful
+    ``dispatch.list_solver_candidates`` (or ``ontology.explain_constraints``)
+    result recorded in the working-memory evidence chain by
+    :class:`SolverGateEvidenceHook`. Read-only and plan tools are never
+    gated; ``query_ops`` / ``anomaly_ops`` are out of scope.
+    """
+
+    @property
+    def phase(self) -> str:
+        return "PreToolUse"
+
+    async def execute(self, ctx: HookContext) -> bool:
+        envelope_task = getattr(ctx.envelope, "task", None)
+        task_type = getattr(envelope_task, "task_type", None)
+        if task_type != "dispatch_ops":
+            return True
+
+        tool_name = ctx.tool_name or ""
+
+        from src.infrastructure.ai.tools.tool_executor import is_write_action_tool
+
+        if tool_name != "ontology.propose_action" and not is_write_action_tool(tool_name):
+            return True
+
+        if self._gate_satisfied(ctx):
+            return True
+
+        ctx.add_error(
+            "SOLVER_FIRST_REQUIRED: dispatch proposals must be grounded first; call "
+            "dispatch.list_solver_candidates (or ontology.explain_constraints) and "
+            f"retry {tool_name} with its result"
+        )
+        logger.warning(f"SolverFirstHook blocked {tool_name} (no solver/constraint evidence), run={ctx.run_id}")
+        return False
+
+    @staticmethod
+    def _gate_satisfied(ctx: HookContext) -> bool:
+        memory = ctx.working_memory
+        if memory is None:
+            return False
+        return any(
+            record.get("source") in SOLVER_GATE_SATISFYING_TOOLS
+            for record in memory.read_evidence()
+        )
+
+
+class SolverGateEvidenceHook(BaseHook):
+    """PostToolUse hook: record successful solver/constraint results for the gate (Task I2).
+
+    Companion to :class:`SolverFirstHook`: when
+    ``dispatch.list_solver_candidates`` or ``ontology.explain_constraints``
+    succeeds, an evidence record is appended to the run's working memory so
+    later PreToolUse checks can see the gate was satisfied. Failed or
+    stale results (e.g. ``EVIDENCE_STALE`` rewrites by
+    :class:`FreshnessCheckHook`, which runs first) never satisfy the gate.
+    """
+
+    @property
+    def phase(self) -> str:
+        return "PostToolUse"
+
+    async def execute(self, ctx: HookContext) -> bool:
+        tool_name = ctx.tool_name or ""
+        if tool_name not in SOLVER_GATE_SATISFYING_TOOLS:
+            return True
+        if ctx.working_memory is None:
+            return True
+        result = ctx.tool_result
+        if not self._succeeded(result):
+            logger.warning(f"SolverGateEvidenceHook skipped failed/stale result for {tool_name}, run={ctx.run_id}")
+            return True
+
+        import json as _json
+
+        try:
+            content = _json.dumps(result, ensure_ascii=False, default=str)[:2000]
+        except (TypeError, ValueError):
+            content = str(result)[:2000]
+        ctx.working_memory.add_evidence(
+            source=tool_name,
+            object_id="",
+            summary=f"solver-first gate satisfied by {tool_name}",
+            content=content,
+        )
+        return True
+
+    @staticmethod
+    def _succeeded(result: Any) -> bool:
+        """True when the PostToolUse result shape indicates a successful call."""
+        if not isinstance(result, dict) or not result:
+            return False
+        if result.get("ok") is False:
+            return False
+        if result.get("error_code"):
+            return False
+        if result.get("error"):
+            return False
+        content = result.get("content")
+        return not (isinstance(content, str) and content.startswith("Error:"))
+
+
+# Tools whose successful execution satisfies the SolverFirst gate (Task I2).
+SOLVER_GATE_SATISFYING_TOOLS: frozenset[str] = frozenset(
+    {
+        "dispatch.list_solver_candidates",
+        "ontology.explain_constraints",
+    }
+)
+
+
 class OutputGuardrailHook(BaseHook):
     """Stop hook: run the legacy output guardrail inside the hook pipeline.
 
@@ -754,11 +869,13 @@ def get_builtin_hooks() -> list[BaseHook]:
     """
     return [
         PlanFirstHook(),            # PreToolUse - plan-first enforcement (high-risk templates)
+        SolverFirstHook(),          # PreToolUse - solver-first gate (dispatch_ops, Task I2)
         LeaseCheckHook(),           # PreToolUse - lease preflight (fail-closed)
         SchemaValidationHook(),     # PreToolUse - argument validation
         ObjectExistenceCheckHook(), # PreToolUse - entity existence (advisory)
         ResultSanitizationHook(),   # PostToolUse - result clipping
         FreshnessCheckHook(),       # PostToolUse - evidence freshness invariant (Task H1)
+        SolverGateEvidenceHook(),   # PostToolUse - solver gate evidence (Task I2, after freshness)
         IDPreservationHook(),       # PreCompact - ID protection
         NoPromisesHook(),           # Stop - anti-promises
         EvidenceCoverageHook(),     # Stop - grounding degradation (Task H2)
@@ -776,6 +893,7 @@ def build_default_pipeline() -> HookPipeline:
 
 __all__ = [
     "CRITICAL_ID_PATTERNS",
+    "SOLVER_GATE_SATISFYING_TOOLS",
     "BaseHook",
     "EvidenceCoverageHook",
     "FreshnessCheckHook",
@@ -789,6 +907,8 @@ __all__ = [
     "PlanFirstHook",
     "ResultSanitizationHook",
     "SchemaValidationHook",
+    "SolverFirstHook",
+    "SolverGateEvidenceHook",
     "build_default_pipeline",
     "extract_critical_ids",
     "get_builtin_hooks",
