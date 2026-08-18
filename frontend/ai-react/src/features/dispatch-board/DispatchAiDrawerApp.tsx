@@ -2,11 +2,21 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, Card, Drawer, FloatButton, Input, Select, Space, Statistic, Table, Tabs, Tag, Typography, message } from 'antd';
 import { RobotOutlined } from '@ant-design/icons';
 import { AiChatShell, ChatMessage } from '@/components/chat/AiChatShell';
+import { PendingActionCardModel } from '@/components/chat/PendingActionCard';
+import { applyPlanToolEvent, type PlanBoardModel } from '@/components/chat/planBoardModel';
 import { applyReplan, loadDispatchConflicts, previewReplan, type DispatchReplanRequest } from '@/lib/api/dispatchApi';
-import { listProposals, approveProposal, rejectProposal } from '@/lib/api/aiApi';
+import {
+  approvePendingAction,
+  approveProposal,
+  createProposal,
+  listProposals,
+  rejectPendingAction,
+  rejectProposal,
+} from '@/lib/api/aiApi';
 import { hasPermission } from '@/lib/auth/authBridge';
 import { streamQuery } from '@/lib/api/nlQueryApi';
 import { createRequestId, normalizeTime } from '@/lib/utils';
+import { buildReplanProposalPayload, isDirectReplanApplyEnabled } from './dispatchBoardProposal';
 
 interface DispatchConflictRow {
   key: string;
@@ -60,6 +70,11 @@ export function DispatchAiDrawerApp(): JSX.Element {
   const [contextPayload, setContextPayload] = useState<Record<string, unknown> | null>(null);
   const [replanProposals, setReplanProposals] = useState<Array<Record<string, unknown>>>([]);
   const [replanProposalsLoading, setReplanProposalsLoading] = useState(false);
+  // Task I4: the drawer runs on the shared dispatch_ops shell, so plan-tool
+  // frames feed the same plan board and approval cards as nl_query.
+  const [planBoard, setPlanBoard] = useState<PlanBoardModel | null>(null);
+  const [pendingActions, setPendingActions] = useState<PendingActionCardModel[]>([]);
+  const directApplyEnabled = isDirectReplanApplyEnabled();
 
   const canView = hasPermission('dispatch:view') || hasPermission('dispatch:manage') || hasPermission('ai:view');
   const canChat = hasPermission('ai:chat') || hasPermission('dispatch:manage');
@@ -131,6 +146,7 @@ export function DispatchAiDrawerApp(): JSX.Element {
         {
           question: `目标(${objective}): ${content}`,
           request_id: createRequestId('dispatch_ai'),
+          task_type: 'dispatch_ops',
           context: {
             source_page: 'dispatch_board',
             scope_mode: 'dispatch',
@@ -158,6 +174,43 @@ export function DispatchAiDrawerApp(): JSX.Element {
                 detail: payload.detail ? String(payload.detail) : undefined,
               },
             ]);
+            const toolName = String(payload.tool_name || '').trim();
+            if (toolName) {
+              const phase = semantic.includes('result') ? 'result' : 'call';
+              const status = String(payload.result_status || payload.status || '');
+              setPlanBoard((prev) => {
+                const next = applyPlanToolEvent(prev, {
+                  toolName,
+                  phase,
+                  status,
+                  args: payload.arguments,
+                  result: payload.result,
+                });
+                return next === undefined ? prev : next;
+              });
+            }
+            return;
+          }
+          const pendingAction =
+            payload.pending_action && typeof payload.pending_action === 'object'
+              ? (payload.pending_action as Record<string, unknown>)
+              : null;
+          if (semantic === 'approval_required' && pendingAction) {
+            const actionId = String(pendingAction.action_id || '');
+            setPendingActions((prev) => [
+              ...prev.filter((item) => item.actionId !== actionId),
+              {
+                actionId,
+                toolName: String(pendingAction.tool_name || ''),
+                status: String(pendingAction.status || 'pending'),
+                message: String(pendingAction.message || ''),
+              },
+            ]);
+            return;
+          }
+          if (semantic === 'approval_result' && pendingAction) {
+            const actionId = String(pendingAction.action_id || '');
+            setPendingActions((prev) => prev.filter((item) => item.actionId !== actionId));
           }
         },
       );
@@ -270,6 +323,8 @@ export function DispatchAiDrawerApp(): JSX.Element {
             onClick={() => {
               setMessages([]);
               setToolItems([]);
+              setPlanBoard(null);
+              setPendingActions([]);
               setReplanPreviewRows([]);
               setReplanPreviewRequest(null);
               setReplanProposals([]);
@@ -328,8 +383,20 @@ export function DispatchAiDrawerApp(): JSX.Element {
                     onInputChange={setQuestion}
                     onSend={sendAssistantQuestion}
                     sending={sending}
-                    onClear={() => { setMessages([]); setToolItems([]); }}
+                    onClear={() => { setMessages([]); setToolItems([]); setPlanBoard(null); setPendingActions([]); }}
                     toolItems={toolItems}
+                    planBoard={planBoard}
+                    pendingActions={pendingActions}
+                    onApproveAction={async (actionId) => {
+                      await approvePendingAction(actionId);
+                      setPendingActions((prev) => prev.filter((item) => item.actionId !== actionId));
+                      message.success('已批准待审动作');
+                    }}
+                    onRejectAction={async (actionId) => {
+                      await rejectPendingAction(actionId, '人工拒绝');
+                      setPendingActions((prev) => prev.filter((item) => item.actionId !== actionId));
+                      message.info('已拒绝待审动作');
+                    }}
                     insightMarkdown=""
                   />
                   <Card title="重排建议" size="small">
@@ -469,8 +536,18 @@ export function DispatchAiDrawerApp(): JSX.Element {
                           }
                           setReplanLoading(true);
                           try {
-                            await applyReplan(replanPreviewRequest);
-                            message.success('重排已应用');
+                            if (directApplyEnabled) {
+                              // Escape hatch (Task I4): only behind an explicit
+                              // feature flag, and only for human operators.
+                              await applyReplan(replanPreviewRequest);
+                              message.success('重排已应用');
+                            } else {
+                              await createProposal(
+                                buildReplanProposalPayload(replanPreviewRequest, replanPreviewRows),
+                              );
+                              message.success('重排提案已提交，待审批后执行');
+                              await loadReplanProposals();
+                            }
                             setReplanPreviewRows([]);
                             setReplanPreviewRequest(null);
                             await refreshConflicts();
@@ -478,14 +555,14 @@ export function DispatchAiDrawerApp(): JSX.Element {
                             if (error instanceof Error && error.message.includes('409')) {
                               message.warning('重排冲突，请刷新后重试');
                             } else {
-                              message.error(error instanceof Error ? error.message : '应用失败');
+                              message.error(error instanceof Error ? error.message : '提交失败');
                             }
                           } finally {
                             setReplanLoading(false);
                           }
                         }}
                       >
-                        应用重排
+                        {directApplyEnabled ? '应用重排' : '提交重排审批'}
                       </Button>
                     </Space>
                   </Card>

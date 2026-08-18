@@ -4,7 +4,6 @@ import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
 import { useDispatchReplan, type ReplanSuggestion } from '@/composables/useDispatchReplan';
 import { buildResourceFocus, type DispatchOrder, type ResourceFocus, type TimelineData } from '@/composables/useDispatchBoardData';
-import { unwrapApiData } from '@/shared/apiEnvelope';
 import {
   type AiSuggestion,
   type EmployeeAnalyticsItem,
@@ -12,6 +11,7 @@ import {
 } from './useDispatchBoardPageAiTypes';
 import { useDispatchBoardPageAiAnalytics } from './useDispatchBoardPageAiAnalytics';
 import { useDispatchBoardPageAiScenario } from './useDispatchBoardPageAiScenario';
+import { buildDispatchReplanProposalPayload, isDirectReplanApplyEnabled } from './dispatchReplanProposal';
 
 export interface UseDispatchBoardPageAiOptions {
   timelineData: Readonly<Ref<TimelineData | null>>;
@@ -68,6 +68,8 @@ export interface UseDispatchBoardPageAiReturn {
   clearScenario: () => void;
   fetchAiSuggestions: () => Promise<void>;
   handleAiGenerate: () => Promise<void>;
+  openAssistantShell: () => void;
+  replanDirectApplyEnabled: boolean;
   handleReplanPreview: () => Promise<void>;
   handleReplanApply: () => Promise<void>;
   handleReplanClear: () => void;
@@ -95,6 +97,9 @@ export function useDispatchBoardPageAi(options: UseDispatchBoardPageAiOptions): 
 
   const api = useApi();
   const toast = useToast();
+  // Task I4: direct replan-apply stays behind an explicit feature flag; the
+  // default path routes through the proposal approval flow.
+  const replanDirectApplyEnabled = isDirectReplanApplyEnabled();
 
   const activeAiTab = ref<'assistant' | 'conflict'>('assistant');
   const aiStreamEnabled = ref(true);
@@ -240,11 +245,55 @@ export function useDispatchBoardPageAi(options: UseDispatchBoardPageAiOptions): 
   }
 
   async function handleReplanApply() {
-    const success = await applyReplan(replanStrategy.value);
-    if (success) {
-      impactedOrderIds.value = [];
-      await Promise.all([refreshTimeline(), analytics.fetchConflicts(), analytics.fetchAnalytics()]);
+    if (replanDirectApplyEnabled) {
+      // Escape hatch (Task I4): direct apply only for human operators behind
+      // the explicit feature flag — never the agent path.
+      const success = await applyReplan(replanStrategy.value);
+      if (success) {
+        impactedOrderIds.value = [];
+        await Promise.all([refreshTimeline(), analytics.fetchConflicts(), analytics.fetchAnalytics()]);
+      }
+      return;
     }
+    if (!replanCanApply.value || replanSuggestionList.value.length === 0) {
+      toast.show('warning', '请先预览重排并确认方案完整');
+      return;
+    }
+    try {
+      const payload = buildDispatchReplanProposalPayload(replanStrategy.value, replanSuggestionList.value);
+      const res = await api.post<Record<string, unknown>>('/api/v2/ai/proposals', payload);
+      if (res.ok) {
+        toast.show('success', '重排提案已提交，待审批后执行');
+        impactedOrderIds.value = [];
+      } else {
+        toast.show('error', `重排提案提交失败 (HTTP ${res.status})`);
+      }
+    } catch (e) {
+      toast.show('error', `重排提案提交失败: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /**
+   * Task I4: delegate the assistant to the shared dispatch_ops React shell
+   * (`window.DISPATCH_AI_BRIDGE`) instead of running a second AI loop here.
+   */
+  function openAssistantShell() {
+    const bridge = (window as unknown as {
+      DISPATCH_AI_BRIDGE?: {
+        openDrawer?: (tab: 'assistant' | 'conflict', options?: { refresh?: boolean; context?: Record<string, unknown> }) => void;
+      };
+    }).DISPATCH_AI_BRIDGE;
+    if (!bridge?.openDrawer) {
+      toast.show('warning', '派工 AI 助手尚未就绪，请稍后重试');
+      return;
+    }
+    bridge.openDrawer('assistant', {
+      context: {
+        source_page: 'dispatch_board',
+        window_start: new Date(windowStartMs.value).toISOString(),
+        window_end: new Date(windowEndMs.value).toISOString(),
+      },
+    });
   }
 
   function handleReplanClear() {
@@ -259,31 +308,10 @@ export function useDispatchBoardPageAi(options: UseDispatchBoardPageAiOptions): 
     const heavyEmployees = analytics.buildEmployeeAnalyticsBreakdown(timelineItems).filter((item: EmployeeAnalyticsItem) => item.orderCount >= 2);
     if (aiObjective.value === 'resolve_conflicts' && analytics.conflictList.value.length === 0) await analytics.fetchConflicts();
     const suggestions: AiSuggestion[] = [];
-    try {
-      const urgency = aiObjective.value === 'resolve_conflicts' || analytics.conflictList.value.length > 0 ? '高' : '中';
-      const prompt = `当前系统有 ${pendingOrders.length} 个待派工单, ${analytics.conflictList.value.length} 个冲突。当前目标：${aiObjective.value}。请提供调度建议。`;
-      const res = await api.post<Record<string, unknown>>('/api/v2/ai/tools/execute', {
-        tool_name: 'get_handling_recommendation',
-        tool_args: { incident_description: prompt, urgency },
-      });
-      if (res.ok) {
-        const payload = unwrapApiData<Record<string, unknown>>(res.data);
-        const payloadRec = payload as Record<string, unknown> | null;
-        const resultData = (payloadRec?.result_data as Record<string, unknown> | undefined) || {};
-        const text = String(resultData.output || resultData.summary || '').trim();
-        if (text)
-          suggestions.push({
-            id: 'advisor-priority',
-            title: 'AI 调度建议',
-            description: text,
-            confidence: 95,
-            orderId: pendingOrders[0]?.order_id,
-            suggestionType: 'backend_conflict',
-          });
-      }
-    } catch (e) {
-      console.warn('Failed to fetch AI advisor suggestion:', e);
-    }
+    // Task I4: the board no longer runs its own AI loop (`tools/execute`
+    // get_handling_recommendation); conversational advice lives in the
+    // shared dispatch_ops assistant shell. Suggestions below stay local
+    // heuristics derived from the timeline and conflict data.
     if (pendingOrders.length > 0) {
       const earliest = [...pendingOrders].sort(
         (a: DispatchOrder, b: DispatchOrder) =>
@@ -365,6 +393,8 @@ export function useDispatchBoardPageAi(options: UseDispatchBoardPageAiOptions): 
     clearScenario: scenario.clearScenario,
     fetchAiSuggestions,
     handleAiGenerate,
+    openAssistantShell,
+    replanDirectApplyEnabled,
     handleReplanPreview,
     handleReplanApply,
     handleReplanClear,

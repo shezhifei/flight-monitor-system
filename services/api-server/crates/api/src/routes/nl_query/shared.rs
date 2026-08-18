@@ -116,6 +116,38 @@ pub(crate) struct NLQueryRequest {
     /// The client receives the result via SSE or polls GET /api/v2/ai/jobs/{job_id}.
     #[serde(default)]
     pub async_mode: Option<bool>,
+    /// Optional envelope task type (Task I4). Restricted to registered task
+    /// templates so page-embedded shells (e.g. the dispatch board assistant)
+    /// can run on `dispatch_ops` instead of the default `nl_query` surface.
+    #[serde(default)]
+    pub task_type: Option<String>,
+}
+
+/// Task types a client may pin on an nl-query run. Anything else is a 400:
+/// the envelope task type selects the sidecar policy template, so it must
+/// never be free-form client input.
+pub(crate) const ALLOWED_STREAM_TASK_TYPES: &[&str] =
+    &["nl_query", "query_ops", "anomaly_ops", "dispatch_ops"];
+
+/// Resolve the envelope task type for a stream request. Defaults to
+/// `nl_query`; unknown values fail closed with 400.
+pub(crate) fn resolve_stream_task_type(body: &NLQueryRequest) -> Result<&'static str, ApiError> {
+    let requested = body
+        .task_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("nl_query");
+    ALLOWED_STREAM_TASK_TYPES
+        .iter()
+        .find(|allowed| **allowed == requested)
+        .copied()
+        .ok_or_else(|| {
+            ApiError::BadRequest(format!(
+                "unsupported task_type '{requested}'; allowed: {}",
+                ALLOWED_STREAM_TASK_TYPES.join(", ")
+            ))
+        })
 }
 
 #[cfg(test)]
@@ -158,6 +190,39 @@ mod tests {
         }
     }
 
+    fn request(task_type: Option<&str>) -> NLQueryRequest {
+        NLQueryRequest {
+            question: "status".into(),
+            conversation_id: None,
+            context: None,
+            streaming: None,
+            async_mode: None,
+            task_type: task_type.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn resolve_stream_task_type_defaults_to_nl_query() {
+        assert_eq!(resolve_stream_task_type(&request(None)).unwrap(), "nl_query");
+        assert_eq!(resolve_stream_task_type(&request(Some("  "))).unwrap(), "nl_query");
+    }
+
+    #[test]
+    fn resolve_stream_task_type_accepts_registered_templates() {
+        assert_eq!(resolve_stream_task_type(&request(Some("dispatch_ops"))).unwrap(), "dispatch_ops");
+        assert_eq!(resolve_stream_task_type(&request(Some(" query_ops "))).unwrap(), "query_ops");
+        assert_eq!(resolve_stream_task_type(&request(Some("anomaly_ops"))).unwrap(), "anomaly_ops");
+    }
+
+    #[test]
+    fn resolve_stream_task_type_rejects_unknown_values() {
+        let err = resolve_stream_task_type(&request(Some("god_mode"))).unwrap_err();
+        match err {
+            ApiError::BadRequest(msg) => assert!(msg.contains("god_mode")),
+            other => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+
     #[test]
     fn bind_conversation_id_uses_client_id_as_runtime_cache_key() {
         let request = NLQueryRequest {
@@ -166,6 +231,7 @@ mod tests {
             context: None,
             streaming: None,
             async_mode: None,
+            task_type: None,
         };
         let mut envelope = envelope();
 
@@ -181,6 +247,7 @@ mod tests {
             context: None,
             streaming: None,
             async_mode: None,
+            task_type: None,
         };
         let mut envelope = envelope();
 

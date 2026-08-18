@@ -18,7 +18,7 @@ use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_runtime::spawn_tracked::spawn_tracked;
 use futures_util::stream::StreamExt;
 
-use super::shared::{bind_conversation_id, current_user_id, target_objects_from_request, NLQueryRequest};
+use super::shared::{bind_conversation_id, current_user_id, resolve_stream_task_type, target_objects_from_request, NLQueryRequest};
 
 pub(crate) async fn query_natural_language_stream(
     req: HttpRequest,
@@ -30,6 +30,10 @@ pub(crate) async fn query_natural_language_stream(
     proposal_ingest_service: web::Data<Arc<AiProposalIngestService>>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:chat")?;
+
+    // Task I4: pinned task types (e.g. dispatch_ops for the dispatch board
+    // assistant) are validated before any job/run is created.
+    let task_type = resolve_stream_task_type(&body)?;
 
     let user_id = current_user_id(&claims);
     let roles: Vec<String> = claims.0.permissions.clone();
@@ -45,7 +49,7 @@ pub(crate) async fn query_natural_language_stream(
             &user_id,
             &roles,
             claims.0.department_id.as_deref(),
-            "nl_query",
+            task_type,
             &body.question,
             &target_objects,
         )

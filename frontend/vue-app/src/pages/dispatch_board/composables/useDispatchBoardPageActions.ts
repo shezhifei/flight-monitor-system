@@ -29,6 +29,7 @@ import {
   parseScenarioDelayInput,
 } from './useDispatchBoardPageAiTypes';
 import { renderTrendChartInto } from './useTrendChart';
+import { buildDispatchReplanProposalPayload, isDirectReplanApplyEnabled } from './dispatchReplanProposal';
 
 interface GuideSettings {
   autoRefresh: boolean;
@@ -57,6 +58,9 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
   const api = useApi();
   const toast = useToast();
   const overrunWarnings = useDispatchOverrunWarnings();
+  // Task I4: direct replan-apply stays behind an explicit feature flag; the
+  // default path routes through the proposal approval flow.
+  const replanDirectApplyEnabled = isDirectReplanApplyEnabled();
 
   let notificationSnapshotReady = false;
   watch(
@@ -86,6 +90,31 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
 
   function toggleAiDrawer() { p.isAiDrawerVisible.value = !p.isAiDrawerVisible.value; }
   function closeAiDrawer() { p.isAiDrawerVisible.value = false; }
+
+  /**
+   * Task I4: the assistant lives in the shared dispatch_ops React shell
+   * (`window.DISPATCH_AI_BRIDGE`); this Vue drawer delegates to it instead
+   * of running its own AI loop.
+   */
+  function openAssistantShell() {
+    const bridge = (window as unknown as {
+      DISPATCH_AI_BRIDGE?: {
+        openDrawer?: (tab: 'assistant' | 'conflict', options?: { refresh?: boolean; context?: Record<string, unknown> }) => void;
+      };
+    }).DISPATCH_AI_BRIDGE;
+    if (!bridge?.openDrawer) {
+      toast.show('warning', '派工 AI 助手尚未就绪，请稍后重试');
+      return;
+    }
+    closeAiDrawer();
+    bridge.openDrawer('assistant', {
+      context: {
+        source_page: 'dispatch_board',
+        window_start: new Date(p.windowStartMs.value).toISOString(),
+        window_end: new Date(p.windowEndMs.value).toISOString(),
+      },
+    });
+  }
   function toggleStatusPanel() { p.isStatusPanelVisible.value = !p.isStatusPanelVisible.value; }
   function closeStatusPanel() { p.isStatusPanelVisible.value = false; }
   function toggleChatDrawer() {
@@ -148,10 +177,31 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
     p.impactedOrderIds.value = p.replanSuggestionList.value.map(item => item.orderId);
   }
   async function handleReplanApply() {
-    const success = await p.applyReplan(p.replanStrategy.value);
-    if (success) {
-      p.impactedOrderIds.value = [];
-      await Promise.all([p.refreshTimeline(), fetchConflicts(), fetchAnalytics()]);
+    if (replanDirectApplyEnabled) {
+      // Escape hatch (Task I4): direct apply only for human operators behind
+      // the explicit feature flag — never the agent path.
+      const success = await p.applyReplan(p.replanStrategy.value);
+      if (success) {
+        p.impactedOrderIds.value = [];
+        await Promise.all([p.refreshTimeline(), fetchConflicts(), fetchAnalytics()]);
+      }
+      return;
+    }
+    if (!p.replanCanApply.value || p.replanSuggestionList.value.length === 0) {
+      toast.show('warning', '请先预览重排并确认方案完整');
+      return;
+    }
+    try {
+      const payload = buildDispatchReplanProposalPayload(p.replanStrategy.value, p.replanSuggestionList.value);
+      const res = await api.post<Record<string, unknown>>('/api/v2/ai/proposals', payload);
+      if (res.ok) {
+        toast.show('success', '重排提案已提交，待审批后执行');
+        p.impactedOrderIds.value = [];
+      } else {
+        toast.show('error', `重排提案提交失败 (HTTP ${res.status})`);
+      }
+    } catch (e) {
+      toast.show('error', `重排提案提交失败: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   function handleReplanClear() { p.clearReplan(); p.impactedOrderIds.value = []; }
@@ -399,18 +449,10 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
     const heavyEmployees = buildEmployeeAnalyticsBreakdown(timelineItems).filter((item: EmployeeAnalyticsItem) => item.orderCount >= 2);
     if (p.aiObjective.value === 'resolve_conflicts' && p.conflictList.value.length === 0) await fetchConflicts();
     const suggestions: AiSuggestion[] = [];
-    try {
-      const urgency = p.aiObjective.value === 'resolve_conflicts' || p.conflictList.value.length > 0 ? '高' : '中';
-      const prompt = `当前系统有 ${pendingOrders.length} 个待派工单, ${p.conflictList.value.length} 个冲突。当前目标：${p.aiObjective.value}。请提供调度建议。`;
-      const res = await api.post<Record<string, unknown>>('/api/v2/ai/tools/execute', { tool_name: 'get_handling_recommendation', tool_args: { incident_description: prompt, urgency } });
-      if (res.ok) {
-        const payload = unwrapApiData<Record<string, unknown>>(res.data);
-        const payloadRec = payload as Record<string, unknown> | null;
-        const resultData = (payloadRec?.result_data as Record<string, unknown> | undefined) || {};
-        const text = String(resultData.output || resultData.summary || '').trim();
-        if (text) suggestions.push({ id: 'advisor-priority', title: 'AI 调度建议', description: text, confidence: 95, orderId: pendingOrders[0]?.order_id, suggestionType: 'backend_conflict' });
-      }
-    } catch (e) { console.warn('Failed to fetch AI advisor suggestion:', e); }
+    // Task I4: the board no longer runs its own AI loop (`tools/execute`
+    // get_handling_recommendation); conversational advice lives in the
+    // shared dispatch_ops assistant shell. Suggestions below stay local
+    // heuristics derived from the timeline and conflict data.
     if (pendingOrders.length > 0) {
       const earliest = [...pendingOrders].sort((a: DispatchOrder, b: DispatchOrder) => toTimestamp(a.planned_start_time || a.start_time) - toTimestamp(b.planned_start_time || b.start_time))[0];
       suggestions.push({ id: 'pending-priority', title: `优先处理待派工 (${pendingOrders.length} 项)`, description: `建议优先处理 ${earliest?.task_type || earliest?.order_id || '最早待派工任务'}`, confidence: 86, orderId: earliest?.order_id, suggestionType: 'pending-priority' });
@@ -547,7 +589,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
   return {
     switchTerminal,
     handleSearch, handleSearchNext,
-    toggleAiDrawer, closeAiDrawer, toggleStatusPanel, closeStatusPanel, toggleChatDrawer, closeChatDrawer, toggleOpsMenu, closeOpsMenu, toggleGanttLegend, toggleGuideAndLegendPanel, closeGuideAndLegendPanel, toggleBatchToolbar,
+    toggleAiDrawer, closeAiDrawer, openAssistantShell, replanDirectApplyEnabled, toggleStatusPanel, closeStatusPanel, toggleChatDrawer, closeChatDrawer, toggleOpsMenu, closeOpsMenu, toggleGanttLegend, toggleGuideAndLegendPanel, closeGuideAndLegendPanel, toggleBatchToolbar,
     handleViewTabChange, resetWindowToNow, handleSettingsApply, handleGuideSettingsChange,
     handleStatusFilterBlocked, handleStatusShowAll, handleStatusSelectAll, handleStatusOrderOpen, toggleOrderSelection,
     handleReplanPreview, handleReplanApply, handleReplanClear,

@@ -102,6 +102,28 @@ export async function listToolCategories(): Promise<{ categories: Array<Record<s
 
 // ---- Proposals API ----
 
+export interface ProposalCreatePayload {
+  object_type: string;
+  object_id: string;
+  action_name: string;
+  arguments: Record<string, unknown>;
+  reasoning?: string;
+  confidence?: number;
+  job_id?: string;
+  run_id?: string;
+  correlation_id?: string;
+  idempotency_key?: string;
+  expected_object_version?: number | string;
+}
+
+export async function createProposal(payload: ProposalCreatePayload): Promise<Record<string, unknown>> {
+  return requestEnvelope<Record<string, unknown>>(`${AI_BASE}/proposals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function listProposals(params: {
   object_type?: string;
   object_id?: string;

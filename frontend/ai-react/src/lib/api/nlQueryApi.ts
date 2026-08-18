@@ -40,6 +40,12 @@ interface StreamRequestPayload {
   conversation_id?: string;
   request_id: string;
   context?: Record<string, unknown>;
+  /**
+   * Task I4: pin the sidecar policy template for embedded shells (e.g.
+   * `dispatch_ops` for the dispatch board assistant). Rust validates the
+   * value against the registered task templates.
+   */
+  task_type?: string;
 }
 
 export async function streamQuery(

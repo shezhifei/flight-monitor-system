@@ -49,6 +49,8 @@ defineProps<{
   replanCanApply: boolean;
   replanStatusLabel: string;
   categorizedReplanSuggestions: Array<{ label: string; items: ReplanSuggestion[] }>;
+  /** Task I4: direct replan-apply only behind the escape-hatch feature flag. */
+  replanDirectApplyEnabled: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -71,6 +73,7 @@ const emit = defineEmits<{
   (e: 'previewScenario'): void;
   (e: 'clearScenario'): void;
   (e: 'handleAiGenerate'): void;
+  (e: 'openAssistantShell'): void;
   (e: 'handleReplanPreview'): void;
   (e: 'handleReplanApply'): void;
   (e: 'handleReplanClear'): void;
@@ -90,6 +93,10 @@ const emit = defineEmits<{
       </div>
 
       <section id="assistantPanel" class="ai-panel" :class="{ active: activeAiTab === 'assistant' }" data-ai-panel="assistant">
+        <div class="ai-controls">
+          <button id="aiOpenAssistantShellBtn" class="action-btn primary" @click="emit('openAssistantShell')">打开派工 AI 助手（dispatch_ops）</button>
+        </div>
+        <p class="window-label">对话式建议与计划板已迁移到共享 AI 助手（task_type=dispatch_ops），上方按钮可直接打开。</p>
         <p class="window-label">使用方式</p>
         <p class="window-label">建议仅用于人工决策辅助，不会自动发布。</p>
         <ol class="ai-usage-list"><li>选择目标（清空待派工、消解冲突、均衡负载、预防延误）。</li><li>点击"生成建议"获取可执行方案。</li><li>先"预览定位"确认，再加入执行清单。</li><li>建议默认人工确认，避免误发布。</li></ol>
@@ -182,7 +189,7 @@ const emit = defineEmits<{
           <select :value="replanStrategy" :disabled="replanMode === 'solving' || replanMode === 'applying'" @change="emit('update:replanStrategy', ($event.target as HTMLSelectElement).value as 'stability' | 'balanced' | 'efficiency')"><option value="stability">稳定优先</option><option value="balanced">平衡优先</option><option value="efficiency">效率优先</option></select>
           <select :value="replanMaxSuggestions" :disabled="replanMode === 'solving' || replanMode === 'applying'" @change="emit('update:replanMaxSuggestions', Number(($event.target as HTMLSelectElement).value))"><option :value="10">建议10条</option><option :value="20">建议20条</option><option :value="50">建议50条</option></select>
           <button class="action-btn" :disabled="replanMode === 'solving' || replanMode === 'applying'" @click="emit('handleReplanPreview')">预览重排</button>
-          <button class="action-btn primary" :disabled="!replanCanApply" @click="emit('handleReplanApply')">应用重排</button>
+          <button class="action-btn primary" :disabled="!replanCanApply" @click="emit('handleReplanApply')">{{ replanDirectApplyEnabled ? '应用重排' : '提交重排审批' }}</button>
           <button class="action-btn" :disabled="replanMode === 'solving' || replanMode === 'applying'" @click="emit('handleReplanClear')">清空预览</button>
         </div>
         <div class="replan-status-bar"><p class="window-label">{{ replanStatusLabel }}</p></div>
