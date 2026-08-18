@@ -14,6 +14,8 @@ from src.infrastructure.ai.intent_router import (
     IntentRouter,
     RouteDecision,
     IntentCategory,
+    classify_intent,
+    route_tools,
 )
 
 
@@ -305,6 +307,53 @@ class TestEntityPatternMatching:
         
         assert decision.source == "keyword_fallback", \
             "Generic entities should fall back to keyword matching"
+
+
+class TestK2CoarseFilterContract:
+    """K2：意图路由降为粗滤 —— 显式 task_type 已给出时，关键词「机位」不得改路由。"""
+
+    def test_keyword_jiwei_cannot_reroute_explicit_dispatch(self):
+        """dispatch_ops run mentioning 「机位」 stays dispatch, not query_flight/query_stand."""
+        # Without task_type, 「哪些机位空闲」 classifies as a stand/flight query.
+        assert classify_intent("哪些机位还是空闲的？") in (
+            IntentCategory.QUERY_STAND,
+            IntentCategory.QUERY_FLIGHT,
+        )
+        # With an explicit dispatch task_type the keyword must not reroute.
+        assert (
+            classify_intent("哪些机位还是空闲的？", task_type="dispatch_ops")
+            == IntentCategory.DISPATCH_OPS
+        )
+
+    def test_keyword_jiwei_cannot_reroute_explicit_query(self):
+        """query_ops run containing 「改机位」 keyword stays read-only query intent."""
+        assert classify_intent("帮我把这个航班改机位到 A12") == IntentCategory.DISPATCH_OPS
+        assert (
+            classify_intent("帮我把这个航班改机位到 A12", task_type="query_ops")
+            == IntentCategory.QUERY_FLIGHT
+        )
+
+    def test_explicit_bare_task_type_aliases(self):
+        assert classify_intent("随便", task_type="anomaly") == IntentCategory.QUERY_ANOMALY
+        assert classify_intent("随便", task_type="dispatch") == IntentCategory.DISPATCH_OPS
+
+    def test_explicit_unmapped_task_type_is_not_keyword_hijacked(self):
+        """Explicit but unknown task_type stays authoritative (GENERAL, not keywords)."""
+        assert classify_intent("改机位", task_type="some_future_ops") == IntentCategory.GENERAL
+
+    def test_route_tools_respects_explicit_task_type(self):
+        tools = [
+            {"function": {"name": "QUERY"}},
+            {"function": {"name": "change_stand"}},
+            {"function": {"name": "notify_teams"}},
+            {"function": {"name": "get_flight_details"}},
+        ]
+        intent, _filtered = route_tools("哪些机位还是空闲的？", tools, task_type="dispatch_ops")
+        assert intent == IntentCategory.DISPATCH_OPS
+
+    def test_absent_task_type_keeps_keyword_fallback(self):
+        """无显式 task_type 时关键词降级路径不变。"""
+        assert classify_intent("CA1598 状态如何？") == IntentCategory.QUERY_FLIGHT
 
 
 def test_intent_router_architecture_complete():

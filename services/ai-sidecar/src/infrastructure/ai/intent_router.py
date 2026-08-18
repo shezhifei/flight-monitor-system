@@ -7,6 +7,10 @@
 **重要决策**: E4 - task_type/configuration 优先于关键词匹配
     - 当实体配置明确指定 task_type 时，直接使用（置信度 1.0）
     - 关键词路由仅作为 fail-open 降级路径（置信度 0.7）
+
+**K2 收敛**: 意图路由降为粗滤。显式 task_type 已给出时，关键词
+（如「机位」）一律不得改写分类 —— classify_intent / route_tools
+接受 ``task_type`` 参数，显式值直接映射为粗类别，跳过全部关键词规则。
 """
 
 import re
@@ -45,6 +49,18 @@ class IntentCategory:
 
 # 预编译正则
 _FLIGHT_NUMBER_RE = re.compile(r"\b[A-Za-z]{2}\d{3,4}\b")
+
+# K2: explicit task_type → coarse intent category. Anything the caller tells us
+# explicitly is authoritative; keywords may only fill the gap when it is absent.
+_TASK_TYPE_TO_INTENT: dict[str, str] = {
+    "query": IntentCategory.QUERY_FLIGHT,
+    "query_ops": IntentCategory.QUERY_FLIGHT,
+    "anomaly": IntentCategory.QUERY_ANOMALY,
+    "anomaly_ops": IntentCategory.QUERY_ANOMALY,
+    "dispatch": IntentCategory.DISPATCH_OPS,
+    "dispatch_ops": IntentCategory.DISPATCH_OPS,
+}
+
 
 # 意图分类规则：(关键词列表, 意图类别)
 # 按优先级排列，先匹配到的优先
@@ -438,16 +454,30 @@ class KeywordRouter:
         return IntentCategory.GENERAL
 
 
-def classify_intent(user_input: str) -> str:
+def classify_intent(user_input: str, *, task_type: str | None = None) -> str:
     """
-    基于关键词规则对用户输入进行意图分类。
+    基于关键词规则对用户输入进行意图分类（K2 起仅为粗滤）。
 
     Args:
         user_input: User input text
+        task_type: Explicit task_type from the envelope/entity config. When
+            given, keyword rules are skipped entirely so a stray keyword
+            (e.g. 「机位」) can never reroute an explicitly-typed run.
 
     Returns:
         Intent classification string
     """
+    if task_type:
+        normalized = str(task_type).strip().lower()
+        coarse = _TASK_TYPE_TO_INTENT.get(normalized)
+        if coarse is not None:
+            logger.debug("[K2] Explicit task_type=%s → coarse intent %s (keywords skipped)", task_type, coarse)
+            return coarse
+        # Explicit but unmapped: keep it authoritative — do NOT let keywords
+        # invent a route. GENERAL means "no intent-based filtering" downstream.
+        logger.debug("[K2] Explicit task_type=%s has no coarse mapping; staying GENERAL", task_type)
+        return IntentCategory.GENERAL
+
     if not user_input or user_input.isspace():
         return IntentCategory.GENERAL
 
@@ -503,6 +533,8 @@ def filter_tools_by_intent(
 def route_tools(
     user_input: str,
     all_tools: list[dict[str, Any]],
+    *,
+    task_type: str | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     """
     One-step intent classification + tool filtering.
@@ -510,10 +542,12 @@ def route_tools(
     Args:
         user_input: User input text
         all_tools: Full tool list
+        task_type: Explicit task_type; when given, keywords cannot change the
+            classification (K2 coarse-filter contract).
 
     Returns:
         (intent, filtered_tools) tuple
     """
-    intent = classify_intent(user_input)
+    intent = classify_intent(user_input, task_type=task_type)
     filtered = filter_tools_by_intent(intent, all_tools)
     return intent, filtered

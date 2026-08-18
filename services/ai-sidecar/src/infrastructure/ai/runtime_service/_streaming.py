@@ -88,7 +88,9 @@ class _StreamingMixin:
                     yield evt
                 return
 
-            intent = classify_intent(envelope.task.user_message)
+            intent = classify_intent(
+                envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
+            )
             duration_ms = self._elapsed_ms(started)
             yield _sse_event(
                 "progress",
@@ -246,7 +248,9 @@ class _StreamingMixin:
                     "summary": "Graph runner failed; falling back to heuristic",
                 },
             )
-            intent = classify_intent(envelope.task.user_message)
+            intent = classify_intent(
+                envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
+            )
             ctx = self._prepare_run_context(envelope, intent)
             ctx.limitations.append(f"graph runner failed ({sanitize_provider_error(exc)}); fell back to heuristic")
             streaming_llm = self._resolve_streaming_llm(resolved_config)

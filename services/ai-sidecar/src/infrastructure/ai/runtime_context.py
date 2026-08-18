@@ -45,7 +45,9 @@ def _get_schema_mirror() -> Any | None:
 
 
 def _build_intent_reasoning(envelope: ContextEnvelope) -> ReasoningStep:
-    intent = classify_intent(envelope.task.user_message)
+    intent = classify_intent(
+        envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
+    )
     return ReasoningStep(
         step="intent_classify",
         summary=f"Intent classified as '{intent}' from user message",

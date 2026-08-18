@@ -88,7 +88,9 @@ class _ResolveMixin:
                     graph_error=graph_error,
                 )
             except Exception as exc:  # noqa: BLE001 - recovery handler must catch all errors
-                intent = classify_intent(envelope.task.user_message)
+                intent = classify_intent(
+                    envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
+                )
                 ctx = self._prepare_run_context(envelope, intent)
                 limitations = [f"graph runner failed ({sanitize_provider_error(exc)}); fell back to heuristic"]
                 llm = self._resolve_llm(resolved_config)
@@ -135,7 +137,9 @@ class _ResolveMixin:
                     degraded=True,
                 )
 
-        intent = classify_intent(envelope.task.user_message)
+        intent = classify_intent(
+            envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
+        )
         ctx = self._prepare_run_context(envelope, intent)
 
         llm = self._resolve_llm(resolved_config)
