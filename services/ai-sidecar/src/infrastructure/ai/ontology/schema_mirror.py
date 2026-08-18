@@ -33,6 +33,15 @@ def _validate_rust_api_url(rust_api_url: str) -> str:
 
 
 class SchemaMirror:
+    """Read-only mirror of the ontology *schema* exported by Rust.
+
+    This component ONLY fetches the schema snapshot (object types,
+    action signatures) for validation and prompt rendering. It must
+    NEVER be used as an action executor: executing registered ontology
+    actions goes through ``action_client.OntologyActionClient`` against
+    the Rust internal endpoints, which own authorization.
+    """
+
     def __init__(self, rust_api_url: str = "http://localhost:8080"):
         self.rust_api_url = _validate_rust_api_url(rust_api_url)
         self._schema_cache: dict[str, Any] | None = None
