@@ -14,6 +14,7 @@ E2: Hybrid Knowledge Retriever Implementation
 """
 
 import hashlib
+import json
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
@@ -436,16 +437,52 @@ class HybridRetriever:
         return scores
     
     async def index_chunk(self, chunk: KnowledgeChunk):
-        """Index a knowledge chunk into both Redis and PostgreSQL."""
+        """Upsert a knowledge chunk into PostgreSQL (migration 126) and invalidate cache."""
+        if not self._db_pool:
+            logger.warning(
+                f"[Hybrid Retriever] No database pool configured, chunk {chunk.id} not persisted"
+            )
+            return
+
         logger.info(f"[Hybrid Retriever] Indexing chunk id={chunk.id}, source={chunk.source_uri}")
-        
-        # TODO: Insert into PostgreSQL with ts_vector and optional embedding column
-        # INSERT INTO ai_knowledge_chunks VALUES (...)
-        
-        # TODO: Update Redis cache invalidation pattern
-        # Pattern: invalidate all queries containing this chunk
-        
-        logger.debug(f"[Hybrid Retriever] Indexed chunk successfully")
+
+        # Vector backend stays a port: embedding is persisted as nullable JSONB
+        # and defaults to None until an embedding model is configured.
+        embedding_payload = json.dumps(chunk.embedding) if chunk.embedding is not None else None
+
+        sql = """
+        INSERT INTO ai_knowledge_chunks
+            (id, content, metadata, source_uri, version, created_at, updated_at, embedding)
+        VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8::jsonb)
+        ON CONFLICT (id) DO UPDATE SET
+            content = EXCLUDED.content,
+            metadata = EXCLUDED.metadata,
+            source_uri = EXCLUDED.source_uri,
+            version = EXCLUDED.version,
+            updated_at = EXCLUDED.updated_at,
+            embedding = EXCLUDED.embedding
+        """
+
+        try:
+            await self._db_pool.execute(
+                sql,
+                chunk.id,
+                chunk.content,
+                json.dumps(chunk.metadata),
+                chunk.source_uri,
+                chunk.version,
+                chunk.created_at,
+                chunk.updated_at,
+                embedding_payload,
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"[Hybrid Retriever] Failed to persist chunk {chunk.id}: {e}")
+            raise
+
+        # Cached query results may now be stale for queries hitting this chunk.
+        await self.invalidate_cache_for_chunk(chunk.id)
+
+        logger.debug(f"[Hybrid Retriever] Indexed chunk {chunk.id} successfully")
     
     async def invalidate_cache_for_chunk(self, chunk_id: UUID):
         """Invalidate all queries containing a specific chunk."""
