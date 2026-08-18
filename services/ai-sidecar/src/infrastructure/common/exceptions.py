@@ -73,6 +73,20 @@ LLM_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TimeoutError,
 )
 
+# 启动/DI 装配阶段可容忍的失败类别 (K5/W2-5 异常收敛):
+# 导入失败、注册表缺键、构造错误、参数/类型错误、网络不可达。
+# 其余异常(如 AttributeError/AssertionError)属于编程错误, 应让启动显式失败。
+BOOTSTRAP_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ImportError,
+    LookupError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
+
 
 def log_and_fallback(
     operation: str,

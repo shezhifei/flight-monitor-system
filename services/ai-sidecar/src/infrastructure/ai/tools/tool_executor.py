@@ -47,7 +47,13 @@ from src.infrastructure.ai.tools.solver_tools import (
     SolverCandidateClientError,
     is_solver_tool,
 )
-from src.infrastructure.common.exceptions import JSON_EXCEPTIONS
+from src.infrastructure.common.exceptions import (
+    HTTP_EXCEPTIONS,
+    JSON_EXCEPTIONS,
+    LLM_EXCEPTIONS,
+    POSTGRES_EXCEPTIONS,
+    REDIS_EXCEPTIONS,
+)
 from src.infrastructure.logging.core import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
@@ -294,6 +300,8 @@ class ToolExecutor:
                 job_id=job_id,
             )
         except Exception:
+            # Metrics boundary only: record the error and re-raise, nothing is
+            # swallowed here (K5/W2-5 exception convergence).
             inc_tool_call(tool_name, "error")
             observe_tool_duration(tool_name, time.monotonic() - started)
             raise
@@ -494,7 +502,7 @@ class ToolExecutor:
                     error_code=None,
                     error_message=None,
                 )
-            except Exception as exc:  # noqa: BLE001 - best-effort publish
+            except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as exc:  # best-effort publish (K5)
                 logger.warning(
                     "ai_mq_proposal_only_result_publish_failed",
                     extra={"tool_name": tool_name, "tool_call_id": tool_call_id},
@@ -515,7 +523,19 @@ class ToolExecutor:
                 on_child_event=on_child_event,
                 entity_id=entity_id,
             )
-        except Exception as exc:  # noqa: BLE001 - convert any unexpected error to a tool error
+        except Exception as exc:
+            # Tool execution boundary (K5/W2-5): arbitrary backend failures are
+            # converted into a structured tool error instead of aborting the run.
+            logger.error(
+                "tool_execution_exception",
+                extra={
+                    "error_code": "TOOL_EXECUTION_EXCEPTION",
+                    "tool_name": tool_name,
+                    "tool_call_id": tool_call_id,
+                    "run_id": run_id,
+                },
+                exc_info=exc,
+            )
             await self._mq_gate.stop_heartbeat(heartbeat_task, heartbeat_stop)
             duration_ms = int((time.monotonic() - started) * 1000)
             try:
@@ -526,7 +546,7 @@ class ToolExecutor:
                     error_code="TOOL_EXECUTION_ERROR",
                     error_message=str(exc),
                 )
-            except Exception as publish_exc:  # noqa: BLE001 - best-effort publish
+            except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as publish_exc:  # best-effort publish (K5)
                 logger.warning(
                     "ai_mq_failure_result_publish_failed",
                     extra={"tool_name": tool_name, "tool_call_id": tool_call_id},
@@ -549,7 +569,7 @@ class ToolExecutor:
                     duration_ms=duration_ms,
                     result=local_result.result,
                 )
-            except Exception as exc:  # noqa: BLE001 - best-effort publish
+            except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as exc:  # best-effort publish (K5)
                 logger.warning(
                     "ai_mq_success_result_publish_failed",
                     extra={"tool_name": tool_name, "tool_call_id": tool_call_id},
@@ -564,7 +584,7 @@ class ToolExecutor:
                     error_code="TOOL_EXECUTION_ERROR",
                     error_message=local_result.error or "Tool execution failed",
                 )
-            except Exception as exc:  # noqa: BLE001 - best-effort publish
+            except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as exc:  # best-effort publish (K5)
                 logger.warning(
                     "ai_mq_failure_result_publish_failed",
                     extra={"tool_name": tool_name, "tool_call_id": tool_call_id},
@@ -589,7 +609,7 @@ class ToolExecutor:
                 error_code=decision.denial_code or "TOOL_ACTOR_PERMISSION_DENIED",
                 error_message=decision.denial_message or "denied by Rust",
             )
-        except Exception as exc:  # noqa: BLE001 - best-effort publish
+        except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as exc:  # best-effort publish (K5)
             logger.warning(
                 "ai_mq_denied_result_publish_failed",
                 extra={"tool_name": tool_name, "tool_call_id": tool_call_id},
@@ -836,7 +856,7 @@ class ToolExecutor:
                         success=True,
                         result=cached,
                     )
-            except Exception as exc:
+            except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as exc:  # cache read is best-effort (K5)
                 logger.error(
                     "tool_result_cache_read_failed",
                     entity_id=entity_id,
@@ -861,7 +881,7 @@ class ToolExecutor:
                         ttl_seconds=cache_policy.ttl,
                         entity_id=entity_id,
                     )
-                except Exception as exc:
+                except REDIS_EXCEPTIONS + JSON_EXCEPTIONS + (KeyError,) as exc:  # cache write is best-effort (K5)
                     logger.error(
                         "tool_result_cache_write_failed",
                         entity_id=entity_id,
@@ -882,7 +902,18 @@ class ToolExecutor:
                 success=False,
                 error=f"Invalid arguments: {exc}",
             )
-        except Exception as exc:  # noqa: BLE001 - tool execution may raise arbitrary errors
+        except Exception as exc:
+            # Read-only backend boundary (K5/W2-5): read-only tool backends vary;
+            # any failure becomes a tool error, never a run abort.
+            logger.error(
+                "read_only_tool_execution_exception",
+                extra={
+                    "error_code": "TOOL_EXECUTION_EXCEPTION",
+                    "tool_name": tool_name,
+                    "tool_call_id": tool_call_id,
+                },
+                exc_info=exc,
+            )
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -1035,12 +1066,12 @@ class ToolExecutor:
                 success=False,
                 error=f"Invalid arguments: {exc}",
             )
-        except Exception as exc:  # noqa: BLE001 - ontology adapter backends may vary
+        except HTTP_EXCEPTIONS + JSON_EXCEPTIONS as exc:  # transport leaks past the wrapped client errors (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
                 success=False,
-                error=f"Tool execution failed: {exc}",
+                error=f"ONTOLOGY_TOOL_EXECUTION_FAILED: {exc}",
             )
 
     async def _execute_solver(
@@ -1112,12 +1143,12 @@ class ToolExecutor:
                 success=False,
                 error=f"SOLVER_SNAPSHOT_FAILED [{exc.error_code}]: {exc}",
             )
-        except Exception as exc:  # noqa: BLE001 - solver adapter backends may vary
+        except HTTP_EXCEPTIONS + JSON_EXCEPTIONS as exc:  # transport leaks past the wrapped client errors (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
                 success=False,
-                error=f"Tool execution failed: {exc}",
+                error=f"SOLVER_TOOL_EXECUTION_FAILED: {exc}",
             )
 
     def _build_ontology_write_proposal(
@@ -1296,7 +1327,7 @@ class ToolExecutor:
                     "proposal_count": result.proposal_count,
                 },
             )
-        except Exception as exc:  # noqa: BLE001 - subagent dispatch may raise arbitrary errors
+        except LLM_EXCEPTIONS + JSON_EXCEPTIONS as exc:  # subagent runs reuse the LLM/serialization failure surface (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -1346,7 +1377,7 @@ class ToolExecutor:
         # Step 1: Load capabilities from repo (trusted source)
         try:
             caps = await self._mcp_repo.get_capabilities(server_id)
-        except Exception as exc:  # noqa: BLE001 - MCP repo backend may vary
+        except POSTGRES_EXCEPTIONS + JSON_EXCEPTIONS as exc:  # pg-backed MCP repo (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -1374,7 +1405,7 @@ class ToolExecutor:
 
         try:
             bindings = await self._mcp_repo.find_bindings_by_entity(entity_id)
-        except Exception as exc:  # noqa: BLE001 - repo backend may vary
+        except POSTGRES_EXCEPTIONS + JSON_EXCEPTIONS as exc:  # pg-backed MCP repo (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -1531,7 +1562,7 @@ class ToolExecutor:
                 success=False,
                 error=f"MCP tool execution failed: {exc}",
             )
-        except Exception as exc:  # noqa: BLE001 - MCP transport may vary (stdio/HTTP)
+        except HTTP_EXCEPTIONS + JSON_EXCEPTIONS + (OSError,) as exc:  # MCP transport: httpx/stdio/JSON (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,

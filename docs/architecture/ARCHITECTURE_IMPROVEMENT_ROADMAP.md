@@ -376,7 +376,7 @@ W0-1 (panic 面)  ──并行──  W0-2 (乐观锁)
 | 优先文件 | `todo_agent_executor`、`runtime_service/service.py`、`dispatch_command_service`（若仍在侧车）、`tools` registry / executor |
 | 做法 | 收窄异常类型；关键路径失败可观测（结构化日志 + 错误码）；保持 `test_no_bare_except.py` 通过 |
 | 验收 | 优先文件显著下降；不要求一波次清零 274 |
-| 状态 | [ ] 未开始 |
+| 状态 | [x] 第一轮收敛完成 (2026-08-19) — 见计划 K5。`todo_agent_executor` 已退役（62ae997）；三个热点文件 `except Exception` 24→5：tool_executor 16→3（缓存/MQ publish/MCP 仓储与传输/ontology/solver/subagent 均收窄到 REDIS/HTTP/POSTGRES/LLM/JSON 异常元组；剩余 3 处为指标重抛与工具边界）、runtime_service 7→1（bootstrap 改用 BOOTSTRAP_EXCEPTIONS；剩余 1 处为 fail-closed 安全边界）、llm_eval_service 补结构化错误码 EVAL_JOB_EXECUTION_FAILED。剩余宽捕获均带边界注释；test_no_bare_except 绿。 |
 
 #### W2-6 ConfigManager 死路径清理
 
@@ -394,7 +394,7 @@ W0-1 (panic 面)  ──并行──  W0-2 (乐观锁)
 - [ ] 侧车不写航班核心真相
 - [x] ADR-0004 状态更新（Accepted 或明确修订说明）
 - [ ] 控制面源真相文档化
-- [ ] TD-21 热点文件完成一轮收敛
+- [x] TD-21 热点文件完成一轮收敛
 
 ---
 
@@ -547,7 +547,7 @@ W0-1 (panic 面)  ──并行──  W0-2 (乐观锁)
 | W2-2 | 侧车只做 AI | 2 | Done (2026-08-13) | 2026-08-13 | Sidecar 不直写核心域真相表；业务写只生成 proposal，并由 Rust `DomainActionExecutor` 执行。已删除未挂载的 AIP dual-mode 平行栈、AIP ontology CRUD/loader、Python 业务写 action handlers、legacy dispatch command 工具、旧 DI/AIPlugin 组合根和相应死实现测试。现行入口只装配 `infrastructure/ai/ai_container.py`，本体只保留 Rust schema mirror。 |
 | W2-3 | ADR-0004 job 路径 | 2 | Done (2026-07-12) | 2026-07-12 | ADR-0004 从 Proposed 升级为 Accepted。实现采用 Postgres leasing（SKIP LOCKED）替代 ADR 原设计的 Redis 队列，避免新增基础设施依赖。两层独立 lease：Rust 层 lease `ai_jobs` 表（控制面），Python 层 lease `ai_runtime_commands` 表（执行面）。SSE 经 outbox→CDC→SSE 路径发布。Python worker 通过 ServiceIdentity JWT 认证调用 Rust internal API（POST /internal/ai/v1/jobs/lease、heartbeat、runs、events、complete、fail）。NL 查询支持 async_mode 字段，异步模式返回 202 + job_id。Rust 侧新增 `ai_job_timeout_reaper_service`（spawn_tracked + interval scan）回收超时 job。Python 侧新增 `AiJobWorker` + `ServiceIdentityIssuer` + composition root（degrade-closed）。测试：45 个新测试全通过（JWT issuer round-trip + path mismatch + config + worker degrade-closed + 409 handling + aclose）。 |
 | W2-4 | 控制面源真相 | 2 | 进行中 (2026-08-14；后续 2026-08-18) | | 混合计划 A–D 已冻结单环并交付 checkpoint/resume/proposal。对象入环 / 评测 / 证据 hook 见 `docs/plans/2026-08-18-ai-agent-optimization.md`；该计划 Phase F–J（本体动作入环、评测门禁、新鲜度/证据 hook、solver-first、SLO/费用观测）已于 2026-08-19 交付，剩 Phase K 收敛表面。 |
-| W2-5 | TD-21 异常 | 2 | 未开始 | | |
+| W2-5 | TD-21 异常 | 2 | Done (2026-08-19) | 2026-08-19 | 计划 K5 第一轮收敛：优先文件 `except Exception` 24→5（tool_executor 16→3、runtime_service 7→1、llm_eval_service 补错误码日志）；新增 BOOTSTRAP_EXCEPTIONS；剩余宽捕获均为显式边界（指标重抛/工具边界/fail-closed/eval job）并带注释；sidecar 1107 测试与 test_no_bare_except 绿。 |
 | W2-6 | ConfigManager 死路径 | 2 | 未开始 | | |
 | W3-1～W3-11 | 见第 7 节 | 3 | 未开始 | | |
 | W3-12 | SLO 告警 | 3 | Done (2026-07-11) | 2026-07-11 | 新增版本化 Prometheus 规则，覆盖 API 可用性、写 p99、outbox backlog；observability compose 显式挂载；新增 `docs/observability/ALERT_RESPONSE.md` 与配置契约测试。 |

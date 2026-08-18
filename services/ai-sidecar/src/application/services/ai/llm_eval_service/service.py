@@ -454,6 +454,18 @@ class EvaluationService:
             return job
 
         except Exception as e:
+            # Eval job boundary (K5/W2-5): mark the job failed with a structured
+            # error code, then re-raise so the caller observes the failure.
+            logger.error(
+                "eval_job_execution_failed",
+                extra={
+                    "error_code": "EVAL_JOB_EXECUTION_FAILED",
+                    "job_id": job.job_id,
+                    "completed_runs": job.completed_runs,
+                    "total_runs": job.total_runs,
+                },
+                exc_info=e,
+            )
             job.status = "failed"
             job.error_message = str(e)
             await self._update_eval_job(job)

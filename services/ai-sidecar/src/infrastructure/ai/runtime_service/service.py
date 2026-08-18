@@ -27,7 +27,7 @@ from src.infrastructure.ai.runtime_llm import (
     StreamingLlmClient,
 )
 from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-from src.infrastructure.common.exceptions import LLM_EXCEPTIONS
+from src.infrastructure.common.exceptions import BOOTSTRAP_EXCEPTIONS, LLM_EXCEPTIONS
 
 from ._context_cache import _ContextCacheMixin
 from ._resolve import _ResolveMixin
@@ -105,7 +105,7 @@ class RuntimeService(
                 from src.infrastructure.ai.ai_container import get_ai_container
 
                 resolved_mq_gate = get_ai_container().resolve("tool_mq_gate", None)
-            except Exception:  # noqa: BLE001 - container is best-effort
+            except (ImportError, LookupError, RuntimeError):  # container resolve is best-effort (K5)
                 resolved_mq_gate = None
         if tool_executor is not None:
             self._tool_executor = tool_executor
@@ -235,6 +235,8 @@ class RuntimeService(
             )
             prep.rejection_event = _sse_event("run.fail", structured_output_to_response_dict(output))
         except Exception as exc:
+            # Fail-closed security boundary (K5/W2-5): any unexpected failure
+            # rejects the run; never falls back to defaults.
             # Fail closed: do not fall back with defaults, which bypasses entity security.
             logger.error("capability_resolution_failed", exc_info=exc)
             prep.progress_events.append(
@@ -445,7 +447,7 @@ def _build_default_capability_resolver() -> Any | None:
 
             container = get_ai_container()
             config_store = container.resolve("config_store", None)
-        except Exception as e:  # noqa: BLE001 - bootstrap must catch all init failures
+        except BOOTSTRAP_EXCEPTIONS as e:  # bootstrap tolerates known init failure classes (K5)
             logger.debug("Failed to resolve config_store from AI container: %s", e)
 
         mcp_repo = resolve_mcp_repo()
@@ -459,7 +461,7 @@ def _build_default_capability_resolver() -> Any | None:
             skill_repo=skill_repo,
             builtin_tools=_builtin_tool_catalog(),
         )
-    except Exception as exc:  # noqa: BLE001 - bootstrap must catch all init failures
+    except BOOTSTRAP_EXCEPTIONS as exc:  # bootstrap tolerates known init failure classes (K5)
         logger.debug("Failed to build default CapabilityResolver: %s", exc)
         return None
 
@@ -476,7 +478,7 @@ def get_runtime_service() -> RuntimeService:
             from src.infrastructure.ai.ai_container import resolve_capability_resolver
 
             resolver = resolve_capability_resolver() or _build_default_capability_resolver()
-        except Exception as exc:  # noqa: BLE001 - bootstrap must catch all init failures
+        except BOOTSTRAP_EXCEPTIONS as exc:  # bootstrap tolerates known init failure classes (K5)
             logger.debug("CapabilityResolver resolution failed, using fallback: %s", exc)
             resolver = _build_default_capability_resolver()
         mcp_client_manager = None
@@ -499,7 +501,7 @@ def get_runtime_service() -> RuntimeService:
             skill_instruction_composer = resolve_skill_instruction_composer()
             cache_manager = resolve_cache_manager()
             context_budget_planner = resolve_context_budget_planner()
-        except Exception as e:  # noqa: BLE001 - bootstrap must catch all init failures
+        except BOOTSTRAP_EXCEPTIONS as e:  # bootstrap tolerates known init failure classes (K5)
             logger.warning("Failed to resolve runtime service dependencies: %s", e)
 
         # Build subagent dispatcher (lazy, factory-based)
@@ -527,7 +529,7 @@ def get_runtime_service() -> RuntimeService:
                 capability_resolver=resolver,
             )
             _dispatcher_ref[0] = subagent_dispatcher
-        except Exception as e:  # noqa: BLE001 - bootstrap must catch all init failures
+        except BOOTSTRAP_EXCEPTIONS as e:  # bootstrap tolerates known init failure classes (K5)
             logger.warning("Failed to build SubagentDispatcher: %s", e)
 
         _pkg._default_runtime_service = RuntimeService(
