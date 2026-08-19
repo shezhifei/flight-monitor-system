@@ -906,7 +906,7 @@ mod null_repository_impls {
             &self,
             _: &str,
             _: i64,
-            _: Option<i64>,
+            _: dispatch_collaboration::DispatchChatMessageCursor,
         ) -> Result<dispatch_collaboration::DispatchChatMessageList, crate::error::DomainError> {
             Err(crate::error::DomainError::Internal("NullRepository".into()))
         }
@@ -915,6 +915,13 @@ mod null_repository_impls {
             _: &dispatch_collaboration::NewDispatchChatMessage,
         ) -> Result<dispatch_collaboration::DispatchChatMessage, crate::error::DomainError> {
             Err(crate::error::DomainError::Internal("NullRepository".into()))
+        }
+        async fn find_message_by_client_id(
+            &self,
+            _: &str,
+            _: &str,
+        ) -> Result<Option<dispatch_collaboration::DispatchChatMessage>, crate::error::DomainError> {
+            Ok(None)
         }
         async fn update_message_event_id(
             &self,
@@ -928,7 +935,7 @@ mod null_repository_impls {
             _: &str,
             _: &str,
             _: i64,
-        ) -> Result<Option<dispatch_collaboration::DispatchChatMember>, crate::error::DomainError> {
+        ) -> Result<Option<dispatch_collaboration::DispatchChatReadCursorUpdate>, crate::error::DomainError> {
             Ok(None)
         }
         async fn get_group_latest_seq(&self, _: &str) -> Result<i64, crate::error::DomainError> {
@@ -939,6 +946,12 @@ mod null_repository_impls {
         }
         async fn count_total_unread(&self, _: &str) -> Result<i64, crate::error::DomainError> {
             Ok(0)
+        }
+        async fn count_unread_for_group_members(
+            &self,
+            _: &str,
+        ) -> Result<Vec<dispatch_collaboration::DispatchChatMemberUnread>, crate::error::DomainError> {
+            Ok(vec![])
         }
         async fn find_active_members(
             &self,

@@ -63,9 +63,9 @@ function sanitizeHtml(html) {
     return purify.sanitize(html, PURIFY_CONFIG);
 }
 
-module.exports = {
-    PURIFY_CONFIG: PURIFY_CONFIG,
-    ALLOWED_PROTOCOLS: ALLOWED_PROTOCOLS,
-    setPurify: setPurify,
-    sanitizeHtml: sanitizeHtml
+export {
+    PURIFY_CONFIG,
+    ALLOWED_PROTOCOLS,
+    setPurify,
+    sanitizeHtml
 };

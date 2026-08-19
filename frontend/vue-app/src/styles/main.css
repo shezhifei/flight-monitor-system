@@ -7,6 +7,9 @@
 /* 2. Theme Tokens - Dual-theme color system */
 @import url('./theme-tokens.css');
 
+/* 2.5 信号面 token —— 只定义变量；视觉真值见 signal-surface-preview.html */
+@import url('./signal-surface.css');
+
 /* 3. Base styles - Global resets and typography */
 @import url('./base.css');
 
@@ -31,9 +34,9 @@
 @import url('./admin-layout.css');
 @import url('./admin-page.css');
 @import url('./resource_utilization_dashboard.css');
-@import url('./dashboard_frontline_workbench.css');
-@import url('./dashboard_handover.css');
-@import url('./page-tabs.css');
+
+/* 10. 航班监控 · 信号面落地层（须在旧玻璃样式之后引入以完成覆盖） */
+@import url('./flight-monitor.css');
 
 /* —— Workspace iframe embed: hide nested page chrome —— */
 html.workspace-embed .unified-header,

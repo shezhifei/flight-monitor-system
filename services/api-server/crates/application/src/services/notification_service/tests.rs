@@ -3,8 +3,9 @@ use chrono::Utc;
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch_collaboration::{
     DispatchChatDispatcherCandidate, DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember,
-    DispatchChatMemberUpsert, DispatchChatMessage, DispatchChatMessageList, DispatchChatUserProfile,
-    DispatchCollaborationEvent, NewDispatchChatMessage, NotificationReceiptSummary,
+    DispatchChatMemberUnread, DispatchChatMemberUpsert, DispatchChatMessage, DispatchChatMessageCursor,
+    DispatchChatMessageList, DispatchChatReadCursorUpdate, DispatchChatUserProfile, DispatchCollaborationEvent,
+    NewDispatchChatMessage, NotificationReceiptSummary,
 };
 use fms_domain::models::notification::{Notification, NotificationPreference};
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
@@ -238,15 +239,17 @@ impl DispatchCollaborationRepository for FakeCollaborationRepo {
         &self,
         _group_id: &str,
         _limit: i64,
-        _before_seq: Option<i64>,
+        _cursor: DispatchChatMessageCursor,
     ) -> Result<DispatchChatMessageList, DomainError> {
         Ok(DispatchChatMessageList {
             items: vec![],
             total: 0,
             limit: 0,
             before_seq: None,
+            after_seq: None,
             has_more: false,
             next_before_seq: None,
+            next_after_seq: None,
         })
     }
 
@@ -262,12 +265,20 @@ impl DispatchCollaborationRepository for FakeCollaborationRepo {
         Ok(None)
     }
 
+    async fn find_message_by_client_id(
+        &self,
+        _group_id: &str,
+        _client_msg_id: &str,
+    ) -> Result<Option<DispatchChatMessage>, DomainError> {
+        Ok(None)
+    }
+
     async fn mark_group_read(
         &self,
         _group_id: &str,
         _user_id: &str,
         _read_seq: i64,
-    ) -> Result<Option<DispatchChatMember>, DomainError> {
+    ) -> Result<Option<DispatchChatReadCursorUpdate>, DomainError> {
         Ok(None)
     }
 
@@ -281,6 +292,13 @@ impl DispatchCollaborationRepository for FakeCollaborationRepo {
 
     async fn count_total_unread(&self, _user_id: &str) -> Result<i64, DomainError> {
         Ok(0)
+    }
+
+    async fn count_unread_for_group_members(
+        &self,
+        _group_id: &str,
+    ) -> Result<Vec<DispatchChatMemberUnread>, DomainError> {
+        Ok(vec![])
     }
 
     async fn find_active_members(&self, _group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {

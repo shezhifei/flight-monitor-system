@@ -52,3 +52,31 @@ defineProps<{
 
   <a href="#flight-list-main" class="skip-link">跳转到航班列表</a>
 </template>
+
+<style scoped>
+.unified-header {
+  background: var(--face-work);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+.unified-header__title {
+  color: var(--ink);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+}
+.unified-header__subtitle,
+.unified-header__brand-text {
+  color: var(--ink-subtle);
+}
+.unified-breadcrumb {
+  background: var(--face-page);
+  color: var(--ink-muted);
+}
+.unified-breadcrumb__current {
+  color: var(--ink);
+}
+.skip-link:focus {
+  background: var(--act);
+  color: var(--act-on);
+}
+</style>

@@ -1,86 +1,10 @@
-<template>
-  <transition name="modal-fade">
-    <div
-      v-if="activeNotification"
-      class="modal-overlay blocking-overlay"
-      style="z-index: 10001;"
-      @mousedown.stop
-      @click.stop
-      @keydown.prevent.stop
-    >
-      <div class="modal-container critical-dialog">
-        <div class="modal-header critical-header">
-          <div class="critical-title-wrap">
-            <h3 style="margin:0;font-size:20px;color:#f1f5f9;">
-              关键通知待处理
-            </h3>
-            <div class="critical-meta" style="margin-top:6px;font-size:13px;color:rgba(255,255,255,0.88);">
-              此强制拦截通知必须确认收到或拒绝后系统才能解除阻断并继续操作
-            </div>
-          </div>
-          <span class="critical-badge">
-            <span class="critical-dot" />CRITICAL
-          </span>
-        </div>
-
-        <div class="modal-body critical-body">
-          <div class="notification-insight">
-            <div class="notification-meta" style="font-size:12px;color:var(--admin-text-subtle);margin-bottom:8px;">
-              {{ activeNotification.timestamp }} | 级别：{{ (activeNotification.severity || 'CRITICAL').toUpperCase() }} | 发信来源：{{ activeNotification.origin_type || 'SYSTEM' }}
-              <span v-if="relatedFlightText" class="flight-related" style="margin-left: 8px; color: #3b82f6;">航班 {{ relatedFlightText }}</span>
-            </div>
-            <div class="notification-title" style="font-size:18px;font-weight:600;color:var(--admin-text);margin-bottom:12px;">
-              {{ activeNotification.title || '系统安全通知' }}
-            </div>
-            <div class="notification-body" style="font-size:15px;line-height:1.6;color:var(--admin-text);white-space:pre-wrap;background:var(--bg-page);padding:16px;border-radius:12px;border:1px solid var(--admin-border);margin-bottom:20px;">
-              {{ activeNotification.body || '暂无正文内容...' }}
-            </div>
-            
-            <div class="reject-reason-section">
-              <label style="font-size:13px;font-weight:600;color:var(--admin-text);display:block;margin-bottom:8px;">拒绝原因（若拒绝执行则必填）</label>
-              <textarea 
-                v-model="rejectNote" 
-                class="premium-textarea reject-input" 
-                placeholder="请输入拒绝原因。若是确认收到并能够执行，此项留空即可"
-                rows="4"
-                style="width:100%;border:1px solid rgba(148,163,184,0.4);border-radius:12px;padding:12px;font-size:14px;resize:vertical;"
-              />
-              <div v-if="errorMsg" class="error-text" style="font-size:13px;color:#b91c1c;margin-top:8px;">
-                {{ errorMsg }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer critical-footer" style="padding:16px 24px;border-top:1px solid var(--admin-border);display:flex;justify-content:flex-end;gap:12px;background:var(--bg-page);border-bottom-left-radius:16px;border-bottom-right-radius:16px;">
-          <button
-            type="button"
-            class="btn btn-danger"
-            :disabled="isSubmitting"
-            style="padding:10px 20px;border-radius:8px;font-weight:600;background:#fef2f2;color:#ef4444;border:1px solid rgba(239, 68, 68, 0.3);cursor:pointer;transition:all 0.2s;"
-            @click="handleAck('rejected')"
-          >
-            {{ isSubmitting && submittingAction === 'rejected' ? '提交中...' : '无法执行并拒绝' }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            :disabled="isSubmitting"
-            style="padding:10px 20px;border-radius:8px;font-weight:600;background:var(--admin-text);color:#fff;border:none;cursor:pointer;transition:all 0.2s;"
-            @click="handleAck('acknowledged')"
-          >
-            {{ isSubmitting && submittingAction === 'acknowledged' ? '提交中...' : '确认收到 (ACK)' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </transition>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useNotification } from '@/composables/useNotification';
 import type { UserNotification } from '@/composables/useFlightStream';
+import UiModal from '../ui/UiModal.vue';
+import UiButton from '../ui/UiButton.vue';
+import UiField from '../ui/UiField.vue';
 
 const props = defineProps<{
   notificationQueue: UserNotification[];
@@ -93,8 +17,6 @@ const rejectNote = ref('');
 const errorMsg = ref('');
 const isSubmitting = ref(false);
 const submittingAction = ref<'acknowledged' | 'rejected' | null>(null);
-
-// Currently displaying notification
 const activeNotification = ref<UserNotification | null>(null);
 
 const relatedFlightText = computed(() => {
@@ -124,22 +46,21 @@ onMounted(() => {
 async function handleAck(action: 'acknowledged' | 'rejected') {
   if (!activeNotification.value) return;
   const note = rejectNote.value.trim();
-  
+
   if (action === 'rejected' && !note) {
     errorMsg.value = '必须填写拒绝原因，系统强制要求。';
     return;
   }
-  
+
   errorMsg.value = '';
   isSubmitting.value = true;
   submittingAction.value = action;
-  
+
   try {
     const success = await notificationAPI.acknowledge(String(activeNotification.value.notification_id), action, note);
     if (!success) {
       errorMsg.value = '提交回执失败，请重试';
     } else {
-      // Clear current, let it poll the next one if it exists
       activeNotification.value = null;
       pollQueue();
     }
@@ -152,82 +73,148 @@ async function handleAck(action: 'acknowledged' | 'rejected') {
 }
 </script>
 
+<template>
+  <UiModal
+    :open="Boolean(activeNotification)"
+    title="关键通知"
+    :width="560"
+    :closable="false"
+  >
+    <template v-if="activeNotification">
+      <p class="critical-lede">
+        此通知必须确认收到或拒绝后才能继续操作。
+      </p>
+      <div class="notification-meta">
+        {{ activeNotification.timestamp }} · {{ (activeNotification.severity || 'CRITICAL').toUpperCase() }} · {{ activeNotification.origin_type || 'SYSTEM' }}
+        <span v-if="relatedFlightText" class="flight-related">航班 {{ relatedFlightText }}</span>
+      </div>
+      <div class="notification-title">
+        {{ activeNotification.title || '系统安全通知' }}
+      </div>
+      <div class="notification-body">
+        {{ activeNotification.body || '暂无正文内容...' }}
+      </div>
+      <UiField label="拒绝原因（若拒绝执行则必填）" for-id="criticalRejectNote" :error="errorMsg">
+        <textarea
+          id="criticalRejectNote"
+          v-model="rejectNote"
+          placeholder="请输入拒绝原因。若是确认收到并能够执行，此项留空即可"
+          rows="4"
+        />
+      </UiField>
+    </template>
+    <template #footer>
+      <UiButton variant="danger" :disabled="isSubmitting" @click="handleAck('rejected')">
+        {{ isSubmitting && submittingAction === 'rejected' ? '提交中...' : '无法执行并拒绝' }}
+      </UiButton>
+      <UiButton variant="primary" :disabled="isSubmitting" @click="handleAck('acknowledged')">
+        {{ isSubmitting && submittingAction === 'acknowledged' ? '提交中...' : '确认收到' }}
+      </UiButton>
+    </template>
+  </UiModal>
+</template>
+
 <style scoped>
-.blocking-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.critical-lede {
+  margin: 0 0 12px;
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
+  line-height: 1.5;
 }
 
-.critical-dialog {
+.notification-meta {
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+  margin-bottom: 8px;
+}
+
+.flight-related {
+  margin-left: 8px;
+  color: var(--act);
+  font-variant-numeric: tabular-nums;
+}
+
+.notification-title {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.notification-body {
+  font-size: var(--fs-section);
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  background: var(--face-work);
+  padding: 12px 14px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+
+.reject-label {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.reject-input {
   width: 100%;
-  max-width: 540px;
-  background: var(--admin-card-bg);
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--error-border-subtle);
-  animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: 10px 12px;
+  font-size: var(--fs-section);
+  resize: vertical;
+  background: var(--face-work);
+  color: var(--ink);
+  box-sizing: border-box;
 }
 
-.critical-header {
-  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-  padding: 20px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-shrink: 0;
-  /* 覆盖全局 layout.css .modal-header 的 margin-bottom: 1.25rem */
-  margin-bottom: 0;
+.reject-input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
 }
 
-.critical-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-inverse);
-  letter-spacing: 0.05em;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.error-text {
+  font-size: var(--fs-body);
+  color: var(--danger);
+  margin-top: 8px;
 }
 
-.critical-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background-color: #fca5a5;
-  box-shadow: 0 0 8px #fca5a5;
-  animation: pulse 1.5s infinite;
+.btn-reject,
+.btn-ack {
+  padding: 0 16px;
+  height: var(--h-md);
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
 }
 
-.critical-body {
-  padding: 24px;
-  overflow-y: auto;
-  max-height: 60vh;
+.btn-reject {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
-@keyframes modalPop {
-  0% { transform: scale(0.95); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+.btn-ack {
+  background: var(--act);
+  color: var(--act-on);
+  border: 1px solid var(--act);
 }
 
-@keyframes pulse {
-  0% { opacity: 1; box-shadow: 0 0 0 0 rgba(252, 165, 165, 0.7); }
-  70% { opacity: 0.5; box-shadow: 0 0 0 6px rgba(252, 165, 165, 0); }
-  100% { opacity: 1; box-shadow: 0 0 0 0 rgba(252, 165, 165, 0); }
+.btn-reject:disabled,
+.btn-ack:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.btn-primary:hover:not(:disabled) { background: #1e293b; }
-.btn-danger:hover:not(:disabled) { background: var(--dh-signal-critical-soft); border-color: var(--system-red); }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-reject:focus-visible,
+.btn-ack:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
+}
 </style>

@@ -51,7 +51,7 @@ function onKpiClick(field: string): void {
       <div class="header-divider" />
       <div class="header-info-section">
         <div class="header-status-row">
-          <span class="flight-status-badge" :class="getStatusClassName(flight.status)">{{ flight.status || '计划中' }}</span>
+          <span class="flight-status" :class="getStatusClassName(flight.status)">{{ flight.status || '计划中' }}</span>
           <span class="header-op-date">{{ operationDate }}</span>
         </div>
         <div class="header-route-line">
@@ -109,17 +109,18 @@ function onKpiClick(field: string): void {
 }
 
 .header-flight-no {
-  font-size: 32px;
-  font-weight: 800;
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 600;
   line-height: 1.1;
   letter-spacing: -0.5px;
   white-space: nowrap;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .header-divider {
   width: 1px;
-  background-color: var(--border-light);
+  background-color: var(--line);
   margin: 16px 0;
 }
 
@@ -137,27 +138,19 @@ function onKpiClick(field: string): void {
   align-items: center;
 }
 
-.flight-status-badge {
-  padding: 4px 16px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
 .header-op-date {
   margin-left: 12px;
-  font-size: 14px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-body);
+  color: var(--ink-muted);
   white-space: nowrap;
 }
 
 .header-route-line {
   padding-top: 8px;
-  border-top: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  font-size: 16px;
-  font-weight: 500;
+  border-top: 1px solid var(--line);
+  color: var(--ink-subtle);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -165,7 +158,7 @@ function onKpiClick(field: string): void {
 
 .detail-route-arrow {
   margin: 0 4px;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
 }
 
 .clickable-action {
@@ -173,6 +166,6 @@ function onKpiClick(field: string): void {
 }
 
 .clickable-action:hover {
-  color: var(--system-blue, #007AFF);
+  color: var(--act);
 }
 </style>

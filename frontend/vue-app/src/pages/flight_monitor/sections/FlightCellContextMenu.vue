@@ -75,9 +75,10 @@ const emit = defineEmits<{
 <style scoped>
 .flight-cell-context-menu {
   position: fixed;
-  background-color: var(--bg-card, #fff);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  background-color: var(--face-raised);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--r-control);
   z-index: 10001;
   min-width: 200px;
   display: flex;
@@ -89,22 +90,26 @@ const emit = defineEmits<{
   border: none;
   padding: 10px 16px;
   text-align: left;
-  color: var(--text-primary, #1D1D1F);
+  color: var(--ink);
   cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.15s;
+  font-size: var(--fs-body);
 }
 
 .flight-cell-context-menu .context-menu-item:hover:not(:disabled) {
-  background-color: var(--bg-input, #f0f0f0);
+  background-color: var(--face-work);
+}
+
+.flight-cell-context-menu .context-menu-item:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: -2px;
 }
 
 .flight-cell-context-menu .context-menu-item:disabled {
-  opacity: 0.45;
+  color: var(--ink-muted);
   cursor: not-allowed;
 }
 
 .flight-cell-context-menu .context-menu-item.danger-action {
-  color: var(--color-danger, #c0392b);
+  color: var(--danger);
 }
 </style>

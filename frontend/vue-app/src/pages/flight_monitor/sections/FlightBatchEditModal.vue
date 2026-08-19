@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import UiModal from '../../../components/ui/UiModal.vue';
+import UiButton from '../../../components/ui/UiButton.vue';
 import type { BatchValueType } from '../flightBatchEditableFields';
 
 defineProps<{
@@ -25,95 +27,84 @@ function onInput(event: Event): void {
 </script>
 
 <template>
-  <!--
-    Global `.modal { display: none }` in layout.css wins over bare v-show.
-    Force display:block when open so the dialog is actually visible.
-  -->
-  <div
-    v-if="isOpen"
+  <UiModal
+    :open="isOpen"
+    title="批量编辑"
+    :width="560"
     id="flightBatchEditModal"
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="flightBatchEditTitle"
-    aria-hidden="false"
-    style="display: block;"
+    @close="emit('close')"
   >
-    <div class="modal-content modal-sm">
-      <div class="modal-header">
-        <h2 id="flightBatchEditTitle">
-          批量修改 {{ label }}
-        </h2>
-        <button
-          type="button"
-          class="close close-modal close-modal-compact"
-          aria-label="关闭批量编辑弹窗"
-          @click="emit('close')"
+    <form id="flightBatchEditForm" @submit.prevent="emit('submit')">
+      <p class="batch-edit-hint">
+        将把同一值写入已选中的 <strong>{{ flightCount }}</strong> 个「{{ label }}」单元格（同一列）。
+      </p>
+      <div class="form-group">
+        <input
+          v-if="valueType === 'datetime'"
+          :value="value"
+          type="datetime-local"
+          class="form-control field-input"
+          required
+          @input="onInput"
         >
-          &times;
-        </button>
+        <textarea
+          v-else-if="label.includes('备注')"
+          :value="value"
+          class="form-control field-input"
+          rows="4"
+          :maxlength="maxLength ?? undefined"
+          placeholder="输入批量备注内容..."
+          @input="onInput"
+        />
+        <input
+          v-else
+          :value="value"
+          type="text"
+          class="form-control field-input"
+          :maxlength="maxLength ?? undefined"
+          @input="onInput"
+        >
       </div>
-      <form @submit.prevent="emit('submit')">
-        <p class="batch-edit-hint">
-          将把同一值写入已选中的 <strong>{{ flightCount }}</strong> 个单元格（同一列）。
-        </p>
-        <div class="form-group" style="margin-top: 12px;">
-          <input
-            v-if="valueType === 'datetime'"
-            :value="value"
-            type="datetime-local"
-            class="form-control"
-            required
-            style="width:100%; border:1px solid var(--border-light, #E5E5EA); padding:8px; background:var(--bg-app, #F5F5F7); color:var(--text-primary, #1D1D1F);"
-            @input="onInput"
-          >
-          <textarea
-            v-else-if="label.includes('备注')"
-            :value="value"
-            class="form-control"
-            rows="4"
-            :maxlength="maxLength ?? undefined"
-            placeholder="输入批量备注内容..."
-            style="width:100%; border:1px solid var(--border-light, #E5E5EA); padding:8px; background:var(--bg-app, #F5F5F7); color:var(--text-primary, #1D1D1F); resize: vertical;"
-            @input="onInput"
-          />
-          <input
-            v-else
-            :value="value"
-            type="text"
-            class="form-control"
-            :maxlength="maxLength ?? undefined"
-            style="width:100%; border:1px solid var(--border-light, #E5E5EA); padding:8px; background:var(--bg-app, #F5F5F7); color:var(--text-primary, #1D1D1F);"
-            @input="onInput"
-          >
-        </div>
-        <p v-if="error" class="batch-edit-error" role="alert">
-          {{ error }}
-        </p>
-        <div class="modal-footer" style="padding-top: 16px;">
-          <button type="button" class="flight-text-btn" :disabled="saving" @click="emit('close')">
-            取消
-          </button>
-          <button type="submit" class="flight-text-btn" :disabled="!canSubmit || saving">
-            {{ saving ? '提交中...' : `应用到 ${flightCount} 项` }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+      <p v-if="error" class="batch-edit-error" role="alert">
+        {{ error }}
+      </p>
+    </form>
+    <template #footer>
+      <UiButton variant="ghost" :disabled="saving" @click="emit('close')">取消</UiButton>
+      <UiButton variant="primary" native-type="submit" form="flightBatchEditForm" :disabled="!canSubmit || saving">
+        {{ saving ? '提交中...' : `应用到 ${flightCount} 项` }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <style scoped>
 .batch-edit-hint {
-  margin: 12px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary, #6e6e73);
+  margin: 0 0 12px;
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
   line-height: 1.4;
 }
 
 .batch-edit-error {
   margin: 10px 0 0;
-  font-size: 12px;
-  color: var(--system-red, #FF3B30);
+  font-size: var(--fs-label);
+  color: var(--danger);
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: 8px 10px;
+  background: var(--face-work);
+  color: var(--ink);
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.field-input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
 }
 </style>

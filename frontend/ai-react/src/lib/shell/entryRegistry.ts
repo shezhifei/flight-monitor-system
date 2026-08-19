@@ -12,11 +12,6 @@ export const FRONTEND_ENTRY_REGISTRY: Record<string, FrontendEntryDefinition> = 
     hostId: 'ai-react-root',
     surface: 'page',
   },
-  llm_eval_lab: {
-    entryName: 'llm_eval_lab',
-    hostId: 'ai-react-root',
-    surface: 'page',
-  },
   nl_query: {
     entryName: 'nl_query',
     hostId: 'ai-react-root',
@@ -26,11 +21,6 @@ export const FRONTEND_ENTRY_REGISTRY: Record<string, FrontendEntryDefinition> = 
     entryName: 'dispatch_board_ai',
     hostId: 'dispatch-ai-root',
     surface: 'drawer',
-  },
-  dashboard_ai_widget: {
-    entryName: 'dashboard_ai_widget',
-    hostId: 'dashboard-ai-widget-root',
-    surface: 'widget',
   },
 };
 

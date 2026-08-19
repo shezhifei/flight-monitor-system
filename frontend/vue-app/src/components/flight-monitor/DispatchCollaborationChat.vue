@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useDispatchChat, type ChatGroup, type ChatMessage } from '@/composables/useDispatchChat';
+import UiModal from '../ui/UiModal.vue';
 
 const props = defineProps<{
   flightId?: string | null;
@@ -222,19 +223,10 @@ const sendMessage = async () => {
 </script>
 
 <template>
-  <!-- 仅在打开时挂载 Teleport，避免空壳/残留层干扰页面点击 -->
-  <Teleport v-if="isOpen && enabled" to="body">
-  <div class="dispatch-chat-modal-overlay" @click.self="emit('close')">
-    <div class="dispatch-chat-panel" role="dialog" aria-modal="true" aria-label="协同群聊">
-      <!-- Group List Pane -->
+  <UiModal :open="Boolean(isOpen && enabled)" title="协同群聊" :width="1000" @close="emit('close')">
+    <div class="dispatch-chat-panel">
       <div class="chat-sidebar">
         <div class="sidebar-header">
-          <div class="sidebar-header-row">
-            <span class="sidebar-title">协同群聊</span>
-            <button type="button" class="close-btn" aria-label="关闭群聊" @click="emit('close')">
-              &times;
-            </button>
-          </div>
           <span class="group-meta">{{ chatGroups.length }} 个群</span>
         </div>
         <div class="group-list">
@@ -249,7 +241,7 @@ const sendMessage = async () => {
               v-for="group in chatGroups"
               :key="group.group_id"
               class="group-item"
-              :class="{ 'is-selected': chatSelectedGroupId === group.group_id }"
+              :aria-pressed="chatSelectedGroupId === group.group_id"
               @click="openGroup(group.group_id)"
             >
               <div class="group-main">
@@ -268,7 +260,6 @@ const sendMessage = async () => {
         </div>
       </div>
 
-      <!-- Main Chat Pane -->
       <div class="chat-main">
         <div class="chat-header">
           <div class="header-top">
@@ -285,12 +276,9 @@ const sendMessage = async () => {
                 请选择群组
               </h3>
             </template>
-            <button class="close-btn" @click="emit('close')">
-              &times;
-            </button>
           </div>
           <div v-if="selectedGroup" class="active-subtitle">
-            航班 {{ selectedGroup.flight_id || '-' }} | 成员 {{ selectedGroup.member_count || 0 }}
+            航班 {{ selectedGroup.flight_id || '-' }} · 成员 {{ selectedGroup.member_count || 0 }}
           </div>
         </div>
 
@@ -369,72 +357,277 @@ const sendMessage = async () => {
         </div>
       </div>
     </div>
-  </div>
-  </Teleport>
+  </UiModal>
 </template>
 
-
 <style scoped>
-.dispatch-chat-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
-  z-index: 12000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
 .dispatch-chat-panel {
   display: flex;
-  height: min(800px, 90vh);
-  width: min(1000px, 95vw);
-  background: var(--admin-card-bg, var(--bg-card, #fff));
-  border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 12px;
+  min-height: 520px;
+  height: min(620px, 68vh);
+  margin: -16px -18px;
+  color: var(--ink);
   overflow: hidden;
-  font-family: var(--font-sans, "MiSans", system-ui, sans-serif);
-  color: var(--admin-text, var(--text-primary));
-  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
 }
 .chat-sidebar {
   width: 280px;
-  border-right: 1px solid var(--admin-border, var(--border-light));
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  background: var(--bg-page, var(--bg-app, #f8fafc));
+  background: var(--face-work);
+  flex-shrink: 0;
 }
 .sidebar-header {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--admin-border, var(--border-light));
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
 }
-.sidebar-header-row {
+.group-meta {
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.group-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.group-item {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--face-raised);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.group-item:hover {
+  border-color: var(--line-strong);
+}
+.group-item[aria-pressed="true"] {
+  border-color: var(--act);
+  background: var(--act-soft);
+  color: var(--act);
+}
+.group-item:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+.group-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 4px;
 }
-.sidebar-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
+.group-title {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
 }
-.group-meta {
+.group-status,
+.archive-pill {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
   font-size: 11px;
-  color: var(--text-secondary);
 }
-.close-btn {
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 22px;
-  line-height: 1;
+.group-sub {
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+}
+.group-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+.group-unread {
+  min-width: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+}
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--face-raised);
+}
+.chat-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.active-title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.active-title {
+  margin: 0;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+.active-subtitle {
+  margin-top: 4px;
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+}
+.message-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.empty-tip,
+.loading-tip {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: var(--fs-body);
+  color: var(--ink-muted);
+}
+.message-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.message-row.is-mine {
+  align-items: flex-end;
+}
+.message-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+.message-bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: var(--r-control);
+  background: var(--face-work);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+}
+.message-row.is-mine .message-bubble {
+  background: var(--act-soft);
+  border-color: var(--act);
+}
+.message-atall {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 11px;
+  color: var(--act);
+  font-weight: var(--fw-semibold);
+}
+.system-message {
+  width: 100%;
+  text-align: center;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+}
+.chat-composer {
+  border-top: 1px solid var(--line);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.readonly-tip {
+  font-size: var(--fs-label);
+  color: var(--warn);
+}
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+}
+.at-all-label {
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.at-all-label.is-disabled {
+  color: var(--ink-muted);
+}
+.composer-input {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: 8px 10px;
+  background: var(--face-work);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  box-sizing: border-box;
+}
+.composer-input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+.composer-input:disabled {
+  color: var(--ink-muted);
+}
+.composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.input-count {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.send-btn {
+  height: var(--h-sm);
+  padding: 0 14px;
+  border: 1px solid var(--act);
+  border-radius: var(--r-control);
+  background: var(--act);
+  color: var(--act-on);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
-  padding: 0 4px;
 }
-.close-btn:hover {
-  color: var(--text-primary);
+.send-btn:disabled {
+  background: var(--ink-muted);
+  border-color: var(--ink-muted);
+  cursor: not-allowed;
+}
+.send-btn:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 </style>

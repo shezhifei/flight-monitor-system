@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
+import UiButton from '../../ui/UiButton.vue';
 import { flightBusinessCaseKey } from '../../../composables/useFlightBusinessCases';
 import { ontologyCenterUrl } from '../../../shared/page-routes';
 
@@ -50,7 +51,7 @@ const canOpenOntology = computed(
         <a
           v-if="canOpenOntology"
           id="openOntologyCenterBtn"
-          class="btn btn-secondary"
+          class="detail-link-btn"
           :href="ontologyHref"
           target="_blank"
           rel="noopener noreferrer"
@@ -59,17 +60,43 @@ const canOpenOntology = computed(
         >
           本体资源
         </a>
-        <button
+        <UiButton
           id="aiDiagnoseBtn"
-          type="button"
-          class="btn btn-ai"
+          variant="ghost"
           aria-label="AI诊断"
           :disabled="ctx.diagnosisLoading.value || ctx.journeyLoading.value || ctx.reportLoading.value"
           @click="ctx.runAiDiagnosis"
         >
           {{ ctx.diagnosisLoading.value ? '诊断中...' : 'AI诊断' }}
-        </button>
+        </UiButton>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 链接型按钮：与 UiButton ghost 同壳，仅壳同源、标签仍为 a */
+.detail-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--h-sm);
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+}
+
+.detail-link-btn:hover {
+  border-color: var(--ink-muted);
+}
+
+.detail-link-btn:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
+}
+</style>

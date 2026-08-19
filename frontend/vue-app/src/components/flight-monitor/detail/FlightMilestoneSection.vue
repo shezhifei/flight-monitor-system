@@ -2,6 +2,7 @@
 import { inject } from 'vue';
 import FlightMilestoneTimeline from '../FlightMilestoneTimeline.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiButton from '../../ui/UiButton.vue';
 import { flightBusinessCaseKey } from '../../../composables/useFlightBusinessCases';
 
 defineProps<{
@@ -23,32 +24,29 @@ const ctx = inject(flightBusinessCaseKey)!;
         业务全景监控
       </span>
       <div class="business-insight-actions">
-        <button
+        <UiButton
           id="generateHistoryReportBtn"
-          type="button"
-          class="btn btn-secondary business-insight-btn"
+          variant="ghost"
           :disabled="ctx.reportLoading.value || ctx.diagnosisLoading.value || ctx.journeyLoading.value"
           @click="ctx.runHistoryReport"
         >
           {{ ctx.reportLoading.value ? '生成中...' : '生成动态报表' }}
-        </button>
-        <button
+        </UiButton>
+        <UiButton
           id="generateEventJourneyBtn"
-          type="button"
-          class="btn btn-secondary business-insight-btn"
+          variant="ghost"
           :disabled="ctx.journeyLoading.value || ctx.diagnosisLoading.value || ctx.reportLoading.value"
           @click="ctx.runAiEventJourney"
         >
           {{ ctx.journeyLoading.value ? '生成中...' : '生成事件经过' }}
-        </button>
-        <button
+        </UiButton>
+        <UiButton
           id="createEventBtn"
-          type="button"
-          class="btn-edit ops-create-btn"
+          variant="primary"
           @click="emit('create-business-case')"
         >
           + 新建事项
-        </button>
+        </UiButton>
       </div>
     </div>
     <div class="ops-gantt-area">
@@ -65,7 +63,7 @@ const ctx = inject(flightBusinessCaseKey)!;
   position: relative;
   z-index: 5;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -73,12 +71,13 @@ const ctx = inject(flightBusinessCaseKey)!;
   flex-wrap: wrap;
   /* 避免被下方甘特 canvas 层叠挡住点击 */
   pointer-events: auto;
-  background: var(--bg-card, var(--admin-card-bg, #fff));
+  background: var(--face-work);
 }
 
 .ops-card-title {
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body);
+  color: var(--ink);
   display: inline-flex;
   align-items: center;
 }
@@ -93,17 +92,11 @@ const ctx = inject(flightBusinessCaseKey)!;
   pointer-events: auto;
 }
 
-.business-insight-actions :deep(button),
-.ops-create-btn {
+.business-insight-actions :deep(button) {
   position: relative;
   z-index: 1;
   pointer-events: auto;
   cursor: pointer;
-}
-
-.ops-create-btn {
-  padding: 4px 12px;
-  font-size: 12px;
 }
 
 .ops-gantt-area {

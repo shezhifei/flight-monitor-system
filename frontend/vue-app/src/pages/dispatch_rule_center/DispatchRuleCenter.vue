@@ -397,7 +397,7 @@ const pageSubtitle = computed(() => {
           <button type="button" class="btn btn-secondary btn-sm" @click="drawerOpen = true">
             导出
           </button>
-          <span class="status-pill" :data-status="dirtyCount > 0 ? 'warn' : 'ok'">
+          <span class="status-pill" :data-status="dirtyCount > 0 ? 'warn' : 'neutral'">
             未保存 {{ dirtyCount }}
           </span>
         </div>
@@ -545,20 +545,15 @@ const pageSubtitle = computed(() => {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--ws-surface-muted);
-  color: var(--admin-text-subtle);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink-muted);
   font-weight: 600;
   white-space: nowrap;
 }
 
-.status-pill[data-status='ok'] {
-  background: var(--dh-signal-ok-soft);
-  color: var(--ws-success);
-}
-
 .status-pill[data-status='warn'] {
-  background: var(--dh-signal-warn-soft);
-  color: var(--ws-warn);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .dirty-banner,
@@ -571,21 +566,21 @@ const pageSubtitle = computed(() => {
 }
 
 .dirty-banner {
-  background: var(--dh-signal-warn-soft);
-  border: 1px solid color-mix(in srgb, var(--ws-warn) 40%, transparent);
-  color: var(--ws-warn);
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  color: var(--warn);
 }
 
 .error-banner {
-  background: var(--error-bg-subtle);
-  border: 1px solid var(--error-border-subtle);
-  color: var(--ws-danger);
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
+  color: var(--danger);
 }
 
 .aggregate-note {
-  background: var(--system-blue-subtle);
-  border: 1px solid var(--border-focus);
-  color: var(--ws-primary);
+  background: var(--act-soft);
+  border: 1px solid color-mix(in srgb, var(--act) 40%, transparent);
+  color: var(--act);
 }
 
 .section-pane {
@@ -622,8 +617,8 @@ const pageSubtitle = computed(() => {
 }
 
 .inner-tab.active {
-  color: var(--ws-primary);
-  border-bottom-color: var(--ws-primary);
+  color: var(--act);
+  border-bottom-color: var(--act);
 }
 
 .tab-body {

@@ -1,40 +1,92 @@
 <script setup lang="ts">
-defineProps<{
-  actionId: string;
-  toolName: string;
-  message?: string;
-  status?: string;
-  loading?: boolean;
-}>();
+import type { PendingActionCardModel, PendingActionConstraint } from '@/lib/ai/pendingActionDiff';
+
+const props = withDefaults(defineProps<{
+  action: PendingActionCardModel;
+  busy?: boolean;
+}>(), {
+  busy: false,
+});
 
 const emit = defineEmits<{
   approve: [actionId: string];
   reject: [actionId: string];
 }>();
+
+function constraintText(item: PendingActionConstraint): string {
+  return item.message ? `${item.name}: ${item.message}` : item.name;
+}
+
+function hardViolations() {
+  return Array.isArray(props.action.hardViolations) ? props.action.hardViolations : [];
+}
+function softViolations() {
+  return Array.isArray(props.action.softViolations) ? props.action.softViolations : [];
+}
+function diffRows() {
+  return Array.isArray(props.action.diffRows) ? props.action.diffRows : [];
+}
 </script>
 
 <template>
-  <div class="pending-action-card" :class="{ 'is-loading': loading }">
+  <div class="pa-card" data-testid="pending-action-card">
     <div class="pa-header">
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      ><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" /></svg>
-      <span class="pa-tool-name">{{ toolName }}</span>
-      <span class="pa-badge">待审批</span>
+      <span class="pa-tool-name">{{ action.toolName || action.actionId }}</span>
+      <span v-if="action.irreversible" class="pa-tag is-danger">不可逆操作</span>
+      <span v-if="hardViolations().length" class="pa-tag is-danger">硬约束违规</span>
     </div>
-    <p v-if="message" class="pa-message">
-      {{ message }}
+
+    <p v-if="action.message" class="pa-alert is-warn">{{ action.message }}</p>
+
+    <p v-if="action.objectType || action.objectId" class="pa-meta">
+      对象: {{ action.objectType || 'Unknown' }} / {{ action.objectId || '-' }}
     </p>
+
+    <div v-if="hardViolations().length" class="pa-alert is-danger">
+      <div class="pa-alert-title">硬约束违规</div>
+      <div v-for="(item, i) in hardViolations()" :key="`h_${i}`">{{ constraintText(item) }}</div>
+    </div>
+
+    <div v-if="softViolations().length" class="pa-alert is-warn">
+      <div class="pa-alert-title">软约束提示</div>
+      <div v-for="(item, i) in softViolations()" :key="`s_${i}`">{{ constraintText(item) }}</div>
+    </div>
+
+    <table v-if="diffRows().length" class="pa-diff">
+      <thead>
+        <tr><th>字段</th><th>变更前</th><th>变更后</th></tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in diffRows()" :key="row.field">
+          <td class="pa-diff-field">{{ row.field }}</td>
+          <td>{{ row.before }}</td>
+          <td>{{ row.after }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="pa-meta">状态: {{ action.status || 'pending' }}</p>
+    <p v-if="action.sourceRunId || action.sourceTool" class="pa-meta">
+      来源: {{ [action.sourceTool, action.sourceRunId].filter(Boolean).join(' / ') }}
+    </p>
+    <p v-if="action.createdAt" class="pa-meta">创建: {{ action.createdAt }}</p>
+    <p v-if="action.expiresAt" class="pa-meta">过期: {{ action.expiresAt }}</p>
+
     <div class="pa-actions">
-      <button class="pa-btn pa-btn-approve" :disabled="loading" @click="emit('approve', actionId)">
+      <button
+        type="button"
+        class="pa-btn is-approve"
+        :disabled="busy"
+        @click="emit('approve', action.actionId)"
+      >
         批准
       </button>
-      <button class="pa-btn pa-btn-reject" :disabled="loading" @click="emit('reject', actionId)">
+      <button
+        type="button"
+        class="pa-btn is-reject"
+        :disabled="busy"
+        @click="emit('reject', action.actionId)"
+      >
         拒绝
       </button>
     </div>
@@ -42,43 +94,127 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-.pending-action-card {
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: var(--bg-card, #fff);
-  margin-bottom: 8px;
+.pa-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--face-raised);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
 .pa-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.pa-tool-name { font-weight: 600; font-size: 13px; }
-.pa-badge {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--system-orange, #FF9500);
-  background: var(--dh-signal-warn-soft);
-  padding: 1px 6px;
-  border-radius: 4px;
+
+.pa-tool-name {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
-.pa-message { font-size: 12px; color: var(--text-secondary); margin: 0 0 8px; }
-.pa-actions { display: flex; gap: 6px; }
+
+.pa-tag {
+  font-size: var(--fs-label);
+  padding: 1px 8px;
+  border-radius: var(--r-cell);
+}
+
+.pa-tag.is-danger {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.pa-alert {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--r-control);
+  font-size: var(--fs-label);
+  line-height: 1.5;
+}
+
+.pa-alert.is-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.pa-alert.is-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.pa-alert-title {
+  font-weight: var(--fw-semibold);
+  margin-bottom: 2px;
+}
+
+.pa-meta {
+  margin: 0;
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+}
+
+.pa-diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-label);
+}
+
+.pa-diff th {
+  text-align: left;
+  color: var(--ink-subtle);
+  font-weight: var(--fw-medium);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.pa-diff td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.pa-diff-field {
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.pa-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .pa-btn {
-  flex: 1;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-light);
+  min-height: var(--h-sm);
+  padding: 0 16px;
+  border-radius: var(--r-control);
+  border: none;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
 }
-.pa-btn-approve { background: var(--system-green, #34C759); color: var(--text-inverse); border-color: transparent; }
-.pa-btn-approve:hover { opacity: 0.9; }
-.pa-btn-reject { background: var(--system-red, #FF3B30); color: var(--text-inverse); border-color: transparent; }
-.pa-btn-reject:hover { opacity: 0.9; }
-.pa-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.is-loading { opacity: 0.7; }
+
+.pa-btn.is-approve {
+  background: var(--act);
+  color: var(--act-on);
+}
+
+.pa-btn.is-reject {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.pa-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pa-btn:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
 </style>

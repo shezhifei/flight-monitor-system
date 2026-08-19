@@ -92,6 +92,8 @@ Same layering idea (`domain/ai/`, `application/services/ai/`, `infrastructure/ai
 
 Vue 3 + Vite + TypeScript multi-page app. Primary pages from `frontend/vue-app/dist/` at `/frontend/<page>.html`. Legacy static pages under `/frontend/html/<page>.html` are compatibility only.
 
+Visual language (ops console only): `docs/architecture/SIGNAL_SURFACE.md`. Specimen: `frontend/signal-surface-preview.html`. Read both before changing UI. Do not treat it as a generic design system.
+
 ## Migrations
 
 SQL files in `migrations/`, numeric order. Next number only; never renumber.  

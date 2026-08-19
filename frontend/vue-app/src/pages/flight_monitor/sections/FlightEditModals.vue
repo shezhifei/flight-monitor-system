@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { BASE_COLUMNS } from '../../../components/flight-monitor/FlightList.vue';
+import UiModal from '../../../components/ui/UiModal.vue';
+import UiButton from '../../../components/ui/UiButton.vue';
 
 const COLUMN_LABELS: Readonly<Record<string, string>> = Object.fromEntries(
   BASE_COLUMNS.map((column) => [column.key, column.label]),
@@ -39,7 +41,6 @@ const emit = defineEmits<{
   (e: 'close-remark-edit'): void;
 }>();
 
-/** 配置列拖拽：对齐 legacy handleConfigDrag* */
 const dragSrcKey = ref<string | null>(null);
 const dragOverKey = ref<string | null>(null);
 
@@ -82,191 +83,136 @@ function onConfigDragEnd(): void {
 </script>
 
 <template>
-  <!--
-    全局 `.modal { display: none }`（layout.css）会盖过裸 v-show，
-    与 FlightBatchEditModal 相同：v-if + 显式 display:block。
-  -->
-  <div
-    v-if="columnConfigIsOpen"
+  <UiModal
+    :open="columnConfigIsOpen"
+    title="表格列"
+    :width="560"
     id="columnConfigModal"
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="columnConfigTitle"
-    aria-hidden="false"
-    style="display: block;"
+    @close="emit('close-column-config')"
   >
-    <div class="modal-content modal-sm">
-      <div class="modal-header">
-        <h2 id="columnConfigTitle">
-          配置表格列
-        </h2>
-        <button
-          id="closeColumnConfig"
-          type="button"
-          class="close close-modal close-modal-compact"
-          aria-label="关闭列配置弹窗"
-          @click="emit('close-column-config')"
+    <p class="column-config-hint">
+      勾选显示列；拖拽行可调整列顺序。
+    </p>
+    <div id="columnConfigList" class="column-config-list" role="list" aria-label="表格列配置">
+      <div
+        v-for="key in columnConfigItems"
+        :key="key"
+        class="column-config-item"
+        :class="{
+          dragging: dragSrcKey === key,
+          'drag-over': dragOverKey === key && dragSrcKey !== key,
+        }"
+        :data-column-id="key"
+        draggable="true"
+        role="listitem"
+        @dragstart="onConfigDragStart($event, key)"
+        @dragover="onConfigDragOver($event, key)"
+        @dragleave="onConfigDragLeave(key)"
+        @drop="onConfigDrop($event, key)"
+        @dragend="onConfigDragEnd"
+      >
+        <span class="column-handle" aria-hidden="true" title="拖拽排序">⋮⋮</span>
+        <input
+          :checked="columnConfigVisibleColumns[key]"
+          class="column-checkbox"
+          type="checkbox"
+          :aria-label="`显示${columnLabel(key)}`"
+          @click.stop
+          @change="emit('update:columnConfigVisibleColumns', { ...columnConfigVisibleColumns, [key]: ($event.target as HTMLInputElement).checked })"
         >
-          &times;
-        </button>
-      </div>
-      <p class="column-config-hint">
-        勾选显示列；拖拽行可调整列顺序。
-      </p>
-      <div id="columnConfigList" class="column-config-list" role="list" aria-label="表格列配置">
-        <div
-          v-for="key in columnConfigItems"
-          :key="key"
-          class="column-config-item"
-          :class="{
-            dragging: dragSrcKey === key,
-            'drag-over': dragOverKey === key && dragSrcKey !== key,
-          }"
-          :data-column-id="key"
-          draggable="true"
-          role="listitem"
-          @dragstart="onConfigDragStart($event, key)"
-          @dragover="onConfigDragOver($event, key)"
-          @dragleave="onConfigDragLeave(key)"
-          @drop="onConfigDrop($event, key)"
-          @dragend="onConfigDragEnd"
-        >
-          <span class="column-handle" aria-hidden="true" title="拖拽排序">⋮⋮</span>
-          <input
-            :checked="columnConfigVisibleColumns[key]"
-            class="column-checkbox"
-            type="checkbox"
-            :aria-label="`显示${columnLabel(key)}`"
-            @click.stop
-            @change="emit('update:columnConfigVisibleColumns', { ...columnConfigVisibleColumns, [key]: ($event.target as HTMLInputElement).checked })"
-          >
-          <span class="column-label">{{ columnLabel(key) }}</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="resetColumnsBtn" type="button" class="flight-text-btn" @click="emit('reset-column-config')">
-          恢复默认
-        </button>
-        <button id="saveColumnsBtn" type="button" class="flight-text-btn" @click="emit('save-column-config')">
-          保存配置
-        </button>
+        <span class="column-label">{{ columnLabel(key) }}</span>
       </div>
     </div>
-  </div>
+    <template #footer>
+      <UiButton id="resetColumnsBtn" variant="ghost" @click="emit('reset-column-config')">恢复默认</UiButton>
+      <UiButton id="saveColumnsBtn" variant="primary" @click="emit('save-column-config')">保存配置</UiButton>
+    </template>
+  </UiModal>
 
-  <div
-    v-if="fieldEditIsOpen"
+  <UiModal
+    :open="fieldEditIsOpen"
+    :title="fieldEditLabel"
+    :width="560"
     id="fieldEditModal"
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="editFieldTitle"
-    aria-hidden="false"
-    style="display: block;"
+    @close="emit('close-field-edit')"
   >
-    <div class="modal-content modal-sm">
-      <div class="modal-header">
-        <h2 id="editFieldTitle">
-          修改 {{ fieldEditLabel }}
-        </h2>
-        <button
-          type="button"
-          class="close close-modal close-modal-compact"
-          aria-label="关闭编辑弹窗"
-          @click="emit('close-field-edit')"
+    <form id="fieldEditForm" @submit.prevent="emit('save-field-edit')">
+      <div class="form-group">
+        <input
+          v-if="fieldEditType === 'datetime-local'"
+          :value="fieldEditValue"
+          type="datetime-local"
+          class="form-control field-input"
+          required
+          @input="emit('update:fieldEditValue', ($event.target as HTMLInputElement).value)"
         >
-          &times;
-        </button>
+        <input
+          v-else
+          :value="fieldEditValue"
+          type="text"
+          class="form-control field-input"
+          required
+          @input="emit('update:fieldEditValue', ($event.target as HTMLInputElement).value)"
+        >
       </div>
-      <form @submit.prevent="emit('save-field-edit')">
-        <div class="form-group" style="margin-top: 16px;">
-          <input
-            v-if="fieldEditType === 'datetime-local'"
-            :value="fieldEditValue"
-            type="datetime-local"
-            class="form-control"
-            required
-            style="width:100%; border:1px solid var(--border-light, #E5E5EA); padding:8px; background:var(--bg-app, #F5F5F7); color:var(--text-primary, #1D1D1F);"
-            @input="emit('update:fieldEditValue', ($event.target as HTMLInputElement).value)"
-          >
-          <input
-            v-else
-            :value="fieldEditValue"
-            type="text"
-            class="form-control"
-            required
-            style="width:100%; border:1px solid var(--border-light, #E5E5EA); padding:8px; background:var(--bg-app, #F5F5F7); color:var(--text-primary, #1D1D1F);"
-            @input="emit('update:fieldEditValue', ($event.target as HTMLInputElement).value)"
-          >
-        </div>
-        <div class="modal-footer" style="padding-top: 16px;">
-          <button type="button" class="flight-text-btn" @click="emit('close-field-edit')">
-            取消
-          </button>
-          <button type="submit" class="flight-text-btn" :disabled="fieldEditSaving">
-            {{ fieldEditSaving ? '保存中...' : '保存修改' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    </form>
+    <template #footer>
+      <UiButton variant="ghost" @click="emit('close-field-edit')">取消</UiButton>
+      <UiButton variant="primary" :disabled="fieldEditSaving" @click="emit('save-field-edit')">
+        {{ fieldEditSaving ? '保存中...' : '保存修改' }}
+      </UiButton>
+    </template>
+  </UiModal>
 
-  <div
-    v-if="remarkEditIsOpen"
+  <UiModal
+    :open="remarkEditIsOpen"
+    :title="remarkEditLabel"
+    :width="640"
     id="remarkEditModal"
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="remarkEditTitle"
-    aria-hidden="false"
-    style="display: block;"
+    @close="emit('close-remark-edit')"
   >
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="remarkEditTitle">
-          修改 {{ remarkEditLabel }}
-        </h2>
-        <button
-          type="button"
-          class="close close-modal close-modal-compact"
-          aria-label="关闭编辑弹窗"
-          @click="emit('close-remark-edit')"
-        >
-          &times;
-        </button>
+    <form id="remarkEditForm" @submit.prevent="emit('save-remark-edit')">
+      <div class="form-group">
+        <textarea
+          id="remarkInput"
+          :value="remarkEditValue"
+          class="form-control field-input"
+          rows="6"
+          placeholder="输入长备注内容..."
+          @input="emit('update:remarkEditValue', ($event.target as HTMLTextAreaElement).value)"
+        />
       </div>
-      <form @submit.prevent="emit('save-remark-edit')">
-        <div class="form-group" style="margin-top: 16px;">
-          <textarea
-            id="remarkInput"
-            :value="remarkEditValue"
-            class="form-control"
-            rows="6"
-            placeholder="输入长备注内容..."
-            style="width:100%; border:1px solid var(--border-light, #E5E5EA); padding:8px; background:var(--bg-app, #F5F5F7); color:var(--text-primary, #1D1D1F); resize: vertical;"
-            @input="emit('update:remarkEditValue', ($event.target as HTMLTextAreaElement).value)"
-          />
-        </div>
-        <div class="modal-footer" style="padding-top: 16px;">
-          <button type="button" class="flight-text-btn" @click="emit('close-remark-edit')">
-            取消
-          </button>
-          <button id="saveRemarkBtn" type="submit" class="flight-text-btn" :disabled="remarkEditSaving">
-            {{ remarkEditSaving ? '保存中...' : '保存修改' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    </form>
+    <template #footer>
+      <UiButton variant="ghost" @click="emit('close-remark-edit')">取消</UiButton>
+      <UiButton id="saveRemarkBtn" variant="primary" :disabled="remarkEditSaving" @click="emit('save-remark-edit')">
+        {{ remarkEditSaving ? '保存中...' : '保存修改' }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <style scoped>
 .column-config-hint {
-  margin: 0;
-  padding: 0 16px 8px;
-  font-size: 12px;
-  color: var(--text-secondary, var(--admin-text-subtle));
+  margin: 0 0 8px;
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
   line-height: 1.4;
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: 8px 10px;
+  background: var(--face-work);
+  color: var(--ink);
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.field-input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
 }
 </style>

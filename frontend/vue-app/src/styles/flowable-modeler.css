@@ -3,6 +3,45 @@
          * 一律复用 admin-layout.css + --admin-* token，禁止在此覆盖背景/边框。
          * 本文件只保留 BPMN 画布、属性面板、工具栏等建模器局部样式。
          */
+
+        /* 迁移期：本页旧色板变量全部指向标本角色（signal-surface.css）。
+           新代码直接用 --face-* / --ink-* / --act 等标本名。 */
+        .flowable-modeler-page {
+            --text-primary: var(--ink);
+            --text-secondary: var(--ink-subtle);
+            --text-inverse: var(--ink-inverse);
+            --border-light: var(--line);
+            --border-color: var(--line);
+            --border-focus: var(--act);
+            --bg-app: var(--face-page);
+            --bg-card: var(--face-work);
+            --bg-primary: var(--face-work);
+            --bg-secondary: var(--face-work);
+            --bg-hover: color-mix(in srgb, var(--ink) 6%, transparent);
+            --system-blue: var(--act);
+            --system-blue-subtle: var(--act-soft);
+            --system-red: var(--danger);
+            --system-green: var(--ok);
+            --system-orange: var(--warn);
+            --ws-bg: var(--face-page);
+            --ws-border: var(--line);
+            --ws-danger: var(--danger);
+            --ws-warn: var(--warn);
+            --ws-primary: var(--act);
+            --ws-success: var(--ok);
+            --ws-shadow-sm: var(--shadow-sm);
+            --dh-signal-ok-soft: var(--ok-soft);
+            --dh-signal-warn-soft: var(--warn-soft);
+            --ws-surface-muted: color-mix(in srgb, var(--ink) 6%, transparent);
+            --success-color: var(--ok);
+            --danger-color: var(--danger);
+            --warning-color: var(--warn);
+            --error-bg-subtle: var(--danger-soft);
+            --error-border-subtle: color-mix(in srgb, var(--danger) 32%, transparent);
+            --focus-ring-blue: var(--act-soft);
+            --shadow: var(--shadow-md);
+        }
+
         html,
         body {
             height: 100%;
@@ -24,21 +63,21 @@
         /* 深色模式：节点主体深色填充 + 白字（不再用描边糊弄） */
         [data-theme="dark"] #bpmn-canvas .djs-element:not(.djs-connection) > .djs-visual > :is(rect, circle, ellipse, polygon),
         [data-theme="dark"] .canvas-host .djs-element:not(.djs-connection) > .djs-visual > :is(rect, circle, ellipse, polygon) {
-            fill: #1e293b !important;
-            stroke: #94a3b8 !important;
+            fill: var(--face-raised) !important;
+            stroke: var(--ink-muted) !important;
         }
 
         /* 结束事件双圆：内圈透明只描边 */
         [data-theme="dark"] #bpmn-canvas .djs-element:not(.djs-connection) > .djs-visual > circle + circle,
         [data-theme="dark"] .canvas-host .djs-element:not(.djs-connection) > .djs-visual > circle + circle {
             fill: none !important;
-            stroke: #cbd5e1 !important;
+            stroke: var(--ink-subtle) !important;
         }
 
         /* 标签白字 */
         [data-theme="dark"] #bpmn-canvas .djs-element text,
         [data-theme="dark"] .canvas-host .djs-element text {
-            fill: #f8fafc !important;
+            fill: var(--ink) !important;
             stroke: none !important;
             stroke-width: 0 !important;
         }
@@ -46,8 +85,8 @@
         /* 任务/网关内图标 path 改浅色（不填死成深色块） */
         [data-theme="dark"] #bpmn-canvas .djs-element:not(.djs-connection) > .djs-visual > path,
         [data-theme="dark"] .canvas-host .djs-element:not(.djs-connection) > .djs-visual > path {
-            fill: #e2e8f0 !important;
-            stroke: #e2e8f0 !important;
+            fill: var(--ink) !important;
+            stroke: var(--ink) !important;
         }
 
         /* 网关 X 等图标在深色菱形上保持浅色线 */
@@ -55,13 +94,13 @@
         [data-theme="dark"] #bpmn-canvas .djs-element:not(.djs-connection) > .djs-visual > path[fill="none"],
         [data-theme="dark"] .canvas-host .djs-element:not(.djs-connection) > .djs-visual > path[fill="none"] {
             fill: none !important;
-            stroke: #e2e8f0 !important;
+            stroke: var(--ink) !important;
         }
 
         [data-theme="dark"] #bpmn-canvas .djs-connection > .djs-visual > path,
         [data-theme="dark"] .canvas-host .djs-connection > .djs-visual > path {
             fill: none !important;
-            stroke: #94a3b8 !important;
+            stroke: var(--ink-muted) !important;
         }
 
         /* 箭头头在 <defs><marker> 里单独填充，需单独反色（连线 stroke 改不了它） */
@@ -75,42 +114,42 @@
         [data-theme="dark"] .canvas-host marker polygon,
         [data-theme="dark"] .canvas-host marker polyline,
         [data-theme="dark"] .canvas-host marker rect {
-            fill: #94a3b8 !important;
-            stroke: #94a3b8 !important;
+            fill: var(--ink-muted) !important;
+            stroke: var(--ink-muted) !important;
         }
 
         [data-theme="dark"] #bpmn-canvas .djs-parent,
         [data-theme="dark"] .canvas-host .djs-parent {
-            --palette-background-color: #1e293b;
-            --palette-entry-color: #e2e8f0;
-            --palette-border-color: #334155;
-            --palette-separator-color: #475569;
-            --palette-entry-hover-color: #38bdf8;
-            --palette-entry-selected-color: #38bdf8;
-            --palette-toggle-hover-background-color: #334155;
-            --context-pad-entry-background-color: #1e293b;
-            --context-pad-entry-hover-background-color: #334155;
+            --palette-background-color: var(--face-raised);
+            --palette-entry-color: var(--ink);
+            --palette-border-color: var(--line);
+            --palette-separator-color: var(--line);
+            --palette-entry-hover-color: var(--act);
+            --palette-entry-selected-color: var(--act);
+            --palette-toggle-hover-background-color: color-mix(in srgb, var(--ink) 8%, var(--face-raised));
+            --context-pad-entry-background-color: var(--face-raised);
+            --context-pad-entry-hover-background-color: color-mix(in srgb, var(--ink) 12%, var(--face-raised));
             --canvas-fill-color: transparent;
-            --popup-background-color: #1e293b;
-            --popup-entry-hover-color: #334155;
-            --popup-description-color: #94a3b8;
-            --popup-entry-title-color: #94a3b8;
-            --popup-disabled-color: #64748b;
-            --popup-no-results-color: #94a3b8;
-            --popup-search-border-color: #475569;
-            --popup-search-focus-background-color: #0f172a;
+            --popup-background-color: var(--face-raised);
+            --popup-entry-hover-color: color-mix(in srgb, var(--ink) 8%, var(--face-raised));
+            --popup-description-color: var(--ink-muted);
+            --popup-entry-title-color: var(--ink-subtle);
+            --popup-disabled-color: var(--ink-muted);
+            --popup-no-results-color: var(--ink-muted);
+            --popup-search-border-color: var(--line);
+            --popup-search-focus-background-color: var(--face-page);
         }
 
         [data-theme="dark"] #bpmn-canvas .djs-palette,
         [data-theme="dark"] .canvas-host .djs-palette {
-            background: #1e293b;
-            border-color: #334155;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+            background: var(--face-raised);
+            border-color: var(--line);
+            box-shadow: var(--shadow-sm);
         }
 
         [data-theme="dark"] #bpmn-canvas .djs-palette .entry,
         [data-theme="dark"] .canvas-host .djs-palette .entry {
-            color: #e2e8f0;
+            color: var(--ink);
         }
 
         .empty-state {
@@ -164,7 +203,7 @@
             gap: 8px;
             padding: 6px 8px;
             border: 1px solid var(--border-light);
-            border-radius: 8px;
+            border-radius: var(--r-control);
             background: var(--bg-app);
         }
 
@@ -174,7 +213,7 @@
         }
 
         .context-variable-code {
-            font-family: 'SF Mono', Monaco, monospace;
+            font-family: var(--mono);
             font-size: 12px;
             color: var(--system-blue);
             white-space: nowrap;
@@ -215,7 +254,7 @@
 
         .rule-card {
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: var(--r-panel);
             background: var(--bg-primary);
             padding: 14px;
             margin-bottom: 12px;
@@ -256,7 +295,7 @@
         .rule-field select {
             width: 100%;
             border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: var(--r-control);
             padding: 9px 10px;
             font-size: 13px;
             background: var(--bg-app);
@@ -290,7 +329,7 @@
 
         .target-row {
             border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: var(--r-panel);
             padding: 10px;
             background: var(--bg-app);
         }
@@ -319,11 +358,11 @@
 
         .rule-overlay {
             max-width: 180px;
-            border-radius: 10px;
+            border-radius: var(--r-control);
             padding: 6px 8px;
-            background: rgba(17, 24, 39, 0.92);
+            background: var(--face-raised);
             color: var(--text-inverse);
-            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+            box-shadow: var(--shadow-md);
             border: 1px solid transparent;
         }
 
@@ -341,8 +380,8 @@
         }
 
         .rule-overlay.is-selected {
-            border-color: rgba(96, 165, 250, 0.95);
-            box-shadow: 0 12px 30px var(--focus-ring-blue);
+            border-color: var(--act);
+            box-shadow: 0 0 0 2px var(--act-soft);
         }
 
         .rule-panel-header {
@@ -386,8 +425,8 @@
 
         .rule-summary-card {
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            background: linear-gradient(180deg, rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.02));
+            border-radius: var(--r-panel);
+            background: var(--act-soft);
             padding: 10px 12px;
             margin-bottom: 12px;
         }
@@ -401,7 +440,7 @@
 
         .rule-summary-card .rule-overlay {
             max-width: none;
-            background: rgba(15, 23, 42, 0.95);
+            background: var(--face-raised);
         }
 
         .field-error {
@@ -417,9 +456,9 @@
         }
 
         .validation-card {
-            border: 1px solid rgba(180, 35, 24, 0.18);
-            border-radius: 12px;
-            background: rgba(180, 35, 24, 0.06);
+            border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+            border-radius: var(--r-panel);
+            background: var(--danger-soft);
             padding: 10px 12px;
             margin-bottom: 12px;
         }
@@ -461,8 +500,8 @@
         }
 
         .target-row.has-error {
-            border-color: rgba(180, 35, 24, 0.35);
-            background: rgba(180, 35, 24, 0.04);
+            border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+            background: var(--danger-soft);
         }
 
         @media (max-width: 960px) {
@@ -486,11 +525,11 @@
         .toggle {
             width: 44px;
             height: 24px;
-            background: #e5e5ea;
+            background: color-mix(in srgb, var(--ink) 16%, transparent);
             border-radius: 12px;
             position: relative;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--t-mid) var(--ease);
         }
 
         .toggle.active {
@@ -502,12 +541,12 @@
             position: absolute;
             width: 20px;
             height: 20px;
-            background: white;
+            background: #fff;
             border-radius: 50%;
             top: 2px;
             left: 2px;
-            transition: transform 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: transform var(--t-mid) var(--ease);
+            box-shadow: var(--shadow-sm);
         }
 
         .toggle.active::after {
@@ -518,8 +557,8 @@
             margin: 12px 16px 0;
             padding: 12px;
             border: 1px solid var(--border-light);
-            border-radius: 10px;
-            background: linear-gradient(180deg, rgba(0, 122, 255, 0.04), rgba(0, 122, 255, 0.01));
+            border-radius: var(--r-panel);
+            background: var(--act-soft);
         }
 
         .process-draft-header {
@@ -559,18 +598,17 @@
             width: 100%;
             box-sizing: border-box;
             border: 1px solid var(--border-light);
-            border-radius: 7px;
+            border-radius: var(--r-cell);
             padding: 6px 8px;
             font-size: 12px;
             background: var(--bg-card);
             color: var(--text-primary);
         }
 
-        .process-draft-field input:focus,
-        .process-draft-field select:focus {
-            outline: none;
-            border-color: var(--system-blue);
-            box-shadow: 0 0 0 2px var(--system-blue-subtle);
+        .process-draft-field input:focus-visible,
+        .process-draft-field select:focus-visible {
+            outline: 2px solid var(--act);
+            outline-offset: 1px;
         }
 
         .process-draft-file {
@@ -598,14 +636,14 @@
             color: var(--system-red);
             background: var(--error-bg-subtle);
             border: 1px solid var(--error-border-subtle);
-            border-radius: 8px;
+            border-radius: var(--r-control);
             padding: 6px 8px;
         }
 
         .process-draft-summary {
             margin-top: 10px;
             border: 1px solid var(--border-light);
-            border-radius: 8px;
+            border-radius: var(--r-control);
             background: var(--bg-card);
             max-height: 180px;
             overflow: auto;
@@ -619,9 +657,9 @@
             margin-top: 8px;
             font-size: 12px;
             color: var(--ws-warn);
-            background: rgba(255, 204, 0, 0.16);
-            border: 1px solid rgba(255, 149, 0, 0.3);
-            border-radius: 8px;
+            background: var(--warn-soft);
+            border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+            border-radius: var(--r-control);
             padding: 8px 10px;
             white-space: pre-wrap;
         }
@@ -660,7 +698,7 @@
         .create-case-modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.42);
+            background: var(--scrim);
             display: none;
             align-items: center;
             justify-content: center;
@@ -675,9 +713,9 @@
         .create-case-modal {
             width: 100%;
             max-width: 460px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
+            background: var(--face-raised);
+            border-radius: var(--r-panel);
+            box-shadow: var(--shadow-md);
             border: 1px solid var(--border-light);
             overflow: hidden;
         }
@@ -706,7 +744,7 @@
             padding: 0;
             width: 28px;
             height: 28px;
-            border-radius: 6px;
+            border-radius: var(--r-cell);
         }
 
         .create-case-modal-close:hover {
@@ -738,24 +776,23 @@
             width: 100%;
             box-sizing: border-box;
             border: 1px solid var(--border-light);
-            border-radius: 8px;
+            border-radius: var(--r-control);
             padding: 9px 11px;
             font-size: 14px;
             color: var(--text-primary);
             background: var(--bg-app);
         }
 
-        .create-case-field input:focus,
-        .create-case-field select:focus {
-            outline: none;
-            border-color: var(--system-blue);
-            box-shadow: 0 0 0 3px var(--system-blue-subtle);
+        .create-case-field input:focus-visible,
+        .create-case-field select:focus-visible {
+            outline: 2px solid var(--act);
+            outline-offset: 1px;
             background: var(--bg-card);
         }
 
         .create-case-static {
             border: 1px solid var(--border-light);
-            border-radius: 8px;
+            border-radius: var(--r-control);
             padding: 9px 11px;
             font-size: 13px;
             color: var(--text-secondary);
@@ -795,38 +832,26 @@
 
         .toast {
             padding: 12px 20px;
-            border-radius: 8px;
+            border-radius: var(--r-control);
             background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
             box-shadow: var(--shadow);
             display: flex;
             align-items: center;
             gap: 10px;
-            animation: slideIn 0.3s ease;
             max-width: 400px;
         }
 
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
         .toast.success {
-            border-left: 4px solid var(--success-color);
+            border-left: 3px solid var(--success-color);
         }
 
         .toast.error {
-            border-left: 4px solid var(--danger-color);
+            border-left: 3px solid var(--danger-color);
         }
 
         .toast.warning {
-            border-left: 4px solid var(--warning-color);
+            border-left: 3px solid var(--warning-color);
         }
 
         .connection-status.connected .dot {
@@ -855,4 +880,3 @@
             height: 64px;
             vertical-align: middle;
         }
-    

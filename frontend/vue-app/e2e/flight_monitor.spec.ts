@@ -20,8 +20,8 @@ test.describe('Flight monitor page', () => {
 
     const delayFilter = page.locator('#delayFilter');
     await expect(delayFilter).toBeVisible();
-    await delayFilter.selectOption('only');
-    await expect(delayFilter).toHaveValue('only');
+    await delayFilter.click();
+    await expect(delayFilter).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('anomaly status filter is reflected in the filter control', async ({ page }) => {
@@ -29,8 +29,8 @@ test.describe('Flight monitor page', () => {
 
     const anomalyFilter = page.locator('#anomalyFilter');
     await expect(anomalyFilter).toBeVisible();
-    await anomalyFilter.selectOption('only');
-    await expect(anomalyFilter).toHaveValue('only');
+    await anomalyFilter.click();
+    await expect(anomalyFilter).toHaveAttribute('aria-pressed', 'true');
 
     const connectionPill = page.locator('#connectionStatusPill');
     await expect(connectionPill).toBeVisible();

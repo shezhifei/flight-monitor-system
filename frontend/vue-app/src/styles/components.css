@@ -178,12 +178,9 @@
     gap: 0.6rem;
     align-items: center;
     padding: 12px 14px;
-    border-radius: 18px;
-    border: 1px solid var(--glass-border, var(--border-light));
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur, blur(18px));
-    -webkit-backdrop-filter: var(--glass-blur, blur(18px));
-    box-shadow: var(--glass-shadow, 0 12px 28px rgba(15, 23, 42, 0.06));
+    border-radius: var(--r-panel);
+    border: 1px solid var(--line);
+    background: var(--face-work);
 }
 
 .flight-toolbar-actions {
@@ -370,78 +367,6 @@
     padding: 8px;
     margin-top: 10px;
     border: 1px solid var(--border-light);
-}
-
-#searchInput {
-    flex: 1;
-    background-color: var(--bg-input);
-    background-image: none;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    height: 36px;
-    padding: 0 36px 0 32px;
-    line-height: 36px;
-    font-size: 13px;
-    font-family: 'MiSans', sans-serif;
-    color: var(--text-primary);
-    caret-color: var(--system-blue);
-    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
-}
-
-/* 占位符用次级色 + 降低不透明度，避免抢眼 */
-#searchInput::placeholder {
-    color: var(--text-tertiary);
-    opacity: 0.72;
-}
-
-#searchInput:focus,
-#searchInput:focus-visible {
-    background-color: var(--bg-card);
-    background-image: none;
-    color: var(--text-primary);
-    border-color: var(--border-focus, var(--system-blue));
-    box-shadow: 0 0 0 3px var(--system-blue-subtle);
-    outline: none;
-}
-
-/* 深色主题：用不透明深底；勿在常态写 -webkit-text-fill-color（会把 placeholder 染成主文字色） */
-[data-theme="dark"] #searchInput {
-    background-color: rgba(8, 16, 28, 0.92);
-    background-image: none;
-    border-color: rgba(100, 140, 190, 0.18);
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] #searchInput::placeholder {
-    color: #5a6f88;
-    opacity: 0.85;
-    -webkit-text-fill-color: #5a6f88;
-}
-
-[data-theme="dark"] #searchInput:hover {
-    border-color: rgba(100, 140, 190, 0.28);
-    background-color: rgba(12, 22, 36, 0.96);
-}
-
-[data-theme="dark"] #searchInput:focus,
-[data-theme="dark"] #searchInput:focus-visible {
-    background-color: rgba(10, 20, 34, 0.98);
-    background-image: none;
-    border-color: rgba(61, 174, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(61, 174, 255, 0.18);
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] #searchInput:-webkit-autofill,
-[data-theme="dark"] #searchInput:-webkit-autofill:hover,
-[data-theme="dark"] #searchInput:-webkit-autofill:focus,
-[data-theme="dark"] #searchInput:-webkit-autofill:active {
-    -webkit-text-fill-color: var(--text-primary) !important;
-    caret-color: var(--system-blue);
-    /* 用 inset shadow 盖住浏览器默认浅色 autofill 底（图标为独立 DOM，不会被盖住） */
-    box-shadow: 0 0 0 1000px rgba(10, 20, 34, 0.98) inset !important;
-    transition: background-color 99999s ease-out;
-    border-color: rgba(100, 140, 190, 0.22);
 }
 
 /* Search Buttons - Text only or subtle */
@@ -825,12 +750,7 @@
     align-items: baseline;
     gap: 8px;
     margin-top: 8px;
-    padding: 7px 12px;
-    border-radius: var(--radius-m);
-    border: 1px solid transparent;
-    backdrop-filter: saturate(180%) blur(12px);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
-    font-size: 12px;
+    font-size: var(--fs-label);
     line-height: 1.45;
 }
 
@@ -986,74 +906,6 @@
     margin: 0 10px;
 }
 
-/* Status Pills (Capsule) */
-.flight-status {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: var(--fw-medium);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.status-scheduled {
-    background: var(--status-bg-scheduled);
-    color: var(--status-text-scheduled);
-}
-
-.status-prev-departed {
-    background: var(--dh-signal-accent-soft);
-    color: var(--status-text-prev-departed);
-}
-
-.status-arrived {
-    background: var(--dh-signal-ok-soft);
-    color: var(--status-text-departed);
-}
-
-.status-checkin-end {
-    background: var(--dh-signal-warn-soft);
-    color: var(--status-text-checkin-end);
-}
-
-.status-boarding {
-    background: var(--status-bg-boarding);
-    color: var(--status-text-boarding);
-}
-
-.status-boarding-urge {
-    background: var(--dh-signal-critical-soft);
-    color: var(--status-text-boarding-urge);
-}
-
-.status-boarding-ended {
-    background: var(--status-bg-ended);
-    color: var(--status-text-ended);
-}
-
-.status-departed {
-    background: var(--status-bg-departed);
-    color: var(--status-text-departed);
-}
-
-.status-next-arrived {
-    background: var(--dh-signal-ok-soft);
-    color: var(--status-text-next-arrived);
-}
-
-.status-cancelled {
-    background: var(--ws-surface-muted);
-    color: var(--status-text-cancelled);
-}
-
-.status-delayed {
-    background: var(--status-bg-delayed);
-    color: var(--status-text-delayed);
-}
-
 /* Flight Route */
 .flight-route {
     display: flex;
@@ -1154,21 +1006,6 @@
 .time-right {
     text-align: right;
     flex: 1;
-}
-
-.scheduled-time {
-    color: var(--text-primary);
-    font-weight: var(--fw-regular);
-}
-
-.actual-time {
-    color: var(--system-red);
-    font-weight: var(--fw-medium);
-}
-
-.estimated-time {
-    color: var(--system-purple);
-    font-weight: var(--fw-medium);
 }
 
 /* Flight Info */
@@ -1424,75 +1261,57 @@
     box-shadow: 0 2px 4px rgba(255, 59, 48, 0.1);
 }
 
-.btn-edit {
-    background-color: var(--system-green);
-    background-color: var(--success-color);
-    color: var(--bg-card);
-}
-
-.btn-edit:hover {
-    background-color: #2da84a;
-    background-color: var(--system-green);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px var(--shadow-medium);
-}
-
-/* --- Form Components --- */
+/* --- Form Components ---
+   全局输入基定义：信号面 token，深浅主题随变量自切，无需 dark 变体 */
 input[type="text"],
+input[type="search"],
 input[type="datetime-local"],
 select,
 textarea {
-    background-color: var(--bg-input);
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 14px;
-    color: var(--text-primary);
-    transition: all 0.2s;
+    background-color: var(--face-page);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-control);
+    padding: 0 12px;
+    height: var(--h-sm);
+    font-size: var(--fs-body);
+    color: var(--ink);
+    transition: border-color 0.2s;
     width: 100%;
-    padding: 0.625rem 0.875rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    background-color: var(--surface-color);
-    transition: all 0.2s ease;
+}
+
+textarea {
+    height: auto;
+    padding: 8px 12px;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--ink-muted);
+    opacity: 1;
 }
 
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    border-color: var(--system-blue);
-    box-shadow: 0 0 0 4px var(--system-blue-subtle);
-    outline: 2px solid var(--system-blue);
-    outline-offset: 1px;
-    background-color: var(--surface-color);
+    border-color: var(--act);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--act) 18%, transparent);
+    outline: none;
 }
 
 input:hover,
 select:hover,
 textarea:hover {
-    border-color: var(--primary-color);
+    border-color: var(--ink-muted);
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-    padding: 0.625rem 0.875rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    background-color: var(--surface-color);
-    transition: all 0.2s ease;
-}
-
-.form-group input:focus-visible,
-.form-group select:focus-visible,
-.form-group textarea:focus-visible {
-    outline: 2px solid var(--system-blue);
-    outline-offset: 1px;
-    border-color: var(--system-blue);
-    box-shadow: 0 0 0 4px var(--system-blue-subtle);
-    background-color: var(--surface-color);
+/* 浏览器 autofill 浅黄底以面底 inset 盖掉，字色随墨 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--ink);
+    caret-color: var(--act);
+    box-shadow: 0 0 0 1000px var(--face-page) inset;
+    transition: background-color 99999s ease-out;
 }
 
 /* --- Edit Form Components --- */
@@ -2736,30 +2555,6 @@ textarea:hover {
     gap: 6px;
     margin-bottom: 12px;
     flex-wrap: wrap;
-}
-
-.filter-btn {
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border-light);
-    background: var(--bg-card);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-    background: var(--system-gray6);
-    border-color: var(--system-blue);
-    color: var(--system-blue);
-}
-
-.filter-btn.active {
-    background: var(--system-blue);
-    border-color: var(--system-blue);
-    color: white;
 }
 
 /* --- Gantt Chart Component --- */
@@ -5142,27 +4937,6 @@ textarea:hover {
     bottom: 24px;
     z-index: 1100;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-}
-
-.btn-ai {
-    background: var(--system-blue-subtle);
-    color: var(--system-blue);
-    border: 1px solid var(--border-focus);
-}
-
-.btn-ai:hover {
-    background: var(--system-blue-subtle);
-    border-color: var(--border-focus);
-    color: var(--system-blue-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px var(--focus-ring-blue);
-}
-
-.btn-ai:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
 }
 
 .flight-chat-fab,

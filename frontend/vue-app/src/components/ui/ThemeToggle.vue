@@ -39,17 +39,16 @@ const labels: Record<string, string> = {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: var(--h-md);
   padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--ws-border-strong, rgba(0, 0, 0, 0.08));
-  background: var(--ws-surface, var(--glass-bg));
-  color: var(--ws-text, #11233f);
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-strong);
+  background: var(--face-raised);
+  color: var(--ink);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  box-shadow: var(--ws-shadow-md, 0 6px 20px rgba(0,0,0,0.08));
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: var(--shadow-sm);
   font-family: inherit;
 }
 
@@ -58,33 +57,36 @@ const labels: Record<string, string> = {
   right: 16px;
   bottom: 16px;
   z-index: 10020;
-  height: 40px;
+  height: var(--h-lg);
   padding: 0 14px;
 }
 
 .theme-toggle--inline {
   position: static;
   z-index: auto;
-  height: 32px;
+  height: var(--h-sm);
   padding: 0 10px;
-  font-size: 12px;
+  font-size: var(--fs-label);
   box-shadow: none;
   background: transparent;
-  border-color: var(--border-light, rgba(100, 140, 190, 0.2));
-  color: var(--text-secondary, var(--ws-text));
+  border-color: var(--line-strong);
+  color: var(--ink-subtle);
   flex-shrink: 0;
 }
 
 .theme-toggle--inline:hover {
-  transform: none;
-  background: rgba(61, 174, 255, 0.1);
-  color: var(--text-primary);
-  border-color: rgba(61, 174, 255, 0.35);
+  color: var(--ink);
+  border-color: var(--ink-muted);
+  background: transparent;
 }
 
 .theme-toggle--floating:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  border-color: var(--ink-muted);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 
 .theme-toggle-icon {

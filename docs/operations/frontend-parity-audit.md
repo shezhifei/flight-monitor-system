@@ -35,9 +35,9 @@ A source file or production owner does not imply parity. Pass counts remain zero
 | `workspace` | `vue-native` | `frontend/vue-app/src/pages/workspace/WorkspacePage.vue` | — | `unverified` |
 | `ontology_center` | `vue-native` | `frontend/vue-app/src/pages/ontology_center/OntologyCenter.vue` | — | `unverified` |
 | `ai_monitor_react` | `react-page` | `frontend/ai-react/src/entries/ai_monitor.tsx` | `frontend/backup/legacy-frontend-archive/html/ai_monitor.html` | `contract-captured` |
-| `llm_eval_lab_react` | `react-page` | `frontend/ai-react/src/entries/llm_eval_lab.tsx` | `frontend/backup/legacy-frontend-archive/html/llm_eval_lab.html` | `contract-captured` |
+| `llm_eval_lab_react` | `retired` | `frontend/ai-react/src/entries/llm_eval_lab.tsx` | — | `retired` |
 | `nl_query_react` | `react-page` | `frontend/ai-react/src/entries/nl_query.tsx` | `frontend/backup/legacy-frontend-archive/html/nl_query.html` | `contract-captured` |
-| `dashboard_ai_widget` | `react-widget` | `frontend/ai-react/src/entries/dashboard_ai_widget.tsx` | `frontend/backup/legacy-frontend-archive/html/dashboard.html` | `contract-captured` |
+| `dashboard_ai_widget` | `retired` | `frontend/ai-react/src/entries/dashboard_ai_widget.tsx` | — | `retired` |
 | `dispatch_board_ai` | `react-drawer` | `frontend/ai-react/src/entries/dispatch_board_ai.tsx` | `frontend/backup/legacy-frontend-archive/html/dispatch_board.html` | `contract-captured` |
 | `ai_config_center_react` | `retired` | `frontend/ai-react/src/entries/ai_config_center.tsx` | — | `retired` |
 | `flight_monitor_ai` | `retired` | `frontend/ai-react/src/entries/flight_monitor_ai.tsx` | — | `retired` |
@@ -72,9 +72,9 @@ A source file or production owner does not imply parity. Pass counts remain zero
 | `user_manager` | `vue-page` | `frontend/vue-app/src/pages/user_manager/UserManager.vue` | `d7eb92ec8f8d68eaed6eaea31f9bbe51c954c6c9f647412e16654a7adde530f8` | 0 | 0 | 0 | 0 | 0 | — | `contract-captured` |
 | `label_manager` | `vue-page` | `frontend/vue-app/src/pages/label_manager/LabelManagerPage.vue` | `c604551974ce1ac0b2c55f39618ffdc223cad504f4094c65cbaaffd9bd94a43a` | 0 | 0 | 0 | 0 | 0 | `legacy-label-manager-build-assets-missing`<br>`missing-asset:/frontend/assets/label_manager-CmYjAVmh.js`<br>`missing-asset:/frontend/assets/label_manager-DT-ZFJuv.css` | `contract-captured` |
 | `ai_monitor_react` | `react-page` | `frontend/ai-react/src/entries/ai_monitor.tsx` | `b887a4b2e5aa19e684e275df159327f81fdcec2d986348f46bcc162edefea4d6` | 0 | 0 | 0 | 0 | 0 | — | `contract-captured` |
-| `llm_eval_lab_react` | `react-page` | `frontend/ai-react/src/entries/llm_eval_lab.tsx` | `fe9911e4a0bed3b8719ac3453915377ee27bdbfcdaf376ca873d8528aa6ec329` | 0 | 0 | 0 | 0 | 0 | — | `contract-captured` |
+| `llm_eval_lab_react` | `retired` | `frontend/ai-react/src/entries/llm_eval_lab.tsx` | `—` | 0 | 0 | 0 | 0 | 0 | — | `retired` |
 | `nl_query_react` | `react-page` | `frontend/ai-react/src/entries/nl_query.tsx` | `503c27086ec4dc0a3e6186b01ce3bca4c3937a33fb262d419fd5138bd9ccb572` | 0 | 0 | 0 | 0 | 0 | — | `contract-captured` |
-| `dashboard_ai_widget` | `react-widget` | `frontend/ai-react/src/entries/dashboard_ai_widget.tsx` | `d365a662777dfe67d448597674cd2cb29d917f47b15168bd9a678b6f6321060f` | 0 | 0 | 0 | 0 | 0 | — | `contract-captured` |
+| `dashboard_ai_widget` | `retired` | `frontend/ai-react/src/entries/dashboard_ai_widget.tsx` | `—` | 0 | 0 | 0 | 0 | 0 | — | `retired` |
 | `dispatch_board_ai` | `react-drawer` | `frontend/ai-react/src/entries/dispatch_board_ai.tsx` | `b8fe7fc4171a7717d6acb7e5a22174b958add404e659f09d3203a8eccf3c22e0` | 0 | 0 | 0 | 0 | 0 | `legacy-dispatch-board-gantt-syntax-error` | `contract-captured` |
 | `ai_config_center_react` | `retired` | `frontend/ai-react/src/entries/ai_config_center.tsx` | `—` | 0 | 0 | 0 | 0 | 0 | — | `retired` |
 | `flight_monitor_ai` | `retired` | `frontend/ai-react/src/entries/flight_monitor_ai.tsx` | `—` | 0 | 0 | 0 | 0 | 0 | — | `retired` |

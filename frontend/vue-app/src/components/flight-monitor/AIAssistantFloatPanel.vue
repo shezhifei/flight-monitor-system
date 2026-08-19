@@ -1,17 +1,9 @@
 <template>
-  <div class="ai-assistant-panel" :class="{ 'is-open': isOpen }">
-    <div v-if="!isOpen" class="panel-toggle" @click="togglePanel">
-      <div v-if="unreadCount > 0" class="toggle-badge">
-        {{ unreadCount }}
-      </div>
-      <span class="icon">💬</span>
-      <span class="text">极智 AI 指挥官</span>
-    </div>
-    
-    <div v-else class="panel-container">
+  <div v-if="isOpen" class="ai-assistant-panel">
+    <div class="panel-container">
       <div class="panel-header">
         <div class="header-info">
-          <h3>Smart AI Assistant</h3>
+          <h3>极智 AI 指挥官</h3>
           <span class="status-indicator" :class="{ 'online': isConnected }">
             {{ isConnected ? '实时桥接中' : '离线' }}
           </span>
@@ -128,8 +120,14 @@ import { unwrapApiData } from '../../shared/apiEnvelope';
 import AIVisualization from './AIVisualization.vue';
 
 const props = defineProps<{
+  open: boolean;
   selectedFlightId?: string | null;
   selectedFlightNo?: string | null;
+}>();
+
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void;
+  (e: 'update:unread', value: number): void;
 }>();
 
 const auth = useAuth();
@@ -145,9 +143,14 @@ interface ChatMessage {
   data?: Record<string, unknown>;
 }
 
-const isOpen = ref(false);
+const isOpen = computed({
+  get: () => props.open,
+  set: (value: boolean) => emit('update:open', value),
+});
 const showMenu = ref(false);
 const unreadCount = ref(0);
+
+watch(unreadCount, (value) => emit('update:unread', value));
 const inputText = ref('');
 const isSending = ref(false);
 const chatBody = ref<HTMLElement | null>(null);
@@ -428,72 +431,38 @@ onUnmounted(() => {
 <style scoped>
 .ai-assistant-panel {
   position: fixed;
-  bottom: 24px;
-  right: 170px;
-  z-index: 9999;
+  bottom: 108px;
+  right: 20px;
+  z-index: 9100;
   font-family: 'MiSans', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.panel-toggle {
-  background-color: var(--bg-card, var(--admin-card-bg));
-  border: 1px solid var(--system-blue, #007AFF);
-  color: var(--text-primary, #1D1D1F);
-  padding: 10px 20px;
-  border-radius: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s, background-color 0.2s;
-  backdrop-filter: blur(8px);
-  position: relative;
-}
-
-.toggle-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--system-red, #FF3B30);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 10px;
-  border: 2px solid white;
-}
-
-.panel-toggle:hover {
-  background-color: var(--bg-input, #F0F0F0);
-  transform: translateY(-2px);
 }
 
 .panel-container {
   width: 400px;
   height: 600px;
-  background: var(--bg-app, #F5F5F7);
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  background: var(--face-raised);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--line);
 }
 
 .panel-header {
-  background-color: var(--bg-card, var(--admin-card-bg));
+  background-color: var(--face-work);
   padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--line);
 }
 
 .header-info h3 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--system-blue, #007AFF);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .status-indicator {

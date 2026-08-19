@@ -59,10 +59,7 @@ html.workspace-embed .flight-monitor-container {
     z-index: 20;
     padding: var(--layout-flight-workbar-padding-top) 0 2px;
     margin-bottom: 0;
-    background:
-        linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-sidebar) 78%, transparent 100%);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: var(--face-work);
 }
 
 /* Disable transition during manual resize for instant responsiveness */
@@ -105,7 +102,7 @@ html.workspace-embed .flight-monitor-container {
 /* --- Detail Panel (Main Content) --- */
 .flight-detail-panel {
     flex: 1;
-    background-color: var(--bg-sidebar);
+    background-color: var(--face-page);
     /* Light Gray Background */
     padding: 20px;
     display: flex;
@@ -232,9 +229,10 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .header-kpi-value {
+    font-family: var(--mono);
     font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: var(--ink);
 }
 
 /* --- Secondary KPI Strip (Row 2) --- */
@@ -253,35 +251,34 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .secondary-kpi-label {
-    font-size: 13px;
-    color: var(--text-tertiary);
-    /* Lighter grey for label */
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
     margin-bottom: 6px;
 }
 
 .secondary-kpi-value {
+    font-family: var(--mono);
     font-size: 18px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--ink);
 }
 
 /* --- Dashboard Cards --- */
 .detail-card {
-    background: var(--bg-card);
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--border-light);
+    background: var(--face-work);
+    border-radius: var(--r-panel);
+    box-shadow: none;
+    border: 1px solid var(--line);
     overflow: hidden;
     position: relative;
-    transition: box-shadow 0.2s ease;
     flex-shrink: 1;
     min-width: 0;
     /* Allow shrinking in flex/grid containers */
 }
 
 .detail-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    /* Hover lift */
+    border-color: var(--line-strong);
 }
 
 /* Specific Card Styles */

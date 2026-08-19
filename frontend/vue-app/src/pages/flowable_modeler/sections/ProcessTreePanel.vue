@@ -184,8 +184,9 @@ function handleLogout(): void {
   font-size: 10px;
   font-weight: 600;
   line-height: 1.3;
-  background: var(--dh-signal-warn-soft);
-  color: var(--ws-warn, var(--system-orange));
+  /* 配置模式是持守身份（动蓝其衬），不是警告 */
+  background: var(--act-soft);
+  color: var(--act);
   flex-shrink: 0;
 }
 

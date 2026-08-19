@@ -15,6 +15,7 @@
 | 路由层 | API routes | `crates/api/src/routes`；只做 HTTP，业务在 application。 |
 | 领域事件 outbox | Domain event outbox | 与业务写同事务落库，再经 CDC/relay 发布；见 ADR-0003。 |
 | 正式前端页 | Primary frontend page | `/frontend/<page>.html`，来自 `frontend/vue-app/dist/`。 |
+| 信号面 | Signal surface | 本仓库运营台视觉语言。说明 `docs/architecture/SIGNAL_SURFACE.md`，标本 `frontend/signal-surface-preview.html`。 |
 | 兼容静态页 | Legacy static page | `/frontend/html/<page>.html`，仅兼容，不扩新功能。 |
 | AI 侧车 | AI sidecar | Python 进程，跑工具/LLM/NL Query 等；由 Rust 代理。 |
 | 待审批动作 | Pending action | 工具执行后等人审的对象，表 `ai_pending_actions`。 |

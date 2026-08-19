@@ -8,13 +8,13 @@ React-based AI surfaces embedded into the Vue production shell through
 The active React entries are:
 
 - `ai_monitor` -> `/frontend/ai_monitor.html`
-- `llm_eval_lab` -> `/frontend/llm_eval_lab.html`
 - `nl_query` -> `/frontend/nl_query.html`
-- `dashboard_ai_widget` -> Dashboard embedded widget
 - `dispatch_board_ai` -> Dispatch Board embedded drawer
 
 Retired entries are not part of the build:
 
+- `llm_eval_lab` is owned by Vue `LlmEvalLab.vue`.
+- `dashboard_ai_widget` is owned by Vue `DashboardAiWidget.vue`.
 - `ai_config_center` is owned by Vue `AiConfigCenter.vue`.
 - `flight_monitor_ai` is owned by Vue-native Flight Monitor AI panels.
 - `flowable_assistant_ai` is owned by Vue-native Flowable AI chat.

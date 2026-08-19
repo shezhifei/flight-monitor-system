@@ -1,0 +1,644 @@
+/* ================================================================
+   航班监控 · 信号面落地层（页面级覆盖）
+   依据 docs/architecture/SIGNAL_SURFACE.md 与标本 signal-surface-preview.html：
+   - 工作面只铺一次：列表面板 = face-work，卡片用 face-page 凹面，无玻璃/投影堆叠
+   - 事态画在对象上：四声胶囊 + 事态行洗底，chrome 不着色
+   - 悬停 = 淡墨洗底，不位移、不发光、不用行动蓝
+   - 选中 = act-soft 淡衬 + 首格 2px 内条（绑 aria-selected / row-selected）
+   全部使用 signal-surface.css token；派生洗色以 color-mix 由 token 现算，
+   不引入第三套色值。覆盖旧玻璃拟物（components/tables/apple-theme）样式。
+   ================================================================ */
+
+/* ---------------------------------------------------------------
+   0. 派生洗色（由标本 token 现算，非新体系）
+   --------------------------------------------------------------- */
+.flight-monitor-page {
+  --fm-hover-wash: color-mix(in srgb, var(--ink) 7%, transparent);
+  --fm-mute-soft: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+}
+
+/* ---------------------------------------------------------------
+   1. 布局面：页 / 容器 / 列表面板 / 详情面板 / 拖拽条
+   --------------------------------------------------------------- */
+body.flight-monitor-page {
+  background: var(--face-page);
+}
+
+.flight-monitor-page .flight-monitor-container {
+  background: var(--face-work);
+}
+
+/* 列表面板 = 工作面本身，去毛玻璃与大圆角 */
+.flight-monitor-page .flight-list-panel {
+  background-color: var(--face-work);
+  border-right: 1px solid var(--line);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 详情面板沉为页底一级，形成凹面 */
+.flight-monitor-page .flight-detail-panel {
+  background-color: var(--face-page);
+}
+
+/* 拖拽调宽条：透明休眠，悬停亮行动色 */
+.flight-monitor-page .resizer {
+  background: transparent;
+}
+
+.flight-monitor-page .resizer:hover,
+.flight-monitor-page .resizer.active {
+  background: var(--act);
+}
+
+/* ---------------------------------------------------------------
+   2. 工作栏：地点条 + 工具条已由 UiPlaceBar / UiToolbar 承载，
+      这里只补面底与搜索器
+   --------------------------------------------------------------- */
+.flight-monitor-page .flight-workbar {
+  background: var(--face-work);
+  border-bottom: 1px solid var(--line);
+}
+
+/* 窄侧栏中决簇换行后仍靠右，分隔细线在换行场景退场。
+   选择器须叠到 (0,4,0) 才能压过 UiToolbar scoped 的 [data-v] 同特异性后注入。 */
+.flight-monitor-page .flight-workbar .ui-toolbar__cluster + .ui-toolbar__cluster {
+  margin-left: auto;
+  padding-left: 0;
+  border-left: 0;
+}
+
+/* 窄侧栏多行排布时行距收紧，避免控件摊散 */
+.flight-monitor-page .flight-workbar .ui-toolbar {
+  row-gap: 8px;
+  padding-bottom: 10px;
+}
+
+/* 搜索器：长得像输入——face-page 凹底 + line-strong 边，聚焦亮行动色。
+   窄侧栏中独占一行，避免被同行控件挤窄。 */
+.fm-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 1 1 100%;
+  height: var(--h-sm);
+  padding: 0 10px;
+  background: var(--face-page);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.fm-search:focus-within {
+  border-color: var(--act);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--act) 18%, transparent);
+}
+
+.fm-search__icon {
+  display: inline-flex;
+  color: var(--ink-muted);
+}
+
+.fm-search input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  caret-color: var(--act);
+  font-size: var(--fs-body);
+  font-family: inherit;
+}
+
+/* 全局 focus-visible 环 (0,2,1) 高于本容器重置，搜索内输入聚焦时环画在外框，内层不画 */
+.fm-search input:focus-visible {
+  box-shadow: none;
+}
+
+.fm-search input::placeholder {
+  color: var(--ink-muted);
+}
+
+.fm-search__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.fm-search__clear:hover {
+  color: var(--ink);
+  background: var(--fm-hover-wash);
+}
+
+/* 搜索字段面板：低频选项，收起时完全退场 */
+.fm-search-options {
+  display: none;
+  padding: var(--s1) var(--s3) var(--s2);
+}
+
+.fm-search-options.expanded {
+  display: block;
+}
+
+.fm-search-options__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  background: var(--face-page);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+
+.fm-search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  height: 26px;
+  padding: 0 10px;
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+  background: var(--face-work);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  user-select: none;
+}
+
+.fm-search-field:hover {
+  border-color: var(--line-strong);
+}
+
+.fm-search-field:has(input:checked) {
+  color: var(--act);
+  border-color: color-mix(in srgb, var(--act) 45%, var(--line));
+  background: var(--act-soft);
+}
+
+/* 自绘复选：剥掉原生蓝方勾，未选空心、选中 act 实底白勾 */
+.fm-search-field input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.fm-search-field input:checked {
+  background-color: var(--act);
+  border-color: var(--act);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.7l4.5-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 10px 10px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.fm-search-field input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------
+   3. 四声胶囊：状态画在对象上
+      mute=常态 / act=进行 / ok=已成 / warn=警 / danger=危
+   --------------------------------------------------------------- */
+.flight-monitor-page .flight-status,
+.flight-monitor-page .cell-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: auto;
+  padding: 3px 10px;
+  border: none;
+  border-radius: var(--r-pill);
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* 无声（mute）：计划、已结束登机 */
+.flight-monitor-page .status-scheduled,
+.flight-monitor-page .status-boarding-ended {
+  background: var(--fm-mute-soft);
+  color: var(--ink-subtle);
+}
+
+/* 行动（act）：登机中、已飞走（上一航段） */
+.flight-monitor-page .status-boarding,
+.flight-monitor-page .status-prev-departed {
+  background: var(--act-soft);
+  color: var(--act);
+}
+
+/* 安（ok）：已起飞 / 已到达 / 即将到达 */
+.flight-monitor-page .status-departed,
+.flight-monitor-page .status-arrived,
+.flight-monitor-page .status-next-arrived {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+/* 警（warn）：延误、催促登机、截载 */
+.flight-monitor-page .status-delayed,
+.flight-monitor-page .status-boarding-urge,
+.flight-monitor-page .status-checkin-end {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+/* 危（danger）：取消 */
+.flight-monitor-page .status-cancelled {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* 异常等级徽章：高=危实底，中=警实底，低=警淡底 */
+.flight-monitor-page .anomaly-severity-badge {
+  border-radius: var(--r-pill);
+  padding: 3px 8px;
+}
+
+.flight-monitor-page .anomaly-severity-badge.badge-high {
+  background: var(--danger);
+  color: var(--danger-on);
+  border: none;
+}
+
+.flight-monitor-page .anomaly-severity-badge.badge-medium {
+  background: var(--warn);
+  color: var(--warn-on);
+  border: none;
+}
+
+.flight-monitor-page .anomaly-severity-badge.badge-low {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border: none;
+}
+
+/* ---------------------------------------------------------------
+   4. 表格：工作面延续，表头不换色，事态行洗底
+      虚拟滚动按 40px/行假设 → td 8px 12px + 12px 字号不超行高
+   --------------------------------------------------------------- */
+.flight-monitor-page #flightTable {
+  background: transparent;
+}
+
+#flightTable th {
+  background: var(--face-work);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.06em;
+  color: var(--ink-subtle);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+#flightTable th.sortable-col {
+  cursor: pointer;
+}
+
+#flightTable th.sortable-col:hover {
+  color: var(--ink);
+}
+
+/* 模板已渲染 .sort-indicator，禁用伪元素箭头避免双箭头 */
+#flightTable th[aria-sort]::after {
+  content: none;
+}
+
+#flightTable .sort-indicator {
+  font-family: var(--mono);
+  color: var(--act);
+}
+
+#flightTable td {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: var(--fw-regular);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+/* 去列斑马纹：密度靠行线，不靠底色 */
+#flightTable td:nth-child(even),
+#flightTable th:nth-child(even) {
+  background-color: transparent;
+}
+
+/* 行底清零：旧 row-* 彩色底与斜纹全部退场，事态改在 td 上洗 */
+#flightTableBody tr {
+  background: transparent;
+  background-image: none;
+}
+
+#flightTableBody tr.row-selected {
+  box-shadow: none;
+}
+
+/* 选中 = act-soft 淡衬 + 首格 2px 内条（绑 aria-selected，t5 接线） */
+#flightTableBody tr.row-selected td,
+#flightTableBody tr[aria-selected='true'] td {
+  background: var(--act-soft);
+}
+
+#flightTableBody tr.row-selected td:first-child,
+#flightTableBody tr[aria-selected='true'] td:first-child {
+  box-shadow: inset 2px 0 0 var(--act);
+}
+
+/* 事态行洗底：仅警/危，55% 洗 */
+#flightTableBody tr.row-delayed td,
+#flightTableBody tr.row-boarding-urge td {
+  background: color-mix(in srgb, var(--warn-soft) 55%, transparent);
+}
+
+#flightTableBody tr.row-cancelled td {
+  background: color-mix(in srgb, var(--danger-soft) 55%, transparent);
+}
+
+/* 悬停 = 淡墨 7%（置于事态行之后，同浓度时后写者赢） */
+#flightTableBody tr[data-flight-id]:hover td {
+  background: var(--fm-hover-wash);
+}
+
+/* 时间列：等宽标识字体，实值重墨 / 预估次墨 / 计划淡墨 */
+.flight-monitor-page .cell-time {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.flight-monitor-page .actual-time,
+.flight-monitor-page .cell-time--actual {
+  color: var(--ink);
+}
+
+.flight-monitor-page .estimated-time,
+.flight-monitor-page .cell-time--estimated {
+  color: var(--ink-subtle);
+}
+
+.flight-monitor-page .scheduled-time,
+.flight-monitor-page .cell-time--scheduled {
+  color: var(--ink-muted);
+}
+
+/* 同列批量圈选 */
+#flightTableBody td.cell-batch-editable:hover {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+#flightTableBody td.cell-batch-selected {
+  background-color: var(--act-soft) !important;
+  box-shadow: inset 0 0 0 1.5px var(--act);
+}
+
+/* 打卡占位符：空心小圆，悬停亮行动色（动词） */
+.flight-monitor-page .cell-punch-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-pill);
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.flight-monitor-page .cell-punch-placeholder:hover {
+  color: var(--act);
+  border-color: var(--act);
+}
+
+/* 备注列：左对齐 + 省略，避免长文本撑破行高 */
+#flightTable td.cell-remarks {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 行内实况闪烁：token 化重制（行背景已移至 td，动画随之上移） */
+@keyframes fm-flash-warn {
+  from {
+    background-color: color-mix(in srgb, var(--warn) 20%, transparent);
+  }
+
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes fm-flash-ok {
+  from {
+    background-color: color-mix(in srgb, var(--ok) 18%, transparent);
+  }
+
+  to {
+    background-color: transparent;
+  }
+}
+
+#flightTableBody tr.flash-update--warn td {
+  animation: fm-flash-warn 1s ease-out;
+}
+
+#flightTableBody tr.flash-update--ok td {
+  animation: fm-flash-ok 1s ease-out;
+}
+
+.flight-monitor-page .flight-item.flash-update--warn {
+  animation: fm-flash-warn 1s ease-out;
+}
+
+.flight-monitor-page .flight-item.flash-update--ok {
+  animation: fm-flash-ok 1s ease-out;
+}
+
+/* ---------------------------------------------------------------
+   5. 卡片：face-page 凹面 + 1px 线，无玻璃无投影堆叠
+   --------------------------------------------------------------- */
+.flight-monitor-page .flight-item {
+  background: var(--face-page);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: none;
+  transition:
+    background-color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+
+.flight-monitor-page .flight-item:hover {
+  border-color: var(--line-strong);
+}
+
+.flight-monitor-page .flight-item.selected {
+  background: var(--act-soft);
+  border-color: var(--act);
+  box-shadow: none;
+}
+
+.flight-monitor-page .flight-item:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
+/* 快速过站：警声 3px 左内条（事态画在对象上） */
+.flight-monitor-page .flight-item.flight-item--quick-turn,
+.flight-monitor-page .flight-item.quick-turnaround {
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+
+/* 告警池卡片：危声左内条（须 !important 压旧 4px 边条） */
+.flight-monitor-page .flight-item.alert-pool-card {
+  border-left: 1px solid color-mix(in srgb, var(--danger) 32%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.flight-monitor-page .flight-item.alert-pool-card.selected {
+  box-shadow: none;
+}
+
+/* 卡片内墨色：航班号 = 等宽标识重墨，其余次墨 */
+.flight-monitor-page .flight-number {
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+}
+
+.flight-monitor-page .flight-number.vip {
+  color: var(--act);
+}
+
+.flight-monitor-page .flight-route .flight-origin,
+.flight-monitor-page .flight-route .flight-destination {
+  color: var(--ink-subtle);
+}
+
+.flight-monitor-page .flight-route .flight-airport {
+  color: var(--ink);
+  font-weight: var(--fw-medium);
+}
+
+.flight-monitor-page .flight-route .flight-arrow {
+  color: var(--ink-muted);
+}
+
+.flight-monitor-page .flight-info .flight-type {
+  color: var(--ink-subtle);
+}
+
+.flight-monitor-page .flight-info .mission-type {
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
+}
+
+.flight-monitor-page .text-tertiary {
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
+}
+
+/* ---------------------------------------------------------------
+   6. 告警池：工作面延续，去卡片化（头部内联样式在 t5 移除后由此接管）
+   --------------------------------------------------------------- */
+.flight-monitor-page .alert-pool-container {
+  background: var(--face-work);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.flight-monitor-page .alert-pool-header {
+  padding: 10px 16px 12px;
+  margin-bottom: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+
+.flight-monitor-page .alert-pool-header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin: 0;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--danger);
+}
+
+.flight-monitor-page .alert-pool-header h3 svg {
+  color: var(--danger);
+}
+
+.flight-monitor-page .alert-pool-header > p {
+  margin: var(--s1) 0 0;
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+}
+
+.flight-monitor-page .alert-pool-header > p strong {
+  color: var(--danger);
+}
+
+.flight-monitor-page .alert-pool-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s2);
+}
+
+.flight-monitor-page .alert-pool-stats {
+  display: inline-flex;
+  gap: var(--s2);
+}
+
+/* 告警计数（t5 替换内联样式后的挂载类） */
+.flight-monitor-page .fm-alert-count {
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 文字按钮：行动色动词，悬停淡行动洗底 */
+.flight-monitor-page .flight-text-btn {
+  padding: var(--s1) var(--s2);
+  border: none;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--act);
+  font-size: var(--fs-label);
+  cursor: pointer;
+}
+
+.flight-monitor-page .flight-text-btn:hover {
+  background: var(--act-soft);
+}

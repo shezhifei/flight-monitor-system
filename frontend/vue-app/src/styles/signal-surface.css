@@ -1,0 +1,113 @@
+/* ================================================================
+   信号面 · 运营台视觉语言 —— 生产 token 层
+   角色与判定：docs/architecture/SIGNAL_SURFACE.md
+   色值真值：frontend/signal-surface-preview.html（标本）
+   只定义变量，不落任何元素样式；新页面按标本变位使用。
+   深色为主；浅色是同一套数的白天变位，不是另一套品牌。
+   ================================================================ */
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/frontend/fonts/JetBrainsMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root,
+[data-theme="dark"] {
+  /* 面偏中性夜色，只留一点冷相；行动蓝单独出场，避免整页灰蓝搅在一起 */
+  --face-page: #08090c;
+  --face-work: #11141a;
+  --face-raised: #181c24;
+  --line: rgba(148, 154, 166, 0.14);
+  --line-strong: #646b7a;
+  --ink: #eceef2;
+  --ink-subtle: #9aa1ad;
+  --ink-muted: #848c99;
+  --ink-inverse: #071018;
+  --act: #74b0f2;
+  --act-on: #071018;
+  --act-soft: rgba(116, 176, 242, 0.14);
+  --ok: #2ec47e;
+  --ok-on: #071018;
+  --ok-soft: rgba(46, 196, 126, 0.14);
+  --warn: #f0a030;
+  --warn-on: #071018;
+  --warn-soft: rgba(240, 160, 48, 0.14);
+  --danger: #ff7a76;
+  --danger-on: #071018;
+  --danger-soft: rgba(255, 122, 118, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
+  --scrim: rgba(8, 9, 12, 0.64);
+}
+
+[data-theme="light"] {
+  --face-page: #edf2f8;
+  --face-work: #ffffff;
+  --face-raised: #ffffff;
+  --line: rgba(16, 35, 63, 0.13);
+  --line-strong: #7a8494;
+  --ink: #11233f;
+  --ink-subtle: #4e5d73;
+  --ink-muted: #5b6b83;
+  --ink-inverse: #ffffff;
+  --act: #0066d6;
+  --act-on: #ffffff;
+  --act-soft: rgba(10, 124, 255, 0.1);
+  --ok: #16794a;
+  --ok-on: #ffffff;
+  --ok-soft: rgba(30, 169, 113, 0.12);
+  --warn: #9a5b00;
+  --warn-on: #ffffff;
+  --warn-soft: rgba(240, 138, 0, 0.12);
+  --danger: #b52e3e;
+  --danger-on: #ffffff;
+  --danger-soft: rgba(217, 61, 79, 0.12);
+  --shadow-sm: 0 1px 3px rgba(17, 35, 63, 0.06);
+  --shadow-md: 0 6px 20px rgba(17, 35, 63, 0.08);
+  --scrim: rgba(17, 35, 63, 0.36);
+}
+
+:root {
+  /* 字与标尺：与标本 :root 一致 */
+  --mono: "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
+  --r-cell: 6px;
+  --r-control: 8px;
+  --r-panel: 10px;
+  --r-pill: 999px;
+  --s1: 4px;
+  --s2: 6px;
+  --s3: 12px;
+  --s4: 20px;
+  --s5: 28px;
+  --h-sm: 32px;
+  --h-md: 36px;
+  --h-lg: 40px;
+  --fs-label: 12px;
+  --fs-body: 13px;
+  --fs-section: 14px;
+  --fs-title: 16px;
+  --fs-page: 20px;
+  --fw-regular: 400;
+  --fw-medium: 550;
+  --fw-semibold: 650;
+  --t-fast: 150ms;
+  --t-mid: 200ms;
+  --t-slow: 250ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ================================================================
+   旧变量映射（迁移期）：admin 壳的旧色板全部指向标本角色。
+   新代码直接用 --face-* / --ink-* / --act 等标本名，别再发明第三套。
+   ================================================================ */
+:root {
+  --admin-bg: var(--face-page);
+  --admin-sidebar-bg: var(--face-page);
+  --admin-card-bg: var(--face-work);
+  --admin-border: var(--line);
+  --admin-text: var(--ink);
+  --admin-text-subtle: var(--ink-subtle);
+  --admin-text-muted: var(--ink-muted);
+}

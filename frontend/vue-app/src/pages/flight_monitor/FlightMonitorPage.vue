@@ -33,7 +33,6 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
       tabindex="0"
     >
       <FlightFilterBar
-        :home-icon-href="p.homeIconHref"
         :page-url="p.pageUrl"
         :connection-status-class="p.flightStream.connectionStatusClass.value"
         :connection-status-text="p.flightStream.connectionStatusText.value"
@@ -43,7 +42,6 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
         :search-query="p.flightData.searchQuery.value"
         :search-fields="p.flightData.searchFields.value"
         :search-options-expanded="p.searchOptionsExpanded.value"
-        :business-filter-expanded="p.businessFilterExpanded.value"
         :visible-count="p.list.visibleCount.value"
         :total-count="p.list.totalFlights.value"
         :has-selected-flight="Boolean(p.selectedFlight.value)"
@@ -58,14 +56,12 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
         @update:view-mode="p.list.setViewMode"
         @update:search-query="p.flightData.setSearchQuery"
         @toggle-search-options="p.searchOptionsExpanded.value = !p.searchOptionsExpanded.value"
-        @toggle-business-filters="p.businessFilterExpanded.value = !p.businessFilterExpanded.value"
         @set-search-field="p.list.handleSearchFieldChange"
         @submit-search="p.list.submitSearch"
         @clear-search="p.flightData.setSearchQuery('')"
         @focus-selected-flight="p.list.focusSelectedFlight"
         @clear-all-filters="p.list.clearAllFilters"
         @set-business-filter="p.list.handleBusinessFilterChange"
-        @reset-business-filters="p.list.resetBusinessFilters"
       />
 
       <FlightListSection
@@ -292,7 +288,7 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   min-height: 0;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--bg-app, #fff);
+  background-color: var(--face-page);
 }
 
 .flight-list-content-shell {
@@ -309,13 +305,14 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
 
 .context-menu {
   position: fixed;
-  background-color: var(--bg-card, #fff);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  background-color: var(--face-raised);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
   z-index: 10000;
   min-width: 180px;
   display: flex;
   flex-direction: column;
+  border-radius: var(--r-control);
 }
 
 .context-menu-item {
@@ -323,18 +320,22 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   border: none;
   padding: 10px 16px;
   text-align: left;
-  color: var(--text-primary, #1D1D1F);
+  color: var(--ink);
   cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.2s;
+  font-size: var(--fs-body);
 }
 
 .context-menu-item:hover {
-  background-color: var(--bg-input, #F0F0F0);
+  background-color: var(--face-work);
+}
+
+.context-menu-item:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: -2px;
 }
 
 .context-menu-item.danger-action {
-  color: var(--system-red, #FF3B30);
+  color: var(--danger);
 }
 
 .batch-cell-selection-bar {
@@ -347,12 +348,12 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  border-radius: 12px;
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  font-size: 13px;
-  color: var(--text-primary, #1D1D1F);
+  border-radius: var(--r-panel);
+  background: var(--face-raised);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  font-size: var(--fs-body);
+  color: var(--ink);
 }
 
 .reconnect-skeleton-overlay {
@@ -364,11 +365,10 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(4px);
-  color: var(--system-gray2);
-  font-size: 13px;
-  border-radius: 8px;
+  background: var(--scrim);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  border-radius: var(--r-control);
   z-index: 50;
   pointer-events: none;
 }

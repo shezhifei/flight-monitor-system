@@ -364,7 +364,7 @@ function templatePermissionCount(tmpl: {
                   <td>{{ role.user_count ?? 0 }}</td>
                   <td>
                     <span v-if="role.is_system" class="badge badge-info">系统</span>
-                    <span v-else class="badge badge-warning">自定义</span>
+                    <span v-else class="badge badge-muted">自定义</span>
                   </td>
                   <td>
                     <button type="button" class="btn btn-secondary btn-sm" @click="openEditRoleModal(role)">
@@ -473,8 +473,8 @@ function templatePermissionCount(tmpl: {
                   <td>{{ tmpl.category || '—' }}</td>
                   <td>{{ templatePermissionCount(tmpl) }}</td>
                   <td>
-                    <span v-if="tmpl.is_system" class="badge badge-warning">系统</span>
-                    <span v-else class="badge badge-active">自定义</span>
+                    <span v-if="tmpl.is_system" class="badge badge-info">系统</span>
+                    <span v-else class="badge badge-muted">自定义</span>
                     <button type="button" class="btn btn-secondary btn-sm" @click="openEditTemplateModal(tmpl)">
                       编辑
                     </button>
@@ -548,31 +548,26 @@ function templatePermissionCount(tmpl: {
 
 .section-content {
   display: none;
-  animation: fadeIn 0.3s ease;
 }
 
 .section-content.active {
   display: block;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
+/* 身份用动蓝（管理员是身份不是警告）；事态用四声其衬；停用走中性墨 */
 .badge-admin {
-  background: var(--dh-signal-warn-soft);
-  color: var(--ws-warn, var(--status-text-checkin-end));
+  background: var(--act-soft);
+  color: var(--act);
 }
 
 .badge-active {
-  background: var(--dh-signal-ok-soft);
-  color: var(--ws-success, var(--status-text-departed));
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 
 .badge-muted {
-  background: var(--ws-surface-muted);
-  color: var(--admin-text-muted, var(--text-tertiary));
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink-muted);
 }
 
 .role-tags {
@@ -586,13 +581,8 @@ function templatePermissionCount(tmpl: {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
-  background: var(--system-blue-subtle);
-  color: var(--ws-primary, var(--system-blue));
-}
-
-.role-tag.admin {
-  background: var(--dh-signal-warn-soft);
-  color: var(--ws-warn, var(--status-text-checkin-end));
+  background: var(--act-soft);
+  color: var(--act);
 }
 
 .empty-placeholder {

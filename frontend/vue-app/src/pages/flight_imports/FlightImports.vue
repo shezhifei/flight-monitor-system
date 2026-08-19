@@ -385,8 +385,8 @@ const summaryCards = [
 .hero {
   background: var(--admin-card-bg, var(--bg-card));
   border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 14px;
-  box-shadow: var(--ws-shadow-sm, 0 10px 28px rgba(15, 23, 42, 0.05));
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-sm);
   padding: 24px 28px;
   margin-bottom: 24px;
 }
@@ -413,8 +413,8 @@ const summaryCards = [
 .panel {
   background: var(--admin-card-bg, var(--bg-card));
   border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 14px;
-  box-shadow: var(--ws-shadow-sm, 0 10px 28px rgba(15, 23, 42, 0.05));
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-sm);
   padding: 20px 22px;
 }
 
@@ -434,10 +434,10 @@ const summaryCards = [
 }
 
 .upload-box {
-  border: 1px dashed var(--admin-border, var(--border-light));
-  border-radius: 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
   padding: 18px;
-  background: var(--ws-surface-muted, transparent);
+  background: var(--face-page);
 }
 
 .file-name {
@@ -458,14 +458,14 @@ const summaryCards = [
 }
 
 .progress-track {
-  background: var(--bg-input);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
 }
 
 .progress-bar {
-  background: var(--status-progress);
+  background: var(--act);
   height: 100%;
   transition: width 0.3s;
 }
@@ -481,9 +481,9 @@ const summaryCards = [
 
 .meta-item {
   padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-light);
+  border-radius: var(--r-control);
+  background: var(--face-page);
+  border: 1px solid var(--line);
 }
 
 .summary-grid {
@@ -495,25 +495,25 @@ const summaryCards = [
 
 .summary-card {
   padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-light);
+  border-radius: var(--r-control);
+  background: var(--face-page);
+  border: 1px solid var(--line);
 }
 
 .summary-card strong {
   display: block;
   font-size: 22px;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .summary-card span {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
   text-transform: uppercase;
 }
 
 .code {
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: var(--mono);
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -529,26 +529,26 @@ const summaryCards = [
 }
 
 .badge-create {
-  background: var(--dh-signal-ok-soft);
-  color: var(--status-text-departed);
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 
 .badge-update {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--act-soft);
+  color: var(--act);
 }
 
 .badge-skip {
-  background: var(--dh-signal-warn-soft);
-  color: var(--status-text-checkin-end);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .row-card {
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
   padding: 16px;
   margin-bottom: 14px;
-  background: var(--bg-card);
+  background: var(--face-work);
 }
 
 .row-head {
@@ -574,7 +574,7 @@ const summaryCards = [
 .list {
   margin: 8px 0 0;
   padding-left: 18px;
-  color: var(--text-secondary);
+  color: var(--ink-subtle);
 }
 
 .list li {

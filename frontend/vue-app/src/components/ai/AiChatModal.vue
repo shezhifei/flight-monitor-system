@@ -136,7 +136,7 @@ function handleKeydown(e: KeyboardEvent) {
             <PendingActionCard
               v-for="action in pendingActions"
               :key="action.actionId"
-              v-bind="action"
+              :action="action"
               @approve="emit('approve', $event)"
               @reject="emit('reject', $event)"
             />

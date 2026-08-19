@@ -1,83 +1,9 @@
-<template>
-  <transition name="modal-fade">
-    <div
-      v-if="activeReminder"
-      class="modal-overlay"
-      style="z-index: 10000;"
-      @mousedown.self="close"
-      @click.self="close"
-    >
-      <div
-        class="modal-container"
-        style="max-width: 480px;"
-        @mousedown.stop
-        @click.stop
-      >
-        <div class="modal-header" style="background: linear-gradient(135deg, #b45309 0%, #92400e 100%); padding: 16px 20px; margin-bottom: 0;">
-          <h3 style="margin:0;font-size:18px;color:#fff;">
-            回执超时提醒
-          </h3>
-          <button
-            type="button"
-            class="close-modal"
-            aria-label="关闭提醒"
-            style="color:#fff;"
-            @click="close"
-          >
-            ×
-          </button>
-        </div>
-
-        <div class="modal-body" style="padding: 20px;">
-          <div style="font-size: 15px; color: var(--admin-text); margin-bottom: 16px; line-height: 1.6;">
-            您发出的调度指令仍有人员未确认，指令流转由于超时状态可能存在安全隐患，请及时跟进处理。
-          </div>
-          
-          <div style="background: var(--bg-page); border-radius: 8px; padding: 16px; border: 1px solid var(--admin-border); margin-bottom: 24px;">
-            <div style="display: flex; margin-bottom: 8px;">
-              <div style="width: 80px; color: var(--admin-text-subtle); font-size: 13px;">
-                通知标题
-              </div>
-              <div style="flex: 1; color: var(--admin-text); font-size: 14px; font-weight: 500;">
-                {{ activeReminder.title || '未命名通知' }}
-              </div>
-            </div>
-            <div style="display: flex; margin-bottom: 8px;">
-              <div style="width: 80px; color: var(--admin-text-subtle); font-size: 13px;">
-                回执状态
-              </div>
-              <div style="flex: 1; color: #b45309; font-size: 14px; font-weight: 500;">
-                已回复 {{ activeReminder.total_count - activeReminder.pending_count }} 人，待回复 {{ activeReminder.pending_count }} 人
-              </div>
-            </div>
-            <div style="display: flex;">
-              <div style="width: 80px; color: var(--admin-text-subtle); font-size: 13px;">
-                关联航班
-              </div>
-              <div style="flex: 1; color: var(--admin-text); font-size: 14px;">
-                {{ activeReminder.flight_id || '无' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--admin-border); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-card); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-          <button type="button" class="flight-btn flight-btn-secondary" @click="close">
-            稍后处理
-          </button>
-          <button type="button" class="flight-btn flight-btn-primary" @click="viewDetail">
-            查看回执详情
-          </button>
-        </div>
-      </div>
-    </div>
-  </transition>
-</template>
-
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue';
 import { useNotification } from '@/composables/useNotification';
 import type { SentReceiptGroupSummaryResponse } from '@/composables/useNotification';
+import UiModal from '../ui/UiModal.vue';
+import UiButton from '../ui/UiButton.vue';
 
 const props = defineProps<{
   queue: string[];
@@ -95,7 +21,6 @@ async function pollQueue() {
   if (!activeReminder.value && props.queue.length > 0) {
     const groupId = props.popReminder();
     if (groupId) {
-      // Fetch details of this group to check if STILL pending
       const detail = await notificationAPI.fetchHistoryDetail(groupId);
       if (detail && detail.summary.pending_count > 0 && detail.summary.is_overdue) {
         activeReminder.value = {
@@ -114,7 +39,7 @@ async function pollQueue() {
            latest_updated_at: detail.summary.latest_updated_at
         };
       } else {
-        pollQueue(); // Try next one
+        pollQueue();
       }
     }
   }
@@ -141,30 +66,82 @@ function viewDetail() {
 }
 </script>
 
+<template>
+  <UiModal
+    :open="Boolean(activeReminder)"
+    title="回执超时"
+    :width="520"
+    @close="close"
+  >
+    <template v-if="activeReminder">
+      <p class="lede">
+        发出的调度指令仍有人员未确认。
+      </p>
+      <dl class="meta">
+        <div class="meta-row">
+          <dt>通知标题</dt>
+          <dd>{{ activeReminder.title || '未命名通知' }}</dd>
+        </div>
+        <div class="meta-row">
+          <dt>回执状态</dt>
+          <dd class="meta-warn">
+            已回复 {{ activeReminder.total_count - activeReminder.pending_count }} 人，待回复 {{ activeReminder.pending_count }} 人
+          </dd>
+        </div>
+        <div class="meta-row">
+          <dt>关联航班</dt>
+          <dd>{{ activeReminder.flight_id || '无' }}</dd>
+        </div>
+      </dl>
+    </template>
+    <template #footer>
+      <UiButton variant="ghost" @click="close">稍后处理</UiButton>
+      <UiButton variant="primary" @click="viewDetail">查看回执详情</UiButton>
+    </template>
+  </UiModal>
+</template>
+
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.lede {
+  margin: 0 0 16px;
+  font-size: var(--fs-section);
+  color: var(--ink);
+  line-height: 1.6;
 }
 
-.modal-container {
-  width: 100%;
-  background: var(--admin-card-bg);
-  border-radius: 12px;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  animation: modalPop 0.25s ease-out forwards;
+.meta {
+  margin: 0;
+  background: var(--face-work);
+  border-radius: var(--r-control);
+  padding: 12px 14px;
+  border: 1px solid var(--line);
 }
 
-@keyframes modalPop {
-  0% { transform: scale(0.97); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+.meta-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.meta-row:last-child {
+  margin-bottom: 0;
+}
+
+.meta-row dt {
+  width: 80px;
+  flex-shrink: 0;
+  color: var(--ink-subtle);
+  font-size: var(--fs-body);
+}
+
+.meta-row dd {
+  margin: 0;
+  flex: 1;
+  color: var(--ink);
+  font-size: var(--fs-section);
+}
+
+.meta-warn {
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
 }
 </style>

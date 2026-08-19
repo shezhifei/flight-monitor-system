@@ -6,8 +6,8 @@ use serde_json::{json, Value};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch_collaboration::{
-    DispatchChatGroupSummary, DispatchCollaborationEvent, DispatchFlightCollaborationView,
-    DispatchOrderCollaborationView,
+    DispatchChatGroupSummary, DispatchChatMessageCursor, DispatchCollaborationEvent,
+    DispatchFlightCollaborationView, DispatchOrderCollaborationView,
 };
 use fms_domain::models::notification::Notification;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
@@ -45,7 +45,11 @@ impl DispatchCollaborationQueryService {
         let recent_messages = match group.as_ref() {
             Some(group) => {
                 self.collaboration_repo
-                    .list_group_messages(&group.group_id, limit.clamp(1, 20), None)
+                    .list_group_messages(
+                        &group.group_id,
+                        limit.clamp(1, 20),
+                        DispatchChatMessageCursor::Latest,
+                    )
                     .await?
                     .items
             }

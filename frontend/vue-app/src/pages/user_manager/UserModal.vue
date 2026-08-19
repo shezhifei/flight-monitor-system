@@ -226,18 +226,22 @@ function isRoleChecked(roleName: string): boolean {
 </template>
 
 <style scoped>
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; }
-.modal-content { background: var(--bg-card, #fff); border-radius: 12px; width: 520px; max-width: 94vw; max-height: 88vh; display: flex; flex-direction: column; }
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08)); }
-.modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary, #64748b); }
+/* 对话框 = 抬起面 +  scrim；控件走标本配方（signal-surface.css token） */
+.modal-overlay { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+.modal-content { background: var(--face-raised); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow-md); width: 520px; max-width: 94vw; max-height: 88vh; display: flex; flex-direction: column; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.modal-header h3 { margin: 0; font-size: var(--fs-title); font-weight: var(--fw-semibold); }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--ink-subtle); }
+.modal-close:hover { color: var(--ink); }
 .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
 .form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-primary, #1D1D1F); }
+.form-group label { display: block; font-size: var(--fs-label); font-weight: var(--fw-medium); margin-bottom: 6px; color: var(--ink-subtle); }
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="password"],
-.form-group select { width: 100%; padding: 8px 12px; border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08)); border-radius: 6px; font-size: 14px; box-sizing: border-box; background: var(--bg-card); font-family: inherit; }
+.form-group select { width: 100%; padding: 7px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-control); font-size: var(--fs-body); box-sizing: border-box; background: var(--face-page); color: var(--ink); font-family: inherit; }
+.form-group input:focus-visible,
+.form-group select:focus-visible { outline: 2px solid var(--act); outline-offset: 1px; }
 .password-field { position: relative; }
 .password-field input { padding-right: 40px; }
 .password-toggle {
@@ -251,16 +255,20 @@ function isRoleChecked(roleName: string): boolean {
   padding: 4px;
   display: flex;
   align-items: center;
+  color: var(--ink-subtle);
 }
 .form-row { display: flex; gap: 24px; }
-.form-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+input[type="checkbox"] { accent-color: var(--act); width: 14px; height: 14px; }
+.form-row label { display: flex; align-items: center; gap: 6px; font-size: var(--fs-body); cursor: pointer; }
 .form-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .role-checkboxes { display: flex; flex-wrap: wrap; gap: 12px; }
-.role-checkboxes label { display: flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; font-weight: normal; }
-.role-empty { font-size: 13px; color: var(--system-gray2); padding: 8px 0; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.08)); }
-.btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid var(--border-light); background: var(--bg-card); cursor: pointer; }
-.btn-primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn-primary:disabled { background: var(--dh-signal-accent-soft); border-color: #93c5fd; cursor: not-allowed; }
-.btn-secondary { background: var(--bg-page); color: var(--text-tertiary); }
+.role-checkboxes label { display: flex; align-items: center; gap: 4px; font-size: var(--fs-body); cursor: pointer; font-weight: normal; }
+.role-empty { font-size: var(--fs-body); color: var(--ink-muted); padding: 8px 0; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); }
+.btn { min-height: var(--h-sm); padding: 0 14px; border-radius: var(--r-control); font-size: var(--fs-label); font-weight: var(--fw-medium); border: 1px solid var(--line-strong); background: transparent; color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--act); color: var(--act); }
+.btn-primary { background: var(--act); color: var(--act-on); border-color: transparent; }
+.btn-primary:hover { background: var(--act); color: var(--act-on); filter: brightness(1.06); }
+.btn-primary:disabled { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-muted); border-color: transparent; cursor: not-allowed; filter: none; }
+.btn-secondary { background: transparent; color: var(--ink-subtle); }
 </style>

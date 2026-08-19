@@ -24,7 +24,6 @@ import { getBatchFieldLabel } from '../flightBatchEditableFields';
 export interface UseFlightMonitorPageReturn {
   // Navigation
   pageUrl: (name: string) => string;
-  homeIconHref: string;
 
   // Core data
   flightData: ReturnType<typeof useFlightData>;
@@ -80,8 +79,6 @@ export interface UseFlightMonitorPageReturn {
 }
 
 export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
-  const homeIconHref = '/frontend/icons/home.svg';
-
   const flightData = useFlightData({
     flights: [],
     originalFlights: [],
@@ -470,7 +467,6 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
 
   return {
     pageUrl: (name: string) => pageUrl(name as PageKey),
-    homeIconHref,
     flightData,
     flightStream,
     notificationData,

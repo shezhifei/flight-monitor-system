@@ -894,22 +894,22 @@ onBeforeUnmount(() => {
     role="list"
     aria-label="告警航班池"
   >
-    <div class="alert-pool-header" style="padding: 10px 16px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px;">
-      <h3 style="margin: 0; font-size: 14px; color: var(--system-red);">
+    <div class="alert-pool-header">
+      <h3>
         <svg
           width="14"
           height="14"
           viewBox="0 0 24 24"
           fill="currentColor"
-          style="vertical-align: text-bottom; margin-right: 4px;"
+          aria-hidden="true"
         >
           <path d="M12 2L1 21h22M12 6l7.53 13H4.47M11 10v4h2v-4m-2 6v2h2v-4" />
         </svg>
         异常告警池
-        <span id="alertCountBadge" class="info-badge" style="background: rgba(220,38,38,0.1); color: var(--system-red); border-radius: 10px; padding: 2px 6px; font-size: 12px; margin-left: 6px;">{{ anomalyFlights.length }}</span>
+        <span id="alertCountBadge" class="fm-alert-count">{{ anomalyFlights.length }}</span>
       </h3>
-      <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">
-        当前共发现 <span style="color: var(--system-red); font-weight: bold;">{{ anomalyFlights.length }}</span> 个异常航班，已按严重程度排序。
+      <p>
+        当前共发现 <strong>{{ anomalyFlights.length }}</strong> 个异常航班，已按严重程度排序。
       </p>
       <div class="alert-pool-overview">
         <div class="alert-pool-stats">
@@ -1000,6 +1000,7 @@ onBeforeUnmount(() => {
               v-for="flight in visibleTableFlights"
               :key="`row-${getFlightDomId(flight)}`"
               :class="[getStatusRowClassName(flight.status), { 'row-selected': isSelected(flight) }, getTableRowUpdateClass(flight)]"
+              :aria-selected="isSelected(flight)"
               :data-flight-id="getFlightDomId(flight)"
               tabindex="0"
               @click="selectFlight(flight)"
@@ -1400,31 +1401,29 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   padding: 4px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur, blur(18px));
-  -webkit-backdrop-filter: var(--glass-blur, blur(18px));
-  border: 1px solid var(--glass-border, var(--border-light, #e5e7eb));
-  border-radius: 8px;
-  box-shadow: var(--glass-shadow, 0 8px 24px rgba(0, 0, 0, 0.12));
+  background: var(--face-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow-md);
 }
 
 .punch-context-menu-item {
   padding: 8px 12px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-cell);
   background: none;
-  font-size: 13px;
+  font-size: var(--fs-body);
   text-align: left;
   cursor: pointer;
-  color: var(--text-primary, #111827);
+  color: var(--ink);
 }
 
 .punch-context-menu-item:hover {
-  background: var(--bg-hover, #f3f4f6);
+  background: var(--face-work);
 }
 
 .punch-context-menu-item.danger {
-  color: var(--system-red, #dc2626);
+  color: var(--danger);
 }
 
 .punch-context-menu-item.disabled {
@@ -1439,15 +1438,17 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--scrim);
 }
 
 .punch-edit-modal {
   min-width: 300px;
   padding: 16px 20px;
-  background: var(--bg-primary, #fff);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  background: var(--face-raised);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-md);
 }
 
 .punch-edit-modal h3 {
@@ -1459,9 +1460,11 @@ onBeforeUnmount(() => {
   width: 100%;
   box-sizing: border-box;
   padding: 6px 8px;
-  border: 1px solid var(--border-light, #d1d5db);
-  border-radius: 6px;
-  font-size: 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--face-page);
+  color: var(--ink);
+  font-size: var(--fs-body);
 }
 
 .punch-edit-actions {
@@ -1473,17 +1476,18 @@ onBeforeUnmount(() => {
 
 .punch-edit-actions button {
   padding: 6px 14px;
-  border: 1px solid var(--border-light, #d1d5db);
-  border-radius: 6px;
-  background: var(--bg-primary, #fff);
-  font-size: 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--face-work);
+  color: var(--ink);
+  font-size: var(--fs-body);
   cursor: pointer;
 }
 
 .punch-edit-actions button.primary {
-  background: var(--primary-blue, #2563eb);
-  border-color: var(--primary-blue, #2563eb);
-  color: #fff;
+  background: var(--act);
+  border-color: var(--act);
+  color: var(--act-on);
 }
 
 .punch-edit-actions button:disabled {

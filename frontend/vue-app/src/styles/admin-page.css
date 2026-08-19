@@ -1,99 +1,110 @@
-/* --- Admin Page Primitives --- */
+/* --- Admin Page Primitives ---
+   信号面变位：器的高 32/28、圆角 8、行动蓝单独出场；
+   悬停（交感）只变描边或一层淡墨，选中（持守）用行动衬。 */
 :is(.admin-container, .admin-layout, .main-container) .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-height: 40px;
-    padding: 0 16px;
+    min-height: var(--h-sm);
+    height: var(--h-sm);
+    padding: 0 12px;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--r-control);
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 13px;
-    font-weight: 600;
+    transition: background-color var(--t-fast) var(--ease),
+                border-color var(--t-fast) var(--ease),
+                color var(--t-fast) var(--ease),
+                filter var(--t-fast) var(--ease);
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
     white-space: nowrap;
     text-decoration: none;
 }
 
-:is(.admin-container, .admin-layout, .main-container) .btn:hover {
-    transform: translateY(-1px);
-}
-
 :is(.admin-container, .admin-layout, .main-container) .btn:disabled {
-    opacity: 0.55;
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    color: var(--ink-muted);
+    border-color: transparent;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+    filter: none;
 }
 
+/* 强调：主按钮本声实底 + 其上，不是选中，不发光 */
 :is(.admin-container, .admin-layout, .main-container) .btn-primary {
-    background: linear-gradient(180deg, #1888ff 0%, var(--system-blue) 100%);
-    color: var(--text-inverse);
-    box-shadow: 0 10px 20px var(--focus-ring-blue);
+    background: var(--act);
+    color: var(--act-on);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .btn-primary:hover {
-    background: linear-gradient(180deg, #2b92ff 0%, #0a80ff 100%);
+    filter: brightness(1.06);
 }
 
+/* 描边器：次级动词；悬停只变描边与字色 */
 :is(.admin-container, .admin-layout, .main-container) .btn-secondary {
-    background: var(--admin-card-bg);
-    color: var(--admin-text);
-    border-color: var(--admin-border);
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.03);
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--line-strong);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .btn-secondary:hover {
-    background: var(--admin-card-bg);
-    border-color: var(--ws-primary-strong);
+    border-color: var(--act);
+    color: var(--act);
 }
 
+/* 危与安动词用衬，不抢主按钮 */
 :is(.admin-container, .admin-layout, .main-container) .btn-danger {
-    background: rgba(239, 83, 80, 0.08);
-    color: var(--ws-danger);
-    border-color: rgba(239, 83, 80, 0.14);
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-danger:hover {
+    border-color: var(--danger);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .btn-success {
-    background: rgba(46, 196, 126, 0.12);
-    color: var(--ws-success);
-    border-color: rgba(46, 196, 126, 0.18);
+    background: var(--ok-soft);
+    color: var(--ok);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .btn-success:hover {
+    border-color: var(--ok);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .btn-sm {
-    min-height: 34px;
-    padding: 0 12px;
-    font-size: 12px;
-    border-radius: 8px;
+    min-height: 28px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: var(--fs-label);
+    border-radius: var(--r-cell);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .section-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: var(--s3);
     flex-wrap: wrap;
-    margin-bottom: 24px;
+    margin-bottom: var(--s3);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .filter-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--s2);
     flex-wrap: wrap;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .search-group {
     position: relative;
-    width: 320px;
-    min-width: 280px;
+    width: 280px;
+    min-width: 220px;
     flex-shrink: 0;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .search-icon {
     position: absolute;
-    left: 14px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
@@ -102,7 +113,7 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: var(--admin-text-subtle);
+    color: var(--ink-muted);
     z-index: 1;
     line-height: 0;
 }
@@ -119,27 +130,26 @@
 :is(.admin-container, .admin-layout, .main-container) .search-input {
     box-sizing: border-box;
     width: 100%;
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
-    padding: 0 14px 0 44px;
-    border: 1px solid var(--admin-border);
-    border-radius: 10px;
-    font-size: 13px;
+    height: var(--h-sm);
+    min-height: var(--h-sm);
+    max-height: var(--h-sm);
+    padding: 0 10px 0 32px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-control);
+    font-size: var(--fs-label);
     line-height: 1.2;
-    background: var(--admin-card-bg);
-    color: var(--admin-text);
-    transition: all 0.2s ease;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+    background: var(--face-page);
+    color: var(--ink);
+    transition: border-color var(--t-fast) var(--ease);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .search-input::placeholder {
-    color: var(--admin-text-muted);
+    color: var(--ink-muted);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .search-input:hover,
 :is(.admin-container, .admin-layout, .main-container) .filter-select:hover {
-    border-color: var(--admin-border);
+    border-color: var(--act);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .search-input:focus-visible,
@@ -148,93 +158,95 @@
 :is(.admin-container, .admin-layout, .main-container) input[type="text"]:focus-visible,
 :is(.admin-container, .admin-layout, .main-container) input[type="file"]:focus-visible,
 :is(.admin-container, .admin-layout, .main-container) select:focus-visible {
-    outline: 2px solid var(--ws-primary);
+    outline: 2px solid var(--act);
     outline-offset: 2px;
-    background: var(--admin-card-bg);
-    border-color: var(--ws-primary);
-    box-shadow: 0 0 0 4px var(--focus-ring-blue);
+    border-color: var(--act);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .filter-select {
     box-sizing: border-box;
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
-    padding: 0 36px 0 12px;
-    border: 1px solid var(--admin-border);
-    border-radius: 10px;
-    font-size: 13px;
+    height: var(--h-sm);
+    min-height: var(--h-sm);
+    max-height: var(--h-sm);
+    padding: 0 32px 0 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-control);
+    font-size: var(--fs-label);
     line-height: 1.2;
-    background: var(--admin-card-bg);
-    color: var(--admin-text);
+    background: var(--face-page);
+    color: var(--ink);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: border-color var(--t-fast) var(--ease);
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23717b8a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 12px center;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.03);
+    background-position: right 10px center;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: var(--s3);
+    margin-bottom: var(--s4);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .stat-card {
-    background: var(--admin-card-bg);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
-    padding: 18px 20px;
+    background: var(--face-work);
+    border: 1px solid var(--line);
+    border-radius: var(--r-panel);
+    padding: var(--s3);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .stat-label {
-    font-size: 12px;
+    font-size: var(--fs-label);
     line-height: 1.4;
-    color: var(--admin-text-subtle);
+    color: var(--ink-subtle);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .stat-value {
-    margin-top: 8px;
-    font-size: 30px;
-    line-height: 1;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--admin-text);
+    margin-top: var(--s1);
+    font-size: 24px;
+    line-height: 1.1;
+    font-weight: var(--fw-semibold);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .table-container {
     width: 100%;
     overflow-x: auto;
-    background: var(--admin-card-bg);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+    background: var(--face-work);
+    border: 1px solid var(--line);
+    border-radius: var(--r-panel);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .table-container table {
     width: 100%;
     border-collapse: collapse;
     table-layout: auto;
+    font-size: var(--fs-label);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .table-container th,
 :is(.admin-container, .admin-layout, .main-container) .table-container td {
-    padding: 14px 16px;
+    padding: 8px 10px;
     white-space: nowrap;
     vertical-align: middle;
-    border-bottom: 1px solid var(--admin-border);
-    color: var(--admin-text);
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    text-align: left;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .table-container th {
-    background: var(--admin-sidebar-bg);
-    color: var(--admin-text-subtle);
-    font-size: 12px;
-    font-weight: 700;
+    background: var(--face-page);
+    color: var(--ink-subtle);
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
+}
+
+/* 交感：行划过一层淡墨，轻于持守 */
+:is(.admin-container, .admin-layout, .main-container) .table-container tbody tr:hover td {
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .table-container tbody tr:last-child td {
@@ -250,75 +262,69 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
-    margin-top: 18px;
-    padding: 8px 0 0;
+    gap: var(--s3);
+    margin-top: var(--s3);
+    padding: 0;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .pagination-info {
-    font-size: 12px;
-    color: var(--admin-text-subtle);
+    font-size: var(--fs-label);
+    color: var(--ink-subtle);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .pagination-controls {
     display: flex;
-    gap: 8px;
+    gap: var(--s2);
 }
 
+/* 事态/身份胶囊：四声其衬 + 本声字，没有第五声 */
 :is(.admin-container, .admin-layout, .main-container) .badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 24px;
-    padding: 0 10px;
-    border-radius: 999px;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: var(--r-pill);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: var(--fw-medium);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .badge-success {
-    background: rgba(46, 196, 126, 0.14);
-    color: var(--ws-success);
+    background: var(--ok-soft);
+    color: var(--ok);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .badge-warning {
-    background: rgba(240, 160, 48, 0.14);
-    color: var(--ws-warn);
+    background: var(--warn-soft);
+    color: var(--warn);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .badge-danger {
-    background: rgba(239, 83, 80, 0.12);
-    color: var(--ws-danger);
+    background: var(--danger-soft);
+    color: var(--danger);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .badge-info {
-    background: var(--system-blue-subtle);
-    color: var(--ws-primary);
+    background: var(--act-soft);
+    color: var(--act);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .panel {
-    background: var(--admin-card-bg);
-    border: 1px solid var(--admin-border);
-    border-radius: 16px;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+    background: var(--face-work);
+    border: 1px solid var(--line);
+    border-radius: var(--r-panel);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .sidebar-home-link {
     flex: 1;
     justify-content: flex-start;
     margin-bottom: 0;
-    /* Match legacy admin-page.css hard-coded wash (not --admin-border 0.08). */
-    background: rgba(15, 23, 42, 0.03);
-}
-
-:is(.admin-container, .admin-layout, .main-container) .sidebar-home-link:hover {
-    background: rgba(15, 23, 42, 0.06);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .sidebar-section-stack {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--s1);
 }
 
 /* --- Master-detail + left overview list (派工规则 / 流程设计) --- */
@@ -326,13 +332,13 @@
 :is(.admin-container, .admin-layout, .main-container) .admin-master-detail {
     display: grid;
     grid-template-columns: var(--admin-md-list-width, 260px) minmax(0, 1fr);
-    gap: 16px;
+    gap: var(--s3);
     min-height: 420px;
     align-items: stretch;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-master-detail__list {
-    padding: 12px;
+    padding: var(--s3);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -340,10 +346,10 @@
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-master-detail__detail {
-    padding: 16px 18px;
+    padding: var(--s3) var(--s4);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--s3);
     min-width: 0;
     min-height: 0;
 }
@@ -351,15 +357,15 @@
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-tools {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--s2);
     width: 100%;
 }
 
 /* 工具栏内：保持与其它 admin 搜索同宽 */
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-tools:not(.is-compact) .admin-overview-tools__search {
     flex: 0 1 auto;
-    width: 320px;
-    min-width: 280px;
+    width: 280px;
+    min-width: 220px;
 }
 
 /* 侧栏紧凑：占满剩余宽度 */
@@ -370,28 +376,26 @@
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-tools.is-compact .search-input {
-    min-height: 36px;
-    padding-left: 40px;
-    font-size: 13px;
+    padding-left: 32px;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-tools.is-compact .search-icon {
-    left: 12px;
+    left: 10px;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-tools__create-icon {
     box-sizing: border-box;
-    width: 36px;
-    min-width: 36px;
-    height: 36px !important;
-    min-height: 36px !important;
-    max-height: 36px;
+    width: var(--h-sm);
+    min-width: var(--h-sm);
+    height: var(--h-sm) !important;
+    min-height: var(--h-sm) !important;
+    max-height: var(--h-sm);
     padding: 0 !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-    font-size: 18px;
+    border-radius: var(--r-control);
+    font-size: 16px;
     line-height: 1;
     flex-shrink: 0;
 }
@@ -402,39 +406,46 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--s1);
     overflow-y: auto;
     flex: 1;
     min-height: 0;
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-list.is-compact {
-    gap: 4px;
-    margin-top: 6px;
+    gap: 2px;
+    margin-top: var(--s2);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--s2);
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--r-control);
     padding: 2px 4px;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background-color var(--t-fast) var(--ease);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-list.is-compact .admin-overview-item {
     padding: 0;
-    border-radius: 8px;
+    border-radius: var(--r-control);
 }
 
+/* 交感：划过一层淡墨 */
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item:hover {
-    background: var(--ws-surface-muted, var(--bg-hover, rgba(15, 23, 42, 0.04)));
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
 }
 
-:is(.admin-container, .admin-layout, .main-container) .admin-overview-item.active {
-    background: var(--system-blue-subtle);
-    border-color: var(--focus-ring-blue, var(--border-focus, rgba(10, 132, 255, 0.35)));
+/* 持守：当前项 = 行动衬 + 行动字，无描边 */
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item.active,
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item[aria-selected="true"] {
+    background: var(--act-soft);
+}
+
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item.active .admin-overview-item__body,
+:is(.admin-container, .admin-layout, .main-container) .admin-overview-item[aria-selected="true"] .admin-overview-item__body {
+    color: var(--act);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item.deprecated {
@@ -451,10 +462,10 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 8px 10px;
-    color: var(--admin-text, var(--text-primary));
+    padding: 6px 8px;
+    color: var(--ink);
     font: inherit;
-    border-radius: 8px;
+    border-radius: var(--r-cell);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__title-row {
@@ -465,8 +476,8 @@
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__title {
-    font-size: 13px;
-    font-weight: 650;
+    font-size: var(--fs-body);
+    font-weight: var(--fw-medium);
     line-height: 1.3;
     color: inherit;
     min-width: 0;
@@ -478,25 +489,26 @@
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__badge {
     flex-shrink: 0;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: var(--fw-medium);
     line-height: 1.2;
-    color: var(--ws-danger, var(--system-red));
-    border: 1px solid color-mix(in srgb, var(--ws-danger, var(--system-red)) 55%, transparent);
+    color: var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
     padding: 1px 4px;
-    border-radius: 4px;
+    border-radius: var(--r-cell);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__meta {
     font-size: 11px;
-    font-weight: 500;
-    color: var(--admin-text-muted, var(--text-tertiary, var(--system-gray2)));
+    font-weight: var(--fw-regular);
+    color: var(--ink-muted);
     line-height: 1.3;
+    font-family: var(--mono);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__desc {
     font-size: 11px;
-    font-weight: 500;
-    color: var(--admin-text-subtle, var(--text-tertiary));
+    font-weight: var(--fw-regular);
+    color: var(--ink-subtle);
     line-height: 1.35;
     margin-top: 1px;
     display: -webkit-box;
@@ -513,7 +525,7 @@
     padding-right: 4px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.12s ease;
+    transition: opacity var(--t-fast) var(--ease);
 }
 
 /* 悬停 / 选中 / 键盘焦点时露出操作，避免一排大红「删除」 */
@@ -533,24 +545,24 @@
     padding: 0;
     margin: 0;
     border: none;
-    border-radius: 7px;
+    border-radius: var(--r-cell);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: transparent;
-    color: var(--admin-text-muted, var(--text-tertiary));
+    color: var(--ink-muted);
     cursor: pointer;
     flex-shrink: 0;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn:hover:not(:disabled) {
-    background: rgba(239, 83, 80, 0.1);
-    color: var(--ws-danger, var(--system-red));
+    background: var(--danger-soft);
+    color: var(--danger);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__icon-btn:focus-visible {
-    outline: 2px solid var(--ws-primary);
+    outline: 2px solid var(--act);
     outline-offset: 1px;
 }
 
@@ -568,26 +580,26 @@
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__times {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: var(--fw-regular);
     line-height: 1;
     display: block;
     transform: translateY(-0.5px);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-item__restore:hover:not(:disabled) {
-    background: rgba(46, 196, 126, 0.12);
-    color: var(--ws-success, var(--system-green));
+    background: var(--ok-soft);
+    color: var(--ok);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-empty {
-    padding: 24px 12px;
+    padding: var(--s4) var(--s3);
     text-align: center;
-    color: var(--admin-text-muted, var(--system-gray2));
-    font-size: 13px;
+    color: var(--ink-muted);
+    font-size: var(--fs-body);
 }
 
 :is(.admin-container, .admin-layout, .main-container) .admin-overview-empty.is-error {
-    color: var(--ws-danger, var(--system-red));
+    color: var(--danger);
 }
 
 /* Sidebar embedding: list fills remaining height under tools */
@@ -595,18 +607,6 @@
     flex: 1;
     min-height: 0;
 }
-
-@media (max-width: 1280px) {
-    :is(.admin-container, .admin-layout, .main-container) .search-group {
-        width: 280px;
-        min-width: 240px;
-    }
-
-    :is(.admin-container, .admin-layout, .main-container) .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-}
-
 
 @media (max-width: 1024px) {
     :is(.admin-container, .admin-layout, .main-container) .section-toolbar,

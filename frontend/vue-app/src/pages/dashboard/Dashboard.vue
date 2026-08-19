@@ -6,7 +6,7 @@ import {
   resolveWorkspaceModuleFromDashboard,
   workspaceOpenUrl,
 } from '@/shared/workspace-modules';
-import AiReactEntryShell from '@/components/ai/AiReactEntryShell.vue';
+import DashboardAiWidget from '@/components/ai/DashboardAiWidget.vue';
 import type {
   ApiEnvelope,
   DashboardAttentionItem,
@@ -774,7 +774,7 @@ function severityClass(severity: string): string {
     </section>
   </div>
 
-  <AiReactEntryShell :entry-name="'dashboard_ai_widget'" surface="widget" />
+  <DashboardAiWidget />
   <ThemeToggle />
 </template>
 

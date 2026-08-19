@@ -23,22 +23,10 @@ const ACTIVE_REACT_ENTRIES: Array<{
     hostMatcher: /AiReactEntryShell[\s\S]*?ai_monitor/,
   },
   {
-    name: 'llm_eval_lab',
-    hostFile: 'src/pages/llm_eval_lab/LlmEvalLab.vue',
-    hostId: 'ai-react-root',
-    hostMatcher: /AiReactEntryShell[\s\S]*?llm_eval_lab/,
-  },
-  {
     name: 'nl_query',
     hostFile: 'src/pages/nl_query/NlQuery.vue',
     hostId: 'ai-react-root',
     hostMatcher: /AiReactEntryShell[\s\S]*?nl_query/,
-  },
-  {
-    name: 'dashboard_ai_widget',
-    hostFile: 'src/pages/dashboard/Dashboard.vue',
-    hostId: 'dashboard-ai-widget-root',
-    hostMatcher: /AiReactEntryShell[\s\S]*?dashboard_ai_widget/,
   },
   {
     name: 'dispatch_board_ai',
@@ -49,6 +37,8 @@ const ACTIVE_REACT_ENTRIES: Array<{
 ];
 
 const RETIRED_REACT_ENTRIES = [
+  'llm_eval_lab',
+  'dashboard_ai_widget',
   'ai_config_center',
   'flight_monitor_ai',
   'flowable_assistant_ai',
@@ -132,6 +122,9 @@ describe('ai host parity', () => {
           for (const retired of RETIRED_REACT_ENTRIES) {
             // The AiConfigCenter.vue page-author TODO comment is allowed.
             if (retired === 'ai_config_center') continue;
+            // The retired React entry shares its id with the live Vue page
+            // (page registry, routes, fixtures), so bare id references stay legal.
+            if (retired === 'llm_eval_lab') continue;
             if (new RegExp(`['"]${retired}['"]`).test(text)) {
               offenders.push(`${full.replace(vueAppRoot, '')}: ${retired}`);
             }

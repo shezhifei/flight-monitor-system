@@ -1,30 +1,31 @@
-/* --- Admin Layout Structure --- */
+/* --- Admin Layout Structure ---
+   信号面变位：壳层三级面（页底 / 工作面 / 抬起面），持守用行动衬，
+   交感只变字色或一层淡墨。色值角色见 signal-surface.css。 */
 .admin-container,
 .admin-layout,
 .main-container {
     display: flex;
     height: 100vh;
     overflow: hidden;
-    background: var(--admin-bg);
+    background: var(--face-page);
 }
 
 /* --- Sidebar Navigation --- */
 .admin-sidebar,
 .sidebar {
-    width: 260px;
-    background: var(--admin-sidebar-bg);
-    border-right: 1px solid var(--admin-border);
+    width: 232px;
+    background: var(--face-page);
+    border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     padding: 0;
     flex-shrink: 0;
     transition: width 0.3s ease;
-    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-header {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--admin-border);
+    padding: var(--s3);
+    border-bottom: 1px solid var(--line);
     margin-bottom: 0;
     display: flex;
     flex-direction: column;
@@ -34,9 +35,9 @@
 }
 
 .sidebar-logo {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--admin-text);
+    font-size: var(--fs-section);
+    font-weight: var(--fw-semibold);
+    color: var(--ink);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -53,16 +54,15 @@
 
 .sidebar-logo span {
     font-family: var(--font-sans, "MiSans", sans-serif);
-    letter-spacing: -0.01em;
 }
 
 .sidebar-meta,
 .sidebar-subtitle {
     /* 描述文案已统一移除；保留类名避免旧样式报错，默认不占位 */
     display: none;
-    font-size: 12px;
+    font-size: var(--fs-label);
     line-height: 1.5;
-    color: var(--admin-text-subtle);
+    color: var(--ink-subtle);
 }
 
 .sidebar-status-chip {
@@ -70,69 +70,75 @@
     align-items: center;
     gap: 6px;
     width: fit-content;
-    padding: 4px 10px;
-    border-radius: 999px;
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
     font-size: 11px;
-    font-weight: 600;
-    background: var(--system-blue-subtle);
-    color: var(--ws-primary);
+    font-weight: var(--fw-medium);
+    background: var(--act-soft);
+    color: var(--act);
 }
 
 .sidebar-nav {
     flex: 1;
-    padding: 0 12px 16px;
+    padding: var(--s2) var(--s3) var(--s3);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: var(--s4);
 }
 
 .nav-section {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--s1);
     margin-bottom: 0;
 }
 
 .nav-section-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--admin-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 6px 12px 4px;
-    margin-bottom: 2px;
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
+    color: var(--ink-muted);
+    padding: 6px 8px 2px;
+    margin-bottom: 0;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 40px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    color: var(--admin-text-subtle);
+    gap: 8px;
+    min-height: 32px;
+    padding: 6px 8px;
+    border-radius: var(--r-control);
+    color: var(--ink-subtle);
     text-decoration: none;
-    font-weight: 600;
-    transition: all 0.15s ease;
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
+    transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
     margin-bottom: 0;
     cursor: pointer;
 }
 
+/* 交感：划过只变字色，不铺底——底是持守的形 */
 .nav-item:hover {
-    background: var(--admin-border);
-    color: var(--admin-text);
+    color: var(--ink);
 }
 
-.nav-item.active {
-    background: var(--system-blue-subtle);
-    color: var(--ws-primary);
-    box-shadow: inset 0 0 0 1px var(--focus-ring-blue);
+/* 持守：当前位置 = 行动衬 + 行动字，无描边 */
+.nav-item.active,
+.nav-item[aria-current="page"] {
+    background: var(--act-soft);
+    color: var(--act);
+}
+
+.nav-item.active:hover,
+.nav-item[aria-current="page"]:hover {
+    background: var(--act-soft);
+    color: var(--act);
 }
 
 .nav-item-icon {
-    font-size: 18px;
-    width: 24px;
+    font-size: 16px;
+    width: 20px;
     text-align: center;
     display: inline-flex;
     justify-content: center;
@@ -141,17 +147,17 @@
 }
 
 .sidebar-footer {
-    padding: 16px 20px 20px;
-    border-top: 1px solid var(--admin-border);
+    padding: var(--s3);
+    border-top: 1px solid var(--line);
     background: transparent;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--s3);
 }
 
 .sidebar-footer-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--s2);
     align-items: center;
 }
 
@@ -166,42 +172,40 @@
 }
 
 .content-header {
-    padding: 24px 32px 20px;
-    min-height: 88px;
-    border-bottom: 1px solid var(--admin-border);
+    padding: var(--s4) var(--s5);
+    border-bottom: 1px solid var(--line);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
-    background: var(--admin-card-bg);
-    backdrop-filter: blur(20px);
+    gap: var(--s3);
+    background: var(--face-work);
 }
 
 .content-heading {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--s1);
     min-width: 0;
 }
 
 .content-title {
-    font-size: 28px;
-    line-height: 1.1;
-    font-weight: 700;
-    color: var(--admin-text);
+    font-size: var(--fs-page);
+    line-height: 1.2;
+    font-weight: var(--fw-semibold);
+    color: var(--ink);
 }
 
 .content-subtitle,
 .content-meta {
-    font-size: 13px;
+    font-size: var(--fs-body);
     line-height: 1.5;
-    color: var(--admin-text-subtle);
+    color: var(--ink-subtle);
     max-width: 760px;
 }
 
 .header-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--s2);
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
@@ -212,102 +216,92 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 32px 16px;
-    border-bottom: 1px solid var(--admin-border);
-    background: var(--admin-card-bg);
+    gap: var(--s3);
+    padding: var(--s3) var(--s5);
+    border-bottom: 1px solid var(--line);
+    background: var(--face-work);
 }
 
 .admin-chrome-extra .section-toolbar {
     margin-bottom: 0;
 }
 
+/* 升：警告横幅 = 警衬 + 警字 + 42% 描边 */
 .admin-chrome-warn {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: var(--fs-label);
     line-height: 1.4;
-    color: var(--ws-warn);
-    background: var(--dh-signal-warn-soft);
-    border: 1px solid color-mix(in srgb, var(--ws-warn) 28%, transparent);
-    border-radius: 10px;
+    color: var(--warn);
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 42%, transparent);
+    border-radius: var(--r-control);
 }
 
 .nav-count {
     margin-left: auto;
     font-size: 11px;
-    font-weight: 650;
+    font-weight: var(--fw-semibold);
     min-width: 1.5em;
     text-align: center;
     padding: 1px 7px;
-    border-radius: 999px;
-    background: var(--ws-surface-muted);
-    color: var(--admin-text-muted);
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+    color: var(--ink-muted);
 }
 
-.nav-item.active .nav-count {
-    background: color-mix(in srgb, var(--ws-primary) 16%, transparent);
-    color: var(--ws-primary);
+.nav-item.active .nav-count,
+.nav-item[aria-current="page"] .nav-count {
+    background: transparent;
+    color: var(--act);
 }
 
 /* --- Tabs --- */
 .tabs {
     display: flex;
-    gap: 24px;
-    padding: 0 32px;
-    border-bottom: 1px solid var(--admin-border);
-    background-color: var(--admin-card-bg);
+    gap: var(--s4);
+    padding: 0 var(--s5);
+    border-bottom: 1px solid var(--line);
+    background-color: var(--face-work);
 }
 
 .tab {
-    padding: 16px 0;
-    font-weight: 500;
-    color: var(--admin-text-subtle);
+    padding: 10px 0;
+    font-weight: var(--fw-medium);
+    color: var(--ink-subtle);
     background: none;
     border: none;
     cursor: pointer;
     border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    font-size: 14px;
+    transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+    font-size: var(--fs-body);
 }
 
 .tab:hover {
-    color: var(--admin-text);
+    color: var(--ink);
 }
 
-.tab.active {
-    color: var(--ws-primary);
-    border-bottom-color: var(--ws-primary);
+.tab.active,
+.tab[aria-selected="true"] {
+    color: var(--act);
+    border-bottom-color: var(--act);
 }
 
 /* --- Content Body --- */
 .content-body {
     flex: 1;
-    padding: 24px 32px;
+    padding: var(--s4) var(--s5);
     overflow-y: auto;
 }
 
 .tab-content {
     display: none;
-    animation: fadeIn 0.3s ease;
 }
 
 .tab-content.active {
     display: block;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(5px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 
@@ -315,20 +309,22 @@
 .user-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--s2);
 }
 
+/* 头像是身份，用墨不用品牌渐变 */
 .user-avatar {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 32px;
+    height: 32px;
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: 600;
-    font-size: 14px;
+    color: var(--ink);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-label);
+    flex-shrink: 0;
 }
 
 .user-details {
@@ -337,69 +333,68 @@
 }
 
 .user-name {
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-body);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--admin-text);
+    color: var(--ink);
 }
 
 .user-role {
     font-size: 11px;
-    color: var(--admin-text-subtle);
+    color: var(--ink-subtle);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .logout-btn {
-    width: 40px;
-    height: 40px;
-    background: var(--admin-card-bg);
-    border: 1px solid var(--admin-border);
-    border-radius: 10px;
-    color: var(--ws-danger);
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-control);
+    color: var(--ink-subtle);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+    transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 
 .logout-btn:hover {
-    transform: translateY(-1px);
-    background: rgba(239, 83, 80, 0.08);
-    box-shadow: 0 8px 18px rgba(239, 83, 80, 0.12);
+    color: var(--danger);
+    border-color: var(--danger);
 }
 
 /* --- Empty state & Loading --- */
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
-    color: var(--admin-text-subtle);
+    padding: 48px 20px;
+    color: var(--ink-subtle);
 }
 
 .empty-state-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 40px;
+    margin-bottom: var(--s3);
     opacity: 0.5;
 }
 
 .empty-state-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--admin-text);
+    font-size: var(--fs-title);
+    font-weight: var(--fw-semibold);
+    margin-bottom: var(--s1);
+    color: var(--ink);
 }
 
 .spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--admin-border);
-    border-top-color: var(--ws-primary);
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--line-strong);
+    border-top-color: var(--act);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin: 0 auto;
@@ -414,29 +409,13 @@
 @media (max-width: 1280px) {
     .admin-sidebar,
     .sidebar {
-        width: 248px;
+        width: 220px;
     }
 
     .content-header,
     .content-body,
     .admin-chrome-extra {
-        padding-left: 24px;
-        padding-right: 24px;
-    }
-}
-
-@media (max-width: 1024px) {
-    .admin-sidebar,
-    .sidebar {
-        width: 232px;
-    }
-
-    .content-header {
-        padding-top: 20px;
-        padding-bottom: 18px;
-    }
-
-    .content-title {
-        font-size: 24px;
+        padding-left: var(--s4);
+        padding-right: var(--s4);
     }
 }

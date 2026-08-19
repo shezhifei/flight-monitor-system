@@ -7,11 +7,36 @@ use sqlx::{PgPool, Row};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch_collaboration::{
     DispatchChatDispatcherCandidate, DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember,
-    DispatchChatMemberUpsert, DispatchChatMessage, DispatchChatMessageList, DispatchChatUserProfile,
-    DispatchCollaborationEvent, NewDispatchChatMessage, NotificationReceiptSummary,
+    DispatchChatMemberUnread, DispatchChatMemberUpsert, DispatchChatMessage, DispatchChatMessageCursor,
+    DispatchChatMessageList, DispatchChatReadCursorUpdate, DispatchChatUserProfile, DispatchCollaborationEvent,
+    NewDispatchChatMessage, NotificationReceiptSummary,
 };
 use fms_domain::models::notification::Notification;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
+
+/// SQL fragment: a `LEFT JOIN LATERAL` yielding `{out}.unread_count` for the
+/// member row aliased `{member}`.
+///
+/// `dispatch_chat_messages.seq_no` is a table-global `BIGSERIAL`, **not** a
+/// per-group sequence, so unread has to be a real `COUNT(*)` over the group's
+/// own rows above the member's cursor. `MAX(seq_no) - last_read_seq` looks like
+/// a count but silently adds every other group's traffic to the badge.
+///
+/// A member's own messages never count as unread, so a failed or skipped
+/// auto-mark-on-send cannot inflate their own badge.
+fn unread_count_lateral(member: &str, out: &str) -> String {
+    format!(
+        r#"
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*) AS unread_count
+                FROM dispatch_chat_messages msg_{out}
+                WHERE msg_{out}.group_id = {member}.group_id
+                  AND msg_{out}.seq_no > COALESCE({member}.last_read_seq, 0)
+                  AND msg_{out}.sender_user_id IS DISTINCT FROM {member}.user_id
+            ) {out} ON TRUE
+        "#
+    )
+}
 
 pub struct PgDispatchCollaborationRepository {
     pool: PgPool,
@@ -67,7 +92,8 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
         group_id: &str,
         user_id: &str,
     ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
-        let row = sqlx::query(
+        let unread_lateral = unread_count_lateral("m", "unread_stat");
+        let row = sqlx::query(&format!(
             r#"
             SELECT
                 g.*,
@@ -76,7 +102,7 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 last_msg.seq_no AS last_message_seq,
                 last_msg.content AS last_message_content,
                 last_msg.sent_at AS last_message_at,
-                GREATEST(COALESCE(last_msg.seq_no, 0) - COALESCE(m.last_read_seq, 0), 0) AS unread_count
+                COALESCE(unread_stat.unread_count, 0)::BIGINT AS unread_count
             FROM dispatch_chat_group_members m
             JOIN dispatch_chat_groups g ON g.group_id = m.group_id
             LEFT JOIN LATERAL (
@@ -92,11 +118,12 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 WHERE m2.group_id = g.group_id
                   AND m2.is_active = TRUE
             ) member_stat ON TRUE
+            {unread_lateral}
             WHERE m.user_id = $1
               AND m.group_id = $2
             LIMIT 1
-            "#,
-        )
+            "#
+        ))
         .bind(user_id)
         .bind(group_id)
         .fetch_optional(&self.pool)
@@ -111,7 +138,8 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
         flight_id: &str,
         user_id: &str,
     ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
-        let row = sqlx::query(
+        let unread_lateral = unread_count_lateral("m", "unread_stat");
+        let row = sqlx::query(&format!(
             r#"
             SELECT
                 g.*,
@@ -120,7 +148,7 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 last_msg.seq_no AS last_message_seq,
                 last_msg.content AS last_message_content,
                 last_msg.sent_at AS last_message_at,
-                GREATEST(COALESCE(last_msg.seq_no, 0) - COALESCE(m.last_read_seq, 0), 0) AS unread_count
+                COALESCE(unread_stat.unread_count, 0)::BIGINT AS unread_count
             FROM dispatch_chat_group_members m
             JOIN dispatch_chat_groups g ON g.group_id = m.group_id
             LEFT JOIN LATERAL (
@@ -136,12 +164,13 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 WHERE m2.group_id = g.group_id
                   AND m2.is_active = TRUE
             ) member_stat ON TRUE
+            {unread_lateral}
             WHERE m.user_id = $1
               AND g.flight_id = $2
               AND g.channel_type = 'system_flight_dispatch'
             LIMIT 1
-            "#,
-        )
+            "#
+        ))
         .bind(user_id)
         .bind(flight_id)
         .fetch_optional(&self.pool)
@@ -204,6 +233,7 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
             _ => "",
         };
 
+        let unread_lateral = unread_count_lateral("m", "unread_stat");
         let list_sql = format!(
             r#"
             SELECT
@@ -213,7 +243,7 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 last_msg.seq_no AS last_message_seq,
                 last_msg.content AS last_message_content,
                 last_msg.sent_at AS last_message_at,
-                GREATEST(COALESCE(last_msg.seq_no, 0) - COALESCE(m.last_read_seq, 0), 0) AS unread_count
+                COALESCE(unread_stat.unread_count, 0)::BIGINT AS unread_count
             FROM dispatch_chat_group_members m
             JOIN dispatch_chat_groups g ON g.group_id = m.group_id
             LEFT JOIN LATERAL (
@@ -229,6 +259,7 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 WHERE m2.group_id = g.group_id
                   AND m2.is_active = TRUE
             ) member_stat ON TRUE
+            {unread_lateral}
             WHERE m.user_id = $1
               AND m.is_active = TRUE
               {status_clause}
@@ -273,43 +304,14 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
         &self,
         group_id: &str,
         limit: i64,
-        before_seq: Option<i64>,
+        cursor: DispatchChatMessageCursor,
     ) -> Result<DispatchChatMessageList, DomainError> {
         let limit = limit.clamp(1, 200);
-        let (query_sql, count_sql, query_rows, total) = if let Some(before_seq) = before_seq {
-            let rows = sqlx::query(
-                r#"
-                SELECT m.*, u.username AS sender_username
-                FROM dispatch_chat_messages m
-                LEFT JOIN users u ON u.id = m.sender_user_id
-                WHERE m.group_id = $1
-                  AND m.seq_no < $2
-                ORDER BY m.seq_no DESC
-                LIMIT $3
-                "#,
-            )
-            .bind(group_id)
-            .bind(before_seq)
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(internal_error)?;
-            let total_row = sqlx::query(
-                r#"
-                SELECT COUNT(*)::BIGINT AS total
-                FROM dispatch_chat_messages
-                WHERE group_id = $1
-                  AND seq_no < $2
-                "#,
-            )
-            .bind(group_id)
-            .bind(before_seq)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(internal_error)?;
-            ("", "", rows, total_row.get::<i64, _>("total"))
-        } else {
-            let rows = sqlx::query(
+
+        // `Latest`/`Before` read backwards from the newest row and are reversed
+        // into chronological order below. `After` already reads forwards.
+        let (rows_sql, count_sql) = match cursor {
+            DispatchChatMessageCursor::Latest => (
                 r#"
                 SELECT m.*, u.username AS sender_username
                 FROM dispatch_chat_messages m
@@ -318,48 +320,95 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 ORDER BY m.seq_no DESC
                 LIMIT $2
                 "#,
-            )
-            .bind(group_id)
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(internal_error)?;
-            let total_row = sqlx::query(
                 r#"
                 SELECT COUNT(*)::BIGINT AS total
                 FROM dispatch_chat_messages
                 WHERE group_id = $1
                 "#,
-            )
-            .bind(group_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(internal_error)?;
-            ("", "", rows, total_row.get::<i64, _>("total"))
+            ),
+            DispatchChatMessageCursor::Before(_) => (
+                r#"
+                SELECT m.*, u.username AS sender_username
+                FROM dispatch_chat_messages m
+                LEFT JOIN users u ON u.id = m.sender_user_id
+                WHERE m.group_id = $1
+                  AND m.seq_no < $3
+                ORDER BY m.seq_no DESC
+                LIMIT $2
+                "#,
+                r#"
+                SELECT COUNT(*)::BIGINT AS total
+                FROM dispatch_chat_messages
+                WHERE group_id = $1
+                  AND seq_no < $2
+                "#,
+            ),
+            DispatchChatMessageCursor::After(_) => (
+                r#"
+                SELECT m.*, u.username AS sender_username
+                FROM dispatch_chat_messages m
+                LEFT JOIN users u ON u.id = m.sender_user_id
+                WHERE m.group_id = $1
+                  AND m.seq_no > $3
+                ORDER BY m.seq_no ASC
+                LIMIT $2
+                "#,
+                r#"
+                SELECT COUNT(*)::BIGINT AS total
+                FROM dispatch_chat_messages
+                WHERE group_id = $1
+                  AND seq_no > $2
+                "#,
+            ),
         };
-        let _ = query_sql;
-        let _ = count_sql;
 
-        let mut items_desc = query_rows.iter().map(row_to_message).collect::<Vec<_>>();
-        items_desc.reverse();
-        let has_more = total > items_desc.len() as i64;
-        let next_before_seq = if has_more {
-            items_desc.first().map(|item| item.seq_no)
-        } else {
-            None
+        let boundary_seq = cursor.before_seq().or_else(|| cursor.after_seq());
+
+        let mut rows_query = sqlx::query(rows_sql).bind(group_id).bind(limit);
+        let mut count_query = sqlx::query(count_sql).bind(group_id);
+        if let Some(boundary_seq) = boundary_seq {
+            rows_query = rows_query.bind(boundary_seq);
+            count_query = count_query.bind(boundary_seq);
+        }
+
+        let rows = rows_query.fetch_all(&self.pool).await.map_err(internal_error)?;
+        let total_row = count_query.fetch_one(&self.pool).await.map_err(internal_error)?;
+        let total = total_row.get::<i64, _>("total");
+
+        let mut items = rows.iter().map(row_to_message).collect::<Vec<_>>();
+        if !matches!(cursor, DispatchChatMessageCursor::After(_)) {
+            items.reverse();
+        }
+
+        let has_more = total > items.len() as i64;
+        // Scroll-back continues from the oldest row returned; gap-fill continues
+        // from the newest.
+        let next_before_seq = match (has_more, cursor) {
+            (true, DispatchChatMessageCursor::After(_)) => None,
+            (true, _) => items.first().map(|item| item.seq_no),
+            (false, _) => None,
+        };
+        let next_after_seq = match (has_more, cursor) {
+            (true, DispatchChatMessageCursor::After(_)) => items.last().map(|item| item.seq_no),
+            _ => None,
         };
 
         Ok(DispatchChatMessageList {
-            items: items_desc,
+            items,
             total,
             limit,
-            before_seq,
+            before_seq: cursor.before_seq(),
+            after_seq: cursor.after_seq(),
             has_more,
             next_before_seq,
+            next_after_seq,
         })
     }
 
     async fn insert_message(&self, message: &NewDispatchChatMessage) -> Result<DispatchChatMessage, DomainError> {
+        // `ON CONFLICT DO NOTHING` on the partial unique index makes a retried
+        // send idempotent even when two retries race: the loser inserts nothing
+        // and falls through to reading the row the winner stored.
         let row = sqlx::query(
             r#"
             WITH inserted AS (
@@ -372,9 +421,11 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                     message_type,
                     content,
                     is_at_all,
-                    metadata
+                    metadata,
+                    client_msg_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+                ON CONFLICT (group_id, client_msg_id) WHERE client_msg_id IS NOT NULL DO NOTHING
                 RETURNING *
             )
             SELECT i.*, u.username AS sender_username
@@ -391,11 +442,49 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
         .bind(&message.content)
         .bind(message.is_at_all)
         .bind(&message.metadata)
-        .fetch_one(&self.pool)
+        .bind(&message.client_msg_id)
+        .fetch_optional(&self.pool)
         .await
         .map_err(internal_error)?;
 
-        Ok(row_to_message(&row))
+        if let Some(row) = row {
+            return Ok(row_to_message(&row));
+        }
+
+        // Nothing inserted: only a client_msg_id collision can produce that, so
+        // the caller is retrying a send we already stored.
+        let Some(client_msg_id) = message.client_msg_id.as_deref() else {
+            return Err(DomainError::Internal(
+                "insert_message inserted no row and has no client_msg_id to resolve".into(),
+            ));
+        };
+        self.find_message_by_client_id(&message.group_id, client_msg_id)
+            .await?
+            .ok_or_else(|| DomainError::Internal("insert_message conflicted but the original row is missing".into()))
+    }
+
+    async fn find_message_by_client_id(
+        &self,
+        group_id: &str,
+        client_msg_id: &str,
+    ) -> Result<Option<DispatchChatMessage>, DomainError> {
+        let row = sqlx::query(
+            r#"
+            SELECT m.*, u.username AS sender_username
+            FROM dispatch_chat_messages m
+            LEFT JOIN users u ON u.id = m.sender_user_id
+            WHERE m.group_id = $1
+              AND m.client_msg_id = $2
+            LIMIT 1
+            "#,
+        )
+        .bind(group_id)
+        .bind(client_msg_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(internal_error)?;
+
+        Ok(row.as_ref().map(row_to_message))
     }
 
     async fn update_message_event_id(
@@ -425,19 +514,33 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
         group_id: &str,
         user_id: &str,
         read_seq: i64,
-    ) -> Result<Option<DispatchChatMember>, DomainError> {
+    ) -> Result<Option<DispatchChatReadCursorUpdate>, DomainError> {
+        // `prev` captures the cursor before the update so the caller can tell an
+        // advance from an idempotent re-read. The username join is a LEFT JOIN
+        // applied *after* the update, so a member whose user row is missing
+        // still gets their cursor moved.
         let row = sqlx::query(
             r#"
-            UPDATE dispatch_chat_group_members m
-            SET
-                last_read_seq = GREATEST(last_read_seq, $1),
-                last_read_at = CURRENT_TIMESTAMP
-            FROM users u
-            WHERE m.group_id = $2
-              AND m.user_id = $3
-              AND m.is_active = TRUE
-              AND u.id = m.user_id
-            RETURNING m.*, u.username
+            WITH prev AS (
+                SELECT m.id, m.last_read_seq AS previous_last_read_seq
+                FROM dispatch_chat_group_members m
+                WHERE m.group_id = $2
+                  AND m.user_id = $3
+                  AND m.is_active = TRUE
+                FOR UPDATE
+            ),
+            updated AS (
+                UPDATE dispatch_chat_group_members m
+                SET
+                    last_read_seq = GREATEST(m.last_read_seq, $1),
+                    last_read_at = CURRENT_TIMESTAMP
+                FROM prev
+                WHERE m.id = prev.id
+                RETURNING m.*, prev.previous_last_read_seq
+            )
+            SELECT updated.*, u.username
+            FROM updated
+            LEFT JOIN users u ON u.id = updated.user_id
             "#,
         )
         .bind(read_seq.max(0))
@@ -447,7 +550,14 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
         .await
         .map_err(internal_error)?;
 
-        Ok(row.as_ref().map(row_to_member))
+        Ok(row.as_ref().map(|row| DispatchChatReadCursorUpdate {
+            member: row_to_member(row),
+            previous_last_read_seq: row
+                .try_get::<Option<i64>, _>("previous_last_read_seq")
+                .ok()
+                .flatten()
+                .unwrap_or(0),
+        }))
     }
 
     async fn get_group_latest_seq(&self, group_id: &str) -> Result<i64, DomainError> {
@@ -467,22 +577,18 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
     }
 
     async fn count_group_unread(&self, group_id: &str, user_id: &str) -> Result<i64, DomainError> {
-        let row = sqlx::query(
+        let unread_lateral = unread_count_lateral("m", "unread_stat");
+        let row = sqlx::query(&format!(
             r#"
-            SELECT
-                GREATEST(COALESCE(last_msg.max_seq, 0) - COALESCE(m.last_read_seq, 0), 0)::BIGINT AS unread_count
+            SELECT COALESCE(unread_stat.unread_count, 0)::BIGINT AS unread_count
             FROM dispatch_chat_group_members m
-            LEFT JOIN LATERAL (
-                SELECT MAX(seq_no) AS max_seq
-                FROM dispatch_chat_messages
-                WHERE group_id = m.group_id
-            ) last_msg ON TRUE
+            {unread_lateral}
             WHERE m.group_id = $1
               AND m.user_id = $2
               AND m.is_active = TRUE
             LIMIT 1
-            "#,
-        )
+            "#
+        ))
         .bind(group_id)
         .bind(user_id)
         .fetch_optional(&self.pool)
@@ -493,28 +599,66 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
     }
 
     async fn count_total_unread(&self, user_id: &str) -> Result<i64, DomainError> {
-        let row = sqlx::query(
+        let unread_lateral = unread_count_lateral("m", "unread_stat");
+        let row = sqlx::query(&format!(
             r#"
-            SELECT COALESCE(
-                SUM(GREATEST(COALESCE(last_msg.max_seq, 0) - COALESCE(m.last_read_seq, 0), 0)),
-                0
-            )::BIGINT AS unread_total
+            SELECT COALESCE(SUM(unread_stat.unread_count), 0)::BIGINT AS unread_total
             FROM dispatch_chat_group_members m
-            LEFT JOIN LATERAL (
-                SELECT MAX(seq_no) AS max_seq
-                FROM dispatch_chat_messages dcm
-                WHERE dcm.group_id = m.group_id
-            ) last_msg ON TRUE
+            {unread_lateral}
             WHERE m.user_id = $1
               AND m.is_active = TRUE
-            "#,
-        )
+            "#
+        ))
         .bind(user_id)
         .fetch_one(&self.pool)
         .await
         .map_err(internal_error)?;
 
         Ok(row.get::<i64, _>("unread_total"))
+    }
+
+    async fn count_unread_for_group_members(
+        &self,
+        group_id: &str,
+    ) -> Result<Vec<DispatchChatMemberUnread>, DomainError> {
+        // One query for both badge numbers of every member: the outer lateral
+        // counts unread in this group, the inner one sums each member's unread
+        // across all of their active groups.
+        let group_lateral = unread_count_lateral("m", "group_stat");
+        let member_lateral = unread_count_lateral("m2", "member_stat");
+        let rows = sqlx::query(&format!(
+            r#"
+            SELECT
+                m.user_id,
+                COALESCE(group_stat.unread_count, 0)::BIGINT AS unread_count,
+                COALESCE(total_stat.unread_total, 0)::BIGINT AS unread_total
+            FROM dispatch_chat_group_members m
+            {group_lateral}
+            LEFT JOIN LATERAL (
+                SELECT SUM(member_stat.unread_count) AS unread_total
+                FROM dispatch_chat_group_members m2
+                {member_lateral}
+                WHERE m2.user_id = m.user_id
+                  AND m2.is_active = TRUE
+            ) total_stat ON TRUE
+            WHERE m.group_id = $1
+              AND m.is_active = TRUE
+            ORDER BY m.joined_at ASC
+            "#
+        ))
+        .bind(group_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(internal_error)?;
+
+        Ok(rows
+            .iter()
+            .map(|row| DispatchChatMemberUnread {
+                user_id: row.get("user_id"),
+                unread_count: row.get::<i64, _>("unread_count"),
+                unread_total: row.get::<i64, _>("unread_total"),
+            })
+            .collect())
     }
 
     async fn find_active_members(&self, group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {
@@ -1350,6 +1494,7 @@ fn row_to_message(row: &sqlx::postgres::PgRow) -> DispatchChatMessage {
             .try_get::<serde_json::Value, _>("metadata")
             .unwrap_or_else(|_| serde_json::json!({})),
         sent_at: row.get("sent_at"),
+        client_msg_id: row.try_get("client_msg_id").ok().flatten(),
         dispatch_order_id: row.try_get("dispatch_order_id").ok().flatten(),
         event_id: row.try_get("event_id").ok().flatten(),
     }

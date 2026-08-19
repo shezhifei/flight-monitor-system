@@ -271,17 +271,6 @@ const REACT_AI_SURFACES: EvidenceGatedSurfaceParityRow[] = [
     notes: 'Hosted by Vue AiMonitor.vue via AiReactEntryShell.',
   },
   {
-    id: 'llm_eval_lab_react',
-    kind: 'react-page',
-    status: 'contract-captured',
-    legacyHtml: `${LEGACY_HTML_ROOT}/llm_eval_lab.html`,
-    reactEntry: 'frontend/ai-react/src/entries/llm_eval_lab.tsx',
-    hostId: 'ai-react-root',
-    canonicalUrl: '/frontend/llm_eval_lab.html',
-    evidence: createPlannedEvidence('llm_eval_lab_react', 'llm_eval_lab'),
-    notes: 'Hosted by Vue LlmEvalLab.vue via AiReactEntryShell.',
-  },
-  {
     id: 'nl_query_react',
     kind: 'react-page',
     status: 'contract-captured',
@@ -291,17 +280,6 @@ const REACT_AI_SURFACES: EvidenceGatedSurfaceParityRow[] = [
     canonicalUrl: '/frontend/nl_query.html',
     evidence: createPlannedEvidence('nl_query_react', 'nl_query'),
     notes: 'Hosted by Vue NlQuery.vue via AiReactEntryShell.',
-  },
-  {
-    id: 'dashboard_ai_widget',
-    kind: 'react-widget',
-    status: 'contract-captured',
-    legacyHtml: `${LEGACY_HTML_ROOT}/dashboard.html`,
-    reactEntry: 'frontend/ai-react/src/entries/dashboard_ai_widget.tsx',
-    hostId: 'dashboard-ai-widget-root',
-    canonicalUrl: '/frontend/dashboard.html',
-    evidence: createPlannedEvidence('dashboard_ai_widget', 'dashboard'),
-    notes: 'Embedded widget mounted inside Vue Dashboard via AiReactEntryShell.',
   },
   {
     id: 'dispatch_board_ai',
@@ -318,13 +296,27 @@ const REACT_AI_SURFACES: EvidenceGatedSurfaceParityRow[] = [
 
 const REACT_ENTRY_NAME_BY_ROW_ID: Record<string, string> = {
   ai_monitor_react: 'ai_monitor',
-  llm_eval_lab_react: 'llm_eval_lab',
   nl_query_react: 'nl_query',
-  dashboard_ai_widget: 'dashboard_ai_widget',
   dispatch_board_ai: 'dispatch_board_ai',
 };
 
 const RETIRED_SURFACES: RetiredSurfaceParityRow[] = [
+  {
+    id: 'llm_eval_lab_react',
+    kind: 'retired',
+    status: 'retired',
+    reactEntry: 'frontend/ai-react/src/entries/llm_eval_lab.tsx',
+    notes:
+      'React entry retired; Vue LlmEvalLab.vue is the single owner of /frontend/llm_eval_lab.html.',
+  },
+  {
+    id: 'dashboard_ai_widget',
+    kind: 'retired',
+    status: 'retired',
+    reactEntry: 'frontend/ai-react/src/entries/dashboard_ai_widget.tsx',
+    notes:
+      'React entry retired; Vue DashboardAiWidget.vue is the single owner of the dashboard AI widget.',
+  },
   {
     id: 'ai_config_center_react',
     kind: 'retired',
@@ -411,4 +403,4 @@ export function isEvidenceGatedSurface(
 export const ACTIVE_REACT_ENTRY_IDS = REACT_AI_SURFACES.map(
   (row) => REACT_ENTRY_NAME_BY_ROW_ID[row.id] ?? row.id,
 );
-export const RETIRED_REACT_ENTRY_IDS = ['ai_config_center', 'flight_monitor_ai', 'flowable_assistant_ai'];
+export const RETIRED_REACT_ENTRY_IDS = ['llm_eval_lab', 'dashboard_ai_widget', 'ai_config_center', 'flight_monitor_ai', 'flowable_assistant_ai'];

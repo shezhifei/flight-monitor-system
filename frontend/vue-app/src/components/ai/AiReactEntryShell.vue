@@ -85,9 +85,7 @@ const featuresAttr = computed(() => (props.entryFeatures || []).join(','));
 
 const AI_ENTRY_HOST_IDS: Record<AiEntryName, string> = {
   ai_monitor: 'ai-react-root',
-  llm_eval_lab: 'ai-react-root',
   nl_query: 'ai-react-root',
-  dashboard_ai_widget: 'dashboard-ai-widget-root',
   dispatch_board_ai: 'dispatch-ai-root',
 };
 

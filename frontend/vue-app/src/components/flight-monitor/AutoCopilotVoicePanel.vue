@@ -1,16 +1,6 @@
 <template>
-  <section class="auto-copilot" :class="{ 'auto-copilot--open': isOpen }" aria-label="Auto Copilot 语音业务事项">
-    <button
-      v-if="!isOpen"
-      type="button"
-      class="auto-copilot__launcher"
-      @click="isOpen = true"
-    >
-      <span class="auto-copilot__pulse" aria-hidden="true" />
-      <span>Auto Copilot</span>
-    </button>
-
-    <div v-else class="auto-copilot__panel">
+  <section v-if="isOpen" class="auto-copilot" aria-label="Auto Copilot 语音业务事项">
+    <div class="auto-copilot__panel">
       <header class="auto-copilot__header">
         <div>
           <h2>Auto Copilot</h2>
@@ -345,6 +335,7 @@ import {
 } from './helpers';
 
 const props = defineProps<{
+  open: boolean;
   entityId?: string;
   selectedFlightId?: string | null;
   selectedFlightNo?: string | null;
@@ -353,6 +344,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: 'created', payload: { caseIds: string[]; notificationGroupCount: number }): void;
+  (event: 'update:open', value: boolean): void;
 }>();
 
 interface EditableDraftAction extends CopilotDraftAction {
@@ -369,7 +361,10 @@ const SILENCE_RMS_THRESHOLD = 0.012;
 const MAX_SILENT_CHUNKS_BEFORE_END = 24;
 
 const copilot = useAiBusinessCaseCopilot();
-const isOpen = ref(false);
+const isOpen = computed({
+  get: () => props.open,
+  set: (value: boolean) => emit('update:open', value),
+});
 const listening = ref(false);
 const draftLoading = ref(false);
 const commitLoading = ref(false);
@@ -898,44 +893,22 @@ onUnmounted(() => {
 <style scoped>
 .auto-copilot {
   position: fixed;
-  right: 24px;
-  bottom: 92px;
-  z-index: 980;
+  right: 20px;
+  bottom: 108px;
+  z-index: 9100;
   font-size: 13px;
 }
 
-.auto-copilot__launcher,
 .auto-copilot__panel {
-  border: 1px solid var(--admin-border);
-  box-shadow: 0 16px 44px rgba(15, 23, 42, 0.18);
-  background: var(--admin-card-bg);
-  color: var(--admin-text);
-}
-
-.auto-copilot__launcher {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 0 16px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.auto-copilot__pulse {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #1d9a6c;
-}
-
-.auto-copilot__panel {
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  background: var(--face-raised);
+  color: var(--ink);
   width: min(720px, calc(100vw - 32px));
   max-height: min(720px, calc(100vh - 128px));
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: var(--r-panel);
   overflow: hidden;
 }
 
@@ -951,26 +924,28 @@ onUnmounted(() => {
 
 .auto-copilot__header {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--admin-border);
-  background: var(--bg-page);
+  border-bottom: 1px solid var(--line);
+  background: var(--face-work);
 }
 
 .auto-copilot__header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
   line-height: 1.3;
 }
 
 .auto-copilot__header p {
   margin: 2px 0 0;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
 }
 
 .auto-copilot__icon-btn,
 .auto-copilot__remove,
 .auto-copilot__section-title button {
-  border: 1px solid var(--admin-border);
-  background: var(--admin-card-bg);
+  border: 1px solid var(--line);
+  background: var(--face-raised);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -983,7 +958,7 @@ onUnmounted(() => {
 
 .auto-copilot__controls {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
 
@@ -1002,19 +977,19 @@ onUnmounted(() => {
 .auto-copilot__primary,
 .auto-copilot__commit {
   background: #125f9f;
-  color: var(--admin-card-bg);
+  color: var(--face-raised);
 }
 
 .auto-copilot__secondary {
   background: #eef6ff;
   color: var(--ws-primary);
-  border-color: var(--admin-border);
+  border-color: var(--line);
 }
 
 .auto-copilot__diagnose {
-  background: var(--admin-card-bg);
-  color: var(--admin-text);
-  border-color: var(--admin-border);
+  background: var(--face-raised);
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 button:disabled {
@@ -1038,13 +1013,13 @@ button:disabled {
 .auto-copilot__success {
   color: #115c3f;
   background: #ebf8f1;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
 }
 
 .auto-copilot__diagnostic {
   margin: 12px 16px 0;
   padding: 10px;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--bg-page);
 }
@@ -1063,10 +1038,10 @@ button:disabled {
 }
 
 .auto-copilot__diagnostic-head button {
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--admin-card-bg);
-  color: var(--admin-text);
+  background: var(--face-raised);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -1074,11 +1049,11 @@ button:disabled {
   display: grid;
   grid-template-columns: 72px 1fr;
   margin-bottom: 8px;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
 }
 
 .auto-copilot__diagnostic-grid strong {
-  color: var(--admin-text);
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -1090,13 +1065,13 @@ button:disabled {
   word-break: break-word;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--admin-text);
+  color: var(--ink);
 }
 
 .auto-copilot__metrics {
   margin: 12px 16px 0;
   padding: 10px;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--dh-signal-accent-soft);
 }
@@ -1110,9 +1085,9 @@ button:disabled {
 .auto-copilot__metric-grid div {
   min-width: 0;
   padding: 8px;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--admin-card-bg);
+  background: var(--face-raised);
 }
 
 .auto-copilot__metric-grid span,
@@ -1121,38 +1096,38 @@ button:disabled {
 }
 
 .auto-copilot__metric-grid span {
-  color: var(--admin-text-muted);
+  color: var(--ink-2);
   font-size: 12px;
 }
 
 .auto-copilot__metric-grid strong {
   margin-top: 3px;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
   font-size: 18px;
 }
 
 .auto-copilot__recent-errors {
   margin-top: 10px;
-  border-top: 1px solid var(--admin-border);
+  border-top: 1px solid var(--line);
 }
 
 .auto-copilot__recent-error {
   display: grid;
   gap: 3px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: 1px solid var(--line);
 }
 
 .auto-copilot__recent-error strong {
-  color: var(--admin-text);
+  color: var(--ink);
 }
 
 .auto-copilot__recent-error small {
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
 }
 
 .auto-copilot__recent-error span {
-  color: var(--admin-text);
+  color: var(--ink);
   word-break: break-word;
 }
 
@@ -1196,10 +1171,10 @@ button:disabled {
 
 .auto-copilot__failed-actions button {
   min-height: 28px;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--admin-card-bg);
-  color: var(--admin-text);
+  background: var(--face-raised);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -1219,7 +1194,7 @@ button:disabled {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
 }
 
 .auto-copilot__session-meta small {
@@ -1229,22 +1204,22 @@ button:disabled {
 .auto-copilot__session-state {
   flex: 0 0 auto;
   padding: 3px 8px;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--bg-page);
-  color: var(--admin-text);
+  color: var(--ink);
   font-size: 12px;
   font-weight: 700;
 }
 
 .auto-copilot__session-state.is-collecting {
-  border-color: var(--admin-border);
+  border-color: var(--line);
   background: #eef6ff;
   color: var(--ws-primary);
 }
 
 .auto-copilot__session-state.is-segment_ready {
-  border-color: var(--admin-border);
+  border-color: var(--line);
   background: #ebf8f1;
   color: #115c3f;
 }
@@ -1273,10 +1248,10 @@ button:disabled {
 .auto-copilot select {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--admin-card-bg);
-  color: var(--admin-text);
+  background: var(--face-raised);
+  color: var(--ink);
   font: inherit;
 }
 
@@ -1293,7 +1268,7 @@ button:disabled {
 
 .auto-copilot__partial {
   margin: 8px 0 0;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
 }
 
 .auto-copilot__partial--warning {
@@ -1303,18 +1278,18 @@ button:disabled {
 .auto-copilot__summary {
   align-items: flex-start;
   margin-bottom: 10px;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
 }
 
 .auto-copilot__summary strong {
   flex: 1;
-  color: var(--admin-text);
+  color: var(--ink);
   font-weight: 600;
 }
 
 .auto-copilot__table-wrap {
   overflow: auto;
-  border: 1px solid var(--admin-border);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
@@ -1327,14 +1302,14 @@ button:disabled {
 .auto-copilot__table th,
 .auto-copilot__table td {
   padding: 8px;
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
 
 .auto-copilot__table th {
   background: var(--bg-page);
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
   font-size: 12px;
 }
 
@@ -1382,7 +1357,7 @@ button:disabled {
 }
 .field-label {
   font-size: 11px;
-  color: var(--admin-text-subtle);
+  color: var(--ink-2);
   font-weight: 500;
 }
 .required-star {

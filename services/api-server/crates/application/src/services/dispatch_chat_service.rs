@@ -13,7 +13,7 @@ use fms_domain::models::dispatch::{DispatchOrder, DispatchOrderStatus};
 use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 use fms_domain::models::dispatch_collaboration::{
     DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMemberUpsert, DispatchChatMessage,
-    DispatchChatUserProfile, NewDispatchChatMessage,
+    DispatchChatMessageCursor, DispatchChatUserProfile, NewDispatchChatMessage,
 };
 use fms_domain::models::flight::Flight;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
@@ -55,6 +55,28 @@ pub enum DispatchChatError {
     Validation(String),
     #[error(transparent)]
     Domain(#[from] DomainError),
+}
+
+/// Outcome of a send attempt.
+///
+/// `deduplicated` marks a retry that resolved to an already-stored message: the
+/// caller must return it as-is and must **not** fan it out again, or the client
+/// sees the same message twice.
+#[derive(Debug, Clone)]
+pub struct DispatchChatSendOutcome {
+    pub message: DispatchChatMessage,
+    pub deduplicated: bool,
+}
+
+/// Outcome of a mark-read attempt.
+///
+/// `advanced` is false for an idempotent re-read; such a call must not append an
+/// audit ledger row or fan out a read-sync frame.
+#[derive(Debug, Clone)]
+pub struct DispatchChatReadOutcome {
+    pub payload: serde_json::Value,
+    pub last_read_seq: i64,
+    pub advanced: bool,
 }
 
 pub struct DispatchChatService {
@@ -315,6 +337,7 @@ impl DispatchChatService {
                         "active_dispatch_order_ids": active_orders.iter().map(|order| order.id.clone()).collect::<Vec<_>>(),
                         "related_dispatch_order_ids": relevant_orders.iter().map(|order| order.id.clone()).collect::<Vec<_>>(),
                     }),
+                    client_msg_id: None,
                 })
                 .await?;
             self.record_message_event(
@@ -496,6 +519,7 @@ impl DispatchChatService {
         user_id: &str,
         limit: i64,
         before_seq: Option<i64>,
+        after_seq: Option<i64>,
     ) -> Result<fms_domain::models::dispatch_collaboration::DispatchChatMessageList, DispatchChatError> {
         let normalized_group_id = normalize(group_id);
         let normalized_user_id = normalize(user_id);
@@ -507,6 +531,20 @@ impl DispatchChatService {
                 "before_seq must be greater than 0".into(),
             ));
         }
+        if matches!(after_seq, Some(value) if value < 0) {
+            return Err(DispatchChatError::Validation("after_seq must not be negative".into()));
+        }
+        if before_seq.is_some() && after_seq.is_some() {
+            return Err(DispatchChatError::Validation(
+                "before_seq and after_seq are mutually exclusive".into(),
+            ));
+        }
+
+        let cursor = match (before_seq, after_seq) {
+            (Some(seq), _) => DispatchChatMessageCursor::Before(seq),
+            (None, Some(seq)) => DispatchChatMessageCursor::After(seq),
+            (None, None) => DispatchChatMessageCursor::Latest,
+        };
 
         let Some(group) = self
             .collaboration_repo
@@ -518,10 +556,9 @@ impl DispatchChatService {
 
         let mut payload = self
             .collaboration_repo
-            .list_group_messages(&normalized_group_id, limit.clamp(1, 200), before_seq)
+            .list_group_messages(&normalized_group_id, limit.clamp(1, 200), cursor)
             .await?;
         payload.limit = limit.clamp(1, 200);
-        payload.before_seq = before_seq;
         if !group.member_is_active && payload.items.is_empty() {
             payload.has_more = false;
         }
@@ -534,16 +571,40 @@ impl DispatchChatService {
         user_id: &str,
         content: &str,
         at_all: bool,
-    ) -> Result<DispatchChatMessage, DispatchChatError> {
+        client_msg_id: Option<&str>,
+    ) -> Result<DispatchChatSendOutcome, DispatchChatError> {
         let normalized_group_id = normalize(group_id);
         let normalized_user_id = normalize(user_id);
         let normalized_content = normalize(content);
+        let normalized_client_msg_id = client_msg_id
+            .map(normalize)
+            .filter(|value| !value.is_empty());
 
         if normalized_group_id.is_empty() || normalized_user_id.is_empty() {
             return Err(DispatchChatError::Forbidden("群聊访问被拒绝".into()));
         }
         if normalized_content.is_empty() || normalized_content.chars().count() > 2000 {
             return Err(DispatchChatError::Validation("消息内容长度应在 1~2000 字符".into()));
+        }
+        if let Some(client_msg_id) = normalized_client_msg_id.as_deref() {
+            if client_msg_id.chars().count() > 64 {
+                return Err(DispatchChatError::Validation("client_msg_id 长度不应超过 64 字符".into()));
+            }
+        }
+
+        // Resolve a retry before any lifecycle side effects: a duplicate send
+        // must be a pure read, not a second round of group refresh + fan-out.
+        if let Some(client_msg_id) = normalized_client_msg_id.as_deref() {
+            if let Some(existing) = self
+                .collaboration_repo
+                .find_message_by_client_id(&normalized_group_id, client_msg_id)
+                .await?
+            {
+                return Ok(DispatchChatSendOutcome {
+                    message: existing,
+                    deduplicated: true,
+                });
+            }
         }
 
         if let Some(change) = self.refresh_group_lifecycle_for_group_id(&normalized_group_id).await? {
@@ -572,7 +633,7 @@ impl DispatchChatService {
         let mut message = self
             .collaboration_repo
             .insert_message(&NewDispatchChatMessage {
-                message_id,
+                message_id: message_id.clone(),
                 group_id: normalized_group_id.clone(),
                 sender_user_id: Some(normalized_user_id.clone()),
                 dispatch_order_id: None,
@@ -581,8 +642,19 @@ impl DispatchChatService {
                 content: normalized_content.clone(),
                 is_at_all: at_all || contains_at_all(&normalized_content),
                 metadata: json!({}),
+                client_msg_id: normalized_client_msg_id.clone(),
             })
             .await?;
+
+        // The pre-check above can lose a race with a concurrent retry. The
+        // insert then resolves to the row that retry stored, recognisable
+        // because it carries a different message id than the one generated here.
+        if message.message_id != message_id {
+            return Ok(DispatchChatSendOutcome {
+                message,
+                deduplicated: true,
+            });
+        }
 
         if message.seq_no > 0 {
             let _ = self
@@ -609,7 +681,10 @@ impl DispatchChatService {
             message.event_id = Some(event_id);
         }
 
-        Ok(message)
+        Ok(DispatchChatSendOutcome {
+            message,
+            deduplicated: false,
+        })
     }
 
     pub async fn build_message_stream_events(
@@ -620,16 +695,16 @@ impl DispatchChatService {
         let Some(group) = self.collaboration_repo.get_group_by_id(group_id).await? else {
             return Ok(Vec::new());
         };
-        let members = self.collaboration_repo.find_active_members(group_id).await?;
+        // One batched query for every member's badge numbers; the per-member
+        // form costs 2 round trips × member count on every single message.
+        let member_unread = self.collaboration_repo.count_unread_for_group_members(group_id).await?;
         let timestamp = Utc::now().to_rfc3339();
         let mut events = Vec::new();
-        for member in members {
-            let user_id = normalize(&member.user_id);
+        for entry in member_unread {
+            let user_id = normalize(&entry.user_id);
             if user_id.is_empty() {
                 continue;
             }
-            let unread_count = self.collaboration_repo.count_group_unread(group_id, &user_id).await?;
-            let unread_total = self.collaboration_repo.count_total_unread(&user_id).await?;
             events.push((
                 user_id,
                 json!({
@@ -637,8 +712,8 @@ impl DispatchChatService {
                     "group_id": group_id,
                     "flight_id": group.flight_id,
                     "message": message,
-                    "unread_count": unread_count,
-                    "unread_total": unread_total,
+                    "unread_count": entry.unread_count,
+                    "unread_total": entry.unread_total,
                     "timestamp": timestamp,
                 }),
             ));
@@ -704,7 +779,7 @@ impl DispatchChatService {
         group_id: &str,
         user_id: &str,
         read_seq: Option<i64>,
-    ) -> Result<serde_json::Value, DispatchChatError> {
+    ) -> Result<DispatchChatReadOutcome, DispatchChatError> {
         let normalized_group_id = normalize(group_id);
         let normalized_user_id = normalize(user_id);
         if normalized_group_id.is_empty() || normalized_user_id.is_empty() {
@@ -729,9 +804,14 @@ impl DispatchChatService {
             .collaboration_repo
             .mark_group_read(&normalized_group_id, &normalized_user_id, target_seq)
             .await?;
-        let Some(updated_member) = updated else {
+        let Some(cursor_update) = updated else {
             return Err(DispatchChatError::Forbidden("当前用户不是该群成员".into()));
         };
+        let advanced = cursor_update.advanced();
+        let updated_member = cursor_update.member;
+        // The cursor never moves backwards, so report where it actually landed
+        // rather than what was asked for.
+        let effective_seq = updated_member.last_read_seq;
 
         let unread_count = self
             .collaboration_repo
@@ -739,7 +819,10 @@ impl DispatchChatService {
             .await?;
         let unread_total = self.collaboration_repo.count_total_unread(&normalized_user_id).await?;
 
-        if !group.flight_id.trim().is_empty() {
+        // Read receipts are the highest-frequency write on this table and the
+        // client re-marks on every focus/scroll. Only a cursor that actually
+        // moved is worth an append to the audit ledger.
+        if advanced && !group.flight_id.trim().is_empty() {
             let related_dispatch_order_ids = extract_related_dispatch_order_ids(&group.metadata);
             let dispatch_order_id = related_dispatch_order_ids.first().cloned();
             self.collaboration_repo
@@ -756,7 +839,7 @@ impl DispatchChatService {
                         "group_id": normalized_group_id.clone(),
                         "flight_id": group.flight_id.clone(),
                         "member_id": updated_member.id.clone(),
-                        "last_read_seq": target_seq,
+                        "last_read_seq": effective_seq,
                         "unread_count": unread_count,
                         "unread_total": unread_total,
                         "related_dispatch_order_ids": related_dispatch_order_ids,
@@ -768,12 +851,16 @@ impl DispatchChatService {
                 .await?;
         }
 
-        Ok(json!({
-            "group_id": normalized_group_id,
-            "last_read_seq": target_seq,
-            "unread_count": unread_count,
-            "unread_total": unread_total,
-        }))
+        Ok(DispatchChatReadOutcome {
+            payload: json!({
+                "group_id": normalized_group_id,
+                "last_read_seq": effective_seq,
+                "unread_count": unread_count,
+                "unread_total": unread_total,
+            }),
+            last_read_seq: effective_seq,
+            advanced,
+        })
     }
 
     pub async fn build_read_synced_stream_event(
@@ -1048,6 +1135,7 @@ impl DispatchChatService {
                 content: build_deprecation_message(reason),
                 is_at_all: false,
                 metadata: json!({ "reason": reason }),
+                client_msg_id: None,
             })
             .await?;
         self.collaboration_repo
@@ -1108,6 +1196,7 @@ impl DispatchChatService {
                 content: "系统消息：航班起飞超过 6 小时，群组已归档并切换为只读。".to_string(),
                 is_at_all: false,
                 metadata: json!({ "reason": "flight_departed_6h" }),
+                client_msg_id: None,
             })
             .await?;
         self.collaboration_repo
@@ -1422,5 +1511,538 @@ fn build_deprecation_message(reason: &str) -> String {
         DEPRECATION_REASON_DEPARTURE_DEPARTED => "系统消息：单出港航班已起飞，群组已标记为弃用。".to_string(),
         DEPRECATION_REASON_TRANSIT_DEPARTED => "系统消息：中转航班已起飞，群组已标记为弃用。".to_string(),
         _ => "系统消息：群组已标记为弃用。".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fms_domain::models::dispatch_collaboration::{
+        DispatchChatDispatcherCandidate, DispatchChatMember, DispatchChatMemberUnread, DispatchChatMessageList,
+        DispatchChatReadCursorUpdate, NotificationReceiptSummary,
+    };
+    use fms_domain::models::notification::Notification;
+    use std::sync::Mutex;
+
+    const GROUP_ID: &str = "group-1";
+    const FLIGHT_ID: &str = "flight-1";
+    const USER_ID: &str = "user-1";
+
+    /// Stores messages and the read cursor the way Postgres does, so idempotency
+    /// and advance decisions in the service are exercised for real.
+    #[derive(Default)]
+    struct FakeChatRepo {
+        messages: Mutex<Vec<DispatchChatMessage>>,
+        events: Mutex<Vec<DispatchCollaborationEvent>>,
+        last_read_seq: Mutex<i64>,
+        mark_read_calls: Mutex<Vec<i64>>,
+    }
+
+    impl FakeChatRepo {
+        fn seed_message(&self, sender: &str) {
+            let mut messages = self.messages.lock().expect("lock messages");
+            let seq_no = messages.len() as i64 + 1;
+            messages.push(message_row(&format!("seed-{seq_no}"), seq_no, sender, None));
+        }
+
+        fn stored_count(&self) -> usize {
+            self.messages.lock().expect("lock messages").len()
+        }
+
+        fn events_of_type(&self, event_type: &str) -> usize {
+            self.events
+                .lock()
+                .expect("lock events")
+                .iter()
+                .filter(|event| event.event_type == event_type)
+                .count()
+        }
+
+        fn mark_read_call_count(&self) -> usize {
+            self.mark_read_calls.lock().expect("lock mark read calls").len()
+        }
+    }
+
+    fn message_row(message_id: &str, seq_no: i64, sender: &str, client_msg_id: Option<&str>) -> DispatchChatMessage {
+        DispatchChatMessage {
+            message_id: message_id.to_string(),
+            seq_no,
+            group_id: GROUP_ID.to_string(),
+            sender_user_id: Some(sender.to_string()),
+            sender_username: None,
+            message_type: "text".to_string(),
+            content: "内容".to_string(),
+            is_at_all: false,
+            metadata: json!({}),
+            sent_at: Utc::now(),
+            client_msg_id: client_msg_id.map(str::to_string),
+            dispatch_order_id: None,
+            event_id: None,
+        }
+    }
+
+    fn group_row() -> DispatchChatGroupSummary {
+        DispatchChatGroupSummary {
+            group_id: GROUP_ID.to_string(),
+            channel_type: "system_flight_dispatch".to_string(),
+            flight_id: FLIGHT_ID.to_string(),
+            group_name: "保障群".to_string(),
+            status: "active".to_string(),
+            read_only: false,
+            deprecated: false,
+            deprecated_at: None,
+            deprecation_reason: None,
+            archive_at: None,
+            archived_at: None,
+            metadata: json!({}),
+            member_count: 2,
+            unread_count: 0,
+            last_message_seq: None,
+            last_message_preview: None,
+            last_message_at: None,
+            member_is_active: true,
+        }
+    }
+
+    fn member_row(last_read_seq: i64) -> DispatchChatMember {
+        DispatchChatMember {
+            id: "member-1".to_string(),
+            group_id: GROUP_ID.to_string(),
+            user_id: USER_ID.to_string(),
+            username: Some("张三".to_string()),
+            is_assignee: true,
+            is_dispatcher: false,
+            is_active: true,
+            joined_at: Some(Utc::now()),
+            left_at: None,
+            last_read_seq,
+            last_read_at: Some(Utc::now()),
+        }
+    }
+
+    fn receipt_summary() -> NotificationReceiptSummary {
+        NotificationReceiptSummary {
+            total_count: 0,
+            pending_count: 0,
+            acknowledged_count: 0,
+            rejected_count: 0,
+            latest_updated_at: None,
+            receipt_group_ids: vec![],
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl DispatchCollaborationRepository for FakeChatRepo {
+        async fn get_group_by_id(&self, _group_id: &str) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            Ok(Some(group_row()))
+        }
+
+        async fn get_group_for_user(
+            &self,
+            _group_id: &str,
+            _user_id: &str,
+        ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            Ok(Some(group_row()))
+        }
+
+        async fn get_group_for_user_by_flight(
+            &self,
+            _flight_id: &str,
+            _user_id: &str,
+        ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            Ok(Some(group_row()))
+        }
+
+        async fn get_group_by_flight(&self, _flight_id: &str) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            Ok(Some(group_row()))
+        }
+
+        async fn list_user_groups(
+            &self,
+            _user_id: &str,
+            _status: &str,
+            limit: i64,
+            offset: i64,
+        ) -> Result<DispatchChatGroupList, DomainError> {
+            Ok(DispatchChatGroupList {
+                items: vec![group_row()],
+                total: 1,
+                limit,
+                offset,
+                unread_total: 0,
+            })
+        }
+
+        async fn list_group_messages(
+            &self,
+            _group_id: &str,
+            limit: i64,
+            cursor: DispatchChatMessageCursor,
+        ) -> Result<DispatchChatMessageList, DomainError> {
+            Ok(DispatchChatMessageList {
+                items: vec![],
+                total: 0,
+                limit,
+                before_seq: cursor.before_seq(),
+                after_seq: cursor.after_seq(),
+                has_more: false,
+                next_before_seq: None,
+                next_after_seq: None,
+            })
+        }
+
+        async fn insert_message(&self, message: &NewDispatchChatMessage) -> Result<DispatchChatMessage, DomainError> {
+            let mut messages = self.messages.lock().expect("lock messages");
+            // Mirrors the partial unique index on (group_id, client_msg_id).
+            if let Some(client_msg_id) = message.client_msg_id.as_deref() {
+                if let Some(existing) = messages.iter().find(|stored| {
+                    stored.group_id == message.group_id && stored.client_msg_id.as_deref() == Some(client_msg_id)
+                }) {
+                    return Ok(existing.clone());
+                }
+            }
+            let seq_no = messages.len() as i64 + 1;
+            let mut stored = message_row(
+                &message.message_id,
+                seq_no,
+                message.sender_user_id.as_deref().unwrap_or_default(),
+                message.client_msg_id.as_deref(),
+            );
+            stored.content = message.content.clone();
+            messages.push(stored.clone());
+            Ok(stored)
+        }
+
+        async fn find_message_by_client_id(
+            &self,
+            group_id: &str,
+            client_msg_id: &str,
+        ) -> Result<Option<DispatchChatMessage>, DomainError> {
+            Ok(self
+                .messages
+                .lock()
+                .expect("lock messages")
+                .iter()
+                .find(|stored| stored.group_id == group_id && stored.client_msg_id.as_deref() == Some(client_msg_id))
+                .cloned())
+        }
+
+        async fn update_message_event_id(
+            &self,
+            _message_id: &str,
+            _event_id: &str,
+        ) -> Result<Option<DispatchChatMessage>, DomainError> {
+            Ok(None)
+        }
+
+        async fn mark_group_read(
+            &self,
+            _group_id: &str,
+            _user_id: &str,
+            read_seq: i64,
+        ) -> Result<Option<DispatchChatReadCursorUpdate>, DomainError> {
+            self.mark_read_calls.lock().expect("lock mark read calls").push(read_seq);
+            let mut cursor = self.last_read_seq.lock().expect("lock cursor");
+            let previous_last_read_seq = *cursor;
+            *cursor = (*cursor).max(read_seq);
+            Ok(Some(DispatchChatReadCursorUpdate {
+                member: member_row(*cursor),
+                previous_last_read_seq,
+            }))
+        }
+
+        async fn get_group_latest_seq(&self, _group_id: &str) -> Result<i64, DomainError> {
+            Ok(self.messages.lock().expect("lock messages").len() as i64)
+        }
+
+        async fn count_group_unread(&self, _group_id: &str, _user_id: &str) -> Result<i64, DomainError> {
+            Ok(0)
+        }
+
+        async fn count_total_unread(&self, _user_id: &str) -> Result<i64, DomainError> {
+            Ok(0)
+        }
+
+        async fn count_unread_for_group_members(
+            &self,
+            _group_id: &str,
+        ) -> Result<Vec<DispatchChatMemberUnread>, DomainError> {
+            Ok(vec![DispatchChatMemberUnread {
+                user_id: USER_ID.to_string(),
+                unread_count: 0,
+                unread_total: 0,
+            }])
+        }
+
+        async fn find_active_members(&self, _group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {
+            Ok(vec![member_row(*self.last_read_seq.lock().expect("lock cursor"))])
+        }
+
+        async fn find_users_by_ids(&self, _user_ids: &[String]) -> Result<Vec<DispatchChatUserProfile>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn find_dispatchers_by_departments(
+            &self,
+            _departments: &[String],
+        ) -> Result<Vec<DispatchChatDispatcherCandidate>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn upsert_group_for_flight(
+            &self,
+            _flight_id: &str,
+            _group_name: &str,
+            _archive_at: Option<DateTime<Utc>>,
+            _metadata: &serde_json::Value,
+        ) -> Result<DispatchChatGroupSummary, DomainError> {
+            Ok(group_row())
+        }
+
+        async fn upsert_group_memberships(
+            &self,
+            _group_id: &str,
+            _memberships: &[DispatchChatMemberUpsert],
+        ) -> Result<(), DomainError> {
+            Ok(())
+        }
+
+        async fn deactivate_members_except(
+            &self,
+            _group_id: &str,
+            _active_user_ids: &[String],
+        ) -> Result<Vec<DispatchChatMember>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn clear_group_deprecation(
+            &self,
+            _group_id: &str,
+            _reason: &str,
+        ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            Ok(None)
+        }
+
+        async fn mark_group_deprecated(
+            &self,
+            _group_id: &str,
+            _reason: &str,
+        ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            Ok(None)
+        }
+
+        async fn find_groups_pending_deprecation(
+            &self,
+            _limit: i64,
+        ) -> Result<Vec<DispatchChatGroupSummary>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn find_due_archive_groups(&self, _limit: i64) -> Result<Vec<DispatchChatGroupSummary>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn archive_groups_batch(
+            &self,
+            _group_ids: &[String],
+        ) -> Result<Vec<DispatchChatGroupSummary>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn create_event(
+            &self,
+            event: &DispatchCollaborationEvent,
+        ) -> Result<DispatchCollaborationEvent, DomainError> {
+            self.events.lock().expect("lock events").push(event.clone());
+            Ok(event.clone())
+        }
+
+        async fn list_events_by_flight(
+            &self,
+            _flight_id: &str,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<Vec<DispatchCollaborationEvent>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn list_events_by_order(
+            &self,
+            _order_id: &str,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<Vec<DispatchCollaborationEvent>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn find_recent_notifications_by_flight(
+            &self,
+            _flight_id: &str,
+            _limit: i64,
+        ) -> Result<Vec<Notification>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn find_recent_notifications_by_order(
+            &self,
+            _order_id: &str,
+            _limit: i64,
+        ) -> Result<Vec<Notification>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn summarize_receipts_for_flight(
+            &self,
+            _flight_id: &str,
+        ) -> Result<NotificationReceiptSummary, DomainError> {
+            Ok(receipt_summary())
+        }
+
+        async fn summarize_receipts_for_order(
+            &self,
+            _order_id: &str,
+        ) -> Result<NotificationReceiptSummary, DomainError> {
+            Ok(receipt_summary())
+        }
+    }
+
+    fn service(repo: Arc<FakeChatRepo>) -> DispatchChatService {
+        DispatchChatService::new(repo)
+    }
+
+    #[tokio::test]
+    async fn retried_send_returns_the_stored_message_without_a_second_insert() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo.clone());
+
+        let first = svc
+            .send_message(GROUP_ID, USER_ID, "只发一次", false, Some("key-1"))
+            .await
+            .expect("first send succeeds");
+        assert!(!first.deduplicated, "the first send is a real insert");
+        assert_eq!(repo.stored_count(), 1);
+        assert_eq!(repo.events_of_type("message_sent"), 1);
+        let mark_read_calls_after_first = repo.mark_read_call_count();
+
+        let retry = svc
+            .send_message(GROUP_ID, USER_ID, "只发一次", false, Some("key-1"))
+            .await
+            .expect("retry succeeds");
+        assert!(retry.deduplicated, "the retry must be reported as a duplicate");
+        assert_eq!(retry.message.message_id, first.message.message_id);
+        assert_eq!(retry.message.seq_no, first.message.seq_no);
+        assert_eq!(repo.stored_count(), 1, "a retry must not store a second message");
+        assert_eq!(
+            repo.events_of_type("message_sent"),
+            1,
+            "a retry must not append a second ledger event"
+        );
+        assert_eq!(
+            repo.mark_read_call_count(),
+            mark_read_calls_after_first,
+            "a retry resolves as a pure read, with no cursor write"
+        );
+    }
+
+    #[tokio::test]
+    async fn sends_without_a_client_msg_id_are_never_deduplicated() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo.clone());
+
+        for _ in 0..2 {
+            let outcome = svc
+                .send_message(GROUP_ID, USER_ID, "同样的内容", false, None)
+                .await
+                .expect("send succeeds");
+            assert!(!outcome.deduplicated);
+        }
+        assert_eq!(repo.stored_count(), 2, "identical content is not an idempotency key");
+    }
+
+    #[tokio::test]
+    async fn blank_client_msg_id_is_ignored_and_overlong_one_is_rejected() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo.clone());
+
+        let outcome = svc
+            .send_message(GROUP_ID, USER_ID, "空白键", false, Some("   "))
+            .await
+            .expect("a blank key is treated as absent");
+        assert!(!outcome.deduplicated);
+        assert_eq!(outcome.message.client_msg_id, None);
+
+        let error = svc
+            .send_message(GROUP_ID, USER_ID, "超长键", false, Some(&"k".repeat(65)))
+            .await
+            .expect_err("an overlong key cannot be stored");
+        assert!(matches!(error, DispatchChatError::Validation(_)), "got {error:?}");
+    }
+
+    #[tokio::test]
+    async fn repeated_mark_read_reports_no_advance_and_writes_no_ledger_event() {
+        let repo = Arc::new(FakeChatRepo::default());
+        repo.seed_message("someone-else");
+        repo.seed_message("someone-else");
+        let svc = service(repo.clone());
+
+        let first = svc
+            .mark_group_read(GROUP_ID, USER_ID, None)
+            .await
+            .expect("mark read succeeds");
+        assert!(first.advanced, "0 -> 2 is a real advance");
+        assert_eq!(first.last_read_seq, 2);
+        assert_eq!(repo.events_of_type("group_read_synced"), 1);
+
+        let repeated = svc
+            .mark_group_read(GROUP_ID, USER_ID, None)
+            .await
+            .expect("re-read succeeds");
+        assert!(!repeated.advanced, "re-reading the same seq is not news");
+        assert_eq!(
+            repo.events_of_type("group_read_synced"),
+            1,
+            "an unchanged cursor must not append to the audit ledger"
+        );
+    }
+
+    #[tokio::test]
+    async fn mark_read_reports_where_the_cursor_landed_not_what_was_asked_for() {
+        let repo = Arc::new(FakeChatRepo::default());
+        repo.seed_message("someone-else");
+        repo.seed_message("someone-else");
+        let svc = service(repo.clone());
+
+        svc.mark_group_read(GROUP_ID, USER_ID, Some(2))
+            .await
+            .expect("advance to 2");
+        let backwards = svc
+            .mark_group_read(GROUP_ID, USER_ID, Some(1))
+            .await
+            .expect("a backwards mark still succeeds");
+        assert!(!backwards.advanced);
+        assert_eq!(
+            backwards.last_read_seq, 2,
+            "the cursor never moves backwards, so 2 is reported rather than the requested 1"
+        );
+        assert_eq!(repo.events_of_type("group_read_synced"), 1);
+    }
+
+    #[tokio::test]
+    async fn list_group_messages_rejects_two_cursors_at_once() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo);
+
+        let error = svc
+            .list_group_messages(GROUP_ID, USER_ID, 50, Some(10), Some(2))
+            .await
+            .expect_err("before_seq and after_seq cannot both be honoured");
+        assert!(matches!(error, DispatchChatError::Validation(_)), "got {error:?}");
+
+        let gap = svc
+            .list_group_messages(GROUP_ID, USER_ID, 50, None, Some(2))
+            .await
+            .expect("gap-fill is accepted on its own");
+        assert_eq!(gap.after_seq, Some(2));
+        assert_eq!(gap.before_seq, None);
     }
 }

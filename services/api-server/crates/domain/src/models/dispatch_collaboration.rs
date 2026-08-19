@@ -40,6 +40,34 @@ pub struct DispatchChatMember {
     pub last_read_at: Option<DateTime<Utc>>,
 }
 
+/// Result of moving a member's read cursor.
+///
+/// Carries the cursor value from *before* the write so callers can tell a real
+/// advance from an idempotent re-read; only a real advance is worth an audit
+/// ledger row and an SSE fan-out.
+#[derive(Debug, Clone)]
+pub struct DispatchChatReadCursorUpdate {
+    pub member: DispatchChatMember,
+    pub previous_last_read_seq: i64,
+}
+
+impl DispatchChatReadCursorUpdate {
+    /// True when the write actually moved the cursor forward.
+    pub fn advanced(&self) -> bool {
+        self.member.last_read_seq > self.previous_last_read_seq
+    }
+}
+
+/// Per-member unread badge numbers for one group, resolved in a single query.
+#[derive(Debug, Clone)]
+pub struct DispatchChatMemberUnread {
+    pub user_id: String,
+    /// Unread messages in this group.
+    pub unread_count: i64,
+    /// Unread messages across every active group this member belongs to.
+    pub unread_total: i64,
+}
+
 #[derive(Debug, Clone)]
 pub struct DispatchChatMemberUpsert {
     pub user_id: String,
@@ -123,10 +151,49 @@ pub struct DispatchChatMessage {
     #[serde(default)]
     pub metadata: serde_json::Value,
     pub sent_at: DateTime<Utc>,
+    /// Client-supplied idempotency key, unique per group. Echoed back so a
+    /// client can match the stored message to its optimistic placeholder.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_msg_id: Option<String>,
     #[serde(skip_serializing)]
     pub dispatch_order_id: Option<String>,
     #[serde(skip_serializing)]
     pub event_id: Option<String>,
+}
+
+/// Which slice of a group's history to read.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DispatchChatMessageCursor {
+    /// The newest page.
+    #[default]
+    Latest,
+    /// Older history, strictly before this `seq_no` — scroll-back.
+    Before(i64),
+    /// Messages after this `seq_no` — the reconnect gap-fill direction, for a
+    /// client that knows the last seq it rendered.
+    ///
+    /// `seq_no` comes from a table-global `BIGSERIAL` assigned at INSERT but
+    /// only visible at COMMIT, so in principle a lower seq_no can appear after
+    /// a higher one has already been streamed. A client that must not miss a
+    /// message should reconcile the returned page by `message_id` rather than
+    /// trusting the cursor alone.
+    After(i64),
+}
+
+impl DispatchChatMessageCursor {
+    pub fn before_seq(&self) -> Option<i64> {
+        match self {
+            Self::Before(seq) => Some(*seq),
+            _ => None,
+        }
+    }
+
+    pub fn after_seq(&self) -> Option<i64> {
+        match self {
+            Self::After(seq) => Some(*seq),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,9 +204,11 @@ pub struct DispatchChatMessageList {
     pub total: i64,
     pub limit: i64,
     pub before_seq: Option<i64>,
+    pub after_seq: Option<i64>,
     #[serde(default)]
     pub has_more: bool,
     pub next_before_seq: Option<i64>,
+    pub next_after_seq: Option<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +222,9 @@ pub struct NewDispatchChatMessage {
     pub content: String,
     pub is_at_all: bool,
     pub metadata: serde_json::Value,
+    /// Idempotency key from the sending client. `None` for server-originated
+    /// messages, which are not retried by a client and need no key.
+    pub client_msg_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

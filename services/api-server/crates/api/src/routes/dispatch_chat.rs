@@ -28,7 +28,11 @@ struct GroupListQuery {
 #[derive(Debug, Deserialize)]
 struct MessageListQuery {
     limit: Option<i64>,
+    /// Scroll back through older history.
     before_seq: Option<i64>,
+    /// Gap-fill forwards from the last seq the caller rendered — what a client
+    /// needs after an SSE reconnect. Mutually exclusive with `before_seq`.
+    after_seq: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -36,6 +40,10 @@ struct SendMessageRequest {
     content: String,
     #[serde(default)]
     at_all: bool,
+    /// Client-generated idempotency key. When present, a retried POST resolves
+    /// to the message already stored instead of inserting a duplicate.
+    #[serde(default)]
+    client_msg_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -120,7 +128,13 @@ async fn list_messages(
         .as_deref()
         .ok_or_else(|| ApiError::Unauthorized("未认证".into()))?;
     let payload = svc
-        .list_group_messages(&path.into_inner(), user_id, query.limit.unwrap_or(50), query.before_seq)
+        .list_group_messages(
+            &path.into_inner(),
+            user_id,
+            query.limit.unwrap_or(50),
+            query.before_seq,
+            query.after_seq,
+        )
         .await
         .map_err(map_chat_error)?;
     Ok(HttpResponse::Ok().json(payload))
@@ -140,14 +154,29 @@ async fn send_message(
         .sub
         .as_deref()
         .ok_or_else(|| ApiError::Unauthorized("未认证".into()))?;
-    let payload = svc
-        .send_message(&group_id, user_id, &body.content, body.at_all)
+    let outcome = svc
+        .send_message(
+            &group_id,
+            user_id,
+            &body.content,
+            body.at_all,
+            body.client_msg_id.as_deref(),
+        )
         .await
         .map_err(map_chat_error)?;
-    broadcast_message_event(hub.get_ref().clone(), svc.get_ref().clone(), &group_id, &payload)
+    // A deduplicated send was already fanned out by the original request;
+    // broadcasting again would render the message twice in every client.
+    if !outcome.deduplicated {
+        broadcast_message_event(
+            hub.get_ref().clone(),
+            svc.get_ref().clone(),
+            &group_id,
+            &outcome.message,
+        )
         .await
         .map_err(map_chat_error)?;
-    Ok(HttpResponse::Ok().json(payload))
+    }
+    Ok(HttpResponse::Ok().json(outcome.message))
 }
 
 /// POST /api/v2/dispatch/collaboration/groups/{group_id}/read
@@ -164,21 +193,24 @@ async fn mark_read(
         .sub
         .as_deref()
         .ok_or_else(|| ApiError::Unauthorized("未认证".into()))?;
-    let payload = svc
+    let outcome = svc
         .mark_group_read(&group_id, user_id, body.read_seq)
         .await
         .map_err(map_chat_error)?;
-    let last_read_seq = payload.get("last_read_seq").and_then(Value::as_i64).unwrap_or(0);
-    broadcast_read_synced_event(
-        hub.get_ref().clone(),
-        svc.get_ref().clone(),
-        &group_id,
-        user_id,
-        last_read_seq,
-    )
-    .await
-    .map_err(map_chat_error)?;
-    Ok(HttpResponse::Ok().json(payload))
+    // Clients re-mark on focus and scroll; a cursor that did not move carries no
+    // news for the other tabs of this user, so skip the fan-out.
+    if outcome.advanced {
+        broadcast_read_synced_event(
+            hub.get_ref().clone(),
+            svc.get_ref().clone(),
+            &group_id,
+            user_id,
+            outcome.last_read_seq,
+        )
+        .await
+        .map_err(map_chat_error)?;
+    }
+    Ok(HttpResponse::Ok().json(outcome.payload))
 }
 
 /// GET /api/v2/dispatch/collaboration/stream

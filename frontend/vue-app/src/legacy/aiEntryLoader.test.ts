@@ -105,17 +105,17 @@ describe('aiEntryLoader (TypeScript)', () => {
 
   it('resolves entries by key, src, or hashed file pattern', async () => {
     mockFetchOk({
-      'src/entries/dashboard_ai_widget.tsx': {
-        file: 'assets/dashboard_ai_widget-xyz.js',
+      'src/entries/dispatch_board_ai.tsx': {
+        file: 'assets/dispatch_board_ai-xyz.js',
         isEntry: true,
-        css: ['assets/dashboard_ai_widget-xyz.css'],
+        css: ['assets/dispatch_board_ai-xyz.css'],
       },
     });
-    const host = buildHost('dashboard_ai_widget');
-    await loadAiReactEntry(host, 'dashboard_ai_widget').catch(() => {});
+    const host = buildHost('dispatch_board_ai');
+    await loadAiReactEntry(host, 'dispatch_board_ai').catch(() => {});
     expect(
       document.head.querySelector(
-        'link[href="/frontend/static/ai/assets/dashboard_ai_widget-xyz.css"]',
+        'link[href="/frontend/static/ai/assets/dispatch_board_ai-xyz.css"]',
       ),
     ).not.toBeNull();
   });

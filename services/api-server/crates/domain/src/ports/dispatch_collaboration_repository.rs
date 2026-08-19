@@ -3,8 +3,9 @@
 use crate::error::DomainError;
 use crate::models::dispatch_collaboration::{
     DispatchChatDispatcherCandidate, DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember,
-    DispatchChatMemberUpsert, DispatchChatMessage, DispatchChatMessageList, DispatchChatUserProfile,
-    DispatchCollaborationEvent, NewDispatchChatMessage, NotificationReceiptSummary,
+    DispatchChatMemberUnread, DispatchChatMemberUpsert, DispatchChatMessage, DispatchChatMessageCursor,
+    DispatchChatMessageList, DispatchChatReadCursorUpdate, DispatchChatUserProfile, DispatchCollaborationEvent,
+    NewDispatchChatMessage, NotificationReceiptSummary,
 };
 use crate::models::notification::Notification;
 use async_trait::async_trait;
@@ -39,10 +40,18 @@ pub trait DispatchCollaborationRepository {
         &self,
         group_id: &str,
         limit: i64,
-        before_seq: Option<i64>,
+        cursor: DispatchChatMessageCursor,
     ) -> Result<DispatchChatMessageList, DomainError>;
 
     async fn insert_message(&self, message: &NewDispatchChatMessage) -> Result<DispatchChatMessage, DomainError>;
+
+    /// Look up an already-stored message by its client idempotency key, so a
+    /// retried send returns the original instead of creating a duplicate.
+    async fn find_message_by_client_id(
+        &self,
+        group_id: &str,
+        client_msg_id: &str,
+    ) -> Result<Option<DispatchChatMessage>, DomainError>;
 
     async fn update_message_event_id(
         &self,
@@ -50,18 +59,32 @@ pub trait DispatchCollaborationRepository {
         event_id: &str,
     ) -> Result<Option<DispatchChatMessage>, DomainError>;
 
+    /// Moves the member's read cursor forward to `read_seq` (never backwards).
+    ///
+    /// Returns the previous cursor alongside the updated member so callers can
+    /// distinguish a real advance from a no-op re-read.
     async fn mark_group_read(
         &self,
         group_id: &str,
         user_id: &str,
         read_seq: i64,
-    ) -> Result<Option<DispatchChatMember>, DomainError>;
+    ) -> Result<Option<DispatchChatReadCursorUpdate>, DomainError>;
 
     async fn get_group_latest_seq(&self, group_id: &str) -> Result<i64, DomainError>;
 
     async fn count_group_unread(&self, group_id: &str, user_id: &str) -> Result<i64, DomainError>;
 
     async fn count_total_unread(&self, user_id: &str) -> Result<i64, DomainError>;
+
+    /// Batch form of `count_group_unread` + `count_total_unread` for every
+    /// active member of a group.
+    ///
+    /// Fanning a new message out to M members otherwise costs 2×M round trips;
+    /// this resolves both numbers for all members in one query.
+    async fn count_unread_for_group_members(
+        &self,
+        group_id: &str,
+    ) -> Result<Vec<DispatchChatMemberUnread>, DomainError>;
 
     async fn find_active_members(&self, group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError>;
 

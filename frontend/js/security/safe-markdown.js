@@ -1,9 +1,8 @@
 (function (global) {
     'use strict';
 
-    var sanitizeConfig = require('../../shared/security/markdown-sanitize-config.js');
-    var sanitizeHtml = sanitizeConfig.sanitizeHtml;
-
+    // 共享配置已改为 ESM（vue-app 消费）；本文件仅被归档 legacy 页引用，
+    // 浏览器里 require 本就不可用，这里 fail-closed 退化为纯转义。
     function escapeHtml(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
@@ -20,7 +19,7 @@
             : escapeHtml(source).replace(/\r?\n/g, '<br>');
 
         if (global.DOMPurify && typeof global.DOMPurify.sanitize === 'function') {
-            return sanitizeHtml(rendered);
+            return global.DOMPurify.sanitize(rendered);
         }
 
         return escapeHtml(source).replace(/\r?\n/g, '<br>');

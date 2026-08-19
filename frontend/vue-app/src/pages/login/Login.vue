@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { pageUrl } from '@/shared/page-routes';
 import { useAuth, type AuthTokenData } from '@/composables/useAuth';
 import { useApi } from '@/composables/useApi';
-import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import { useTheme } from '@/composables/useTheme';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 
 const username = ref('');
@@ -14,6 +14,7 @@ const successMessage = ref('');
 const showPassword = ref(false);
 const auth = useAuth();
 const api = useApi();
+const { theme, setTheme } = useTheme();
 
 // 默认账号提示仅开发模式展示，避免生产环境泄露默认凭据
 const showDemoCredentials = import.meta.env.DEV;
@@ -61,8 +62,6 @@ function checkExistingSession() {
 }
 
 onMounted(() => {
-  // Match legacy html/login.html: background + right-aligned flex live on body,
-  // so backdrop-filter on .login-card samples the same fixed viewport background.
   document.documentElement.classList.add('login-page');
   document.body.classList.add('login-page');
   checkExistingSession();
@@ -122,7 +121,7 @@ function resolvePostLoginTarget(): string {
 async function handleLogin(event: Event): Promise<void> {
   event.preventDefault();
   clearMessages();
-  
+
   if (!username.value.trim()) {
     usernameError.value = true;
     showError('请填写用户名');
@@ -135,9 +134,9 @@ async function handleLogin(event: Event): Promise<void> {
     passwordInput.value?.focus();
     return;
   }
-  
+
   isLoading.value = true;
-  
+
   try {
     interface LoginResponse {
       success?: boolean;
@@ -156,7 +155,7 @@ async function handleLogin(event: Event): Promise<void> {
     }
 
     auth.saveToken(result.data as unknown as AuthTokenData);
-    
+
     successMessage.value = '登录成功，正在跳转...';
 
     setTimeout(() => {
@@ -177,16 +176,10 @@ async function handleLogin(event: Event): Promise<void> {
 </script>
 
 <template>
-  <!-- Layout shell is applied on body.login-page (legacy parity). -->
   <div class="login-container">
       <div class="login-card">
         <div class="logo">
-          <img
-            src="/frontend/icons/plane.svg"
-            alt=""
-            aria-hidden="true"
-            style="width:48px;height:48px;filter:invert(40%) sepia(98%) saturate(1500%) hue-rotate(190deg) brightness(100%) contrast(101%);"
-          >
+          <SvgIcon src="/frontend/icons/plane.svg" :size="36" />
         </div>
         <h1 class="login-title">
           航班监控系统
@@ -203,7 +196,7 @@ async function handleLogin(event: Event): Promise<void> {
           aria-live="assertive"
           aria-atomic="true"
         >
-          <SvgIcon src="/frontend/icons/forbidden.svg" />
+          <SvgIcon src="/frontend/icons/forbidden.svg" :size="16" />
           <span>{{ errorMessage }}</span>
           <button
             type="button"
@@ -214,7 +207,7 @@ async function handleLogin(event: Event): Promise<void> {
             &times;
           </button>
         </div>
-        
+
         <div
           id="successMessage"
           class="success-message"
@@ -223,7 +216,7 @@ async function handleLogin(event: Event): Promise<void> {
           aria-live="polite"
           aria-atomic="true"
         >
-          <SvgIcon src="/frontend/icons/ok.svg" />
+          <SvgIcon src="/frontend/icons/ok.svg" :size="16" />
           <span>{{ successMessage }}</span>
           <button
             type="button"
@@ -243,7 +236,7 @@ async function handleLogin(event: Event): Promise<void> {
               ref="usernameInput"
               v-model="username"
               type="text"
-              class="form-input" 
+              class="form-input"
               :aria-invalid="usernameError"
               placeholder="请输入用户名"
               required
@@ -259,7 +252,7 @@ async function handleLogin(event: Event): Promise<void> {
                 ref="passwordInput"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                class="form-input" 
+                class="form-input"
                 :aria-invalid="passwordError"
                 placeholder="请输入密码"
                 required
@@ -269,13 +262,13 @@ async function handleLogin(event: Event): Promise<void> {
                 id="passwordToggleBtn"
                 type="button"
                 class="password-toggle"
-                :aria-label="showPassword ? '隐藏密码' : '显示密码'" 
+                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
                 :aria-pressed="showPassword"
                 @click="togglePassword"
               >
                 <SvgIcon
                   :src="showPassword ? '/frontend/icons/password_unvisible.svg' : '/frontend/icons/password_visible.svg'"
-                  :size="18"
+                  :size="16"
                 />
               </button>
             </div>
@@ -317,18 +310,34 @@ async function handleLogin(event: Event): Promise<void> {
           </div>
         </template>
 
-        <p class="footer-text">
-          没有账号？<button
-            id="contactAdminLink"
-            type="button"
-            class="text-link"
-            @click="handleLinkClick('请联系管理员创建账号')"
-          >
-            联系管理员
-          </button>
-        </p>
+        <div class="login-foot">
+          <p class="footer-text">
+            没有账号？<button
+              id="contactAdminLink"
+              type="button"
+              class="text-link"
+              @click="handleLinkClick('请联系管理员创建账号')"
+            >
+              联系管理员
+            </button>
+          </p>
+          <!-- 主题是深/浅分段，是持守，不是一颗常亮主按钮 -->
+          <div class="seg" role="radiogroup" aria-label="主题">
+            <button
+              type="button"
+              role="radio"
+              :aria-checked="theme === 'dark'"
+              @click="setTheme('dark')"
+            >深</button>
+            <button
+              type="button"
+              role="radio"
+              :aria-checked="theme === 'light'"
+              @click="setTheme('light')"
+            >浅</button>
+          </div>
+        </div>
       </div>
-      <ThemeToggle />
   </div>
 </template>
 
@@ -340,11 +349,11 @@ html.login-page body.login-page {
   overflow: hidden;
 }
 
-/* Background on body (legacy); flex shell on #app so compositing matches. */
+/* 页底保留现场照片（压暗衬底），卡片是抬起面实色坐在其上 */
 body.login-page {
   background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url('/frontend/images/index-pic-01.jpg') center / cover no-repeat fixed !important;
-  background-color: transparent !important;
+  background-color: var(--face-page) !important;
   min-height: 100vh !important;
   height: 100% !important;
   margin: 0 !important;
@@ -373,296 +382,247 @@ body.login-page #app {
 </style>
 
 <style scoped>
-/*
- * Strict visual parity with legacy html/login.html AS RENDERED.
- * Global apple-theme/components selectors beat unscoped .form-input on legacy;
- * Vue scoped styles must not re-introduce higher-priority field chrome that
- * diverges from that cascade outcome.
- */
+/* 信号面变位（标本 frontend/signal-surface-preview.html）：
+   卡片是抬起面；输入是表单高 36 的器；登录是页级 40 主按钮；
+   败=危衬横幅，成=安衬横幅；主题=深/浅分段持守。 */
 .login-container {
   width: 100%;
-  max-width: 460px;
-  height: 61.8vh;
-  min-height: 500px;
-  max-height: 90vh;
+  max-width: 400px;
 }
 
 .login-card {
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
-  border-radius: var(--radius-l);
-  box-shadow: var(--shadow-lg);
-  padding: 40px 48px;
+  background: var(--face-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-md);
+  padding: var(--s5);
   text-align: left;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  max-height: 92vh;
   overflow-y: auto;
   box-sizing: border-box;
 }
 
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 24px 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-light);
-}
-
-.divider span {
-  padding: 0 16px;
-}
-
-.demo-credentials {
-  background: var(--system-blue-subtle);
-  border-radius: 12px;
-  padding: 16px;
-  text-align: left;
-  font-size: 13px;
-}
-
-.demo-credentials-title {
-  font-weight: 600;
-  color: var(--system-blue);
-  margin-bottom: 8px;
-}
-
-.demo-credentials p {
-  color: var(--text-secondary);
-  margin: 4px 0;
-}
-
-.demo-credentials code {
-  background: rgba(0, 0, 0, 0.05);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: "SF Mono", Monaco, monospace;
-  font-size: 12px;
-}
-
 .logo {
-  font-size: 48px;
-  margin-bottom: 16px;
+  color: var(--ink);
+  margin-bottom: var(--s3);
 }
 
 .login-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-page);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  margin: 0 0 var(--s1);
 }
 
 .login-subtitle {
-  font-size: 15px;
-  color: var(--text-secondary);
-  margin: 0 0 32px;
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
+  margin: 0 0 var(--s4);
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: var(--s3);
   text-align: left;
 }
 
 .form-label {
   display: block;
-  /* Legacy cascade yields ~14px/21px label box (not the 13px page rule). */
-  font-size: 14px;
-  line-height: 21px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-subtle);
+  margin-bottom: var(--s1);
 }
 
-/*
- * Field chrome intentionally deferred to global apple-theme / components rules
- * so Vue matches legacy cascade winners (see style comparison diagnostic).
- * Legacy does not paint a distinct invalid field surface — only the banner.
- */
 .form-input {
   width: 100%;
+  height: var(--h-md);
+  padding: 0 10px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-strong);
+  background: var(--face-page);
+  color: var(--ink);
+  font-size: var(--fs-body);
   outline: none;
   box-sizing: border-box;
-  color: var(--text-primary);
+  transition: border-color var(--t-fast) var(--ease);
 }
 
 .form-input::placeholder {
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   opacity: 1;
+}
+
+.form-input:hover {
+  border-color: var(--act);
+}
+
+.form-input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
+}
+
+/* 败：危描边 + 危衬，不是换一套皮肤 */
+.form-input[aria-invalid="true"] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .password-wrapper {
   position: relative;
 }
 
+.password-wrapper .form-input {
+  padding-right: 36px;
+}
+
 .password-toggle {
   position: absolute;
-  right: 14px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
+  border-radius: var(--r-cell);
   cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 18px;
-  padding: 4px;
+  color: var(--ink-muted);
+  padding: 0;
 }
 
 .password-toggle:hover {
-  color: var(--text-primary);
-}
-
-.password-toggle:focus-visible {
-  outline: 2px solid rgba(0, 122, 255, 0.35);
-  outline-offset: 2px;
-  border-radius: 6px;
+  color: var(--ink);
 }
 
 .login-options {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 24px;
-  font-size: 13px;
+  margin-bottom: var(--s4);
 }
 
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.remember-me input {
-  accent-color: var(--system-blue);
-  width: 16px;
-  height: 16px;
-}
-
-.forgot-password {
+.forgot-password,
+.text-link {
   background: none;
   border: none;
-  color: var(--system-blue);
+  color: var(--act);
   cursor: pointer;
   font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
   text-decoration: none;
-  font-weight: 500;
   padding: 0;
 }
 
-.forgot-password:hover {
+.forgot-password:hover,
+.text-link:hover {
   text-decoration: underline;
 }
 
 .forgot-password:focus-visible,
-.text-link:focus-visible {
-  outline: 2px solid rgba(0, 122, 255, 0.35);
+.text-link:focus-visible,
+.password-toggle:focus-visible {
+  outline: 2px solid var(--act);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--r-cell);
 }
 
+/* 页级主按钮：本声实底 + 其上（深色实底坐近黑字） */
 .login-btn {
   width: 100%;
-  /* Legacy measured content-box total is 53px with 16px vertical padding. */
-  height: 53px;
-  padding: 16px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: normal;
-  color: var(--text-inverse);
-  background: var(--system-blue);
+  height: var(--h-lg);
+  padding: 0 16px;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  color: var(--act-on);
+  background: var(--act);
   border: none;
-  border-radius: var(--radius-m);
+  border-radius: var(--r-control);
   cursor: pointer;
-  transition: all 0.2s ease;
   position: relative;
-  overflow: hidden;
-  display: inline-block;
-  box-sizing: border-box;
-  vertical-align: middle;
+  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
 
 .login-btn:hover {
-  background: var(--system-blue-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px var(--focus-ring-blue);
+  filter: brightness(1.06);
 }
 
 .login-btn:active {
-  transform: translateY(0);
+  transform: translateY(0.5px);
+}
+
+.login-btn:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 
 .login-btn:disabled {
-  background: var(--system-gray);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink-muted);
   cursor: not-allowed;
+  filter: none;
   transform: none;
-  box-shadow: none;
 }
 
 .login-btn.loading::after {
   content: '';
   position: absolute;
-  width: 20px;
-  height: 20px;
-  border: 2px solid transparent;
-  border-top-color: #fff;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  right: 20px;
+  animation: spin 700ms linear infinite;
+  right: 16px;
   top: 50%;
-  transform: translateY(-50%);
+  margin-top: -7px;
 }
 
 @keyframes spin {
   to {
-    transform: translateY(-50%) rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
-.error-message {
-  background: var(--error-bg-subtle);
-  color: var(--system-red);
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  margin-bottom: 20px;
+/* 横幅：败=危衬+危字，成=安衬+安字；入出用 escalate */
+.error-message,
+.success-message {
+  padding: 8px 12px;
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
+  margin-bottom: var(--s3);
   display: none;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--error-border-subtle);
 }
 
-.error-message.show {
-  display: flex;
+.error-message {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, transparent);
 }
 
 .success-message {
-  background: var(--success-bg-subtle);
-  color: var(--system-green);
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  margin-bottom: 20px;
-  display: none;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--success-border-subtle);
+  background: var(--ok-soft);
+  color: var(--ok);
+  border: 1px solid color-mix(in srgb, var(--ok) 42%, transparent);
 }
 
+.error-message.show,
 .success-message.show {
   display: flex;
+  animation: escalate var(--t-slow) var(--ease);
+}
+
+@keyframes escalate {
+  0% { transform: translateY(-4px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 .message-close {
@@ -670,111 +630,160 @@ body.login-page #app {
   border: 0;
   background: transparent;
   color: currentColor;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   line-height: 1;
   padding: 2px;
+  border-radius: var(--r-cell);
 }
 
 .message-close:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 1px;
-  border-radius: 4px;
 }
 
-.svg-icon {
-  width: 18px;
-  height: 18px;
-  vertical-align: middle;
+.divider {
+  display: flex;
+  align-items: center;
+  margin: var(--s4) 0;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
 }
 
-.svg-icon-md {
-  width: 20px;
-  height: 20px;
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.divider span {
+  padding: 0 var(--s3);
+}
+
+/* 测试账号块：中性面 + 等宽标识，不用行动衬当背景 */
+.demo-credentials {
+  background: var(--face-page);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  padding: var(--s3);
+  text-align: left;
+  font-size: var(--fs-label);
+}
+
+.demo-credentials-title {
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+  margin-bottom: var(--s1);
+}
+
+.demo-credentials p {
+  color: var(--ink-subtle);
+  margin: 4px 0;
+}
+
+.demo-credentials code {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  padding: 1px 5px;
+  border-radius: var(--r-cell);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.login-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s4);
 }
 
 .footer-text {
-  margin-top: 24px;
-  font-size: 13px;
-  color: var(--text-secondary);
+  margin: 0;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
-.text-link {
-  background: none;
-  border: none;
-  color: var(--system-blue);
+.footer-text .text-link {
+  font-size: var(--fs-label);
+}
+
+/* 深/浅分段：轨道低一档，选中块与所在面同面并抬起 */
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-control);
+  background: var(--face-page);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.seg button {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-cell);
+  background: transparent;
+  color: var(--ink-subtle);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  font: inherit;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 0;
 }
 
-.text-link:hover {
-  text-decoration: underline;
+.seg button:hover {
+  color: var(--ink);
+}
+
+.seg button[aria-checked="true"],
+.seg button[aria-checked="true"]:hover {
+  background: var(--face-raised);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.seg button:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 
 @media (max-height: 700px) {
-  .login-container {
-    height: auto;
-    min-height: unset;
-    max-height: 95vh;
-  }
-
   .login-card {
-    padding: 28px 36px;
-  }
-
-  .logo {
-    font-size: 36px;
-    margin-bottom: 12px;
-  }
-
-  .login-title {
-    font-size: 24px;
-    margin-bottom: 4px;
+    padding: var(--s4);
   }
 
   .login-subtitle {
-    margin-bottom: 20px;
-  }
-
-  .form-group {
-    margin-bottom: 14px;
-  }
-
-  .login-btn {
-    padding: 12px 20px;
-    font-size: 15px;
+    margin-bottom: var(--s3);
   }
 
   .divider {
-    margin: 16px 0;
+    margin: var(--s3) 0;
   }
 
-  .demo-credentials {
-    padding: 12px;
-  }
-
-  .footer-text {
-    margin-top: 16px;
+  .login-foot {
+    margin-top: var(--s3);
   }
 }
 
 @media (max-width: 480px) {
   .login-container {
-    height: auto;
-    min-height: unset;
     max-width: 100%;
   }
 
   .login-card {
-    padding: 32px 24px;
-    height: auto;
+    padding: var(--s4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-message.show,
+  .success-message.show {
+    animation: none;
   }
 
-  .login-title {
-    font-size: 24px;
+  .login-btn,
+  .form-input {
+    transition: none;
   }
 }
 </style>

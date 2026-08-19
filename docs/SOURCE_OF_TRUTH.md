@@ -68,6 +68,8 @@
 | 静态挂载 | `services/api-server/crates/api/src/routes/static_files.rs` |
 | 兼容资源 | `frontend/js/`、`frontend/static/`、`frontend/vendor/` 等 |
 | 差异审计（本地 ops） | `docs/operations/frontend-parity-audit.md` |
+| 视觉语言 | `docs/architecture/SIGNAL_SURFACE.md` |
+| 视觉标本 / token 真值 | `frontend/signal-surface-preview.html` |
 
 正式路径：`/frontend/<page>.html`。兼容：`/frontend/html/<page>.html`。  
 根路径 `/` 302 到正式 Vue 登录页 `/frontend/login.html`。

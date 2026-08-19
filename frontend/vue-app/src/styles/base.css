@@ -128,8 +128,7 @@ textarea,
     [role="button"],
     [tabindex]:not([tabindex="-1"]),
     .flight-item,
-    .event-item,
-    .dashboard-handover-card
+    .event-item
 ):focus-visible {
     outline: 2px solid var(--system-blue);
     outline-offset: 2px;
@@ -141,8 +140,7 @@ textarea,
     select,
     textarea,
     .flight-item,
-    .event-item,
-    .dashboard-handover-card
+    .event-item
 ):focus-visible {
     box-shadow: 0 0 0 4px var(--system-blue-subtle);
 }

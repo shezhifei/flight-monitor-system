@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { inject } from 'vue';
+import UiSegment from '../../ui/UiSegment.vue';
 import { flightBusinessCaseKey } from '../../../composables/useFlightBusinessCases';
 import {
   formatCaseTimeRange,
@@ -23,10 +24,10 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
 <template>
   <div class="log-toolbar">
     <span class="log-toolbar-title">事件日志</span>
-    <div class="case-filter-tabs">
+    <UiSegment label="事件日志过滤">
       <button
-        class="filter-btn"
-        :class="{ active: ctx.caseFilter.value === 'all' }"
+        type="button"
+        :aria-checked="ctx.caseFilter.value === 'all'"
         @click="ctx.caseFilter.value = 'all'"
       >
         全部
@@ -34,13 +35,13 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
       <button
         v-for="option in ctx.caseStatusOptions.value"
         :key="option.value"
-        class="filter-btn"
-        :class="{ active: ctx.caseFilter.value === option.value }"
+        type="button"
+        :aria-checked="ctx.caseFilter.value === option.value"
         @click="ctx.caseFilter.value = option.value"
       >
         {{ option.label }}
       </button>
-    </div>
+    </UiSegment>
   </div>
   <div class="cases-scroll-area">
     <div v-if="ctx.filteredCases.value.length > 0" class="timeline event-case-timeline">
@@ -113,19 +114,13 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--line);
 }
 
 .log-toolbar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.case-filter-tabs {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .cases-scroll-area {
@@ -149,8 +144,8 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
   width: 10px;
   height: 10px;
   border-width: 2px;
-  border-color: var(--bg-primary, #fff);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-light, #e5e7eb) 80%, transparent);
+  border-color: var(--face-work);
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .event-case-timeline :deep(.timeline-row) {
@@ -169,10 +164,10 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
 }
 
 .event-case-timeline :deep(.timeline-type) {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
   line-height: 1.35;
-  color: var(--text-primary);
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -182,7 +177,7 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
   margin: 0;
   font-size: 11px;
   line-height: 1.3;
-  color: var(--text-tertiary, var(--text-secondary));
+  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
@@ -194,7 +189,7 @@ function workflowSummaryLabel(c: Parameters<typeof getCaseWorkflowSummary>[0]) {
 
 .event-case-timeline :deep(.timeline-item:hover) {
   transform: none;
-  background: color-mix(in srgb, var(--system-blue, #0ea5e9) 5%, transparent);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  border-radius: var(--r-panel);
 }
 </style>

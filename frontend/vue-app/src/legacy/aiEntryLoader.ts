@@ -14,16 +14,12 @@ import { assertStaticAssetUrl } from '@/lib/url-guard';
 
 export type AiEntryName =
   | 'ai_monitor'
-  | 'llm_eval_lab'
   | 'nl_query'
-  | 'dashboard_ai_widget'
   | 'dispatch_board_ai';
 
 export const AI_ENTRY_LABELS: Record<AiEntryName, string> = {
   ai_monitor: 'AI 监控',
-  llm_eval_lab: 'LLM 评测实验室',
   nl_query: '自然语言查询',
-  dashboard_ai_widget: '工作台 AI 助手',
   dispatch_board_ai: '派工 AI 助手',
 };
 
