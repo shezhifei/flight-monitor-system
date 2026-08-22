@@ -15,6 +15,7 @@ use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfigur
 
 mod repository;
 mod runtime;
+mod tasks;
 
 #[cfg(test)]
 mod tests;
@@ -178,32 +179,32 @@ impl FlowableGateway for EmbeddedFlowableEngine {
 
     async fn get_tasks(
         &self,
-        _filters: &[(&str, String)],
+        filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 6")
+        tasks::get_tasks(&self.engine, filters).await
     }
 
     async fn get_task(
         &self,
-        _task_id: &str,
+        task_id: &str,
     ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 6")
+        tasks::get_task(&self.engine, task_id).await
     }
 
-    async fn claim_task(&self, _task_id: &str, _user_id: &str) -> Result<bool, FlowableGatewayError> {
-        unimplemented!("Task 6")
+    async fn claim_task(&self, task_id: &str, user_id: &str) -> Result<bool, FlowableGatewayError> {
+        tasks::claim_task(&self.engine, task_id, user_id).await
     }
 
-    async fn unclaim_task(&self, _task_id: &str) -> Result<bool, FlowableGatewayError> {
-        unimplemented!("Task 6")
+    async fn unclaim_task(&self, task_id: &str) -> Result<bool, FlowableGatewayError> {
+        tasks::unclaim_task(&self.engine, task_id).await
     }
 
     async fn complete_task(
         &self,
-        _task_id: &str,
-        _variables: Option<&serde_json::Map<String, serde_json::Value>>,
+        task_id: &str,
+        variables: Option<&serde_json::Map<String, serde_json::Value>>,
     ) -> Result<bool, FlowableGatewayError> {
-        unimplemented!("Task 6")
+        tasks::complete_task(&self.engine, task_id, variables).await
     }
 
     async fn get_executions(

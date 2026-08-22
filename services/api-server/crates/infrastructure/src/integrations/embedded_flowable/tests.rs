@@ -171,3 +171,55 @@ async fn runtime_instance_variables_and_executions_roundtrip() {
             .is_none()
     );
 }
+
+#[tokio::test]
+async fn task_lifecycle_claim_complete_roundtrip() {
+    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
+    gateway
+        .deploy_process(bpmn, Some("task-test"), None, None)
+        .await
+        .unwrap();
+    let instance_id = gateway
+        .start_process_instance("minimalUserTask", None, None, None)
+        .await
+        .unwrap()
+        .expect("instance started");
+
+    let tasks = gateway
+        .get_tasks(&[("processInstanceId", instance_id.clone())])
+        .await
+        .unwrap();
+    assert_eq!(tasks.len(), 1);
+    let task = &tasks[0];
+    for field in ["id", "name", "processInstanceId", "createTime"] {
+        assert!(task.get(field).is_some(), "task JSON missing `{field}`");
+    }
+    assert!(task.get("assignee").unwrap().is_null());
+    let task_id = task.get("id").and_then(Value::as_str).unwrap().to_string();
+
+    assert!(gateway.claim_task(&task_id, "kermit").await.unwrap());
+    let claimed = gateway.get_task(&task_id).await.unwrap().expect("task");
+    assert_eq!(
+        claimed.get("assignee").and_then(Value::as_str),
+        Some("kermit")
+    );
+
+    assert!(gateway.unclaim_task(&task_id).await.unwrap());
+    assert!(gateway.claim_task(&task_id, "kermit").await.unwrap());
+
+    let mut variables = serde_json::Map::new();
+    variables.insert("approved".to_string(), Value::from(true));
+    assert!(
+        gateway
+            .complete_task(&task_id, Some(&variables))
+            .await
+            .unwrap()
+    );
+
+    let tasks = gateway
+        .get_tasks(&[("processInstanceId", instance_id.clone())])
+        .await
+        .unwrap();
+    assert!(tasks.is_empty());
+}
