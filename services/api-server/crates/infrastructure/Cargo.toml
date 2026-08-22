@@ -64,3 +64,6 @@ flowable-engine = { workspace = true }
 
 # Metrics (recording macros; recorder installed by the server crate)
 metrics = "0.24"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

@@ -1,0 +1,303 @@
+//! 进程内嵌入式 Flowable 引擎：直接调用 vendored flowable-rust-oss
+//! 的 ProcessEngine，替代对 tomcat flowable-rest 的 HTTP 调用。
+//!
+//! 引擎 API 是同步的；其持久化层内部自带 sqlx 异步桥接
+//! （flowable-persistence/src/adapters/sqlx_executor.rs），在任意
+//! tokio 上下文调用均安全。本适配器统一用 spawn_blocking 包裹，
+//! 避免阻塞 actix worker 线程。
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use fms_domain::ports::flowable_gateway::{FlowableGateway, FlowableGatewayError};
+use flowable_engine::engine::process_engine::ProcessEngine;
+use flowable_engine::error::FlowableError;
+use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfiguration};
+
+pub struct EmbeddedFlowableEngine {
+    engine: Arc<ProcessEngine>,
+}
+
+const ENGINE_NAME: &str = "fms-embedded-flowable";
+
+impl EmbeddedFlowableEngine {
+    /// 从环境变量构造。
+    ///
+    /// - `FLOWABLE_DATABASE_URL` 非空 → PostgreSQL 后端（生产），
+    ///   引擎构造时自动建/补 ACT_* 表（to_persistence_config 内建
+    ///   SchemaMode::True，无需额外配置）。
+    /// - 为空 → 内存后端（测试/开发，数据不落盘）。
+    pub fn try_new_from_env() -> Result<Self, FlowableGatewayError> {
+        let url = std::env::var("FLOWABLE_DATABASE_URL")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        let engine = match url {
+            // 不用 ProcessEngineConfiguration::default() 构造内存引擎：
+            // default() 会读 FLOWABLE_TEST_ENGINE_DATABASE_URL 环境变量，
+            // new_with_memory_backend 完全绕开该干扰。
+            None => ProcessEngine::new_with_memory_backend(ENGINE_NAME.to_string()),
+            Some(url) => {
+                let config = Self::postgres_config(&url);
+                ProcessEngine::try_new_with_config(ENGINE_NAME.to_string(), config).map_err(
+                    |error| {
+                        FlowableGatewayError::Upstream(format!(
+                            "embedded flowable engine init failed: {error}"
+                        ))
+                    },
+                )?
+            }
+        };
+        Ok(Self {
+            engine: Arc::new(engine),
+        })
+    }
+
+    fn postgres_config(url: &str) -> ProcessEngineConfiguration {
+        let mut config = ProcessEngineConfiguration::default();
+        config.database.kind = EngineDatabaseKind::Postgres;
+        config.database.url = url.to_string();
+        config.database.pool_size = std::env::var("FLOWABLE_DB_POOL_SIZE")
+            .ok()
+            .and_then(|value| value.parse::<u32>().ok())
+            .filter(|&value| value > 0)
+            .unwrap_or(8);
+        config
+    }
+}
+
+/// 在阻塞线程池上执行引擎调用，统一错误映射。
+///
+/// 自由函数形式：`FlowableGateway` 的 impl 块必须整体位于
+/// `embedded_flowable.rs`（Rust 不允许一个 trait 的实现拆散到多个
+/// impl 块），各方法组实现为子模块里的自由函数并复用本辅助。
+pub(crate) async fn run_on_engine<T, F>(
+    engine: Arc<ProcessEngine>,
+    f: F,
+) -> Result<T, FlowableGatewayError>
+where
+    T: Send + 'static,
+    F: FnOnce(&ProcessEngine) -> Result<T, FlowableError> + Send + 'static,
+{
+    tokio::task::spawn_blocking(move || f(&engine))
+        .await
+        .map_err(|join_error| {
+            FlowableGatewayError::Upstream(format!("flowable engine task panicked: {join_error}"))
+        })?
+        .map_err(|error: FlowableError| FlowableGatewayError::Upstream(error.to_string()))
+}
+
+#[async_trait]
+impl FlowableGateway for EmbeddedFlowableEngine {
+    async fn get_process_definitions(
+        &self,
+        key: Option<&str>,
+        tenant_id: Option<&str>,
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        let key = key
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(ToOwned::to_owned);
+        let tenant_id = tenant_id
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(ToOwned::to_owned);
+        run_on_engine(Arc::clone(&self.engine), move |engine| {
+            // repository_service.rs:134-146：返回全部定义（按 key/id 排序），无过滤参数
+            let defs = engine.get_repository_service().get_process_definitions()?;
+            Ok(defs
+                .into_iter()
+                .filter(|def| key.as_deref().map(|k| def.key == k).unwrap_or(true))
+                .filter(|def| {
+                    tenant_id
+                        .as_deref()
+                        .map(|t| def.tenant_id.as_deref() == Some(t))
+                        .unwrap_or(true)
+                })
+                .map(|def| {
+                    serde_json::json!({
+                        "id": def.id,
+                        "key": def.key,
+                        "category": def.category,
+                        "name": def.name,
+                        "description": def.description,
+                        "version": def.version,
+                        "resourceName": def.resource_name,
+                        "deploymentId": def.deployment_id,
+                        "diagramResourceName": def.diagram_resource_name,
+                        "tenantId": def.tenant_id,
+                        "suspended": def.is_suspended,
+                    })
+                })
+                .collect())
+        })
+        .await
+    }
+
+    async fn get_process_definition(
+        &self,
+        _process_definition_id: &str,
+    ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 4")
+    }
+
+    async fn get_process_definition_xml(
+        &self,
+        _process_definition_id: &str,
+    ) -> Result<Option<String>, FlowableGatewayError> {
+        unimplemented!("Task 4")
+    }
+
+    async fn get_deployments(
+        &self,
+        _name: Option<&str>,
+        _tenant_id: Option<&str>,
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 4")
+    }
+
+    async fn deploy_process(
+        &self,
+        _bpmn_xml: &str,
+        _deployment_name: Option<&str>,
+        _category: Option<&str>,
+        _tenant_id: Option<&str>,
+    ) -> Result<serde_json::Value, FlowableGatewayError> {
+        unimplemented!("Task 4")
+    }
+
+    async fn delete_deployment(
+        &self,
+        _deployment_id: &str,
+        _cascade: bool,
+    ) -> Result<bool, FlowableGatewayError> {
+        unimplemented!("Task 4")
+    }
+
+    async fn start_process_instance(
+        &self,
+        _process_key: &str,
+        _variables: Option<&serde_json::Map<String, serde_json::Value>>,
+        _business_key: Option<&str>,
+        _tenant_id: Option<&str>,
+    ) -> Result<Option<String>, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn get_process_instances(
+        &self,
+        _filters: &[(&str, String)],
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn get_process_instance(
+        &self,
+        _process_instance_id: &str,
+    ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn delete_process_instance(
+        &self,
+        _process_instance_id: &str,
+        _delete_reason: Option<&str>,
+    ) -> Result<bool, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn get_tasks(
+        &self,
+        _filters: &[(&str, String)],
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 6")
+    }
+
+    async fn get_task(
+        &self,
+        _task_id: &str,
+    ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 6")
+    }
+
+    async fn claim_task(&self, _task_id: &str, _user_id: &str) -> Result<bool, FlowableGatewayError> {
+        unimplemented!("Task 6")
+    }
+
+    async fn unclaim_task(&self, _task_id: &str) -> Result<bool, FlowableGatewayError> {
+        unimplemented!("Task 6")
+    }
+
+    async fn complete_task(
+        &self,
+        _task_id: &str,
+        _variables: Option<&serde_json::Map<String, serde_json::Value>>,
+    ) -> Result<bool, FlowableGatewayError> {
+        unimplemented!("Task 6")
+    }
+
+    async fn get_executions(
+        &self,
+        _filters: &[(&str, String)],
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn get_process_instance_variables(
+        &self,
+        _process_instance_id: &str,
+    ) -> Result<serde_json::Value, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn set_process_instance_variables(
+        &self,
+        _process_instance_id: &str,
+        _variables: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<bool, FlowableGatewayError> {
+        unimplemented!("Task 5")
+    }
+
+    async fn get_historic_process_instances(
+        &self,
+        _filters: &[(&str, String)],
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 7")
+    }
+
+    async fn get_historic_tasks(
+        &self,
+        _filters: &[(&str, String)],
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 7")
+    }
+
+    async fn get_historic_process_instance(
+        &self,
+        _process_instance_id: &str,
+    ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 7")
+    }
+
+    async fn get_historic_variable_instances(
+        &self,
+        _filters: &[(&str, String)],
+    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        unimplemented!("Task 7")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn embedded_engine_boots_with_memory_backend() {
+        let gateway = EmbeddedFlowableEngine::try_new_from_env().expect("engine boots");
+        // 引擎可用性探针：列出流程定义（空库返回空数组）
+        let defs = gateway
+            .get_process_definitions(None, None)
+            .await
+            .expect("list definitions");
+        assert!(defs.is_empty());
+    }
+}
