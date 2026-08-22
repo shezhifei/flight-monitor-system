@@ -13,6 +13,11 @@ use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::error::FlowableError;
 use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfiguration};
 
+mod repository;
+
+#[cfg(test)]
+mod tests;
+
 pub struct EmbeddedFlowableEngine {
     engine: Arc<ProcessEngine>,
 }
@@ -93,84 +98,48 @@ impl FlowableGateway for EmbeddedFlowableEngine {
         key: Option<&str>,
         tenant_id: Option<&str>,
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        let key = key
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(ToOwned::to_owned);
-        let tenant_id = tenant_id
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(ToOwned::to_owned);
-        run_on_engine(Arc::clone(&self.engine), move |engine| {
-            // repository_service.rs:134-146：返回全部定义（按 key/id 排序），无过滤参数
-            let defs = engine.get_repository_service().get_process_definitions()?;
-            Ok(defs
-                .into_iter()
-                .filter(|def| key.as_deref().map(|k| def.key == k).unwrap_or(true))
-                .filter(|def| {
-                    tenant_id
-                        .as_deref()
-                        .map(|t| def.tenant_id.as_deref() == Some(t))
-                        .unwrap_or(true)
-                })
-                .map(|def| {
-                    serde_json::json!({
-                        "id": def.id,
-                        "key": def.key,
-                        "category": def.category,
-                        "name": def.name,
-                        "description": def.description,
-                        "version": def.version,
-                        "resourceName": def.resource_name,
-                        "deploymentId": def.deployment_id,
-                        "diagramResourceName": def.diagram_resource_name,
-                        "tenantId": def.tenant_id,
-                        "suspended": def.is_suspended,
-                    })
-                })
-                .collect())
-        })
-        .await
+        repository::get_process_definitions(&self.engine, key, tenant_id).await
     }
 
     async fn get_process_definition(
         &self,
-        _process_definition_id: &str,
+        process_definition_id: &str,
     ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 4")
+        repository::get_process_definition(&self.engine, process_definition_id).await
     }
 
     async fn get_process_definition_xml(
         &self,
-        _process_definition_id: &str,
+        process_definition_id: &str,
     ) -> Result<Option<String>, FlowableGatewayError> {
-        unimplemented!("Task 4")
+        repository::get_process_definition_xml(&self.engine, process_definition_id).await
     }
 
     async fn get_deployments(
         &self,
-        _name: Option<&str>,
-        _tenant_id: Option<&str>,
+        name: Option<&str>,
+        tenant_id: Option<&str>,
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 4")
+        repository::get_deployments(&self.engine, name, tenant_id).await
     }
 
     async fn deploy_process(
         &self,
-        _bpmn_xml: &str,
-        _deployment_name: Option<&str>,
-        _category: Option<&str>,
-        _tenant_id: Option<&str>,
+        bpmn_xml: &str,
+        deployment_name: Option<&str>,
+        category: Option<&str>,
+        tenant_id: Option<&str>,
     ) -> Result<serde_json::Value, FlowableGatewayError> {
-        unimplemented!("Task 4")
+        repository::deploy_process(&self.engine, bpmn_xml, deployment_name, category, tenant_id)
+            .await
     }
 
     async fn delete_deployment(
         &self,
-        _deployment_id: &str,
-        _cascade: bool,
+        deployment_id: &str,
+        cascade: bool,
     ) -> Result<bool, FlowableGatewayError> {
-        unimplemented!("Task 4")
+        repository::delete_deployment(&self.engine, deployment_id, cascade).await
     }
 
     async fn start_process_instance(
@@ -283,21 +252,5 @@ impl FlowableGateway for EmbeddedFlowableEngine {
         _filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
         unimplemented!("Task 7")
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn embedded_engine_boots_with_memory_backend() {
-        let gateway = EmbeddedFlowableEngine::try_new_from_env().expect("engine boots");
-        // 引擎可用性探针：列出流程定义（空库返回空数组）
-        let defs = gateway
-            .get_process_definitions(None, None)
-            .await
-            .expect("list definitions");
-        assert!(defs.is_empty());
     }
 }
