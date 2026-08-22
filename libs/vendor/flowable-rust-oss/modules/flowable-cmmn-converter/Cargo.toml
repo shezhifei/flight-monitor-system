@@ -1,0 +1,12 @@
+[package]
+name = "flowable-cmmn-converter"
+version = "0.1.0"
+edition = "2024"
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+flowable-cmmn-model = { path = "../flowable-cmmn-model" }
+roxmltree = "0.20"
+quick-xml = "0.39.2"
+

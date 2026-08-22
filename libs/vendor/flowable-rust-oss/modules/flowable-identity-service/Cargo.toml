@@ -1,0 +1,10 @@
+[package]
+name = "flowable-identity-service"
+version = "0.1.0"
+edition = "2024"
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+flowable-engine = { path = "../flowable-engine" }
+flowable-platform-bootstrap = { path = "../flowable-platform-bootstrap" }
