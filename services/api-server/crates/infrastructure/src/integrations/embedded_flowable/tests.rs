@@ -63,3 +63,111 @@ async fn deploy_then_list_definitions_roundtrip() {
     let defs = gateway.get_process_definitions(None, None).await.unwrap();
     assert!(defs.is_empty());
 }
+
+#[tokio::test]
+async fn runtime_instance_variables_and_executions_roundtrip() {
+    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
+    gateway
+        .deploy_process(bpmn, Some("runtime-test"), None, None)
+        .await
+        .unwrap();
+
+    let mut variables = serde_json::Map::new();
+    variables.insert("initiator".to_string(), Value::from("tester"));
+    variables.insert("count".to_string(), Value::from(3));
+    let instance_id = gateway
+        .start_process_instance(
+            "minimalUserTask",
+            Some(&variables),
+            Some("biz-key-1"),
+            None,
+        )
+        .await
+        .unwrap()
+        .expect("instance started");
+
+    // 单查实例：字段形状（Java REST 超集）
+    let instance = gateway
+        .get_process_instance(&instance_id)
+        .await
+        .unwrap()
+        .expect("instance found");
+    assert_eq!(
+        instance.get("businessKey").and_then(Value::as_str),
+        Some("biz-key-1")
+    );
+    assert_eq!(
+        instance.get("processDefinitionKey").and_then(Value::as_str),
+        Some("minimalUserTask")
+    );
+    assert!(instance.get("startTime").is_some());
+
+    // 列表过滤
+    let listed = gateway
+        .get_process_instances(&[("businessKey", "biz-key-1".to_string())])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+
+    // 变量往返
+    let vars = gateway
+        .get_process_instance_variables(&instance_id)
+        .await
+        .unwrap();
+    let vars = vars.as_array().expect("variables array");
+    let initiator = vars
+        .iter()
+        .find(|v| v.get("name").and_then(Value::as_str) == Some("initiator"))
+        .expect("initiator variable");
+    assert_eq!(
+        initiator.get("value").and_then(Value::as_str),
+        Some("tester")
+    );
+
+    let mut updates = serde_json::Map::new();
+    updates.insert("reviewed".to_string(), Value::from(true));
+    assert!(
+        gateway
+            .set_process_instance_variables(&instance_id, &updates)
+            .await
+            .unwrap()
+    );
+    let vars = gateway
+        .get_process_instance_variables(&instance_id)
+        .await
+        .unwrap();
+    assert!(
+        vars.as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v.get("name").and_then(Value::as_str) == Some("reviewed"))
+    );
+
+    // executions 过滤
+    let executions = gateway
+        .get_executions(&[("processInstanceId", instance_id.clone())])
+        .await
+        .unwrap();
+    assert!(!executions.is_empty());
+    assert!(
+        executions
+            .iter()
+            .all(|e| e.get("processInstanceId").and_then(Value::as_str) == Some(&instance_id))
+    );
+
+    // 删除实例
+    assert!(
+        gateway
+            .delete_process_instance(&instance_id, Some("test cleanup"))
+            .await
+            .unwrap()
+    );
+    assert!(
+        gateway
+            .get_process_instance(&instance_id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+}

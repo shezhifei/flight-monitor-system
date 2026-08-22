@@ -14,6 +14,7 @@ use flowable_engine::error::FlowableError;
 use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfiguration};
 
 mod repository;
+mod runtime;
 
 #[cfg(test)]
 mod tests;
@@ -144,34 +145,35 @@ impl FlowableGateway for EmbeddedFlowableEngine {
 
     async fn start_process_instance(
         &self,
-        _process_key: &str,
-        _variables: Option<&serde_json::Map<String, serde_json::Value>>,
-        _business_key: Option<&str>,
-        _tenant_id: Option<&str>,
+        process_key: &str,
+        variables: Option<&serde_json::Map<String, serde_json::Value>>,
+        business_key: Option<&str>,
+        tenant_id: Option<&str>,
     ) -> Result<Option<String>, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::start_process_instance(&self.engine, process_key, variables, business_key, tenant_id)
+            .await
     }
 
     async fn get_process_instances(
         &self,
-        _filters: &[(&str, String)],
+        filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::get_process_instances(&self.engine, filters).await
     }
 
     async fn get_process_instance(
         &self,
-        _process_instance_id: &str,
+        process_instance_id: &str,
     ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::get_process_instance(&self.engine, process_instance_id).await
     }
 
     async fn delete_process_instance(
         &self,
-        _process_instance_id: &str,
-        _delete_reason: Option<&str>,
+        process_instance_id: &str,
+        delete_reason: Option<&str>,
     ) -> Result<bool, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::delete_process_instance(&self.engine, process_instance_id, delete_reason).await
     }
 
     async fn get_tasks(
@@ -206,24 +208,24 @@ impl FlowableGateway for EmbeddedFlowableEngine {
 
     async fn get_executions(
         &self,
-        _filters: &[(&str, String)],
+        filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::get_executions(&self.engine, filters).await
     }
 
     async fn get_process_instance_variables(
         &self,
-        _process_instance_id: &str,
+        process_instance_id: &str,
     ) -> Result<serde_json::Value, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::get_process_instance_variables(&self.engine, process_instance_id).await
     }
 
     async fn set_process_instance_variables(
         &self,
-        _process_instance_id: &str,
-        _variables: &serde_json::Map<String, serde_json::Value>,
+        process_instance_id: &str,
+        variables: &serde_json::Map<String, serde_json::Value>,
     ) -> Result<bool, FlowableGatewayError> {
-        unimplemented!("Task 5")
+        runtime::set_process_instance_variables(&self.engine, process_instance_id, variables).await
     }
 
     async fn get_historic_process_instances(
