@@ -102,7 +102,7 @@ rocketmq-common = { path = "../../libs/vendor/rocketmq-rust/rocketmq-common" }
 rocketmq-error = { path = "../../libs/vendor/rocketmq-rust/rocketmq-error" }
 
 # -- Flowable (vendored) --
-flowable-engine = { path = "../../libs/vendor/flowable-rust-oss/modules/flowable-engine" }
+flowable-engine = { path = "../../libs/vendor/flowable-rust-oss/modules/flowable-engine", features = ["postgres"] }
 
 [profile.release]
 opt-level = 3

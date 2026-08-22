@@ -43,7 +43,12 @@ impl EmbeddedFlowableEngine {
             // 不用 ProcessEngineConfiguration::default() 构造内存引擎：
             // default() 会读 FLOWABLE_TEST_ENGINE_DATABASE_URL 环境变量，
             // new_with_memory_backend 完全绕开该干扰。
-            None => ProcessEngine::new_with_memory_backend(ENGINE_NAME.to_string()),
+            None => {
+                tracing::warn!(
+                    "FLOWABLE_DATABASE_URL 未设置，嵌入式 Flowable 引擎使用内存后端——流程数据不落库，仅限测试/开发"
+                );
+                ProcessEngine::new_with_memory_backend(ENGINE_NAME.to_string())
+            }
             Some(url) => {
                 let config = Self::postgres_config(&url);
                 ProcessEngine::try_new_with_config(ENGINE_NAME.to_string(), config).map_err(

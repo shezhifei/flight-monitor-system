@@ -322,17 +322,13 @@ pub(crate) fn build_shared_infra(repos: &SharedRepos) -> SharedInfra {
 
     let flowable_client: Arc<dyn FlowableGateway> =
         match std::env::var("FLOWABLE_ENGINE_MODE")
-            .unwrap_or_else(|_| "remote".to_string())
+            .unwrap_or_else(|_| "embedded".to_string())
             .trim()
             .to_ascii_lowercase()
             .as_str()
         {
-            "embedded" => {
-                let engine = EmbeddedFlowableEngine::try_new_from_env()
-                    .expect("FLOWABLE_ENGINE_MODE=embedded requires a bootable flowable engine");
-                Arc::new(engine)
-            }
-            _ => {
+            // remote = 过渡回退路径（HTTP 调 tomcat flowable-rest），稳定后计划删除
+            "remote" => {
                 let flowable_admin_pass = std::env::var("FLOWABLE_ADMIN_PASSWORD")
                     .or_else(|_| std::env::var("FLOWABLE_PASSWORD"))
                     .unwrap_or_else(|_| "test".to_string());
@@ -345,6 +341,11 @@ pub(crate) fn build_shared_infra(repos: &SharedRepos) -> SharedInfra {
                     )
                     .expect("FLOWABLE_BASE_URL must be a valid absolute URL with a host"),
                 )
+            }
+            _ => {
+                let engine = EmbeddedFlowableEngine::try_new_from_env()
+                    .expect("FLOWABLE_ENGINE_MODE=embedded requires a bootable flowable engine");
+                Arc::new(engine)
             }
         };
     let flowable_svc = Arc::new(FlowableService::new(flowable_client.clone()));
