@@ -24,21 +24,34 @@ COPY services/api-server/crates/infrastructure/Cargo.toml crates/infrastructure/
 COPY services/api-server/crates/application/Cargo.toml crates/application/Cargo.toml
 COPY services/api-server/crates/api/Cargo.toml crates/api/Cargo.toml
 COPY services/api-server/crates/server/Cargo.toml crates/server/Cargo.toml
+COPY services/api-server/crates/runtime/Cargo.toml crates/runtime/Cargo.toml
+COPY services/api-server/benches/Cargo.toml benches/Cargo.toml
+
+# Vendored path 依赖（workspace Cargo.toml 中 ../../libs/... 相对 /build 解析为 /libs）
+COPY libs/vendor/flowable-rust-oss/Cargo.toml /libs/vendor/flowable-rust-oss/Cargo.toml
+COPY libs/vendor/flowable-rust-oss/modules /libs/vendor/flowable-rust-oss/modules
+COPY libs/vendor/rocketmq-rust /libs/vendor/rocketmq-rust
 
 # 创建占位 src 以编译依赖
 RUN mkdir -p crates/domain/src && echo "" > crates/domain/src/lib.rs \
     && mkdir -p crates/infrastructure/src && echo "" > crates/infrastructure/src/lib.rs \
     && mkdir -p crates/application/src && echo "" > crates/application/src/lib.rs \
     && mkdir -p crates/api/src && echo "" > crates/api/src/lib.rs \
-    && mkdir -p crates/server/src && echo 'fn main() {}' > crates/server/src/main.rs
+    && mkdir -p crates/runtime/src && echo "" > crates/runtime/src/lib.rs \
+    && mkdir -p crates/server/src && echo 'fn main() {}' > crates/server/src/main.rs \
+    && mkdir -p benches/src && echo "" > benches/src/lib.rs \
+    && echo 'fn main() {}' > benches/src/repository_benchmarks.rs \
+    && echo 'fn main() {}' > benches/src/parsing_benchmarks.rs \
+    && echo 'fn main() {}' > benches/src/simd_json_benchmarks.rs
 
 RUN cargo build --release 2>/dev/null || true
 
 # 复制真实源码
 COPY services/api-server/crates crates/
+COPY services/api-server/benches benches/
 
 # 触发重编译
-RUN touch crates/*/src/lib.rs crates/server/src/main.rs
+RUN touch crates/*/src/lib.rs crates/server/src/main.rs benches/src/lib.rs
 RUN cargo build --release
 
 # Stage 2: 运行（须与 rust:1-slim 构建阶段的 glibc 主版本一致；bookworm 过旧会报 GLIBC_2.38）
