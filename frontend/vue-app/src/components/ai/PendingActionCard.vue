@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { PendingActionCardModel, PendingActionConstraint } from '@/lib/ai/pendingActionDiff';
+import UiButton from '../ui/UiButton.vue';
+import UiPill from '../ui/UiPill.vue';
 
 const props = withDefaults(defineProps<{
   action: PendingActionCardModel;
@@ -32,24 +34,38 @@ function diffRows() {
   <div class="pa-card" data-testid="pending-action-card">
     <div class="pa-header">
       <span class="pa-tool-name">{{ action.toolName || action.actionId }}</span>
-      <span v-if="action.irreversible" class="pa-tag is-danger">不可逆操作</span>
-      <span v-if="hardViolations().length" class="pa-tag is-danger">硬约束违规</span>
+      <UiPill v-if="action.irreversible" tone="danger">
+        不可逆操作
+      </UiPill>
+      <UiPill v-if="hardViolations().length" tone="danger">
+        硬约束违规
+      </UiPill>
     </div>
 
-    <p v-if="action.message" class="pa-alert is-warn">{{ action.message }}</p>
+    <p v-if="action.message" class="pa-alert is-warn">
+      {{ action.message }}
+    </p>
 
     <p v-if="action.objectType || action.objectId" class="pa-meta">
       对象: {{ action.objectType || 'Unknown' }} / {{ action.objectId || '-' }}
     </p>
 
     <div v-if="hardViolations().length" class="pa-alert is-danger">
-      <div class="pa-alert-title">硬约束违规</div>
-      <div v-for="(item, i) in hardViolations()" :key="`h_${i}`">{{ constraintText(item) }}</div>
+      <div class="pa-alert-title">
+        硬约束违规
+      </div>
+      <div v-for="(item, i) in hardViolations()" :key="`h_${i}`">
+        {{ constraintText(item) }}
+      </div>
     </div>
 
     <div v-if="softViolations().length" class="pa-alert is-warn">
-      <div class="pa-alert-title">软约束提示</div>
-      <div v-for="(item, i) in softViolations()" :key="`s_${i}`">{{ constraintText(item) }}</div>
+      <div class="pa-alert-title">
+        软约束提示
+      </div>
+      <div v-for="(item, i) in softViolations()" :key="`s_${i}`">
+        {{ constraintText(item) }}
+      </div>
     </div>
 
     <table v-if="diffRows().length" class="pa-diff">
@@ -58,37 +74,45 @@ function diffRows() {
       </thead>
       <tbody>
         <tr v-for="row in diffRows()" :key="row.field">
-          <td class="pa-diff-field">{{ row.field }}</td>
+          <td class="pa-diff-field">
+            {{ row.field }}
+          </td>
           <td>{{ row.before }}</td>
           <td>{{ row.after }}</td>
         </tr>
       </tbody>
     </table>
 
-    <p class="pa-meta">状态: {{ action.status || 'pending' }}</p>
+    <p class="pa-meta">
+      状态: {{ action.status || 'pending' }}
+    </p>
     <p v-if="action.sourceRunId || action.sourceTool" class="pa-meta">
       来源: {{ [action.sourceTool, action.sourceRunId].filter(Boolean).join(' / ') }}
     </p>
-    <p v-if="action.createdAt" class="pa-meta">创建: {{ action.createdAt }}</p>
-    <p v-if="action.expiresAt" class="pa-meta">过期: {{ action.expiresAt }}</p>
+    <p v-if="action.createdAt" class="pa-meta">
+      创建: {{ action.createdAt }}
+    </p>
+    <p v-if="action.expiresAt" class="pa-meta">
+      过期: {{ action.expiresAt }}
+    </p>
 
     <div class="pa-actions">
-      <button
-        type="button"
-        class="pa-btn is-approve"
+      <UiButton
+        class="is-approve"
+        variant="primary"
         :disabled="busy"
         @click="emit('approve', action.actionId)"
       >
         批准
-      </button>
-      <button
-        type="button"
-        class="pa-btn is-reject"
+      </UiButton>
+      <UiButton
+        class="is-reject"
+        variant="danger"
         :disabled="busy"
         @click="emit('reject', action.actionId)"
       >
         拒绝
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>
@@ -98,16 +122,16 @@ function diffRows() {
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
   background: var(--face-raised);
-  padding: 12px 14px;
+  padding: var(--s3);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .pa-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
   flex-wrap: wrap;
 }
 
@@ -117,20 +141,9 @@ function diffRows() {
   color: var(--ink);
 }
 
-.pa-tag {
-  font-size: var(--fs-label);
-  padding: 1px 8px;
-  border-radius: var(--r-cell);
-}
-
-.pa-tag.is-danger {
-  color: var(--danger);
-  background: var(--danger-soft);
-}
-
 .pa-alert {
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-control);
   font-size: var(--fs-label);
   line-height: 1.5;
@@ -167,12 +180,12 @@ function diffRows() {
   text-align: left;
   color: var(--ink-subtle);
   font-weight: var(--fw-medium);
-  padding: 4px 8px;
+  padding: var(--s1) var(--s2);
   border-bottom: 1px solid var(--line-strong);
 }
 
 .pa-diff td {
-  padding: 4px 8px;
+  padding: var(--s1) var(--s2);
   border-bottom: 1px solid var(--line);
   color: var(--ink);
   word-break: break-all;
@@ -185,36 +198,6 @@ function diffRows() {
 
 .pa-actions {
   display: flex;
-  gap: 8px;
-}
-
-.pa-btn {
-  min-height: var(--h-sm);
-  padding: 0 16px;
-  border-radius: var(--r-control);
-  border: none;
-  font-size: var(--fs-label);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-}
-
-.pa-btn.is-approve {
-  background: var(--act);
-  color: var(--act-on);
-}
-
-.pa-btn.is-reject {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
-.pa-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pa-btn:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 1px;
+  gap: var(--s2);
 }
 </style>

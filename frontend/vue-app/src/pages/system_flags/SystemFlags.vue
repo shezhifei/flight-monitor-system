@@ -8,6 +8,7 @@ import { hasUserPermission, useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { downloadTextFile } from '@/lib/download';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiSkeleton from '@/components/ui/UiSkeleton.vue';
 import SvgIcon from '../../components/ui/SvgIcon.vue';
 import ConfigFieldList from '@/components/config/ConfigFieldList.vue';
 import {
@@ -180,7 +181,7 @@ async function exportConfig() {
               v-for="item in navItems"
               :key="item.id"
               class="nav-item"
-              :class="{ active: item.active }"
+              :aria-current="item.active ? 'page' : undefined"
               role="button"
               tabindex="0"
               @click="selectCategory(item.id)"
@@ -287,9 +288,8 @@ async function exportConfig() {
         <div id="content-area" class="flags-container">
           <div id="flags-list">
             <template v-if="loading">
-              <div class="loading-state">
-                <div class="spinner" />
-                <p>正在加载系统配置...</p>
+              <div class="flags-skeleton" aria-busy="true" aria-label="正在加载系统配置">
+                <UiSkeleton v-for="i in 6" :key="i" height="20px" />
               </div>
             </template>
             <template v-else-if="error">
@@ -324,3 +324,13 @@ async function exportConfig() {
     </main>
   </div>
 </template>
+
+<style scoped>
+/* 首轮等待的骨架群：与配置行同构（§3.9），洗光配方只在 UiSkeleton */
+.flags-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: var(--s3) var(--s1);
+}
+</style>

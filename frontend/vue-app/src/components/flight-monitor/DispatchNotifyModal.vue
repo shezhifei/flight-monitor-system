@@ -10,6 +10,11 @@ import UiField from '../ui/UiField.vue';
 import UiButton from '../ui/UiButton.vue';
 import UiBanner from '../ui/UiBanner.vue';
 import UiPill from '../ui/UiPill.vue';
+import UiAvatar from '../ui/UiAvatar.vue';
+import UiSearch from '../ui/UiSearch.vue';
+import UiTable from '../ui/UiTable.vue';
+import UiSkeleton from '../ui/UiSkeleton.vue';
+import SkeletonTableRow from '../ui/SkeletonTableRow.vue';
 
 
 const props = defineProps<{
@@ -69,6 +74,7 @@ function resolveOriginKind(originType?: string | null, originLabel?: string | nu
   return 'manual';
 }
 
+/** 来源是分类不是事态：只报字，不给声（声只有四类，都是事态的出口）。 */
 function getOriginBadgeLabel(originType?: string | null, originLabel?: string | null): string {
   return resolveOriginKind(originType, originLabel) === 'workflow' ? '流程' : '人工';
 }
@@ -92,6 +98,19 @@ function severityTone(severity?: string | null): 'act' | 'ok' | 'warn' | 'danger
   if (kind === 'critical') return 'danger';
   if (kind === 'warning') return 'warn';
   return 'mute';
+}
+
+/** 回执事态：已收到=安，已拒绝=危，超时未回=危，待签收=警。 */
+function receiptTone(ackStatus: string, isOverdue: boolean): 'ok' | 'warn' | 'danger' {
+  if (ackStatus === 'acknowledged') return 'ok';
+  if (ackStatus === 'rejected') return 'danger';
+  return isOverdue ? 'danger' : 'warn';
+}
+
+function receiptLabel(ackStatus: string, isOverdue: boolean): string {
+  if (ackStatus === 'acknowledged') return '已收到';
+  if (ackStatus === 'rejected') return '已拒绝';
+  return isOverdue ? '超时未回' : '待签收';
 }
 
 function onSegPointer(tab: string, event: MouseEvent): void {
@@ -121,6 +140,12 @@ async function loadOnlineUsers() {
   } else {
     errorState.value = { show: true, message: '在线用户加载失败', retryFn: loadOnlineUsers };
   }
+}
+
+/** 搜索框里有字就是持守（§2.5）：值一变立刻重捞，清除也走这一条路。 */
+function onSearchInput(value: string) {
+  searchKeyword.value = value;
+  loadOnlineUsers();
 }
 
 function toggleUserSelection(userId: string) {
@@ -173,6 +198,17 @@ async function loadInbox() {
   } else {
     errorState.value = { show: true, message: '收件箱加载失败', retryFn: loadInbox };
   }
+}
+
+/** 仅看未读是可叠加的布尔过滤（§2.6）：开关式按钮，手离开还按着。 */
+function toggleUnreadOnly() {
+  inboxUnreadOnly.value = !inboxUnreadOnly.value;
+  loadInbox();
+}
+
+async function markAllRead() {
+  await notificationData.markAllRead();
+  loadInbox();
 }
 
 async function markAsRead(id: string) {
@@ -272,339 +308,328 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <UiModal :open="isOpen" title="调度通知" :width="900" @close="emit('close')">
-    <div class="notify-body">
-      <UiSegment label="调度通知页签" inset="work">
-        <button type="button" :aria-checked="activeTab === 'send'" @click="onSegPointer('send', $event)">
-          新建下发
-        </button>
-        <button type="button" :aria-checked="activeTab === 'inbox'" @click="onSegPointer('inbox', $event)">
-          收到通知
-          <span v-if="notificationData.unreadCount && notificationData.unreadCount.value > 0" class="tab-count">{{ notificationData.unreadCount.value }}</span>
-        </button>
-        <button type="button" :aria-checked="activeTab === 'history'" @click="onSegPointer('history', $event)">
-          流转历史
-          <span v-if="historyOverdueCount > 0" class="tab-count">{{ historyOverdueCount }}</span>
-        </button>
-      </UiSegment>
-            <UiBanner v-if="errorState.show" tone="danger">
-              <span>{{ errorState.message }}</span>
-              <UiButton variant="ghost" @click="errorState.retryFn?.()">重试</UiButton>
-            </UiBanner>
-            <!-- SEND TAB -->
-            <div v-if="activeTab === 'send'" class="tab-pane split-view">
-              <!-- Left panel: Users (avoid global .sidebar padding bleed) -->
-              <div class="dispatch-side-panel">
-                <div class="dispatch-sidebar-header">
-                  <div class="search-input-wrapper">
-                    <svg
-                      class="search-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    ><circle cx="11" cy="11" r="8" /><path d="M21 21L16.65 16.65" /></svg>
-                    <input
-                      v-model="searchKeyword"
-                      type="text"
-                      placeholder="搜索姓名 / 部门..."
-                      class="sidebar-search-input"
-                      @input="loadOnlineUsers"
-                    >
-                  </div>
-                </div>
-                
-                <div class="dispatch-side-list">
-                  <div
-                    v-for="user in onlineUsers"
-                    :key="user.user_id" 
-                    class="user-item"
-                    :class="{ 'user-selected': selectedUserIds.includes(user.user_id) }"
-                    @click="toggleUserSelection(user.user_id)"
-                  >
-                    <div class="user-avatar" :class="user.status">
-                      {{ user.username.charAt(0).toUpperCase() }}
-                    </div>
-                    <div class="user-info">
-                      <div class="user-name">
-                        {{ user.username }}
-                      </div>
-                      <div class="user-meta">
-                        {{ user.department || '中心' }} · {{ user.job_title || '调度员' }}
-                      </div>
-                    </div>
-                    <div class="custom-checkbox" :class="{ checked: selectedUserIds.includes(user.user_id) }">
-                      <svg
-                        v-if="selectedUserIds.includes(user.user_id)"
-                        width="10"
-                        height="10"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      ><path
-                        d="M10 3L4.5 8.5L2 6"
-                        stroke="white"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      /></svg>
-                    </div>
-                  </div>
-                  <div v-if="onlineUsers.length === 0" class="empty-state">
-                    <div>📭 无匹配人员</div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Right Area: Form -->
-              <div class="main-content form-area">
-                <div class="form-scroll-content">
-                  <div class="form-row form-row-split">
-                    <UiField label="通知级别">
-                      <UiSegment label="通知级别">
-                        <button type="button" :aria-checked="sendSeverity === 'info'" @click="sendSeverity = 'info'">常规</button>
-                        <button type="button" :aria-checked="sendSeverity === 'warning'" @click="sendSeverity = 'warning'">警告</button>
-                        <button type="button" :aria-checked="sendSeverity === 'critical'" @click="sendSeverity = 'critical'">紧急</button>
-                      </UiSegment>
-                    </UiField>
-                  </div>
+  <UiModal
+    :open="isOpen"
+    title="调度通知"
+    :width="900"
+    bleed
+    @close="emit('close')"
+  >
+    <div class="notify">
+      <!-- 三个页签换的是地点（下发 / 收信 / 追踪），不是同一张表上的过滤 -->
+      <div class="notify__bar">
+        <UiSegment label="调度通知页签" inset="work">
+          <button type="button" :aria-checked="activeTab === 'send'" @click="onSegPointer('send', $event)">
+            新建下发
+          </button>
+          <button type="button" :aria-checked="activeTab === 'inbox'" @click="onSegPointer('inbox', $event)">
+            收到通知
+            <span v-if="notificationData.unreadCount && notificationData.unreadCount.value > 0" class="notify__count">{{ notificationData.unreadCount.value }}</span>
+          </button>
+          <button type="button" :aria-checked="activeTab === 'history'" @click="onSegPointer('history', $event)">
+            流转历史
+            <span v-if="historyOverdueCount > 0" class="notify__count">{{ historyOverdueCount }}</span>
+          </button>
+        </UiSegment>
+      </div>
 
-                  <div class="receipt-row">
-                    <div class="receipt-copy">
-                      <div class="receipt-title">需要回执</div>
-                    </div>
-                    <UiSwitch v-model:checked="receiptRequired" label="需要回执" />
-                  </div>
+      <div v-if="errorState.show" class="notify__alert">
+        <UiBanner tone="danger">
+          <span>{{ errorState.message }}</span>
+          <UiButton variant="ghost" @click="errorState.retryFn?.()">
+            重试
+          </UiButton>
+        </UiBanner>
+      </div>
 
-                  <UiField label="主旨概要">
-                    <input v-model="sendTitle" type="text" placeholder="输入主题概要">
-                  </UiField>
-                  <UiField label="调度指令明细">
-                    <textarea v-model="sendBody" placeholder="描述协同动作或通报详情" rows="5" />
-                  </UiField>
-                </div>
-                
-              </div>
-            </div>
+      <!-- 新建下发：左边挑人（旁路降一级），右边写指令 -->
+      <div v-if="activeTab === 'send'" class="notify__pane is-split">
+        <div class="rail">
+          <div class="rail__head">
+            <UiSearch
+              :model-value="searchKeyword"
+              label="搜索姓名或部门"
+              placeholder="搜索姓名 / 部门"
+              @update:model-value="onSearchInput"
+              @submit="loadOnlineUsers"
+            />
+          </div>
+          <div class="rail__list">
+            <button
+              v-for="user in onlineUsers"
+              :key="user.user_id"
+              type="button"
+              class="rail__row who"
+              :aria-pressed="selectedUserIds.includes(user.user_id)"
+              @click="toggleUserSelection(user.user_id)"
+            >
+              <UiAvatar
+                :text="user.username"
+                size="sm"
+                :tone="user.status === 'online' ? 'ok' : 'mute'"
+                :label="`${user.username}（${user.status === 'online' ? '在线' : '离线'}）`"
+              />
+              <span class="who__id">
+                <span class="who__name">{{ user.username }}</span>
+                <span class="who__meta">{{ user.department || '中心' }} · {{ user.job_title || '调度员' }}</span>
+              </span>
+              <svg
+                v-if="selectedUserIds.includes(user.user_id)"
+                class="who__mark"
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                aria-hidden="true"
+              ><path
+                d="M10 3L4.5 8.5L2 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg>
+            </button>
+            <p v-if="onlineUsers.length === 0" class="void">
+              无匹配人员
+            </p>
+          </div>
+        </div>
 
-            <div v-if="activeTab === 'inbox'" class="tab-pane single-view">
-              <div class="content-header">
-                <div class="ios-checkbox-wrap" @click="inboxUnreadOnly = !inboxUnreadOnly; loadInbox()">
-                  <div class="custom-checkbox small-checkbox" :class="{ checked: inboxUnreadOnly }">
-                    <svg
-                      v-if="inboxUnreadOnly"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                    ><path
-                      d="M10 3L4.5 8.5L2 6"
-                      stroke="white"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    /></svg>
-                  </div>
-                  <span class="premium-label-inline">仅看未读消息</span>
-                </div>
-                <button class="premium-text-btn" @click="notificationData.markAllRead().then(() => loadInbox())">
-                  全部标为已读
+        <div class="work">
+          <div class="work__form">
+            <UiField label="通知级别">
+              <UiSegment label="通知级别">
+                <button type="button" :aria-checked="sendSeverity === 'info'" @click="sendSeverity = 'info'">
+                  常规
                 </button>
-              </div>
-              
-              <div class="list-container">
-                <p v-if="inboxItems.length === 0" class="empty-state">暂无调度通知</p>
-                <div
-                  v-for="item in inboxItems"
-                  :key="item.notification_id"
-                  class="inbox-card"
-                  :class="{ unread: !item.is_read }"
-                >
-                  <div class="inbox-card-header">
-                    <div class="inbox-title-row">
-                      <div class="inbox-title" :class="`severity-${item.severity}`">
-                        <span v-if="!item.is_read" class="unread-pulse" />
-                        {{ item.title }}
-                      </div>
-                      <span
-                        class="origin-badge"
-                        :class="resolveOriginKind(item.origin_type, item.origin_label)"
-                      >
-                        {{ getOriginBadgeLabel(item.origin_type, item.origin_label) }}
-                      </span>
-                    </div>
-                    <div class="inbox-time">
-                      {{ formatDate(item.created_at) }}
-                    </div>
-                  </div>
-                  <div class="inbox-body">
-                    {{ item.body }}
-                  </div>
-                  <div class="inbox-meta">
-                    <span class="sender-tag">发信人: {{ item.sender_username || '系统' }}</span>
-                    <span class="source-tag">
-                      类型: {{ getOriginBadgeLabel(item.origin_type, item.origin_label) }}通知
-                    </span>
-                  </div>
-                  
-                  <div v-if="!item.is_read || item.receipt_required" class="inbox-actions">
-                    <button v-if="!item.is_read" class="premium-text-btn slim" @click="markAsRead(item.notification_id)">
-                      标记已读
-                    </button>
-                    <div v-if="item.receipt_required && item.ack_status === 'pending'" class="ack-form-box">
-                      <input
-                        v-model="ackNote[item.notification_id]"
-                        type="text"
-                        class="premium-input inline-input"
-                        placeholder="附加回执短讯 (选填)..."
-                      >
-                      <button class="premium-btn green-btn" @click="handleAck(item.notification_id, 'acknowledged')">
-                        确认执行 (ACK)
-                      </button>
-                      <button class="premium-btn red-btn" @click="handleAck(item.notification_id, 'rejected')">
-                        无法执行
-                      </button>
-                    </div>
-                    <div v-else-if="item.receipt_required && item.ack_status !== 'pending'" class="ack-tag" :class="`ack-tag-${item.ack_status}`">
-                      <svg
-                        v-if="item.ack_status === 'acknowledged'"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      ><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                      <svg
-                        v-else
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      ><circle cx="12" cy="12" r="10" /><line
-                        x1="15"
-                        y1="9"
-                        x2="9"
-                        y2="15"
-                      /><line
-                        x1="9"
-                        y1="9"
-                        x2="15"
-                        y2="15"
-                      /></svg>
-                      已{{ item.ack_status === 'acknowledged' ? '查收确认' : '报备拒绝' }}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <button type="button" :aria-checked="sendSeverity === 'warning'" @click="sendSeverity = 'warning'">
+                  警告
+                </button>
+                <button type="button" :aria-checked="sendSeverity === 'critical'" @click="sendSeverity = 'critical'">
+                  紧急
+                </button>
+              </UiSegment>
+            </UiField>
+
+            <div class="work__toggle">
+              <span class="work__toggle-name">需要回执</span>
+              <UiSwitch v-model:checked="receiptRequired" label="需要回执" />
             </div>
 
-            <!-- HISTORY TAB -->
-            <div v-if="activeTab === 'history'" class="tab-pane split-view">
-              <div class="dispatch-side-panel history-sidebar">
-                <div class="history-sidebar-title">发信批次</div>
-                <div class="dispatch-side-list">
-                  <p v-if="historyItems.length === 0" class="empty-state">暂无下发记录</p>
-                  <button
-                    v-for="history in historyItems"
-                    :key="history.receipt_group_id"
-                    type="button"
-                    class="history-row"
-                    :aria-selected="selectedHistoryId === history.receipt_group_id"
-                    @click="selectHistory(history.receipt_group_id)"
+            <UiField label="主旨概要" for-id="notify-title">
+              <input
+                id="notify-title"
+                v-model="sendTitle"
+                type="text"
+                placeholder="输入主题概要"
+              >
+            </UiField>
+            <UiField label="调度指令明细" for-id="notify-body">
+              <textarea
+                id="notify-body"
+                v-model="sendBody"
+                placeholder="描述协同动作或通报详情"
+                rows="5"
+              />
+            </UiField>
+          </div>
+        </div>
+      </div>
+
+      <!-- 收到通知：一列消息，行与行只用一根线分开（不做卡中卡） -->
+      <div v-if="activeTab === 'inbox'" class="notify__pane is-single">
+        <div class="notify__tools">
+          <UiButton variant="ghost" :pressed="inboxUnreadOnly" @click="toggleUnreadOnly">
+            仅看未读
+          </UiButton>
+          <UiButton variant="quiet" @click="markAllRead">
+            全部标为已读
+          </UiButton>
+        </div>
+
+        <div class="notify__scroll">
+          <p v-if="inboxItems.length === 0" class="void">
+            暂无调度通知
+          </p>
+          <article
+            v-for="item in inboxItems"
+            :key="item.notification_id"
+            class="msg"
+            :data-unread="!item.is_read ? 'true' : undefined"
+          >
+            <div class="msg__top">
+              <span class="msg__title">{{ item.title }}</span>
+              <UiPill :tone="severityTone(item.severity)">
+                {{ getSeverityBadgeLabel(item.severity) }}
+              </UiPill>
+              <span class="msg__origin">{{ getOriginBadgeLabel(item.origin_type, item.origin_label) }}</span>
+              <span class="msg__time">{{ formatDate(item.created_at) }}</span>
+            </div>
+            <p class="msg__body">
+              {{ item.body }}
+            </p>
+            <div class="msg__foot">
+              <span class="msg__from">发信人 {{ item.sender_username || '系统' }}</span>
+              <UiButton v-if="!item.is_read" variant="quiet" @click="markAsRead(item.notification_id)">
+                标记已读
+              </UiButton>
+              <template v-if="item.receipt_required && item.ack_status === 'pending'">
+                <UiField class="msg__note">
+                  <input
+                    v-model="ackNote[item.notification_id]"
+                    type="text"
+                    placeholder="附加回执短讯（选填）"
+                    aria-label="回执短讯"
                   >
-                    <div class="history-row-top">
-                      <span class="history-title">{{ history.title || '无标题调度' }}</span>
-                      <span class="history-time">{{ formatDate(history.created_at || '') }}</span>
-                    </div>
-                    <div class="history-row-meta">
-                      <UiPill :tone="severityTone(history.severity)">{{ getSeverityBadgeLabel(history.severity) }}</UiPill>
-                      <span class="origin-text">{{ getOriginBadgeLabel(history.origin_type, history.origin_label) }}</span>
-                      <span class="history-readout">
-                        {{ history.total_count }}
-                        · 未回 <span :class="{ 'is-warn': history.pending_count > 0 }">{{ history.pending_count }}</span>
-                        · 收到 {{ history.acknowledged_count }}
-                        · 拒 <span :class="{ 'is-danger': history.rejected_count > 0 }">{{ history.rejected_count }}</span>
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
+                </UiField>
+                <UiButton variant="tonal" @click="handleAck(item.notification_id, 'acknowledged')">
+                  确认执行
+                </UiButton>
+                <UiButton variant="danger" @click="handleAck(item.notification_id, 'rejected')">
+                  无法执行
+                </UiButton>
+              </template>
+              <UiPill
+                v-else-if="item.receipt_required"
+                :tone="item.ack_status === 'acknowledged' ? 'ok' : 'danger'"
+              >
+                {{ item.ack_status === 'acknowledged' ? '已查收确认' : '已报备拒绝' }}
+              </UiPill>
+            </div>
+          </article>
+        </div>
+      </div>
 
-              <div class="main-content history-detail-pane">
-                <div v-if="historyDetailData" class="history-detail-inner">
-                  <div class="history-detail-header">
-                    <div class="history-detail-title-row">
-                      <h3 class="history-detail-title">{{ historyDetailData.title || '通知详情' }}</h3>
-                      <UiPill :tone="severityTone(historyDetailData.severity)">{{ getSeverityBadgeLabel(historyDetailData.severity) }}</UiPill>
-                      <span class="origin-text">{{ getOriginBadgeLabel(historyDetailData.origin_type, historyDetailData.origin_label) }}</span>
-                    </div>
-                    <div class="history-detail-meta">
-                      <span>{{ formatDate(historyDetailData.created_at || '') }}</span>
-                      <span v-if="historyDetailData.flight_id">航班 {{ historyDetailFlightLabel }}</span>
-                    </div>
-                  </div>
-                  <div class="history-detail-table-wrap">
-                    <table class="history-receipt-table">
-                      <thead>
-                        <tr>
-                          <th>收信人</th>
-                          <th>部门/岗位</th>
-                          <th>状态</th>
-                          <th>操作时间</th>
-                          <th>备注</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          v-for="item in historyDetailData.items"
-                          :key="item.receipt_id || item.notification_id || item.recipient_user_id"
-                        >
-                          <td class="cell-strong">{{ item.recipient_username }}</td>
-                          <td>
-                            {{ item.recipient_department || '公司' }} · <span class="cell-muted">{{ item.recipient_job_title || '员工' }}</span>
-                          </td>
-                          <td>
-                            <UiPill
-                              :tone="item.ack_status === 'acknowledged' ? 'ok' : item.ack_status === 'rejected' ? 'danger' : item.is_overdue ? 'danger' : 'warn'"
-                            >
-                              {{
-                                item.ack_status === 'acknowledged'
-                                  ? '已收到'
-                                  : item.ack_status === 'rejected'
-                                    ? '已拒绝'
-                                    : item.is_overdue
-                                      ? '超时未回'
-                                      : '待签收'
-                              }}
-                            </UiPill>
-                          </td>
-                          <td class="cell-mono">{{ formatDate(item.ack_at || '') || '-' }}</td>
-                          <td class="cell-note" :title="item.ack_note || ''">{{ item.ack_note || '-' }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div v-else-if="historyDetailFailed" class="empty-state">
-                  追踪明细加载失败
-                  <UiButton variant="ghost" @click="selectedHistoryId && selectHistory(selectedHistoryId)">重试</UiButton>
-                </div>
-                <p v-else class="empty-state">正在加载追踪明细</p>
+      <!-- 流转历史：左边批次（当前位置用 aria-current），右边回执明细 -->
+      <div v-if="activeTab === 'history'" class="notify__pane is-split">
+        <div class="rail is-wide">
+          <div class="rail__head">
+            <span class="rail__title">发信批次</span>
+          </div>
+          <div class="rail__list">
+            <p v-if="historyItems.length === 0" class="void">
+              暂无下发记录
+            </p>
+            <button
+              v-for="history in historyItems"
+              :key="history.receipt_group_id"
+              type="button"
+              class="rail__row batch"
+              :aria-current="selectedHistoryId === history.receipt_group_id ? 'true' : undefined"
+              @click="selectHistory(history.receipt_group_id)"
+            >
+              <span class="batch__top">
+                <span class="batch__name">{{ history.title || '无标题调度' }}</span>
+                <span class="batch__time">{{ formatDate(history.created_at || '') }}</span>
+              </span>
+              <span class="batch__meta">
+                <UiPill :tone="severityTone(history.severity)">
+                  {{ getSeverityBadgeLabel(history.severity) }}
+                </UiPill>
+                <span class="batch__origin">{{ getOriginBadgeLabel(history.origin_type, history.origin_label) }}</span>
+                <span class="batch__readout">
+                  {{ history.total_count }}
+                  · 未回 <span :class="{ 'is-warn': history.pending_count > 0 }">{{ history.pending_count }}</span>
+                  · 收到 {{ history.acknowledged_count }}
+                  · 拒 <span :class="{ 'is-danger': history.rejected_count > 0 }">{{ history.rejected_count }}</span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="work">
+          <div v-if="historyDetailFailed" class="void">
+            <span>追踪明细加载失败</span>
+            <UiButton variant="ghost" @click="selectedHistoryId && selectHistory(selectedHistoryId)">
+              重试
+            </UiButton>
+          </div>
+          <!-- 等明细的那几百毫秒画同构的版（§3.9），不丢一句「加载中」 -->
+          <div
+            v-else
+            class="detail"
+            :aria-busy="historyDetailData ? undefined : 'true'"
+            :aria-label="historyDetailData ? undefined : '正在取回执明细'"
+          >
+            <div class="detail__head">
+              <div class="detail__title-row">
+                <h3 v-if="historyDetailData" class="detail__title">
+                  {{ historyDetailData.title || '通知详情' }}
+                </h3>
+                <UiSkeleton v-else width="190px" height="18px" />
+                <UiPill v-if="historyDetailData" :tone="severityTone(historyDetailData.severity)">
+                  {{ getSeverityBadgeLabel(historyDetailData.severity) }}
+                </UiPill>
+                <UiSkeleton
+                  v-else
+                  shape="pill"
+                  width="52px"
+                  height="22px"
+                />
+                <span v-if="historyDetailData" class="detail__origin">
+                  {{ getOriginBadgeLabel(historyDetailData.origin_type, historyDetailData.origin_label) }}
+                </span>
+              </div>
+              <div class="detail__meta">
+                <template v-if="historyDetailData">
+                  <span>{{ formatDate(historyDetailData.created_at || '') }}</span>
+                  <span v-if="historyDetailData.flight_id">航班 {{ historyDetailFlightLabel }}</span>
+                </template>
+                <UiSkeleton v-else width="150px" height="12px" />
               </div>
             </div>
+            <div class="detail__table">
+              <UiTable label="回执明细" density="default">
+                <thead>
+                  <tr>
+                    <th>收信人</th>
+                    <th>部门 / 岗位</th>
+                    <th>状态</th>
+                    <th>操作时间</th>
+                    <th>备注</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="item in historyDetailData?.items ?? []"
+                    :key="item.receipt_id || item.notification_id || item.recipient_user_id"
+                  >
+                    <td class="cell-name">
+                      {{ item.recipient_username }}
+                    </td>
+                    <td>
+                      {{ item.recipient_department || '公司' }} · <span class="cell-dim">{{ item.recipient_job_title || '员工' }}</span>
+                    </td>
+                    <td>
+                      <UiPill :tone="receiptTone(item.ack_status, item.is_overdue)">
+                        {{ receiptLabel(item.ack_status, item.is_overdue) }}
+                      </UiPill>
+                    </td>
+                    <td data-mono>
+                      {{ formatDate(item.ack_at || '') || '—' }}
+                    </td>
+                    <td class="cell-note" :title="item.ack_note || ''">
+                      {{ item.ack_note || '—' }}
+                    </td>
+                  </tr>
+                  <SkeletonTableRow v-if="!historyDetailData" :count="4" :columns="5" />
+                  <tr v-else-if="historyDetailData.items.length === 0">
+                    <td class="ui-table__empty" colspan="5">
+                      这一批没有收信人
+                    </td>
+                  </tr>
+                </tbody>
+              </UiTable>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
     <template v-if="activeTab === 'send'" #footer>
-      <span class="footer-meta">
-        已选择 <span class="highlight-num">{{ selectedUserIds.length }}</span> 位人员
+      <span class="foot__count">
+        已选择 <span class="foot__num">{{ selectedUserIds.length }}</span> 位人员
       </span>
       <UiButton
         variant="primary"
@@ -619,586 +644,375 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.notify-body {
+/* 满幅的身：三个页签自己撑高、自己滚，所以帽下的工具条要自带内衬 */
+.notify {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 480px;
-  gap: 12px;
 }
-.tab-count {
+
+.notify__bar {
+  flex: none;
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.notify__alert {
+  flex: none;
+  padding: var(--s3) var(--s4) 0;
+}
+
+.notify__count {
   font-variant-numeric: tabular-nums;
-  font-size: var(--fs-label);
   color: var(--ink-subtle);
   font-weight: var(--fw-regular);
 }
 
-.history-sidebar-title {
-  padding: 4px 12px 8px;
+.notify__pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.notify__pane.is-split {
+  flex-direction: row;
+}
+
+.notify__pane.is-single {
+  flex-direction: column;
+}
+
+.notify__tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s2) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.notify__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 一列可挑的东西（收件人、批次）：旁路降一级到页底，一根线与工作面分开 */
+.rail {
+  width: 260px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--face-page);
+  border-right: 1px solid var(--line);
+}
+
+.rail.is-wide {
+  width: 300px;
+}
+
+.rail__head {
+  flex: none;
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+
+.rail__title {
   font-size: var(--fs-section);
   font-weight: var(--fw-semibold);
   color: var(--ink);
 }
 
-.history-row {
-  display: block;
+.rail__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.rail__row {
+  display: flex;
   width: 100%;
-  text-align: left;
-  padding: 10px 12px;
+  padding: var(--s2) var(--s3);
   border: 0;
+  border-bottom: 1px solid var(--line);
   background: transparent;
   color: var(--ink);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  border-bottom: 1px solid var(--line);
-  font-family: inherit;
 }
 
-.history-row:hover {
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
+.rail__row:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-.history-row[aria-selected='true'] {
-  background: var(--act-soft);
-  box-shadow: inset 3px 0 0 var(--act);
-}
-
-.history-row:focus-visible {
+.rail__row:focus-visible {
   outline: 2px solid var(--act);
   outline-offset: -2px;
 }
 
-.history-row-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: baseline;
+/* 持守：挑中的收件人（aria-pressed）与正在看的批次（aria-current）同一套变位 */
+.rail__row[aria-pressed='true'],
+.rail__row[aria-current='true'] {
+  background: var(--act-soft);
+  box-shadow: inset 3px 0 0 var(--act);
 }
 
-.history-title {
+.who {
+  align-items: center;
+  gap: var(--s3);
+}
+
+.who__id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.who__name {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who__meta {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who__mark {
+  flex: none;
+  color: var(--act);
+}
+
+.batch {
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+}
+
+.batch__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.batch__name {
   font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.history-time {
-  flex-shrink: 0;
+.batch__time,
+.batch__origin {
+  flex: none;
   font-size: var(--fs-label);
   color: var(--ink-muted);
 }
 
-.history-row-meta {
+.batch__meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+  gap: var(--s3);
   flex-wrap: wrap;
 }
 
-.origin-text {
-  font-size: var(--fs-label);
-  color: var(--ink-muted);
-}
-
-.history-readout {
+.batch__readout {
   margin-left: auto;
   font-size: var(--fs-label);
   color: var(--ink-subtle);
   font-variant-numeric: tabular-nums;
 }
 
-.history-readout .is-warn { color: var(--warn); }
-.history-readout .is-danger { color: var(--danger); }
-.receipt-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  background: var(--face-page);
-}
-.receipt-title {
-  font-size: var(--fs-section);
-  font-weight: var(--fw-semibold);
-  color: var(--ink);
-}
+.batch__readout .is-warn { color: var(--warn); }
+.batch__readout .is-danger { color: var(--danger); }
 
-.tab-pane { flex-grow: 1; width: 100%; display: flex; min-height: 0; }
-.footer-meta { margin-right: auto; font-size: var(--fs-body); color: var(--ink-muted); }
-.highlight-num { font-weight: var(--fw-semibold); color: var(--ink); font-variant-numeric: tabular-nums; }
-
-/* Split View (Send & History) */
-.split-view { flex-direction: row; }
-
-/* Side panel — NEVER use global .sidebar (admin-layout adds padding: 20px 0 0) */
-.dispatch-side-panel {
-  width: 260px;
-  background: transparent;
-  border-right: 1px solid var(--line);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-}
-.history-sidebar { width: 300px; }
-.dispatch-sidebar-header {
-  padding: 10px 12px;
-  margin: 0;
-  gap: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--face-page);
-  flex-shrink: 0;
-}
-.search-input-wrapper { position: relative; display: flex; align-items: center; }
-.search-icon { position: absolute; left: 12px; color: var(--ink-muted); pointer-events: none; }
-.sidebar-search-input {
-  width: 100%; background: var(--line); border: none; border-radius: 8px; padding: 8px 12px 8px 34px;
-  font-size: 13px; color: var(--ink); transition: all 0.2s; outline: none;
-  box-sizing: border-box;
-}
-.sidebar-search-input:focus { background: var(--face-work); box-shadow: 0 0 0 2px var(--act); }
-
-.dispatch-side-list {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 8px;
-  min-height: 0;
-}
-.history-sidebar-list {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--face-page);
-}
-.dispatch-side-list::-webkit-scrollbar { width: 6px; }
-.dispatch-side-list::-webkit-scrollbar-thumb { background: var(--ink-muted); border-radius: 10px; }
-
-.user-item {
-  display: flex; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 2px;
-}
-.user-item:hover { background: var(--line); }
-.user-item.user-selected { background: var(--act-soft); }
-
-.user-avatar {
-  width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-weight: 700; color: var(--face-work); font-size: 14px; margin-right: 12px; flex-shrink: 0;
-}
-.user-avatar.online { background: var(--ok); }
-.user-avatar.offline { background: var(--ink-muted); }
-
-.user-info { flex-grow: 1; overflow: hidden; }
-.user-name { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-meta { font-size: 11px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.custom-checkbox {
-  width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--ink-muted); display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s; background: var(--face-work); flex-shrink: 0;
-}
-.custom-checkbox.checked { background: var(--act); border-color: var(--act); }
-
-/* Main Content Area */
-.main-content {
-  flex-grow: 1; display: flex; flex-direction: column; background: var(--face-work); min-height: 0;
-}
-.form-scroll-content {
-  flex-grow: 1; overflow-y: auto; padding: 14px 20px 16px; display: flex; flex-direction: column; gap: 12px;
-}
-
-.form-row { display: flex; gap: 12px; }
-.form-row-split { display: flex; gap: 12px; }
-.form-row-body { flex: 0 0 auto; }
-.flex-1 { flex: 1; }
-.flex-grow { flex-grow: 1; }
-.h-full { height: 100%; }
-.flex-col { display: flex; flex-direction: column; }
-
-.form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-.premium-label { font-size: 13px; font-weight: 600; color: var(--ink-subtle); }
-.required { color: var(--danger); }
-
-.premium-input, .premium-textarea {
-  background: var(--face-page); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
-  font-size: 14px; color: var(--ink); transition: all 0.2s; outline: none; font-family: inherit;
-  width: 100%; box-sizing: border-box;
-}
-.premium-textarea {
-  min-height: 110px;
-  max-height: 220px;
-  resize: vertical;
-  line-height: 1.5;
-  flex-grow: 0;
-}
-.premium-input:focus, .premium-textarea:focus { background: var(--face-work); border-color: var(--act); box-shadow: 0 0 0 3px var(--act); }
-.premium-input::placeholder, .premium-textarea::placeholder { color: var(--ink-muted); }
-
-/* Segmented Control */
-.severity-seg-control {
-  display: flex; background: var(--face-page); border-radius: 8px; padding: 3px; gap: 2px;
-}
-.seg-btn {
-  flex: 1; padding: 8px 0; border-radius: 6px; border: none; background: transparent; font-size: 13px; font-weight: 600;
-  color: var(--ink-muted); cursor: pointer; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.seg-btn.active.info-active { background: var(--face-work); color: var(--act); box-shadow: 0 1px 4px var(--act); }
-.seg-btn.active.warn-active { background: var(--face-work); color: var(--warn); box-shadow: 0 1px 4px rgba(255, 149, 0, 0.15); }
-.seg-btn.active.crit-active { background: var(--face-work); color: var(--danger); box-shadow: 0 1px 4px rgba(255, 59, 48, 0.15); }
-
-/* iOS Toggle */
-.receipt-group {
-  background: var(--face-page); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
-}
-.ios-switch-wrapper {
-  display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-}
-.ios-switch-text { display: flex; flex-direction: column; gap: 2px;}
-.receipt-title { font-size: 14px; font-weight: 600; color: var(--ink); }
-.receipt-desc { font-size: 12px; color: var(--ink-muted); }
-
-.ios-switch {
-  width: 44px; height: 26px; background: var(--line); border-radius: 30px; position: relative; transition: background 0.3s; flex-shrink: 0;
-}
-.ios-switch.active { background: var(--ok); }
-.ios-switch-knob {
-  width: 22px; height: 22px; background: var(--face-work); border-radius: 50%; position: absolute; top: 2px; left: 2px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-.ios-switch.active .ios-switch-knob { transform: translateX(18px); }
-
-.premium-submit-btn {
-  background: var(--act);
-  color: var(--act-on);
-  border: 1px solid var(--act);
-  padding: 0 20px;
-  height: var(--h-lg);
-  border-radius: var(--r-control);
-  font-size: var(--fs-section);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-}
-.premium-submit-btn:disabled {
-  background: var(--ink-muted);
-  border-color: var(--ink-muted);
-  cursor: not-allowed;
-}
-.premium-submit-btn:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 2px;
-}
-
-/* Single View (Inbox & History) */
-.single-view {
-  flex-direction: column; background: var(--face-page); align-items: stretch; height: 100%;
-}
-.content-header {
-  padding: 16px 32px; display: flex; justify-content: space-between; align-items: center;
-}
-.premium-label-inline { font-size: 13px; font-weight: 500; color: var(--ink-subtle); }
-.premium-text-btn { background: none; border: none; font-size: 13px; font-weight: 600; color: var(--act); cursor: pointer; }
-.premium-text-btn:hover { opacity: 0.8; }
-.ios-checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.small-checkbox { width: 14px; height: 14px; border-radius: 4px; }
-
-.list-container {
-  padding: 0 32px 32px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 12px;
-}
-.full-list { padding-top: 24px; }
-
-.inbox-card, .history-card {
-  background: var(--face-work); border-radius: 12px; padding: 16px; border: 1px solid var(--line);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; overflow: hidden;
-}
-.inbox-card.unread::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--act);
-}
-
-.history-card.history-selected { border-color: var(--act); background: var(--act-soft); }
-
-.inbox-card-header, .history-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-  gap: 8px;
-}
-.inbox-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
+/* 右边那一半：表单与明细都在弹窗自己那张抬起面上，不再铺第二层 */
+.work {
   flex: 1;
-}
-/* 级别(左) + 来源(右) 同行胶囊 */
-.history-badge-row {
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+}
+
+.work__form {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s3) var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.work__toggle {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: var(--s3);
+}
+
+.work__toggle-name {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-subtle);
+}
+
+/* 一条消息：未读是首格内条那一套，不再另画发光小点 */
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.msg[data-unread='true'] {
+  box-shadow: inset 3px 0 0 var(--act);
+}
+
+.msg__top {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
+  gap: var(--s3);
+  flex-wrap: wrap;
 }
-.history-badge-row-inline {
-  justify-content: flex-start;
-  margin: 0;
-  flex-shrink: 0;
-}
-.origin-badge,
-.severity-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  flex-shrink: 0;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-/* 默认（亮色）对比；深色主题再覆盖为更亮字色 */
-/* 胶囊：亮色用深字；暗色用实心底 + 浅字，保证对比度 */
-.origin-badge.manual {
-  background: rgba(217, 119, 6, 0.14);
-  color: #b45309;
-  border: 1px solid rgba(217, 119, 6, 0.28);
-}
-.origin-badge.workflow {
-  background: var(--act-soft);
-  color: var(--act);
-  border: 1px solid var(--act);
-}
-.severity-badge.info {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1d4ed8;
-  border: 1px solid rgba(37, 99, 235, 0.28);
-}
-.severity-badge.warning {
-  background: rgba(217, 119, 6, 0.14);
-  color: #b45309;
-  border: 1px solid rgba(217, 119, 6, 0.3);
-}
-.severity-badge.critical {
-  background: rgba(220, 38, 38, 0.12);
-  color: #b91c1c;
-  border: 1px solid rgba(220, 38, 38, 0.32);
-}
-:global([data-theme="dark"]) .origin-badge.manual {
-  background: var(--warn-soft);
-  color: var(--warn);
-  border-color: var(--warn);
-}
-:global([data-theme="dark"]) .origin-badge.workflow {
-  background: var(--act-soft);
-  color: var(--act);
-  border-color: var(--act);
-}
-:global([data-theme="dark"]) .severity-badge.info {
-  background: var(--act-soft);
-  color: var(--act);
-  border-color: var(--act);
-}
-:global([data-theme="dark"]) .severity-badge.warning {
-  background: var(--warn-soft);
-  color: var(--warn);
-  border-color: var(--warn);
-}
-:global([data-theme="dark"]) .severity-badge.critical {
-  background: #dc2626;
-  color: #fef2f2;
-  border-color: #f87171;
-}
-.inbox-title {
+
+.msg__title {
   font-size: var(--fs-section);
   font-weight: var(--fw-semibold);
-  color: var(--ink);
   min-width: 0;
 }
-.inbox-time { font-size: var(--fs-label); color: var(--ink-muted); flex-shrink: 0; }
 
-.severity-warning { color: var(--warn); }
-.severity-critical { color: var(--danger); }
-.unread-pulse { width: 8px; height: 8px; background: var(--act); border-radius: 50%; box-shadow: 0 0 0 2px var(--act); }
+.msg__origin,
+.msg__time,
+.msg__from {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+}
 
-/* History detail pane */
-.history-detail-pane {
-  background: var(--face-work);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+.msg__time {
+  margin-left: auto;
 }
-.history-detail-inner {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
+
+.msg__body {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
-.history-detail-header {
-  background: transparent;
-  padding: 4px 16px 12px;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-}
-.history-detail-title-row {
+
+.msg__foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  margin-bottom: 10px;
 }
-.history-detail-title {
+
+.msg__note {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* 回执明细：帽下一条说清是哪一批，表自己滚 */
+.detail {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.detail__head {
+  flex: none;
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.detail__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s2);
+}
+
+.detail__title {
   margin: 0;
   font-size: var(--fs-title);
   font-weight: var(--fw-semibold);
-  color: var(--ink);
   min-width: 0;
 }
-.history-detail-meta {
+
+.detail__meta,
+.detail__origin {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+}
+
+.detail__meta {
   display: flex;
-  gap: 16px;
+  gap: var(--s4);
   flex-wrap: wrap;
-  font-size: 13px;
-  color: var(--ink-muted);
-  font-weight: 500;
 }
-.history-detail-meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.history-detail-table-wrap {
-  padding: 0;
-  overflow-y: auto;
-  flex-grow: 1;
-  background: transparent;
+
+.detail__table {
+  flex: 1;
   min-height: 0;
+  overflow: auto;
 }
-.history-receipt-table {
-  width: 100%;
-  min-width: 640px;
-  border-collapse: collapse;
-}
-.history-receipt-table thead {
-  background: transparent;
-  border-bottom: 1px solid var(--line);
-}
-.history-receipt-table th {
-  text-align: center;
-  vertical-align: middle;
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--ink-subtle);
-  font-weight: 600;
+
+.cell-name {
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
-.history-receipt-table td {
-  text-align: center;
-  vertical-align: middle;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: var(--ink);
-  border-bottom: 1px solid var(--line);
-}
-.history-receipt-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.history-receipt-table tbody tr:hover {
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
-}
-.history-receipt-table .cell-strong {
-  font-weight: 600;
-  white-space: nowrap;
-}
-.history-receipt-table .cell-muted {
+
+.cell-dim {
   color: var(--ink-muted);
 }
-.history-receipt-table .cell-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  white-space: nowrap;
-}
-.history-receipt-table .cell-note {
+
+.cell-note {
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ack-status-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.ack-status-pill.ok {
-  color: var(--ok);
-  background: var(--ok-soft);
-}
-.ack-status-pill.rejected {
-  color: var(--danger);
-  background: var(--danger-soft);
-}
-.ack-status-pill.pending {
-  color: var(--warn);
-  background: rgba(255, 149, 0, 0.12);
-}
-.ack-status-pill.overdue {
-  color: var(--danger);
-  background: var(--danger-soft);
-}
 
-.inbox-body { font-size: 14px; color: var(--ink-subtle); line-height: 1.5; margin-bottom: 12px; white-space: pre-wrap; }
-.inbox-meta { display: flex; gap: 8px; margin-bottom: 12px; }
-.sender-tag, .source-tag { background: var(--face-page); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; color: var(--ink-subtle); }
-
-.inbox-actions { display: flex; align-items: center; border-top: 1px solid var(--face-page); padding-top: 12px; gap: 12px; }
-.ack-form-box { display: flex; gap: 8px; align-items: center; flex: 1; }
-.inline-input { padding: 6px 10px; font-size: 13px; flex-grow: 1; }
-.premium-btn { border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; color:var(--ink-inverse);}
-.green-btn { background: var(--ok); }
-.red-btn { background: var(--danger); }
-
-.ack-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
-.ack-tag-acknowledged { background: var(--ok-soft); color: var(--ok); }
-.ack-tag-rejected { background: var(--danger-soft); color: var(--danger); }
-
-/* History stats */
-.history-stats-modern { display: flex; gap: 12px; margin-top: 0; }
-.stat-box { background: var(--face-page); padding: 10px; border-radius: 8px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 1px solid var(--line); }
-.stat-val { font-size: 18px; font-weight: 700; }
-.stat-lbl { font-size: 11px; font-weight: 600; color: var(--ink-muted);}
-.stat-box.neutral .stat-val { color: var(--ink); }
-.stat-box.pending-box .stat-val { color: var(--warn); }
-.stat-box.success-box .stat-val { color: var(--ok); }
-.stat-box.danger-box .stat-val { color: var(--danger); }
-
-.empty-state {
+/* 空态：一句话，居中淡墨；要给出路才挂一颗静谓词 */
+.void {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 40px 16px;
+  gap: var(--s3);
+  margin: 0;
+  padding: var(--s5) var(--s4);
   color: var(--ink-muted);
   font-size: var(--fs-body);
-  font-weight: var(--fw-regular);
 }
 
-.error-banner {
-  display: flex; align-items: center; justify-content: space-between; padding: 12px 24px;
-  background: var(--danger-soft); border-bottom: 1px solid var(--error-border-subtle); color: var(--danger);
-  font-size: 13px; font-weight: 600;
+.foot__count {
+  margin-right: auto;
+  font-size: var(--fs-body);
+  color: var(--ink-muted);
 }
-.retry-btn {
-  background: var(--danger); color: var(--ink-inverse); border: none; border-radius: 6px; padding: 6px 16px;
-  font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+
+.foot__num {
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
-.retry-btn:hover { opacity: 0.8; }
 </style>

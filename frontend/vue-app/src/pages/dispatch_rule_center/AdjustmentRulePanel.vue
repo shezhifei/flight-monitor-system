@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useToast } from '@/composables/useToast';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 import type {
   GenerationAdjustmentRulePayload,
   GenerationAdjustmentRuleResponse,
@@ -93,6 +96,28 @@ function submit(): void {
 function onFieldChange(): void {
   emit('dirty', true);
 }
+
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+function ruleStatusTone(status: string): PillTone {
+  if (status === 'active') return 'ok';
+  return 'mute';
+}
+
+/* UiSelect 收 string，桥回本地 draft 并标脏 */
+const statusModel = computed<string>({
+  get: () => draft.value.status,
+  set: (value) => {
+    draft.value.status = value;
+    onFieldChange();
+  },
+});
+
+const statusOptions = [
+  { value: 'draft', label: '草稿' },
+  { value: 'active', label: '启用' },
+  { value: 'archived', label: '归档' },
+];
 </script>
 
 <template>
@@ -106,17 +131,17 @@ function onFieldChange(): void {
       <li v-for="rule in rulesForTaskType" :key="rule.id">
         <div class="rule-summary">
           <strong>{{ rule.rule_name || rule.id }}</strong>
-          <span class="badge" :data-status="rule.status">{{ rule.status }}</span>
+          <UiPill :tone="ruleStatusTone(rule.status)">
+            {{ rule.status }}
+          </UiPill>
           <span class="muted">v{{ rule.version_no }} · {{ rule.actions.length }} 个动作</span>
         </div>
-        <button
-          type="button"
-          class="ghost"
+        <UiButton
           :disabled="disabled"
           @click="loadRule(rule)"
         >
           编辑
-        </button>
+        </UiButton>
       </li>
     </ul>
     <div v-else class="empty">
@@ -128,11 +153,12 @@ function onFieldChange(): void {
       <div class="form-grid">
         <label>规则名称 <input v-model="draft.rule_name" type="text" @input="onFieldChange"></label>
         <label>状态
-          <select v-model="draft.status" @change="onFieldChange">
-            <option value="draft">草稿</option>
-            <option value="active">启用</option>
-            <option value="archived">归档</option>
-          </select>
+          <UiSelect
+            v-model="statusModel"
+            :options="statusOptions"
+            label="状态"
+            min-width="100%"
+          />
         </label>
         <label class="full">条件 JSON
           <textarea v-model="draft.conditions_json" rows="3" @input="onFieldChange" />
@@ -143,51 +169,137 @@ function onFieldChange(): void {
         <label class="full">备注 <input v-model="draft.notes" type="text" @input="onFieldChange"></label>
       </div>
       <div class="form-actions">
-        <button type="button" class="ghost" @click="clearDraft">
+        <UiButton @click="clearDraft">
           清空
-        </button>
-        <button type="submit" class="btn primary" :disabled="disabled || saving || !taskTypeCode">
+        </UiButton>
+        <UiButton native-type="submit" variant="primary" :disabled="disabled || saving || !taskTypeCode">
           {{ saving ? '保存中…' : (draft.rule_id ? '保存修改' : '新增规则') }}
-        </button>
+        </UiButton>
       </div>
     </form>
   </section>
 </template>
 
 <style scoped>
-.adjustment-rule-panel { display: flex; flex-direction: column; gap: 12px; }
-.head { display: flex; justify-content: space-between; align-items: center; }
-.head h4 { margin: 0; font-size: 14px; }
-.muted { font-size: 12px; color: var(--text-tertiary); }
-.rule-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+/* 按钮归 UiButton、状态章归 UiPill、下拉归 UiSelect */
+.adjustment-rule-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.head h4 {
+  margin: 0;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+
+.muted {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+}
+
+.rule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
 .rule-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--ws-surface-muted);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--face-page);
 }
-.rule-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.badge {
-  padding: 2px 8px; border-radius: 999px; background: var(--ws-surface-muted);
-  color: var(--text-secondary); font-size: 11px; font-weight: 600;
+
+.rule-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
 }
-.badge[data-status='active'] { background: rgba(34, 197, 94, 0.15); color: #15803d; }
-.ghost { background: transparent; border: 1px solid var(--border-light); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-.ghost:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-tertiary); border: 1px dashed var(--border-light); border-radius: 8px; }
-.draft-form { border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.draft-form h5 { margin: 0; font-size: 13px; }
-.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
-.form-grid input, .form-grid select, .form-grid textarea {
-  padding: 6px 8px; border: 1px solid var(--border-light); border-radius: 6px; font-size: 12px;
+
+.empty {
+  padding: var(--s4);
+  text-align: center;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-control);
 }
-.full { grid-column: span 2; }
-.form-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.btn { border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; background: var(--bg-card); cursor: pointer; font-size: 13px; }
-.btn.primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.draft-form {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
+  padding: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.draft-form h5 {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s2);
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-subtle);
+}
+
+.form-grid input,
+.form-grid textarea {
+  padding: var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: var(--face-page);
+  font-family: inherit;
+}
+
+.form-grid input:focus-visible,
+.form-grid textarea:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
+.form-grid textarea {
+  resize: vertical;
+}
+
+.full {
+  grid-column: span 2;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
 </style>

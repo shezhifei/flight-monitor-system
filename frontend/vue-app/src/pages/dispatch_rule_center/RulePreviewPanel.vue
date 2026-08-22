@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import type { DispatchRulePreviewResponse, TaskTypeResponse } from './dispatchRuleWorkbenchApi';
 
 const props = withDefaults(defineProps<{
@@ -171,9 +172,9 @@ function stringify(value: unknown): string {
 
       <div class="form-actions">
         <span v-if="formError" class="form-error" role="alert">{{ formError }}</span>
-        <button type="submit" class="btn primary" :disabled="disabled || saving">
+        <UiButton variant="primary" native-type="submit" :disabled="disabled || saving">
           {{ saving ? '预览中…' : '运行预览' }}
-        </button>
+        </UiButton>
       </div>
     </form>
 
@@ -222,60 +223,80 @@ function stringify(value: unknown): string {
 </template>
 
 <style scoped>
-.rule-preview-panel { display: flex; flex-direction: column; gap: 12px; }
-.head h3 { margin: 0; font-size: 16px; }
-.head .muted { font-size: 12px; color: var(--text-tertiary); margin: 4px 0 0; }
-.head code { background: var(--ws-surface-muted); padding: 1px 4px; border-radius: 4px; }
+.rule-preview-panel { display: flex; flex-direction: column; gap: var(--s3); }
+.head h3 { margin: 0; font-size: var(--fs-title); font-weight: var(--fw-semibold); }
+.head .muted { font-size: var(--fs-label); color: var(--ink-muted); margin: 4px 0 0; }
+.head code {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
 .preview-form {
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  padding: var(--s3);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--s3);
 }
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: var(--s2);
 }
-.form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+.form-grid label { display: flex; flex-direction: column; gap: var(--s1); font-size: var(--fs-label); color: var(--ink-subtle); }
 .form-grid input, .form-grid select {
-  padding: 6px 8px; border: 1px solid var(--border-light); border-radius: 6px; font-size: 12px;
+  padding: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-label);
+}
+.form-grid input:focus, .form-grid select:focus {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 .flag-row {
   display: flex;
-  gap: 16px;
+  gap: var(--s4);
   flex-wrap: wrap;
-  border-top: 1px dashed var(--border-light);
-  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  padding-top: var(--s2);
 }
-.checkbox { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; }
+.checkbox { display: inline-flex; gap: var(--s2); align-items: center; font-size: var(--fs-label); }
+.checkbox input { accent-color: var(--act); }
 .form-actions { display: flex; justify-content: flex-end; }
-.form-error { margin-right: auto; color: var(--ws-danger); font-size: 12px; align-self: center; }
-.btn { border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; background: var(--bg-card); cursor: pointer; font-size: 13px; }
-.btn.primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.form-error { margin-right: auto; color: var(--danger); font-size: var(--fs-label); align-self: center; }
 .result-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: var(--s3);
 }
 .result-grid article {
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  padding: var(--s3);
 }
-.result-grid h4 { margin: 0 0 8px; font-size: 13px; }
+.result-grid h4 { margin: 0 0 var(--s2); font-size: var(--fs-body); font-weight: var(--fw-semibold); }
 .result-grid pre {
-  background: #0f172a; color: #f1f5f9; padding: 10px; border-radius: 6px;
-  font-size: 11px; max-height: 220px; overflow: auto; margin: 0;
+  /* 代码块刻意保留深色底（两面通用），不随主题翻面 */
+  background: #0f172a;
+  color: #f1f5f9;
+  padding: var(--s3);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-label);
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
 }
-.empty { padding: 12px; text-align: center; font-size: 12px; color: var(--text-tertiary); }
+.empty { padding: var(--s3); text-align: center; font-size: var(--fs-label); color: var(--ink-muted); }
 .empty.hint {
-  border: 1px dashed var(--border-light);
-  border-radius: 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-panel);
 }
-.error-card { grid-column: span 2; background: var(--error-bg-subtle); border-color: var(--error-border-subtle); }
-.error-card ul { margin: 0; padding-left: 20px; font-size: 12px; color: var(--ws-danger); }
+.error-card {
+  grid-column: span 2;
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+}
+.error-card ul { margin: 0; padding-left: var(--s4); font-size: var(--fs-label); color: var(--danger); }
 </style>

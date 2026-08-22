@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import CapabilityStatusPanel from '../CapabilityStatusPanel.vue';
+import UiButton from '../../../components/ui/UiButton.vue';
 import type {
   EnrichedCapabilitySnapshot,
   ValidationResult,
@@ -8,7 +10,7 @@ import type {
 import type { ModelsTabForm, NormalizedModelOption } from '../composables/useAiConfigCenter';
 import SvgIcon from '../../../components/ui/SvgIcon.vue';
 
-defineProps<{
+const props = defineProps<{
   modelsForm: ModelsTabForm;
   modelsLoading: boolean;
   modelsTesting: boolean;
@@ -20,6 +22,8 @@ defineProps<{
   cacheMetrics: CacheMetricsSummary | null;
   capabilityLoading: boolean;
 }>();
+
+const form = computed(() => props.modelsForm);
 const emit = defineEmits<{
   testConnection: [];
   validateCapability: [];
@@ -36,7 +40,7 @@ const emit = defineEmits<{
         <label for="model-timeout">超时 (秒)</label>
         <input
           id="model-timeout"
-          v-model.number="modelsForm.timeout"
+          v-model.number="form.timeout"
           type="number"
           min="1"
           max="300"
@@ -48,7 +52,7 @@ const emit = defineEmits<{
         <label for="model-retries">最大重试次数</label>
         <input
           id="model-retries"
-          v-model.number="modelsForm.max_retries"
+          v-model.number="form.max_retries"
           type="number"
           min="0"
           max="10"
@@ -60,7 +64,7 @@ const emit = defineEmits<{
         <label for="model-retry-delay">重试延迟 (秒)</label>
         <input
           id="model-retry-delay"
-          v-model.number="modelsForm.retry_delay"
+          v-model.number="form.retry_delay"
           type="number"
           min="0"
           max="20"
@@ -75,7 +79,7 @@ const emit = defineEmits<{
         <label for="model-context-window">Context Window</label>
         <input
           id="model-context-window"
-          v-model.number="modelsForm.context_window"
+          v-model.number="form.context_window"
           type="number"
           min="1"
           step="1"
@@ -86,7 +90,7 @@ const emit = defineEmits<{
         <label for="model-max-output">Max Output Tokens</label>
         <input
           id="model-max-output"
-          v-model.number="modelsForm.max_output_tokens"
+          v-model.number="form.max_output_tokens"
           type="number"
           min="1"
           step="1"
@@ -108,7 +112,7 @@ const emit = defineEmits<{
           >
             <input
               type="checkbox"
-              :checked="modelsForm.model_input_modalities.includes(option.value)"
+              :checked="form.model_input_modalities.includes(option.value)"
               @change="emit('toggleInputModality', option.value, ($event.target as HTMLInputElement).checked)"
             >
             <span>{{ option.label }}</span>
@@ -127,7 +131,7 @@ const emit = defineEmits<{
           >
             <input
               type="checkbox"
-              :checked="modelsForm.model_output_modalities.includes(option.value)"
+              :checked="form.model_output_modalities.includes(option.value)"
               @change="emit('toggleOutputModality', option.value, ($event.target as HTMLInputElement).checked)"
             >
             <span>{{ option.label }}</span>
@@ -140,55 +144,66 @@ const emit = defineEmits<{
         </div>
         <div class="checkbox-grid">
           <label class="checkbox-label">
-            <input v-model="modelsForm.model_tool_calling" type="checkbox">
+            <input v-model="form.model_tool_calling" type="checkbox">
             <span>Tool calling</span>
           </label>
           <label class="checkbox-label">
-            <input v-model="modelsForm.model_parallel_tool_calls" type="checkbox">
+            <input v-model="form.model_parallel_tool_calls" type="checkbox">
             <span>Parallel tools</span>
           </label>
           <label class="checkbox-label">
-            <input v-model="modelsForm.model_streaming" type="checkbox">
+            <input v-model="form.model_streaming" type="checkbox">
             <span>Streaming</span>
           </label>
           <label class="checkbox-label">
-            <input v-model="modelsForm.model_structured_output" type="checkbox">
+            <input v-model="form.model_structured_output" type="checkbox">
             <span>Structured output</span>
           </label>
           <label class="checkbox-label">
-            <input v-model="modelsForm.model_prompt_cache" type="checkbox">
+            <input v-model="form.model_prompt_cache" type="checkbox">
             <span>Prompt cache</span>
           </label>
         </div>
       </div>
     </div>
 
-    <div class="form-group" style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button
-        type="button"
-        class="btn btn-secondary"
+    <div class="form-group action-row">
+      <UiButton
+        variant="ghost"
         :disabled="modelsTesting || !selectedEntityId"
         @click="emit('testConnection')"
       >
-        <SvgIcon src="/frontend/icons/connection.svg" :size="14" style="vertical-align: -2px;" />
+        <SvgIcon src="/frontend/icons/connection.svg" :size="14" />
         {{ modelsTesting ? '正在测试...' : '测试连接' }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-secondary"
+      </UiButton>
+      <UiButton
+        variant="ghost"
         :disabled="capabilityLoading || !selectedEntityId"
         @click="emit('validateCapability')"
       >
         {{ capabilityLoading ? '验证中...' : '验证能力配置' }}
-      </button>
+      </UiButton>
     </div>
 
     <CapabilityStatusPanel
+      class="capability-stack"
       :snapshot="capabilitySnapshot"
       :validation="capabilityValidation"
       :cache-metrics="cacheMetrics"
       :loading="capabilityLoading"
-      style="margin-top: 8px;"
     />
   </fieldset>
 </template>
+
+<style scoped>
+/* 内联收敛：按钮行与面板间距走梯；图标对齐由 SvgIcon 包裹层自带 em 兑齐 */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.capability-stack {
+  margin-top: var(--s2);
+}
+</style>

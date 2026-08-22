@@ -8,11 +8,13 @@ publish = false
 criterion = "0.5"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 fms-domain = { path = "../crates/domain" }
+serde = { workspace = true }
 serde_json.workspace = true
 chrono.workspace = true
 ulid = "1"
 prost.workspace = true
 sqlx = { workspace = true }
+simd-json = { version = "0.13", default-features = false, features = ["serde_impl"] }
 
 [[bench]]
 name = "repository_benchmarks"
@@ -23,3 +25,8 @@ path = "src/repository_benchmarks.rs"
 name = "parsing_benchmarks"
 harness = false
 path = "src/parsing_benchmarks.rs"
+
+[[bench]]
+name = "simd_json_benchmarks"
+harness = false
+path = "src/simd_json_benchmarks.rs"

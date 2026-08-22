@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ModelsTabForm } from '../composables/useAiConfigCenter';
 
-defineProps<{
+const props = defineProps<{
   modelsForm: ModelsTabForm;
   modelsLoading: boolean;
 }>();
+
+const form = computed(() => props.modelsForm);
 </script>
 
 <template>
@@ -14,7 +17,7 @@ defineProps<{
       <label for="model-system-prompt">System Prompt</label>
       <textarea
         id="model-system-prompt"
-        v-model="modelsForm.system_prompt"
+        v-model="form.system_prompt"
         class="form-textarea form-textarea-mono"
         rows="8"
       />
@@ -23,7 +26,7 @@ defineProps<{
       <label for="model-task-template">Task Template</label>
       <textarea
         id="model-task-template"
-        v-model="modelsForm.task_template"
+        v-model="form.task_template"
         class="form-textarea form-textarea-mono"
         rows="6"
       />

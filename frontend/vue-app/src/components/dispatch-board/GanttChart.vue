@@ -613,8 +613,8 @@ function renderDispatchItem(params: { data: { raw: DispatchOrder }; coordSys: { 
     opacity: isSummary ? 0.98 : (isSelected ? 1 : (isDraft ? 0.96 : (isFocusedLane ? 0.96 : (isSecondaryFocusedLane ? 0.93 : 0.9)))),
     shadowBlur: isSelected ? 6 : (isFocusedLane ? 8 : (isSecondaryFocusedLane ? 4 : 0)),
     shadowColor: isSelected ? 'rgba(0,0,0,0.4)' : (isFocusedLane
-      ? 'rgba(0, 122, 255, 0.18)'
-      : (isSecondaryFocusedLane ? 'rgba(0, 122, 255, 0.12)' : 'transparent')),
+      ? CHART_THEME.value.laneFocusStroke
+      : (isSecondaryFocusedLane ? CHART_THEME.value.laneSecondaryFocusStroke : 'transparent')),
   };
   if (isDraft) {
     rectStyle.lineDash = [6, 3];
@@ -667,7 +667,7 @@ function renderDispatchItem(params: { data: { raw: DispatchOrder }; coordSys: { 
           r: 1.5,
         },
         style: {
-          fill: '#ffffff',
+          fill: chartColors.value.itemBg,
           stroke: SEMANTIC_COLORS.value.lock,
           lineWidth: 1.1,
         },
@@ -951,13 +951,6 @@ function renderChart() {
 const nowLineRef = ref<HTMLElement | null>(null);
 const nowLineVisible = ref(false);
 
-const nowLineStyle = computed(() => ({ borderLeftColor: chartColors.value.nowLine }));
-const nowLabelStyle = computed(() => ({
-  color: chartColors.value.nowLabelText,
-  background: chartColors.value.nowLabelBg,
-  borderColor: chartColors.value.nowLabelBorder,
-}));
-
 function updateNowLinePosition(): void {
   if (!chartInstance || !nowLineRef.value) return;
   const now = Date.now();
@@ -1056,9 +1049,8 @@ watch(
       v-show="nowLineVisible"
       ref="nowLineRef"
       class="gantt-now-line"
-      :style="nowLineStyle"
     >
-      <span class="gantt-now-label" :style="nowLabelStyle">现在</span>
+      <span class="gantt-now-label">现在</span>
     </div>
   </div>
 </template>
@@ -1069,26 +1061,29 @@ watch(
   height: 100%;
   position: relative;
 }
+/* 此刻线与其标签是画布壳上的 DOM 覆盖：色走梯子（危声），不走 JS 内联 */
 .gantt-now-line {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
   width: 0;
-  border-left: 1px dashed var(--system-red);
+  border-left: 1px dashed var(--danger);
   pointer-events: none;
   z-index: 3;
   will-change: transform;
 }
 .gantt-now-label {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid transparent;
+  top: var(--s1);
+  left: var(--s1);
+  padding: 2px var(--s2);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
   white-space: nowrap;
 }
 </style>

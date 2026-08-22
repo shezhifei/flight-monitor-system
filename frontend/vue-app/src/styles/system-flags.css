@@ -1,4 +1,5 @@
-/* 系统配置：壳层用 admin-layout；列表全宽 + 表头 sticky */
+/* 系统配置：壳层用 admin-layout；列表全宽 + 表头 sticky。
+   色值走信号面 token（--face-* / --ink-* / 四声），深浅两面自动变位。 */
 
 .flags-container {
   width: 100%;
@@ -8,24 +9,21 @@
 .sf-list-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 42%);
-  gap: 12px 20px;
+  gap: var(--s3) var(--s4);
   align-items: center;
-  padding: 10px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--admin-text-muted);
-  border-bottom: 1px solid var(--admin-border);
+  padding: var(--s2) var(--s1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--line);
   margin: 0;
   position: sticky;
   top: 0;
-  z-index: 6;
-  /* 必须用不透明实色：--admin-bg 是渐变，半透明会透出行内容 */
-  background-color: #f3f5f9;
-  background-image: none;
+  z-index: 1;
+  /* 必须用不透明实色压住滚过的行：sticky 表头吃页底面 */
+  background-color: var(--face-page);
   isolation: isolate;
-  box-shadow: 0 8px 12px -8px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 再盖一层，挡住 sticky 缝里的像素穿透 */
@@ -34,16 +32,11 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: -4px;
+  top: calc(-1 * var(--s1));
   bottom: 0;
   z-index: -1;
   background-color: inherit;
   pointer-events: none;
-}
-
-[data-theme='dark'] .sf-list-head {
-  background-color: #0f151c;
-  box-shadow: 0 10px 14px -8px rgba(0, 0, 0, 0.55);
 }
 
 .sf-list-head span:last-child {
@@ -61,20 +54,14 @@
   grid-template-columns: minmax(0, 1fr) minmax(240px, 42%);
 }
 
-.loading-state {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--admin-text-subtle);
-}
-
 /* 警告 + 搜索同一行，少占视高 */
 .system-flags-chrome.admin-chrome-extra {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 16px;
-  padding-top: 10px;
-  padding-bottom: 12px;
+  gap: var(--s3) var(--s4);
+  padding-top: var(--s2);
+  padding-bottom: var(--s3);
 }
 
 .system-flags-chrome .admin-chrome-warn {
@@ -104,26 +91,27 @@
 
 .system-flags-chrome .search-clear {
   position: absolute;
-  right: 8px;
+  right: var(--s2);
   top: 50%;
   transform: translateY(-50%);
   width: 24px;
   height: 24px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--r-cell);
   background: transparent;
-  color: var(--admin-text-muted);
-  font-size: 18px;
+  color: var(--ink-muted);
+  font-size: var(--fs-title);
   line-height: 1;
   cursor: pointer;
-  z-index: 2;
+  z-index: 1;
 }
 
+/* 交感：划过一层淡墨 + 字色加重，轻于持守 */
 .system-flags-chrome .search-clear:hover {
-  color: var(--admin-text);
-  background: var(--ws-surface-muted);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .system-flags-chrome .search-group:has(.search-clear) .search-input {
-  padding-right: 36px;
+  padding-right: var(--h-md);
 }

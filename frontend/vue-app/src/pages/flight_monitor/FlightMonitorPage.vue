@@ -13,6 +13,9 @@ import FlightBatchEditModal from './sections/FlightBatchEditModal.vue';
 import { getBatchEditableField } from './flightBatchEditableFields';
 import MilestonePulse from '@/components/flight-monitor/MilestonePulse.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiButton from '../../components/ui/UiButton.vue';
+import UiMenu from '@/components/ui/UiMenu.vue';
+import UiMenuItem from '@/components/ui/UiMenuItem.vue';
 
 const p = useFlightMonitorPage();
 
@@ -170,6 +173,7 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   <FlightFloatingPanel
     :anomaly-count="p.list.visibleAnomalyFlights.value.length"
     :anomaly-severity="p.list.anomalySeverity.value"
+    :alert-pool-open="p.alertPoolOpen.value"
     :update-messages="p.realtimeUpdateMessages.value"
     :update-panel-open="p.updatePanelOpen.value"
     :notification-count="p.notificationData.unreadCount.value"
@@ -200,19 +204,21 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   />
 
   <teleport to="body">
-    <div
+    <UiMenu
       v-if="p.modals.contextMenuState.value.isOpen"
       id="timeContextMenu"
-      class="context-menu"
-      :style="{ top: `${p.modals.contextMenuState.value.y}px`, left: `${p.modals.contextMenuState.value.x}px` }"
+      :x="p.modals.contextMenuState.value.x"
+      :y="p.modals.contextMenuState.value.y"
+      min-width="180px"
+      label="节点时间操作"
     >
-      <button id="ctxModify" class="context-menu-item" @click.stop="p.modals.handleContextModify">
+      <UiMenuItem id="ctxModify" @click.stop="p.modals.handleContextModify">
         修改预期时间 (P)
-      </button>
-      <button id="ctxRevoke" class="context-menu-item danger-action" @click.stop="p.modals.handleContextRevoke">
+      </UiMenuItem>
+      <UiMenuItem id="ctxRevoke" tone="danger" @click.stop="p.modals.handleContextRevoke">
         撤销该节点关联 (Revoke)
-      </button>
-    </div>
+      </UiMenuItem>
+    </UiMenu>
   </teleport>
 
   <FlightCellContextMenu
@@ -255,21 +261,19 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
     <span>
       已选 {{ p.cellSelection.selectedCount.value }} 个「{{ p.batchContextFieldLabel.value || getBatchEditableField(p.cellSelection.selectedField.value || '')?.label || '单元格' }}」
     </span>
-    <button
-      type="button"
-      class="flight-text-btn"
+    <UiButton
+      variant="quiet"
       :disabled="!p.cellSelection.canSubmitBatch.value"
       @click="p.batchEdit.openBatchEditFromSelection"
     >
       批量修改
-    </button>
-    <button
-      type="button"
-      class="flight-text-btn"
+    </UiButton>
+    <UiButton
+      variant="quiet"
       @click="() => { p.cellSelection.clearSelection(); p.selectionRevision.value += 1; }"
     >
       清除 (Esc)
-    </button>
+    </UiButton>
   </div>
   <ThemeToggle />
   <MilestonePulse
@@ -303,47 +307,13 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   min-height: 0;
 }
 
-.context-menu {
-  position: fixed;
-  background-color: var(--face-raised);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-md);
-  z-index: 10000;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--r-control);
-}
-
-.context-menu-item {
-  background: none;
-  border: none;
-  padding: 10px 16px;
-  text-align: left;
-  color: var(--ink);
-  cursor: pointer;
-  font-size: var(--fs-body);
-}
-
-.context-menu-item:hover {
-  background-color: var(--face-work);
-}
-
-.context-menu-item:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: -2px;
-}
-
-.context-menu-item.danger-action {
-  color: var(--danger);
-}
-
 .batch-cell-selection-bar {
   position: fixed;
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  z-index: 9000;
+  /* 坞那一层（§3.5）：与角上常驻悬钮同级，不是页里自己数的 9000 */
+  z-index: var(--z-dock);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -354,31 +324,5 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
   box-shadow: var(--shadow-md);
   font-size: var(--fs-body);
   color: var(--ink);
-}
-
-.reconnect-skeleton-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--scrim);
-  color: var(--ink);
-  font-size: var(--fs-body);
-  border-radius: var(--r-control);
-  z-index: 50;
-  pointer-events: none;
-}
-
-.reconnect-skeleton-overlay .reconnect-spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>

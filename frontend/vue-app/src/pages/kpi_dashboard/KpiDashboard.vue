@@ -5,7 +5,16 @@ import { useApi } from '@/composables/useApi';
 import { useAuth } from '@/composables/useAuth';
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
-import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiBanner from '@/components/ui/UiBanner.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiFacts from '@/components/ui/UiFacts.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiPlaceBar from '@/components/ui/UiPlaceBar.vue';
+import UiReadout from '@/components/ui/UiReadout.vue';
+import UiReadoutStrip from '@/components/ui/UiReadoutStrip.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
+import UiStage from '@/components/ui/UiStage.vue';
+import UiToolbar from '@/components/ui/UiToolbar.vue';
 import {
   mapKpiSnapshot,
   mapKpiTrend,
@@ -18,7 +27,19 @@ import {
 
 const api = useApi();
 const auth = useAuth();
-function handleLogout() { auth.logout(); }
+
+// 地点条：面包屑只报地点；快照时刻是当前谓词下的读出
+const crumbs = [
+  { label: '工作台', href: pageUrl('dashboard') },
+  { label: 'KPI 诊断台' },
+];
+
+const timeRangeOptions = [
+  { value: 'today', label: '今日' },
+  { value: 'this_week', label: '本周' },
+  { value: 'this_month', label: '本月' },
+  { value: 'custom', label: '自定义' },
+];
 
 // Time range state
 const timeRange = ref('today');
@@ -30,7 +51,7 @@ const isCustomRange = computed(() => timeRange.value === 'custom');
 const verdictLead = ref('等待诊断结论...');
 const verdictState = ref<'pass' | 'warning' | 'fail' | 'pending'>('pending');
 const verdictSupport = ref('更新后会基于目标、阈值和历史生成结论。');
-const snapshotTime = ref('--');
+const snapshotTime = ref('—');
 
 // Scorecard state
 const scoreDepartureValue = ref('-');
@@ -82,6 +103,34 @@ const snapshotError = ref('');
 const trendError = ref('');
 const serviceNodeError = ref('');
 const errorMessages = computed(() => [snapshotError.value, trendError.value, serviceNodeError.value].filter(Boolean));
+
+const verdictTone = computed<'mute' | 'ok' | 'warn' | 'danger'>(() => {
+  if (verdictState.value === 'pass') return 'ok';
+  if (verdictState.value === 'warning') return 'warn';
+  if (verdictState.value === 'fail') return 'danger';
+  return 'mute';
+});
+
+// 「今天达标没有」的声画在值上；pending 不染声
+const attainmentTone = computed<'ok' | 'warn' | 'danger' | undefined>(() => {
+  if (verdictState.value === 'pass') return 'ok';
+  if (verdictState.value === 'warning') return 'warn';
+  if (verdictState.value === 'fail') return 'danger';
+  return undefined;
+});
+
+const decisionFacts = computed(() => [
+  { label: '今天达标没有', value: decisionAttainment.value },
+  { label: '差距来自哪里', value: decisionSource.value },
+  { label: '下一步查哪层', value: decisionNextStep.value },
+]);
+
+// 节点事态：pass/warning/fail 回四声（§5.3 状态章回语义 tone）
+function nodeTone(status: ServiceNodeRow['status']): 'ok' | 'warn' | 'danger' {
+  if (status === 'pass') return 'ok';
+  if (status === 'warning') return 'warn';
+  return 'danger';
+}
 
 function applyDashboardState(state: KpiDashboardState) {
   verdictLead.value = state.verdictLead;
@@ -274,179 +323,157 @@ onMounted(async () => {
 
 <template>
   <div class="workspace-page data-hub-page kpi-dashboard-page">
-    <header class="utility-bar dashboard-topbar">
-      <div class="utility-main">
-        <a :href="pageUrl('dashboard')" class="home-link" title="返回工作台">
-          <SvgIcon src="/frontend/icons/home.svg" :size="18" label="返回" />
-        </a>
-        <div class="dashboard-title-block">
-          <span class="page-kicker">Performance Analytics</span>
-          <span class="page-title">KPI 诊断台</span>
-          <span class="utility-note">所有核心数字都必须带参照系，而不是裸指标</span>
-        </div>
-        <nav class="utility-nav" aria-label="分析导航">
-          <a class="active" :href="pageUrl('kpi_dashboard')">KPI</a>
-          <a :href="pageUrl('operations_review_report')">运行复盘</a>
-        </nav>
-      </div>
-    </header>
+    <UiStage label="KPI 诊断台" pad="body" class="kpi-stage">
+      <template #place>
+        <!-- page-title 类透传到地点条根，e2e 按它定位页题（等价于旧页头） -->
+        <UiPlaceBar class="page-title" :crumbs="crumbs" :count-label="snapshotTime">
+          <template #meta>
+            <nav class="utility-nav" aria-label="分析导航">
+              <a aria-current="page" :href="pageUrl('kpi_dashboard')">KPI</a>
+              <a :href="pageUrl('operations_review_report')">运行复盘</a>
+            </nav>
+          </template>
+        </UiPlaceBar>
+      </template>
 
-    <section class="panel dashboard-ribbon kpi-toolbar-panel">
-      <div class="dashboard-ribbon-copy">
-        <span class="section-eyebrow">诊断模式</span>
-        <h2 class="dashboard-ribbon-title">
-          KPI 诊断台
-        </h2>
-      </div>
-      <div class="dashboard-ribbon-actions kpi-toolbar-actions">
-        <div class="kpi-toolbar-group kpi-range-group">
-          <select
-            id="timeRange"
-            v-model="timeRange"
-            aria-label="时间范围"
-            @change="handleTimeRangeChange"
-          >
-            <option value="today">
-              今日
-            </option>
-            <option value="this_week">
-              本周
-            </option>
-            <option value="this_month">
-              本月
-            </option>
-            <option value="custom">
-              自定义
-            </option>
-          </select>
-        </div>
-        <div id="customRangeGroup" class="kpi-toolbar-group kpi-custom-range" :class="{ 'is-hidden': !isCustomRange }">
-          <input
-            id="startDate"
-            v-model="startDate"
-            type="date"
-            :disabled="!isCustomRange"
-            @change="handleCustomDateChange"
-          >
-          <input
-            id="endDate"
-            v-model="endDate"
-            type="date"
-            :disabled="!isCustomRange"
-            @change="handleCustomDateChange"
-          >
-        </div>
-        <div class="kpi-toolbar-group kpi-action-group">
-          <button
-            id="refreshBtn"
-            class="btn primary"
-            :disabled="isLoading"
-            @click="refreshDashboard"
-          >
-            {{ isLoading ? '更新中...' : '更新数据' }}
-          </button>
-          <button id="logoutBtn" class="btn" @click="handleLogout">
-            退出
-          </button>
-        </div>
-      </div>
-    </section>
+      <template #toolbar>
+        <UiToolbar seek-label="诊断范围" solve-label="操作">
+          <template #seek>
+            <UiSelect
+              id="timeRange"
+              v-model="timeRange"
+              :options="timeRangeOptions"
+              label="时间范围"
+              @update:model-value="handleTimeRangeChange"
+            />
+            <div id="customRangeGroup" class="kpi-toolbar-group kpi-custom-range" :class="{ 'is-hidden': !isCustomRange }">
+              <input
+                id="startDate"
+                v-model="startDate"
+                type="date"
+                aria-label="开始日期"
+                :disabled="!isCustomRange"
+                @change="handleCustomDateChange"
+              >
+              <input
+                id="endDate"
+                v-model="endDate"
+                type="date"
+                aria-label="结束日期"
+                :disabled="!isCustomRange"
+                @change="handleCustomDateChange"
+              >
+            </div>
+          </template>
+          <template #solve>
+            <UiButton
+              id="refreshBtn"
+              variant="primary"
+              :disabled="isLoading"
+              @click="refreshDashboard"
+            >
+              {{ isLoading ? '更新中...' : '更新数据' }}
+            </UiButton>
+            <UiButton id="logoutBtn" variant="quiet" @click="auth.logout()">
+              退出
+            </UiButton>
+          </template>
+        </UiToolbar>
+      </template>
 
-    <section class="panel verdict-panel">
-      <div v-if="errorMessages.length" class="inline-error" role="alert">
-        <div v-for="message in errorMessages" :key="message">
+      <!-- 升：加载失败时才插在工具条与主体之间 -->
+      <template v-if="errorMessages.length" #alert>
+        <UiBanner
+          v-for="message in errorMessages"
+          :key="message"
+          tone="danger"
+          role="alert"
+          class="inline-error"
+        >
           {{ message }}
-        </div>
-      </div>
-      <div class="section-headline">
-        <div class="section-heading-block">
+        </UiBanner>
+      </template>
+
+      <!-- 主体：工作面延续，小节之间只隔一根线 -->
+      <section class="kpi-section verdict-section" aria-label="3 秒判断">
+        <div class="section-headline">
           <h2 class="section-title">
             3 秒判断
           </h2>
         </div>
-        <span id="snapshotTime" class="section-meta">{{ snapshotTime }}</span>
-      </div>
-      <div class="decision-strip">
-        <article class="decision-pill">
-          <span class="decision-label">今天达标没有</span>
-          <strong id="decisionAttainment" :class="verdictState">{{ decisionAttainment }}</strong>
-        </article>
-        <article class="decision-pill">
-          <span class="decision-label">差距来自哪里</span>
-          <strong id="decisionSource">{{ decisionSource }}</strong>
-        </article>
-        <article class="decision-pill">
-          <span class="decision-label">下一步查哪层</span>
-          <strong id="decisionNextStep">{{ decisionNextStep }}</strong>
-        </article>
-      </div>
-      <div class="verdict-layout">
-        <div class="verdict-copy">
-          <span class="verdict-kicker">Today's Verdict</span>
-          <div class="verdict-head">
-            <strong id="verdictLead" class="verdict-lead">{{ verdictLead }}</strong>
-            <span id="verdictStateChip" class="verdict-chip" :class="`is-${verdictState}`">
-              {{ verdictState === 'pending' ? '待更新' : verdictState === 'pass' ? '达标' : verdictState === 'warning' ? '警告' : '未达标' }}
-            </span>
+        <div class="verdict-head">
+          <strong id="verdictLead" class="verdict-lead">{{ verdictLead }}</strong>
+          <UiPill id="verdictStateChip" :tone="verdictTone">
+            {{ verdictState === 'pending' ? '待更新' : verdictState === 'pass' ? '达标' : verdictState === 'warning' ? '警告' : '未达标' }}
+          </UiPill>
+        </div>
+        <p id="verdictSupport" class="verdict-support">
+          {{ verdictSupport }}
+        </p>
+        <UiFacts class="decision-facts" :columns="3" density="roomy" :items="decisionFacts">
+          <template #value="{ fact, text }">
+            <strong v-if="fact.label === '今天达标没有'" id="decisionAttainment" class="decision-value" :data-tone="attainmentTone">{{ text }}</strong>
+            <strong v-else-if="fact.label === '差距来自哪里'" id="decisionSource" class="decision-value">{{ text }}</strong>
+            <strong v-else id="decisionNextStep" class="decision-value">{{ text }}</strong>
+          </template>
+        </UiFacts>
+        <UiReadoutStrip density="roomy" label="核心指标读数" class="scoreboard">
+          <div class="kpi-readout">
+            <UiReadout id="scoreDepartureValue" label="出港准点率" :value="scoreDepartureValue" />
+            <p id="scoreDepartureNote" class="kpi-readout__hint">
+              目标 {{ scoreDepartureTarget }}
+            </p>
           </div>
-          <p id="verdictSupport" class="verdict-support">
-            {{ verdictSupport }}
-          </p>
-        </div>
-        <div class="scoreboard">
-          <article class="score-cell">
-            <span class="score-label">出港准点率</span>
-            <strong id="scoreDepartureValue">{{ scoreDepartureValue }}</strong>
-            <span id="scoreDepartureNote">目标 {{ scoreDepartureTarget }}</span>
-          </article>
-          <article class="score-cell">
-            <span class="score-label">距目标差</span>
-            <strong id="scoreGapValue">{{ scoreGapValue }}</strong>
-            <span id="scoreGapNote">参照历史末值</span>
-          </article>
-          <article class="score-cell">
-            <span class="score-label">过站尾差</span>
-            <strong id="scoreTurnValue">{{ scoreTurnValue }}</strong>
-            <span id="scoreTurnNote">阈值 {{ scoreTurnThreshold }}</span>
-          </article>
-          <article class="score-cell">
-            <span class="score-label">服务稳定度</span>
-            <strong id="scoreServiceValue">{{ scoreServiceValue }}</strong>
-            <span id="scoreServiceNote">目标 {{ scoreServiceTarget }}</span>
-          </article>
-        </div>
-      </div>
-    </section>
+          <div class="kpi-readout">
+            <UiReadout id="scoreGapValue" label="距目标差" :value="scoreGapValue" />
+            <p id="scoreGapNote" class="kpi-readout__hint">
+              参照历史末值
+            </p>
+          </div>
+          <div class="kpi-readout">
+            <UiReadout id="scoreTurnValue" label="过站尾差" :value="scoreTurnValue" />
+            <p id="scoreTurnNote" class="kpi-readout__hint">
+              阈值 {{ scoreTurnThreshold }}
+            </p>
+          </div>
+          <div class="kpi-readout">
+            <UiReadout id="scoreServiceValue" label="服务稳定度" :value="scoreServiceValue" />
+            <p id="scoreServiceNote" class="kpi-readout__hint">
+              目标 {{ scoreServiceTarget }}
+            </p>
+          </div>
+        </UiReadoutStrip>
+      </section>
 
-    <section id="kpiGrid" class="diagnostic-board">
-      <!-- Trend panel -->
-      <article class="panel trend-stage spotlight-panel">
-        <div class="section-headline">
-          <div class="section-heading-block">
+      <div id="kpiGrid" class="diagnostic-board">
+        <!-- Trend section -->
+        <section class="kpi-section trend-stage" aria-label="目标差趋势">
+          <div class="section-headline">
             <h2 class="section-title">
               目标差趋势
             </h2>
+            <span id="trendMeta" class="section-meta">{{ trendMeta }}</span>
           </div>
-          <span id="trendMeta" class="section-meta">{{ trendMeta }}</span>
-        </div>
-        <div class="trend-context">
-          <div class="layer-summary">
-            <strong id="trendBoardLead">{{ trendBoardLead }}</strong>
-            <p id="trendBoardSupport">
-              {{ trendBoardSupport }}
-            </p>
+          <div class="trend-context">
+            <div class="layer-summary">
+              <strong id="trendBoardLead">{{ trendBoardLead }}</strong>
+              <p id="trendBoardSupport">
+                {{ trendBoardSupport }}
+              </p>
+            </div>
+            <UiPill id="trendDeltaBadge" tone="mute">
+              {{ trendDeltaBadge }}
+            </UiPill>
           </div>
-          <span id="trendDeltaBadge" class="delta-badge">{{ trendDeltaBadge }}</span>
-        </div>
-        <div class="chart-shell chart-shell-trend">
-          <div id="trendBars" style="width:100%;min-height:260px">
+          <div id="trendBars">
             <div v-if="trendData.length > 0" class="trend-bar-list">
               <div v-for="point in trendData" :key="point.label" class="trend-bar-item">
                 <span class="trend-bar-label">{{ point.label }}</span>
                 <div class="trend-bar-track">
                   <div
                     class="trend-bar-fill"
-                    :style="{ width: Math.max(0, point.value) + '%', background: point.value >= 90 ? '#34c759' : point.value >= 85 ? '#ff9500' : '#d64545' }"
+                    :data-tone="point.value >= 90 ? 'ok' : point.value >= 85 ? 'warn' : 'danger'"
+                    :style="{ width: Math.max(0, point.value) + '%' }"
                   />
                 </div>
                 <span class="trend-bar-value">{{ point.value }}%</span>
@@ -456,27 +483,23 @@ onMounted(async () => {
               暂无趋势数据
             </div>
           </div>
-        </div>
-      </article>
+        </section>
 
-      <!-- Time pressure panel -->
-      <article class="panel time-layer-panel">
-        <div class="section-headline">
-          <div class="section-heading-block">
+        <!-- Time pressure section -->
+        <section class="kpi-section time-layer-panel" aria-label="时间压力">
+          <div class="section-headline">
             <h2 class="section-title">
               时间压力
             </h2>
+            <span id="hourlyMeta" class="section-meta">{{ hourlyMeta }}</span>
           </div>
-          <span id="hourlyMeta" class="section-meta">{{ hourlyMeta }}</span>
-        </div>
-        <div class="layer-summary">
-          <strong id="timePressureLead">{{ timePressureLead }}</strong>
-          <p id="timePressureSupport">
-            {{ timePressureSupport }}
-          </p>
-        </div>
-        <div class="chart-shell">
-          <div id="hourlyBars" style="width:100%;min-height:220px">
+          <div class="layer-summary">
+            <strong id="timePressureLead">{{ timePressureLead }}</strong>
+            <p id="timePressureSupport">
+              {{ timePressureSupport }}
+            </p>
+          </div>
+          <div id="hourlyBars">
             <div v-if="hourlyData.length > 0" class="hourly-bar-list">
               <div v-for="h in hourlyData" :key="h.hour" class="hourly-bar-item">
                 <span class="hourly-bar-label">{{ h.hour }}</span>
@@ -490,27 +513,23 @@ onMounted(async () => {
               暂无时段数据
             </div>
           </div>
-        </div>
-      </article>
+        </section>
 
-      <!-- Tail/Distribution panel -->
-      <article class="panel tail-layer-panel">
-        <div class="section-headline">
-          <div class="section-heading-block">
+        <!-- Tail/Distribution section -->
+        <section class="kpi-section tail-layer-panel" aria-label="尾部拖累">
+          <div class="section-headline">
             <h2 class="section-title">
               尾部拖累
             </h2>
+            <span id="distributionMeta" class="section-meta">{{ distributionMeta }}</span>
           </div>
-          <span id="distributionMeta" class="section-meta">{{ distributionMeta }}</span>
-        </div>
-        <div class="layer-summary">
-          <strong id="tailPressureLead">{{ tailPressureLead }}</strong>
-          <p id="tailPressureSupport">
-            {{ tailPressureSupport }}
-          </p>
-        </div>
-        <div class="chart-shell">
-          <div id="distributionBars" style="width:100%;min-height:220px">
+          <div class="layer-summary">
+            <strong id="tailPressureLead">{{ tailPressureLead }}</strong>
+            <p id="tailPressureSupport">
+              {{ tailPressureSupport }}
+            </p>
+          </div>
+          <div id="distributionBars">
             <div v-if="distributionData.length > 0" class="dist-bar-list">
               <div v-for="d in distributionData" :key="d.label" class="dist-bar-item">
                 <span class="dist-bar-label">{{ d.label }}</span>
@@ -524,157 +543,166 @@ onMounted(async () => {
               暂无尾部数据
             </div>
           </div>
-        </div>
-      </article>
+        </section>
 
-      <!-- Node panel -->
-      <article class="panel node-layer-panel">
-        <div class="section-headline">
-          <div class="section-heading-block">
+        <!-- Node section -->
+        <section class="kpi-section node-layer-panel" aria-label="节点拖累">
+          <div class="section-headline">
             <h2 class="section-title">
               节点拖累
             </h2>
+            <span id="nodesSummaryText" class="section-meta">{{ nodesSummaryText }}</span>
           </div>
-          <span id="nodesSummaryText" class="section-meta">{{ nodesSummaryText }}</span>
-        </div>
-        <div class="signal-grid">
-          <article class="signal-card">
-            <span>P90 过站</span>
-            <strong id="p90Turnaround">{{ p90Turnaround }}</strong>
-            <span id="turnaroundInsightText">{{ turnaroundInsightText }}</span>
-          </article>
-          <article class="signal-card">
-            <span>设备利用率</span>
-            <strong id="equipmentRate">{{ equipmentRate }}</strong>
-            <span id="equipmentInsightText">{{ equipmentInsightText }}</span>
-          </article>
-          <article class="signal-card">
-            <span>异常航班占比</span>
-            <strong id="abnormalRatio">{{ abnormalRatio }}</strong>
-            <span id="abnormalInsightText">{{ abnormalInsightText }}</span>
-          </article>
-        </div>
-        <div class="layer-summary">
-          <strong id="nodePressureLead">{{ nodePressureLead }}</strong>
-          <p id="nodePressureSupport">
-            {{ nodePressureSupport }}
-          </p>
-        </div>
-        <div class="chart-shell chart-shell-nodes">
+          <UiReadoutStrip density="dense" label="节点信号读数" class="node-signals">
+            <div class="kpi-readout">
+              <UiReadout id="p90Turnaround" label="P90 过站" :value="p90Turnaround" />
+              <p id="turnaroundInsightText" class="kpi-readout__hint">
+                {{ turnaroundInsightText }}
+              </p>
+            </div>
+            <div class="kpi-readout">
+              <UiReadout id="equipmentRate" label="设备利用率" :value="equipmentRate" />
+              <p id="equipmentInsightText" class="kpi-readout__hint">
+                {{ equipmentInsightText }}
+              </p>
+            </div>
+            <div class="kpi-readout">
+              <UiReadout id="abnormalRatio" label="异常航班占比" :value="abnormalRatio" />
+              <p id="abnormalInsightText" class="kpi-readout__hint">
+                {{ abnormalInsightText }}
+              </p>
+            </div>
+          </UiReadoutStrip>
+          <div class="layer-summary">
+            <strong id="nodePressureLead">{{ nodePressureLead }}</strong>
+            <p id="nodePressureSupport">
+              {{ nodePressureSupport }}
+            </p>
+          </div>
           <div class="chart-scroll">
             <div id="serviceNodes" class="line-list">
-              <div v-if="serviceNodeRows.length > 0">
+              <template v-if="serviceNodeRows.length > 0">
                 <div v-for="node in serviceNodeRows" :key="node.id" class="line-item">
                   <div class="node-header">
                     <span>{{ node.label }}</span>
-                    <strong class="node-value" :class="`is-${node.status}`">{{ node.displayValue }}</strong>
+                    <strong class="node-value" :data-tone="nodeTone(node.status)">{{ node.displayValue }}</strong>
                   </div>
                   <div class="track">
-                    <div class="fill" :class="`is-${node.status}`" :style="{ width: `${Math.min(100, Math.max(0, node.value))}%` }" />
+                    <div class="fill" :data-tone="nodeTone(node.status)" :style="{ width: `${Math.min(100, Math.max(0, node.value))}%` }" />
                   </div>
                 </div>
-              </div>
+              </template>
               <div v-else class="chart-placeholder-text">
                 暂无节点明细
               </div>
             </div>
           </div>
-        </div>
-      </article>
-    </section>
+        </section>
+      </div>
+    </UiStage>
     <ThemeToggle />
   </div>
 </template>
 
 <style scoped>
-.page { min-height: 100vh; background: var(--bg-sidebar); }
-.utility-bar { display: flex; align-items: center; padding: 12px 24px; background: var(--bg-card); border-bottom: 1px solid var(--border-light); }
-.dashboard-topbar .utility-main { display: flex; align-items: center; gap: 16px; }
-.home-link { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--ws-surface-muted); color: var(--text-tertiary); }
-.dashboard-title-block { display: flex; flex-direction: column; }
-.page-kicker { font-size: 11px; color: var(--system-gray2); text-transform: uppercase; letter-spacing: 0.5px; }
-.page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
-.utility-note { font-size: 12px; color: var(--system-gray2); }
-.utility-nav { display: flex; gap: 4px; }
-.utility-nav a { padding: 8px 16px; border-radius: 8px; text-decoration: none; color: var(--text-tertiary); font-size: 13px; transition: all 0.2s; }
-.utility-nav a:hover { background: var(--ws-surface-muted); color: var(--text-primary); }
-.utility-nav a.active { background: var(--system-blue); color: var(--text-inverse); }
-.dashboard-ribbon { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; margin: 16px 24px; background: var(--bg-card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
-.section-eyebrow { font-size: 11px; color: var(--system-gray2); text-transform: uppercase; }
-.dashboard-ribbon-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 4px 0 0; }
-.kpi-toolbar-actions { display: flex; gap: 12px; align-items: center; }
-.kpi-toolbar-group select { padding: 8px 12px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 13px; }
-.btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; border: 1px solid var(--border-light); background: var(--bg-card); cursor: pointer; }
-.btn.primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/* 仪器占满滚动口外高：地点条/工具条常驻，主体自滚（§3.1） */
+.kpi-stage { height: 100%; }
+
+/* 地点条 meta 里的跨页导航：当前位置是持守（aria-current），不是动词 */
+.utility-nav { display: flex; gap: var(--s1); }
+.utility-nav a { padding: var(--s1) var(--s3); border-radius: var(--r-control); text-decoration: none; color: var(--ink-muted); font-size: var(--fs-label); }
+.utility-nav a:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.utility-nav a[aria-current='page'] { background: var(--act-soft); color: var(--act); }
+.utility-nav a:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
+
+/* 自定义时段：与工具条齐高 32 */
+.kpi-custom-range { display: inline-flex; align-items: center; gap: var(--s2); }
+.kpi-custom-range input { height: var(--h-sm); padding: 0 var(--s2); border: 1px solid var(--line-strong); border-radius: var(--r-control); font-size: var(--fs-label); color: var(--ink); background: var(--face-page); }
+.kpi-custom-range input:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
 .is-hidden { display: none; }
-.verdict-panel { margin: 0 24px 16px; padding: 20px 24px; background: var(--bg-card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
-.inline-error { margin-bottom: 14px; padding: 10px 12px; border: 1px solid #fecaca; border-radius: 8px; background: var(--dh-signal-critical-soft); color: var(--ws-danger); font-size: 13px; }
-.section-headline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.section-meta { font-size: 12px; color: var(--system-gray2); }
-.decision-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.decision-pill { padding: 16px; background: var(--bg-page); border-radius: 10px; }
-.decision-label { display: block; font-size: 12px; color: var(--text-tertiary); margin-bottom: 6px; }
-.decision-pill strong { display: block; font-size: 15px; color: var(--text-primary); }
-.decision-pill strong.pass { color: var(--system-green); }
-.decision-pill strong.warning { color: var(--system-orange); }
-.decision-pill strong.fail { color: var(--system-red); }
-.verdict-layout { display: flex; gap: 24px; }
-.verdict-copy { flex: 1; }
-.verdict-kicker { font-size: 11px; color: var(--system-gray2); text-transform: uppercase; }
-.verdict-head { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
-.verdict-lead { font-size: 18px; color: var(--text-primary); }
-.verdict-chip { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-.verdict-chip.is-pending { background: var(--ws-surface-muted); color: var(--text-tertiary); }
-.verdict-chip.is-pass { background: var(--success-bg-subtle); color: var(--system-green); }
-.verdict-chip.is-warning { background: rgba(255, 149, 0, 0.1); color: var(--system-orange); }
-.verdict-chip.is-fail { background: rgba(214, 69, 69, 0.1); color: #d64545; }
-.verdict-support { font-size: 13px; color: var(--text-tertiary); margin: 0; }
-.scoreboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 280px; }
-.score-cell { padding: 12px; background: var(--bg-page); border-radius: 8px; }
-.score-label { display: block; font-size: 11px; color: var(--text-tertiary); }
-.score-cell strong { display: block; font-size: 20px; color: var(--text-primary); margin: 4px 0; }
-.score-cell span { font-size: 11px; color: var(--system-gray2); }
-.diagnostic-board { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 0 24px 24px; }
-.panel { background: var(--bg-card); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+
+.inline-error + .inline-error { margin-top: var(--s2); }
+
+/* 小节：同一工作面上的分隔只给一根线，不再铺第二张面 */
+.kpi-section { padding: var(--s4) 0; }
+.kpi-section + .kpi-section { border-top: 1px solid var(--line); }
+.section-headline { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); margin-bottom: var(--s3); }
+.section-title { font-size: var(--fs-title); font-weight: var(--fw-semibold); color: var(--ink); margin: 0; }
+.section-meta { font-size: var(--fs-label); color: var(--ink-muted); }
+
+.verdict-head { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s2); }
+.verdict-lead { font-size: var(--fs-page); font-weight: var(--fw-semibold); color: var(--ink); }
+.verdict-support { font-size: var(--fs-body); color: var(--ink-subtle); margin: 0 0 var(--s4); }
+
+/* 三问（事实格）与读数条之间只隔一根线 */
+.decision-facts { margin-bottom: var(--s4); padding-bottom: var(--s4); border-bottom: 1px solid var(--line); }
+.decision-value { font-weight: var(--fw-semibold); }
+.decision-value[data-tone='ok'] { color: var(--ok); }
+.decision-value[data-tone='warn'] { color: var(--warn); }
+.decision-value[data-tone='danger'] { color: var(--danger); }
+
+/* 读数下的参照系小字（目标/阈值），不是第二张卡 */
+.kpi-readout { display: grid; gap: var(--s1); min-width: 0; }
+.kpi-readout__hint { margin: 0; font-size: var(--fs-label); color: var(--ink-muted); }
+
+.node-signals { margin-bottom: var(--s3); padding-left: 0; padding-right: 0; }
+.scoreboard { padding-left: 0; padding-right: 0; }
+
+.diagnostic-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s4); }
 .trend-stage { grid-column: span 2; }
-.spotlight-panel { border-left: 4px solid var(--system-blue); }
-.trend-context { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.layer-summary strong { display: block; font-size: 14px; color: var(--text-primary); }
-.layer-summary p { font-size: 12px; color: var(--text-tertiary); margin: 4px 0 0; }
-.delta-badge { padding: 4px 10px; background: var(--ws-surface-muted); border-radius: 8px; font-size: 12px; color: var(--text-tertiary); }
-.chart-shell { background: var(--ws-surface-muted); border-radius: 8px; min-height: 200px; padding: 12px; }
-.signal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-.signal-card { padding: 12px; background: var(--bg-page); border-radius: 8px; text-align: center; }
-.signal-card span { display: block; font-size: 11px; color: var(--text-tertiary); }
-.signal-card strong { display: block; font-size: 18px; color: var(--text-primary); margin: 4px 0; }
+.trend-context { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s3); margin-bottom: var(--s3); }
+.layer-summary strong { display: block; font-size: var(--fs-section); font-weight: var(--fw-semibold); color: var(--ink); }
+.layer-summary p { font-size: var(--fs-label); color: var(--ink-muted); margin: var(--s1) 0 0; }
 .chart-scroll { max-height: 200px; overflow-y: auto; }
-.chart-placeholder-text { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 120px; color: var(--system-gray2); font-size: 13px; }
+.chart-placeholder-text { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 120px; color: var(--ink-muted); font-size: var(--fs-body); }
 
 /* Trend bars */
-.trend-bar-list { display: flex; flex-direction: column; gap: 8px; }
-.trend-bar-item { display: flex; align-items: center; gap: 8px; }
-.trend-bar-label { width: 40px; font-size: 12px; color: var(--text-tertiary); }
-.trend-bar-track { flex: 1; height: 18px; background: var(--bg-input); border-radius: 4px; overflow: hidden; }
-.trend-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
-.trend-bar-value { width: 45px; font-size: 12px; font-weight: 600; text-align: right; }
+.trend-bar-list { display: flex; flex-direction: column; gap: var(--s2); }
+.trend-bar-item { display: flex; align-items: center; gap: var(--s2); }
+.trend-bar-label { width: 40px; font-size: var(--fs-label); color: var(--ink-muted); }
+.trend-bar-track { flex: 1; height: 18px; background: color-mix(in srgb, var(--ink) 8%, transparent); border-radius: 4px; overflow: hidden; }
+.trend-bar-fill { height: 100%; border-radius: 4px; transition: width var(--t-mid) var(--ease); }
+.trend-bar-fill[data-tone='ok'] { background: var(--ok); }
+.trend-bar-fill[data-tone='warn'] { background: var(--warn); }
+.trend-bar-fill[data-tone='danger'] { background: var(--danger); }
+/* 图区底座：宽高走 scoped，不再逐块内联 */
+#trendBars { width: 100%; min-height: 260px; }
+#hourlyBars, #distributionBars { width: 100%; min-height: 220px; }
+.trend-bar-value { width: 45px; font-size: var(--fs-label); font-weight: var(--fw-semibold); text-align: right; }
 
 /* Hourly bars */
-.hourly-bar-list { display: flex; flex-direction: column; gap: 6px; }
-.hourly-bar-item { display: flex; align-items: center; gap: 8px; }
-.hourly-bar-label { width: 50px; font-size: 11px; color: var(--text-tertiary); }
-.hourly-bar-track { flex: 1; height: 14px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
-.hourly-bar-fill { height: 100%; background: var(--system-blue); border-radius: 3px; transition: width 0.3s; }
-.hourly-bar-value { width: 40px; font-size: 11px; font-weight: 600; text-align: right; }
+.hourly-bar-list { display: flex; flex-direction: column; gap: var(--s2); }
+.hourly-bar-item { display: flex; align-items: center; gap: var(--s2); }
+.hourly-bar-label { width: 50px; font-size: var(--fs-label); color: var(--ink-muted); }
+.hourly-bar-track { flex: 1; height: 14px; background: color-mix(in srgb, var(--ink) 8%, transparent); border-radius: 3px; overflow: hidden; }
+.hourly-bar-fill { height: 100%; background: var(--act); border-radius: 3px; transition: width var(--t-mid) var(--ease); }
+.hourly-bar-value { width: 40px; font-size: var(--fs-label); font-weight: var(--fw-semibold); text-align: right; }
 
 /* Distribution bars */
-.dist-bar-list { display: flex; flex-direction: column; gap: 6px; }
-.dist-bar-item { display: flex; align-items: center; gap: 8px; }
-.dist-bar-label { width: 40px; font-size: 12px; color: var(--text-tertiary); }
-.dist-bar-track { flex: 1; height: 14px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
-.dist-bar-fill { height: 100%; background: var(--system-orange); border-radius: 3px; transition: width 0.3s; }
-.dist-bar-value { width: 50px; font-size: 11px; font-weight: 600; text-align: right; }
+.dist-bar-list { display: flex; flex-direction: column; gap: var(--s2); }
+.dist-bar-item { display: flex; align-items: center; gap: var(--s2); }
+.dist-bar-label { width: 40px; font-size: var(--fs-label); color: var(--ink-muted); }
+.dist-bar-track { flex: 1; height: 14px; background: color-mix(in srgb, var(--ink) 8%, transparent); border-radius: 3px; overflow: hidden; }
+.dist-bar-fill { height: 100%; background: var(--warn); border-radius: 3px; transition: width var(--t-mid) var(--ease); }
+.dist-bar-value { width: 50px; font-size: var(--fs-label); font-weight: var(--fw-semibold); text-align: right; }
 
-.svg-icon { width: 32px; height: 32px; vertical-align: middle; }
+/* 节点明细：行间一根线，事态画在值与进度条上 */
+.line-list { display: grid; }
+.line-item { display: grid; gap: var(--s1); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+.line-item:last-child { border-bottom: 0; }
+.node-header { display: flex; justify-content: space-between; gap: var(--s2); color: var(--ink); font-size: var(--fs-label); }
+.node-value { font-weight: var(--fw-semibold); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.node-value[data-tone='ok'] { color: var(--ok); }
+.node-value[data-tone='warn'] { color: var(--warn); }
+.node-value[data-tone='danger'] { color: var(--danger); }
+.track { height: 6px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--ink) 8%, transparent); overflow: hidden; }
+.fill { display: block; height: 100%; border-radius: inherit; transition: width var(--t-mid) var(--ease); }
+.fill[data-tone='ok'] { background: var(--ok); }
+.fill[data-tone='warn'] { background: var(--warn); }
+.fill[data-tone='danger'] { background: var(--danger); }
+
+@media (max-width: 1099px) {
+  .diagnostic-board { grid-template-columns: minmax(0, 1fr); }
+  .trend-stage { grid-column: auto; }
+}
 </style>

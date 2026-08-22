@@ -69,13 +69,30 @@ function onTabClose(event: Event, moduleId: string): void {
     <header class="ws-topbar" role="banner">
       <div class="ws-topbar__brand">
         <a class="ws-topbar__back" :href="pageUrl('dashboard')" aria-label="返回工作台">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M9.5 3.5L5 8L9.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M9.5 3.5L5 8L9.5 12.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
         </a>
         <a class="ws-topbar__logo" :href="pageUrl('dashboard')" title="返回工作台">
           <span class="ws-topbar__logo-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
               <path d="M2 14.5 22 4l-6.8 16-4.1-5.1L7 18l1.1-4.1L2 14.5Z" />
             </svg>
           </span>
@@ -159,27 +176,29 @@ function onTabClose(event: Event, moduleId: string): void {
 </template>
 
 <style scoped>
+/* 信号面：工作区壳是 iframe 宿主，顶栏与标签栏用工作面的洗光，
+   内容区让给被嵌入的页面。两面 token 自动变位，不写死夜色。 */
 .ws-app {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  background: var(--bg-app, #0a1220);
-  color: var(--text-primary);
+  background: var(--face-page);
+  color: var(--ink);
+  font-family: var(--sans);
 }
 
 /* —— Top bar —— */
 .ws-topbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s3);
   min-height: 44px;
   height: 44px;
-  padding: 0 10px 0 8px;
-  border-bottom: 1px solid var(--border-light, rgba(100, 140, 190, 0.14));
-  background: var(--glass-bg, rgba(17, 25, 39, 0.94));
-  backdrop-filter: blur(16px);
+  padding: 0 var(--s3) 0 var(--s2);
+  border-bottom: 1px solid var(--line);
+  background: var(--face-work);
   flex-shrink: 0;
   z-index: 20;
 }
@@ -187,7 +206,7 @@ function onTabClose(event: Event, moduleId: string): void {
 .ws-topbar__brand {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
   flex-shrink: 0;
 }
 
@@ -195,31 +214,31 @@ function onTabClose(event: Event, moduleId: string): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  color: var(--text-secondary);
+  width: var(--h-sm);
+  height: var(--h-sm);
+  border-radius: var(--r-control);
+  color: var(--ink-subtle);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 
 .ws-topbar__back:hover {
-  background: var(--bg-hover, rgba(100, 140, 190, 0.12));
-  color: var(--text-primary);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
 }
 
 .ws-topbar__logo {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
   text-decoration: none;
   color: inherit;
-  padding-right: 4px;
+  padding-right: var(--s1);
 }
 
 .ws-topbar__logo-icon {
   display: inline-flex;
-  color: var(--system-blue, #3daeff);
+  color: var(--act);
 }
 
 .ws-topbar__logo-text {
@@ -229,15 +248,15 @@ function onTabClose(event: Event, moduleId: string): void {
 }
 
 .ws-topbar__logo-text strong {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
   letter-spacing: -0.01em;
 }
 
 .ws-topbar__logo-text small {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-weight: 500;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  font-weight: var(--fw-medium);
 }
 
 .ws-func-rail {
@@ -245,10 +264,10 @@ function onTabClose(event: Event, moduleId: string): void {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 4px;
+  padding: 2px var(--s1);
   scrollbar-width: thin;
 }
 
@@ -257,10 +276,11 @@ function onTabClose(event: Event, moduleId: string): void {
 }
 
 .ws-func-rail::-webkit-scrollbar-thumb {
-  background: rgba(100, 140, 190, 0.25);
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: var(--r-pill);
 }
 
+/* 功能签：三态走声调 —— 未开是静音，已开是轻蓝染，当前是行动色实底 */
 .ws-func-chip {
   display: inline-flex;
   align-items: center;
@@ -268,55 +288,65 @@ function onTabClose(event: Event, moduleId: string): void {
   flex-shrink: 0;
   height: 28px;
   padding: 0 9px;
-  border-radius: 999px;
-  border: 1px solid var(--border-light, rgba(100, 140, 190, 0.16));
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
   background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--ink-subtle);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
 }
 
 .ws-func-chip:hover {
-  color: var(--text-primary);
-  border-color: rgba(61, 174, 255, 0.35);
-  background: rgba(61, 174, 255, 0.08);
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--act) 38%, transparent);
+  background: var(--act-soft);
 }
 
 .ws-func-chip.is-open {
-  border-color: rgba(61, 174, 255, 0.28);
-  color: var(--text-primary);
-  background: rgba(61, 174, 255, 0.06);
+  border-color: color-mix(in srgb, var(--act) 30%, transparent);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--act) 7%, transparent);
 }
 
 .ws-func-chip.is-active {
-  color: #fff;
-  background: var(--system-blue, #0a7cff);
+  color: var(--act-on);
+  background: var(--act);
   border-color: transparent;
-  box-shadow: 0 2px 8px rgba(10, 124, 255, 0.28);
+  box-shadow: var(--shadow-sm);
 }
 
 .ws-func-chip__icon {
   opacity: 0.9;
 }
 
+/* 行动色实底上，图标洗成 --act-on 同色：夜色底黑、白天底白 */
 .ws-func-chip.is-active :deep(img),
 .ws-func-chip.is-active :deep(svg) {
+  filter: brightness(0) saturate(100%);
+}
+
+:global([data-theme='light']) .ws-func-chip.is-active :deep(img),
+:global([data-theme='light']) .ws-func-chip.is-active :deep(svg) {
   filter: brightness(0) invert(1);
 }
 
 .ws-topbar__actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s3);
   flex-shrink: 0;
 }
 
 .ws-topbar__hint {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-tertiary);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -327,9 +357,9 @@ function onTabClose(event: Event, moduleId: string): void {
   gap: 2px;
   min-height: 34px;
   height: 34px;
-  padding: 0 8px;
-  background: var(--bg-sidebar, #0a1220);
-  border-bottom: 1px solid var(--border-light, rgba(100, 140, 190, 0.12));
+  padding: 0 var(--s2);
+  background: var(--face-page);
+  border-bottom: 1px solid var(--line);
   overflow-x: auto;
   flex-shrink: 0;
   scrollbar-width: thin;
@@ -338,33 +368,34 @@ function onTabClose(event: Event, moduleId: string): void {
 .ws-tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
   flex-shrink: 0;
   max-width: 180px;
   height: 28px;
   margin: 0;
-  padding: 0 10px 0 12px;
+  padding: 0 10px 0 var(--s3);
   border: 1px solid transparent;
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--r-control) var(--r-control) 0 0;
   background: transparent;
-  color: var(--text-tertiary);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 
 .ws-tab:hover {
-  color: var(--text-primary);
-  background: rgba(100, 140, 190, 0.08);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
+/* 激活标签：浮到工作面上，底线由行动色点亮，与下方 iframe 无缝相接 */
 .ws-tab.is-active {
-  color: var(--text-primary);
-  background: var(--bg-card, rgba(17, 24, 31, 0.96));
-  border-color: var(--border-light, rgba(100, 140, 190, 0.14));
+  color: var(--ink);
+  background: var(--face-work);
+  border-color: var(--line);
   border-bottom-color: transparent;
-  box-shadow: 0 -1px 0 var(--system-blue) inset;
+  box-shadow: 0 -2px 0 var(--act) inset;
 }
 
 .ws-tab__title {
@@ -379,16 +410,16 @@ function onTabClose(event: Event, moduleId: string): void {
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: var(--r-cell);
+  font-size: var(--fs-section);
   line-height: 1;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
   opacity: 0.75;
 }
 
 .ws-tab__close:hover {
-  background: rgba(239, 68, 68, 0.16);
-  color: var(--system-red, #ef5350);
+  background: var(--danger-soft);
+  color: var(--danger);
   opacity: 1;
 }
 
@@ -397,7 +428,7 @@ function onTabClose(event: Event, moduleId: string): void {
   position: relative;
   flex: 1;
   min-height: 0;
-  background: var(--bg-app);
+  background: var(--face-page);
 }
 
 .ws-frame {
@@ -406,7 +437,7 @@ function onTabClose(event: Event, moduleId: string): void {
   width: 100%;
   height: 100%;
   border: 0;
-  background: var(--bg-app);
+  background: var(--face-page);
   opacity: 0;
   pointer-events: none;
   z-index: 0;
@@ -421,10 +452,6 @@ function onTabClose(event: Event, moduleId: string): void {
 @media (max-width: 900px) {
   .ws-topbar__logo-text small {
     display: none;
-  }
-
-  .ws-func-chip__label {
-    /* keep labels; rail scrolls */
   }
 }
 </style>

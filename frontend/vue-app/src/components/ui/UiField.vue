@@ -1,15 +1,26 @@
 <script setup lang="ts">
+/**
+ * 字段（信号面 §5.2）：名 + 器 + 一行说明/错。
+ * 输入器的形由本组件给 `:slotted()`，槽里放裸 input/select/textarea 即可，
+ * 各页不要再自己写一套 .xxx-input。
+ */
 defineProps<{
   label?: string;
   hint?: string;
   error?: string;
   forId?: string;
+  /** 必填：名后一枚危声星号，读屏另给一句「必填」 */
+  required?: boolean;
 }>();
 </script>
 
 <template>
   <div class="ui-field" :data-error="error ? 'true' : undefined">
-    <label v-if="label" class="ui-field-label" :for="forId">{{ label }}</label>
+    <label v-if="label" class="ui-field-label" :for="forId">
+      {{ label }}
+      <span v-if="required" class="ui-field-required" aria-hidden="true">*</span>
+      <span v-if="required" class="sr-only">必填</span>
+    </label>
     <slot />
     <p v-if="error" class="ui-field-hint" role="alert">{{ error }}</p>
     <p v-else-if="hint" class="ui-field-hint">{{ hint }}</p>
@@ -28,6 +39,11 @@ defineProps<{
   font-size: var(--fs-label);
   color: var(--ink-subtle);
   font-weight: var(--fw-medium);
+}
+
+.ui-field-required {
+  color: var(--danger);
+  font-weight: var(--fw-semibold);
 }
 
 .ui-field-hint {

@@ -10,6 +10,28 @@ use tokio::sync::RwLock;
 use tracing::{debug, warn};
 
 use super::RedisPool;
+use crate::observability::{record_shadow_comparison, shadow_mode_enabled};
+
+pub use crate::observability::redis_pipeline_enabled;
+
+/// Zip caller keys with raw GET payloads and deserialize. Missing / invalid
+/// values are omitted (never surfaced as errors).
+pub fn assemble_batch_get_results<T>(keys: &[&str], values: Vec<Option<String>>) -> HashMap<String, T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    if keys.is_empty() {
+        return HashMap::new();
+    }
+    keys.iter()
+        .zip(values)
+        .filter_map(|(key, value)| {
+            let raw = value?;
+            let parsed = serde_json::from_str::<T>(&raw).ok()?;
+            Some(((*key).to_string(), parsed))
+        })
+        .collect()
+}
 
 /// 缓存条目
 #[derive(Debug, Clone)]
@@ -258,6 +280,132 @@ impl RedisCacheService {
     fn full_key(&self, key: &str) -> String {
         format!("{}{}", self.key_prefix, key)
     }
+
+    async fn mget_raw(&self, keys: &[&str]) -> Vec<Option<String>> {
+        if keys.is_empty() {
+            return Vec::new();
+        }
+        let full_keys: Vec<String> = keys.iter().map(|key| self.full_key(key)).collect();
+        let mut conn = match self.pool.get().await {
+            Ok(conn) => conn,
+            Err(error) => {
+                warn!(error = %error, "获取 Redis 连接失败，跳过批量 GET");
+                super::record_redis_command("MGET", "error");
+                return vec![None; keys.len()];
+            }
+        };
+
+        let started = Instant::now();
+        let mut pipe = redis::pipe();
+        for full_key in &full_keys {
+            pipe.cmd("GET").arg(full_key);
+        }
+        match pipe.query_async::<Vec<Option<String>>>(&mut *conn).await {
+            Ok(results) => {
+                super::record_redis_command_with_latency("MGET", "success", Some(started.elapsed()));
+                results
+            }
+            Err(error) => {
+                warn!(error = %error, "批量 GET 失败");
+                super::record_redis_command_with_latency("MGET", "error", Some(started.elapsed()));
+                vec![None; keys.len()]
+            }
+        }
+    }
+
+    async fn get_many_sequential<T>(&self, keys: &[&str]) -> HashMap<String, T>
+    where
+        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + 'static,
+    {
+        let mut out = HashMap::new();
+        for key in keys {
+            if let Some(value) = self.get::<T>(key).await {
+                out.insert((*key).to_string(), value);
+            }
+        }
+        out
+    }
+
+    /// 批量获取多个缓存值（PIPELINE/MGET）。开关：`REDIS_PIPELINE_ENABLED`。
+    pub async fn get_batch<T>(&self, keys: &[&str]) -> HashMap<String, T>
+    where
+        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + 'static,
+    {
+        if keys.is_empty() {
+            return HashMap::new();
+        }
+
+        if shadow_mode_enabled() {
+            let sequential_started = Instant::now();
+            let sequential = self.get_many_sequential::<T>(keys).await;
+            let sequential_elapsed = sequential_started.elapsed();
+            let pipeline_started = Instant::now();
+            let raw = self.mget_raw(keys).await;
+            let pipelined = assemble_batch_get_results::<T>(keys, raw);
+            record_shadow_comparison("redis_get_batch", sequential_elapsed, pipeline_started.elapsed());
+            if redis_pipeline_enabled() {
+                return pipelined;
+            }
+            return sequential;
+        }
+
+        if redis_pipeline_enabled() {
+            let raw = self.mget_raw(keys).await;
+            return assemble_batch_get_results(keys, raw);
+        }
+
+        self.get_many_sequential(keys).await
+    }
+
+    /// 批量设置多个缓存值。写路径使用 MULTI/EXEC（`pipe.atomic()`）。
+    pub async fn set_batch<T>(&self, key_values: &[(&str, T)], ttl: Option<Duration>) -> bool
+    where
+        T: Serialize + Clone + Send + 'static,
+    {
+        if key_values.is_empty() {
+            return true;
+        }
+
+        let ttl_secs = ttl.unwrap_or(self.default_ttl).as_secs();
+        let mut pipe = redis::pipe();
+        pipe.atomic();
+
+        for (key, value) in key_values {
+            let json_value = match serde_json::to_string(value) {
+                Ok(encoded) => encoded,
+                Err(error) => {
+                    warn!(key = *key, error = %error, "批量 SET 序列化失败");
+                    return false;
+                }
+            };
+            pipe.cmd("SETEX")
+                .arg(self.full_key(key))
+                .arg(ttl_secs)
+                .arg(json_value);
+        }
+
+        let mut conn = match self.pool.get().await {
+            Ok(conn) => conn,
+            Err(error) => {
+                warn!(error = %error, "获取 Redis 连接失败，跳过批量 SET");
+                super::record_redis_command("PIPELINE_SET", "error");
+                return false;
+            }
+        };
+
+        let started = Instant::now();
+        match pipe.query_async::<()>(&mut *conn).await {
+            Ok(()) => {
+                super::record_redis_command_with_latency("PIPELINE_SET", "success", Some(started.elapsed()));
+                true
+            }
+            Err(error) => {
+                warn!(error = %error, "批量 SET 失败");
+                super::record_redis_command_with_latency("PIPELINE_SET", "error", Some(started.elapsed()));
+                false
+            }
+        }
+    }
 }
 
 #[async_trait]
@@ -273,14 +421,16 @@ impl CacheService for RedisCacheService {
             }
         };
 
+        let started = Instant::now();
         let result = redis::cmd("GET")
             .arg(&full_key)
             .query_async::<Option<String>>(&mut *conn)
             .await;
+        let elapsed = started.elapsed();
 
         match &result {
-            Ok(_) => super::record_redis_command("GET", "success"),
-            Err(_) => super::record_redis_command("GET", "error"),
+            Ok(_) => super::record_redis_command_with_latency("GET", "success", Some(elapsed)),
+            Err(_) => super::record_redis_command_with_latency("GET", "error", Some(elapsed)),
         }
 
         match result {
@@ -319,16 +469,18 @@ impl CacheService for RedisCacheService {
             }
         };
 
+        let started = Instant::now();
         let result = redis::cmd("SETEX")
             .arg(&full_key)
             .arg(ttl_secs)
             .arg(&json_value)
             .query_async::<()>(&mut *conn)
             .await;
+        let elapsed = started.elapsed();
 
         match &result {
-            Ok(_) => super::record_redis_command("SETEX", "success"),
-            Err(_) => super::record_redis_command("SETEX", "error"),
+            Ok(_) => super::record_redis_command_with_latency("SETEX", "success", Some(elapsed)),
+            Err(_) => super::record_redis_command_with_latency("SETEX", "error", Some(elapsed)),
         }
 
         match result {

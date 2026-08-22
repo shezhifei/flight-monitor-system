@@ -1,102 +1,123 @@
 import { computed } from 'vue';
-import { useTheme } from './useTheme';
+import { alpha, mix, useSignalTokens } from './useSignalTokens';
 
+/**
+ * 图表用色（信号面 §3.4）。
+ *
+ * 这里不再存第二套色板：每个键都从 :root 上的 token 现算，主题切换后
+ * 由 useSignalTokens 重读，画布与 DOM 永远同声。键名保持不变，
+ * 调用方（甘特图 / 趋势图 / 里程碑）无需改动。
+ *
+ * 命名读法：
+ * - 轴/网格/分隔 = 线（line / line-strong），不是「浅灰」
+ * - 状态 = 四声（act 进行 / ok 已成 / warn 警 / danger 危 / ink-muted 常态）
+ * - 实色条上的字用该声的 on 色，透明条上的字用墨
+ */
 export function useChartTheme() {
-  const { theme } = useTheme();
+  const { tokens } = useSignalTokens();
 
   const chartColors = computed(() => {
-    const isDark = theme.value === 'dark';
-
-    if (isDark) {
-      return {
-        axisText: '#8298b5',
-        axisLine: 'rgba(100,140,190,0.11)',
-        gridLine: 'rgba(100,140,190,0.08)',
-        itemText: '#e8f0fa',
-        itemBg: 'rgba(14, 25, 42, 0.86)',
-        nowLine: '#ef5350',
-        focusStroke: '#4db8ff',
-        focusFill: 'rgba(77, 184, 255, 0.12)',
-        statusPending: '#f0a030',
-        statusAssigned: '#3daeff',
-        statusProgress: '#2ec47e',
-        statusCompleted: '#2ec47e',
-        statusCancelled: '#627a97',
-        statusAlert: '#ef5350',
-        statusLock: '#627a97',
-        splitLine: 'rgba(100,140,190,0.06)',
-        lockMarker: '#627a97',
-        zoomBg: 'rgba(255,255,255,0.02)',
-        emptyText: '#627a97',
-        laneLabel: '#8298b5',
-        laneFocusFill: 'rgba(77, 184, 255, 0.10)',
-        laneFocusStroke: 'rgba(77, 184, 255, 0.22)',
-        laneSecondaryFocusFill: 'rgba(77, 184, 255, 0.05)',
-        laneSecondaryFocusStroke: 'rgba(77, 184, 255, 0.12)',
-        laneFocusLabelText: '#4db8ff',
-        laneFocusLabelBg: 'rgba(77, 184, 255, 0.14)',
-        laneSecondaryFocusLabelText: '#6bb8ff',
-        laneSecondaryFocusLabelBg: 'rgba(77, 184, 255, 0.08)',
-        tooltipBorder: 'rgba(100,140,190,0.15)',
-        zoomBorder: 'rgba(100,140,190,0.12)',
-        zoomFiller: 'rgba(77, 184, 255, 0.2)',
-        nowLabelText: '#ef5350',
-        nowLabelBg: 'rgba(239, 83, 80, 0.12)',
-        nowLabelBorder: 'rgba(239, 83, 80, 0.35)',
-        itemHighlightStroke: '#8298b5',
-        itemConflictStroke: '#ef5350',
-        itemSummaryStroke: '#3daeff',
-        itemStroke: 'rgba(100,140,190,0.18)',
-        detailSubText: '#627a97',
-        summaryText: '#e8f0fa',
-        metaText: '#8298b5',
-      };
-    }
+    const t = tokens.value;
 
     return {
-      axisText: '#5f7082',
-      axisLine: '#8a97a8',
-      gridLine: 'rgba(15, 23, 42, 0.08)',
-      itemText: '#ffffff',
-      itemBg: '#ffffff',
-      nowLine: '#FF3B30',
-      focusStroke: '#007AFF',
-      focusFill: 'rgba(0, 122, 255, 0.08)',
-      statusPending: '#D97706',
-      statusAssigned: '#2563EB',
-      statusProgress: '#0F9D8A',
-      statusCompleted: '#2F9E44',
-      statusCancelled: '#94A3B8',
-      statusAlert: '#D64545',
-      statusLock: '#475569',
-      splitLine: 'rgba(15, 23, 42, 0.08)',
-      lockMarker: '#475569',
-      zoomBg: 'rgba(255,255,255,0.74)',
-      emptyText: '#6a7788',
-      laneLabel: '#33485f',
-      laneFocusFill: 'rgba(0, 122, 255, 0.08)',
-      laneFocusStroke: 'rgba(0, 122, 255, 0.22)',
-      laneSecondaryFocusFill: 'rgba(0, 122, 255, 0.04)',
-      laneSecondaryFocusStroke: 'rgba(0, 122, 255, 0.12)',
-      laneFocusLabelText: '#0f3e73',
-      laneFocusLabelBg: 'rgba(0, 122, 255, 0.14)',
-      laneSecondaryFocusLabelText: '#29547f',
-      laneSecondaryFocusLabelBg: 'rgba(0, 122, 255, 0.08)',
-      tooltipBorder: 'rgba(15, 23, 42, 0.1)',
-      zoomBorder: 'rgba(15, 23, 42, 0.12)',
-      zoomFiller: 'rgba(11,119,227,0.2)',
-      nowLabelText: '#FF3B30',
-      nowLabelBg: 'rgba(255, 59, 48, 0.12)',
-      nowLabelBorder: 'rgba(255, 59, 48, 0.35)',
-      itemHighlightStroke: '#12293f',
-      itemConflictStroke: '#D64545',
-      itemSummaryStroke: '#1D4ED8',
-      itemStroke: 'rgba(15, 23, 42, 0.22)',
-      detailSubText: '#5f7082',
-      summaryText: '#203246',
-      metaText: '#5f7082',
+      // ---- 骨架：轴、网格、空态 ----
+      axisText: t['ink-subtle'],
+      axisLine: t['line-strong'],
+      gridLine: t.line,
+      splitLine: t.line,
+      emptyText: t['ink-muted'],
+      laneLabel: t.ink,
+      tooltipBorder: t.line,
+      zoomBorder: t.line,
+      zoomBg: alpha(t['face-raised'], 0.74),
+      zoomFiller: alpha(t.act, 0.2),
+
+      // ---- 条上的字 ----
+      itemText: t['act-on'],
+      itemBg: t['face-raised'],
+      summaryText: t.ink,
+      metaText: t['ink-subtle'],
+      detailSubText: t['ink-subtle'],
+
+      // ---- 四声：状态画在对象上 ----
+      statusPending: t.warn,
+      statusAssigned: t.act,
+      statusProgress: t.ok,
+      statusCompleted: t.ok,
+      statusCancelled: t['ink-muted'],
+      statusAlert: t.danger,
+      statusLock: t['ink-subtle'],
+      lockMarker: t['ink-subtle'],
+
+      // ---- 此刻线（危声，最高一档） ----
+      nowLine: t.danger,
+      nowLabelText: t.danger,
+      nowLabelBg: alpha(t.danger, 0.12),
+      nowLabelBorder: alpha(t.danger, 0.35),
+
+      // ---- 交感 / 持守：焦点与选中一律行动色 ----
+      focusStroke: t.act,
+      focusFill: alpha(t.act, 0.08),
+      itemHighlightStroke: t.ink,
+      itemConflictStroke: t.danger,
+      itemSummaryStroke: t.act,
+      itemStroke: alpha(t.ink, 0.22),
+      laneFocusFill: alpha(t.act, 0.08),
+      laneFocusStroke: alpha(t.act, 0.22),
+      laneSecondaryFocusFill: alpha(t.act, 0.04),
+      laneSecondaryFocusStroke: alpha(t.act, 0.12),
+      laneFocusLabelText: t.act,
+      laneFocusLabelBg: alpha(t.act, 0.14),
+      laneSecondaryFocusLabelText: mix(t.act, t['ink-subtle'], 0.6),
+      laneSecondaryFocusLabelBg: alpha(t.act, 0.08),
     };
   });
 
-  return { chartColors };
+  /**
+   * 图表骨架（信号面 §3.4）：轴、网格、提示框、缩放条的常驻形。
+   * 画布不继承 CSS，字族要显式传进 ECharts；这里一次给全，
+   * 各图表 `...chartBase.value.axis` 摊开即可，不要再各自抄一份轴样式。
+   */
+  const chartBase = computed(() => {
+    const t = tokens.value;
+    const font = t.sans;
+
+    return {
+      fontFamily: font,
+      /** option 顶层：底透明（吃页面工作面），字族全局生效 */
+      root: {
+        backgroundColor: 'transparent',
+        textStyle: { fontFamily: font },
+      },
+      /** tooltip：抬升面 + 一根细线，不投重影 */
+      tooltip: {
+        confine: true,
+        backgroundColor: t['face-raised'],
+        borderColor: t.line,
+        borderWidth: 1,
+        textStyle: { color: t.ink, fontFamily: font, fontSize: 12 },
+      },
+      /** 轴：线用 line-strong，刻字用次墨，网格用 line 虚线，刻度尖收掉 */
+      axis: {
+        axisLine: { lineStyle: { color: t['line-strong'] } },
+        axisTick: { show: false },
+        axisLabel: { color: t['ink-subtle'], fontSize: 11, fontFamily: font, hideOverlap: true },
+        splitLine: { lineStyle: { color: t.line, type: 'dashed' as const } },
+      },
+      /** 类目轴（行名）：字用墨，比刻字重一档 */
+      laneAxis: {
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: t.ink, fontSize: 12, fontFamily: font, fontWeight: 500 },
+      },
+      /** 缩放条 */
+      zoom: {
+        borderColor: t.line,
+        backgroundColor: alpha(t['face-raised'], 0.74),
+        fillerColor: alpha(t.act, 0.2),
+      },
+    };
+  });
+
+  return { chartColors, chartBase };
 }

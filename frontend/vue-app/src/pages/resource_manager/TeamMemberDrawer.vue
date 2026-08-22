@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { AssignableUser, Team, TeamMember } from '@/composables/useResourceManager';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiDrawer from '@/components/ui/UiDrawer.vue';
+import UiSearch from '@/components/ui/UiSearch.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 
 const props = defineProps<{
   show: boolean;
@@ -31,269 +35,219 @@ function onAddInput(field: 'user_id' | 'role', value: string) {
 function onCanDriveChange(checked: boolean) {
   emit('update:add', { ...props.add, can_drive: checked });
 }
+
+/* 库件收 string，桥回父级的受控 props */
+const searchModel = computed<string>({
+  get: () => props.search,
+  set: (value) => emit('update:search', value),
+});
+
+const userIdModel = computed<string>({
+  get: () => props.add.user_id,
+  set: (value) => onAddInput('user_id', value),
+});
+
+const roleModel = computed<string>({
+  get: () => props.add.role,
+  set: (value) => onAddInput('role', value),
+});
+
+const userOptions = computed(() => [
+  { value: '', label: '选择用户...' },
+  ...props.assignableUsers.map((u) => ({
+    value: u.id,
+    label: u.display_name || u.username || u.id,
+  })),
+]);
+
+const roleOptions = [
+  { value: 'member', label: '成员' },
+  { value: 'leader', label: '班组长' },
+];
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="show" class="drawer-overlay" @click.self="emit('close')">
-      <aside
-        class="drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="team-member-drawer-title"
-      >
-        <header class="drawer-header">
-          <div>
-            <div class="drawer-eyebrow">
-              班组成员
-            </div>
-            <h2 id="team-member-drawer-title" class="drawer-title">
-              {{ team?.name || '班组' }}
-            </h2>
-          </div>
-          <button
-            class="drawer-close"
-            type="button"
-            aria-label="关闭"
-            @click="emit('close')"
+  <UiDrawer
+    :open="show"
+    :title="team?.name || '班组'"
+    :width="480"
+    flush
+    @close="emit('close')"
+  >
+    <template #header>
+      <div class="drawer-heading">
+        <div class="drawer-eyebrow">
+          班组成员
+        </div>
+        <h2 id="team-member-drawer-title" class="drawer-title">
+          {{ team?.name || '班组' }}
+        </h2>
+      </div>
+    </template>
+
+    <section v-if="canManage" class="drawer-section">
+      <div class="add-row">
+        <UiSearch
+          v-model="searchModel"
+          label="搜索可分配用户"
+          placeholder="搜索可分配用户..."
+        />
+        <UiSelect
+          v-model="userIdModel"
+          :options="userOptions"
+          label="选择要添加的用户"
+          min-width="100%"
+        />
+        <UiSelect
+          v-model="roleModel"
+          :options="roleOptions"
+          label="成员角色"
+          min-width="100%"
+        />
+        <label class="drive-label">
+          <input
+            type="checkbox"
+            :checked="add.can_drive"
+            @change="onCanDriveChange(($event.target as HTMLInputElement).checked)"
           >
-            ×
-          </button>
-        </header>
+          可驾驶
+        </label>
+        <UiButton
+          variant="primary"
+          :disabled="!canAdd"
+          @click="emit('add')"
+        >
+          {{ addBusy ? '添加中...' : '添加' }}
+        </UiButton>
+      </div>
+    </section>
 
-        <section v-if="canManage" class="drawer-section">
-          <div class="add-row">
-            <input
-              class="search-input"
-              type="text"
-              :value="search"
-              placeholder="搜索可分配用户..."
-              @input="emit('update:search', ($event.target as HTMLInputElement).value)"
-            >
-            <select
-              class="user-select"
-              :value="add.user_id"
-              @change="onAddInput('user_id', ($event.target as HTMLSelectElement).value)"
-            >
-              <option value="">
-                选择用户...
-              </option>
-              <option v-for="u in assignableUsers" :key="u.id" :value="u.id">
-                {{ u.display_name || u.username || u.id }}
-              </option>
-            </select>
-            <select
-              class="role-select"
-              :value="add.role"
-              aria-label="成员角色"
-              @change="onAddInput('role', ($event.target as HTMLSelectElement).value)"
-            >
-              <option value="member">
-                成员
-              </option>
-              <option value="leader">
-                班组长
-              </option>
-            </select>
-            <label class="drive-label">
-              <input
-                type="checkbox"
-                :checked="add.can_drive"
-                @change="onCanDriveChange(($event.target as HTMLInputElement).checked)"
-              >
-              可驾驶
-            </label>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="!canAdd"
-              @click="emit('add')"
-            >
-              {{ addBusy ? '添加中...' : '添加' }}
-            </button>
+    <section class="drawer-section drawer-section--last">
+      <h3 class="section-heading">
+        现有成员 ({{ members.length }})
+      </h3>
+      <div v-if="loading" class="loading-state">
+        加载中...
+      </div>
+      <div v-else-if="members.length === 0" class="empty-state">
+        暂无成员，添加后将参与派工资源分配
+      </div>
+      <ul v-else class="member-list">
+        <li v-for="m in members" :key="m.user_id" class="member-row">
+          <div class="member-main">
+            <div class="member-name">
+              {{ m.user_display_name || m.username || m.user_id }}
+            </div>
+            <div class="member-meta">
+              {{ m.role === 'leader' ? '班组长' : '成员' }}
+              <span v-if="m.can_drive"> · 可驾驶</span>
+            </div>
           </div>
-        </section>
-
-        <section class="drawer-section">
-          <h3 class="section-heading">
-            现有成员 ({{ members.length }})
-          </h3>
-          <div v-if="loading" class="loading-state">
-            加载中...
-          </div>
-          <div v-else-if="members.length === 0" class="empty-state">
-            暂无成员，添加后将参与派工资源分配
-          </div>
-          <ul v-else class="member-list">
-            <li v-for="m in members" :key="m.user_id" class="member-row">
-              <div class="member-main">
-                <div class="member-name">
-                  {{ m.user_display_name || m.username || m.user_id }}
-                </div>
-                <div class="member-meta">
-                  {{ m.role === 'leader' ? '班组长' : '成员' }}
-                  <span v-if="m.can_drive"> · 可驾驶</span>
-                </div>
-              </div>
-              <button
-                v-if="canManage"
-                type="button"
-                class="btn btn-secondary btn-sm danger"
-                @click="emit('remove', m.user_id)"
-              >
-                移除
-              </button>
-            </li>
-          </ul>
-        </section>
-      </aside>
-    </div>
-  </Teleport>
+          <UiButton
+            v-if="canManage"
+            variant="danger"
+            size="sm"
+            @click="emit('remove', m.user_id)"
+          >
+            移除
+          </UiButton>
+        </li>
+      </ul>
+    </section>
+  </UiDrawer>
 </template>
 
 <style scoped>
-.drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  backdrop-filter: blur(2px);
-  display: flex;
-  justify-content: flex-end;
-  z-index: 2200;
+/* 信号面：帽、幕、Esc、关都归 UiDrawer；这里只有分区、线与列表。 */
+.drawer-heading {
+  min-width: 0;
 }
-.drawer {
-  width: 480px;
-  max-width: 100vw;
-  background: var(--bg-card, #fff);
-  display: flex;
-  flex-direction: column;
-  box-shadow: -14px 0 28px rgba(15, 23, 42, 0.16);
-}
-.drawer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-}
+
 .drawer-eyebrow {
-  font-size: 11px;
+  font-size: var(--fs-label);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
 }
+
 .drawer-title {
-  margin: 4px 0 0;
-  font-size: 18px;
-  font-weight: 600;
+  margin: var(--s1) 0 0;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
-.drawer-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-tertiary);
-}
+
 .drawer-section {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  padding: var(--s4);
+  border-bottom: 1px solid var(--line);
 }
-.drawer-section:last-child {
+
+.drawer-section--last {
   border-bottom: none;
-  flex: 1;
-  overflow-y: auto;
 }
+
 .add-row {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: var(--s2);
 }
-.add-row .search-input,
-.add-row .user-select,
-.add-row .role-select {
-  padding: 8px 10px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 6px;
-  font-size: 13px;
-}
+
 .drive-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-primary);
+  gap: var(--s2);
+  font-size: var(--fs-body);
+  color: var(--ink);
 }
+
+.drive-label input {
+  accent-color: var(--act);
+}
+
 .section-heading {
-  margin: 0 0 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+  margin: 0 0 var(--s3);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
+
 .loading-state,
 .empty-state {
-  padding: 24px 0;
+  padding: var(--s5) 0;
   text-align: center;
-  font-size: 13px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-body);
+  color: var(--ink-muted);
 }
+
 .member-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--s2);
 }
+
+/* 一行一个人：页底凹面 + 一根线，不做成卡 */
 .member-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
-  background: var(--bg-card, #fff);
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--face-page);
 }
+
 .member-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-size: var(--fs-section);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
 }
+
 .member-meta {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  border: none;
-  white-space: nowrap;
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: var(--system-blue);
-  color: var(--text-inverse);
-}
-.btn-secondary {
-  background: rgba(60, 60, 67, 0.08);
-  color: var(--text-primary);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-}
-.btn-secondary.danger {
-  color: var(--system-red);
-}
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 </style>

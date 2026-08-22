@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import UiSkeleton from './UiSkeleton.vue';
+
+/** 航班详情的骨架：帽 / 航线 / 读数条 / 字段格 / 事件表，与详情最终版同构。
+    读数条不画成带底的方块（§3.2 禁 KPI 卡），只用一根线与上面分开。 */
 defineProps<{
   visible?: boolean;
 }>();
@@ -7,129 +11,101 @@ defineProps<{
 <template>
   <div
     v-if="visible"
-    class="skeleton-detail"
+    class="sk-detail"
     role="status"
     aria-label="加载航班详情"
+    aria-busy="true"
   >
-    <div class="skeleton-detail-header">
-      <div class="skeleton-shimmer" style="width: 120px; height: 36px; border-radius: 8px;" />
-      <div class="skeleton-shimmer" style="width: 80px; height: 24px; border-radius: 999px;" />
+    <div class="sk-detail__head">
+      <UiSkeleton shape="block" width="120px" height="36px" />
+      <UiSkeleton shape="pill" width="80px" height="24px" />
     </div>
 
-    <div class="skeleton-detail-route">
-      <div class="skeleton-shimmer" style="width: 60%; height: 20px; border-radius: 6px;" />
-    </div>
+    <UiSkeleton width="60%" height="20px" />
 
-    <div class="skeleton-kpi-strip">
-      <div v-for="i in 4" :key="i" class="skeleton-kpi">
-        <div class="skeleton-shimmer" style="width: 48px; height: 12px; border-radius: 4px;" />
-        <div class="skeleton-shimmer" style="width: 36px; height: 24px; border-radius: 4px; margin-top: 6px;" />
+    <div class="sk-detail__readouts">
+      <div v-for="i in 4" :key="i" class="sk-detail__readout">
+        <UiSkeleton width="48px" height="11px" />
+        <UiSkeleton width="36px" height="24px" />
       </div>
     </div>
 
-    <div class="skeleton-detail-grid">
-      <div v-for="i in 8" :key="i" class="skeleton-info-field">
-        <div class="skeleton-shimmer" style="width: 56px; height: 11px; border-radius: 4px;" />
-        <div class="skeleton-shimmer" style="width: 80%; height: 18px; border-radius: 4px; margin-top: 4px;" />
+    <div class="sk-detail__grid">
+      <div v-for="i in 8" :key="i" class="sk-detail__field">
+        <UiSkeleton width="56px" height="11px" />
+        <UiSkeleton width="80%" height="18px" />
       </div>
     </div>
 
-    <div class="skeleton-detail-section">
-      <div class="skeleton-shimmer" style="width: 100px; height: 16px; border-radius: 4px; margin-bottom: 12px;" />
-      <div v-for="i in 3" :key="i" class="skeleton-event-row">
-        <div class="skeleton-shimmer" style="width: 80px; height: 14px; border-radius: 4px;" />
-        <div class="skeleton-shimmer" style="width: 120px; height: 14px; border-radius: 4px;" />
-        <div class="skeleton-shimmer" style="width: 60px; height: 14px; border-radius: 999px;" />
+    <div class="sk-detail__section">
+      <UiSkeleton width="100px" height="16px" />
+      <div v-for="i in 3" :key="i" class="sk-detail__event">
+        <UiSkeleton width="80px" height="14px" />
+        <UiSkeleton width="120px" height="14px" />
+        <UiSkeleton shape="pill" width="60px" height="14px" />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.skeleton-detail {
+.sk-detail {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: var(--s4);
   height: 100%;
+  padding: var(--s4);
   contain: layout style paint;
 }
 
-.skeleton-detail-header {
+.sk-detail__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-light);
+  gap: var(--s3);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line);
 }
 
-.skeleton-detail-route {
-  margin-top: 4px;
-}
-
-.skeleton-kpi-strip {
+.sk-detail__readouts {
   display: flex;
-  justify-content: space-around;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 12px;
-  gap: 8px;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
 }
 
-.skeleton-kpi {
+.sk-detail__readout {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
-  align-items: center;
-  flex: 1;
+  gap: var(--s2);
 }
 
-.skeleton-detail-grid {
+.sk-detail__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px 12px;
+  gap: var(--s3) var(--s3);
 }
 
-.skeleton-info-field {
+.sk-detail__field {
   display: flex;
   flex-direction: column;
+  gap: var(--s1);
 }
 
-.skeleton-detail-section {
-  margin-top: 8px;
+.sk-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
 }
 
-.skeleton-event-row {
+.sk-detail__event {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.06) 25%,
-    rgba(0, 0, 0, 0.10) 50%,
-    rgba(0, 0, 0, 0.06) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.6s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer {
-    animation: none;
-    background: rgba(0, 0, 0, 0.08);
-  }
-}
-
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  gap: var(--s3);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line);
 }
 </style>

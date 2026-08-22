@@ -3,9 +3,12 @@ withDefaults(defineProps<{
   open: boolean;
   title?: string;
   width?: number;
+  /** 身内不铺内距，交给分区自己管（分区带线带内距的抽屉） */
+  flush?: boolean;
 }>(), {
   title: '',
   width: 420,
+  flush: false,
 });
 
 const emit = defineEmits<{
@@ -23,10 +26,22 @@ const emit = defineEmits<{
         :style="{ width: `min(${width}px, calc(100vw - 32px))` }"
       >
         <header class="ui-drawer-header">
-          <h3 class="ui-drawer-title">{{ title }}</h3>
-          <button type="button" class="ui-drawer-close" aria-label="关闭" @click="emit('close')">×</button>
+          <!-- 默认只有一行标题；眉标+标题等组合走 header 插槽 -->
+          <slot name="header">
+            <h3 class="ui-drawer-title">
+              {{ title }}
+            </h3>
+          </slot>
+          <button
+            type="button"
+            class="ui-drawer-close"
+            aria-label="关闭"
+            @click="emit('close')"
+          >
+            ×
+          </button>
         </header>
-        <div class="ui-drawer-body">
+        <div class="ui-drawer-body" :class="{ 'ui-drawer-body--flush': flush }">
           <slot />
         </div>
         <footer v-if="$slots.footer" class="ui-drawer-footer">
@@ -42,7 +57,7 @@ const emit = defineEmits<{
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  z-index: 10000;
+  z-index: var(--z-modal);
   display: flex;
   justify-content: flex-end;
 }
@@ -61,7 +76,8 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
@@ -75,11 +91,11 @@ const emit = defineEmits<{
 .ui-drawer-close {
   background: none;
   border: none;
-  font-size: 22px;
+  font-size: var(--fs-page);
   line-height: 1;
   cursor: pointer;
   color: var(--ink-subtle);
-  padding: 0 4px;
+  padding: 0 var(--s1);
 }
 
 .ui-drawer-close:hover {
@@ -89,12 +105,16 @@ const emit = defineEmits<{
 .ui-drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 18px;
+  padding: var(--s4);
   min-height: 0;
 }
 
+.ui-drawer-body--flush {
+  padding: 0;
+}
+
 .ui-drawer-footer {
-  padding: 12px 18px;
+  padding: var(--s3) var(--s4);
   border-top: 1px solid var(--line);
   flex-shrink: 0;
 }

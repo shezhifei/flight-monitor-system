@@ -5,6 +5,8 @@ import { useFlightImports } from '@/composables/useFlightImports';
 import { useAuth } from '@/composables/useAuth';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
 import { ref } from 'vue';
 
 const {
@@ -85,10 +87,11 @@ function actionLabel(action: string): string {
   return action || '-';
 }
 
-function actionBadgeClass(action: string): string {
-  if (action === 'create') return 'badge badge-create';
-  if (action === 'update') return 'badge badge-update';
-  return 'badge badge-skip';
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+function actionTone(action: string): PillTone {
+  if (action === 'create') return 'ok';
+  if (action === 'update') return 'act';
+  return 'warn';
 }
 
 const summaryCards = [
@@ -132,7 +135,12 @@ const summaryCards = [
           </div>
         </div>
         <div class="sidebar-footer-actions">
-          <button class="logout-btn" title="退出登录" type="button" @click="handleLogout">
+          <button
+            class="logout-btn"
+            title="退出登录"
+            type="button"
+            @click="handleLogout"
+          >
             <SvgIcon src="/frontend/icons/logout.svg" :size="14" />
           </button>
           <a :href="pageUrl('dashboard')" class="nav-item sidebar-home-link">
@@ -179,32 +187,29 @@ const summaryCards = [
                   已选择: {{ fileName }}
                 </div>
                 <div class="actions">
-                  <button
+                  <UiButton
                     id="previewBtn"
-                    class="btn btn-primary"
-                    type="button"
+                    variant="primary"
                     :disabled="loading"
                     @click="handleUploadClick"
                   >
                     {{ loading ? '解析中...' : '上传并预览' }}
-                  </button>
-                  <button
+                  </UiButton>
+                  <UiButton
                     id="commitBtn"
-                    class="btn btn-secondary"
-                    type="button"
+                    variant="tonal"
                     :disabled="!canCommit"
                     @click="commitImport()"
                   >
                     确认导入
-                  </button>
-                  <button
+                  </UiButton>
+                  <UiButton
                     v-if="fileSelected || selectedFile"
-                    class="btn btn-secondary"
-                    type="button"
+                    variant="ghost"
                     @click="handleReset"
                   >
                     重置
-                  </button>
+                  </UiButton>
                 </div>
                 <div v-if="importProgress > 0 && importProgress < 100" class="progress-wrap">
                   <div class="progress-track">
@@ -302,9 +307,9 @@ const summaryCards = [
                         · 已匹配航班: {{ row.matched_flight_id || '-' }}
                       </div>
                     </div>
-                    <span :class="actionBadgeClass(row.action)">
+                    <UiPill :tone="actionTone(row.action)">
                       {{ actionLabel(row.action) }}
-                    </span>
+                    </UiPill>
                   </div>
                   <div class="kv">
                     <div class="meta-item">
@@ -383,83 +388,86 @@ const summaryCards = [
 }
 
 .hero {
-  background: var(--admin-card-bg, var(--bg-card));
-  border: 1px solid var(--admin-border, var(--border-light));
+  background: var(--face-work);
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
   box-shadow: var(--shadow-sm);
-  padding: 24px 28px;
-  margin-bottom: 24px;
+  padding: var(--s4) var(--s5);
+  margin-bottom: var(--s4);
 }
 
+/* hero 大标题是展示级（26px），刻意不入字阶梯子 */
 .hero h1 {
-  margin: 0 0 6px;
+  margin: 0 0 var(--s2);
   font-size: 26px;
-  color: var(--admin-text, var(--text-primary));
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .hero p {
   margin: 0;
-  color: var(--admin-text-subtle, var(--text-tertiary));
+  color: var(--ink-subtle);
   line-height: 1.6;
 }
 
 .grid {
   display: grid;
   grid-template-columns: 360px 1fr;
-  gap: 20px;
+  gap: var(--s4);
   align-items: start;
 }
 
 .panel {
-  background: var(--admin-card-bg, var(--bg-card));
-  border: 1px solid var(--admin-border, var(--border-light));
+  background: var(--face-work);
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
   box-shadow: var(--shadow-sm);
-  padding: 20px 22px;
+  padding: var(--s4);
 }
 
 .panel-rows {
-  margin-top: 20px;
+  margin-top: var(--s4);
 }
 
 .panel h2 {
-  margin: 0 0 14px;
-  font-size: 16px;
-  color: var(--admin-text, var(--text-primary));
+  margin: 0 0 var(--s3);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .muted {
-  color: var(--admin-text-subtle, var(--text-tertiary));
-  font-size: 13px;
+  color: var(--ink-subtle);
+  font-size: var(--fs-body);
 }
 
 .upload-box {
   border: 1px dashed var(--line-strong);
   border-radius: var(--r-panel);
-  padding: 18px;
+  padding: var(--s3);
   background: var(--face-page);
 }
 
 .file-name {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--admin-text, var(--text-primary));
+  margin-top: var(--s2);
+  font-size: var(--fs-body);
+  color: var(--ink);
 }
 
 .actions {
   display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--s2);
+  margin-top: var(--s3);
   flex-wrap: wrap;
 }
 
 .progress-wrap {
-  margin-top: 8px;
+  margin-top: var(--s2);
 }
 
 .progress-track {
   background: color-mix(in srgb, var(--ink) 8%, transparent);
-  border-radius: 4px;
+  border-radius: var(--r-pill);
   height: 8px;
   overflow: hidden;
 }
@@ -467,20 +475,20 @@ const summaryCards = [
 .progress-bar {
   background: var(--act);
   height: 100%;
-  transition: width 0.3s;
+  transition: width var(--t-slow) var(--ease);
 }
 
 .meta-list {
   display: grid;
-  gap: 10px;
+  gap: var(--s2);
 }
 
 .meta-list-top {
-  margin-top: 16px;
+  margin-top: var(--s3);
 }
 
 .meta-item {
-  padding: 12px 14px;
+  padding: var(--s3);
   border-radius: var(--r-control);
   background: var(--face-page);
   border: 1px solid var(--line);
@@ -489,82 +497,60 @@ const summaryCards = [
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
 }
 
 .summary-card {
-  padding: 12px 14px;
+  padding: var(--s3);
   border-radius: var(--r-control);
   background: var(--face-page);
   border: 1px solid var(--line);
 }
 
+/* 展示级大数字（22px）刻意不入字阶梯子 */
 .summary-card strong {
   display: block;
   font-size: 22px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
 
 .summary-card span {
-  font-size: 12px;
+  font-size: var(--fs-label);
   color: var(--ink-muted);
   text-transform: uppercase;
 }
 
 .code {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-label);
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.badge-create {
-  background: var(--ok-soft);
-  color: var(--ok);
-}
-
-.badge-update {
-  background: var(--act-soft);
-  color: var(--act);
-}
-
-.badge-skip {
-  background: var(--warn-soft);
-  color: var(--warn);
 }
 
 .row-card {
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
-  padding: 16px;
-  margin-bottom: 14px;
+  padding: var(--s3);
+  margin-bottom: var(--s3);
   background: var(--face-work);
 }
 
 .row-head {
   display: flex;
   justify-content: space-between;
-  gap: 14px;
+  gap: var(--s3);
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--s3);
   flex-wrap: wrap;
 }
 
 .kv {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
 }
 
 .kv .meta-item {
@@ -572,13 +558,13 @@ const summaryCards = [
 }
 
 .list {
-  margin: 8px 0 0;
+  margin: var(--s2) 0 0;
   padding-left: 18px;
   color: var(--ink-subtle);
 }
 
 .list li {
-  margin: 4px 0;
+  margin: var(--s1) 0;
 }
 
 @media (max-width: 1080px) {

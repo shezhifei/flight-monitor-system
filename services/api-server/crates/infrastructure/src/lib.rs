@@ -13,6 +13,7 @@ pub mod http_client;
 pub mod integrations;
 pub mod logging;
 pub mod messaging;
+pub mod observability;
 pub mod repositories;
 pub mod security;
 

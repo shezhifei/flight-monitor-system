@@ -1,17 +1,17 @@
 /* 通用配置字段：扁平表格感列表，明暗双主题 */
 
 .cf-list {
-  /* 对齐 admin 主题 token，不再单独硬编码深浅色 */
-  --cf-border: var(--admin-border, var(--border-light));
-  --cf-title: var(--admin-text, var(--text-primary));
-  --cf-muted: var(--admin-text-subtle, var(--text-secondary));
-  --cf-faint: var(--admin-text-muted, var(--text-tertiary));
-  --cf-hover: color-mix(in srgb, var(--ws-primary, #0a7cff) 6%, transparent);
-  --cf-input-bg: var(--admin-card-bg, var(--bg-input));
-  --cf-input-fg: var(--admin-text, var(--text-primary));
-  --cf-input-border: var(--admin-border, var(--border-light));
-  --cf-focus: var(--ws-primary, var(--system-blue));
-  --cf-focus-ring: var(--focus-ring-blue, var(--system-blue-subtle));
+  /* 信号面 token（docs/architecture/SIGNAL_SURFACE.md），不再经 admin 旧别名 */
+  --cf-border: var(--line);
+  --cf-title: var(--ink);
+  --cf-muted: var(--ink-subtle);
+  --cf-faint: var(--ink-muted);
+  --cf-hover: color-mix(in srgb, var(--ink) 6%, transparent);
+  --cf-input-bg: var(--face-work);
+  --cf-input-fg: var(--ink);
+  --cf-input-border: var(--line);
+  --cf-focus: var(--act);
+  --cf-focus-ring: color-mix(in srgb, var(--act) 15%, transparent);
   --cf-row-pad-x: 12px;
 
   display: flex;
@@ -38,7 +38,7 @@
 }
 
 .cf-title {
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-weight: 600;
   color: var(--cf-title);
   line-height: 1.3;
@@ -46,8 +46,8 @@
 
 .cf-path {
   margin-top: 2px;
-  font-size: 11px;
-  font-family: ui-monospace, 'SF Mono', Monaco, Consolas, monospace;
+  font-size: var(--fs-label);
+  font-family: var(--mono);
   color: var(--cf-faint);
   word-break: break-all;
   line-height: 1.35;
@@ -55,7 +55,7 @@
 
 .cf-desc {
   margin-top: 3px;
-  font-size: 12px;
+  font-size: var(--fs-label);
   color: var(--cf-muted);
   line-height: 1.4;
 }
@@ -70,15 +70,14 @@
 .cf-input {
   box-sizing: border-box;
   width: 100%;
-  min-height: 34px;
+  min-height: var(--h-md);
   padding: 0 10px;
   border: 1px solid var(--cf-input-border);
-  border-radius: 6px;
+  border-radius: var(--r-cell);
   background: var(--cf-input-bg);
   color: var(--cf-input-fg);
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-family: inherit;
-  line-height: 32px;
 }
 
 .cf-input:hover:not(:disabled) {
@@ -111,19 +110,19 @@
   max-width: 100%;
   padding: 6px 10px;
   text-align: right;
-  font-size: 12px;
-  font-family: ui-monospace, 'SF Mono', Monaco, Consolas, monospace;
+  font-size: var(--fs-label);
+  font-family: var(--mono);
   color: var(--cf-muted);
   background: transparent;
   border: 1px dashed var(--cf-border);
-  border-radius: 6px;
+  border-radius: var(--r-cell);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 [data-theme="dark"] .cf-plain {
-  background: rgba(15, 23, 42, 0.5);
+  background: color-mix(in srgb, var(--face-page) 55%, transparent);
 }
 
 @media (max-width: 720px) {

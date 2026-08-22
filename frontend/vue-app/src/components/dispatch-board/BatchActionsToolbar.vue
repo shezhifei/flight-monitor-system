@@ -9,33 +9,22 @@
       </span>
     </div>
     <div class="toolbar-right">
-      <button
-        class="action-btn"
-        :disabled="selectedCount === 0"
-        @click="$emit('complete')"
-      >
-        <span class="icon">✅</span>
+      <UiButton variant="primary" :disabled="selectedCount === 0" @click="$emit('complete')">
         批量完成
-      </button>
-      <button
-        class="action-btn"
-        :disabled="selectedCount === 0"
-        @click="$emit('publish')"
-      >
-        <span class="icon">📤</span>
+      </UiButton>
+      <UiButton variant="tonal" :disabled="selectedCount === 0" @click="$emit('publish')">
         批量发布
-      </button>
-      <button
-        class="action-btn secondary"
-        @click="$emit('clear')"
-      >
+      </UiButton>
+      <UiButton @click="$emit('clear')">
         清除选择
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import UiButton from '../ui/UiButton.vue';
+
 defineProps<{
   selectedCount: number;
 }>();
@@ -48,77 +37,39 @@ defineEmits<{
 </script>
 
 <style scoped>
+/* 批量动作条：贴在工作面上沿，一根线收底；钮的形归 UiButton */
 .batch-actions-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background: var(--bg-sidebar);
-  border-bottom: 1px solid var(--border-light);
-  gap: 16px;
+  gap: var(--s4);
+  padding: var(--s3) var(--s5);
+  background: var(--face-work);
+  border-bottom: 1px solid var(--line);
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
 .selected-count {
-  font-size: 14px;
-  color: var(--admin-text);
+  font-size: var(--fs-section);
+  color: var(--ink);
 }
 
 .selected-count strong {
-  color: var(--ws-primary);
-  font-weight: 600;
+  color: var(--act);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .selected-count.none {
-  color: var(--admin-text-muted);
+  color: var(--ink-muted);
 }
 
 .toolbar-right {
   display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--admin-text);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover:not(:disabled) {
-  border-color: var(--ws-primary);
-  color: var(--ws-primary);
-  background: var(--dh-signal-accent-soft);
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-btn.secondary {
-  color: var(--admin-text-subtle);
-}
-
-.action-btn.secondary:hover:not(:disabled) {
-  border-color: var(--admin-text-muted);
-  background: var(--border-light);
-  color: var(--admin-text);
-}
-
-.icon {
-  font-size: 14px;
+  gap: var(--s2);
 }
 </style>

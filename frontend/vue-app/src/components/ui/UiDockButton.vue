@@ -1,10 +1,27 @@
 <script setup lang="ts">
-defineProps<{
+/**
+ * 角浮抬起面板里的一条：图标 + 名 + 右缘计数。
+ *
+ * 它坐在 UiMenu 的 role="menu" 里，所以角色也得是菜单里的角色：
+ * 一次性的入口是 menuitem；开着就一直亮的（面板开合）是 menuitemcheckbox，
+ * 持守用 aria-checked 报（信号面 §2.5：持守绑 aria 属性，不绑一次性 class）。
+ */
+/*
+ * pressed 必须显式默认成 undefined：布尔 prop 不给默认值时 Vue 会把「没传」
+ * 铸成 false，于是一次性的入口（AI 洞察、协同群聊）也会背上一个持守标记 —— 
+ * 那正是 §2.5 第 2 条禁的「一次动作不要给它 aria」。
+ */
+const props = withDefaults(defineProps<{
   label: string;
   count?: number | null;
-  tone?: 'neutral' | 'act' | 'ok' | 'warn' | 'danger';
+  tone?: 'mute' | 'act' | 'ok' | 'warn' | 'danger';
+  /** 给了就是持守：这一条开着，手离开也还亮着 */
   pressed?: boolean;
-}>();
+}>(), {
+  count: undefined,
+  tone: 'mute',
+  pressed: undefined,
+});
 
 const emit = defineEmits<{
   click: [];
@@ -15,8 +32,9 @@ const emit = defineEmits<{
   <button
     type="button"
     class="ui-dock-btn"
-    :data-tone="tone ?? 'neutral'"
-    :aria-pressed="pressed !== undefined ? (pressed ? 'true' : 'false') : undefined"
+    :role="props.pressed !== undefined ? 'menuitemcheckbox' : 'menuitem'"
+    :data-tone="tone"
+    :aria-checked="pressed !== undefined ? (pressed ? 'true' : 'false') : undefined"
     :data-on="pressed === true ? 'true' : undefined"
     @click="emit('click')"
   >

@@ -7,45 +7,35 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* ---- Workspace Surfaces ---- */
-  --ws-bg: #edf2f8;
-  --ws-bg-soft: #f6f8fc;
-  --ws-surface: rgba(255, 255, 255, 0.94);
-  --ws-surface-strong: #ffffff;
-  --ws-surface-muted: #f7f9fd;
-  --ws-border: rgba(16, 35, 63, 0.13);
-  --ws-border-strong: rgba(16, 35, 63, 0.2);
-
-  /* ---- Workspace Text ---- */
-  --ws-text: #11233f;
-  --ws-text-subtle: #5b6b83;
-  --ws-text-muted: #7a889d;
-
-  /* ---- Workspace Accent ---- */
-  --ws-primary: #0a7cff;
-  --ws-primary-strong: #0066d6;
-  --ws-success: #1ea971;
-  --ws-warn: #f08a00;
-  --ws-danger: #d93d4f;
-
-  /* ---- Workspace Depth ---- */
-  --ws-shadow-sm: 0 1px 3px rgba(17, 35, 63, 0.06);
-  --ws-shadow-md: 0 6px 20px rgba(17, 35, 63, 0.08);
-
-  /* ---- Workspace Shape ---- */
-  --ws-radius-xs: 6px;
-  --ws-radius-sm: 8px;
-  --ws-radius-md: 10px;
-  --ws-radius-lg: 12px;
-  --ws-radius-xl: 16px;
-
-  /* ---- Workspace Spacing ---- */
-  --ws-space-1: 4px;
-  --ws-space-2: 8px;
-  --ws-space-3: 12px;
-  --ws-space-4: 16px;
-  --ws-space-5: 20px;
-  --ws-control-h: 36px;
+  /* ---- Workspace (deprecated aliases → signal tokens). New code: --face-* / --ink-* / --act. ---- */
+  --ws-bg: var(--face-page);
+  --ws-bg-soft: var(--face-page);
+  --ws-surface: var(--face-work);
+  --ws-surface-strong: var(--face-raised);
+  --ws-surface-muted: var(--face-page);
+  --ws-border: var(--line);
+  --ws-border-strong: var(--line-strong);
+  --ws-text: var(--ink);
+  --ws-text-subtle: var(--ink-subtle);
+  --ws-text-muted: var(--ink-muted);
+  --ws-primary: var(--act);
+  --ws-primary-strong: var(--act);
+  --ws-success: var(--ok);
+  --ws-warn: var(--warn);
+  --ws-danger: var(--danger);
+  --ws-shadow-sm: var(--shadow-sm);
+  --ws-shadow-md: var(--shadow-md);
+  --ws-radius-xs: var(--r-cell);
+  --ws-radius-sm: var(--r-control);
+  --ws-radius-md: var(--r-panel);
+  --ws-radius-lg: var(--r-panel);
+  --ws-radius-xl: var(--r-panel);
+  --ws-space-1: var(--s1);
+  --ws-space-2: var(--s2);
+  --ws-space-3: var(--s3);
+  --ws-space-4: var(--s4);
+  --ws-space-5: var(--s5);
+  --ws-control-h: var(--h-md);
 
   /* ---- Data Hub Signal Colors ---- */
   --dh-signal-critical: #d93d4f;
@@ -165,45 +155,35 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* ---- Workspace Surfaces ---- */
-  --ws-bg: #050b14;
-  --ws-bg-soft: #0a1220;
-  --ws-surface: rgba(11, 20, 34, 0.92);
-  --ws-surface-strong: rgba(11, 20, 34, 0.98);
-  --ws-surface-muted: rgba(14, 25, 42, 0.86);
-  --ws-border: rgba(100, 140, 190, 0.14);
-  --ws-border-strong: rgba(110, 155, 210, 0.18);
-
-  /* ---- Workspace Text ---- */
-  --ws-text: #e8f0fa;
-  --ws-text-subtle: #8ba3c0;
-  --ws-text-muted: #6f86a3;
-
-  /* ---- Workspace Accent ---- */
-  --ws-primary: #3daeff;
-  --ws-primary-strong: #1490f0;
-  --ws-success: #2ec47e;
-  --ws-warn: #f0a030;
-  --ws-danger: #ef5350;
-
-  /* ---- Workspace Depth ---- */
-  --ws-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.36);
-  --ws-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.32);
-
-  /* ---- Workspace Shape ---- */
-  --ws-radius-xs: 6px;
-  --ws-radius-sm: 10px;
-  --ws-radius-md: 14px;
-  --ws-radius-lg: 18px;
-  --ws-radius-xl: 22px;
-
-  /* ---- Workspace Spacing ---- */
-  --ws-space-1: 4px;
-  --ws-space-2: 8px;
-  --ws-space-3: 14px;
-  --ws-space-4: 18px;
-  --ws-space-5: 22px;
-  --ws-control-h: 36px;
+  /* ---- Workspace (deprecated aliases; values inherit from signal tokens) ---- */
+  --ws-bg: var(--face-page);
+  --ws-bg-soft: var(--face-page);
+  --ws-surface: var(--face-work);
+  --ws-surface-strong: var(--face-raised);
+  --ws-surface-muted: var(--face-page);
+  --ws-border: var(--line);
+  --ws-border-strong: var(--line-strong);
+  --ws-text: var(--ink);
+  --ws-text-subtle: var(--ink-subtle);
+  --ws-text-muted: var(--ink-muted);
+  --ws-primary: var(--act);
+  --ws-primary-strong: var(--act);
+  --ws-success: var(--ok);
+  --ws-warn: var(--warn);
+  --ws-danger: var(--danger);
+  --ws-shadow-sm: var(--shadow-sm);
+  --ws-shadow-md: var(--shadow-md);
+  --ws-radius-xs: var(--r-cell);
+  --ws-radius-sm: var(--r-control);
+  --ws-radius-md: var(--r-panel);
+  --ws-radius-lg: var(--r-panel);
+  --ws-radius-xl: var(--r-panel);
+  --ws-space-1: var(--s1);
+  --ws-space-2: var(--s2);
+  --ws-space-3: var(--s3);
+  --ws-space-4: var(--s4);
+  --ws-space-5: var(--s5);
+  --ws-control-h: var(--h-md);
 
   /* ---- Data Hub Signal Colors ---- */
   --dh-signal-critical: #ef5350;
@@ -306,7 +286,8 @@
   --tbl-scroll-thumb: rgba(100, 140, 190, 0.15);
   --tbl-scroll-thumb-hover: rgba(100, 140, 190, 0.25);
 
-  /* ---- Legacy Apple Variables: Dark Mappings (P0-1) ---- */
+  /* deprecated, use signal tokens (--act / --ok / --warn / --danger / --face-* / --ink-*).
+     --system-* and the Apple-era --bg-/--text- aliases stay as fallback for unmigrated sheets. */
   --system-blue: #3daeff;
   --system-blue-hover: #1490f0;
   --system-blue-subtle: rgba(61, 174, 255, 0.12);

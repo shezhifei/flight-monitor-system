@@ -20,7 +20,7 @@ const ctx = inject(flightBusinessCaseKey)!;
   <section class="detail-card ops-card">
     <div class="ops-card-header">
       <span class="ops-card-title">
-        <SvgIcon src="/frontend/icons/bar_chart.svg" :size="16" style="vertical-align: -2px; margin-right: 6px;" />
+        <SvgIcon src="/frontend/icons/bar_chart.svg" :size="16" />
         业务全景监控
       </span>
       <div class="business-insight-actions">
@@ -80,6 +80,11 @@ const ctx = inject(flightBusinessCaseKey)!;
   color: var(--ink);
   display: inline-flex;
   align-items: center;
+}
+
+/* 标题图标间距走梯；inline-flex 居中后不再需要 vertical-align */
+.ops-card-title svg {
+  margin-right: var(--s2);
 }
 
 .business-insight-actions {

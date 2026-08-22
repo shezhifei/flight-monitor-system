@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ModelsTabForm } from '../composables/useAiConfigCenter';
 
-defineProps<{
+const props = defineProps<{
   modelsForm: ModelsTabForm;
   modelsLoading: boolean;
 }>();
+
+const form = computed(() => props.modelsForm);
 </script>
 
 <template>
@@ -15,7 +18,7 @@ defineProps<{
         <label for="max-input-bytes">最大输入字节数</label>
         <input
           id="max-input-bytes"
-          v-model.number="modelsForm.max_input_bytes"
+          v-model.number="form.max_input_bytes"
           type="number"
           min="1024"
           step="1024"
@@ -26,7 +29,7 @@ defineProps<{
         <label for="allowed-input-mime-types">允许 MIME 类型</label>
         <textarea
           id="allowed-input-mime-types"
-          v-model="modelsForm.allowed_input_mime_types"
+          v-model="form.allowed_input_mime_types"
           class="form-textarea form-textarea-mono"
           rows="3"
         />

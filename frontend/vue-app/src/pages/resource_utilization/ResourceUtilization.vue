@@ -3,14 +3,25 @@
 // Business logic (ECharts, analytics) deferred to later tasks
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
-import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiBanner from '@/components/ui/UiBanner.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiPlaceBar from '@/components/ui/UiPlaceBar.vue';
+import UiReadout from '@/components/ui/UiReadout.vue';
+import UiReadoutStrip from '@/components/ui/UiReadoutStrip.vue';
+import UiStage from '@/components/ui/UiStage.vue';
 import { useResourceUtilization } from '@/composables/useResourceUtilization';
 import { useAuth } from '@/composables/useAuth';
 
 const { loading, snapshot, bottlenecks, error, actionSuggestions, reviewCadence, fetchSnapshot } = useResourceUtilization();
 
 const auth = useAuth();
-function handleLogout() { auth.logout(); }
+
+// 地点条：面包屑只报地点
+const crumbs = [
+  { label: '工作台', href: pageUrl('dashboard') },
+  { label: '资源利用率' },
+];
 
 function utilizationPercent(value: unknown): number {
   const numeric = typeof value === 'number' && Number.isFinite(value) ? value : 0;
@@ -21,11 +32,19 @@ function formatUtilization(value: unknown): string {
   return `${utilizationPercent(value).toFixed(1)}%`;
 }
 
-function utilizationColor(value: unknown): string {
+type UtilizationTone = 'ok' | 'warn' | 'danger';
+
+/** 声由 CSS 解析：这里只说这个数「说了什么」，不说它是什么颜色。 */
+function utilizationTone(value: unknown): UtilizationTone {
   const percent = utilizationPercent(value);
-  if (percent > 85) return '#ef4444';
-  if (percent > 60) return '#f59e0b';
-  return '#22c55e';
+  if (percent > 85) return 'danger';
+  if (percent > 60) return 'warn';
+  return 'ok';
+}
+
+/** 建议严重度回四声：critical=危，high=警（§5.3 状态章回语义 tone） */
+function actionTone(severity: 'critical' | 'high'): 'danger' | 'warn' {
+  return severity === 'critical' ? 'danger' : 'warn';
 }
 
 function peakUtilization(): number {
@@ -35,175 +54,173 @@ function peakUtilization(): number {
 
 <template>
   <div class="workspace-page data-hub-page resource-utilization-page">
-    <header class="utility-bar dashboard-topbar">
-      <div class="utility-main">
-        <a :href="pageUrl('dashboard')" class="home-link" title="返回工作台">
-          <SvgIcon src="/frontend/icons/home.svg" :size="18" label="返回" />
-        </a>
-        <div class="dashboard-title-block">
-          <span class="page-kicker">Bottleneck Board</span>
-          <span class="page-title">资源利用率</span>
-          <span class="utility-note">面向资源调度、保障经理与排班负责人的瓶颈判断台</span>
+    <UiStage label="资源利用率" pad="body" aside-width="320px" class="resource-stage">
+      <template #place>
+        <!-- page-title 类透传到地点条根，e2e 按它定位页题（等价于旧页头） -->
+        <UiPlaceBar class="page-title" :crumbs="crumbs">
+          <template #meta>
+            <nav class="utility-nav" aria-label="资源导航">
+              <a :href="pageUrl('dispatch_board')">甘特调度</a>
+              <a aria-current="page" :href="pageUrl('resource_utilization')">资源利用率</a>
+            </nav>
+            <UiPill id="resourceStateChip" :tone="loading ? 'warn' : snapshot.length ? 'ok' : 'mute'">
+              {{ loading ? '加载中...' : (snapshot.length ? '已加载' : '等待快照') }}
+            </UiPill>
+            <UiPill id="lastUpdated" tone="mute">
+              {{ loading ? '刷新中...' : '已更新' }}
+            </UiPill>
+            <UiButton
+              id="refreshBtn"
+              variant="primary"
+              :disabled="loading"
+              @click="fetchSnapshot()"
+            >
+              刷新
+            </UiButton>
+            <UiButton id="logoutBtn" variant="quiet" @click="auth.logout()">
+              退出登录
+            </UiButton>
+          </template>
+        </UiPlaceBar>
+      </template>
+
+      <!-- 升：快照失败时才打断 -->
+      <template v-if="error" #alert>
+        <UiBanner tone="danger" role="alert" class="inline-error">
+          {{ error }}
+        </UiBanner>
+      </template>
+
+      <!-- 主体：工作面延续，小节之间只隔一根线 -->
+      <section class="resource-section" aria-label="资源瓶颈台">
+        <div class="section-headline">
+          <h2 id="resourceHeadlineLead" class="section-title">
+            资源瓶颈台
+          </h2>
+          <UiPill id="resourceCadenceChip" tone="mute">
+            复查节奏 --
+          </UiPill>
         </div>
-        <nav class="utility-nav" aria-label="资源导航">
-          <a :href="pageUrl('dispatch_board')">甘特调度</a>
-          <a class="active" :href="pageUrl('resource_utilization')">资源利用率</a>
-        </nav>
-      </div>
-      <div class="utility-actions">
-        <span id="lastUpdated" class="state-chip">{{ loading ? '刷新中...' : '已更新' }}</span>
-        <button
-          id="refreshBtn"
-          class="btn primary"
-          type="button"
-          @click="fetchSnapshot()"
-        >
-          刷新
-        </button>
-        <button
-          id="logoutBtn"
-          class="btn"
-          type="button"
-          @click="handleLogout"
-        >
-          退出登录
-        </button>
-      </div>
-    </header>
-
-    <section class="panel dashboard-ribbon resource-ribbon resource-bottleneck-banner">
-      <div class="dashboard-ribbon-copy">
-        <span class="section-eyebrow">资源瓶颈台</span>
-        <h2 id="resourceHeadlineLead" class="dashboard-ribbon-title">
-          资源瓶颈台
-        </h2>
-      </div>
-      <div class="dashboard-ribbon-actions resource-ribbon-notes">
-        <span id="resourceStateChip" class="state-chip accent">{{ loading ? '加载中...' : (snapshot.length ? '已加载' : '等待快照') }}</span>
-        <span id="resourceCadenceChip" class="meta-chip">复查节奏 --</span>
-      </div>
-    </section>
-
-    <section v-if="error" class="inline-error" role="alert">
-      {{ error }}
-    </section>
-
-    <section class="panel resource-metrics resource-hero-strip">
-      <article class="metric-item hero-metric metric-strong bottleneck-hero">
-        <span class="metric-label">当前瓶颈</span>
-        <span id="metricBottleneckDimension" class="metric-value">{{ bottlenecks.length ? bottlenecks[0]?.name || '-' : '-' }}</span>
-        <span id="metricBottleneckSub" class="metric-sub">{{ bottlenecks.length ? `${bottlenecks.length} 个瓶颈对象` : '等待统一判断' }}</span>
-      </article>
-      <article class="metric-item hero-metric">
-        <span class="metric-label">峰值占用</span>
-        <span id="metricPeakRate" class="metric-value">{{ snapshot.length ? `${peakUtilization().toFixed(1)}%` : '-' }}</span>
-        <span id="metricPeakSub" class="metric-sub">等待峰值对象</span>
-      </article>
-      <article class="metric-item hero-metric">
-        <span class="metric-label">超阈值对象</span>
-        <span id="metricOverloaded" class="metric-value">{{ bottlenecks.length || '-' }}</span>
-        <span id="metricOverloadedSub" class="metric-sub">80% 以上对象数</span>
-      </article>
-      <article class="metric-item hero-metric">
-        <span class="metric-label">系统余量</span>
-        <span id="metricHeadroom" class="metric-value">{{ snapshot.length ? `${Math.max(0, 100 - peakUtilization()).toFixed(1)}%` : '-' }}</span>
-        <span id="metricHeadroomSub" class="metric-sub">按主瓶颈平均值估算</span>
-      </article>
-    </section>
-
-    <section class="resource-board">
-      <div class="resource-main-stage">
-        <article class="panel bottleneck-ladder-panel spotlight-panel">
-          <div class="section-headline">
-            <div class="section-heading-block">
-              <h2 class="section-title">
-                对象排序
-              </h2>
-            </div>
-            <span id="leaderboardMeta" class="section-meta">{{ snapshot.length ? `${snapshot.length} 个对象` : '等待资源快照' }}</span>
+        <UiReadoutStrip density="roomy" label="资源瓶颈关键读数" class="resource-hero-strip">
+          <div class="resource-readout">
+            <UiReadout
+              id="metricBottleneckDimension"
+              label="当前瓶颈"
+              :value="bottlenecks.length ? bottlenecks[0]?.name || '-' : '-'"
+              :tone="bottlenecks.length ? 'danger' : 'ink'"
+            />
+            <p id="metricBottleneckSub" class="resource-readout__hint">
+              {{ bottlenecks.length ? `${bottlenecks.length} 个瓶颈对象` : '等待统一判断' }}
+            </p>
           </div>
-          <div id="bottleneckLeaderboard" class="bottleneck-ladder">
+          <div class="resource-readout">
+            <UiReadout
+              id="metricPeakRate"
+              label="峰值占用"
+              :value="snapshot.length ? `${peakUtilization().toFixed(1)}%` : '-'"
+            />
+            <p id="metricPeakSub" class="resource-readout__hint">
+              等待峰值对象
+            </p>
+          </div>
+          <div class="resource-readout">
+            <UiReadout
+              id="metricOverloaded"
+              label="超阈值对象"
+              :value="bottlenecks.length || '-'"
+              tone="warn"
+            />
+            <p id="metricOverloadedSub" class="resource-readout__hint">
+              80% 以上对象数
+            </p>
+          </div>
+          <div class="resource-readout">
+            <UiReadout
+              id="metricHeadroom"
+              label="系统余量"
+              :value="snapshot.length ? `${Math.max(0, 100 - peakUtilization()).toFixed(1)}%` : '-'"
+            />
+            <p id="metricHeadroomSub" class="resource-readout__hint">
+              按主瓶颈平均值估算
+            </p>
+          </div>
+        </UiReadoutStrip>
+      </section>
+
+      <section class="resource-section bottleneck-ladder-panel" aria-label="对象排序">
+        <div class="section-headline">
+          <h2 class="section-title">
+            对象排序
+          </h2>
+          <span id="leaderboardMeta" class="section-meta">{{ snapshot.length ? `${snapshot.length} 个对象` : '等待资源快照' }}</span>
+        </div>
+        <div id="bottleneckLeaderboard" class="bottleneck-ladder">
+          <template v-if="snapshot.length">
+            <div
+              v-for="(item, idx) in snapshot"
+              :key="idx"
+              class="ladder-row"
+            >
+              <span>{{ item.name || item.dimension || `对象 ${idx + 1}` }}</span>
+              <span class="ladder-value" :data-tone="utilizationTone(item.utilization)">{{ formatUtilization(item.utilization) }}</span>
+            </div>
+          </template>
+          <div v-else class="empty">
+            {{ loading ? '加载中...' : '等待加载资源数据...' }}
+          </div>
+        </div>
+      </section>
+
+      <div class="resource-diagnostic-grid">
+        <section class="resource-section dimension-panel" aria-label="维度对比">
+          <div class="section-headline">
+            <h2 class="section-title">
+              维度对比
+            </h2>
+            <span id="dimensionPanelMeta" class="section-meta">统一口径</span>
+          </div>
+          <div id="dimensionComparisonList" class="dimension-card-grid">
             <template v-if="snapshot.length">
-              <div
+              <UiReadout
                 v-for="(item, idx) in snapshot"
                 :key="idx"
-                class="ladder-row"
-                style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e2e8f0;"
-              >
-                <span>{{ item.name || item.dimension || `对象 ${idx + 1}` }}</span>
-                <span :style="{ color: utilizationColor(item.utilization), fontWeight: 600 }">{{ formatUtilization(item.utilization) }}</span>
+                :label="item.dimension || item.name || `对象 ${idx + 1}`"
+                :value="formatUtilization(item.utilization)"
+              />
+            </template>
+            <div v-else class="empty">
+              暂无维度数据
+            </div>
+          </div>
+          <div id="dimensionRadarChart" />
+        </section>
+
+        <section class="resource-section pattern-panel" aria-label="瓶颈形态">
+          <div class="section-headline">
+            <h2 class="section-title">
+              瓶颈形态
+            </h2>
+            <span id="patternPanelMeta" class="section-meta">{{ bottlenecks.length ? `${bottlenecks.length} 个瓶颈` : '等待研判' }}</span>
+          </div>
+          <div id="pressurePatternList" class="pattern-strip">
+            <template v-if="bottlenecks.length">
+              <div v-for="(b, idx) in bottlenecks" :key="idx" class="pattern-card">
+                <strong class="pattern-card__name">{{ b.name || b.dimension }}</strong>
+                <span class="pattern-card__value">{{ formatUtilization(b.utilization) }}</span>
               </div>
             </template>
-            <div v-else class="empty chart-empty">
-              {{ loading ? '加载中...' : '等待加载资源数据...' }}
+            <div v-else class="empty">
+              {{ loading ? '研判中...' : '等待研判' }}
             </div>
           </div>
-        </article>
-
-        <div class="resource-diagnostic-grid">
-          <article class="panel dimension-panel">
-            <div class="section-headline">
-              <div class="section-heading-block">
-                <h2 class="section-title">
-                  维度对比
-                </h2>
-              </div>
-              <span id="dimensionPanelMeta" class="section-meta">统一口径</span>
-            </div>
-            <div id="dimensionComparisonList" class="dimension-card-grid">
-              <template v-if="snapshot.length">
-                <div v-for="(item, idx) in snapshot" :key="idx" style="padding:12px;background:var(--bg-page);border-radius:8px;">
-                  <div style="font-size:12px;color:#64748b;">
-                    {{ item.dimension || item.name }}
-                  </div>
-                  <div style="font-size:18px;font-weight:700;color:#0f172a;">
-                    {{ formatUtilization(item.utilization) }}
-                  </div>
-                </div>
-              </template>
-              <div v-else class="empty chart-empty">
-                暂无维度数据
-              </div>
-            </div>
-            <div id="dimensionRadarChart" style="width:100%;min-height:240px" />
-          </article>
-
-          <article class="panel pattern-panel">
-            <div class="section-headline">
-              <div class="section-heading-block">
-                <h2 class="section-title">
-                  瓶颈形态
-                </h2>
-              </div>
-              <span id="patternPanelMeta" class="section-meta">{{ bottlenecks.length ? `${bottlenecks.length} 个瓶颈` : '等待研判' }}</span>
-            </div>
-            <div id="pressurePatternList" class="distribution-strip pattern-strip">
-              <template v-if="bottlenecks.length">
-                <div v-for="(b, idx) in bottlenecks" :key="idx" style="padding:8px 12px;background:#fef2f2;border-radius:8px;border-left:3px solid #ef4444;">
-                  <strong style="font-size:13px;color:#0f172a;">{{ b.name || b.dimension }}</strong>
-                  <span style="font-size:12px;color:#ef4444;margin-left:8px;">{{ formatUtilization(b.utilization) }}</span>
-                </div>
-              </template>
-              <div v-else class="empty chart-empty">
-                {{ loading ? '研判中...' : '等待研判' }}
-              </div>
-            </div>
-            <div id="patternBarChart" style="width:100%;min-height:200px" />
-          </article>
-        </div>
+          <div id="patternBarChart" />
+        </section>
       </div>
 
-      <aside class="panel insight-panel resource-risk-sidebar">
-        <div class="section-headline">
-          <div class="section-heading-block">
-            <h2 class="section-title">
-              判断与动作
-            </h2>
-          </div>
-          <span id="resourceSidebarMeta" class="section-meta">统一判断</span>
-        </div>
+      <!-- 旁路：判断与动作降为页底一级（凹面），不再嵌第二张工作面 -->
+      <template #aside>
         <div class="resource-insight-stack">
-          <section class="resource-insight-group">
+          <section class="resource-insight-group" aria-label="当前最需处理">
             <h3 class="resource-insight-title">
               当前最需处理
             </h3>
@@ -215,29 +232,29 @@ function peakUtilization(): number {
             </div>
           </section>
 
-          <section class="resource-insight-group">
+          <section class="resource-insight-group" aria-label="立即动作">
             <h3 class="resource-insight-title">
               立即动作
             </h3>
-            <div id="actionSummaryList" class="distribution-strip">
+            <div id="actionSummaryList" class="action-list">
               <template v-if="actionSuggestions.length">
                 <div
                   v-for="action in actionSuggestions"
                   :key="action.id"
                   class="action-suggestion"
-                  :class="`severity-${action.severity}`"
+                  :data-tone="actionTone(action.severity)"
                 >
                   <strong>{{ action.title }}</strong>
                   <span>{{ action.detail }}</span>
                 </div>
               </template>
-              <div v-else class="empty chart-empty">
+              <div v-else class="empty">
                 {{ loading ? '生成建议中...' : '当前无超阈值对象' }}
               </div>
             </div>
           </section>
 
-          <section class="resource-insight-group">
+          <section class="resource-insight-group" aria-label="复查节奏">
             <h3 class="resource-insight-title">
               复查节奏
             </h3>
@@ -249,7 +266,7 @@ function peakUtilization(): number {
             </div>
           </section>
 
-          <section class="resource-insight-group">
+          <section class="resource-insight-group" aria-label="负载口径">
             <h3 class="resource-insight-title">
               负载口径
             </h3>
@@ -269,381 +286,105 @@ function peakUtilization(): number {
             </div>
           </section>
         </div>
-      </aside>
-    </section>
+      </template>
+    </UiStage>
     <ThemeToggle />
   </div>
 </template>
 
 <style scoped>
-/* ResourceUtilization specific styles */
-.page {
-  min-height: 100vh;
-  background: var(--bg-sidebar);
-}
+/* 图区底座尺寸走 scoped，不再内联 */
+#dimensionRadarChart { width: 100%; min-height: 240px; }
+#patternBarChart { width: 100%; min-height: 200px; }
+/* 信号面 token + UI 库件（UiStage/UiPlaceBar/UiReadoutStrip/UiPill/UiBanner） */
 
-.utility-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-light);
-}
+.resource-stage { height: 100%; }
 
-.dashboard-topbar .utility-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+/* 地点条 meta 里的跨页导航：当前位置是持守（aria-current），不是动词 */
+.utility-nav { display: flex; gap: var(--s1); }
+.utility-nav a { padding: var(--s1) var(--s3); border-radius: var(--r-control); text-decoration: none; color: var(--ink-muted); font-size: var(--fs-label); }
+.utility-nav a:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.utility-nav a[aria-current='page'] { background: var(--act-soft); color: var(--act); }
+.utility-nav a:focus-visible { outline: 2px solid var(--act); outline-offset: 2px; }
 
-.home-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--ws-surface-muted);
-  color: var(--text-tertiary);
-}
+/* 小节：同一工作面，分隔只给一根线 */
+.resource-section { padding: var(--s4) 0; }
+.resource-section + .resource-section,
+.resource-diagnostic-grid { border-top: 1px solid var(--line); }
 
-.dashboard-title-block {
-  display: flex;
-  flex-direction: column;
-}
+.resource-hero-strip { padding-left: 0; padding-right: 0; }
 
-.page-kicker {
-  font-size: 11px;
-  color: var(--system-gray2);
-  text-transform: uppercase;
-}
+/* 读数下的参照系小字，不是第二张卡 */
+.resource-readout { display: grid; gap: var(--s1); min-width: 0; }
+.resource-readout__hint { margin: 0; font-size: var(--fs-label); color: var(--ink-muted); }
 
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
+.section-headline { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); margin-bottom: var(--s3); }
+.section-title { font-size: var(--fs-title); font-weight: var(--fw-semibold); color: var(--ink); margin: 0; }
+.section-meta { font-size: var(--fs-label); color: var(--ink-muted); }
 
-.utility-note {
-  font-size: 12px;
-  color: var(--system-gray2);
-}
+/* 对象排序：行间一根线，声画在数上 */
+.bottleneck-ladder { min-height: 200px; }
+.ladder-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+.ladder-row:last-child { border-bottom: 0; }
 
-.utility-nav {
-  display: flex;
-  gap: 4px;
-}
+/* 数比名重一档（§3.2）；声由 data-tone 出，JS 不碰颜色。 */
+.ladder-value { font-weight: var(--fw-semibold); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.ladder-value[data-tone='ok'] { color: var(--ok); }
+.ladder-value[data-tone='warn'] { color: var(--warn); }
+.ladder-value[data-tone='danger'] { color: var(--danger); }
 
-.utility-nav a {
-  padding: 8px 16px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--text-tertiary);
-  font-size: 13px;
-}
+.resource-diagnostic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s4); }
+.resource-diagnostic-grid .resource-section { border-top: 0; }
+.resource-diagnostic-grid .resource-section + .resource-section { border-left: 1px solid var(--line); padding-left: var(--s4); }
 
-.utility-nav a:hover {
-  background: var(--ws-surface-muted);
-  color: var(--text-primary);
-}
+/* 维度读数：读数自己不描边不换圆角（UiReadout 的约定），排布走网格 */
+.dimension-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3) var(--s4); min-height: 100px; }
 
-.utility-nav a.active {
-  background: var(--system-blue);
-  color: var(--text-inverse);
-}
+/* 瓶颈形态：声画在对象上（左边一条危声 + 淡衬），不是 chrome 着色 */
+.pattern-strip { display: grid; gap: var(--s2); min-height: 100px; }
+.pattern-card { padding: var(--s2) var(--s3); background: var(--danger-soft); border-radius: var(--r-control); border-left: 3px solid var(--danger); }
+.pattern-card__name { font-size: var(--fs-body); color: var(--ink); }
+.pattern-card__value { margin-left: var(--s2); font-size: var(--fs-label); color: var(--danger); font-variant-numeric: tabular-nums; }
 
-.utility-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+/* 旁路（判断与动作）：UiStage aside 已降为页底，组与组一根线 */
+.resource-insight-stack { display: grid; padding: var(--s3) var(--s4); }
+.resource-insight-group { padding: var(--s3) 0; }
+.resource-insight-group + .resource-insight-group { border-top: 1px solid var(--line); }
+.resource-insight-title { margin: 0 0 var(--s2); font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--ink); }
 
-.state-chip {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  background: var(--ws-surface-muted);
-  color: var(--text-tertiary);
-}
+.insight-callout strong { display: block; font-size: var(--fs-section); color: var(--ink); }
+.insight-callout p { font-size: var(--fs-label); color: var(--ink-muted); margin: var(--s2) 0 0; }
 
-.state-chip.accent {
-  background: var(--system-blue-subtle);
-  color: var(--system-blue);
-}
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid var(--border-light);
-  background: var(--bg-card);
-  cursor: pointer;
-}
-
-.btn.primary {
-  background: var(--system-blue);
-  color: var(--text-inverse);
-  border-color: var(--system-blue);
-}
-
-.dashboard-ribbon {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  margin: 16px 24px;
-  background: var(--bg-card);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.inline-error {
-  margin: 0 24px 16px;
-  padding: 12px 14px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: var(--dh-signal-critical-soft);
-  color: var(--ws-danger);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.section-eyebrow {
-  font-size: 11px;
-  color: var(--system-gray2);
-  text-transform: uppercase;
-}
-
-.dashboard-ribbon-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 4px 0 0;
-}
-
-.meta-chip {
-  padding: 4px 10px;
-  background: var(--ws-surface-muted);
-  border-radius: 8px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.resource-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin: 0 24px 16px;
-  padding: 20px;
-  background: var(--bg-card);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.metric-item {
-  text-align: center;
-  padding: 16px;
-  background: var(--bg-page);
-  border-radius: 10px;
-}
-
-.metric-label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-bottom: 8px;
-}
-
-.metric-value {
-  display: block;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.metric-sub {
-  display: block;
-  font-size: 11px;
-  color: var(--system-gray2);
-  margin-top: 6px;
-}
-
-.resource-board {
-  display: flex;
-  gap: 16px;
-  padding: 0 24px 24px;
-}
-
-.resource-main-stage {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.panel {
-  background: var(--bg-card);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.spotlight-panel {
-  border-left: 4px solid var(--system-blue);
-}
-
-.section-headline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.section-meta {
-  font-size: 12px;
-  color: var(--system-gray2);
-}
-
-.bottleneck-ladder {
-  min-height: 200px;
-}
-
-.resource-diagnostic-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.dimension-card-grid,
-.distribution-strip {
-  min-height: 100px;
-}
-
-.insight-panel {
-  width: 320px;
-  flex-shrink: 0;
-}
-
-.resource-insight-group {
-  margin-bottom: 20px;
-}
-
-.resource-insight-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 12px;
-}
-
-.insight-callout {
-  padding: 16px;
-  background: var(--bg-page);
-  border-radius: 10px;
-}
-
-.insight-callout strong {
-  display: block;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.insight-callout p {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin: 8px 0 0;
-}
-
+.action-list,
 .cadence-list,
-.threshold-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.threshold-list { display: grid; gap: var(--s2); }
 
-.cadence-item {
-  padding: 10px 12px;
-  background: var(--bg-page);
-  border-radius: 8px;
-}
+.action-suggestion { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+.action-suggestion:last-child { border-bottom: 0; }
+.action-suggestion strong { font-size: var(--fs-body); color: var(--ink); }
+.action-suggestion[data-tone='warn'] strong { color: var(--warn); }
+.action-suggestion[data-tone='danger'] strong { color: var(--danger); }
+.action-suggestion span { font-size: var(--fs-label); line-height: 1.5; color: var(--ink-subtle); }
 
-.cadence-item strong {
-  display: block;
-  font-size: 13px;
-  color: var(--text-primary);
-}
+.cadence-item { padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+.cadence-item:last-child { border-bottom: 0; }
+.cadence-item strong { display: block; font-size: var(--fs-body); color: var(--ink); }
+.cadence-item span { font-size: var(--fs-label); color: var(--ink-muted); }
 
-.cadence-item span {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
+/* 负载口径图例：域内四声点，不升进根 token */
+.threshold-item { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: var(--s2); align-items: center; padding: var(--s2) 0; }
+.threshold-dot { width: 8px; height: 8px; border-radius: var(--r-pill); }
+.threshold-dot.low { background: var(--ok); }
+.threshold-dot.medium { background: var(--act); }
+.threshold-dot.high { background: var(--warn); }
+.threshold-dot.critical { background: var(--danger); }
+.threshold-label { font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--ink); }
+.threshold-desc { font-size: var(--fs-label); color: var(--ink-muted); }
 
-.action-suggestion {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border-left: 3px solid var(--system-orange);
-  background: #fffbeb;
-}
+.empty { text-align: center; padding: var(--s5); color: var(--ink-muted); font-size: var(--fs-body); }
 
-.action-suggestion.severity-critical {
-  border-left-color: var(--system-red);
-  background: var(--dh-signal-critical-soft);
-}
-
-.action-suggestion strong {
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.action-suggestion span {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.threshold-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-}
-
-.threshold-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.threshold-dot.low { background: var(--system-green); }
-.threshold-dot.medium { background: var(--system-blue); }
-.threshold-dot.high { background: var(--system-orange); }
-.threshold-dot.critical { background: var(--system-red); }
-
-.threshold-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-  width: 70px;
-}
-
-.threshold-desc {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-.empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--system-gray2);
+@media (max-width: 1099px) {
+  .resource-diagnostic-grid { grid-template-columns: minmax(0, 1fr); }
+  .resource-diagnostic-grid .resource-section + .resource-section { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); }
 }
 </style>

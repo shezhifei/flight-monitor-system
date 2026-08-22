@@ -91,6 +91,16 @@ channel.
 4. Resolve after first-progress p95 remains below three seconds for 15
    minutes.
 
+## FmsSseConnectionSaturation
+
+1. Confirm `fms_sse_connections_active / fms_sse_max_connections` on the FMS
+   Rust performance dashboard and note the current `SSE_MAX_CONNECTIONS`.
+2. Identify long-lived or abandoned clients from SSE hub stats before raising
+   the cap; a leak or missing heartbeat timeout can look like capacity pressure.
+3. If occupancy is genuine, raise `SSE_MAX_CONNECTIONS` in a non-peak window
+   (100 → 150 is the documented next step) and keep the saturation alert armed.
+4. Resolve after occupancy stays below 80% for 15 minutes.
+
 ## Delivery validation
 
 After changing rules or contact points, trigger a non-production test alert and

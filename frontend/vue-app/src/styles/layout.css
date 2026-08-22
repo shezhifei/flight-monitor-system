@@ -4,6 +4,9 @@
     height: 100vh;
     background-color: var(--bg-app);
     overflow: hidden;
+    /* 自带层叠上下文：页内浮层不与固定 chrome 抢 z 轴 */
+    position: relative;
+    isolation: isolate;
 }
 
 .flight-monitor-page .container {
@@ -35,8 +38,6 @@ html.workspace-embed .flight-monitor-container {
     flex-direction: column;
     height: 100%;
     flex-shrink: 0;
-    backdrop-filter: saturate(180%) blur(20px);
-    /* macOS sidebar effect */
     overflow-y: auto;
     padding: var(--layout-flight-list-panel-padding);
     position: relative;
@@ -127,10 +128,7 @@ html.workspace-embed .flight-monitor-container {
     position: sticky;
     top: 0;
     z-index: 15;
-    background:
-        linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-sidebar) 76%, transparent 100%);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: var(--bg-sidebar);
     padding-bottom: 12px;
 }
 
@@ -150,7 +148,7 @@ html.workspace-embed .flight-monitor-container {
     grid-template-columns: var(--layout-detail-dashboard-columns);
     /* Increased to 380px for better readability */
     grid-template-rows: var(--layout-detail-dashboard-rows);
-    /* Top header, KPI strip, bottom content */
+    /* 通栏头卡一行 + 左右两列一行 */
     gap: 20px;
 
     height: 100%;
@@ -183,87 +181,6 @@ html.workspace-embed .flight-monitor-container {
     /* Container implies no external scroll */
 }
 
-/* --- Layout V4: Combined Header --- */
-.header-combined-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-    padding: 0;
-    overflow: hidden;
-}
-
-.header-left-group {
-    display: flex;
-    align-items: stretch;
-    flex: 0 0 auto;
-    /* Don't shrink */
-}
-
-.header-right-group {
-    display: flex;
-    align-items: center;
-    padding: 0 32px;
-    background-color: transparent;
-    border-left: none;
-    flex: 1;
-    /* Take remaining space */
-    justify-content: flex-end;
-    /* Align KPIs to right */
-}
-
-.header-kpi-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-left: 16px;
-    /* Reduced margin */
-    min-width: 40px;
-    /* Reduced min-width */
-}
-
-.header-kpi-label {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-bottom: 4px;
-    font-weight: 500;
-}
-
-.header-kpi-value {
-    font-family: var(--mono);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--ink);
-}
-
-/* --- Secondary KPI Strip (Row 2) --- */
-.secondary-kpi-strip {
-    display: flex;
-    justify-content: space-around;
-    /* Distribute evenly */
-    align-items: center;
-    padding: 20px 32px;
-}
-
-.secondary-kpi-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.secondary-kpi-label {
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    color: var(--ink-muted);
-    margin-bottom: 6px;
-}
-
-.secondary-kpi-value {
-    font-family: var(--mono);
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--ink);
-}
-
 /* --- Dashboard Cards --- */
 .detail-card {
     background: var(--face-work);
@@ -282,25 +199,6 @@ html.workspace-embed .flight-monitor-container {
 }
 
 /* Specific Card Styles */
-.detail-header-card {
-    padding: 20px;
-}
-
-.kpi-strip {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px;
-    gap: 8px;
-}
-
-.info-grid-card {
-    padding: 20px;
-    flex: 1;
-    /* Allow this to grow if left column needs to fill space? No, usually compact. */
-    overflow-y: auto;
-    /* Just in case */
-}
-
 .ops-card {
     flex: 1;
     /* Grow to fill RIGHT column height */
@@ -311,75 +209,10 @@ html.workspace-embed .flight-monitor-container {
     /* Allow shrinking */
 }
 
-/* --- Inner Components --- */
-
-/* KPI Item */
-.kpi-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0 8px;
-    border-right: 1px solid var(--border-light);
-}
-
-.kpi-item:last-child {
-    border-right: none;
-}
-
-.kpi-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-    font-weight: 500;
-}
-
-.kpi-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-family: var(--font-sans, "MiSans", sans-serif);
-}
-
-.kpi-value small {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    font-weight: 400;
-    margin-left: 2px;
-}
-
-/* Info Grid Compact */
-.info-grid-compact {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    /* 2 Columns for dense left panel */
-    gap: 16px 12px;
-}
-
-.info-field {
-    display: flex;
-    flex-direction: column;
-}
-
-.info-field label {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    margin-bottom: 2px;
-}
-
-.info-field span {
-    font-size: 16px;
-    color: var(--text-primary);
-    font-weight: 500;
-    word-break: break-word;
-}
-
 /* Operations Content placeholders */
 .ops-gantt-area {
     padding: 16px;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--line);
     flex: 0 0 auto;
     /* Natural height */
 }
@@ -389,8 +222,8 @@ html.workspace-embed .flight-monitor-container {
     /* List items have padding */
     flex: 1;
     overflow-y: auto;
-    background: var(--bg-sidebar);
-    /* Slightly different bg for log area */
+    /* 内凹一档：面只有三张，日志区退到页底面（§2.4） */
+    background: var(--face-page);
 }
 
 /* --- Resizable Divider --- */
@@ -445,7 +278,7 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .panel-title {
-    font-size: 18px;
+    font-size: var(--fs-page);
     font-weight: 700;
     margin-bottom: 12px;
     display: flex;
@@ -477,10 +310,9 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .flight-panel-eyebrow {
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 700;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
     color: var(--text-secondary);
 }
 
@@ -529,11 +361,11 @@ html.workspace-embed .flight-monitor-container {
 .flight-connection-pill {
     min-height: 32px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--fs-label);
     font-weight: 700;
 }
 
@@ -563,11 +395,11 @@ html.workspace-embed .flight-monitor-container {
     justify-content: center;
     min-height: 34px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     border: 1px solid var(--border-light);
     background: var(--bg-card);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--fs-label);
     font-weight: 600;
 }
 
@@ -624,10 +456,9 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .detail-label {
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: var(--fw-medium);
     color: var(--text-secondary);
-    text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 4px;
 }
@@ -662,13 +493,13 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .detail-billboard-route {
-    font-size: 16px;
+    font-size: var(--fs-title);
     font-weight: var(--fw-medium);
     color: var(--text-secondary);
 }
 
 .detail-billboard-date {
-    font-size: 14px;
+    font-size: var(--fs-section);
     font-weight: var(--fw-regular);
     color: var(--text-tertiary);
     font-feature-settings: "tnum" 1;
@@ -701,10 +532,9 @@ html.workspace-embed .flight-monitor-container {
 }
 
 .vital-card-label {
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: var(--fw-medium);
     color: var(--text-secondary);
-    text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 4px;
 }
@@ -774,9 +604,8 @@ html.workspace-embed .flight-monitor-container {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    transition: opacity 0.3s ease;
+    background-color: var(--scrim);
+    transition: opacity var(--t-mid) var(--ease);
 }
 
 .modal-content {
@@ -788,7 +617,7 @@ html.workspace-embed .flight-monitor-container {
     width: var(--layout-modal-content-width);
     max-width: 90%;
     box-shadow: 0 8px 32px var(--shadow-heavy);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity var(--t-mid) var(--ease), transform var(--t-mid) var(--ease);
 }
 
 .modal-header {

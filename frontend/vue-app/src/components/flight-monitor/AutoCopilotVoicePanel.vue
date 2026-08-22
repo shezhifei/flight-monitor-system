@@ -1,233 +1,226 @@
 <template>
-  <section v-if="isOpen" class="auto-copilot" aria-label="Auto Copilot 语音业务事项">
-    <div class="auto-copilot__panel">
-      <header class="auto-copilot__header">
-        <div>
-          <h2>Auto Copilot</h2>
-          <p>{{ statusLabel }}</p>
-        </div>
-        <button
-          type="button"
-          class="auto-copilot__icon-btn"
-          aria-label="关闭"
-          @click="closePanel"
+  <UiFloatPanel
+    :open="isOpen"
+    title="Auto Copilot"
+    :subtitle="statusLabel"
+    width="min(720px, calc(100vw - 32px))"
+    height="min(720px, calc(100vh - 128px))"
+    @close="closePanel"
+  >
+    <!-- 偶尔才用的一串命令走锚浮菜单（§2.6），不占常驻的谓词带 -->
+    <template #meta>
+      <div class="copilot__overflow">
+        <UiButton
+          variant="quiet"
+          title="更多操作"
+          aria-label="更多操作"
+          :pressed="showMenu"
+          @click="showMenu = !showMenu"
         >
-          x
-        </button>
-      </header>
-
-      <div class="auto-copilot__controls">
-        <button
-          type="button"
-          class="auto-copilot__primary"
-          :disabled="isBusy"
-          @click="listening ? stopListening() : startListening()"
-        >
-          {{ listening ? '停止监听' : '启用麦克风' }}
-        </button>
-        <button
-          type="button"
-          class="auto-copilot__secondary"
-          :disabled="Boolean(draftButtonDisabledReason)"
-          :title="draftHint || '生成当前语音片段草稿'"
-          @click="generateDraft"
-        >
-          {{ draftLoading ? '生成中...' : '生成草稿' }}
-        </button>
-        <button
-          type="button"
-          class="auto-copilot__diagnose"
-          :disabled="!canDraft || draftLoading || commitLoading"
-          @click="() => diagnoseCurrentTranscript()"
-        >
-          诊断模型输出
-        </button>
-        <button
-          type="button"
-          class="auto-copilot__diagnose"
-          :disabled="draftLoading || commitLoading || failedBatchesLoading || metricsLoading"
-          @click="loadOperationalMetrics"
-        >
-          运行指标
-        </button>
+          ⋮
+        </UiButton>
+        <UiMenu v-if="showMenu" class="copilot__menu" label="Auto Copilot 操作">
+          <UiMenuItem
+            :disabled="!canDraft || draftLoading || commitLoading"
+            @click="runDiagnostic"
+          >
+            诊断模型输出
+          </UiMenuItem>
+          <UiMenuItem
+            :disabled="draftLoading || commitLoading || failedBatchesLoading || metricsLoading"
+            @click="runOperationalMetrics"
+          >
+            运行指标
+          </UiMenuItem>
+        </UiMenu>
       </div>
+    </template>
 
-      <div v-if="errorMessage" class="auto-copilot__alert">
+    <!-- 谓词带：麦克风是持守开关，生成草稿是这一步的主谓词 -->
+    <div class="copilot__band copilot__verbs">
+      <UiButton
+        :pressed="listening"
+        :disabled="isBusy"
+        @click="listening ? stopListening() : startListening()"
+      >
+        {{ listening ? '停止监听' : '启用麦克风' }}
+      </UiButton>
+      <UiButton
+        :variant="draft ? 'ghost' : 'primary'"
+        :disabled="Boolean(draftButtonDisabledReason)"
+        :title="draftHint || '生成当前语音片段草稿'"
+        @click="generateDraft"
+      >
+        {{ draftLoading ? '生成中…' : '生成草稿' }}
+      </UiButton>
+    </div>
+
+    <div v-if="errorMessage" class="copilot__band">
+      <UiBanner tone="danger">
         {{ errorMessage }}
-      </div>
-      <div v-if="diagnostic" class="auto-copilot__diagnostic">
-        <div class="auto-copilot__diagnostic-head">
-          <span>模型诊断</span>
-          <button type="button" @click="diagnostic = null">
-            关闭
-          </button>
-        </div>
-        <div class="auto-copilot__diagnostic-grid">
-          <span>状态</span>
-          <strong>{{ diagnostic.ok ? '通过' : '失败' }}</strong>
-          <span>阶段</span>
-          <strong>{{ diagnostic.error_stage || '-' }}</strong>
-          <span>候选事项</span>
-          <strong>{{ diagnostic.candidate_case_types.map((item) => item.name || item.code).join('、') || '-' }}</strong>
-        </div>
-        <pre v-if="diagnostic.error_message">{{ diagnostic.error_message }}</pre>
+      </UiBanner>
+    </div>
+
+    <div v-if="resultMessage" class="copilot__band">
+      <UiBanner tone="ok">
+        {{ resultMessage }}
+      </UiBanner>
+    </div>
+
+    <div v-if="diagnostic" class="copilot__band">
+      <UiInset
+        title="模型诊断"
+        :tone="diagnostic.ok ? 'mute' : 'danger'"
+        dismissible
+        @dismiss="diagnostic = null"
+      >
+        <dl class="copilot__pairs">
+          <dt>状态</dt>
+          <dd>{{ diagnostic.ok ? '通过' : '失败' }}</dd>
+          <dt>阶段</dt>
+          <dd>{{ diagnostic.error_stage || '—' }}</dd>
+          <dt>候选事项</dt>
+          <dd>{{ diagnostic.candidate_case_types.map((item) => item.name || item.code).join('、') || '—' }}</dd>
+        </dl>
+        <pre v-if="diagnostic.error_message" class="copilot__raw">{{ diagnostic.error_message }}</pre>
         <details v-if="diagnostic.llm_raw_preview">
           <summary>模型原始输出</summary>
-          <pre>{{ diagnostic.llm_raw_preview }}</pre>
+          <pre class="copilot__raw">{{ diagnostic.llm_raw_preview }}</pre>
         </details>
-      </div>
-      <div v-if="resultMessage" class="auto-copilot__success">
-        {{ resultMessage }}
-      </div>
+      </UiInset>
+    </div>
 
-      <div v-if="operationalMetrics" class="auto-copilot__metrics">
-        <div class="auto-copilot__diagnostic-head">
-          <span>运行指标</span>
-          <button type="button" @click="operationalMetrics = null">
-            关闭
-          </button>
-        </div>
-        <div class="auto-copilot__metric-grid">
-          <div>
-            <span>草稿批次</span>
-            <strong>{{ operationalMetrics.batch_status.draft }}</strong>
-          </div>
-          <div>
-            <span>已创建</span>
-            <strong>{{ operationalMetrics.batch_status.committed }}</strong>
-          </div>
-          <div>
-            <span>创建失败</span>
-            <strong>{{ operationalMetrics.batch_status.failed }}</strong>
-          </div>
-          <div>
-            <span>派发失败</span>
-            <strong>{{ operationalMetrics.workflow_dispatch.failed }}</strong>
-          </div>
-          <div>
-            <span>待自动重试</span>
-            <strong>{{ operationalMetrics.workflow_dispatch.retry_due }}</strong>
-          </div>
-          <div>
-            <span>重试耗尽</span>
-            <strong>{{ operationalMetrics.workflow_dispatch.retry_exhausted }}</strong>
-          </div>
-        </div>
-        <div v-if="operationalMetrics.recent_errors.length" class="auto-copilot__recent-errors">
+    <div v-if="operationalMetrics" class="copilot__band">
+      <UiInset title="运行指标" dismissible @dismiss="operationalMetrics = null">
+        <UiReadoutStrip :items="metricItems" label="Auto Copilot 运行指标" />
+        <div v-if="operationalMetrics.recent_errors.length" class="copilot__errors">
           <div
             v-for="item in operationalMetrics.recent_errors"
             :key="item.batch_id"
-            class="auto-copilot__recent-error"
+            class="copilot__error"
           >
             <strong>{{ item.stage || item.workflow_dispatch_status || item.status }}</strong>
             <small>{{ item.batch_id }} · {{ item.updated_at }}</small>
             <span>{{ item.message || '无错误详情' }}</span>
           </div>
         </div>
-      </div>
+      </UiInset>
+    </div>
 
-      <div v-if="failedBatches.length" class="auto-copilot__failed-batches">
-        <div class="auto-copilot__diagnostic-head">
-          <span>失败批次</span>
-          <button type="button" @click="failedBatches = []">
-            关闭
-          </button>
-        </div>
+    <div v-if="failedBatches.length" class="copilot__band">
+      <UiInset
+        title="失败批次"
+        tone="warn"
+        dismissible
+        @dismiss="failedBatches = []"
+      >
         <div
           v-for="batch in failedBatches"
           :key="batch.batch_id"
-          class="auto-copilot__failed-item"
+          class="copilot__batch"
         >
-          <div>
+          <div class="copilot__batch-body">
             <strong>{{ batch.transcript_summary || batch.batch_id }}</strong>
             <small>{{ batch.batch_id }} · {{ batch.updated_at }}</small>
             <small v-if="batch.committed_case_ids.length">已创建事项 {{ batch.committed_case_ids.join(', ') }}</small>
-            <small v-if="formatCommitError(batch.commit_error)">{{ formatCommitError(batch.commit_error) }}</small>
-            <small v-if="batch.workflow_dispatch_status === 'failed'">
+            <small v-if="formatCommitError(batch.commit_error)" class="is-warn">{{ formatCommitError(batch.commit_error) }}</small>
+            <small v-if="batch.workflow_dispatch_status === 'failed'" class="is-warn">
               流程派发失败 {{ formatCommitError(batch.workflow_dispatch_error) }}
             </small>
             <small v-if="batch.workflow_dispatch_status === 'failed'">
               已重试 {{ batch.workflow_dispatch_attempts }} 次<span v-if="batch.workflow_dispatch_next_retry_at"> · 下次自动重试 {{ batch.workflow_dispatch_next_retry_at }}</span>
             </small>
           </div>
-          <div class="auto-copilot__failed-actions">
-            <button
+          <div class="copilot__batch-verbs">
+            <UiButton
               v-if="batch.workflow_dispatch_status === 'failed'"
-              type="button"
               :disabled="failedBatchesLoading"
               @click="retryWorkflowDispatch(batch.batch_id)"
             >
               重试派发
-            </button>
-            <button
+            </UiButton>
+            <UiButton
               v-if="batch.status === 'failed'"
-              type="button"
+              variant="quiet"
               :disabled="failedBatchesLoading || batch.committed_case_ids.length > 0"
               @click="resolveBatch(batch.batch_id, 'reset_to_draft')"
             >
               重置草稿
-            </button>
-            <button
+            </UiButton>
+            <UiButton
               v-if="batch.status === 'failed'"
-              type="button"
+              variant="quiet"
               :disabled="failedBatchesLoading"
               @click="resolveBatch(batch.batch_id, 'mark_resolved')"
             >
               已处理
-            </button>
+            </UiButton>
           </div>
         </div>
-      </div>
+      </UiInset>
+    </div>
 
-      <div class="auto-copilot__transcript">
-        <div class="auto-copilot__section-title">
-          <span>识别文本</span>
-          <button type="button" :disabled="listening || draftLoading || commitLoading" @click="clearSession">
+    <div class="copilot__band">
+      <div class="copilot__section-head">
+        <span class="copilot__section-title">识别文本</span>
+        <span class="copilot__section-tools">
+          <UiPill :tone="sessionTone">{{ utteranceStatusLabel }}</UiPill>
+          <UiButton
+            variant="quiet"
+            :disabled="listening || draftLoading || commitLoading"
+            @click="clearSession"
+          >
             清空
-          </button>
-        </div>
-        <div class="auto-copilot__session-meta">
-          <span class="auto-copilot__session-state" :class="`is-${utterance.status.value}`">
-            {{ utteranceStatusLabel }}
-          </span>
-          <small v-if="draftHint">{{ draftHint }}</small>
-        </div>
+          </UiButton>
+        </span>
+      </div>
+      <UiField>
         <textarea
           v-model="manualTranscript"
           rows="4"
           placeholder="开启麦克风后自动填充，也可以粘贴 ASR 文本后生成草稿。"
           :disabled="listening || draftLoading || commitLoading"
         />
-        <p v-if="transcriptNeedsConfirmation" class="auto-copilot__partial auto-copilot__partial--warning">
-          文本包含低置信收尾片段，请人工确认航班号、座位号等关键信息。
-        </p>
-        <p v-if="partialTranscript" class="auto-copilot__partial">
-          {{ partialTranscript }}
-        </p>
+      </UiField>
+      <UiBanner v-if="transcriptNeedsConfirmation" tone="warn" class="copilot__inline-banner">
+        文本包含低置信收尾片段，请人工确认航班号、座位号等关键信息。
+      </UiBanner>
+      <p v-if="partialTranscript" class="copilot__partial">
+        {{ partialTranscript }}
+      </p>
+    </div>
+
+    <div v-if="draft" class="copilot__band">
+      <div class="copilot__section-head">
+        <span class="copilot__section-title">草稿摘要</span>
       </div>
+      <p class="copilot__summary">
+        {{ draft.summary }}
+      </p>
 
-      <div v-if="draft" class="auto-copilot__draft">
-        <div class="auto-copilot__summary">
-          <span>摘要</span>
-          <strong>{{ draft.summary }}</strong>
-        </div>
-
-        <div class="auto-copilot__table-wrap">
-          <table class="auto-copilot__table">
-            <thead>
-              <tr>
-                <th>事项</th>
-                <th>航班</th>
-                <th>航段</th>
-                <th>额外信息</th>
-                <th>置信度</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="action in editableActions" :key="action.action_id" :class="{ 'needs-review': action.needs_review }">
-                <td>
-                  <select v-model="action.case_type">
+      <div class="copilot__table-wrap">
+        <UiTable label="语音草稿事项" :sticky-head="false">
+          <thead>
+            <tr>
+              <th>事项</th>
+              <th>航班</th>
+              <th>航段</th>
+              <th>额外信息</th>
+              <th data-align="end">
+                置信度
+              </th>
+              <th><span class="sr-only">操作</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="action in editableActions"
+              :key="action.action_id"
+              :data-tone="action.needs_review ? 'warn' : undefined"
+            >
+              <td>
+                <UiField>
+                  <select v-model="action.case_type" aria-label="事项类型">
                     <option
                       v-for="type in normalizedCaseTypes"
                       :key="type.code"
@@ -239,90 +232,106 @@
                       {{ action.case_type_name || action.case_type }}
                     </option>
                   </select>
-                </td>
-                <td>
-                  <select v-model="action.selected_flight_key" @change="applySelectedFlight(action)">
+                </UiField>
+              </td>
+              <td>
+                <UiField :hint="action.review_reason ?? undefined">
+                  <select
+                    v-model="action.selected_flight_key"
+                    aria-label="绑定航班"
+                    @change="applySelectedFlight(action)"
+                  >
                     <option value="">
                       请选择
                     </option>
                     <option
                       v-for="candidate in action.candidates"
-                      :key="`${candidate.flight_id}:${candidate.leg_type}`"
-                      :value="`${candidate.flight_id}:${candidate.flight_no}:${candidate.leg_type}`"
+                      :key="candidate.flight_id + ':' + candidate.leg_type"
+                      :value="candidate.flight_id + ':' + candidate.flight_no + ':' + candidate.leg_type"
                     >
                       {{ candidate.flight_no }} · {{ scoreLabel(candidate.score) }}
                     </option>
                   </select>
-                  <small v-if="action.review_reason">{{ action.review_reason }}</small>
-                </td>
-                <td>{{ action.bound_leg_type || action.leg_type_hint || 'outbound' }}</td>
-                <td>
-                  <input v-model="action.remarks" placeholder="额外信息" style="margin-bottom: 6px;">
+                </UiField>
+              </td>
+              <td>{{ action.bound_leg_type || action.leg_type_hint || 'outbound' }}</td>
+              <td>
+                <div class="copilot__fields">
+                  <UiField>
+                    <input v-model="action.remarks" aria-label="额外信息" placeholder="额外信息">
+                  </UiField>
 
-                  <!-- 动态渲染 extra_info fields -->
-                  <div v-if="Object.keys(getExtraInfoFields(action.case_type)).length > 0" class="dynamic-fields-container">
-                    <div
-                      v-for="(fieldCfg, fieldName) in getExtraInfoFields(action.case_type)"
-                      :key="fieldName"
-                      class="dynamic-field-item"
-                    >
-                      <span class="field-label">
-                        {{ fieldCfg.label || fieldName }}
-                        <span v-if="fieldCfg.required" class="required-star">*</span>
-                      </span>
-
-                      <select
-                        v-if="fieldCfg.enum_values && fieldCfg.enum_values.length > 0"
-                        v-model="action.fields[fieldName]"
-                      >
-                        <option value="">
-                          请选择
-                        </option>
-                        <option v-for="val in fieldCfg.enum_values" :key="val" :value="val">
-                          {{ val }}
-                        </option>
-                      </select>
-
-                      <input
-                        v-else
-                        v-model="action.fields[fieldName]"
-                        type="text"
-                        :placeholder="fieldCfg.examples?.[0] || '请输入'"
-                      >
-                    </div>
-                  </div>
-                </td>
-                <td>{{ Math.round(action.confidence * 100) }}%</td>
-                <td>
-                  <button
-                    type="button"
-                    class="auto-copilot__remove"
-                    aria-label="删除草稿"
-                    @click="removeAction(action.action_id)"
+                  <!-- extra_info 由事项类型配置动态给出，字段的形交给 UiField -->
+                  <UiField
+                    v-for="(fieldCfg, fieldName) in getExtraInfoFields(action.case_type)"
+                    :key="fieldName"
+                    :label="fieldCfg.label || fieldName"
+                    :required="fieldCfg.required"
                   >
-                    x
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <button
-          type="button"
-          class="auto-copilot__commit"
-          :disabled="!canCommit || commitLoading"
-          @click="commitDraft"
-        >
-          {{ commitLoading ? '提交中...' : `确认创建 ${editableActions.length} 条事项` }}
-        </button>
+                    <select
+                      v-if="fieldCfg.enum_values && fieldCfg.enum_values.length > 0"
+                      v-model="action.fields[fieldName]"
+                    >
+                      <option value="">
+                        请选择
+                      </option>
+                      <option v-for="val in fieldCfg.enum_values" :key="val" :value="val">
+                        {{ val }}
+                      </option>
+                    </select>
+                    <input
+                      v-else
+                      v-model="action.fields[fieldName]"
+                      type="text"
+                      :placeholder="fieldCfg.examples?.[0] || '请输入'"
+                    >
+                  </UiField>
+                </div>
+              </td>
+              <td data-align="end" data-mono>
+                {{ Math.round(action.confidence * 100) }}%
+              </td>
+              <td data-align="center">
+                <UiButton
+                  variant="quiet"
+                  aria-label="删除草稿"
+                  @click="removeAction(action.action_id)"
+                >
+                  ×
+                </UiButton>
+              </td>
+            </tr>
+          </tbody>
+        </UiTable>
       </div>
     </div>
-  </section>
+
+    <template v-if="draft" #footer>
+      <UiButton
+        variant="primary"
+        size="md"
+        class="copilot__commit"
+        :disabled="!canCommit || commitLoading"
+        @click="commitDraft"
+      >
+        {{ commitLoading ? '提交中…' : '确认创建 ' + editableActions.length + ' 条事项' }}
+      </UiButton>
+    </template>
+  </UiFloatPanel>
 </template>
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
+import UiBanner from '../ui/UiBanner.vue';
+import UiButton from '../ui/UiButton.vue';
+import UiField from '../ui/UiField.vue';
+import UiFloatPanel from '../ui/UiFloatPanel.vue';
+import UiInset from '../ui/UiInset.vue';
+import UiMenu from '../ui/UiMenu.vue';
+import UiMenuItem from '../ui/UiMenuItem.vue';
+import UiPill from '../ui/UiPill.vue';
+import UiReadoutStrip from '../ui/UiReadoutStrip.vue';
+import UiTable from '../ui/UiTable.vue';
 import { useAiBusinessCaseCopilot, type CopilotBatchStatusResponse, type CopilotDraftAction, type CopilotDraftDiagnosticResponse, type CopilotDraftResponse, type CopilotOperationalMetrics } from '../../composables/useAiBusinessCaseCopilot';
 import { useRealtimeAudioSession } from '../../composables/useRealtimeAudioSession';
 import { DEFAULT_UTTERANCE_FINAL_GRACE_MS, useUtteranceSession, type UtteranceSessionStatus } from '../../composables/useUtteranceSession';
@@ -333,6 +342,9 @@ import {
   type CaseTypeResolvedConfig,
   type CaseFieldConfig,
 } from './helpers';
+
+/** 溢出菜单是持守（aria-pressed 绑在 ⋮ 上），点完一项就收起。 */
+const showMenu = ref(false);
 
 const props = defineProps<{
   open: boolean;
@@ -479,29 +491,62 @@ const normalizedCaseTypes = computed(() => {
     }));
 });
 
+/**
+ * 帽下那一行只报这一步在做什么。语音片段本身的事态画在「识别文本」那颗胶囊上，
+ * 两处不要报同一件事（§4.4 不要重复芯片）。
+ */
 const statusLabel = computed(() => {
   if (commitLoading.value) return '提交业务事项中';
   if (draftLoading.value) return '整理语音草稿中';
   if (editableActions.value.length) return '待人工确认';
-  if (utterance.status.value === 'finalizing') return '正在收尾识别';
-  if (utterance.status.value === 'segment_ready') return '语音片段已就绪';
-  if (utterance.status.value === 'collecting') return '聚合语音片段中';
-  if (utterance.status.value === 'error') return '语音片段处理异常';
   if (listening.value) return partialTranscript.value ? '识别中' : '监听中';
   return '未启用';
 });
 
+/** 值班的人读中文，不读后端枚举 —— 枚举名不进界面。 */
 const utteranceStatusLabel = computed(() => {
   const labels: Record<UtteranceSessionStatus, string> = {
-    idle: 'idle · 等待输入',
-    collecting: 'collecting · 聚合片段',
-    finalizing: 'finalizing · 收尾识别',
-    segment_ready: 'segment_ready · 可生成草稿',
-    drafting: 'drafting · 生成草稿',
-    needs_confirmation: 'needs_confirmation · 待确认',
-    error: 'error · 需处理异常',
+    idle: '等待输入',
+    collecting: '聚合片段',
+    finalizing: '收尾识别',
+    segment_ready: '可生成草稿',
+    drafting: '生成草稿',
+    needs_confirmation: '待确认',
+    error: '需处理异常',
   };
   return labels[utterance.status.value];
+});
+
+/** 语音片段状态 → 四声：进行 act / 就绪 ok / 待人看 warn / 异常 danger。 */
+const sessionTone = computed(() => {
+  switch (utterance.status.value) {
+    case 'collecting':
+      return 'act' as const;
+    case 'segment_ready':
+      return 'ok' as const;
+    case 'finalizing':
+    case 'drafting':
+    case 'needs_confirmation':
+      return 'warn' as const;
+    case 'error':
+      return 'danger' as const;
+    default:
+      return 'mute' as const;
+  }
+});
+
+/** 运行指标 = 一排读数：只有真的非零才让它出声。 */
+const metricItems = computed(() => {
+  const metrics = operationalMetrics.value;
+  if (!metrics) return [];
+  return [
+    { label: '草稿批次', value: metrics.batch_status.draft, tone: 'ink' as const },
+    { label: '已创建', value: metrics.batch_status.committed, tone: 'ok' as const },
+    { label: '创建失败', value: metrics.batch_status.failed, tone: 'danger' as const },
+    { label: '派发失败', value: metrics.workflow_dispatch.failed, tone: 'danger' as const },
+    { label: '待自动重试', value: metrics.workflow_dispatch.retry_due, tone: 'warn' as const },
+    { label: '重试耗尽', value: metrics.workflow_dispatch.retry_exhausted, tone: 'danger' as const },
+  ];
 });
 
 const draftButtonDisabledReason = computed(() => {
@@ -542,6 +587,7 @@ function closePanel(): void {
   if (listening.value) {
     void stopListening();
   }
+  showMenu.value = false;
   isOpen.value = false;
 }
 
@@ -774,6 +820,17 @@ async function loadOperationalMetrics(): Promise<void> {
   }
 }
 
+/* 菜单里的两颗谓词：点完收起菜单，动作本身还是原来那两个。 */
+function runDiagnostic(): void {
+  showMenu.value = false;
+  void diagnoseCurrentTranscript();
+}
+
+function runOperationalMetrics(): void {
+  showMenu.value = false;
+  void loadOperationalMetrics();
+}
+
 async function retryWorkflowDispatch(batchId: string): Promise<void> {
   failedBatchesLoading.value = true;
   errorMessage.value = '';
@@ -891,477 +948,199 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.auto-copilot {
-  position: fixed;
-  right: 20px;
-  bottom: 108px;
-  z-index: 9100;
-  font-size: 13px;
+/* 浮舱的形、帽、脚、关闭键全部在 UiFloatPanel 里；
+   嵌板、读数、表、字段、谓词各归其组件。
+   这里只剩这一页自己的排布与两三种叙事文本。 */
+
+/* 带：舱内每一节的留白，彼此只用一根线分开，不描框 */
+.copilot__band {
+  padding: var(--s3);
 }
 
-.auto-copilot__panel {
-  border: 1px solid var(--line-strong);
-  box-shadow: var(--shadow-md);
-  background: var(--face-raised);
-  color: var(--ink);
-  width: min(720px, calc(100vw - 32px));
-  max-height: min(720px, calc(100vh - 128px));
+.copilot__band + .copilot__band {
+  border-top: 1px solid var(--line);
+}
+
+.copilot__verbs {
   display: flex;
-  flex-direction: column;
-  border-radius: var(--r-panel);
-  overflow: hidden;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
 }
 
-.auto-copilot__header,
-.auto-copilot__controls,
-.auto-copilot__section-title,
-.auto-copilot__summary {
+/* 锚浮：菜单贴着 ⋮ 落下，层序用 --z-menu，不自己发明数字 */
+.copilot__overflow {
+  position: relative;
+  display: inline-flex;
+}
+
+.copilot__menu {
+  position: absolute;
+  top: calc(100% + var(--s1));
+  right: 0;
+  z-index: var(--z-menu);
+}
+
+.copilot__section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s3);
+  margin-bottom: var(--s2);
 }
 
-.auto-copilot__header {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--face-work);
-}
-
-.auto-copilot__header h2 {
-  margin: 0;
-  font-size: var(--fs-title);
+.copilot__section-title {
+  font-size: var(--fs-section);
   font-weight: var(--fw-semibold);
   color: var(--ink);
-  line-height: 1.3;
 }
 
-.auto-copilot__header p {
-  margin: 2px 0 0;
-  color: var(--ink-2);
-}
-
-.auto-copilot__icon-btn,
-.auto-copilot__remove,
-.auto-copilot__section-title button {
-  border: 1px solid var(--line);
-  background: var(--face-raised);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.auto-copilot__icon-btn,
-.auto-copilot__remove {
-  width: 30px;
-  height: 30px;
-}
-
-.auto-copilot__controls {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
-}
-
-.auto-copilot__primary,
-.auto-copilot__secondary,
-.auto-copilot__diagnose,
-.auto-copilot__commit {
-  min-height: 34px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  padding: 0 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.auto-copilot__primary,
-.auto-copilot__commit {
-  background: #125f9f;
-  color: var(--face-raised);
-}
-
-.auto-copilot__secondary {
-  background: #eef6ff;
-  color: var(--ws-primary);
-  border-color: var(--line);
-}
-
-.auto-copilot__diagnose {
-  background: var(--face-raised);
-  color: var(--ink);
-  border-color: var(--line);
-}
-
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.auto-copilot__alert,
-.auto-copilot__success {
-  margin: 12px 16px 0;
-  padding: 9px 10px;
-  border-radius: 6px;
-}
-
-.auto-copilot__alert {
-  color: #8a1f11;
-  background: #fff0ed;
-  border: 1px solid #ffc9c0;
-}
-
-.auto-copilot__success {
-  color: #115c3f;
-  background: #ebf8f1;
-  border: 1px solid var(--line);
-}
-
-.auto-copilot__diagnostic {
-  margin: 12px 16px 0;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--bg-page);
-}
-
-.auto-copilot__diagnostic-head,
-.auto-copilot__diagnostic-grid {
-  display: flex;
+.copilot__section-tools {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
 }
 
-.auto-copilot__diagnostic-head {
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-weight: 700;
+/* 读数条落在嵌板里，横向留白已由嵌板给过一次 */
+.copilot__band :deep(.ui-readouts) {
+  padding: 0;
 }
 
-.auto-copilot__diagnostic-head button {
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--face-raised);
-  color: var(--ink);
-  cursor: pointer;
+.copilot__inline-banner {
+  margin-top: var(--s2);
 }
 
-.auto-copilot__diagnostic-grid {
+/* 名 / 值成对：诊断里的三行事实 */
+.copilot__pairs {
   display: grid;
-  grid-template-columns: 72px 1fr;
-  margin-bottom: 8px;
-  color: var(--ink-2);
+  grid-template-columns: 68px 1fr;
+  gap: var(--s1) var(--s2);
+  margin: 0;
 }
 
-.auto-copilot__diagnostic-grid strong {
+.copilot__pairs dt {
+  color: var(--ink-subtle);
+}
+
+.copilot__pairs dd {
+  margin: 0;
   color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--fw-medium);
+  word-break: break-word;
 }
 
-.auto-copilot__diagnostic pre {
+/* 原文：模型吐出来的东西照抄，等宽 */
+.copilot__raw {
   max-height: 180px;
-  margin: 8px 0 0;
+  margin: var(--s2) 0 0;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-label);
   line-height: 1.5;
   color: var(--ink);
 }
 
-.auto-copilot__metrics {
-  margin: 12px 16px 0;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--dh-signal-accent-soft);
-}
-
-.auto-copilot__metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.auto-copilot__metric-grid div {
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--face-raised);
-}
-
-.auto-copilot__metric-grid span,
-.auto-copilot__metric-grid strong {
-  display: block;
-}
-
-.auto-copilot__metric-grid span {
-  color: var(--ink-2);
-  font-size: 12px;
-}
-
-.auto-copilot__metric-grid strong {
-  margin-top: 3px;
-  color: var(--ink-2);
-  font-size: 18px;
-}
-
-.auto-copilot__recent-errors {
-  margin-top: 10px;
+.copilot__errors {
+  margin-top: var(--s2);
   border-top: 1px solid var(--line);
 }
 
-.auto-copilot__recent-error {
+.copilot__error {
   display: grid;
   gap: 3px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
+  padding: var(--s2) 0;
 }
 
-.auto-copilot__recent-error strong {
+.copilot__error + .copilot__error {
+  border-top: 1px solid var(--line);
+}
+
+.copilot__error strong {
   color: var(--ink);
 }
 
-.auto-copilot__recent-error small {
-  color: var(--ink-2);
+.copilot__error small {
+  color: var(--ink-subtle);
+  font-variant-numeric: tabular-nums;
 }
 
-.auto-copilot__recent-error span {
+.copilot__error span {
   color: var(--ink);
   word-break: break-word;
 }
 
-.auto-copilot__failed-batches {
-  margin: 12px 16px 0;
-  padding: 10px;
-  border: 1px solid #ffd6a8;
-  border-radius: 6px;
-  background: #fffaf0;
-}
-
-.auto-copilot__failed-item {
+.copilot__batch {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--s3);
   padding: 9px 0;
-  border-top: 1px solid #ffe3bd;
+  border-top: 1px solid var(--line);
 }
 
-.auto-copilot__failed-item:first-of-type {
+.copilot__batch:first-of-type {
+  padding-top: 0;
   border-top: 0;
 }
 
-.auto-copilot__failed-item strong,
-.auto-copilot__failed-item small {
-  display: block;
+.copilot__batch-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
-.auto-copilot__failed-item small {
-  margin-top: 3px;
-  color: #7a5a2a;
+/* 批号、时刻是标识不是事态：只有真的失败那几行才出声 */
+.copilot__batch-body small {
+  color: var(--ink-subtle);
   word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
-.auto-copilot__failed-actions {
+.copilot__batch-body small.is-warn {
+  color: var(--warn);
+}
+
+.copilot__batch-verbs {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 0 0 86px;
+  gap: var(--s1);
+  flex: 0 0 88px;
 }
 
-.auto-copilot__failed-actions button {
-  min-height: 28px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--face-raised);
+.copilot__partial {
+  margin: var(--s2) 0 0;
+  color: var(--ink-subtle);
+}
+
+.copilot__summary {
+  margin: 0;
   color: var(--ink);
-  cursor: pointer;
+  font-weight: var(--fw-medium);
+  line-height: 1.5;
 }
 
-.auto-copilot__transcript,
-.auto-copilot__draft {
-  padding: 14px 16px;
+/* 表接着舱面铺下去：只留横向滚动口，不再描第二道边、换第二个圆角（§4.21） */
+.copilot__table-wrap {
+  overflow-x: auto;
 }
 
-.auto-copilot__section-title {
-  margin-bottom: 8px;
-  font-weight: 700;
-}
-
-.auto-copilot__session-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-  color: var(--ink-2);
-}
-
-.auto-copilot__session-meta small {
-  text-align: right;
-}
-
-.auto-copilot__session-state {
-  flex: 0 0 auto;
-  padding: 3px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--bg-page);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.auto-copilot__session-state.is-collecting {
-  border-color: var(--line);
-  background: #eef6ff;
-  color: var(--ws-primary);
-}
-
-.auto-copilot__session-state.is-segment_ready {
-  border-color: var(--line);
-  background: #ebf8f1;
-  color: #115c3f;
-}
-
-.auto-copilot__session-state.is-finalizing {
-  border-color: #ffd6a8;
-  background: #fffaf0;
-  color: #7a5a2a;
-}
-
-.auto-copilot__session-state.is-drafting,
-.auto-copilot__session-state.is-needs_confirmation {
-  border-color: #ffd6a8;
-  background: #fffaf0;
-  color: #7a5a2a;
-}
-
-.auto-copilot__session-state.is-error {
-  border-color: #ffc9c0;
-  background: #fff0ed;
-  color: #8a1f11;
-}
-
-.auto-copilot textarea,
-.auto-copilot input,
-.auto-copilot select {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--face-raised);
-  color: var(--ink);
-  font: inherit;
-}
-
-.auto-copilot textarea {
-  resize: vertical;
-  padding: 9px 10px;
-}
-
-.auto-copilot input,
-.auto-copilot select {
-  min-height: 32px;
-  padding: 0 8px;
-}
-
-.auto-copilot__partial {
-  margin: 8px 0 0;
-  color: var(--ink-2);
-}
-
-.auto-copilot__partial--warning {
-  color: #9a5a00;
-}
-
-.auto-copilot__summary {
-  align-items: flex-start;
-  margin-bottom: 10px;
-  color: var(--ink-2);
-}
-
-.auto-copilot__summary strong {
-  flex: 1;
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.auto-copilot__table-wrap {
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.auto-copilot__table {
-  width: 100%;
+.copilot__table-wrap :deep(.ui-table) {
   min-width: 680px;
-  border-collapse: collapse;
 }
 
-.auto-copilot__table th,
-.auto-copilot__table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
+.copilot__table-wrap :deep(td) {
   vertical-align: top;
 }
 
-.auto-copilot__table th {
-  background: var(--bg-page);
-  color: var(--ink-2);
-  font-size: 12px;
+/* 格内字段竖排；每个字段的形由 UiField 给 */
+.copilot__fields {
+  display: grid;
+  gap: var(--s2);
+  min-width: 168px;
 }
 
-.auto-copilot__table tr.needs-review td {
-  background: #fffaf0;
-}
-
-.auto-copilot__table small {
-  display: block;
-  margin-top: 4px;
-  color: #a15c00;
-}
-
-.auto-copilot__commit {
+.copilot__commit {
   width: 100%;
-  margin-top: 12px;
-}
-
-@media (max-width: 720px) {
-  .auto-copilot {
-    right: 12px;
-    bottom: 76px;
-  }
-
-  .auto-copilot__panel {
-    width: calc(100vw - 24px);
-  }
-}
-
-/* Dynamic AI Fields Styles */
-.dynamic-fields-container {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--bg-page);
-  border-radius: 6px;
-  padding: 6px;
-  margin-top: 4px;
-}
-.dynamic-field-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: left;
-}
-.field-label {
-  font-size: 11px;
-  color: var(--ink-2);
-  font-weight: 500;
-}
-.required-star {
-  color: var(--system-red);
-  margin-left: 2px;
 }
 </style>

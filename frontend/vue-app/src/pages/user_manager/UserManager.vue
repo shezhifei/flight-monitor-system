@@ -109,7 +109,7 @@ function templatePermissionCount(tmpl: {
     <aside class="admin-sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <SvgIcon src="/frontend/icons/users.svg" :size="20" style="vertical-align: -3px;" />
+          <SvgIcon src="/frontend/icons/users.svg" :size="20" />
           <span>用户管理</span>
         </div>
       </div>
@@ -162,7 +162,6 @@ function templatePermissionCount(tmpl: {
             <span>模板管理</span>
           </div>
         </div>
-
       </div>
 
       <div class="sidebar-footer">
@@ -223,7 +222,7 @@ function templatePermissionCount(tmpl: {
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-secondary" @click="refreshCurrent">
-            <SvgIcon src="/frontend/icons/refresh.svg" :size="14" style="vertical-align: -2px;" /> 刷新
+            <SvgIcon src="/frontend/icons/refresh.svg" :size="14" /> 刷新
           </button>
           <button
             v-if="activeSection === 'users'"
@@ -231,7 +230,7 @@ function templatePermissionCount(tmpl: {
             class="btn btn-primary"
             @click="openCreateUserModal"
           >
-            <SvgIcon src="/frontend/icons/add.svg" :size="14" style="vertical-align: -2px;" /> 添加用户
+            <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 添加用户
           </button>
           <button
             v-else-if="activeSection === 'roles'"
@@ -239,7 +238,7 @@ function templatePermissionCount(tmpl: {
             class="btn btn-primary"
             @click="openCreateRoleModal"
           >
-            <SvgIcon src="/frontend/icons/add.svg" :size="14" style="vertical-align: -2px;" /> 添加角色
+            <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 添加角色
           </button>
           <button
             v-else-if="activeSection === 'templates'"
@@ -247,7 +246,7 @@ function templatePermissionCount(tmpl: {
             class="btn btn-primary"
             @click="openCreateTemplateModal"
           >
-            <SvgIcon src="/frontend/icons/add.svg" :size="14" style="vertical-align: -2px;" /> 添加模板
+            <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 添加模板
           </button>
         </div>
       </header>
@@ -293,7 +292,7 @@ function templatePermissionCount(tmpl: {
                 <tr v-for="user in filteredUsers" :key="user.id">
                   <td>
                     <strong>{{ user.username }}</strong>
-                    <span v-if="user.is_admin" class="badge badge-admin" style="margin-left:4px">Admin</span>
+                    <span v-if="user.is_admin" class="badge badge-admin">Admin</span>
                   </td>
                   <td>{{ user.email || '—' }}</td>
                   <td>
@@ -539,7 +538,6 @@ function templatePermissionCount(tmpl: {
       @save="saveTemplate"
       @update:form="templateForm = $event"
     />
-
   </div>
 </template>
 
@@ -560,6 +558,16 @@ function templatePermissionCount(tmpl: {
   color: var(--act);
 }
 
+/* 表内 Admin 章紧跟用户名，间距走梯 */
+td .badge-admin {
+  margin-left: var(--s1);
+}
+
+/* 侧栏徽标图标与文字的间距：SvgIcon 已自带 em 兑基线，这里只补右距 */
+.sidebar-logo .svg-icon {
+  margin-right: var(--s2);
+}
+
 .badge-active {
   background: var(--ok-soft);
   color: var(--ok);
@@ -573,28 +581,28 @@ function templatePermissionCount(tmpl: {
 .role-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--s1);
 }
 
 .role-tag {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
+  padding: 2px var(--s2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-label);
   background: var(--act-soft);
   color: var(--act);
 }
 
 .empty-placeholder {
   text-align: center;
-  padding: 40px;
-  color: var(--admin-text-muted, var(--text-tertiary));
+  padding: var(--s5) var(--s4);
+  color: var(--ink-muted);
 }
 
 .pagination-info {
-  margin-top: 16px;
-  padding: 8px 4px;
-  font-size: 13px;
-  color: var(--admin-text-subtle, var(--text-tertiary));
+  margin-top: var(--s4);
+  padding: var(--s2) var(--s1);
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
 }
 </style>

@@ -42,12 +42,16 @@ fn default_ttl(max_timestamp_skew_secs: i64, bucket_secs: i64) -> i64 {
     max_timestamp_skew_secs * 2 + bucket_secs
 }
 
-const LUA_SET_NX_EX: &str = r#"
-local added = redis.call("SET", KEYS[1], "1", "NX", "EX", ARGV[1])
-if added then
-  return 1
+// One Redis key per session+time-bucket. Members are the nonces seen in that
+// window. This keeps GET anti-replay (one write per request) but avoids the
+// previous "one key per nonce" expire-heap tax.
+const LUA_SADD_EXPIRE: &str = r#"
+local added = redis.call("SADD", KEYS[1], ARGV[1])
+if added == 0 then
+  return 0
 end
-return 0
+redis.call("EXPIRE", KEYS[1], ARGV[2])
+return 1
 "#;
 
 pub struct RedisBucketNonceStore {
@@ -94,14 +98,12 @@ impl RedisBucketNonceStore {
         }
     }
 
-    fn build_nonce_key(session_hash: &str, time_bucket: i64, nonce: &str) -> String {
+    fn build_bucket_key(session_hash: &str, time_bucket: i64) -> String {
         let mut hasher = Sha256::new();
         hasher.update(session_hash.as_bytes());
         hasher.update(b":");
         hasher.update(time_bucket.to_string().as_bytes());
-        hasher.update(b":");
-        hasher.update(nonce.as_bytes());
-        format!("fms:anti_replay:nonce:{}", hex::encode(hasher.finalize()))
+        format!("fms:anti_replay:bucket:{}", hex::encode(hasher.finalize()))
     }
 
     async fn load_or_refresh_script(&self) -> Result<String, NonceReplayStoreError> {
@@ -120,7 +122,7 @@ impl RedisBucketNonceStore {
 
         let sha: String = redis::cmd("SCRIPT")
             .arg("LOAD")
-            .arg(LUA_SET_NX_EX)
+            .arg(LUA_SADD_EXPIRE)
             .query_async(&mut *conn)
             .await
             .map_err(|e| NonceReplayStoreError::Redis(e.to_string()))?;
@@ -138,12 +140,14 @@ impl RedisBucketNonceStore {
         conn: &mut redis::aio::MultiplexedConnection,
         sha: &str,
         key: &str,
+        nonce: &str,
         ttl: i64,
     ) -> Result<i32, NonceReplayStoreError> {
         let result: Result<i32, redis::RedisError> = redis::cmd("EVALSHA")
             .arg(sha)
             .arg(1)
             .arg(key)
+            .arg(nonce)
             .arg(ttl)
             .query_async(conn)
             .await;
@@ -173,7 +177,7 @@ impl NonceReplayStore for RedisBucketNonceStore {
         const MAX_NOSCRIPT_RETRIES: u32 = 3;
 
         let time_bucket = compute_time_bucket(timestamp, self.bucket_secs);
-        let key = Self::build_nonce_key(session_hash, time_bucket, nonce);
+        let key = Self::build_bucket_key(session_hash, time_bucket);
         let ttl = default_ttl(120, self.bucket_secs);
 
         let mut noscript_retries: u32 = 0;
@@ -192,7 +196,7 @@ impl NonceReplayStore for RedisBucketNonceStore {
 
             let lua_result = timeout(
                 Duration::from_millis(self.timeout_ms),
-                self.exec_lua_cmd(&mut *conn, &sha, &key, ttl),
+                self.exec_lua_cmd(&mut *conn, &sha, &key, nonce, ttl),
             )
             .await;
 
@@ -388,16 +392,33 @@ mod tests {
     }
 
     #[test]
-    fn redis_nonce_key_is_stable_per_session_bucket_nonce() {
-        let first = RedisBucketNonceStore::build_nonce_key("session1", 100, "nonce-abc");
-        let second = RedisBucketNonceStore::build_nonce_key("session1", 100, "nonce-abc");
+    fn redis_bucket_key_is_stable_per_session_and_bucket() {
+        let first = RedisBucketNonceStore::build_bucket_key("session1", 100);
+        let second = RedisBucketNonceStore::build_bucket_key("session1", 100);
+        assert_eq!(first, second);
+        assert!(first.starts_with("fms:anti_replay:bucket:"));
+    }
+
+    #[test]
+    fn redis_bucket_key_is_shared_for_nonces_in_the_same_bucket() {
+        let first = RedisBucketNonceStore::build_bucket_key("session1", 100);
+        let second = RedisBucketNonceStore::build_bucket_key("session1", 100);
         assert_eq!(first, second);
     }
 
     #[test]
-    fn redis_nonce_key_is_distributed_by_nonce() {
-        let first = RedisBucketNonceStore::build_nonce_key("session1", 100, "nonce-a");
-        let second = RedisBucketNonceStore::build_nonce_key("session1", 100, "nonce-b");
-        assert_ne!(first, second);
+    fn redis_bucket_key_differs_across_sessions_or_buckets() {
+        let base = RedisBucketNonceStore::build_bucket_key("session1", 100);
+        let other_session = RedisBucketNonceStore::build_bucket_key("session2", 100);
+        let other_bucket = RedisBucketNonceStore::build_bucket_key("session1", 101);
+        assert_ne!(base, other_session);
+        assert_ne!(base, other_bucket);
+    }
+
+    #[test]
+    fn lua_script_uses_sadd_not_per_nonce_set() {
+        assert!(LUA_SADD_EXPIRE.contains("SADD"));
+        assert!(LUA_SADD_EXPIRE.contains("EXPIRE"));
+        assert!(!LUA_SADD_EXPIRE.contains("SET"));
     }
 }

@@ -1,23 +1,42 @@
-<script setup lang="ts">
+<script lang="ts">
+/**
+ * 一件事的最小形：组件只认这四样，各页可以往上加字段（胶囊要的数、原始对象）。
+ * 组件是泛型的，加出来的字段会原样出现在 #item 槽里，类型不丢。
+ */
 export interface UiTimelineItem {
   key: string;
   title: string;
   time?: string;
-  tone?: 'neutral' | 'act' | 'ok' | 'warn' | 'danger';
+  tone?: 'mute' | 'act' | 'ok' | 'warn' | 'danger';
 }
+</script>
 
+<script setup lang="ts" generic="T extends UiTimelineItem">
+/**
+ * 时间线（信号面 §2.4）：一列事件。点的色就是那件事的事态，鞭只是一根 line。
+ *
+ * 行里要放胶囊、要能点开详情，就用 #item 槽自己渲染 ——
+ * 点、鞭、声仍归本组件，各页不要再画第二套点和第二套 tone 映射。
+ */
 defineProps<{
-  items: UiTimelineItem[];
+  items: T[];
 }>();
 </script>
 
 <template>
   <ol class="ui-timeline">
-    <li v-for="item in items" :key="item.key" class="ui-timeline-item" :data-tone="item.tone ?? 'neutral'">
+    <li
+      v-for="(item, index) in items"
+      :key="item.key"
+      class="ui-timeline-item"
+      :data-tone="item.tone ?? 'mute'"
+    >
       <span class="ui-timeline-dot" aria-hidden="true" />
       <div class="ui-timeline-content">
-        <div class="ui-timeline-title">{{ item.title }}</div>
-        <div v-if="item.time" class="ui-timeline-time">{{ item.time }}</div>
+        <slot name="item" :item="item" :index="index">
+          <div class="ui-timeline-title">{{ item.title }}</div>
+          <div v-if="item.time" class="ui-timeline-time">{{ item.time }}</div>
+        </slot>
       </div>
     </li>
   </ol>
@@ -66,6 +85,12 @@ defineProps<{
 .ui-timeline-item[data-tone='ok'] .ui-timeline-dot { background: var(--ok); }
 .ui-timeline-item[data-tone='warn'] .ui-timeline-dot { background: var(--warn); }
 .ui-timeline-item[data-tone='danger'] .ui-timeline-dot { background: var(--danger); }
+
+/* 槽里放整行（名 + 时刻 + 胶囊）时要能自己撑满、自己截断 */
+.ui-timeline-content {
+  flex: 1;
+  min-width: 0;
+}
 
 .ui-timeline-title {
   font-size: var(--fs-body);

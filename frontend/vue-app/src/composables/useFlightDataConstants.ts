@@ -1,7 +1,5 @@
 import type { BusinessFilters, FlightSortConfig, LegType, SearchFields } from './useFlightDataTypes';
 
-export const EMPTY_DISPLAY_TEXT = '--';
-
 export const DEFAULT_BUSINESS_FILTERS: BusinessFilters = {
   aircraftBodyFilter: 'all',
   commercialSignedFilter: 'yes',

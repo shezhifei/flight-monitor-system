@@ -2,18 +2,17 @@
   <div class="guide-and-legend-panel">
     <div class="panel-header">
       <div class="header-tabs">
-        <button
+        <UiButton
           v-for="tab in tabs"
           :key="tab.id"
-          class="tab-btn"
-          :class="{ active: activeTab === tab.id }"
+          :pressed="activeTab === tab.id"
           @click="activeTab = tab.id"
         >
           <span class="tab-icon">{{ tab.icon }}</span>
-          <span class="tab-label">{{ tab.label }}</span>
-        </button>
+          {{ tab.label }}
+        </UiButton>
       </div>
-      <button class="close-btn" @click="$emit('close')">
+      <button class="close-btn" aria-label="关闭面板" @click="$emit('close')">
         ×
       </button>
     </div>
@@ -60,27 +59,27 @@
           <h3>🎨 任务状态</h3>
           <div class="legend-grid">
             <div class="legend-item">
-              <span class="legend-color" style="background: var(--status-progress);" />
+              <span class="legend-color is-progress" />
               <span class="legend-label">进行中</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background: var(--status-assigned);" />
+              <span class="legend-color is-assigned" />
               <span class="legend-label">已排程</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background: var(--status-pending);" />
+              <span class="legend-color is-pending" />
               <span class="legend-label">延期</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background: var(--status-completed);" />
+              <span class="legend-color is-completed" />
               <span class="legend-label">已完成</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background: var(--status-alert);" />
+              <span class="legend-color is-alert" />
               <span class="legend-label">冲突</span>
             </div>
             <div class="legend-item">
-              <span class="legend-color" style="background: var(--status-lock);" />
+              <span class="legend-color is-lock" />
               <span class="legend-label">已锁定</span>
             </div>
           </div>
@@ -123,45 +122,27 @@
           <h3>⚙️ 视图设置</h3>
           <div class="setting-item">
             <label class="setting-label">自动刷新</label>
-            <label class="switch-toggle">
-              <input v-model="settings.autoRefresh" type="checkbox">
-              <span class="switch-slider" />
-            </label>
+            <UiSwitch v-model:checked="settings.autoRefresh" label="自动刷新" />
           </div>
           <div class="setting-item">
             <label class="setting-label">刷新间隔</label>
-            <select v-model="settings.refreshInterval" class="setting-select">
-              <option value="30000">
-                30 秒
-              </option>
-              <option value="60000">
-                1 分钟
-              </option>
-              <option value="300000">
-                5 分钟
-              </option>
-            </select>
+            <UiSelect
+              v-model="settings.refreshInterval"
+              :options="refreshIntervalOptions"
+              label="刷新间隔"
+            />
           </div>
           <div class="setting-item">
             <label class="setting-label">显示已完成任务</label>
-            <label class="switch-toggle">
-              <input v-model="settings.showCompleted" type="checkbox">
-              <span class="switch-slider" />
-            </label>
+            <UiSwitch v-model:checked="settings.showCompleted" label="显示已完成任务" />
           </div>
           <div class="setting-item">
             <label class="setting-label">时间刻度</label>
-            <select v-model="settings.timeScale" class="setting-select">
-              <option value="15">
-                15 分钟
-              </option>
-              <option value="30">
-                30 分钟
-              </option>
-              <option value="60">
-                1 小时
-              </option>
-            </select>
+            <UiSelect
+              v-model="settings.timeScale"
+              :options="timeScaleOptions"
+              label="时间刻度"
+            />
           </div>
         </div>
 
@@ -169,17 +150,11 @@
           <h3>🎯 通知设置</h3>
           <div class="setting-item">
             <label class="setting-label">任务冲突通知</label>
-            <label class="switch-toggle">
-              <input v-model="settings.conflictNotification" type="checkbox">
-              <span class="switch-slider" />
-            </label>
+            <UiSwitch v-model:checked="settings.conflictNotification" label="任务冲突通知" />
           </div>
           <div class="setting-item">
             <label class="setting-label">任务完成通知</label>
-            <label class="switch-toggle">
-              <input v-model="settings.completeNotification" type="checkbox">
-              <span class="switch-slider" />
-            </label>
+            <UiSwitch v-model:checked="settings.completeNotification" label="任务完成通知" />
           </div>
         </div>
       </div>
@@ -189,6 +164,10 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
+
+import UiButton from '@/components/ui/UiButton.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
+import UiSwitch from '@/components/ui/UiSwitch.vue';
 
 interface GuideSettings {
   autoRefresh: boolean;
@@ -215,6 +194,18 @@ const tabs = [
   { id: 'settings', label: '设置', icon: '⚙️' },
 ];
 
+const refreshIntervalOptions = [
+  { value: '30000', label: '30 秒' },
+  { value: '60000', label: '1 分钟' },
+  { value: '300000', label: '5 分钟' },
+];
+
+const timeScaleOptions = [
+  { value: '15', label: '15 分钟' },
+  { value: '30', label: '30 分钟' },
+  { value: '60', label: '1 小时' },
+];
+
 const activeTab = ref('guide');
 
 const settings = reactive<GuideSettings>({ ...props.settings });
@@ -239,12 +230,12 @@ watch(
   top: 0;
   width: 400px;
   height: 100vh;
-  background: var(--bg-card);
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  background: var(--face-raised);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
-  transition: right 0.3s ease;
-  z-index: 1000;
+  transition: right var(--t-slow) var(--ease);
+  z-index: var(--z-float);
 }
 
 .guide-and-legend-panel.open {
@@ -255,37 +246,14 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-light);
-  background: linear-gradient(135deg, var(--ws-primary) 0%, var(--system-blue) 100%);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+  background: var(--face-work);
 }
 
 .header-tabs {
   display: flex;
-  gap: 4px;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.tab-btn.active {
-  background: var(--bg-card);
-  color: var(--ws-primary);
+  gap: var(--s1);
 }
 
 .tab-icon {
@@ -295,28 +263,33 @@ watch(
 .close-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--ink-subtle);
   font-size: 20px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: var(--s1) var(--s2);
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: background var(--t-fast) var(--ease);
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 
 .panel-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: var(--s4);
 }
 
 .tab-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--s5);
 }
 
 .guide-section,
@@ -324,21 +297,21 @@ watch(
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--s4);
 }
 
 .guide-section h3,
 .legend-section h3,
 .settings-section h3 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--admin-text);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .guide-item {
   display: flex;
-  gap: 12px;
+  gap: var(--s3);
   align-items: flex-start;
 }
 
@@ -347,10 +320,10 @@ watch(
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--ws-primary) 0%, var(--system-blue) 100%);
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--act-soft);
+  color: var(--act);
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -358,38 +331,47 @@ watch(
 
 .guide-text strong {
   display: block;
-  font-size: 14px;
-  color: var(--admin-text);
-  margin-bottom: 4px;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  margin-bottom: var(--s1);
 }
 
 .guide-text p {
   margin: 0;
-  font-size: 13px;
-  color: var(--admin-text-subtle);
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
   line-height: 1.5;
 }
 
 .legend-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: var(--s3);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg-sidebar);
-  border-radius: 6px;
+  gap: var(--s3);
+  padding: var(--s3);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border-radius: var(--r-cell);
 }
 
+/* 图例色块引用派工板状态语义变量（--status-* 归 dispatch-board 域），色声走修饰类不落内联 */
 .legend-color {
   width: 24px;
   height: 24px;
   border-radius: 4px;
 }
+
+.legend-color.is-progress { background: var(--status-progress); }
+.legend-color.is-assigned { background: var(--status-assigned); }
+.legend-color.is-pending { background: var(--status-pending); }
+.legend-color.is-completed { background: var(--status-completed); }
+.legend-color.is-alert { background: var(--status-alert); }
+.legend-color.is-lock { background: var(--status-lock); }
 
 .legend-icon {
   font-size: 20px;
@@ -398,16 +380,16 @@ watch(
 }
 
 .legend-label {
-  font-size: 13px;
-  color: var(--admin-text);
+  font-size: var(--fs-body);
+  color: var(--ink);
 }
 
 .setting-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-light);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .setting-item:last-child {
@@ -415,62 +397,7 @@ watch(
 }
 
 .setting-label {
-  font-size: 13px;
-  color: var(--admin-text);
-}
-
-.setting-select {
-  padding: 6px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--admin-text);
-  background: var(--bg-card);
-  cursor: pointer;
-}
-
-.switch-toggle {
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 26px;
-}
-
-.switch-toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--border-light);
-  transition: 0.3s;
-  border-radius: 26px;
-}
-
-.switch-slider:before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  width: 20px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.3s;
-  border-radius: 50%;
-}
-
-input:checked + .switch-slider {
-  background: linear-gradient(135deg, var(--ws-primary) 0%, var(--system-blue) 100%);
-}
-
-input:checked + .switch-slider:before {
-  transform: translateX(22px);
+  font-size: var(--fs-body);
+  color: var(--ink);
 }
 </style>

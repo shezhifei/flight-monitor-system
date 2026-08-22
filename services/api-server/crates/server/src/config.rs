@@ -312,6 +312,12 @@ pub fn env_optional_string(key: &str) -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
+/// 环境变量：是否启用 TLS session tickets（用于会话复用）
+const API_TLS_ENABLE_SESSION_TICKETS: &str = "API_TLS_ENABLE_SESSION_TICKETS";
+
+/// 环境变量：TLS session timeout（秒）
+const API_TLS_SESSION_TIMEOUT: &str = "API_TLS_SESSION_TIMEOUT";
+
 pub const DEFAULT_API_TLS_CERT_FILE: &str = "certs/server.crt";
 pub const DEFAULT_API_TLS_KEY_FILE: &str = "certs/server.key";
 
@@ -319,6 +325,29 @@ pub const DEFAULT_API_TLS_KEY_FILE: &str = "certs/server.key";
 pub struct HttpTlsBindingConfig {
     pub cert_file: String,
     pub key_file: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct HttpTlsPerformanceConfig {
+    /// 是否启用 TLS session tickets（用于会话复用）
+    pub enable_session_tickets: bool,
+    /// TLS session timeout（秒），默认 1 小时
+    pub session_timeout: u32,
+    /// HTTP/2 initial stream window size（字节），默认 1MB
+    pub http2_initial_stream_window_size: u32,
+    /// HTTP/2 initial connection window size（字节），默认 1MB
+    pub http2_initial_connection_window_size: u32,
+}
+
+impl Default for HttpTlsPerformanceConfig {
+    fn default() -> Self {
+        Self {
+            enable_session_tickets: true,
+            session_timeout: 3600, // 1 hour in seconds
+            http2_initial_stream_window_size: 1 << 20, // 1MB
+            http2_initial_connection_window_size: 1 << 20, // 1MB
+        }
+    }
 }
 
 pub fn resolve_http_tls_binding_config(
@@ -342,6 +371,25 @@ pub fn resolve_http_tls_binding_config(
         .to_string();
 
     Some(HttpTlsBindingConfig { cert_file, key_file })
+}
+
+/// 解析 TLS 性能优化配置
+pub fn resolve_http_tls_performance_config() -> HttpTlsPerformanceConfig {
+    HttpTlsPerformanceConfig {
+        enable_session_tickets: parse_bool_like(
+            env_optional_string(API_TLS_ENABLE_SESSION_TICKETS).as_deref(),
+            true,
+        ),
+        session_timeout: env_optional_string(API_TLS_SESSION_TIMEOUT)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(3600), // Default: 1 hour
+        http2_initial_stream_window_size: env_optional_string("HTTP2_INITIAL_STREAM_WINDOW_SIZE")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(1 << 20), // Default: 1MB
+        http2_initial_connection_window_size: env_optional_string("HTTP2_INITIAL_CONNECTION_WINDOW_SIZE")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(1 << 20), // Default: 1MB
+    }
 }
 
 pub fn read_cert_chain(cert_file: &Path) -> io::Result<Vec<CertificateDer<'static>>> {
@@ -380,7 +428,10 @@ pub fn read_private_key(key_file: &Path) -> io::Result<PrivateKeyDer<'static>> {
     ))
 }
 
-pub fn load_rustls_server_config(tls_binding_config: &HttpTlsBindingConfig) -> io::Result<RustlsServerConfig> {
+pub fn load_rustls_server_config(
+    tls_binding_config: &HttpTlsBindingConfig,
+    performance_config: &HttpTlsPerformanceConfig,
+) -> io::Result<RustlsServerConfig> {
     let cert_chain = read_cert_chain(Path::new(&tls_binding_config.cert_file))?;
     if cert_chain.is_empty() {
         return Err(io::Error::new(
@@ -390,10 +441,19 @@ pub fn load_rustls_server_config(tls_binding_config: &HttpTlsBindingConfig) -> i
     }
 
     let private_key = read_private_key(Path::new(&tls_binding_config.key_file))?;
-    RustlsServerConfig::builder()
+    
+    let mut config = RustlsServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(cert_chain, private_key)
-        .map_err(io_other)
+        .map_err(io_other)?;
+
+    if performance_config.enable_session_tickets {
+        config.session_storage = rustls::server::ServerSessionMemoryCache::new(
+            performance_config.session_timeout.max(32) as usize,
+        );
+    }
+
+    Ok(config)
 }
 
 pub fn install_rustls_crypto_provider() -> io::Result<()> {
@@ -669,6 +729,21 @@ mod tests {
         assert!(!is_redis_required_from("worker", Some("true"), Some("false")));
 
         assert_eq!(max_request_size_bytes(), 10 * 1024 * 1024);
+    }
+
+    #[test]
+    fn http2_windows_default_to_one_megabyte_and_are_env_overridable() {
+        let defaults = HttpTlsPerformanceConfig::default();
+        assert_eq!(defaults.http2_initial_stream_window_size, 1 << 20);
+        assert_eq!(defaults.http2_initial_connection_window_size, 1 << 20);
+
+        std::env::set_var("HTTP2_INITIAL_STREAM_WINDOW_SIZE", "65535");
+        std::env::set_var("HTTP2_INITIAL_CONNECTION_WINDOW_SIZE", "131072");
+        let overridden = resolve_http_tls_performance_config();
+        std::env::remove_var("HTTP2_INITIAL_STREAM_WINDOW_SIZE");
+        std::env::remove_var("HTTP2_INITIAL_CONNECTION_WINDOW_SIZE");
+        assert_eq!(overridden.http2_initial_stream_window_size, 65535);
+        assert_eq!(overridden.http2_initial_connection_window_size, 131072);
     }
 
     #[actix_web::test]
@@ -1017,4 +1092,31 @@ mod tests {
         assert!(!RuntimeEnvironment::from_env_value(Some("development")).is_production());
         assert!(!RuntimeEnvironment::from_env_value(Some("test")).is_production());
     }
+}
+
+// ============================================================
+// Tokio Runtime Configuration Helpers
+// ============================================================
+
+/// 解析自定义 Tokio runtime 配置
+/// 默认值：CPU 核心数 * 2（适用于 IO 密集型场景）
+#[allow(dead_code)]
+pub fn get_tokio_worker_threads() -> usize {
+    std::env::var("TOKIO_WORKER_THREADS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .map(|v: usize| v.max(4))
+        .unwrap_or_else(|| {
+            let cpu_cores = num_cpus::get();
+            cpu_cores.saturating_mul(2) // 默认为 CPU 核心数 * 2
+        })
+}
+
+/// 解析最大 blocking 线程数
+#[allow(dead_code)]
+pub fn get_max_blocking_threads() -> usize {
+    std::env::var("TOKIO_MAX_BLOCKING_THREADS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or_else(|| num_cpus::get() * 8) // 默认 CPU 核心数 * 8
 }

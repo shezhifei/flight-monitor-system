@@ -14,11 +14,12 @@ import {
   getFlightTypeDisplay,
   getMissionDisplay,
   getStandGateDisplay,
-  getStatusClassName,
+  getStatusTone,
   getTimeDisplay,
   getTimeToneClass,
   toggleRouteDisplayMode,
 } from './helpers';
+import UiPill from '../ui/UiPill.vue';
 
 const props = defineProps<{
   flight: Flight;
@@ -38,7 +39,7 @@ const flightNumbers = computed(() => getFlightNumbers(props.flight));
 const route = computed(() => getFlightEndpoints(props.flight, props.airportContext));
 const arrivalTime = computed(() => getTimeDisplay(props.flight, 'arrival'));
 const departureTime = computed(() => getTimeDisplay(props.flight, 'departure'));
-const statusClass = computed(() => getStatusClassName(props.flight.status));
+const statusTone = computed(() => getStatusTone(props.flight.status));
 const anomalyCount = computed(() => getAnomalyCountForFlight(props.flight as unknown as FlightModel));
 const anomalyBadgeClass = computed(() => getAnomalyBadgeClass(props.flight));
 const anomalySeverityLabel = computed(() => {
@@ -108,12 +109,14 @@ function handleKeydown(event: KeyboardEvent): void {
   >
     <div class="flight-header" :class="{ 'has-both': Boolean(flightNumbers.inbound && flightNumbers.outbound) }">
       <span v-if="flightNumbers.inbound" class="flight-number inbound" :class="[getFlightNumberStyleClass(flight, 'inbound'), { vip: Boolean(flight.inbound_leg?.is_vip) }]">{{ flightNumbers.inbound }}</span>
-      <span class="flight-status" :class="statusClass">{{ flight.status || '计划中' }}</span>
+      <UiPill :tone="statusTone">
+        {{ flight.status || '计划中' }}
+      </UiPill>
       <span v-if="flightNumbers.outbound && flightNumbers.outbound !== flightNumbers.inbound" class="flight-number outbound" :class="[getFlightNumberStyleClass(flight, 'outbound'), { vip: Boolean(flight.outbound_leg?.is_vip) }]">{{ flightNumbers.outbound }}</span>
       <span v-else-if="!flightNumbers.inbound" class="flight-number outbound" :class="[getFlightNumberStyleClass(flight, 'outbound'), { vip: Boolean(flight.outbound_leg?.is_vip) }]">{{ flightNumbers.combined }}</span>
     </div>
 
-    <div class="flight-route" style="cursor: pointer; user-select: none;" @dblclick.prevent="toggleRouteDisplayMode">
+    <div class="flight-route route-toggle" @dblclick.prevent="toggleRouteDisplayMode">
       <span class="flight-origin">{{ route.origin }}</span>
       <span class="flight-arrow">→</span>
       <template v-if="route.hasInbound && route.hasOutbound">
@@ -144,7 +147,7 @@ function handleKeydown(event: KeyboardEvent): void {
       </div>
     </div>
 
-    <div class="flight-info" style="margin-top: 8px; margin-bottom: 0;">
+    <div class="flight-info info-gap">
       <span class="flight-type" @dblclick="emit('edit-field', flightId, 'stand', 'text', flight.stand || '')">
         {{ getStandGateDisplay(flight) }}
       </span>
@@ -152,5 +155,18 @@ function handleKeydown(event: KeyboardEvent): void {
     </div>
   </article>
 </template>
+
+<style scoped>
+/* 内联收敛：航线双击切换与机位行间距走修饰类 */
+.flight-route.route-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.flight-info.info-gap {
+  margin-top: var(--s2);
+  margin-bottom: 0;
+}
+</style>
 
 

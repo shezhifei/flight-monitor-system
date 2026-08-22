@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import UiButton from '../../../components/ui/UiButton.vue';
 import type { ModelsTabForm } from '../composables/useAiConfigCenter';
 
-defineProps<{
+const props = defineProps<{
   modelsForm: ModelsTabForm;
   modelsLoading: boolean;
 }>();
+
+const form = computed(() => props.modelsForm);
 const emit = defineEmits<{
   addProvider: [];
   removeProvider: [index: number];
@@ -19,7 +23,7 @@ const emit = defineEmits<{
         <label for="model-config-version">配置版本</label>
         <input
           id="model-config-version"
-          v-model.number="modelsForm.config_version"
+          v-model.number="form.config_version"
           type="number"
           min="1"
           max="99"
@@ -31,7 +35,7 @@ const emit = defineEmits<{
         <label for="model-api-format">API 格式</label>
         <select
           id="model-api-format"
-          v-model="modelsForm.api_format"
+          v-model="form.api_format"
           class="form-select"
         >
           <option value="chat_completions">
@@ -51,7 +55,7 @@ const emit = defineEmits<{
       <label for="model-base-url">API Base URL <span class="provider-tag">default</span></label>
       <input
         id="model-base-url"
-        v-model="modelsForm.base_url"
+        v-model="form.base_url"
         type="text"
         class="form-input"
         placeholder="https://api.openai.com/v1"
@@ -61,7 +65,7 @@ const emit = defineEmits<{
       <label for="model-api-key">API Key <span class="provider-tag">default</span></label>
       <input
         id="model-api-key"
-        v-model="modelsForm.api_key"
+        v-model="form.api_key"
         type="password"
         class="form-input"
         autocomplete="off"
@@ -73,15 +77,15 @@ const emit = defineEmits<{
         <div class="tool-category-title">
           Provider 字典（附加）
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" @click="emit('addProvider')">
+        <UiButton variant="ghost" @click="emit('addProvider')">
           新增 Provider
-        </button>
+        </UiButton>
       </div>
-      <div v-if="modelsForm.providers.length === 0" class="empty-state-inline">
+      <div v-if="form.providers.length === 0" class="empty-state-inline">
         暂无附加 Provider（仅使用 default）
       </div>
       <div
-        v-for="(prov, idx) in modelsForm.providers"
+        v-for="(prov, idx) in form.providers"
         :key="`provider-${idx}`"
         class="provider-entry"
       >
@@ -133,14 +137,12 @@ const emit = defineEmits<{
           >
         </div>
         <div class="provider-entry-actions">
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            style="color:var(--color-error,#d32f2f);"
+          <UiButton
+            variant="danger"
             @click="emit('removeProvider', idx)"
           >
             删除
-          </button>
+          </UiButton>
         </div>
       </div>
     </div>

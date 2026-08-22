@@ -24,15 +24,6 @@ export interface BusinessCaseStatusMetadata {
   default_for_actions?: string[];
 }
 
-export const CASE_STATUS_CLASSES: Record<string, string> = {
-  INITIAL: 'case-initial',
-  PENDING: 'case-pending',
-  PROCESSING: 'case-processing',
-  SUCCESS: 'case-success',
-  COMPLETED: 'case-success',
-  FAILED: 'case-failed',
-};
-
 export const DEFAULT_CASE_STATUS_OPTIONS: BusinessCaseStatusMetadata[] = [
   { value: 'INITIAL', label: '初始', category: 'active', is_terminal: false, manual_transition_enabled: true, workflow_target_enabled: true },
   { value: 'PENDING', label: '待处理', category: 'active', is_terminal: false, manual_transition_enabled: true, workflow_target_enabled: true },
@@ -82,7 +73,7 @@ export function getCaseStatusOption(
 }
 
 export function formatCaseTime(isoString: string | null | undefined): string {
-  if (!isoString) return '--';
+  if (!isoString) return '—';
   return new Date(isoString).toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
@@ -101,7 +92,7 @@ export function formatCaseTimeRange(
     return start;
   }
   const end = formatCaseTime(finishedAt);
-  if (!createdAt || start === '--' || end === '--' || start === end) {
+  if (!createdAt || start === '—' || end === '—' || start === end) {
     return start;
   }
   try {
@@ -125,19 +116,35 @@ export function formatCaseTimeRange(
 
 export function getCaseStatusLabel(status: string | null | undefined, options: BusinessCaseStatusMetadata[]): string {
   const normalized = normalizeCaseStatusValue(status);
-  return getCaseStatusOption(normalized, options)?.label ?? status ?? '--';
+  return getCaseStatusOption(normalized, options)?.label ?? status ?? '—';
 }
 
-export function getCaseStatusClass(status: string | null | undefined, options: BusinessCaseStatusMetadata[]): string {
+/** 胶囊用的声（信号面 §2.4）：四声 + 无事态时的 mute，别在页面里各自映射一遍。 */
+export type CaseTone = 'mute' | 'act' | 'ok' | 'warn' | 'danger';
+
+const CASE_STATUS_TONES: Record<string, CaseTone> = {
+  INITIAL: 'mute',
+  PENDING: 'warn',
+  PROCESSING: 'act',
+  SUCCESS: 'ok',
+  COMPLETED: 'ok',
+  FAILED: 'danger',
+};
+
+export function getCaseStatusTone(
+  status: string | null | undefined,
+  options: BusinessCaseStatusMetadata[],
+): CaseTone {
   const normalized = normalizeCaseStatusValue(status);
+  const known = CASE_STATUS_TONES[normalized];
+  if (known) {
+    return known;
+  }
   const option = getCaseStatusOption(normalized, options);
-  if (CASE_STATUS_CLASSES[normalized]) {
-    return CASE_STATUS_CLASSES[normalized];
-  }
   if (option?.category === 'terminal' || option?.is_terminal) {
-    return 'case-success';
+    return 'ok';
   }
-  return '';
+  return 'mute';
 }
 
 export function getCaseDisplayName(
@@ -162,36 +169,6 @@ export function getCaseVisibilityLabel(
   return getBusinessCaseVisibilityInfo(caseData).scopeLabel;
 }
 
-export function isCommonCase(caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined): boolean {
-  return getBusinessCaseVisibilityInfo(caseData).isCommon;
-}
-
-export function getCaseReceiptStatusLabel(
-  caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined,
-): string | null {
-  const overall = String(getCaseReceiptProjection(caseData)?.summary?.overall_status || '').trim().toLowerCase();
-  if (!overall) {
-    return null;
-  }
-  if (overall === 'confirmed') {
-    return '回执完成';
-  }
-  if (overall === 'rejected') {
-    return '存在拒绝';
-  }
-  return '等待回执';
-}
-
-export function getCaseReceiptSummaryText(
-  caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined,
-): string | null {
-  const summary = getCaseReceiptProjection(caseData)?.summary;
-  if (!summary) {
-    return null;
-  }
-  return `已回执 ${summary.acknowledged_count} / 待回执 ${summary.pending_count} / 拒绝 ${summary.rejected_count}`;
-}
-
 export function getReceiptItemStatusLabel(item: BusinessCaseWorkflowReceiptItem): string {
   const status = String(item.ack_status || '').trim().toLowerCase();
   if (status === 'acknowledged') {
@@ -201,6 +178,17 @@ export function getReceiptItemStatusLabel(item: BusinessCaseWorkflowReceiptItem)
     return '已拒绝';
   }
   return '待回执';
+}
+
+export function getReceiptItemStatusTone(item: BusinessCaseWorkflowReceiptItem): CaseTone {
+  const status = String(item.ack_status || '').trim().toLowerCase();
+  if (status === 'acknowledged') {
+    return 'ok';
+  }
+  if (status === 'rejected') {
+    return 'danger';
+  }
+  return 'warn';
 }
 
 export function getReceiptItemAccountName(item: BusinessCaseWorkflowReceiptItem): string {
@@ -231,7 +219,20 @@ export function getReceiptSeverityLabel(receipt: BusinessCaseWorkflowReceiptProj
   if (severity === 'info') {
     return 'INFO';
   }
-  return severity ? severity.toUpperCase() : '--';
+  return severity ? severity.toUpperCase() : '—';
+}
+
+export function getReceiptSeverityTone(
+  receipt: BusinessCaseWorkflowReceiptProjection | null | undefined,
+): CaseTone {
+  const severity = String(receipt?.severity || '').trim().toLowerCase();
+  if (severity === 'critical') {
+    return 'danger';
+  }
+  if (severity === 'warning') {
+    return 'warn';
+  }
+  return 'mute';
 }
 
 export function hasRecordContent(value: Record<string, unknown> | null | undefined): boolean {
@@ -319,6 +320,19 @@ export function getWorkflowFormStatusLabel(
   return '只读';
 }
 
+export function getWorkflowFormStatusTone(
+  form: WorkflowTaskFormView,
+  caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined,
+): CaseTone {
+  if (form.can_submit) {
+    return 'warn';
+  }
+  if (form.latest_submission || getCaseWorkflowFormProjection(caseData, form.form_code)) {
+    return 'ok';
+  }
+  return 'mute';
+}
+
 export function getWorkflowFormMetaText(
   form: WorkflowTaskFormView,
   caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined,
@@ -358,62 +372,6 @@ export function getWorkflowProjectionMetaText(projection: BusinessCaseWorkflowFo
     parts.push(projection.submitted_department_name);
   }
   return parts.join(' · ');
-}
-
-export function getLatestWorkflowSubmissionTime(
-  caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined,
-  forms: WorkflowTaskFormView[] = [],
-): string | null {
-  const timestamps = forms
-    .map((form) => getWorkflowSubmissionTimestamp(form.latest_submission) || getWorkflowSubmissionTimestamp(getCaseWorkflowFormProjection(caseData, form.form_code)))
-    .filter((value): value is string => Boolean(value));
-
-  if (timestamps.length === 0) {
-    const latestProjection = getCaseWorkflowFormProjections(caseData)[0];
-    return latestProjection?.submitted_at || null;
-  }
-
-  return timestamps.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
-}
-
-export function getCaseWorkflowSummary(
-  caseData: BusinessCaseSummary | BusinessCaseDetail | null | undefined,
-  cachedForms: { forms?: WorkflowTaskFormView[] } | null | undefined,
-  hasLoaded: boolean,
-): { label: string; detail: string | null } {
-  const latestSubmittedAt = getLatestWorkflowSubmissionTime(caseData, cachedForms?.forms || []);
-
-  if (hasLoaded) {
-    const fillableCount = (cachedForms?.forms || []).filter((form) => form.can_submit).length;
-    if (fillableCount > 0) {
-      return {
-        label: '待填写',
-        detail: `当前有 ${fillableCount} 份待处理表单`,
-      };
-    }
-    if (latestSubmittedAt) {
-      return {
-        label: '已提交',
-        detail: `最近提交 ${formatCaseTime(latestSubmittedAt)}`,
-      };
-    }
-    return {
-      label: '无待处理',
-      detail: null,
-    };
-  }
-
-  if (latestSubmittedAt) {
-    return {
-      label: '最近提交',
-      detail: formatCaseTime(latestSubmittedAt),
-    };
-  }
-
-  return {
-    label: '未配置',
-    detail: null,
-  };
 }
 
 export function getCaseAuthorBadge(author: string | null | undefined): string {

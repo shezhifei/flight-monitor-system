@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import { useOntologyWorkbench } from './useOntologyWorkbench';
 import {
   idField,
@@ -84,9 +85,9 @@ function countLabel(n: number | undefined): string {
           <h1>本体资源台</h1>
           <p>
             飞机中心运行本体：换机、机位/登机口正式占用、分权建议与周转链接。
-            界面使用工作区 dual-theme token（<code>--ws-*</code> / 信号色 <code>--dh-signal-*</code>）。
+            界面使用信号面 token（<code>--face-*</code> / <code>--ink-*</code> / <code>--act</code>）。
           </p>
-          <div class="ontology-perm-bar" style="margin-top: 12px">
+          <div class="ontology-perm-bar">
             <span class="ontology-pill" :class="canRead ? 'tone-ok' : 'tone-muted'">read</span>
             <span class="ontology-pill" :class="canReassign ? 'tone-ok' : 'tone-muted'">reassign</span>
             <span class="ontology-pill" :class="canStand ? 'tone-ok' : 'tone-muted'">stand</span>
@@ -102,17 +103,19 @@ function countLabel(n: number | undefined): string {
       <section class="ontology-context" aria-label="上下文查询">
         <div class="ontology-field">
           <label>上下文类型</label>
-          <div class="ontology-seg" role="group" aria-label="查询模式">
+          <div class="ontology-seg" role="radiogroup" aria-label="查询模式">
             <button
               type="button"
-              :class="{ 'is-active': contextMode === 'flight' }"
+              role="radio"
+              :aria-checked="contextMode === 'flight'"
               @click="contextMode = 'flight'"
             >
               航班
             </button>
             <button
               type="button"
-              :class="{ 'is-active': contextMode === 'aircraft' }"
+              role="radio"
+              :aria-checked="contextMode === 'aircraft'"
               @click="contextMode = 'aircraft'"
             >
               机号
@@ -126,26 +129,26 @@ function countLabel(n: number | undefined): string {
             type="text"
             :placeholder="contextMode === 'flight' ? '例如 FL…' : '例如 B-1234'"
             @keyup.enter="loadContextView()"
-          />
+          >
         </div>
-        <div class="ontology-actions" style="margin: 0">
-          <button
-            type="button"
-            class="oc-btn oc-btn-primary"
+        <div class="ontology-actions flush">
+          <UiButton
+            variant="primary"
+            size="md"
             :disabled="loadingView || busy"
             @click="loadContextView()"
           >
             {{ loadingView ? '加载中…' : '加载资源视图' }}
-          </button>
-          <button
+          </UiButton>
+          <UiButton
             v-if="canConfirm"
-            type="button"
-            class="oc-btn oc-btn-secondary"
+            variant="tonal"
+            size="md"
             :disabled="busy"
             @click="confirmDrafts()"
           >
             确认 draft
-          </button>
+          </UiButton>
         </div>
       </section>
 
@@ -155,7 +158,7 @@ function countLabel(n: number | undefined): string {
           :key="tab.id"
           type="button"
           class="ontology-tab"
-          :class="{ 'is-active': activeTab === tab.id }"
+          :aria-selected="activeTab === tab.id"
           @click="activeTab = tab.id"
         >
           {{ tab.label }}
@@ -221,7 +224,9 @@ function countLabel(n: number | undefined): string {
         <div v-if="lastWarnings.length" class="ontology-alert warn" role="status">
           <strong>告警</strong>
           <ul class="ontology-json-list">
-            <li v-for="(w, i) in lastWarnings" :key="i">{{ w }}</li>
+            <li v-for="(w, i) in lastWarnings" :key="i">
+              {{ w }}
+            </li>
           </ul>
         </div>
       </section>
@@ -234,22 +239,32 @@ function countLabel(n: number | undefined): string {
         <div class="ontology-grid-2">
           <div class="ontology-field">
             <label for="reassign-flight-id">航班 ID</label>
-            <input id="reassign-flight-id" v-model="reassignForm.flight_id" type="text" placeholder="flight_id" />
+            <input
+              id="reassign-flight-id"
+              v-model="reassignForm.flight_id"
+              type="text"
+              placeholder="flight_id"
+            >
           </div>
           <div class="ontology-field">
             <label for="reassign-registration">新机号（原样）</label>
-            <input id="reassign-registration" v-model="reassignForm.new_registration" type="text" placeholder="B-xxxx" />
+            <input
+              id="reassign-registration"
+              v-model="reassignForm.new_registration"
+              type="text"
+              placeholder="B-xxxx"
+            >
           </div>
         </div>
         <div class="ontology-actions">
-          <button
-            type="button"
-            class="oc-btn oc-btn-primary"
+          <UiButton
+            variant="primary"
+            size="md"
             :disabled="busy || !canReassign"
             @click="submitReassign()"
           >
             提交换机
-          </button>
+          </UiButton>
         </div>
       </section>
 
@@ -266,49 +281,58 @@ function countLabel(n: number | undefined): string {
             <div class="ontology-grid-2">
               <div class="ontology-field">
                 <label for="stand-registration">机号</label>
-                <input id="stand-registration" v-model="standForm.registration" type="text" />
+                <input id="stand-registration" v-model="standForm.registration" type="text">
               </div>
               <div class="ontology-field">
                 <label for="stand-code">机位</label>
-                <input id="stand-code" v-model="standForm.stand_code" type="text" />
+                <input id="stand-code" v-model="standForm.stand_code" type="text">
               </div>
               <div class="ontology-field">
                 <label for="stand-starts">开始</label>
-                <input id="stand-starts" v-model="standForm.starts_at" type="datetime-local" />
+                <input id="stand-starts" v-model="standForm.starts_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="stand-ends">结束</label>
-                <input id="stand-ends" v-model="standForm.ends_at" type="datetime-local" />
+                <input id="stand-ends" v-model="standForm.ends_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="stand-kind">类型</label>
                 <select id="stand-kind" v-model="standForm.kind">
-                  <option value="normal">normal</option>
-                  <option value="moving">moving</option>
+                  <option value="normal">
+                    normal
+                  </option>
+                  <option value="moving">
+                    moving
+                  </option>
                 </select>
               </div>
               <div class="ontology-field">
                 <label for="stand-moving-to">拖曳目标机位</label>
-                <input id="stand-moving-to" v-model="standForm.moving_to_stand" type="text" :disabled="standForm.kind !== 'moving'" />
+                <input
+                  id="stand-moving-to"
+                  v-model="standForm.moving_to_stand"
+                  type="text"
+                  :disabled="standForm.kind !== 'moving'"
+                >
               </div>
               <div class="ontology-field">
                 <label for="stand-flight-id">关联航班（可选）</label>
-                <input id="stand-flight-id" v-model="standForm.flight_id" type="text" />
+                <input id="stand-flight-id" v-model="standForm.flight_id" type="text">
               </div>
               <label class="ontology-check">
-                <input v-model="standForm.sync_flight_plan" type="checkbox" />
+                <input v-model="standForm.sync_flight_plan" type="checkbox">
                 同步回写 Flight.stand
               </label>
             </div>
             <div class="ontology-actions">
-              <button
-                type="button"
-                class="oc-btn oc-btn-primary"
+              <UiButton
+                variant="primary"
+                size="md"
                 :disabled="busy || !canStand"
                 @click="submitAllocateStand()"
               >
                 分配机位
-              </button>
+              </UiButton>
             </div>
           </div>
 
@@ -317,48 +341,50 @@ function countLabel(n: number | undefined): string {
             <div class="ontology-grid-2">
               <div class="ontology-field">
                 <label for="gate-registration">机号</label>
-                <input id="gate-registration" v-model="gateForm.registration" type="text" />
+                <input id="gate-registration" v-model="gateForm.registration" type="text">
               </div>
               <div class="ontology-field">
                 <label for="gate-code">登机口</label>
-                <input id="gate-code" v-model="gateForm.gate_code" type="text" />
+                <input id="gate-code" v-model="gateForm.gate_code" type="text">
               </div>
               <div class="ontology-field">
                 <label for="gate-starts">开始</label>
-                <input id="gate-starts" v-model="gateForm.starts_at" type="datetime-local" />
+                <input id="gate-starts" v-model="gateForm.starts_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="gate-ends">结束</label>
-                <input id="gate-ends" v-model="gateForm.ends_at" type="datetime-local" />
+                <input id="gate-ends" v-model="gateForm.ends_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="gate-flight-id">关联航班（可选）</label>
-                <input id="gate-flight-id" v-model="gateForm.flight_id" type="text" />
+                <input id="gate-flight-id" v-model="gateForm.flight_id" type="text">
               </div>
               <label class="ontology-check">
-                <input v-model="gateForm.sync_flight_plan" type="checkbox" />
+                <input v-model="gateForm.sync_flight_plan" type="checkbox">
                 同步回写 Flight.gate
               </label>
             </div>
             <div class="ontology-actions">
-              <button
-                type="button"
-                class="oc-btn oc-btn-primary"
+              <UiButton
+                variant="primary"
+                size="md"
                 :disabled="busy || !canGate"
                 @click="submitAllocateGate()"
               >
                 分配登机口
-              </button>
+              </UiButton>
             </div>
           </div>
         </div>
 
-        <div class="ontology-card" style="margin-top: 16px" data-testid="active-occupations">
+        <div class="ontology-card stack" data-testid="active-occupations">
           <h3>当前机位占用</h3>
-          <p class="ontology-panel-desc" style="margin-top: 0">
+          <p class="ontology-panel-desc flush">
             先加载资源视图。点击「调整」填入下方表单，或直接「释放」。
           </p>
-          <div v-if="!activeOccupations.length" class="ontology-empty">暂无 active 机位占用</div>
+          <div v-if="!activeOccupations.length" class="ontology-empty">
+            暂无 active 机位占用
+          </div>
           <div v-else class="ontology-table-wrap">
             <table class="ontology-table">
               <thead>
@@ -381,49 +407,51 @@ function countLabel(n: number | undefined): string {
                     <span class="ontology-pill tone-ok">{{ occ.status || 'active' }}</span>
                   </td>
                   <td class="row-actions">
-                    <button
-                      type="button"
-                      class="oc-btn oc-btn-secondary"
+                    <UiButton
+                      variant="tonal"
                       :disabled="busy || !canStand"
                       @click="beginAdjustStand(occ)"
                     >
                       调整
-                    </button>
-                    <button
-                      type="button"
-                      class="oc-btn oc-btn-danger"
+                    </UiButton>
+                    <UiButton
+                      variant="danger"
                       :disabled="busy || !canStand"
                       @click="submitReleaseStand(occ)"
                     >
                       释放
-                    </button>
+                    </UiButton>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div v-if="standAdjustForm.id" class="ontology-card" style="margin-top: 12px" data-testid="stand-adjust-form">
+          <div v-if="standAdjustForm.id" class="ontology-card stack-sm" data-testid="stand-adjust-form">
             <h3>调整机位 · {{ standAdjustForm.id }}</h3>
             <div class="ontology-grid-2">
               <div class="ontology-field">
                 <label for="stand-adj-code">机位</label>
-                <input id="stand-adj-code" v-model="standAdjustForm.stand_code" type="text" />
+                <input id="stand-adj-code" v-model="standAdjustForm.stand_code" type="text">
               </div>
               <div class="ontology-field">
                 <label for="stand-adj-kind">类型</label>
                 <select id="stand-adj-kind" v-model="standAdjustForm.kind">
-                  <option value="normal">normal</option>
-                  <option value="moving">moving</option>
+                  <option value="normal">
+                    normal
+                  </option>
+                  <option value="moving">
+                    moving
+                  </option>
                 </select>
               </div>
               <div class="ontology-field">
                 <label for="stand-adj-starts">开始</label>
-                <input id="stand-adj-starts" v-model="standAdjustForm.starts_at" type="datetime-local" />
+                <input id="stand-adj-starts" v-model="standAdjustForm.starts_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="stand-adj-ends">结束</label>
-                <input id="stand-adj-ends" v-model="standAdjustForm.ends_at" type="datetime-local" />
+                <input id="stand-adj-ends" v-model="standAdjustForm.ends_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="stand-adj-moving">拖曳目标机位</label>
@@ -432,32 +460,39 @@ function countLabel(n: number | undefined): string {
                   v-model="standAdjustForm.moving_to_stand"
                   type="text"
                   :disabled="standAdjustForm.kind !== 'moving'"
-                />
+                >
               </div>
               <label class="ontology-check">
-                <input v-model="standAdjustForm.sync_flight_plan" type="checkbox" />
+                <input v-model="standAdjustForm.sync_flight_plan" type="checkbox">
                 同步回写 Flight.stand
               </label>
             </div>
             <div class="ontology-actions">
-              <button
-                type="button"
-                class="oc-btn oc-btn-primary"
+              <UiButton
+                variant="primary"
+                size="md"
                 :disabled="busy || !canStand"
                 @click="submitAdjustStand()"
               >
                 提交调整
-              </button>
-              <button type="button" class="oc-btn oc-btn-ghost" :disabled="busy" @click="clearStandAdjust()">
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="md"
+                :disabled="busy"
+                @click="clearStandAdjust()"
+              >
                 取消
-              </button>
+              </UiButton>
             </div>
           </div>
         </div>
 
-        <div class="ontology-card" style="margin-top: 16px" data-testid="active-assignments">
+        <div class="ontology-card stack" data-testid="active-assignments">
           <h3>当前登机口分配</h3>
-          <div v-if="!activeAssignments.length" class="ontology-empty">暂无 active 登机口分配</div>
+          <div v-if="!activeAssignments.length" class="ontology-empty">
+            暂无 active 登机口分配
+          </div>
           <div v-else class="ontology-table-wrap">
             <table class="ontology-table">
               <thead>
@@ -478,60 +513,63 @@ function countLabel(n: number | undefined): string {
                     <span class="ontology-pill tone-ok">{{ asn.status || 'active' }}</span>
                   </td>
                   <td class="row-actions">
-                    <button
-                      type="button"
-                      class="oc-btn oc-btn-secondary"
+                    <UiButton
+                      variant="tonal"
                       :disabled="busy || !canGate"
                       @click="beginAdjustGate(asn)"
                     >
                       调整
-                    </button>
-                    <button
-                      type="button"
-                      class="oc-btn oc-btn-danger"
+                    </UiButton>
+                    <UiButton
+                      variant="danger"
                       :disabled="busy || !canGate"
                       @click="submitReleaseGate(asn)"
                     >
                       释放
-                    </button>
+                    </UiButton>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div v-if="gateAdjustForm.id" class="ontology-card" style="margin-top: 12px" data-testid="gate-adjust-form">
+          <div v-if="gateAdjustForm.id" class="ontology-card stack-sm" data-testid="gate-adjust-form">
             <h3>调整登机口 · {{ gateAdjustForm.id }}</h3>
             <div class="ontology-grid-2">
               <div class="ontology-field">
                 <label for="gate-adj-code">登机口</label>
-                <input id="gate-adj-code" v-model="gateAdjustForm.gate_code" type="text" />
+                <input id="gate-adj-code" v-model="gateAdjustForm.gate_code" type="text">
               </div>
               <div class="ontology-field">
                 <label for="gate-adj-starts">开始</label>
-                <input id="gate-adj-starts" v-model="gateAdjustForm.starts_at" type="datetime-local" />
+                <input id="gate-adj-starts" v-model="gateAdjustForm.starts_at" type="datetime-local">
               </div>
               <div class="ontology-field">
                 <label for="gate-adj-ends">结束</label>
-                <input id="gate-adj-ends" v-model="gateAdjustForm.ends_at" type="datetime-local" />
+                <input id="gate-adj-ends" v-model="gateAdjustForm.ends_at" type="datetime-local">
               </div>
               <label class="ontology-check">
-                <input v-model="gateAdjustForm.sync_flight_plan" type="checkbox" />
+                <input v-model="gateAdjustForm.sync_flight_plan" type="checkbox">
                 同步回写 Flight.gate
               </label>
             </div>
             <div class="ontology-actions">
-              <button
-                type="button"
-                class="oc-btn oc-btn-primary"
+              <UiButton
+                variant="primary"
+                size="md"
                 :disabled="busy || !canGate"
                 @click="submitAdjustGate()"
               >
                 提交调整
-              </button>
-              <button type="button" class="oc-btn oc-btn-ghost" :disabled="busy" @click="clearGateAdjust()">
+              </UiButton>
+              <UiButton
+                variant="ghost"
+                size="md"
+                :disabled="busy"
+                @click="clearGateAdjust()"
+              >
                 取消
-              </button>
+              </UiButton>
             </div>
           </div>
         </div>
@@ -543,44 +581,60 @@ function countLabel(n: number | undefined): string {
           机位建议仅 AOC 可接受，登机口建议仅 TOC 可接受；接受即回写计划字段并落正式资源。
         </p>
 
-        <div class="ontology-card" style="margin-bottom: 16px">
+        <div class="ontology-card gap-bottom">
           <h3>新建建议</h3>
           <div class="ontology-grid-3">
             <div class="ontology-field">
               <label>航班 ID</label>
-              <input v-model="suggestionForm.flight_id" type="text" />
+              <input v-model="suggestionForm.flight_id" type="text">
             </div>
             <div class="ontology-field">
               <label>类型</label>
               <select v-model="suggestionForm.kind">
-                <option value="stand">stand</option>
-                <option value="gate">gate</option>
+                <option value="stand">
+                  stand
+                </option>
+                <option value="gate">
+                  gate
+                </option>
               </select>
             </div>
             <div class="ontology-field">
               <label>建议值</label>
-              <input v-model="suggestionForm.suggested_value" type="text" />
+              <input v-model="suggestionForm.suggested_value" type="text">
             </div>
             <div class="ontology-field">
               <label>当前值</label>
-              <input v-model="suggestionForm.current_value" type="text" />
+              <input v-model="suggestionForm.current_value" type="text">
             </div>
-            <div class="ontology-field" style="grid-column: span 2">
+            <div class="ontology-field span-2">
               <label>原因</label>
-              <input v-model="suggestionForm.reason" type="text" />
+              <input v-model="suggestionForm.reason" type="text">
             </div>
           </div>
           <div class="ontology-actions">
-            <button type="button" class="oc-btn oc-btn-primary" :disabled="busy" @click="submitCreateSuggestion()">
+            <UiButton
+              variant="primary"
+              size="md"
+              :disabled="busy"
+              @click="submitCreateSuggestion()"
+            >
               创建建议
-            </button>
-            <button type="button" class="oc-btn oc-btn-secondary" :disabled="busy" @click="loadSuggestions()">
+            </UiButton>
+            <UiButton
+              variant="tonal"
+              size="md"
+              :disabled="busy"
+              @click="loadSuggestions()"
+            >
               刷新列表
-            </button>
+            </UiButton>
           </div>
         </div>
 
-        <div v-if="!suggestions.length" class="ontology-empty">暂无建议</div>
+        <div v-if="!suggestions.length" class="ontology-empty">
+          暂无建议
+        </div>
         <div v-else class="ontology-table-wrap">
           <table class="ontology-table">
             <thead>
@@ -604,26 +658,22 @@ function countLabel(n: number | undefined): string {
                 </td>
                 <td>
                   <div class="row-actions">
-                    <button
+                    <UiButton
                       v-if="item.status === 'pending'"
-                      type="button"
-                      class="oc-btn oc-btn-primary"
-                      style="height: 30px; padding: 0 10px; font-size: 0.78rem"
+                      variant="primary"
                       :disabled="busy"
                       @click="acceptSuggestion(item)"
                     >
                       接受
-                    </button>
-                    <button
+                    </UiButton>
+                    <UiButton
                       v-if="item.status === 'pending'"
-                      type="button"
-                      class="oc-btn oc-btn-danger"
-                      style="height: 30px; padding: 0 10px; font-size: 0.78rem"
+                      variant="danger"
                       :disabled="busy"
                       @click="rejectSuggestion(item)"
                     >
                       驳回
-                    </button>
+                    </UiButton>
                   </div>
                 </td>
               </tr>
@@ -638,32 +688,46 @@ function countLabel(n: number | undefined): string {
           任务对链接（进港↔出港）。同机为 active，异机为 broken。支持自动扫描建链。
         </p>
 
-        <div class="ontology-card" style="margin-bottom: 16px">
+        <div class="ontology-card gap-bottom">
           <h3>手工建链</h3>
           <div class="ontology-grid-3">
             <div class="ontology-field">
               <label>进港航班</label>
-              <input v-model="linkForm.inbound_flight_id" type="text" />
+              <input v-model="linkForm.inbound_flight_id" type="text">
             </div>
             <div class="ontology-field">
               <label>出港航班</label>
-              <input v-model="linkForm.outbound_flight_id" type="text" />
+              <input v-model="linkForm.outbound_flight_id" type="text">
             </div>
             <div class="ontology-field">
               <label>来源</label>
               <select v-model="linkForm.source">
-                <option value="manual">manual</option>
-                <option value="auto">auto</option>
+                <option value="manual">
+                  manual
+                </option>
+                <option value="auto">
+                  auto
+                </option>
               </select>
             </div>
           </div>
           <div class="ontology-actions">
-            <button type="button" class="oc-btn oc-btn-primary" :disabled="busy" @click="submitCreateLink()">
+            <UiButton
+              variant="primary"
+              size="md"
+              :disabled="busy"
+              @click="submitCreateLink()"
+            >
               创建链接
-            </button>
-            <button type="button" class="oc-btn oc-btn-secondary" :disabled="busy" @click="runAutoScan()">
+            </UiButton>
+            <UiButton
+              variant="tonal"
+              size="md"
+              :disabled="busy"
+              @click="runAutoScan()"
+            >
               自动扫描建链
-            </button>
+            </UiButton>
           </div>
           <div v-if="lastScan" class="ontology-alert info" role="status">
             上次扫描：评估 {{ lastScan.evaluated }}，新建 {{ lastScan.created.length }}，
@@ -672,7 +736,9 @@ function countLabel(n: number | undefined): string {
           </div>
         </div>
 
-        <div v-if="!links.length" class="ontology-empty">当前上下文暂无周转链接</div>
+        <div v-if="!links.length" class="ontology-empty">
+          当前上下文暂无周转链接
+        </div>
         <div v-else class="ontology-table-wrap">
           <table class="ontology-table">
             <thead>
@@ -695,16 +761,14 @@ function countLabel(n: number | undefined): string {
                 </td>
                 <td>{{ link.source }}</td>
                 <td>
-                  <button
+                  <UiButton
                     v-if="link.status === 'active'"
-                    type="button"
-                    class="oc-btn oc-btn-danger"
-                    style="height: 30px; padding: 0 10px; font-size: 0.78rem"
+                    variant="danger"
                     :disabled="busy"
                     @click="breakLink(link)"
                   >
                     拆链
-                  </button>
+                  </UiButton>
                   <span v-else class="ontology-pill tone-muted">{{ link.broken_reason || '已拆' }}</span>
                 </td>
               </tr>

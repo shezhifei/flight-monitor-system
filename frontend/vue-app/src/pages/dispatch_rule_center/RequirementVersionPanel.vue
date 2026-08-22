@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 import type {
   CrewSlotRequirement,
   EquipmentRequirement,
@@ -102,6 +104,28 @@ function onFieldChange(): void {
   emit('dirty', true);
 }
 
+/* 行内下拉：数组行逐行回写，不走 computed 桥 */
+const equipmentTypeOptions = computed(() => [
+  { value: '', label: '— 任意 —' },
+  ...props.equipmentTypes.map((eq) => ({
+    value: eq.id,
+    label: `${eq.name} (${eq.code || eq.id})`,
+  })),
+]);
+
+function setEquipmentType(row: EquipmentRequirement, value: string): void {
+  row.equipment_type_id = value || null;
+  onFieldChange();
+}
+
+const compareOptions = computed(() => [
+  { value: '', label: '— 选择历史版本 —' },
+  ...versionsForTask.value.map((v) => ({
+    value: v.id,
+    label: `v${v.version_no} · ${v.status}`,
+  })),
+]);
+
 const compareVersion = computed(() =>
   versionsForTask.value.find((v) => v.id === compareVersionId.value) ?? null,
 );
@@ -153,36 +177,32 @@ function publishVersion(): void {
         </p>
       </div>
       <div class="head-actions">
-        <button
-          type="button"
-          class="btn"
+        <UiButton
           :disabled="disabled || saving"
           @click="saveDraft"
         >
           {{ saving ? '保存中…' : '保存草稿' }}
-        </button>
-        <button
-          type="button"
-          class="btn primary"
+        </UiButton>
+        <UiButton
+          variant="primary"
           :disabled="disabled || saving"
           @click="publishVersion"
         >
           发布为新版本
-        </button>
+        </UiButton>
       </div>
     </header>
 
     <div class="section">
       <div class="section-head">
         <h4>机组岗位需求</h4>
-        <button
-          type="button"
-          class="ghost-btn"
+        <UiButton
+          variant="quiet"
           :disabled="disabled"
           @click="addCrew"
         >
           + 新增岗位
-        </button>
+        </UiButton>
       </div>
       <table v-if="crewRequirements.length" class="req-table">
         <thead>
@@ -226,14 +246,13 @@ function publishVersion(): void {
             <td><input v-model="row.exclusive_group" type="text" @input="onFieldChange"></td>
             <td><input v-model="row.remarks" type="text" @input="onFieldChange"></td>
             <td>
-              <button
-                type="button"
-                class="ghost-btn danger"
+              <UiButton
+                variant="danger"
                 :disabled="disabled"
                 @click="removeCrew(idx)"
               >
                 移除
-              </button>
+              </UiButton>
             </td>
           </tr>
         </tbody>
@@ -246,14 +265,13 @@ function publishVersion(): void {
     <div class="section">
       <div class="section-head">
         <h4>设备需求</h4>
-        <button
-          type="button"
-          class="ghost-btn"
+        <UiButton
+          variant="quiet"
           :disabled="disabled"
           @click="addEquipment"
         >
           + 新增设备
-        </button>
+        </UiButton>
       </div>
       <table v-if="equipmentRequirements.length" class="req-table">
         <thead>
@@ -278,14 +296,13 @@ function publishVersion(): void {
               >
             </td>
             <td>
-              <select v-model="row.equipment_type_id" @change="onFieldChange">
-                <option :value="null">
-                  — 任意 —
-                </option>
-                <option v-for="eq in equipmentTypes" :key="eq.id" :value="eq.id">
-                  {{ eq.name }} ({{ eq.code || eq.id }})
-                </option>
-              </select>
+              <UiSelect
+                :model-value="row.equipment_type_id ?? ''"
+                :options="equipmentTypeOptions"
+                label="设备类型"
+                min-width="100%"
+                @update:model-value="setEquipmentType(row, $event)"
+              />
             </td>
             <td>
               <input
@@ -303,14 +320,13 @@ function publishVersion(): void {
             <td><input v-model="row.driver_qualification_code" type="text" @input="onFieldChange"></td>
             <td><input v-model="row.remarks" type="text" @input="onFieldChange"></td>
             <td>
-              <button
-                type="button"
-                class="ghost-btn danger"
+              <UiButton
+                variant="danger"
                 :disabled="disabled"
                 @click="removeEquipment(idx)"
               >
                 移除
-              </button>
+              </UiButton>
             </td>
           </tr>
         </tbody>
@@ -336,14 +352,11 @@ function publishVersion(): void {
     <div class="section">
       <div class="section-head">
         <h4>版本对比</h4>
-        <select v-model="compareVersionId">
-          <option value="">
-            — 选择历史版本 —
-          </option>
-          <option v-for="v in versionsForTask" :key="v.id" :value="v.id">
-            v{{ v.version_no }} · {{ v.status }}
-          </option>
-        </select>
+        <UiSelect
+          v-model="compareVersionId"
+          :options="compareOptions"
+          label="版本对比"
+        />
       </div>
       <div v-if="compareSummary" class="compare">
         <div>状态: <strong>{{ compareSummary.status }}</strong></div>
@@ -359,77 +372,123 @@ function publishVersion(): void {
 </template>
 
 <style scoped>
+/* 按钮归 UiButton、下拉归 UiSelect；这里只留需求表格的行内编辑 */
 .requirement-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--s4);
 }
+
 .head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 }
-.head h3 { margin: 0; font-size: 16px; }
-.muted { font-size: 12px; color: var(--text-tertiary); margin: 4px 0 0; }
-.head-actions { display: flex; gap: 8px; }
-.btn {
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-card);
-  padding: 6px 14px;
-  cursor: pointer;
-  font-size: 13px;
+
+.head h3 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
-.btn.primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn:disabled, .ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ghost-btn {
-  border: none;
-  background: transparent;
-  color: var(--system-blue);
-  cursor: pointer;
-  font-size: 12px;
+
+.muted {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  margin: var(--s1) 0 0;
 }
-.ghost-btn.danger { color: var(--system-red); }
-.section { border: 1px solid var(--border-light); border-radius: 8px; padding: 12px; }
+
+.head-actions {
+  display: flex;
+  gap: var(--s2);
+}
+
+.section {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: var(--s3);
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--s2);
 }
-.section-head h4 { margin: 0; font-size: 13px; }
+
+.section-head h4 {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+
 .req-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--fs-label);
 }
-.req-table th, .req-table td {
-  border: 1px solid #f1f1f1;
-  padding: 4px 6px;
+
+.req-table th,
+.req-table td {
+  border: 1px solid var(--line);
+  padding: var(--s1) var(--s2);
 }
-.req-table input, .req-table select {
+
+.req-table input {
   width: 100%;
   border: 1px solid transparent;
   background: transparent;
-  font-size: 12px;
+  font-size: var(--fs-label);
+  color: var(--ink);
+  font-family: inherit;
 }
-.req-table input:focus, .req-table select:focus {
-  border-color: var(--system-blue);
+
+/* 行内编辑：聚焦才描边，不抢表格视线 */
+.req-table input:focus {
+  border-color: var(--act);
   outline: none;
 }
-.checkbox { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; }
-.empty { padding: 16px; text-align: center; color: var(--text-tertiary); font-size: 12px; }
+
+.checkbox {
+  display: inline-flex;
+  gap: var(--s1);
+  align-items: center;
+  font-size: var(--fs-label);
+}
+
+.checkbox input {
+  accent-color: var(--act);
+}
+
+.empty {
+  padding: var(--s4);
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
+}
+
 .notes {
   width: 100%;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  padding: 6px;
-  font-size: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-cell);
+  padding: var(--s2);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: var(--face-page);
+  font-family: inherit;
+  box-sizing: border-box;
 }
+
+.notes:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
 .compare {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  font-size: 12px;
+  gap: var(--s2);
+  font-size: var(--fs-label);
 }
 </style>

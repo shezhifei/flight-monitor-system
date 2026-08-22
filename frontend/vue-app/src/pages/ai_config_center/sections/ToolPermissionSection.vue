@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ModelsTabForm } from '../composables/useAiConfigCenter';
 
-defineProps<{
+const props = defineProps<{
   modelsForm: ModelsTabForm;
   modelsLoading: boolean;
   toolSourceOptions: { value: string; label: string }[];
@@ -9,6 +10,8 @@ defineProps<{
   deniedToolsSet: Set<string>;
   allowedToolCategoriesSet: Set<string>;
 }>();
+
+const form = computed(() => props.modelsForm);
 const emit = defineEmits<{
   toggleToolSource: [value: string, enabled: boolean];
   toggleAllowedToolCategory: [category: string, enabled: boolean];
@@ -29,11 +32,11 @@ const emit = defineEmits<{
         </div>
         <div class="checkbox-grid">
           <label class="checkbox-label">
-            <input v-model="modelsForm.tooling_enabled" type="checkbox">
+            <input v-model="form.tooling_enabled" type="checkbox">
             <span>启用工具调用</span>
           </label>
           <label class="checkbox-label">
-            <input v-model="modelsForm.tooling_allow_parallel" type="checkbox">
+            <input v-model="form.tooling_allow_parallel" type="checkbox">
             <span>允许并行工具</span>
           </label>
         </div>
@@ -42,7 +45,7 @@ const emit = defineEmits<{
             <label for="tooling-max-rounds">最大轮数</label>
             <input
               id="tooling-max-rounds"
-              v-model.number="modelsForm.tooling_max_rounds"
+              v-model.number="form.tooling_max_rounds"
               type="number"
               min="0"
               max="20"
@@ -54,7 +57,7 @@ const emit = defineEmits<{
             <label for="write-action-policy">写动作策略</label>
             <select
               id="write-action-policy"
-              v-model="modelsForm.write_action_policy"
+              v-model="form.write_action_policy"
               class="form-select"
             >
               <option value="proposal_only">
@@ -76,7 +79,7 @@ const emit = defineEmits<{
           >
             <input
               type="checkbox"
-              :checked="modelsForm.allowed_tool_sources.includes(source.value)"
+              :checked="form.allowed_tool_sources.includes(source.value)"
               @change="emit('toggleToolSource', source.value, ($event.target as HTMLInputElement).checked)"
             >
             <span>{{ source.label }}</span>
@@ -106,7 +109,7 @@ const emit = defineEmits<{
     </div>
 
     <p class="models-section-hint">
-      取消勾选具体工具即列入 denied_tools，禁止该实体调用对应工具。已禁用：{{ modelsForm.denied_tools.length }}
+      取消勾选具体工具即列入 denied_tools，禁止该实体调用对应工具。已禁用：{{ form.denied_tools.length }}
     </p>
     <div v-if="Object.keys(categoryToolMap).length === 0" class="empty-state-inline">
       暂无工具分类
@@ -143,15 +146,15 @@ const emit = defineEmits<{
     </p>
     <div class="form-row">
       <label class="checkbox-label form-group">
-        <input v-model="modelsForm.subagents_enabled" type="checkbox">
+        <input v-model="form.subagents_enabled" type="checkbox">
         <span>启用 Subagents</span>
       </label>
       <label class="checkbox-label form-group">
-        <input v-model="modelsForm.subagents_inherit_parent_context" type="checkbox">
+        <input v-model="form.subagents_inherit_parent_context" type="checkbox">
         <span>继承父上下文摘要</span>
       </label>
       <label class="checkbox-label form-group">
-        <input v-model="modelsForm.subagents_require_tool_calling_capability" type="checkbox">
+        <input v-model="form.subagents_require_tool_calling_capability" type="checkbox">
         <span>要求模型支持工具调用</span>
       </label>
     </div>
@@ -159,7 +162,7 @@ const emit = defineEmits<{
       <label for="subagents-entities">可委派实体 ID</label>
       <textarea
         id="subagents-entities"
-        v-model="modelsForm.subagents_allowed_entity_ids"
+        v-model="form.subagents_allowed_entity_ids"
         class="form-textarea form-textarea-mono"
         rows="3"
         placeholder="flight_dispatcher, ops_researcher"
@@ -170,7 +173,7 @@ const emit = defineEmits<{
         <label for="subagents-max-depth">最大委派深度</label>
         <input
           id="subagents-max-depth"
-          v-model.number="modelsForm.subagents_max_depth"
+          v-model.number="form.subagents_max_depth"
           type="number"
           min="1"
           max="5"
@@ -182,7 +185,7 @@ const emit = defineEmits<{
         <label for="subagents-max-concurrency">最大并发</label>
         <input
           id="subagents-max-concurrency"
-          v-model.number="modelsForm.subagents_max_concurrency"
+          v-model.number="form.subagents_max_concurrency"
           type="number"
           min="1"
           max="16"
@@ -195,7 +198,7 @@ const emit = defineEmits<{
       <label for="subagents-handoff-prompt">委派 Prompt</label>
       <textarea
         id="subagents-handoff-prompt"
-        v-model="modelsForm.subagents_handoff_prompt"
+        v-model="form.subagents_handoff_prompt"
         class="form-textarea form-textarea-mono"
         rows="4"
         placeholder="描述何时委派、如何汇总结果、哪些动作仍需父实体审批"

@@ -382,31 +382,6 @@ export function getRouteEndpoint(
   return getStationListDisplay(flight, legType, fieldName, fieldMode);
 }
 
-export function getRouteSummary(
-  flight: Flight,
-  airportContext: Partial<AirportContext> | null | undefined,
-  fieldMode: 'code' | 'name' = 'code',
-): string {
-  const inboundNo = getLegField(flight, 'inbound', 'flight_no');
-  const outboundNo = getLegField(flight, 'outbound', 'flight_no');
-  const origin = getRouteEndpoint(flight, 'inbound', fieldMode)
-    || getStationListDisplay(flight, 'outbound', 'origin_stations', fieldMode);
-  const destination = getRouteEndpoint(flight, 'outbound', fieldMode)
-    || getStationListDisplay(flight, 'inbound', 'destination_stations', fieldMode);
-  const airportLabel = getAirportDisplayValue(airportContext, fieldMode);
-
-  if (inboundNo && outboundNo) {
-    return `${origin || '--'} -> ${airportLabel} -> ${destination || '--'}`;
-  }
-  if (inboundNo) {
-    return `${origin || '--'} -> ${airportLabel}`;
-  }
-  if (outboundNo) {
-    return `${airportLabel} -> ${destination || '--'}`;
-  }
-  return `${origin || '--'} -> ${destination || '--'}`;
-}
-
 export function isWideBodyAircraft(aircraftTypeDetail: unknown): boolean {
   const code = String(aircraftTypeDetail ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (!code) {

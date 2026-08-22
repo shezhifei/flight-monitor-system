@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import type { OntologyObject, OntologyAction } from '../composables/useAiConfigCenter';
 import SvgIcon from '../../../components/ui/SvgIcon.vue';
+import UiBanner from '../../../components/ui/UiBanner.vue';
+import UiButton from '../../../components/ui/UiButton.vue';
+import UiPill from '../../../components/ui/UiPill.vue';
+import UiSearch from '../../../components/ui/UiSearch.vue';
+import UiSkeleton from '../../../components/ui/UiSkeleton.vue';
+import EmptyState from '../../../components/ui/EmptyState.vue';
 
 defineProps<{
   activeTab: 'objects' | 'actions';
@@ -14,15 +20,18 @@ const emit = defineEmits<{
   refresh: [];
 }>();
 
-function getRiskBadgeClass(level: string): string {
-  const map: Record<string, string> = {
-    LOW: 'badge-low',
-    NORMAL: 'badge-normal',
-    MEDIUM: 'badge-medium',
-    HIGH: 'badge-high',
-    CRITICAL: 'badge-critical',
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+/* 风险等级 → 四声：低=ok，常规=mute，中=warn，高/严重=danger */
+function getRiskTone(level: string): PillTone {
+  const map: Record<string, PillTone> = {
+    LOW: 'ok',
+    NORMAL: 'mute',
+    MEDIUM: 'warn',
+    HIGH: 'danger',
+    CRITICAL: 'danger',
   };
-  return map[level] || 'badge-normal';
+  return map[level] || 'mute';
 }
 </script>
 
@@ -41,36 +50,35 @@ function getRiskBadgeClass(level: string): string {
       </div>
     </div>
 
-    <div class="warning-banner">
+    <UiBanner tone="warn" class="readonly-banner">
       <SvgIcon src="/frontend/icons/forbidden.svg" />
-      <strong>Ontology 只读视图：</strong> 本页展示 Rust API 当前生效的对象与动作定义；变更请通过受控后端配置流程完成。
-    </div>
+      <span><strong>Ontology 只读视图：</strong> 本页展示 Rust API 当前生效的对象与动作定义；变更请通过受控后端配置流程完成。</span>
+    </UiBanner>
 
     <div class="content-body">
       <div class="section-toolbar">
-        <div class="search-group">
-          <span class="search-icon"><SvgIcon src="/frontend/icons/search.svg" :size="16" /></span>
-          <input
-            :value="searchQuery"
-            type="text"
-            class="search-input"
-            :placeholder="activeTab === 'objects' ? '搜索对象 (名称/描述/标签)...' : '搜索动作 (名称/对象类型/描述)...'"
-            @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-          >
-        </div>
+        <UiSearch
+          :model-value="searchQuery"
+          label="搜索对象或动作"
+          :placeholder="activeTab === 'objects' ? '搜索对象 (名称/描述/标签)...' : '搜索动作 (名称/对象类型/描述)...'"
+          @update:model-value="emit('update:searchQuery', $event)"
+        />
         <div class="toolbar-right">
-          <button class="btn btn-secondary" @click="emit('refresh')">
-            <SvgIcon src="/frontend/icons/refresh.svg" :size="14" style="vertical-align: -2px;" />
+          <UiButton variant="ghost" @click="emit('refresh')">
+            <SvgIcon src="/frontend/icons/refresh.svg" :size="14" />
             刷新
-          </button>
+          </UiButton>
         </div>
       </div>
 
-      <div v-if="loading" class="loading-container">
-        <div class="spinner" />
-        <p style="margin-top:16px;color:#64748b">
-          正在加载数据...
-        </p>
+      <div
+        v-if="loading"
+        class="loading-skeleton"
+        role="status"
+        aria-busy="true"
+        aria-label="正在加载数据"
+      >
+        <UiSkeleton v-for="i in 6" :key="i" height="36px" />
       </div>
 
       <div v-else-if="activeTab === 'objects'" class="table-container">
@@ -106,21 +114,23 @@ function getRiskBadgeClass(level: string): string {
               </td>
               <td>
                 <div class="tags-cell">
-                  <span v-for="tag in obj.tags.slice(0, 2)" :key="tag" class="tag">{{ tag }}</span>
-                  <span v-if="obj.tags.length > 2" class="tag tag-more">+{{ obj.tags.length - 2 }}</span>
+                  <UiPill v-for="tag in obj.tags.slice(0, 2)" :key="tag" tone="act">
+                    {{ tag }}
+                  </UiPill>
+                  <UiPill v-if="obj.tags.length > 2" tone="mute">
+                    +{{ obj.tags.length - 2 }}
+                  </UiPill>
                 </div>
               </td>
               <td>
-                <span :class="['badge', obj.is_active ? 'badge-green' : 'badge-gray']">
+                <UiPill :tone="obj.is_active ? 'ok' : 'mute'">
                   {{ obj.is_active ? '启用' : '禁用' }}
-                </span>
+                </UiPill>
               </td>
             </tr>
           </tbody>
         </table>
-        <div v-if="filteredObjects.length === 0" class="empty-state">
-          <p>暂无数据</p>
-        </div>
+        <EmptyState v-if="filteredObjects.length === 0" icon="search" title="暂无数据" />
       </div>
 
       <div v-else class="table-container">
@@ -144,7 +154,9 @@ function getRiskBadgeClass(level: string): string {
                 </div>
               </td>
               <td>
-                <span class="badge badge-blue">{{ action.object_type }}</span>
+                <UiPill tone="act">
+                  {{ action.object_type }}
+                </UiPill>
               </td>
               <td class="cell-desc">
                 {{ action.description || '-' }}
@@ -153,27 +165,38 @@ function getRiskBadgeClass(level: string): string {
                 {{ action.parameters.length }}
               </td>
               <td>
-                <span :class="['badge', getRiskBadgeClass(action.risk_level)]">
+                <UiPill :tone="getRiskTone(action.risk_level)">
                   {{ action.risk_level }}
-                </span>
+                </UiPill>
               </td>
               <td>
-                <span :class="['badge', action.requires_approval ? 'badge-orange' : 'badge-gray']">
+                <UiPill :tone="action.requires_approval ? 'warn' : 'mute'">
                   {{ action.requires_approval ? '是' : '否' }}
-                </span>
+                </UiPill>
               </td>
               <td>
-                <span :class="['badge', action.is_active ? 'badge-green' : 'badge-gray']">
+                <UiPill :tone="action.is_active ? 'ok' : 'mute'">
                   {{ action.is_active ? '启用' : '禁用' }}
-                </span>
+                </UiPill>
               </td>
             </tr>
           </tbody>
         </table>
-        <div v-if="filteredActions.length === 0" class="empty-state">
-          <p>暂无数据</p>
-        </div>
+        <EmptyState v-if="filteredActions.length === 0" icon="search" title="暂无数据" />
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 私造件归库后的页面余量：只读横幅与骨架行的排版，形都在库件里 */
+.readonly-banner {
+  margin-bottom: var(--s3);
+}
+
+.loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+</style>

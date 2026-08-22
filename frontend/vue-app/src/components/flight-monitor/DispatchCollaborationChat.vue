@@ -1,8 +1,20 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDispatchChat, type ChatGroup, type ChatMessage } from '@/composables/useDispatchChat';
+import { useAuth } from '@/composables/useAuth';
 import UiModal from '../ui/UiModal.vue';
+import UiPill from '../ui/UiPill.vue';
+import UiBanner from '../ui/UiBanner.vue';
+import UiCheckChip from '../ui/UiCheckChip.vue';
+import ChatMessageList from '../ui/ChatMessageList.vue';
+import ChatSender from '../ui/ChatSender.vue';
 
+/**
+ * 协同群聊：左边一列群，右边一间房。
+ * 气泡、Markdown、滚到底、翻旧话都是 ChatMessageList 的活；
+ * 输入框、字数、发送钮是 ChatSender 的活。这里只做两件事：
+ * 把群列表铺开，把服务端的消息形状翻成会话流认得的形状。
+ */
 const props = defineProps<{
   flightId?: string | null;
   groupId?: string;
@@ -34,6 +46,8 @@ const {
   loadMoreMessages,
 } = useDispatchChat();
 
+const auth = useAuth();
+
 function openGroup(groupId: string) {
   return selectChatGroup(groupId, { refreshMessages: true, markRead: true });
 }
@@ -41,11 +55,10 @@ function openGroup(groupId: string) {
 const inputDraft = ref('');
 const atAll = ref(false);
 
-const messageListRef = ref<HTMLElement | null>(null);
-const inputRef = ref<HTMLTextAreaElement | null>(null);
-
 const enabled = computed(() => props.enabled ?? true);
 const selectedGroup = computed<ChatGroup | null>(() => activeGroup.value);
+
+const groupTitle = (group: ChatGroup) => group.group_name || group.name || group.group_id;
 
 const isGroupArchived = (group: ChatGroup | null) => {
   if (!group) return false;
@@ -76,52 +89,82 @@ const truncateText = (text: string, limit = 180) => {
   return `${normalized.slice(0, Math.max(0, limit - 1))}…`;
 };
 
-const formatMessageLines = (content?: string) => {
-  return String(content ?? '').split(/\r?\n/);
-};
+/** 会话流认的一条话，外加本页要在气泡里显的两样（发话人、@全体）。 */
+interface StreamMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  time?: string;
+  sender: string;
+  atAll: boolean;
+}
 
-const isMine = (msg: ChatMessage) => {
-  const senderId = String(msg.sender_user_id || msg.sender_id || '').trim();
-  if (!senderId) return false;
-  return false;
-};
+/** 我的身份牌：服务端回填的发话人可能是 id、user_id 或 username 里的任一个。 */
+function currentIdentity(): Set<string> {
+  const user = auth.getUser();
+  const ids = [user?.id, user?.sub, user?.user_id, user?.username]
+    .map((value) => String(value ?? '').trim())
+    .filter((value) => value !== '');
+  return new Set(ids);
+}
 
-const getMessageKey = (message: ChatMessage) => {
-  const messageId = String(message.message_id || message.id || '').trim();
+function isMine(msg: ChatMessage, me: Set<string>): boolean {
+  return [msg.sender_user_id, msg.sender_id, msg.sender_username].some((value) => {
+    const id = String(value ?? '').trim();
+    return id !== '' && me.has(id);
+  });
+}
+
+function senderLabel(msg: ChatMessage, mine: boolean): string {
+  if (mine) return '我';
+  const name = msg.sender_username || msg.sender_name || msg.sender_user_id || msg.sender_id;
+  return String(name || '系统');
+}
+
+/**
+ * 键必须稳定：会话流靠首尾两个键分辨「头上接了旧话」还是「尾上来了新话」，
+ * 前者钉住视线、后者落到底。随机键会让每次刷新都被当成新话，视线被甩到底。
+ */
+function messageKey(msg: ChatMessage): string {
+  const messageId = String(msg.message_id || msg.id || '').trim();
   if (messageId) return messageId;
-  const groupId = String(message.group_id || '').trim();
-  const seqNo = Number(message.seq_no || 0);
+  const groupId = String(msg.group_id || '').trim();
+  const seqNo = Number(msg.seq_no || 0);
   if (groupId && seqNo > 0) return `${groupId}:${seqNo}`;
-  return Math.random().toString(36).substr(2, 9);
-};
+  const sender = String(msg.sender_user_id || msg.sender_id || '').trim();
+  return `${msg.sent_at ?? ''}|${sender}|${msg.content}`;
+}
 
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (messageListRef.value) {
-      messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
-    }
+const streamMessages = computed<StreamMessage[]>(() => {
+  const me = currentIdentity();
+  return chatMessages.value.map((msg) => {
+    const mine = isMine(msg, me);
+    return {
+      id: messageKey(msg),
+      role: msg.message_type === 'system' ? 'system' : (mine ? 'user' : 'assistant'),
+      content: String(msg.content ?? ''),
+      time: msg.sent_at ? formatDateTime(msg.sent_at) : undefined,
+      sender: senderLabel(msg, mine),
+      atAll: Boolean(msg.is_at_all || msg.at_all),
+    };
   });
-};
+});
 
-const onMessageScroll = () => {
-  if (!messageListRef.value) return;
-  if (messageListRef.value.scrollTop > 80) return;
-  if (!chatMessagesHasMore.value) return;
-  const prevHeight = messageListRef.value.scrollHeight;
-  const prevTop = messageListRef.value.scrollTop;
-  void loadMoreMessages().then(() => {
-    nextTick(() => {
-      if (!messageListRef.value) return;
-      const nextHeight = messageListRef.value.scrollHeight;
-      messageListRef.value.scrollTop = Math.max(0, nextHeight - prevHeight + prevTop);
-    });
-  });
-};
+const streamEmptyText = computed(() => {
+  if (chatLoadingMessages.value) return '消息加载中…';
+  if (!selectedGroup.value) return '选择左侧群组开始沟通';
+  return '暂无消息，发送第一条沟通信息';
+});
+
+/** 触顶就往头上接更早的话；没有更早的、或正在取，就不再叫。 */
+function onReachStart(): void {
+  if (!chatMessagesHasMore.value || chatLoadingMessages.value) return;
+  void loadMoreMessages();
+}
 
 const showToast = (msg: string) => {
   emit('toast', msg);
 };
-
 const initSession = async () => {
   if (!enabled.value) return;
   initChatSession();
@@ -218,416 +261,266 @@ const sendMessage = async () => {
 
   inputDraft.value = '';
   atAll.value = false;
-  scrollToBottom();
 };
 </script>
 
 <template>
-  <UiModal :open="Boolean(isOpen && enabled)" title="协同群聊" :width="1000" @close="emit('close')">
-    <div class="dispatch-chat-panel">
-      <div class="chat-sidebar">
-        <div class="sidebar-header">
-          <span class="group-meta">{{ chatGroups.length }} 个群</span>
+  <UiModal
+    :open="Boolean(isOpen && enabled)"
+    title="协同群聊"
+    :width="1000"
+    bleed
+    @close="emit('close')"
+  >
+    <div class="collab">
+      <aside class="collab__groups">
+        <div class="collab__groups-head">
+          {{ chatGroups.length }} 个群
         </div>
-        <div class="group-list">
-          <div v-if="chatLoadingGroups && chatGroups.length === 0" class="empty-tip">
-            群列表加载中...
-          </div>
-          <div v-else-if="chatGroups.length === 0" class="empty-tip">
+        <div class="collab__groups-list">
+          <p v-if="chatLoadingGroups && chatGroups.length === 0" class="collab__tip">
+            群列表加载中…
+          </p>
+          <p v-else-if="chatGroups.length === 0" class="collab__tip">
             当前暂无可见群聊
-          </div>
+          </p>
           <template v-else>
             <button
               v-for="group in chatGroups"
               :key="group.group_id"
-              class="group-item"
+              type="button"
+              class="collab__group"
               :aria-pressed="chatSelectedGroupId === group.group_id"
               @click="openGroup(group.group_id)"
             >
-              <div class="group-main">
-                <span class="group-title">{{ group.group_name || group.name || group.group_id }}</span>
-                <span v-if="isGroupArchived(group)" class="group-status">已归档</span>
-              </div>
-              <div class="group-sub">
+              <span class="collab__group-title">
+                <span class="collab__group-name">{{ groupTitle(group) }}</span>
+                <UiPill v-if="isGroupArchived(group)">已归档</UiPill>
+                <UiPill v-else-if="group.unread_count" tone="act">
+                  {{ group.unread_count > 99 ? '99+' : group.unread_count }}
+                </UiPill>
+              </span>
+              <span class="collab__group-preview">
                 {{ truncateText(group.last_message_preview || '暂无消息', 40) }}
-              </div>
-              <div class="group-meta-row">
-                <span>{{ formatDateTime(group.last_message_at) }}</span>
-                <span v-if="group.unread_count && group.unread_count > 0" class="group-unread">{{ group.unread_count > 99 ? '99+' : group.unread_count }}</span>
-              </div>
+              </span>
+              <span class="collab__group-time">{{ formatDateTime(group.last_message_at) }}</span>
             </button>
           </template>
         </div>
-      </div>
+      </aside>
 
-      <div class="chat-main">
-        <div class="chat-header">
-          <div class="header-top">
-            <template v-if="selectedGroup">
-              <div class="active-title-area">
-                <h3 class="active-title">
-                  {{ selectedGroup.group_name || selectedGroup.name || selectedGroup.group_id }}
-                </h3>
-                <span v-if="isGroupArchived(selectedGroup)" class="archive-pill">已归档</span>
-              </div>
-            </template>
-            <template v-else>
-              <h3 class="active-title">
-                请选择群组
-              </h3>
-            </template>
-          </div>
-          <div v-if="selectedGroup" class="active-subtitle">
+      <section class="collab__room">
+        <header class="collab__room-head">
+          <h3>
+            {{ selectedGroup ? groupTitle(selectedGroup) : '请选择群组' }}
+            <UiPill v-if="selectedGroup && isGroupArchived(selectedGroup)" tone="warn">
+              只读
+            </UiPill>
+          </h3>
+          <p v-if="selectedGroup">
             航班 {{ selectedGroup.flight_id || '-' }} · 成员 {{ selectedGroup.member_count || 0 }}
-          </div>
-        </div>
+          </p>
+        </header>
 
-        <div ref="messageListRef" class="message-list" @scroll="onMessageScroll">
-          <div v-if="chatLoadingMessages && chatMessages.length === 0" class="loading-tip">
-            消息加载中...
-          </div>
-          <div v-else-if="!selectedGroup" class="empty-tip">
-            选择左侧群组开始沟通
-          </div>
-          <div v-else-if="chatMessages.length === 0" class="empty-tip">
-            暂无消息，发送第一条沟通信息
-          </div>
-          <template v-else>
-            <div
-              v-for="msg in chatMessages"
-              :key="getMessageKey(msg)"
-              class="message-row"
-              :class="{ 'is-mine': isMine(msg), 'is-system': msg.message_type === 'system' }"
-            >
-              <template v-if="msg.message_type === 'system'">
-                <div class="system-message">
-                  <span>{{ msg.content }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <div class="message-meta">
-                  <span>{{ isMine(msg) ? '我' : (msg.sender_username || msg.sender_name || msg.sender_user_id || msg.sender_id || '系统') }}</span>
-                  <span>{{ formatDateTime(msg.sent_at) }}</span>
-                </div>
-                <div class="message-bubble">
-                  <span v-if="msg.is_at_all" class="message-atall">@全体</span>
-                  <div class="message-content">
-                    <template v-for="(line, lineIndex) in formatMessageLines(msg.content)" :key="lineIndex">
-                      <br v-if="lineIndex > 0">
-                      {{ line }}
-                    </template>
-                  </div>
-                </div>
-              </template>
-            </div>
+        <ChatMessageList
+          :messages="streamMessages"
+          :empty-text="streamEmptyText"
+          class="collab__stream"
+          @reach-start="onReachStart"
+        >
+          <template #body="{ msg }">
+            <span v-if="msg.role !== 'system'" class="collab__sender">
+              {{ msg.sender }}
+              <UiPill v-if="msg.atAll" tone="warn">@全体</UiPill>
+            </span>
+            <span class="collab__text">{{ msg.content }}</span>
           </template>
-        </div>
+        </ChatMessageList>
 
-        <div class="chat-composer">
-          <div v-if="selectedGroup && isGroupArchived(selectedGroup)" class="readonly-tip">
+        <footer class="collab__composer">
+          <UiBanner v-if="selectedGroup && isGroupArchived(selectedGroup)" tone="warn">
             群聊已归档，只读不可发送
-          </div>
-          <div class="composer-toolbar">
-            <label class="at-all-label" :class="{ 'is-disabled': composerDisabled }">
-              <input v-model="atAll" type="checkbox" :disabled="composerDisabled">
-              @全体
-            </label>
-          </div>
-          <div class="composer-input-area">
-            <textarea
-              ref="inputRef"
-              v-model="inputDraft"
-              class="composer-input"
-              :disabled="composerDisabled"
-              placeholder="输入消息..."
-              maxlength="2000"
-              @keydown.enter.exact.prevent="sendMessage"
-            />
-          </div>
-          <div class="composer-footer">
-            <span class="input-count">{{ inputDraft.length }}/2000</span>
-            <button
-              class="send-btn"
-              :disabled="composerDisabled || !inputDraft.trim()"
-              @click="sendMessage"
-            >
-              发送
-            </button>
-          </div>
-        </div>
-      </div>
+          </UiBanner>
+          <ChatSender
+            v-model="inputDraft"
+            :disabled="composerDisabled"
+            :maxlength="2000"
+            placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+            @send="sendMessage"
+          >
+            <template #tools>
+              <UiCheckChip
+                id="collabAtAll"
+                v-model:checked="atAll"
+                label="@全体"
+                :disabled="composerDisabled"
+              />
+            </template>
+          </ChatSender>
+        </footer>
+      </section>
     </div>
   </UiModal>
 </template>
 
 <style scoped>
-.dispatch-chat-panel {
-  display: flex;
-  min-height: 520px;
-  height: min(620px, 68vh);
-  margin: -16px -18px;
-  color: var(--ink);
-  overflow: hidden;
+/* 气泡、Markdown、滚动到底、翻旧话都在 ChatMessageList；
+   输入框与发送钮在 ChatSender；胶囊在 UiPill。这里只剩「群列表 + 房间」这个二分。 */
+
+.collab {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 0;
+  height: min(560px, calc(100vh - 220px));
 }
-.chat-sidebar {
-  width: 280px;
-  border-right: 1px solid var(--line);
+
+/* 群列表是旁路：降一级到页底，一根线与房间分开 */
+.collab__groups {
   display: flex;
   flex-direction: column;
-  background: var(--face-work);
-  flex-shrink: 0;
+  min-height: 0;
+  background: var(--face-page);
+  border-right: 1px solid var(--line);
 }
-.sidebar-header {
-  padding: 10px 14px;
+
+.collab__groups-head {
+  flex: none;
+  padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--line);
-}
-.group-meta {
-  font-size: var(--fs-label);
   color: var(--ink-subtle);
-  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-label);
 }
-.group-list {
-  flex: 1;
+
+.collab__groups-list {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  padding: var(--s1);
 }
-.group-item {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  background: var(--face-raised);
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  cursor: pointer;
-  color: var(--ink);
-}
-.group-item:hover {
-  border-color: var(--line-strong);
-}
-.group-item[aria-pressed="true"] {
-  border-color: var(--act);
-  background: var(--act-soft);
-  color: var(--act);
-}
-.group-item:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 1px;
-}
-.group-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.group-title {
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-}
-.group-status,
-.archive-pill {
-  flex-shrink: 0;
-  padding: 1px 6px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--warn);
-  background: var(--warn-soft);
-  color: var(--warn);
-  font-size: 11px;
-}
-.group-sub {
-  font-size: var(--fs-label);
-  color: var(--ink-subtle);
-}
-.group-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
+
+.collab__tip {
+  margin: 0;
+  padding: var(--s3);
   color: var(--ink-muted);
+  font-size: var(--fs-label);
 }
-.group-unread {
-  min-width: 18px;
-  padding: 0 5px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-pill);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  font-weight: var(--fw-semibold);
-}
-.chat-main {
-  flex: 1;
-  min-width: 0;
+
+/* 一个群一行：常态无底，交感洗工作面，持守（当前群）落行动衬 + 首边一条 */
+.collab__group {
   display: flex;
   flex-direction: column;
-  background: var(--face-raised);
+  gap: 2px;
+  width: 100%;
+  padding: var(--s2) var(--s3);
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: var(--r-cell);
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  text-align: left;
+  cursor: pointer;
 }
-.chat-header {
-  padding: 10px 16px;
+
+.collab__group:hover {
+  background: var(--face-work);
+}
+
+.collab__group[aria-pressed='true'] {
+  border-left-color: var(--act);
+  background: var(--act-soft);
+}
+
+.collab__group:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: -2px;
+}
+
+.collab__group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+.collab__group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--fw-medium);
+}
+
+.collab__group-preview {
+  overflow: hidden;
+  color: var(--ink-subtle);
+  font-size: var(--fs-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collab__group-time {
+  color: var(--ink-muted);
+  font-family: var(--mono);
+  font-size: var(--fs-label);
+}
+
+/* 房间：帽 / 会话流 / 发送器，三段，只有中间一段滚 */
+.collab__room {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.collab__room-head {
+  flex: none;
+  padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--line);
 }
-.header-top {
+
+.collab__room-head h3 {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.active-title-area {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.active-title {
+  gap: var(--s2);
   margin: 0;
   font-size: var(--fs-section);
   font-weight: var(--fw-semibold);
   color: var(--ink);
 }
-.active-subtitle {
-  margin-top: 4px;
-  font-size: var(--fs-label);
+
+.collab__room-head p {
+  margin: 2px 0 0;
   color: var(--ink-subtle);
-}
-.message-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.empty-tip,
-.loading-tip {
-  padding: 24px 12px;
-  text-align: center;
-  font-size: var(--fs-body);
-  color: var(--ink-muted);
-}
-.message-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
-}
-.message-row.is-mine {
-  align-items: flex-end;
-}
-.message-meta {
-  display: flex;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--ink-muted);
-}
-.message-bubble {
-  max-width: 80%;
-  padding: 8px 12px;
-  border-radius: var(--r-control);
-  background: var(--face-work);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font-size: var(--fs-body);
-  line-height: 1.45;
-}
-.message-row.is-mine .message-bubble {
-  background: var(--act-soft);
-  border-color: var(--act);
-}
-.message-atall {
-  display: inline-block;
-  margin-right: 6px;
-  font-size: 11px;
-  color: var(--act);
-  font-weight: var(--fw-semibold);
-}
-.system-message {
-  width: 100%;
-  text-align: center;
   font-size: var(--fs-label);
-  color: var(--ink-muted);
 }
-.chat-composer {
+
+.collab__stream {
+  padding: var(--s3);
+}
+
+/* 发话人贴在气泡里第一行，比正文淡一档 */
+.collab__sender {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: 2px;
+  color: var(--ink-subtle);
+  font-size: var(--fs-label);
+}
+
+.collab__text {
+  white-space: pre-wrap;
+}
+
+.collab__composer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
   border-top: 1px solid var(--line);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.readonly-tip {
-  font-size: var(--fs-label);
-  color: var(--warn);
-}
-.composer-toolbar {
-  display: flex;
-  align-items: center;
-}
-.at-all-label {
-  font-size: var(--fs-label);
-  color: var(--ink-subtle);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.at-all-label.is-disabled {
-  color: var(--ink-muted);
-}
-.composer-input {
-  width: 100%;
-  min-height: 64px;
-  resize: vertical;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-control);
-  padding: 8px 10px;
-  background: var(--face-work);
-  color: var(--ink);
-  font-size: var(--fs-body);
-  box-sizing: border-box;
-}
-.composer-input:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 1px;
-}
-.composer-input:disabled {
-  color: var(--ink-muted);
-}
-.composer-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.input-count {
-  font-size: var(--fs-label);
-  color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
-}
-.send-btn {
-  height: var(--h-sm);
-  padding: 0 14px;
-  border: 1px solid var(--act);
-  border-radius: var(--r-control);
-  background: var(--act);
-  color: var(--act-on);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-}
-.send-btn:disabled {
-  background: var(--ink-muted);
-  border-color: var(--ink-muted);
-  cursor: not-allowed;
-}
-.send-btn:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 2px;
 }
 </style>

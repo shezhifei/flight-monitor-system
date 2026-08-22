@@ -29,6 +29,7 @@ def test_slo_rules_cover_the_wave3_operational_alerts():
         "FmsApiAvailabilityLow",
         "FmsWriteLatencyHigh",
         "FmsOutboxBacklogHigh",
+        "FmsSseConnectionSaturation",
     ):
         assert f"alert: {alert_name}" in rules
         assert "runbook_url:" in rules
@@ -46,7 +47,7 @@ def test_slo_rules_cover_the_agent_alerts_task_j2():
     ):
         assert f"alert: {alert_name}" in rules, f"missing agent alert {alert_name}"
     # Every alert must point at a runbook anchor in ALERT_RESPONSE.md.
-    assert rules.count("runbook_url: docs/observability/ALERT_RESPONSE.md#") >= 7
+    assert rules.count("runbook_url: docs/observability/ALERT_RESPONSE.md#") >= 8
     runbook = (ROOT / "docs/observability/ALERT_RESPONSE.md").read_text(encoding="utf-8")
     for anchor in (
         "## FmsAiUngroundedSpike",
@@ -116,3 +117,34 @@ def test_grafana_admin_password_requires_explicit_env_no_weak_default():
         env_example,
         re.MULTILINE,
     ) is None
+
+
+def test_rust_performance_dashboard_covers_four_dimensions_and_exported_metrics():
+    dashboard_path = GRAFANA_DASHBOARDS_DIR / "fms-rust-performance.json"
+    assert dashboard_path.is_file()
+    dashboard = json.loads(dashboard_path.read_text(encoding="utf-8"))
+    assert dashboard["title"] == "FMS Rust API Performance"
+    assert dashboard.get("refresh") in {"30s", "1m"}
+    titles = [panel.get("title", "") for panel in dashboard["panels"]]
+    assert any("Request Latency Distribution" in title for title in titles)
+    assert any("Database Pool Saturation" in title for title in titles)
+    assert any("Redis Command Throughput" in title for title in titles)
+    assert any("Serialization Duration" in title for title in titles)
+    exprs = " ".join(
+        target.get("expr", "")
+        for panel in dashboard["panels"]
+        for target in panel.get("targets", [])
+    )
+    assert "fms_http_request_duration_seconds_bucket" in exprs
+    assert "fms_db_pool_connections" in exprs
+    assert "fms_redis_command_latency_seconds_bucket" in exprs
+    assert "fms_serialization_duration_seconds_bucket" in exprs
+    assert "fms_sse_connections_active" in exprs
+    assert "fms_sse_max_connections" in exprs
+
+    rules = PROMETHEUS_RULES.read_text(encoding="utf-8")
+    assert "alert: FmsSseConnectionSaturation" in rules
+    assert "fms_sse_connections_active / fms_sse_max_connections > 0.8" in rules
+    assert "for: 5m" in rules
+    runbook = (ROOT / "docs/observability/ALERT_RESPONSE.md").read_text(encoding="utf-8")
+    assert "## FmsSseConnectionSaturation" in runbook

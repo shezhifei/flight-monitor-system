@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue';
 import PendingActionCard from './PendingActionCard.vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import type { ChatMessage, ToolItem } from '@/composables/useFlowableAiChat';
 import type { PendingAction } from '@/composables/usePendingActions';
 import { deriveInputAccept, type InputModality } from '@/utils/aiInputAccept';
@@ -93,12 +94,12 @@ function handleKeydown(e: KeyboardEvent) {
         <header class="ai-chat-header">
           <h3>流程对话助手</h3>
           <div class="ai-chat-mode">
-            <button :class="{ active: mode === 'contextual' }" @click="emit('update:mode', 'contextual')">
+            <UiButton :pressed="mode === 'contextual'" @click="emit('update:mode', 'contextual')">
               上下文
-            </button>
-            <button :class="{ active: mode === 'general' }" @click="emit('update:mode', 'general')">
+            </UiButton>
+            <UiButton :pressed="mode === 'general'" @click="emit('update:mode', 'general')">
               通用
-            </button>
+            </UiButton>
           </div>
           <button class="ai-chat-close" @click="emit('close')">
             ×
@@ -175,28 +176,27 @@ function handleKeydown(e: KeyboardEvent) {
                   :accept="acceptDerivation.accept"
                   @change="handleFileChange"
                 >
-                <button
-                  type="button"
-                  class="ai-btn-attach"
+                <UiButton
+                  variant="ghost"
                   :disabled="sending"
                   :title="`允许类型: ${acceptDerivation.accept}`"
                   @click="openFilePicker"
                 >
                   附件
-                </button>
+                </UiButton>
               </template>
               <span class="ai-chat-input-spacer" />
-              <button v-if="sending" class="ai-btn-cancel" @click="emit('cancel')">
+              <UiButton v-if="sending" variant="danger" @click="emit('cancel')">
                 停止
-              </button>
-              <button
+              </UiButton>
+              <UiButton
                 v-else
-                class="ai-btn-send"
+                variant="primary"
                 :disabled="!input.trim()"
                 @click="handleSend"
               >
                 发送
-              </button>
+              </UiButton>
             </div>
           </div>
         </template>
@@ -209,157 +209,135 @@ function handleKeydown(e: KeyboardEvent) {
 .ai-chat-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-modal);
 }
 .ai-chat-dialog {
   width: 560px;
   max-height: 80vh;
-  background: var(--bg-card, #fff);
-  border-radius: 12px;
+  background: var(--face-raised);
+  border-radius: var(--r-panel);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-md);
 }
 .ai-chat-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-light);
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
 }
-.ai-chat-header h3 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; }
-.ai-chat-mode { display: flex; gap: 4px; }
-.ai-chat-mode button {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border-light);
-  background: transparent;
-  font-size: 12px;
-  cursor: pointer;
-}
-.ai-chat-mode button.active {
-  background: var(--system-blue, #007AFF);
-  color: var(--text-inverse);
-  border-color: transparent;
-}
+.ai-chat-header h3 { margin: 0; font-size: var(--fs-title); font-weight: var(--fw-semibold); flex: 1; }
+.ai-chat-mode { display: flex; gap: var(--s1); }
 .ai-chat-close {
   background: none;
   border: none;
   font-size: 20px;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: var(--ink-subtle);
   padding: 0 4px;
 }
-.ai-chat-disabled {
-  padding: 40px 20px;
-  text-align: center;
-  color: var(--text-tertiary);
+.ai-chat-close:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
-.ai-chat-disabled-reason { font-size: 12px; color: var(--system-orange, #FF9500); }
+.ai-chat-disabled {
+  padding: 40px var(--s4);
+  text-align: center;
+  color: var(--ink-muted);
+}
+.ai-chat-disabled-reason { font-size: var(--fs-label); color: var(--warn); }
 .ai-chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--s4);
   min-height: 200px;
   max-height: 400px;
 }
 .ai-chat-empty {
   text-align: center;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
   padding: 40px 0;
-  font-size: 13px;
+  font-size: var(--fs-body);
 }
-.ai-chat-bubble { margin-bottom: 12px; }
+.ai-chat-bubble { margin-bottom: var(--s3); }
 .ai-chat-bubble.user { text-align: right; }
 .ai-chat-bubble.user .bubble-content {
   display: inline-block;
-  background: var(--system-blue, #007AFF);
-  color: var(--text-inverse);
-  padding: 8px 12px;
-  border-radius: 12px 12px 4px 12px;
-  font-size: 13px;
+  background: var(--act);
+  color: var(--act-on);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-panel) var(--r-panel) var(--r-cell) var(--r-panel);
+  font-size: var(--fs-body);
   max-width: 80%;
   text-align: left;
   white-space: pre-wrap;
 }
 .ai-chat-bubble.assistant .bubble-content {
   display: inline-block;
-  background: var(--bg-sidebar, #F5F5F7);
-  color: var(--text-primary, #1D1D1F);
-  padding: 8px 12px;
-  border-radius: 12px 12px 12px 4px;
-  font-size: 13px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-panel) var(--r-panel) var(--r-panel) var(--r-cell);
+  font-size: var(--fs-body);
   max-width: 80%;
   text-align: left;
   white-space: pre-wrap;
 }
 .ai-chat-bubble.system .bubble-content {
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
   text-align: center;
 }
 .ai-chat-typing {
   display: flex;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--s1);
+  padding: var(--s2) var(--s3);
 }
 .ai-chat-typing span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--text-tertiary);
+  background: var(--ink-muted);
   animation: blink 1.4s infinite both;
 }
 .ai-chat-typing span:nth-child(2) { animation-delay: 0.2s; }
 .ai-chat-typing span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }
-.ai-chat-pending { padding: 0 16px; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
+.ai-chat-pending { padding: 0 var(--s4); }
 .ai-chat-input-area {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-light);
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--line);
 }
 .ai-chat-input-area textarea {
   width: 100%;
   min-height: 60px;
   max-height: 120px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  padding: var(--s2) var(--s3);
+  font-size: var(--fs-body);
   resize: vertical;
   font-family: inherit;
 }
-.ai-chat-input-area textarea:focus { outline: 2px solid var(--system-blue); outline-offset: -1px; }
-.ai-chat-input-actions { display: flex; align-items: center; margin-top: 8px; gap: 8px; }
+.ai-chat-input-area textarea:focus { outline: 2px solid var(--act); outline-offset: 2px; }
+.ai-chat-input-actions { display: flex; align-items: center; margin-top: var(--s2); gap: var(--s2); }
 .ai-chat-input-spacer { flex: 1; }
-.ai-btn-send, .ai-btn-cancel, .ai-btn-attach {
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: none;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.ai-btn-send { background: var(--system-blue); color: var(--text-inverse); }
-.ai-btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
-.ai-btn-cancel { background: var(--system-red); color: var(--text-inverse); }
-.ai-btn-attach { background: transparent; border: 1px solid var(--border-light); color: var(--text-secondary, #5f6368); }
-.ai-btn-attach:disabled { opacity: 0.5; cursor: not-allowed; }
 .ai-chat-file-input { display: none; }
-.ai-chat-files { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ai-chat-files { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s2); }
 .ai-chat-file-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--bg-sidebar, #F5F5F7);
-  font-size: 12px;
-  color: var(--text-primary, #1D1D1F);
+  gap: var(--s2);
+  padding: var(--s1) var(--s2);
+  border-radius: var(--r-cell);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  font-size: var(--fs-label);
+  color: var(--ink);
 }
 .ai-chat-file-remove {
   background: none;
@@ -367,7 +345,7 @@ function handleKeydown(e: KeyboardEvent) {
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
   padding: 0;
 }
 </style>

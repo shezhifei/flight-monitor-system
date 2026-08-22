@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted, watch, type Ref, type ComputedRef } from 'vue';
+import { computed, onUnmounted, ref, watch, type ComputedRef, type Ref } from 'vue';
 
 export interface VirtualScrollOptions {
   itemHeight: Ref<number> | number;
@@ -8,50 +8,53 @@ export interface VirtualScrollOptions {
 export function useVirtualScroll<T>(
   items: Ref<readonly T[]> | ComputedRef<readonly T[]>,
   containerRef: Ref<HTMLElement | null>,
-  options: VirtualScrollOptions
+  options: VirtualScrollOptions,
 ) {
-  const itemHeightRef = computed(() => 
-    typeof options.itemHeight === 'number' ? options.itemHeight : options.itemHeight.value
+  const itemHeightRef = computed(() =>
+    typeof options.itemHeight === 'number' ? options.itemHeight : options.itemHeight.value,
   );
-  const buffer = options.buffer || 5;
+  const buffer = options.buffer ?? 5;
 
   const scrollTop = ref(0);
   const containerHeight = ref(0);
-  const rafId = ref<number | null>(null);
+
+  let scrollRaf: number | null = null;
+  let resizeRaf: number | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+  let listeningEl: HTMLElement | null = null;
 
   const updateScrollTop = () => {
-    if (containerRef.value) {
-      scrollTop.value = containerRef.value.scrollTop;
+    const el = containerRef.value;
+    if (!el) return;
+    const next = el.scrollTop;
+    if (next !== scrollTop.value) {
+      scrollTop.value = next;
     }
   };
 
   const onScroll = () => {
-    if (rafId.value !== null) return;
-    rafId.value = requestAnimationFrame(() => {
+    if (scrollRaf !== null) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = null;
       updateScrollTop();
-      rafId.value = null;
     });
   };
 
   const updateContainerHeight = () => {
-    if (containerRef.value) {
-      containerHeight.value = containerRef.value.clientHeight;
+    const el = containerRef.value;
+    if (!el) return;
+    const next = el.clientHeight;
+    if (next !== containerHeight.value) {
+      containerHeight.value = next;
     }
   };
 
-  let resizeObserver: ResizeObserver | null = null;
-
-  const setupListeners = (el: HTMLElement) => {
-    el.addEventListener('scroll', onScroll, { passive: true });
-    updateContainerHeight();
-    updateScrollTop();
-
-    if (window.ResizeObserver) {
-      resizeObserver = new ResizeObserver(() => {
-        updateContainerHeight();
-      });
-      resizeObserver.observe(el);
-    }
+  const onResize = () => {
+    if (resizeRaf !== null) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = null;
+      updateContainerHeight();
+    });
   };
 
   const cleanupListeners = (el: HTMLElement) => {
@@ -60,54 +63,69 @@ export function useVirtualScroll<T>(
       resizeObserver.disconnect();
       resizeObserver = null;
     }
+    if (listeningEl === el) {
+      listeningEl = null;
+    }
   };
 
-  watch(containerRef, (newEl, oldEl) => {
-    if (oldEl) cleanupListeners(oldEl);
-    if (newEl) setupListeners(newEl);
-  });
-
-  onMounted(() => {
-    if (containerRef.value) {
-      setupListeners(containerRef.value);
+  const setupListeners = (el: HTMLElement) => {
+    if (listeningEl === el) return;
+    if (listeningEl) cleanupListeners(listeningEl);
+    listeningEl = el;
+    el.addEventListener('scroll', onScroll, { passive: true });
+    updateContainerHeight();
+    updateScrollTop();
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(el);
     }
-  });
+  };
+
+  watch(
+    containerRef,
+    (newEl, oldEl) => {
+      if (oldEl) cleanupListeners(oldEl);
+      if (newEl) setupListeners(newEl);
+    },
+    { flush: 'post' },
+  );
 
   onUnmounted(() => {
-    if (containerRef.value) {
-      cleanupListeners(containerRef.value);
-    }
-    if (rafId.value !== null) {
-      cancelAnimationFrame(rafId.value);
-    }
+    if (listeningEl) cleanupListeners(listeningEl);
+    if (scrollRaf !== null) cancelAnimationFrame(scrollRaf);
+    if (resizeRaf !== null) cancelAnimationFrame(resizeRaf);
+    scrollRaf = null;
+    resizeRaf = null;
   });
 
   const startIndex = computed(() => {
-    return Math.max(0, Math.floor(scrollTop.value / itemHeightRef.value) - buffer);
+    const height = itemHeightRef.value;
+    if (height <= 0) return 0;
+    return Math.max(0, Math.floor(scrollTop.value / height) - buffer);
   });
 
   const visibleCount = computed(() => {
-    if (itemHeightRef.value <= 0) return 0;
-    return Math.ceil(containerHeight.value / itemHeightRef.value) + 2 * buffer;
+    const height = itemHeightRef.value;
+    if (height <= 0) return 0;
+    return Math.ceil(containerHeight.value / height) + 2 * buffer;
   });
 
-  const endIndex = computed(() => {
-    return Math.min(items.value.length, startIndex.value + visibleCount.value);
-  });
+  const endIndex = computed(() => Math.min(items.value.length, startIndex.value + visibleCount.value));
 
-  const visibleItems = computed(() => {
-    return items.value.slice(startIndex.value, endIndex.value);
-  });
+  const visibleItems = computed(() => items.value.slice(startIndex.value, endIndex.value));
 
-  const totalHeight = computed(() => items.value.length * itemHeightRef.value);
-  const topSpacerHeight = computed(() => startIndex.value * itemHeightRef.value);
-  const bottomSpacerHeight = computed(() => 
-    Math.max(0, totalHeight.value - topSpacerHeight.value - (visibleItems.value.length * itemHeightRef.value))
+  const totalHeight = computed(() => items.value.length * Math.max(0, itemHeightRef.value));
+  const topSpacerHeight = computed(() => startIndex.value * Math.max(0, itemHeightRef.value));
+  const bottomSpacerHeight = computed(() =>
+    Math.max(
+      0,
+      totalHeight.value - topSpacerHeight.value - visibleItems.value.length * Math.max(0, itemHeightRef.value),
+    ),
   );
 
   const scrollToItem = (index: number) => {
     if (containerRef.value) {
-      containerRef.value.scrollTop = index * itemHeightRef.value;
+      containerRef.value.scrollTop = index * Math.max(0, itemHeightRef.value);
     }
   };
 

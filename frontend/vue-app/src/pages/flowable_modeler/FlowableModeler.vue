@@ -5,6 +5,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useEntityModalities } from '@/composables/useEntityModalities';
 import { useFlowableAiChat } from '@/composables/useFlowableAiChat';
 import AiChatModal from '@/components/ai/AiChatModal.vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import { useFlowableModeler } from './composables/useFlowableModeler';
 import ProcessTreePanel from './sections/ProcessTreePanel.vue';
 import ModelerToolbar from './sections/ModelerToolbar.vue';
@@ -81,7 +82,7 @@ function setCanvasEl(el: unknown) {
     />
 
     <main class="main-content flowable-main">
-      <div v-if="!p.hasSelectedDiagram.value" class="empty-state">
+      <div v-if="!p.hasSelectedDiagram.value" class="empty-state modeler-empty">
         <div class="empty-state-title">
           选择一个业务事项类型
         </div>
@@ -115,16 +116,24 @@ function setCanvasEl(el: unknown) {
       </div>
     </main>
 
-    <button
+    <UiButton
       class="ai-chat-fab"
-      type="button"
+      variant="primary"
+      size="md"
       :disabled="!canUseChat"
       :title="canUseChat ? 'AI 助手' : missingLabel"
       @click="p.showAiChat.value = true"
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      ><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
       AI 助手
-    </button>
+    </UiButton>
 
     <AiChatModal
       :show="p.showAiChat.value"
@@ -164,36 +173,16 @@ function setCanvasEl(el: unknown) {
 </template>
 
 <style scoped>
-/* 壳层走 admin-layout；此处仅建模器主区与 FAB */
+/* 壳层走 admin-layout；empty-state / spinner / @keyframes spin 走全局；
+   此处仅建模器主区与 FAB 的位置几何 */
 .flowable-main {
   position: relative;
   min-height: 0;
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+/* 全局 empty-state 是页级纵向居中，建模器主区要自己充满剩余高度 */
+.modeler-empty {
   height: 100%;
-  color: var(--admin-text-muted);
-  padding: 32px;
-  text-align: center;
-}
-
-.empty-state-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: var(--admin-text);
-  letter-spacing: -0.02em;
-}
-
-.empty-state-desc {
-  font-size: 14px;
-  color: var(--admin-text-subtle);
-  max-width: 420px;
-  line-height: 1.5;
 }
 
 .editor-container {
@@ -217,10 +206,10 @@ function setCanvasEl(el: unknown) {
   min-width: 0;
   min-height: 0;
   height: 100%;
-  /* 建模底色：与 admin/workspace 表面 token 对齐 */
+  /* 建模底色：网格点用线色淡混，底走页面 */
   background:
-    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ws-border) 55%, transparent) 1px, transparent 0) 0 0 / 18px 18px,
-    var(--ws-bg);
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 0) 0 0 / 18px 18px,
+    var(--face-page);
   position: relative;
   overflow: hidden;
 }
@@ -231,82 +220,31 @@ function setCanvasEl(el: unknown) {
   height: 100% !important;
 }
 
-:global([data-theme='dark']) .canvas-host :deep(.djs-element:not(.djs-connection) > .djs-visual > :is(rect, circle, ellipse, polygon)) {
-  fill: #1e293b !important;
-  stroke: #94a3b8 !important;
-}
-:global([data-theme='dark']) .canvas-host :deep(.djs-element:not(.djs-connection) > .djs-visual > circle + circle) {
-  fill: none !important;
-  stroke: #cbd5e1 !important;
-}
-:global([data-theme='dark']) .canvas-host :deep(.djs-element text) {
-  fill: #f8fafc !important;
-  stroke: none !important;
-  stroke-width: 0 !important;
-}
-:global([data-theme='dark']) .canvas-host :deep(.djs-element:not(.djs-connection) > .djs-visual > path) {
-  fill: #e2e8f0 !important;
-  stroke: #e2e8f0 !important;
-}
-:global([data-theme='dark']) .canvas-host :deep(.djs-connection > .djs-visual > path) {
-  fill: none !important;
-  stroke: #94a3b8 !important;
-}
-:global([data-theme='dark']) .canvas-host :deep(marker path),
-:global([data-theme='dark']) .canvas-host :deep(marker circle),
-:global([data-theme='dark']) .canvas-host :deep(marker polygon),
-:global([data-theme='dark']) .canvas-host :deep(marker polyline),
-:global([data-theme='dark']) .canvas-host :deep(marker rect) {
-  fill: #94a3b8 !important;
-  stroke: #94a3b8 !important;
-}
+/* bpmn-js 深色画布反色规则已收进 flowable-modeler.css（token 化同款选择器），
+   此处不再重复定义，避免页内第二套色值。 */
 
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: var(--glass-bg, color-mix(in srgb, var(--admin-card-bg) 72%, transparent));
+  background: color-mix(in srgb, var(--face-work) 72%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 20;
 }
 
+/* spinner 几何与全局同名同义，只补尺寸；转圈动画复用全局 @keyframes spin */
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--admin-border);
-  border-top-color: var(--ws-primary);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
+/* FAB：库件的壳，只定浮位与圆度；层序用 --z-float */
 .ai-chat-fab {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: var(--ws-primary, #0a7cff);
-  color: var(--text-inverse, #fff);
-  border: none;
-  border-radius: 24px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--ws-primary) 35%, transparent);
-  z-index: 1000;
-  font-family: inherit;
-}
-
-.ai-chat-fab:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  box-shadow: none;
+  bottom: var(--s5);
+  right: var(--s5);
+  border-radius: var(--r-pill);
+  z-index: var(--z-float);
 }
 </style>

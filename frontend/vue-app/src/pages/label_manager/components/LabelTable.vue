@@ -109,26 +109,26 @@ const scopeLabels: Record<string, string> = {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
-  border: 1px solid var(--admin-border);
+  border-radius: var(--r-cell);
+  border: 1px solid var(--line);
   vertical-align: middle;
 }
 
 .code-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  background: var(--ws-surface-muted);
-  color: var(--admin-text);
-  border: 1px solid var(--admin-border);
+  padding: 2px var(--s2);
+  border-radius: var(--r-cell);
+  font-family: var(--mono);
+  font-size: var(--fs-label);
+  background: var(--face-page);
+  color: var(--ink);
+  border: 1px solid var(--line);
 }
 
 .label-name {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
 }
 
 .label-icon {
@@ -136,17 +136,17 @@ const scopeLabels: Record<string, string> = {
 }
 
 .badge-muted {
-  background: var(--ws-surface-muted);
-  color: var(--admin-text-muted);
+  background: var(--face-page);
+  color: var(--ink-muted);
 }
 
 .empty-placeholder {
   text-align: center;
-  padding: 40px 16px !important;
-  color: var(--admin-text-muted);
+  padding: var(--s5) var(--s4) !important;
+  color: var(--ink-muted);
 }
 
 .btn + .btn {
-  margin-left: 6px;
+  margin-left: var(--s2);
 }
 </style>

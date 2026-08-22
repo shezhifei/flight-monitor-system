@@ -1,10 +1,5 @@
 /* --- Apple Design System & Variables --- */
-@font-face {
-    font-family: 'MiSans';
-    src: url('/frontend/fonts/MiSansVF.ttf') format('truetype');
-    font-weight: 100 900;
-    font-display: swap;
-}
+/* MiSans is declared once in base.css. Do not re-declare it here. */
 
 :root {
     /* Global type stacks — MiSans is the product UI font */
@@ -13,7 +8,8 @@
     --font-display: var(--font-sans);
     --font-numeric: var(--font-sans);
 
-    /* System Colors (macOS/iOS inspired) */
+    /* deprecated, use signal tokens (--act / --ok / --warn / --danger / --face-* / --ink-*).
+       --system-* aliases stay as fallback for unmigrated sheets. */
     --system-blue: #007AFF;
     --system-blue-hover: #0062cc;
     --system-blue-subtle: rgba(0, 122, 255, 0.1);
@@ -128,12 +124,7 @@
     --z-index-toast: 10010;
     --z-index-ai-panel: 10020;
 
-    /* Spacing (Legacy Density Alignment) */
-    --spacing-xs: 4px;
-    --spacing-sm: 6px; /* Tightened from 8px */
-    --spacing-md: 12px; /* Tightened from 16px */
-    --spacing-lg: 20px; /* Tightened from 24px */
-    --spacing-xl: 28px; /* Tightened from 32px */
+    /* Spacing aliases deleted: use --s1..--s5 from signal-surface.css */
 
     /* Responsive Breakpoint Registry */
     --breakpoint-compact: 600px;
@@ -143,7 +134,7 @@
 
     /* Layout responsive state tokens */
     --layout-detail-dashboard-columns: 380px 1fr;
-    --layout-detail-dashboard-rows: auto auto 1fr;
+    --layout-detail-dashboard-rows: auto 1fr;
     --layout-ops-card-height: 100%;
     --layout-detail-panel-position: relative;
     --layout-detail-panel-inset: auto;
@@ -203,7 +194,7 @@
 @media (max-width: 1200px) {
     :root {
         --layout-detail-dashboard-columns: 1fr;
-        --layout-detail-dashboard-rows: auto 1fr;
+        /* 行数与基态同为 auto 1fr：单列下两列各自成行，由隐式行接着排 */
         --layout-ops-card-height: 600px;
     }
 }

@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ModelsTabForm, NormalizedModelOption } from '../composables/useAiConfigCenter';
 
-defineProps<{
+const props = defineProps<{
   modelsForm: ModelsTabForm;
   modelsLoading: boolean;
   modelOptions: NormalizedModelOption[];
   providerRefOptions: string[];
 }>();
+
+const form = computed(() => props.modelsForm);
 </script>
 
 <template>
@@ -16,7 +19,7 @@ defineProps<{
       <label for="model-provider-ref">默认模型 Provider 引用 (provider_ref)</label>
       <select
         id="model-provider-ref"
-        v-model="modelsForm.model_provider_ref"
+        v-model="form.model_provider_ref"
         class="form-select"
       >
         <option
@@ -33,7 +36,7 @@ defineProps<{
       <label for="model-default">默认模型</label>
       <input
         id="model-default"
-        v-model="modelsForm.default_model"
+        v-model="form.default_model"
         type="text"
         class="form-input"
         placeholder="输入自定义模型或从已发现模型中选择"
@@ -55,7 +58,7 @@ defineProps<{
         <label for="model-chat">Chat 模型</label>
         <input
           id="model-chat"
-          v-model="modelsForm.chat_model"
+          v-model="form.chat_model"
           type="text"
           class="form-input"
           placeholder="未填则使用默认模型"
@@ -75,7 +78,7 @@ defineProps<{
         <label for="model-summary-route">Summary 模型</label>
         <input
           id="model-summary-route"
-          v-model="modelsForm.summary_model"
+          v-model="form.summary_model"
           type="text"
           class="form-input"
           placeholder="用于摘要/压缩"
@@ -98,7 +101,7 @@ defineProps<{
         <label for="model-vision">Vision 模型</label>
         <input
           id="model-vision"
-          v-model="modelsForm.vision_model"
+          v-model="form.vision_model"
           type="text"
           class="form-input"
           placeholder="支持 image 输入时配置"
@@ -118,7 +121,7 @@ defineProps<{
         <label for="model-embedding">Embedding 模型</label>
         <input
           id="model-embedding"
-          v-model="modelsForm.embedding_model"
+          v-model="form.embedding_model"
           type="text"
           class="form-input"
           placeholder="可选"
@@ -141,7 +144,7 @@ defineProps<{
         <label for="model-asr">ASR 模型</label>
         <input
           id="model-asr"
-          v-model="modelsForm.asr_model"
+          v-model="form.asr_model"
           type="text"
           class="form-input"
           placeholder="如 whisper-1"
@@ -161,7 +164,7 @@ defineProps<{
         <label for="model-tts">TTS 模型</label>
         <input
           id="model-tts"
-          v-model="modelsForm.tts_model"
+          v-model="form.tts_model"
           type="text"
           class="form-input"
           placeholder="如 tts-1"
@@ -181,7 +184,7 @@ defineProps<{
         <label for="model-tts-voice">TTS 声音</label>
         <input
           id="model-tts-voice"
-          v-model="modelsForm.tts_voice"
+          v-model="form.tts_voice"
           type="text"
           class="form-input"
           placeholder="如 alloy / nova / verse"

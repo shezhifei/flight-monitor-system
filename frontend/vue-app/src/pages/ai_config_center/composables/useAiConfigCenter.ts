@@ -234,17 +234,6 @@ export function useAiConfigCenter() {
     }
   }
 
-  function getRiskBadgeClass(level: string): string {
-    const map: Record<string, string> = {
-      LOW: 'badge-low',
-      NORMAL: 'badge-normal',
-      MEDIUM: 'badge-medium',
-      HIGH: 'badge-high',
-      CRITICAL: 'badge-critical',
-    };
-    return map[level] || 'badge-normal';
-  }
-
   function normalizeField(name: string, raw: Record<string, unknown>): Property {
     return {
       name: String(raw.name || name),
@@ -1383,7 +1372,7 @@ export function useAiConfigCenter() {
 
   return {
     activeTab, searchQuery, loading, objects, actions,
-    filteredObjects, filteredActions, fetchData, getRiskBadgeClass,
+    filteredObjects, filteredActions, fetchData,
     sidebarUser, handleLogout,
     capabilitySnapshot, capabilityLoading, capabilityValidation,
     mcpServers, mcpBindings, mcpLoading,

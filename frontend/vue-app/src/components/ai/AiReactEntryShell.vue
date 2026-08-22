@@ -40,20 +40,21 @@
         操作建议：进入 <code>frontend/ai-react</code> 目录执行
         <code>npm run build</code>，然后点击下方按钮重试。
       </p>
-      <button
-        type="button"
-        class="ai-react-entry-shell__retry"
+      <UiButton
+        variant="primary"
+        size="md"
         :disabled="retrying"
         @click="onRetry"
       >
         {{ retrying ? '重试中…' : '重试加载' }}
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import {
   useAiReactEntry,
   type AiReactEntrySurface,
@@ -135,17 +136,17 @@ async function onRetry() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 48px 16px;
-  color: var(--fms-color-text-secondary, #64748b);
-  font-size: 14px;
+  gap: var(--s3);
+  padding: var(--s5) var(--s4);
+  color: var(--ink-subtle);
+  font-size: var(--fs-body);
 }
 
 .ai-react-entry-shell__spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--border-focus);
-  border-top-color: var(--system-blue);
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--act);
   border-radius: 50%;
   animation: ai-react-entry-spin 0.9s linear infinite;
 }
@@ -156,72 +157,51 @@ async function onRetry() {
   }
 }
 
+/* 错误卡：危洗底不描渐变；重试钮的形归 UiButton */
 .ai-react-entry-shell__error {
   max-width: 640px;
-  margin: 64px auto;
-  padding: 24px 28px;
-  border: 1px solid var(--error-border-subtle);
-  border-radius: 14px;
-  background: linear-gradient(180deg, var(--glass-bg), rgba(254, 242, 242, 0.92));
-  color: var(--fms-color-text-primary, #1D1D1F);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  margin: var(--s5) auto;
+  padding: var(--s4) var(--s5);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--r-panel);
+  background: var(--danger-soft);
+  color: var(--ink);
+  box-shadow: var(--shadow-md);
 }
 
 .ai-react-entry-shell__error-eyebrow {
-  margin: 0 0 6px;
-  color: var(--ws-danger);
-  font-size: 12px;
-  font-weight: 700;
+  margin: 0 0 var(--s2);
+  color: var(--danger);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
   letter-spacing: 0.08em;
 }
 
 .ai-react-entry-shell__error-title {
-  margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 700;
+  margin: 0 0 var(--s2);
+  font-size: var(--fs-page);
+  font-weight: var(--fw-semibold);
 }
 
 .ai-react-entry-shell__error-message {
-  margin: 0 0 8px;
-  color: var(--fms-color-text-secondary, #5f6368);
+  margin: 0 0 var(--s2);
+  color: var(--ink-subtle);
   line-height: 1.6;
 }
 
 .ai-react-entry-shell__error-hint {
-  margin: 0 0 16px;
-  color: var(--fms-color-text-tertiary, #64748b);
-  font-size: 13px;
+  margin: 0 0 var(--s4);
+  color: var(--ink-muted);
+  font-size: var(--fs-body);
   line-height: 1.6;
 }
 
 .ai-react-entry-shell__error-hint code {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(15, 23, 42, 0.06);
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 12px;
-}
-
-.ai-react-entry-shell__retry {
-  appearance: none;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  background: var(--system-blue);
-  color: var(--text-inverse);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.ai-react-entry-shell__retry:hover:not(:disabled) {
-  background: var(--system-blue);
-}
-
-.ai-react-entry-shell__retry:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
+  padding: 1px var(--s2);
+  border-radius: var(--r-cell);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  font-family: var(--mono);
+  font-size: var(--fs-label);
 }
 
 .ai-react-entry-shell--widget,
@@ -233,7 +213,7 @@ async function onRetry() {
 .ai-react-entry-shell--widget .ai-react-entry-shell__error,
 .ai-react-entry-shell--drawer .ai-react-entry-shell__error,
 .ai-react-entry-shell--modal .ai-react-entry-shell__error {
-  margin: 16px;
-  padding: 16px;
+  margin: var(--s4);
+  padding: var(--s4);
 }
 </style>

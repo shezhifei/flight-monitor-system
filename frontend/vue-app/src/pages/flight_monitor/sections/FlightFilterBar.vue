@@ -2,8 +2,10 @@
 import { computed } from 'vue';
 import UiBanner from '../../../components/ui/UiBanner.vue';
 import UiButton from '../../../components/ui/UiButton.vue';
+import UiCheckChip from '../../../components/ui/UiCheckChip.vue';
 import UiPill from '../../../components/ui/UiPill.vue';
 import UiPlaceBar from '../../../components/ui/UiPlaceBar.vue';
+import UiSearch from '../../../components/ui/UiSearch.vue';
 import UiSegment from '../../../components/ui/UiSegment.vue';
 import UiSelect from '../../../components/ui/UiSelect.vue';
 import UiToolbar from '../../../components/ui/UiToolbar.vue';
@@ -66,8 +68,6 @@ const bannerTone = computed(() => {
   return 'act' as const;
 });
 
-const hasQuery = computed(() => props.searchQuery.trim().length > 0);
-
 /** 可叠加的布尔谓词：开关式按钮（aria-pressed），开 = 仅该类航班。 */
 const binaryFilters = computed(() => [
   { key: 'anomalyFilter' as const, id: 'anomalyFilter', countId: 'anomalyFilterCount', label: '异常', count: props.anomalyCount },
@@ -99,14 +99,6 @@ function setAircraftBodyFilter(value: string): void {
 function setCommercialSignedFilter(value: string): void {
   emit('set-business-filter', 'commercialSignedFilter', value as BusinessFilters['commercialSignedFilter']);
 }
-
-function handleSearchInput(event: Event): void {
-  emit('update:searchQuery', (event.target as HTMLInputElement).value);
-}
-
-function handleSearchFieldChange(event: Event, key: keyof SearchFields): void {
-  emit('set-search-field', key, (event.target as HTMLInputElement).checked);
-}
 </script>
 
 <template>
@@ -129,36 +121,15 @@ function handleSearchFieldChange(event: Event, key: keyof SearchFields): void {
 
     <UiToolbar seek-label="筛选航班" solve-label="列表操作">
       <template #seek>
-        <div class="fm-search" :class="{ 'has-value': hasQuery }">
-          <span class="fm-search__icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </span>
-          <input
-            id="searchInput"
-            :value="searchQuery"
-            type="text"
-            placeholder="搜索航班号、目的地、状态等..."
-            aria-label="搜索航班"
-            aria-describedby="searchOptionsPanel"
-            @input="handleSearchInput"
-            @keydown.enter="emit('submit-search')"
-          >
-          <button
-            id="clearSearchBtn"
-            class="fm-search__clear"
-            type="button"
-            aria-label="清除搜索"
-            :style="{ display: hasQuery ? 'inline-flex' : 'none' }"
-            @click="emit('clear-search')"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          </button>
-        </div>
+        <UiSearch
+          id="searchInput"
+          label="搜索航班"
+          placeholder="搜索航班号、目的地、状态等..."
+          :model-value="searchQuery"
+          @update:model-value="emit('update:searchQuery', $event)"
+          @submit="emit('submit-search')"
+          @clear="emit('clear-search')"
+        />
 
         <UiSegment label="视图切换">
           <button
@@ -261,16 +232,15 @@ function handleSearchFieldChange(event: Event, key: keyof SearchFields): void {
         role="group"
         aria-label="搜索字段"
       >
-        <label v-for="option in SEARCH_FIELD_OPTIONS" :key="option.id" class="fm-search-field" :for="option.id">
-          <input
-            :id="option.id"
-            :checked="searchFields[option.key]"
-            type="checkbox"
-            :aria-label="option.ariaLabel"
-            @change="handleSearchFieldChange($event, option.key)"
-          >
-          <span>{{ option.label }}</span>
-        </label>
+        <UiCheckChip
+          v-for="option in SEARCH_FIELD_OPTIONS"
+          :id="option.id"
+          :key="option.id"
+          :label="option.label"
+          :aria-label="option.ariaLabel"
+          :checked="searchFields[option.key]"
+          @update:checked="emit('set-search-field', option.key, $event)"
+        />
       </div>
     </div>
 

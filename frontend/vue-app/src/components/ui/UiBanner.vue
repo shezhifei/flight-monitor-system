@@ -18,7 +18,7 @@ withDefaults(defineProps<{
   align-items: center;
   justify-content: space-between;
   gap: var(--s3);
-  padding: 8px 12px;
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-control);
   font-size: var(--fs-label);
   line-height: 1.45;

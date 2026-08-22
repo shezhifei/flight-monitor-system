@@ -177,167 +177,171 @@ async function handleLogin(event: Event): Promise<void> {
 
 <template>
   <div class="login-container">
-      <div class="login-card">
-        <div class="logo">
-          <SvgIcon src="/frontend/icons/plane.svg" :size="36" />
-        </div>
-        <h1 class="login-title">
-          航班监控系统
-        </h1>
-        <p class="login-subtitle">
-          登录以访问系统功能
-        </p>
+    <div class="login-card">
+      <div class="logo">
+        <SvgIcon src="/frontend/icons/plane.svg" :size="36" />
+      </div>
+      <h1 class="login-title">
+        航班监控系统
+      </h1>
+      <p class="login-subtitle">
+        登录以访问系统功能
+      </p>
 
-        <div
-          id="errorMessage"
-          class="error-message"
-          :class="{ show: errorMessage }"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
+      <div
+        id="errorMessage"
+        class="error-message"
+        :class="{ show: errorMessage }"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <SvgIcon src="/frontend/icons/forbidden.svg" :size="16" />
+        <span>{{ errorMessage }}</span>
+        <button
+          type="button"
+          class="message-close"
+          aria-label="关闭错误提示"
+          @click="closeError"
         >
-          <SvgIcon src="/frontend/icons/forbidden.svg" :size="16" />
-          <span>{{ errorMessage }}</span>
-          <button
-            type="button"
-            class="message-close"
-            aria-label="关闭错误提示"
-            @click="closeError"
-          >
-            &times;
-          </button>
-        </div>
+          &times;
+        </button>
+      </div>
 
-        <div
-          id="successMessage"
-          class="success-message"
-          :class="{ show: successMessage }"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
+      <div
+        id="successMessage"
+        class="success-message"
+        :class="{ show: successMessage }"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <SvgIcon src="/frontend/icons/ok.svg" :size="16" />
+        <span>{{ successMessage }}</span>
+        <button
+          type="button"
+          class="message-close"
+          aria-label="关闭成功提示"
+          @click="closeSuccess"
         >
-          <SvgIcon src="/frontend/icons/ok.svg" :size="16" />
-          <span>{{ successMessage }}</span>
-          <button
-            type="button"
-            class="message-close"
-            aria-label="关闭成功提示"
-            @click="closeSuccess"
+          &times;
+        </button>
+      </div>
+
+      <form id="loginForm" novalidate @submit="handleLogin">
+        <div class="form-group">
+          <label class="form-label" for="username">用户名</label>
+          <input
+            id="username"
+            ref="usernameInput"
+            v-model="username"
+            type="text"
+            class="form-input"
+            :aria-invalid="usernameError"
+            placeholder="请输入用户名"
+            required
+            autocomplete="username"
           >
-            &times;
-          </button>
         </div>
 
-        <form id="loginForm" novalidate @submit="handleLogin">
-          <div class="form-group">
-            <label class="form-label" for="username">用户名</label>
+        <div class="form-group">
+          <label class="form-label" for="password">密码</label>
+          <div class="password-wrapper">
             <input
-              id="username"
-              ref="usernameInput"
-              v-model="username"
-              type="text"
+              id="password"
+              ref="passwordInput"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
               class="form-input"
-              :aria-invalid="usernameError"
-              placeholder="请输入用户名"
+              :aria-invalid="passwordError"
+              placeholder="请输入密码"
               required
-              autocomplete="username"
+              autocomplete="current-password"
             >
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="password">密码</label>
-            <div class="password-wrapper">
-              <input
-                id="password"
-                ref="passwordInput"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                class="form-input"
-                :aria-invalid="passwordError"
-                placeholder="请输入密码"
-                required
-                autocomplete="current-password"
-              >
-              <button
-                id="passwordToggleBtn"
-                type="button"
-                class="password-toggle"
-                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
-                :aria-pressed="showPassword"
-                @click="togglePassword"
-              >
-                <SvgIcon
-                  :src="showPassword ? '/frontend/icons/password_unvisible.svg' : '/frontend/icons/password_visible.svg'"
-                  :size="16"
-                />
-              </button>
-            </div>
-          </div>
-
-          <div class="login-options">
             <button
-              id="forgotPasswordLink"
+              id="passwordToggleBtn"
               type="button"
-              class="forgot-password"
-              @click="handleLinkClick('请联系管理员重置密码')"
+              class="password-toggle"
+              :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+              :aria-pressed="showPassword"
+              @click="togglePassword"
             >
-              忘记密码？
+              <SvgIcon
+                :src="showPassword ? '/frontend/icons/password_unvisible.svg' : '/frontend/icons/password_visible.svg'"
+                :size="16"
+              />
             </button>
           </div>
+        </div>
 
+        <div class="login-options">
           <button
-            id="loginBtn"
-            type="submit"
-            class="login-btn"
-            :class="{ loading: isLoading }"
-            :disabled="isLoading"
+            id="forgotPasswordLink"
+            type="button"
+            class="forgot-password"
+            @click="handleLinkClick('请联系管理员重置密码')"
           >
-            {{ isLoading ? '登录中...' : '登录' }}
+            忘记密码？
           </button>
-        </form>
+        </div>
 
-        <template v-if="showDemoCredentials">
-          <div class="divider">
-            <span>测试账号</span>
-          </div>
+        <button
+          id="loginBtn"
+          type="submit"
+          class="login-btn"
+          :class="{ loading: isLoading }"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? '登录中...' : '登录' }}
+        </button>
+      </form>
 
-          <div class="demo-credentials">
-            <div class="demo-credentials-title">
-              默认管理员账号
-            </div>
-            <p>用户名: <code>admin</code></p>
-            <p>密码: <code>admin123</code></p>
-          </div>
-        </template>
+      <template v-if="showDemoCredentials">
+        <div class="divider">
+          <span>测试账号</span>
+        </div>
 
-        <div class="login-foot">
-          <p class="footer-text">
-            没有账号？<button
-              id="contactAdminLink"
-              type="button"
-              class="text-link"
-              @click="handleLinkClick('请联系管理员创建账号')"
-            >
-              联系管理员
-            </button>
-          </p>
-          <!-- 主题是深/浅分段，是持守，不是一颗常亮主按钮 -->
-          <div class="seg" role="radiogroup" aria-label="主题">
-            <button
-              type="button"
-              role="radio"
-              :aria-checked="theme === 'dark'"
-              @click="setTheme('dark')"
-            >深</button>
-            <button
-              type="button"
-              role="radio"
-              :aria-checked="theme === 'light'"
-              @click="setTheme('light')"
-            >浅</button>
+        <div class="demo-credentials">
+          <div class="demo-credentials-title">
+            默认管理员账号
           </div>
+          <p>用户名: <code>admin</code></p>
+          <p>密码: <code>admin123</code></p>
+        </div>
+      </template>
+
+      <div class="login-foot">
+        <p class="footer-text">
+          没有账号？<button
+            id="contactAdminLink"
+            type="button"
+            class="text-link"
+            @click="handleLinkClick('请联系管理员创建账号')"
+          >
+            联系管理员
+          </button>
+        </p>
+        <!-- 主题是深/浅分段，是持守，不是一颗常亮主按钮 -->
+        <div class="seg" role="radiogroup" aria-label="主题">
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="theme === 'dark'"
+            @click="setTheme('dark')"
+          >
+            深
+          </button>
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="theme === 'light'"
+            @click="setTheme('light')"
+          >
+            浅
+          </button>
         </div>
       </div>
+    </div>
   </div>
 </template>
 
@@ -349,7 +353,8 @@ html.login-page body.login-page {
   overflow: hidden;
 }
 
-/* 页底保留现场照片（压暗衬底），卡片是抬起面实色坐在其上 */
+/* 页底保留现场照片（压暗衬底），卡片是抬起面实色坐在其上。
+   压暗 0.45 是图片可读性常量，两面同值，不走 --scrim（模态遮罩语义不同）。 */
 body.login-page {
   background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url('/frontend/images/index-pic-01.jpg') center / cover no-repeat fixed !important;
@@ -439,7 +444,7 @@ body.login-page #app {
 .form-input {
   width: 100%;
   height: var(--h-md);
-  padding: 0 10px;
+  padding: 0 var(--s3);
   border-radius: var(--r-control);
   border: 1px solid var(--line-strong);
   background: var(--face-page);
@@ -475,12 +480,12 @@ body.login-page #app {
 }
 
 .password-wrapper .form-input {
-  padding-right: 36px;
+  padding-right: 36px; /* 给 24px 图标 + 右缘留位，几何值不入间距梯 */
 }
 
 .password-toggle {
   position: absolute;
-  right: 6px;
+  right: var(--s1);
   top: 50%;
   transform: translateY(-50%);
   width: 24px;
@@ -537,7 +542,7 @@ body.login-page #app {
 .login-btn {
   width: 100%;
   height: var(--h-lg);
-  padding: 0 16px;
+  padding: 0 var(--s4);
   font-size: var(--fs-body);
   font-weight: var(--fw-medium);
   color: var(--act-on);
@@ -570,6 +575,7 @@ body.login-page #app {
   transform: none;
 }
 
+/* 转圈是动画几何：半宽对心用负 margin，刻意不入梯子 */
 .login-btn.loading::after {
   content: '';
   position: absolute;
@@ -579,7 +585,7 @@ body.login-page #app {
   border-right-color: transparent;
   border-radius: 50%;
   animation: spin 700ms linear infinite;
-  right: 16px;
+  right: var(--s4);
   top: 50%;
   margin-top: -7px;
 }
@@ -593,13 +599,13 @@ body.login-page #app {
 /* 横幅：败=危衬+危字，成=安衬+安字；入出用 escalate */
 .error-message,
 .success-message {
-  padding: 8px 12px;
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-control);
   font-size: var(--fs-body);
   margin-bottom: var(--s3);
   display: none;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .error-message {
@@ -630,7 +636,7 @@ body.login-page #app {
   border: 0;
   background: transparent;
   color: currentColor;
-  font-size: 14px;
+  font-size: var(--fs-section);
   cursor: pointer;
   line-height: 1;
   padding: 2px;
@@ -680,12 +686,13 @@ body.login-page #app {
 
 .demo-credentials p {
   color: var(--ink-subtle);
-  margin: 4px 0;
+  margin: var(--s1) 0;
 }
 
+/* code 字号 11px 刻意低于标签梯档，配等宽体做凭据展示 */
 .demo-credentials code {
   background: color-mix(in srgb, var(--ink) 6%, transparent);
-  padding: 1px 5px;
+  padding: 1px var(--s1);
   border-radius: var(--r-cell);
   font-family: var(--mono);
   font-size: 11px;
@@ -720,8 +727,8 @@ body.login-page #app {
 }
 
 .seg button {
-  height: 28px;
-  padding: 0 10px;
+  height: 28px; /* 分段控件内嵌高度，介于 h-sm 与控件之间，持守不入 --h 梯 */
+  padding: 0 var(--s3);
   border: 0;
   border-radius: var(--r-cell);
   background: transparent;

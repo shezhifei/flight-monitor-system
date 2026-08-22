@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -11,7 +12,6 @@ use fms_domain::ports::flight_runtime_projection_repository::{
 };
 use serde_json::{json, Value};
 use sqlx::{PgPool, Row};
-use tokio::sync::RwLock;
 
 pub struct PgFlightRuntimeProjectionRepository {
     pool: PgPool,
@@ -38,7 +38,7 @@ impl PgFlightRuntimeProjectionRepository {
         let mut result = HashMap::new();
         let mut missing_ids = Vec::new();
         {
-            let cache = self.hot_cache.read().await;
+            let cache = self.hot_cache.read().unwrap_or_else(|poisoned| poisoned.into_inner());
             for flight_id in &normalized_ids {
                 if let Some(projection) = cache.get(flight_id) {
                     result.insert(flight_id.clone(), projection.clone());
@@ -66,7 +66,7 @@ impl PgFlightRuntimeProjectionRepository {
 
         let loaded = rows.iter().map(row_to_projection).collect::<Vec<_>>();
         {
-            let mut cache = self.hot_cache.write().await;
+            let mut cache = self.hot_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
             for projection in loaded {
                 result.insert(projection.flight_id.clone(), projection.clone());
                 cache.insert(projection.flight_id.clone(), projection);
@@ -104,7 +104,10 @@ impl PgFlightRuntimeProjectionRepository {
         .await
         .map_err(|error| DomainError::Internal(error.to_string()))?;
 
-        self.hot_cache.write().await.insert(flight_id.to_string(), projection);
+        self.hot_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(flight_id.to_string(), projection);
 
         Ok(())
     }
@@ -129,7 +132,10 @@ impl PgFlightRuntimeProjectionRepository {
             .await
             .map_err(|error| DomainError::Internal(error.to_string()))?;
 
-        self.hot_cache.write().await.remove(flight_id);
+        self.hot_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(flight_id);
 
         Ok(())
     }
@@ -139,7 +145,10 @@ impl PgFlightRuntimeProjectionRepository {
         if flight_id.is_empty() {
             return;
         }
-        self.hot_cache.write().await.remove(flight_id);
+        self.hot_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(flight_id);
     }
 
     pub async fn rebuild_recent(&self, limit: i64) -> Result<usize, DomainError> {
@@ -194,16 +203,16 @@ impl FlightRuntimeProjectionRepository for PgFlightRuntimeProjectionRepository {
 }
 
 fn normalize_flight_ids(flight_ids: &[String]) -> Vec<String> {
-    flight_ids
-        .iter()
-        .map(|item| item.trim())
-        .filter(|item| !item.is_empty())
-        .fold(Vec::<String>::new(), |mut acc, item| {
-            if !acc.iter().any(|existing| existing == item) {
-                acc.push(item.to_string());
-            }
-            acc
-        })
+    let mut seen = std::collections::HashSet::with_capacity(flight_ids.len());
+    let mut acc = Vec::with_capacity(flight_ids.len());
+    for item in flight_ids {
+        let item = item.trim();
+        if item.is_empty() || !seen.insert(item) {
+            continue;
+        }
+        acc.push(item.to_string());
+    }
+    acc
 }
 
 fn row_to_projection(row: &sqlx::postgres::PgRow) -> FlightRuntimeProjection {

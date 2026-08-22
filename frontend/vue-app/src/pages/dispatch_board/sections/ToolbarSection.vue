@@ -61,8 +61,23 @@ const emit = defineEmits<{
               @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
               @keyup.enter="emit('search')"
             >
-            <button id="timelineSearchBtn" class="search-mini-btn" aria-label="搜索并定位任务" @click="emit('search')">定位</button>
-            <button id="timelineSearchNextBtn" class="search-mini-btn" :disabled="searchResults.length === 0" aria-label="定位下一个匹配" @click="emit('searchNext')">下一个</button>
+            <button
+              id="timelineSearchBtn"
+              class="search-mini-btn"
+              aria-label="搜索并定位任务"
+              @click="emit('search')"
+            >
+              定位
+            </button>
+            <button
+              id="timelineSearchNextBtn"
+              class="search-mini-btn"
+              :disabled="searchResults.length === 0"
+              aria-label="定位下一个匹配"
+              @click="emit('searchNext')"
+            >
+              下一个
+            </button>
           </div>
           <div
             id="timelineSearchResults"
@@ -73,20 +88,33 @@ const emit = defineEmits<{
               <strong>{{ result.label }}</strong>
               <span>{{ result.sub }}</span>
             </div>
-            <div v-if="searchResults.length === 0 && searchQuery" class="search-empty">无匹配结果</div>
+            <div v-if="searchResults.length === 0 && searchQuery" class="search-empty">
+              无匹配结果
+            </div>
           </div>
         </div>
         <span id="timelineSearchMeta" class="search-meta">{{ searchMetaLabel }}</span>
       </div>
 
       <div id="quickActions" class="quick-actions">
-        <button id="openAiFloatingBtn" class="quick-action-btn primary" @click="emit('toggleAiDrawer')">智能派工</button>
-        <button id="openStatusFloatingBtn" class="quick-action-btn" @click="emit('toggleStatusPanel')">派工状态</button>
-        <button id="openChatFloatingBtn" class="quick-action-btn" aria-label="打开群聊抽屉" @click="emit('toggleChatDrawer')">
+        <button id="openAiFloatingBtn" class="quick-action-btn primary" @click="emit('toggleAiDrawer')">
+          智能派工
+        </button>
+        <button id="openStatusFloatingBtn" class="quick-action-btn" @click="emit('toggleStatusPanel')">
+          派工状态
+        </button>
+        <button
+          id="openChatFloatingBtn"
+          class="quick-action-btn"
+          aria-label="打开群聊抽屉"
+          @click="emit('toggleChatDrawer')"
+        >
           群聊
           <span v-show="chatUnreadTotal > 0" id="chatUnreadBadge" class="chat-unread-badge">{{ chatUnreadTotal }}</span>
         </button>
-        <button id="backToNowFloatingBtn" class="quick-action-btn" @click="emit('resetWindowToNow')">当前时间</button>
+        <button id="backToNowFloatingBtn" class="quick-action-btn" @click="emit('resetWindowToNow')">
+          当前时间
+        </button>
       </div>
 
       <TerminalSelector
@@ -97,51 +125,129 @@ const emit = defineEmits<{
       />
 
       <div class="ops-utility-group">
-        <button id="openGuideBtn" class="hint-link-btn" @click="emit('toggleGuideAndLegendPanel')">引导/图例</button>
-        <button id="opsMenuToggle" class="ops-menu-toggle" title="调度设置菜单" aria-label="调度设置菜单" @click="emit('toggleOpsMenu')">
+        <button id="openGuideBtn" class="hint-link-btn" @click="emit('toggleGuideAndLegendPanel')">
+          引导/图例
+        </button>
+        <button
+          id="opsMenuToggle"
+          class="ops-menu-toggle"
+          title="调度设置菜单"
+          aria-label="调度设置菜单"
+          @click="emit('toggleOpsMenu')"
+        >
           <SvgIcon src="/frontend/icons/settings.svg" label="设置" class="ops-menu-icon" />
         </button>
       </div>
 
-      <div id="opsMenu" class="ops-menu" :class="{ open: isOpsMenuVisible }" :aria-hidden="!isOpsMenuVisible">
+      <div
+        id="opsMenu"
+        class="ops-menu"
+        :class="{ open: isOpsMenuVisible }"
+        :aria-hidden="!isOpsMenuVisible"
+      >
         <div class="ops-controls">
           <div id="viewTabGroup" class="view-tabs">
-            <button class="chip-btn" :class="{ active: activeViewMode === 'flight' }" data-view="flight" @click="emit('handleViewTabChange', 'flight')">航班</button>
-            <button class="chip-btn" :class="{ active: activeViewMode === 'team' }" data-view="team" @click="emit('handleViewTabChange', 'team')">班组</button>
-            <button class="chip-btn" :class="{ active: activeViewMode === 'employee' }" data-view="employee" @click="emit('handleViewTabChange', 'employee')">员工</button>
-            <button class="chip-btn" :class="{ active: activeViewMode === 'equipment' }" data-view="equipment" @click="emit('handleViewTabChange', 'equipment')">设备</button>
+            <button
+              class="chip-btn"
+              :class="{ active: activeViewMode === 'flight' }"
+              data-view="flight"
+              @click="emit('handleViewTabChange', 'flight')"
+            >
+              航班
+            </button>
+            <button
+              class="chip-btn"
+              :class="{ active: activeViewMode === 'team' }"
+              data-view="team"
+              @click="emit('handleViewTabChange', 'team')"
+            >
+              班组
+            </button>
+            <button
+              class="chip-btn"
+              :class="{ active: activeViewMode === 'employee' }"
+              data-view="employee"
+              @click="emit('handleViewTabChange', 'employee')"
+            >
+              员工
+            </button>
+            <button
+              class="chip-btn"
+              :class="{ active: activeViewMode === 'equipment' }"
+              data-view="equipment"
+              @click="emit('handleViewTabChange', 'equipment')"
+            >
+              设备
+            </button>
           </div>
           <div id="terminalGroup" class="terminal-tabs">
-            <button v-for="term in terminals" :key="term.terminal" class="terminal-tab-btn" :class="{ active: term.active }" @click="emit('switchTerminal', term.terminal)">{{ term.label }}</button>
+            <button
+              v-for="term in terminals"
+              :key="term.terminal"
+              class="terminal-tab-btn"
+              :class="{ active: term.active }"
+              @click="emit('switchTerminal', term.terminal)"
+            >
+              {{ term.label }}
+            </button>
           </div>
-          <button id="backToNowBtn" class="action-btn" @click="emit('resetWindowToNow')">回到当前时间</button>
-          <button id="refreshBtn" class="action-btn" @click="emit('refreshTimeline'); emit('closeOpsMenu')">刷新</button>
+          <button id="backToNowBtn" class="action-btn" @click="emit('resetWindowToNow')">
+            回到当前时间
+          </button>
+          <button id="refreshBtn" class="action-btn" @click="emit('refreshTimeline'); emit('closeOpsMenu')">
+            刷新
+          </button>
           <div class="ops-divider" />
           <div class="settings-row">
             <label for="settingRefreshInterval">自动刷新间隔</label>
             <select id="settingRefreshInterval" :value="settingRefreshInterval" @change="emit('update:settingRefreshInterval', ($event.target as HTMLSelectElement).value)">
-              <option value="5000">5 秒</option>
-              <option value="10000">10 秒</option>
-              <option value="15000">15 秒</option>
-              <option value="30000">30 秒</option>
-              <option value="60000">60 秒</option>
+              <option value="5000">
+                5 秒
+              </option>
+              <option value="10000">
+                10 秒
+              </option>
+              <option value="15000">
+                15 秒
+              </option>
+              <option value="30000">
+                30 秒
+              </option>
+              <option value="60000">
+                60 秒
+              </option>
             </select>
           </div>
           <div class="settings-row">
             <label for="settingCornerFade">角落信息自动淡出</label>
-            <input id="settingCornerFade" :checked="guideSettings.cornerFade" type="checkbox" @change="emit('update:guideSettings', { ...guideSettings, cornerFade: ($event.target as HTMLInputElement).checked })">
+            <input
+              id="settingCornerFade"
+              :checked="guideSettings.cornerFade"
+              type="checkbox"
+              @change="emit('update:guideSettings', { ...guideSettings, cornerFade: ($event.target as HTMLInputElement).checked })"
+            >
           </div>
           <div class="settings-row">
             <label for="settingSafetyGateFilter">安全门禁筛选</label>
             <select id="settingSafetyGateFilter" :value="settingSafetyGateFilter" @change="emit('update:settingSafetyGateFilter', ($event.target as HTMLSelectElement).value)">
-              <option value="all">全部任务</option>
-              <option value="blocked">仅清单阻断</option>
-              <option value="pending">仅清单待补齐</option>
-              <option value="ready">仅清单就绪</option>
+              <option value="all">
+                全部任务
+              </option>
+              <option value="blocked">
+                仅清单阻断
+              </option>
+              <option value="pending">
+                仅清单待补齐
+              </option>
+              <option value="ready">
+                仅清单就绪
+              </option>
             </select>
           </div>
           <div class="settings-actions">
-            <button id="settingsApplyBtn" class="action-btn" @click="emit('handleSettingsApply')">应用设置</button>
+            <button id="settingsApplyBtn" class="action-btn" @click="emit('handleSettingsApply')">
+              应用设置
+            </button>
           </div>
         </div>
       </div>
@@ -151,10 +257,33 @@ const emit = defineEmits<{
     <span id="viewModeHint">单击高亮，双击打开详情；滚轮缩放时间轴，拖拽平移。</span>
     <div id="resourceFocusBar" class="resource-focus-bar">
       <span id="resourceFocusText" class="resource-focus-text">{{ resourceFocusText || '未选择聚焦' }}</span>
-      <button id="resourceFocusClearBtn" class="hint-link-btn resource-focus-clear" type="button" @click="emit('clearResourceFocus')">清除聚焦</button>
-      <button class="hint-link-btn" type="button" :style="{ fontWeight: isBatchToolbarVisible ? '700' : '400', color: selectedOrderIds.length > 0 ? '#0ea5e9' : undefined }" @click="emit('toggleBatchToolbar')">
+      <button
+        id="resourceFocusClearBtn"
+        class="hint-link-btn resource-focus-clear"
+        type="button"
+        @click="emit('clearResourceFocus')"
+      >
+        清除聚焦
+      </button>
+      <button
+        class="hint-link-btn"
+        type="button"
+        :class="{ 'is-bold': isBatchToolbarVisible, 'is-active': selectedOrderIds.length > 0 }"
+        @click="emit('toggleBatchToolbar')"
+      >
         批量操作{{ selectedOrderIds.length > 0 ? ` (${selectedOrderIds.length})` : '' }}
       </button>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 批量开关钮：开态加粗，有选中时着动蓝 —— 三目内联改修饰类 */
+.hint-link-btn.is-bold {
+  font-weight: var(--fw-semibold);
+}
+
+.hint-link-btn.is-active {
+  color: var(--act);
+}
+</style>

@@ -63,12 +63,25 @@ const emit = defineEmits<{
           <span class="legend-item is-secondary" data-group="secondary"><span class="legend-swatch lock" />优化约束</span>
           <span class="legend-item" data-group="secondary"><span class="legend-dot safety-blocked" />阻断</span>
         </div>
-        <button id="ganttLegendMoreBtn" class="gantt-legend-more" type="button" :aria-expanded="isGanttLegendPopoverVisible ? 'true' : 'false'" aria-controls="ganttLegendPopover" @click="emit('toggleGanttLegend')">说明</button>
+        <button
+          id="ganttLegendMoreBtn"
+          class="gantt-legend-more"
+          type="button"
+          :aria-expanded="isGanttLegendPopoverVisible ? 'true' : 'false'"
+          aria-controls="ganttLegendPopover"
+          @click="emit('toggleGanttLegend')"
+        >
+          说明
+        </button>
         <div id="ganttLegendPopover" class="gantt-legend-popover" :hidden="!isGanttLegendPopoverVisible">
-          <p class="gantt-legend-popover-title">甘特图图例说明</p>
+          <p class="gantt-legend-popover-title">
+            甘特图图例说明
+          </p>
           <div class="gantt-legend-popover-body">
             <div class="legend-cluster">
-              <div class="legend-cluster-title">主状态</div>
+              <div class="legend-cluster-title">
+                主状态
+              </div>
               <div class="legend-cluster-items">
                 <span class="legend-item"><span class="status-symbol pending" aria-hidden="true">○</span><span class="legend-dot pending" />待派工</span>
                 <span class="legend-item"><span class="status-symbol assigned" aria-hidden="true">●</span><span class="legend-dot assigned" />已分配</span>
@@ -78,7 +91,9 @@ const emit = defineEmits<{
               </div>
             </div>
             <div class="legend-cluster">
-              <div class="legend-cluster-title">次级语义</div>
+              <div class="legend-cluster-title">
+                次级语义
+              </div>
               <div class="legend-cluster-items">
                 <span class="legend-item is-secondary"><span class="legend-swatch draft" />预发布草稿</span>
                 <span class="legend-item is-secondary"><span class="legend-swatch alert" />冲突 / 阻塞 / 缺口</span>
@@ -90,13 +105,28 @@ const emit = defineEmits<{
               </div>
             </div>
           </div>
-          <p class="gantt-legend-popover-note">悬浮条默认只保留关键识别项，完整语义在这里查看。</p>
+          <p class="gantt-legend-popover-note">
+            悬浮条默认只保留关键识别项，完整语义在这里查看。
+          </p>
         </div>
       </div>
-      <div id="cornerInfo" class="corner-info" :style="{ opacity: guideSettings.cornerFade ? 0.3 : 1, transition: 'opacity 0.5s' }">
+      <div id="cornerInfo" class="corner-info" :class="{ 'is-faded': guideSettings.cornerFade }">
         <h1>实时派工时间线</h1>
-        <p id="windowLabel" class="window-label">-</p>
+        <p id="windowLabel" class="window-label">
+          -
+        </p>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 角信息：淁隐态走修饰类，过渡归梯 */
+.corner-info {
+  transition: opacity var(--t-slow) var(--ease);
+}
+
+.corner-info.is-faded {
+  opacity: 0.3;
+}
+</style>

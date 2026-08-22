@@ -1,7 +1,23 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import type { Stakeholder } from '../../composables/useMentionStakeholders';
+import UiField from '../ui/UiField.vue';
+import UiMenu from '../ui/UiMenu.vue';
+import UiMenuItem from '../ui/UiMenuItem.vue';
+import UiPill from '../ui/UiPill.vue';
 
+/**
+ * 提名输入（@某人）：一个输入器 + 一列可选的人。
+ *
+ * 输入器的形归 UiField（各页不要再自己写一套 .xxx-input）；
+ * 展开的那一列归 UiMenu 的 listbox 档 —— 选择器展开的列表和菜单同一套形（§3.6），
+ * 但项是「一个值」而不是「一个动作」，所以角色是 option，键盘游标用 aria-selected
+ * 报持守（§2.5 判定第 1 条：CSS 绑 aria，不绑一次性 class）。
+ *
+ * 它开在弹窗的身里，身有自己的滚动口会把绝对定位的层裁掉，所以走定点落法：
+ * Teleport 到 body + 视口坐标，层序吃 --z-menu（§3.5「菜单压在弹窗之上，
+ * 因为弹窗里也要能开菜单」），不再自己发明一个 100000。
+ */
 const props = defineProps<{
   modelValue: string;
   stakeholders: Stakeholder[];
@@ -22,6 +38,12 @@ const selectedIndex = ref(0);
 const mentionedIds = ref<Set<string>>(new Set());
 const mentionTriggerPos = ref(-1);
 
+/** aria-activedescendant 要指得住，所以每一项都得有稳定且本实例唯一的 id */
+const listId = useId();
+function optionId(index: number): string {
+  return `${listId}-opt-${index}`;
+}
+
 const filteredStakeholders = computed(() => {
   const keyword = searchKeyword.value.toLowerCase();
   if (!keyword) return props.stakeholders;
@@ -30,6 +52,46 @@ const filteredStakeholders = computed(() => {
       s.username.toLowerCase().includes(keyword) ||
       s.user_id.toLowerCase().includes(keyword),
   );
+});
+
+/** 一个候选人都没有就没有可选的值，那一列不该开着 */
+const isOpen = computed(() => showDropdown.value && filteredStakeholders.value.length > 0);
+
+const MENU_MAX_H = 280;
+const MENU_MIN_H = 160;
+const MENU_GAP = 4;
+
+/** 定点落法的视口坐标：贴着输入器落下，下面放不开就翻到上面去 */
+const menuPos = ref({ x: 0, y: 0 });
+
+function placeMenu(): void {
+  const el = textareaRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const roomBelow = window.innerHeight - rect.bottom - MENU_GAP;
+  menuPos.value = {
+    x: Math.round(rect.left),
+    y: roomBelow >= MENU_MIN_H
+      ? Math.round(rect.bottom + MENU_GAP)
+      : Math.round(Math.max(MENU_GAP, rect.top - MENU_GAP - MENU_MAX_H)),
+  };
+}
+
+/* fixed 的层不跟着祖先滚，所以开着的时候得盯住滚动与改窗 */
+watch(isOpen, (open) => {
+  if (open) {
+    placeMenu();
+    window.addEventListener('scroll', placeMenu, true);
+    window.addEventListener('resize', placeMenu);
+  } else {
+    window.removeEventListener('scroll', placeMenu, true);
+    window.removeEventListener('resize', placeMenu);
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', placeMenu, true);
+  window.removeEventListener('resize', placeMenu);
 });
 
 function onInput(event: Event) {
@@ -50,6 +112,7 @@ function onInput(event: Event) {
         searchKeyword.value = query;
         mentionTriggerPos.value = atIndex;
         selectedIndex.value = 0;
+        placeMenu();
         return;
       }
     }
@@ -90,7 +153,7 @@ function selectStakeholder(stakeholder: Stakeholder) {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (!showDropdown.value || filteredStakeholders.value.length === 0) return;
+  if (!isOpen.value) return;
 
   if (event.key === 'ArrowDown') {
     event.preventDefault();
@@ -123,134 +186,78 @@ watch(
 </script>
 
 <template>
-  <div class="mention-input-wrapper" @click.stop>
-    <textarea
-      ref="textareaRef"
-      :value="modelValue"
-      :placeholder="placeholder || '填写回复内容，输入 @ 可提醒相关人员。'"
-      :maxlength="maxlength || 2000"
-      :rows="rows || 4"
-      class="mention-textarea"
-      @input="onInput"
-      @keydown="onKeydown"
-      @blur="closeDropdown"
-    />
+  <div class="mention" @click.stop>
+    <UiField>
+      <textarea
+        ref="textareaRef"
+        :value="modelValue"
+        :placeholder="placeholder || '填写回复内容，输入 @ 可提醒相关人员。'"
+        :maxlength="maxlength || 2000"
+        :rows="rows || 4"
+        :aria-controls="isOpen ? listId : undefined"
+        :aria-activedescendant="isOpen ? optionId(selectedIndex) : undefined"
+        @input="onInput"
+        @keydown="onKeydown"
+        @blur="closeDropdown"
+      />
+    </UiField>
     <Teleport to="body">
-      <div
-        v-if="showDropdown && filteredStakeholders.length > 0"
-        class="mention-dropdown"
+      <!-- 名给读屏，不在列上再写一行「选择提醒人员」（§3.6 不加小标题 / §4.4 不加教学小字） -->
+      <UiMenu
+        v-if="isOpen"
+        :id="listId"
+        class="mention__list"
+        role="listbox"
+        label="提醒人员"
+        :x="menuPos.x"
+        :y="menuPos.y"
+        min-width="240px"
         @mousedown.prevent
       >
-        <div class="mention-dropdown-header">
-          选择提醒人员
-        </div>
-        <div
+        <!--
+          悬停不挪键盘游标：挪了，交感就和持守同形了（§2.5 判定第 3 条 / §4.2）。
+          划过是 UiMenuItem 那一层淡墨，游标是 aria-selected 的行动衬。
+        -->
+        <UiMenuItem
           v-for="(s, i) in filteredStakeholders"
+          :id="optionId(i)"
           :key="s.user_id"
-          class="mention-option"
-          :class="{ 'mention-option-active': i === selectedIndex }"
+          role="option"
+          :selected="i === selectedIndex"
           @mousedown.prevent="selectStakeholder(s)"
-          @mouseenter="selectedIndex = i"
         >
-          <span class="mention-username">{{ s.username }}</span>
-          <span v-if="s.is_dispatcher" class="mention-role-tag">调度</span>
-          <span v-if="s.is_assignee" class="mention-role-tag mention-role-assignee">责任人</span>
-        </div>
-        <div v-if="filteredStakeholders.length === 0" class="mention-empty">
-          无匹配成员
-        </div>
-      </div>
+          <span class="mention__opt">
+            <span class="mention__name">{{ s.username }}</span>
+            <!-- 职责是属性，不是事态：不出声（§2.4 声只给行动与四类事态；§3.2 属性不带声） -->
+            <UiPill v-if="s.is_dispatcher">调度</UiPill>
+            <UiPill v-if="s.is_assignee">责任人</UiPill>
+          </span>
+        </UiMenuItem>
+      </UiMenu>
     </Teleport>
   </div>
 </template>
 
 <style scoped>
-.mention-input-wrapper {
-  position: relative;
+.mention {
   width: 100%;
 }
 
-.mention-textarea {
-  width: 100%;
-  resize: vertical;
-  border: 1px solid var(--border-light, #d7e0e8);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 13px;
-  line-height: 1.6;
-  box-sizing: border-box;
-  font-family: inherit;
-  transition: border-color 0.15s;
-}
-
-.mention-textarea:focus {
-  outline: none;
-  border-color: var(--service-blue, #007AFF);
-  box-shadow: 0 0 0 3px var(--focus-ring-blue);
-}
-
-.mention-dropdown {
-  position: fixed;
-  z-index: 100000;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 320px;
+/* 面、线、影、层序全在 UiMenu 里；这里只给这一列一个滚动口，人多了不撑爆视口 */
+.mention__list {
   max-height: 280px;
   overflow-y: auto;
-  background: var(--admin-card-bg);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
-  padding: 4px 0;
 }
 
-.mention-dropdown-header {
-  padding: 8px 14px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-tertiary, #8E8E93);
-  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-}
-
-.mention-option {
+.mention__opt {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.1s;
+  min-width: 0;
 }
 
-.mention-option:hover,
-.mention-option-active {
-  background: var(--system-blue-subtle);
-}
-
-.mention-username {
-  font-weight: 500;
-  color: var(--text-primary, #102132);
-}
-
-.mention-role-tag {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--system-blue-subtle);
-  color: var(--service-blue, #007AFF);
-  font-weight: 600;
-}
-
-.mention-role-assignee {
-  background: var(--dh-signal-warn-soft);
-  color: var(--ws-warn);
-}
-
-.mention-empty {
-  padding: 12px 14px;
-  font-size: 12px;
-  color: var(--text-tertiary, #8E8E93);
-  text-align: center;
+.mention__name {
+  font-weight: var(--fw-medium);
+  color: var(--ink);
 }
 </style>

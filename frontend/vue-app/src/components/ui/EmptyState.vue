@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import UiButton from './UiButton.vue';
+
 const props = defineProps<{
   icon?: 'search' | 'plane' | 'alert' | 'filter' | 'data';
   title: string;
@@ -44,15 +46,15 @@ const resolvedIcon = iconPaths[props.icon ?? 'search'];
     <div v-if="description" class="empty-state-desc">
       {{ description }}
     </div>
-    <button
+    <UiButton
       v-if="actionLabel"
-      type="button"
+      variant="tonal"
       class="empty-state-action"
       :disabled="actionDisabled"
       @click="emit('action')"
     >
       {{ actionLabel }}
-    </button>
+    </UiButton>
   </div>
 </template>
 
@@ -64,7 +66,7 @@ const resolvedIcon = iconPaths[props.icon ?? 'search'];
   justify-content: center;
   padding: 40px 24px;
   text-align: center;
-  color: var(--text-secondary, #5f6368);
+  color: var(--ink-subtle);
   contain: layout style paint;
 }
 
@@ -74,53 +76,25 @@ const resolvedIcon = iconPaths[props.icon ?? 'search'];
   justify-content: center;
   width: 64px;
   height: 64px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--text-tertiary, #8b9097);
+  border-radius: var(--r-panel);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--ink-muted);
   margin-bottom: 16px;
 }
 
 .empty-state-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary, #1D1D1F);
-  margin-bottom: 6px;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  margin-bottom: var(--s2);
   line-height: 1.4;
 }
 
 .empty-state-desc {
-  font-size: 13px;
-  color: var(--text-secondary, #5f6368);
+  font-size: var(--fs-body);
+  color: var(--ink-muted);
   line-height: 1.5;
   max-width: 280px;
   margin-bottom: 16px;
-}
-
-.empty-state-action {
-  min-height: 32px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--border-light);
-  background: var(--glass-bg);
-  color: var(--system-blue, #007AFF);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-
-.empty-state-action:hover:not(:disabled) {
-  background: var(--system-blue-subtle, rgba(0, 122, 255, 0.1));
-  border-color: var(--border-focus);
-}
-
-.empty-state-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.empty-state-action:focus-visible {
-  outline: 2px solid var(--system-blue, #007AFF);
-  outline-offset: 2px;
 }
 </style>

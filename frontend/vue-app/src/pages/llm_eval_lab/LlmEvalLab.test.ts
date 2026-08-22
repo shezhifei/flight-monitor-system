@@ -66,7 +66,7 @@ describe('LlmEvalLab', () => {
     expect(rows[0]!.text()).toContain('job-1');
   });
 
-  it('maps job status to signal badge classes', async () => {
+  it('maps job status to signal pill tones', async () => {
     listEvalJobs.mockResolvedValue([
       makeJob({ job_id: 'a', status: 'completed' }),
       makeJob({ job_id: 'b', status: 'running' }),
@@ -75,11 +75,11 @@ describe('LlmEvalLab', () => {
     ]);
     const wrapper = mountPage();
     await flushPromises();
-    const badges = wrapper.findAll('tbody .badge').map((n) => n.classes());
-    expect(badges[0]).toContain('badge-success');
-    expect(badges[1]).toContain('badge-info');
-    expect(badges[2]).toContain('badge-danger');
-    expect(badges[3]).toContain('badge-neutral');
+    const tones = wrapper.findAll('tbody .ui-pill').map((n) => n.attributes('data-tone'));
+    expect(tones[0]).toBe('ok');
+    expect(tones[1]).toBe('act');
+    expect(tones[2]).toBe('danger');
+    expect(tones[3]).toBe('mute');
   });
 
   it('does not poll when no job is active', async () => {
@@ -114,15 +114,15 @@ describe('LlmEvalLab', () => {
     );
     const wrapper = mountPage();
     await flushPromises();
-    await wrapper.find('tbody .btn-secondary').trigger('click');
+    await wrapper.find('tbody .ui-btn').trigger('click');
     await flushPromises();
     expect(getEvalJob).toHaveBeenCalledWith('job-1');
     const gateRows = wrapper.findAll('.eval-gates-head ~ .table-container tbody tr');
     expect(gateRows).toHaveLength(2);
     expect(gateRows[0]!.text()).toContain('0.950');
     expect(gateRows[0]!.text()).toContain('0.90');
-    expect(gateRows[0]!.find('.badge').classes()).toContain('badge-success');
-    expect(gateRows[1]!.find('.badge').classes()).toContain('badge-danger');
+    expect(gateRows[0]!.find('.ui-pill').attributes('data-tone')).toBe('ok');
+    expect(gateRows[1]!.find('.ui-pill').attributes('data-tone')).toBe('danger');
   });
 
   it('cancels an active job and refreshes the list', async () => {
@@ -130,7 +130,7 @@ describe('LlmEvalLab', () => {
     cancelEvalJob.mockResolvedValue({});
     const wrapper = mountPage();
     await flushPromises();
-    const cancelBtn = wrapper.find('tbody .btn-danger');
+    const cancelBtn = wrapper.find("tbody .ui-btn[data-variant='danger']");
     expect(cancelBtn.attributes('disabled')).toBeUndefined();
     await cancelBtn.trigger('click');
     await flushPromises();
@@ -141,14 +141,14 @@ describe('LlmEvalLab', () => {
   it('disables cancel for finished jobs', async () => {
     const wrapper = mountPage();
     await flushPromises();
-    expect(wrapper.find('tbody .btn-danger').attributes('disabled')).toBeDefined();
+    expect(wrapper.find("tbody .ui-btn[data-variant='danger']").attributes('disabled')).toBeDefined();
   });
 
   it('creates a job from the drawer form, then opens its detail', async () => {
     createEvalJob.mockResolvedValue({ job_id: 'job-new', status: 'pending' });
     const wrapper = mountPage();
     await flushPromises();
-    await wrapper.find('.header-actions .btn-primary').trigger('click');
+    await wrapper.find(".header-actions .ui-btn[data-variant='primary']").trigger('click');
     const form = wrapper.find('form.eval-form');
     expect(form.exists()).toBe(true);
     await form.find('input[type="text"]').setValue('nightly eval');

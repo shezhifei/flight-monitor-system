@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+/**
+ * 谓词（信号面 §2.6「动词有三级，一屏一颗主」）：
+ *   primary 主（实底行动蓝，一屏最多一颗）
+ *   tonal   次（行动衬 + 行动字：常用但不抢主，例如列表行里的「确认」）
+ *   ghost   静（线-强描边：可撤销、少用、离开）
+ *   quiet   文字（可逃：全部标为已读）
+ *   danger  危（危声衬 + 危字：真的会拒掉 / 毁掉东西的那一颗）
+ *
+ * pressed 是持守（aria-pressed），不是「点过了」—— 一次性动作不要给它。
+ */
 const props = withDefaults(defineProps<{
-  variant?: 'ghost' | 'primary' | 'danger' | 'quiet';
+  variant?: 'ghost' | 'primary' | 'tonal' | 'danger' | 'quiet';
   size?: 'sm' | 'md';
   pressed?: boolean;
   disabled?: boolean;
@@ -80,8 +90,17 @@ const pressedAttr = computed(() => (
 }
 
 .ui-btn[data-variant='primary']:hover {
-  filter: brightness(1.06);
-  background: var(--act);
+  background: color-mix(in srgb, var(--act) 88%, var(--ink));
+}
+
+.ui-btn[data-variant='tonal'] {
+  background: var(--act-soft);
+  color: var(--act);
+  border-color: color-mix(in srgb, var(--act) 42%, transparent);
+}
+
+.ui-btn[data-variant='tonal']:hover {
+  border-color: var(--act);
 }
 
 .ui-btn[data-variant='danger'] {

@@ -168,6 +168,7 @@ pub fn record_db_pool_connections(pool: &PgPool) {
     let active = total.saturating_sub(idle as u32);
     metrics::gauge!("fms_db_pool_connections", "state" => "active").set(active as f64);
     metrics::gauge!("fms_db_pool_connections", "state" => "idle").set(idle as f64);
+    metrics::gauge!("fms_db_pool_connections_max").set(pool.options().get_max_connections() as f64);
 }
 
 fn parse_ssl_mode(raw: &str) -> Result<PgSslMode, InfraError> {

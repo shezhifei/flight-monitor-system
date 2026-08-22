@@ -1,7 +1,17 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useCommandCenter } from '@/composables/useCommandCenter';
+import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiBanner from '@/components/ui/UiBanner.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiPlaceBar from '@/components/ui/UiPlaceBar.vue';
+import UiReadout from '@/components/ui/UiReadout.vue';
+import UiReadoutStrip from '@/components/ui/UiReadoutStrip.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
+import UiStage from '@/components/ui/UiStage.vue';
+import UiToolbar from '@/components/ui/UiToolbar.vue';
 
 // Command Center Page - Migrated and connected with real-time logic
 const {
@@ -21,6 +31,11 @@ const {
   stopAutoRefresh
 } = useCommandCenter();
 
+const crumbs = [
+  { label: '工作台', href: pageUrl('dashboard') },
+  { label: '指挥中心' },
+];
+
 function formatEventTime(ts: string | number | null | undefined): string {
   return new Date(ts ?? Date.now()).toLocaleTimeString();
 }
@@ -32,6 +47,43 @@ const lastRefreshTime = ref('');
 const isFullscreen = ref(false);
 const isTogglingFullscreen = ref(false);
 const fullscreenError = ref('');
+
+const windowHoursOptions = [
+  { value: '2', label: '未来 2h' },
+  { value: '6', label: '未来 6h' },
+  { value: '12', label: '未来 12h' },
+];
+
+const refreshIntervalOptions = [
+  { value: '15000', label: '15s 刷新' },
+  { value: '30000', label: '30s 刷新' },
+  { value: '60000', label: '60s 刷新' },
+];
+
+const verdictTone = computed<'act' | 'ok' | 'warn' | 'danger'>(() => {
+  if (verdict.value.severity === 'ok') return 'ok';
+  if (verdict.value.severity === 'warn') return 'warn';
+  if (verdict.value.severity === 'critical') return 'danger';
+  return 'act';
+});
+
+// 列表行的事态声：critical/warn/ok 回四声，其余收回墨（§5.3 状态章回语义 tone）
+function severityTone(severity: string): 'ok' | 'warn' | 'danger' | undefined {
+  if (severity === 'critical') return 'danger';
+  if (severity === 'warn') return 'warn';
+  if (severity === 'ok') return 'ok';
+  return undefined;
+}
+
+const healthTone = computed<'ok' | 'warn' | 'danger'>(() => {
+  const score = Number(systemHealth.value.score);
+  if (!Number.isFinite(score)) return 'warn';
+  if (score >= 90) return 'ok';
+  if (score >= 60) return 'warn';
+  return 'danger';
+});
+
+const alertMessages = computed(() => [fullscreenError.value, error.value].filter(Boolean));
 
 async function refreshSnapshot(windowHours?: number): Promise<void> {
   await fetchSnapshot(windowHours);
@@ -106,529 +158,386 @@ onUnmounted(() => {
 
 <template>
   <div class="workspace-page data-hub-page command-center-page">
-    <div id="header-host" />
-    <div id="breadcrumb-host" />
+    <UiStage label="指挥中心" pad="body" class="command-stage">
+      <template #place>
+        <UiPlaceBar :crumbs="crumbs" :count-label="`窗口: 未来 ${windowHours}h`">
+          <template #meta>
+            <UiPill id="metricSystemHealth" :tone="healthTone">
+              健康度 {{ systemHealth.score }}%
+            </UiPill>
+            <span id="metricLastRefresh" class="command-place-meta">{{ lastRefreshTime || '未更新' }}</span>
+            <span id="metricAutoRefreshSub" class="command-place-meta">{{ isPaused ? '自动刷新暂停' : '自动刷新开启' }}</span>
+          </template>
+        </UiPlaceBar>
+      </template>
 
-    <section class="panel dashboard-ribbon command-ops-bar command-judgement-bar">
-      <div class="dashboard-ribbon-copy command-ribbon-copy">
-        <span class="section-eyebrow">实时决策</span>
-        <h2 class="dashboard-ribbon-title">
-          先判断是否失稳，再锁定未来 60 分钟动作对象
-        </h2>
-      </div>
-      <div class="dashboard-ribbon-actions metric-controls">
-        <select id="windowHoursSelect" v-model="windowHours" aria-label="窗口时长">
-          <option value="2">
-            未来 2h
-          </option>
-          <option value="6" selected>
-            未来 6h
-          </option>
-          <option value="12">
-            未来 12h
-          </option>
-        </select>
-        <select id="refreshIntervalSelect" v-model="refreshInterval" aria-label="刷新间隔">
-          <option value="15000">
-            15s 刷新
-          </option>
-          <option value="30000" selected>
-            30s 刷新
-          </option>
-          <option value="60000">
-            60s 刷新
-          </option>
-        </select>
-        <button
-          id="refreshNowBtn"
-          class="btn primary"
-          :disabled="loading"
-          @click="handleRefresh"
+      <template #toolbar>
+        <UiToolbar seek-label="观察窗口" solve-label="操作">
+          <template #seek>
+            <UiSelect
+              id="windowHoursSelect"
+              v-model="windowHours"
+              :options="windowHoursOptions"
+              label="窗口时长"
+            />
+            <UiSelect
+              id="refreshIntervalSelect"
+              v-model="refreshInterval"
+              :options="refreshIntervalOptions"
+              label="刷新间隔"
+            />
+          </template>
+          <template #solve>
+            <UiButton
+              id="refreshNowBtn"
+              variant="primary"
+              :disabled="loading"
+              @click="handleRefresh"
+            >
+              {{ loading ? '刷新中...' : '刷新' }}
+            </UiButton>
+            <UiButton id="toggleRefreshBtn" :pressed="isPaused" @click="toggleRefresh">
+              {{ isPaused ? '继续' : '暂停' }}
+            </UiButton>
+            <UiButton id="clearEventsBtn" @click="clearEvidenceFeed">
+              清空当前视图
+            </UiButton>
+            <UiButton
+              id="fullScreenBtn"
+              variant="quiet"
+              :disabled="isTogglingFullscreen"
+              @click="toggleFullscreen"
+            >
+              {{ isFullscreen ? '退出全屏' : '全屏' }}
+            </UiButton>
+          </template>
+        </UiToolbar>
+      </template>
+
+      <!-- 升：取数/全屏失败时才打断 -->
+      <template v-if="alertMessages.length" #alert>
+        <UiBanner
+          v-for="message in alertMessages"
+          :key="message"
+          tone="danger"
+          role="alert"
+          class="command-inline-error"
         >
-          {{ loading ? '刷新中...' : '刷新' }}
-        </button>
-        <button id="toggleRefreshBtn" class="btn" @click="toggleRefresh">
-          {{ isPaused ? '继续' : '暂停' }}
-        </button>
-        <button id="clearEventsBtn" class="btn" @click="clearEvidenceFeed">
-          清空当前视图
-        </button>
-        <button
-          id="fullScreenBtn"
-          class="btn"
-          :disabled="isTogglingFullscreen"
-          @click="toggleFullscreen"
-        >
-          {{ isFullscreen ? '退出全屏' : '全屏' }}
-        </button>
-      </div>
-      <p v-if="fullscreenError" class="command-inline-error">
-        {{ fullscreenError }}
-      </p>
-      <p v-if="error" class="command-inline-error">
-        {{ error }}
-      </p>
-      <div class="command-verdict-strip">
-        <span id="opsVerdictChip" :class="['decision-severity-chip', 'is-' + verdict.severity]">
-          {{ verdict.title }}
-        </span>
+          {{ message }}
+        </UiBanner>
+      </template>
+
+      <!-- 态势结论：持久状态，不是升 -->
+      <section class="command-section command-verdict-strip" aria-label="运行态势">
         <div class="command-verdict-copy">
-          <strong id="opsVerdictTitle" class="command-verdict-title">{{ verdict.title }}</strong>
+          <strong id="opsVerdictTitle" class="command-verdict-title" :data-tone="verdictTone">{{ verdict.title }}</strong>
           <p id="opsVerdictDetail" class="command-verdict-detail">
             {{ verdict.detail }}
           </p>
         </div>
-        <div class="command-verdict-side">
-          <span id="opsVerdictMeta" class="command-verdict-window">{{ verdict.window }}</span>
-        </div>
-      </div>
-    </section>
+        <span id="opsVerdictMeta" class="command-verdict-window">{{ verdict.window }}</span>
+      </section>
 
-    <section class="metric-grid command-kpi-grid command-stat-strip">
-      <article class="metric-card hero-metric stat-critical">
-        <div class="metric-label">
-          待决策对象
+      <UiReadoutStrip
+        class="command-stat-readouts"
+        density="roomy"
+        label="指挥中心关键读数"
+      >
+        <div class="command-stat-readout">
+          <UiReadout
+            id="metricDecisionCount"
+            label="待决策对象"
+            :value="kpis.decisionCount"
+            tone="danger"
+          />
+          <p id="metricDecisionCountSub" class="command-stat-readout__hint">
+            P1 / P2 任务数量
+          </p>
         </div>
-        <div id="metricDecisionCount" class="metric-value">
-          {{ kpis.decisionCount }}
+        <div class="command-stat-readout">
+          <UiReadout
+            id="metricRiskFlights"
+            label="60 分钟高风险离港"
+            :value="kpis.riskFlights"
+          />
+          <p id="metricRiskFlightsSub" class="command-stat-readout__hint">
+            延误超过30分钟航班
+          </p>
         </div>
-        <div id="metricDecisionCountSub" class="metric-sub">
-          P1 / P2 任务数量
+        <div class="command-stat-readout">
+          <UiReadout
+            id="metricOpenAnomalies"
+            label="未闭环异常"
+            :value="kpis.openAnomalies"
+          />
+          <p id="metricOpenAnomaliesSub" class="command-stat-readout__hint">
+            待处理异常报警
+          </p>
         </div>
-      </article>
-      <article class="metric-card hero-metric">
-        <div class="metric-label">
-          60 分钟高风险离港
+        <div class="command-stat-readout">
+          <UiReadout
+            id="metricDispatchBlockers"
+            label="调度阻塞"
+            :value="kpis.dispatchBlockers"
+          />
+          <p id="metricDispatchBlockersSub" class="command-stat-readout__hint">
+            派工受阻/存在冲突
+          </p>
         </div>
-        <div id="metricRiskFlights" class="metric-value">
-          {{ kpis.riskFlights }}
+        <div class="command-stat-readout">
+          <UiReadout
+            id="metricDelayPressure"
+            label="延误压力"
+            :value="kpis.delayPressure"
+            unit="m"
+          />
+          <p id="metricDelayPressureSub" class="command-stat-readout__hint">
+            平均延误时间
+          </p>
         </div>
-        <div id="metricRiskFlightsSub" class="metric-sub">
-          延误超过30分钟航班
-        </div>
-      </article>
-      <article class="metric-card hero-metric">
-        <div class="metric-label">
-          未闭环异常
-        </div>
-        <div id="metricOpenAnomalies" class="metric-value">
-          {{ kpis.openAnomalies }}
-        </div>
-        <div id="metricOpenAnomaliesSub" class="metric-sub">
-          待处理异常报警
-        </div>
-      </article>
-      <article class="metric-card hero-metric">
-        <div class="metric-label">
-          调度阻塞
-        </div>
-        <div id="metricDispatchBlockers" class="metric-value">
-          {{ kpis.dispatchBlockers }}
-        </div>
-        <div id="metricDispatchBlockersSub" class="metric-sub">
-          派工受阻/存在冲突
-        </div>
-      </article>
-      <article class="metric-card hero-metric">
-        <div class="metric-label">
-          延误压力
-        </div>
-        <div id="metricDelayPressure" class="metric-value">
-          {{ kpis.delayPressure }}m
-        </div>
-        <div id="metricDelayPressureSub" class="metric-sub">
-          平均延误时间
-        </div>
-      </article>
-    </section>
+      </UiReadoutStrip>
 
-    <section class="command-board">
-      <article class="panel compact-panel command-action-panel spotlight-panel">
-        <div class="section-headline">
-          <div class="section-heading-block">
+      <div class="command-board">
+        <section class="command-section command-action-panel" aria-label="行动优先队列">
+          <div class="section-headline">
             <h3 class="section-title">
               行动优先队列
             </h3>
+            <span id="decisionQueueMeta" class="section-meta">按行动紧迫度排序</span>
           </div>
-          <span id="decisionQueueMeta" class="section-meta">按行动紧迫度排序</span>
-        </div>
-        <div id="decisionQueueList" class="priority-list decision-queue-list">
-          <div v-if="priorityQueue.length === 0" class="empty-placeholder">
-            暂无决策优先任务
-          </div>
-          <div
-            v-for="item in priorityQueue"
-            v-else
-            :key="item.id"
-            class="priority-item"
-            :class="`is-${item.severity}`"
-          >
-            <div>
+          <div id="decisionQueueList" class="priority-list decision-queue-list">
+            <div v-if="priorityQueue.length === 0" class="empty-placeholder">
+              暂无决策优先任务
+            </div>
+            <div
+              v-for="item in priorityQueue"
+              v-else
+              :key="item.id"
+              class="priority-item"
+              :data-tone="severityTone(item.severity)"
+            >
               <strong>{{ item.name }}</strong>
               <span>{{ item.meta }}</span>
             </div>
           </div>
-        </div>
-      </article>
+        </section>
 
-      <aside class="command-context-column">
-        <article class="panel compact-panel command-window-panel hero-panel">
-          <div class="section-headline">
-            <div class="section-heading-block">
+        <div class="command-context-column">
+          <section class="command-section command-window-panel" aria-label="未来窗口离港压力">
+            <div class="section-headline">
               <h3 class="section-title">
                 未来窗口离港压力
               </h3>
+              <span id="windowPressureMeta" class="section-meta">未来窗口</span>
             </div>
-            <span id="windowPressureMeta" class="section-meta">未来窗口</span>
-          </div>
-          <div id="windowPressureList" class="distribution-strip" style="min-height:200px">
-            <div v-if="windowPressure.length === 0" class="empty-placeholder">
-              暂无离港压力数据
+            <div id="windowPressureList" class="distribution-strip">
+              <div v-if="windowPressure.length === 0" class="empty-placeholder">
+                暂无离港压力数据
+              </div>
+              <div
+                v-for="item in windowPressure"
+                v-else
+                :key="item.id"
+                class="distribution-row"
+                :data-tone="severityTone(item.severity)"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+                <small>{{ item.detail }}</small>
+              </div>
             </div>
-            <div
-              v-for="item in windowPressure"
-              v-else
-              :key="item.id"
-              class="distribution-row"
-              :class="`is-${item.severity}`"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-              <small>{{ item.detail }}</small>
-            </div>
-          </div>
-        </article>
+          </section>
 
-        <article class="panel compact-panel heatmap-panel">
-          <div class="section-headline">
-            <div class="section-heading-block">
+          <section class="command-section heatmap-panel" aria-label="异常热区">
+            <div class="section-headline">
               <h3 class="section-title">
                 异常热区
               </h3>
+              <span id="riskHeatmapMeta" class="section-meta">按机位区间统计</span>
             </div>
-            <span id="riskHeatmapMeta" class="section-meta">按机位区间统计</span>
-          </div>
-          <div id="standHeatmapChart" class="heatmap-box" style="min-height:180px">
-            <div v-if="heatmapData.length === 0" class="empty-placeholder">
-              暂无热区数据
+            <div id="standHeatmapChart" class="heatmap-box">
+              <div v-if="heatmapData.length === 0" class="empty-placeholder">
+                暂无热区数据
+              </div>
+              <div
+                v-for="item in heatmapData"
+                v-else
+                :key="item.id"
+                class="distribution-row"
+                :data-tone="severityTone(item.severity)"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+                <small>{{ item.detail }}</small>
+              </div>
             </div>
-            <div
-              v-for="item in heatmapData"
-              v-else
-              :key="item.id"
-              class="distribution-row"
-              :class="`is-${item.severity}`"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-              <small>{{ item.detail }}</small>
-            </div>
-          </div>
-        </article>
+          </section>
 
-        <article class="panel compact-panel dispatch-panel">
-          <div class="section-headline">
-            <div class="section-heading-block">
+          <section class="command-section dispatch-panel" aria-label="调度负载断面">
+            <div class="section-headline">
               <h3 class="section-title">
                 调度负载断面
               </h3>
+              <span id="dispatchWindowMeta" class="section-meta">调度窗口</span>
             </div>
-            <span id="dispatchWindowMeta" class="section-meta">调度窗口</span>
-          </div>
-          <div id="dispatchSummaryList" class="distribution-strip" style="min-height:180px">
-            <div v-if="dispatchLoad.length === 0" class="empty-placeholder">
-              暂无负载数据
+            <div id="dispatchSummaryList" class="distribution-strip">
+              <div v-if="dispatchLoad.length === 0" class="empty-placeholder">
+                暂无负载数据
+              </div>
+              <div
+                v-for="item in dispatchLoad"
+                v-else
+                :key="item.id"
+                class="distribution-row"
+                :data-tone="severityTone(item.severity)"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+                <small>{{ item.detail }}</small>
+              </div>
             </div>
-            <div
-              v-for="item in dispatchLoad"
-              v-else
-              :key="item.id"
-              class="distribution-row"
-              :class="`is-${item.severity}`"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-              <small>{{ item.detail }}</small>
-            </div>
-          </div>
-        </article>
+          </section>
 
-        <article class="panel compact-panel terminal-panel">
-          <div class="section-headline">
-            <div class="section-heading-block">
+          <section class="command-section terminal-panel" aria-label="航站楼压力">
+            <div class="section-headline">
               <h3 class="section-title">
                 航站楼压力
               </h3>
+              <span id="terminalLoadMeta" class="section-meta">按航班数统计</span>
             </div>
-            <span id="terminalLoadMeta" class="section-meta">按航班数统计</span>
-          </div>
-          <div id="terminalLoadList" class="distribution-strip" style="min-height:180px">
-            <div v-if="terminalLoad.length === 0" class="empty-placeholder">
-              暂无航站楼压力数据
+            <div id="terminalLoadList" class="distribution-strip">
+              <div v-if="terminalLoad.length === 0" class="empty-placeholder">
+                暂无航站楼压力数据
+              </div>
+              <div
+                v-for="item in terminalLoad"
+                v-else
+                :key="item.id"
+                class="distribution-row"
+                :data-tone="severityTone(item.severity)"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+                <small>{{ item.detail }}</small>
+              </div>
             </div>
-            <div
-              v-for="item in terminalLoad"
-              v-else
-              :key="item.id"
-              class="distribution-row"
-              :class="`is-${item.severity}`"
-            >
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
-              <small>{{ item.detail }}</small>
-            </div>
-          </div>
-        </article>
-      </aside>
-    </section>
+          </section>
+        </div>
+      </div>
 
-    <section class="panel evidence-panel command-evidence-panel">
-      <div class="section-headline">
-        <div class="section-heading-block">
+      <section class="command-section command-evidence-panel" aria-label="实时证据流">
+        <div class="section-headline">
           <h3 class="section-title">
             实时证据流
           </h3>
+          <span id="eventFeedMeta" class="section-meta">最多保留 100 条</span>
         </div>
-        <span id="eventFeedMeta" class="section-meta">最多保留 100 条</span>
-      </div>
-      <div id="eventFeedList" class="event-timeline">
-        <div v-if="events.length === 0" class="empty-placeholder">
-          等待实时证据数据流...
+        <div id="eventFeedList" class="event-timeline">
+          <div v-if="events.length === 0" class="empty-placeholder">
+            等待实时证据数据流...
+          </div>
+          <div
+            v-for="(evt, idx) in events"
+            v-else
+            :key="idx"
+            class="event-item"
+          >
+            <span class="event-time">[{{ formatEventTime(evt.timestamp) }}]</span>
+            <span class="event-text">{{ evt.message || evt.description || JSON.stringify(evt) }}</span>
+          </div>
         </div>
-        <div
-          v-for="(evt, idx) in events"
-          v-else
-          :key="idx"
-          class="event-item"
-          style="padding: 6px 12px; border-bottom: 1px solid var(--ws-border); font-size: 13px;"
-        >
-          <span class="event-time" style="color: var(--ws-text-muted); margin-right: 8px;">[{{ formatEventTime(evt.timestamp) }}]</span>
-          <span class="event-text" style="color: var(--ws-text);">{{ evt.message || evt.description || JSON.stringify(evt) }}</span>
-        </div>
-      </div>
-    </section>
-
-    <footer class="footer command-footer">
-      <span id="footerWindowText">窗口: 未来 {{ windowHours }} 小时</span>
-      <span id="metricLastRefresh">{{ lastRefreshTime || '未更新' }}</span>
-      <span id="metricAutoRefreshSub">{{ isPaused ? '自动刷新暂停' : '自动刷新开启' }}</span>
-      <span id="metricSystemHealth">健康度 {{ systemHealth.score }}%</span>
-      <span id="metricSystemHealthSub">{{ systemHealth.label }}</span>
-      <span id="footerNoticeText">说明: 当前版本使用系统内置接口，已实现双主题融合。</span>
-    </footer>
+      </section>
+    </UiStage>
     <ThemeToggle />
   </div>
 </template>
 
 <style scoped>
-/* Command Center specific styles - extracted from command_center.html */
-.screen.data-hub-shell {
-  min-height: 100vh;
-}
+/* 信号面 token + UI 库件（UiStage/UiPlaceBar/UiToolbar/UiReadoutStrip/UiBanner） */
+.command-stage { height: 100%; }
 
-.panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-}
+.command-place-meta { font-size: var(--fs-label); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 
-.dashboard-ribbon {
-  padding: 20px 24px;
-  margin: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  color: var(--text-inverse);
-}
-
-.dashboard-ribbon-copy {
-  margin-bottom: 16px;
-}
-
-.section-eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.8;
-}
-
-.dashboard-ribbon-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 4px 0 0;
-}
-
-.dashboard-ribbon-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.command-inline-error {
-  color: #fff1f2;
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  background: rgba(127, 29, 29, 0.32);
-  border: 1px solid rgba(254, 202, 202, 0.35);
-  border-radius: 6px;
-}
-
-.metric-controls select,
-.metric-controls .btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.metric-controls select {
-  border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.15);
-  color: var(--text-inverse);
-}
-
-.metric-controls .btn {
-  border: none;
-  background: rgba(255,255,255,0.2);
-  color: var(--text-inverse);
-  cursor: pointer;
-}
-
-.metric-controls .btn.primary {
-  background: var(--bg-card);
-  color: var(--secondary-color);
-}
+/* 小节：同一工作面，分隔只给一根线，不再铺第二张面 */
+.command-section { padding: var(--s4) 0; }
+.command-stat-readouts { padding-left: 0; padding-right: 0; border-top: 1px solid var(--line); }
 
 .command-verdict-strip {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 20px;
-  padding: 16px;
-  background: rgba(0,0,0,0.2);
-  border-radius: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
 }
 
-.decision-severity-chip {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.decision-severity-chip.is-info {
-  background: var(--system-blue-subtle);
-}
-
-.decision-severity-chip.is-ok {
-  background: var(--success-bg-subtle);
-}
-
-.decision-severity-chip.is-warn {
-  background: var(--dh-signal-warn-soft);
-}
-
-.decision-severity-chip.is-critical {
-  background: var(--error-bg-subtle);
-}
-
-.command-verdict-copy {
-  flex: 1;
-}
+.command-verdict-copy { flex: 1; min-width: 0; }
 
 .command-verdict-title {
   display: block;
-  font-size: 14px;
+  font-size: var(--fs-page);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
+
+.command-verdict-title[data-tone='ok'] { color: var(--ok); }
+.command-verdict-title[data-tone='warn'] { color: var(--warn); }
+.command-verdict-title[data-tone='danger'] { color: var(--danger); }
+.command-verdict-title[data-tone='act'] { color: var(--act); }
 
 .command-verdict-detail {
-  font-size: 12px;
-  opacity: 0.8;
-  margin: 4px 0 0;
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+  margin: var(--s1) 0 0;
 }
 
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-  margin: 0 16px;
-}
+.command-verdict-window { font-size: var(--fs-label); color: var(--ink-muted); }
 
-.metric-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 16px;
-}
+.command-stat-readout { display: grid; gap: var(--s2); min-width: 0; }
 
-.metric-card.hero-metric {
-  padding: 20px;
-}
-
-.metric-label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.metric-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 8px 0;
-}
-
-.metric-sub {
-  font-size: 12px;
-  color: var(--text-tertiary);
+.command-stat-readout__hint {
+  margin: 0;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 .command-board {
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 16px;
-  margin: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+  gap: 0 var(--s4);
+  border-top: 1px solid var(--line);
 }
 
-.command-action-panel {
-  min-height: 400px;
-}
+.command-board .command-section { border-top: 0; }
+.command-context-column .command-section + .command-section { border-top: 1px solid var(--line); }
 
 .command-context-column {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.compact-panel {
-  padding: 16px;
+  border-left: 1px solid var(--line);
+  padding-left: var(--s4);
 }
 
 .section-headline {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  align-items: baseline;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
 }
 
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
   margin: 0;
 }
 
-.section-meta {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
+.section-meta { font-size: var(--fs-label); color: var(--ink-muted); }
 
 .empty-placeholder {
-  padding: 20px;
+  padding: var(--s5);
   text-align: center;
-  color: var(--text-tertiary);
-  font-size: 13px;
+  color: var(--ink-muted);
+  font-size: var(--fs-body);
 }
 
 .priority-list,
@@ -636,86 +545,85 @@ onUnmounted(() => {
 .heatmap-box {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
+/* 图区底座最小高度走 scoped，不再逐块内联 */
+#windowPressureList { min-height: 200px; }
+#standHeatmapChart,
+#dispatchSummaryList,
+#terminalLoadList { min-height: 180px; }
+
+/* 事态行：不描边不洗底，行与行一根线，声画在数上（§3.2/§4.21） */
 .priority-item,
 .distribution-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 6px 12px;
-  align-items: center;
-  border: 1px solid var(--border-light);
-  border-left-width: 4px;
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: var(--bg-card);
+  gap: var(--s1) var(--s3);
+  align-items: baseline;
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.priority-item.is-ok,
-.distribution-row.is-ok {
-  border-left-color: var(--system-green);
-}
-
-.priority-item.is-warn,
-.distribution-row.is-warn {
-  border-left-color: var(--system-orange);
-}
-
-.priority-item.is-critical,
-.distribution-row.is-critical {
-  border-left-color: var(--system-red);
-}
+.priority-item:last-child,
+.distribution-row:last-child { border-bottom: 0; }
 
 .priority-item strong,
 .distribution-row span {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 650;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
 }
 
 .priority-item span,
 .distribution-row small {
-  color: var(--text-tertiary);
-  font-size: 12px;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
 }
 
 .distribution-row strong {
-  color: var(--text-primary);
-  font-size: 20px;
+  color: var(--ink);
+  font-size: var(--fs-title);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
-.evidence-panel {
-  margin: 16px;
-  padding: 16px;
-}
+.priority-item[data-tone='ok'] strong,
+.distribution-row[data-tone='ok'] strong { color: var(--ok); }
+.priority-item[data-tone='warn'] strong,
+.distribution-row[data-tone='warn'] strong { color: var(--warn); }
+.priority-item[data-tone='danger'] strong,
+.distribution-row[data-tone='danger'] strong { color: var(--danger); }
+
+.command-evidence-panel { border-top: 1px solid var(--line); }
 
 .event-timeline {
   max-height: 300px;
   overflow-y: auto;
 }
 
-.footer {
-  display: flex;
-  gap: 24px;
-  padding: 12px 24px;
-  background: var(--bg-sidebar);
-  border-top: 1px solid var(--border-light);
-  font-size: 12px;
-  color: var(--text-tertiary);
+.event-item {
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-body);
 }
 
-.command-footer {
-  margin: 0 16px 16px;
-  border-radius: 8px;
+.event-item:last-child { border-bottom: 0; }
+
+.event-time {
+  color: var(--ink-muted);
+  margin-right: var(--s2);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  border: 1px solid var(--border-light);
-  background: var(--bg-card);
+.event-text { color: var(--ink); }
+
+@media (max-width: 1439px) {
+  .command-board { grid-template-columns: minmax(0, 1fr); }
+  .command-context-column { border-left: 0; padding-left: 0; }
+}
+
+@media (max-width: 1099px) {
+  .command-verdict-strip { flex-direction: column; align-items: flex-start; gap: var(--s2); }
 }
 </style>

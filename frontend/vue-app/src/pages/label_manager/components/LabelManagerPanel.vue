@@ -139,7 +139,12 @@ async function handleDelete(label: LabelDefinition) {
         </option>
       </select>
       <div class="label-toolbar__actions">
-        <button type="button" class="btn btn-secondary btn-sm" :disabled="loading" @click="refreshLabels">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          :disabled="loading"
+          @click="refreshLabels"
+        >
           刷新
         </button>
         <button
@@ -223,14 +228,14 @@ async function handleDelete(label: LabelDefinition) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  background: var(--error-bg-subtle);
-  border: 1px solid var(--error-border-subtle);
-  color: var(--ws-danger);
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-panel);
+  font-size: var(--fs-body);
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
 }
 
 @media (max-width: 720px) {

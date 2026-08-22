@@ -103,7 +103,7 @@ impl fmt::Display for LogicalOp {
 // SqlValue — 支持参数化绑定的值类型
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SqlValue {
     Text(String),
     Int(i64),
@@ -803,5 +803,25 @@ mod tests {
 
         let result = QueryBuilder::new().select_raw("id FROM flights");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn where_eq_binds_user_values_instead_of_interpolating() {
+        use super::SqlValue;
+
+        let injected = "abc'; DROP TABLE business_cases; --";
+        let (sql, params) = QueryBuilder::new()
+            .select(&["id"])
+            .expect("valid select")
+            .from("business_cases")
+            .expect("valid table")
+            .where_eq("id", SqlValue::Text(injected.to_string()))
+            .expect("where")
+            .build()
+            .expect("query builds");
+
+        assert!(sql.contains("id = $1"), "expected bind placeholder, got {sql}");
+        assert!(!sql.contains(injected), "user value leaked into SQL: {sql}");
+        assert_eq!(params, vec![SqlValue::Text(injected.to_string())]);
     }
 }

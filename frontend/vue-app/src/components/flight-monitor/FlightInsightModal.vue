@@ -4,6 +4,9 @@ import { useAiStream } from '../../composables/useAiStream';
 import { fetchFlightEventJourney } from '../../composables/useFlightData';
 import { useAuth } from '../../composables/useAuth';
 import UiModal from '../ui/UiModal.vue';
+import UiPill from '../ui/UiPill.vue';
+import UiBanner from '../ui/UiBanner.vue';
+import UiSkeleton from '../ui/UiSkeleton.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -33,6 +36,26 @@ interface TopologyNode {
   description: string;
 }
 
+/** 级联节点的事态映射回四声；标签给中文，不把后端枚举原样丢给值班的人。 */
+function nodeTone(status: string): 'ok' | 'warn' | 'danger' | 'mute' {
+  const s = status.trim().toLowerCase();
+  if (s === 'critical' || s === 'blocked') return 'danger';
+  if (s === 'affected' || s === 'delayed') return 'warn';
+  if (s === 'ok' || s === 'normal' || s === 'resolved') return 'ok';
+  return 'mute';
+}
+
+function nodeLabel(status: string): string {
+  const s = status.trim().toLowerCase();
+  if (s === 'critical') return '严重';
+  if (s === 'blocked') return '受阻';
+  if (s === 'affected') return '受影响';
+  if (s === 'delayed') return '延误';
+  if (s === 'ok' || s === 'normal') return '正常';
+  if (s === 'resolved') return '已消解';
+  return status;
+}
+
 const logs = ref<InsightLog[]>([]);
 const topologyNodes = ref<TopologyNode[]>([]);
 const isAnalyzing = ref(false);
@@ -41,9 +64,12 @@ const terminalBody = ref<HTMLElement | null>(null);
 let terminalTimeoutId: ReturnType<typeof setTimeout> | null = null;
 const TERMINAL_TIMEOUT_MS = 30000;
 
+/** 键必须稳定且唯一：同一毫秒内会连写两条日志，Date.now() 会撞键 */
+let logSeq = 0;
+
 function addLog(content: string, type: InsightLog['type'] = 'info') {
   logs.value.push({
-    id: Date.now(),
+    id: ++logSeq,
     type,
     content,
     timestamp: new Date().toLocaleTimeString()
@@ -155,54 +181,83 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <UiModal :open="isOpen" title="航班洞察" :width="900" @close="emit('close')">
-    <div class="insight-meta">
-      <span class="flight-no">{{ flightNo || '未选航班' }}</span>
-      <span class="status-badge">{{ isAnalyzing ? '分析中' : '完成' }}</span>
-    </div>
-    <div class="insight-layout">
-      <div class="insight-left">
-        <div class="insight-terminal">
-          <div class="insight-terminal-header">
-            <span>诊断日志</span>
-            <span :class="isAnalyzing ? 'tone-warn' : 'tone-ok'">
-              {{ isAnalyzing ? '处理中' : '待命' }}
-            </span>
-          </div>
-          <div ref="terminalBody" class="insight-terminal-body">
-            <p v-for="log in logs" :key="log.id" :class="`log-${log.type}`">
-              <span class="log-time">[{{ log.timestamp }}]</span> {{ log.content }}
-            </p>
-            <div v-if="logs.length === 0" class="terminal-placeholder">
-              等待后端连接
-            </div>
-          </div>
-        </div>
+  <UiModal
+    :open="isOpen"
+    title="航班洞察"
+    :width="900"
+    bleed
+    @close="emit('close')"
+  >
+    <div class="insight">
+      <!-- 帽下一条：这是哪架航班、推演到哪一步（状态只在这里报一次） -->
+      <div class="insight__bar">
+        <span class="insight__flight">{{ flightNo || '未选航班' }}</span>
+        <UiPill :tone="isAnalyzing ? 'act' : 'ok'">
+          {{ isAnalyzing ? '推演中' : '已完成' }}
+        </UiPill>
       </div>
-      <div class="insight-right">
-        <div class="panel-section-header">
-          <h4>级联影响</h4>
-          <span v-if="topologyNodes.length" class="node-count">{{ topologyNodes.length }}</span>
-        </div>
-        <div v-if="topologyNodes.length > 0" class="topology-container">
-          <div
-            v-for="node in topologyNodes"
-            :key="node.id"
-            class="insight-node-card"
-            :data-status="node.status"
-          >
-            <div class="node-info">
-              <div class="node-label">{{ node.label }}</div>
-              <div class="node-desc">{{ node.description }}</div>
-            </div>
-            <div class="node-status-tag">{{ node.status }}</div>
+
+      <div class="insight__cols">
+        <!-- 左：诊断输出，降一级到页底 + 等宽（§3.7 嵌板那一类内容） -->
+        <div class="insight__log">
+          <div class="insight__head">
+            <span class="insight__name">诊断日志</span>
+          </div>
+          <div ref="terminalBody" class="insight__stream">
+            <p
+              v-for="log in logs"
+              :key="log.id"
+              class="line"
+              :data-kind="log.type"
+            >
+              <span class="line__time">[{{ log.timestamp }}]</span> {{ log.content }}
+            </p>
+            <p v-if="logs.length === 0" class="void">
+              等待后端连接
+            </p>
           </div>
         </div>
-        <div v-else-if="analysisError" class="insight-placeholder error-state">
-          {{ analysisError }}
-        </div>
-        <div v-else class="insight-placeholder">
-          {{ isAnalyzing ? '正在推演级联影响' : '等待任务启动' }}
+
+        <!-- 右：级联影响，一行一个节点，声画在节点上 -->
+        <div class="insight__impact">
+          <div class="insight__head">
+            <span class="insight__name">级联影响</span>
+            <span v-if="topologyNodes.length" class="insight__count">{{ topologyNodes.length }}</span>
+          </div>
+          <div v-if="analysisError" class="insight__alert">
+            <UiBanner tone="danger">
+              <span>{{ analysisError }}</span>
+            </UiBanner>
+          </div>
+          <div v-if="topologyNodes.length > 0" class="insight__nodes">
+            <div v-for="node in topologyNodes" :key="node.id" class="node">
+              <span class="node__id">
+                <span class="node__label">{{ node.label }}</span>
+                <span v-if="node.description" class="node__desc">{{ node.description }}</span>
+              </span>
+              <UiPill :tone="nodeTone(node.status)">
+                {{ nodeLabel(node.status) }}
+              </UiPill>
+            </div>
+          </div>
+          <!-- 等的时候画同构的版（§3.9）：几行、名在左、胶囊在右 -->
+          <div
+            v-else-if="isAnalyzing && !analysisError"
+            class="insight__nodes"
+            aria-busy="true"
+            aria-label="正在推演级联影响"
+          >
+            <div v-for="i in 3" :key="i" class="node">
+              <span class="node__id">
+                <UiSkeleton width="140px" height="14px" />
+                <UiSkeleton width="200px" height="11px" />
+              </span>
+              <UiSkeleton shape="pill" width="52px" height="22px" />
+            </div>
+          </div>
+          <p v-else-if="!analysisError" class="void">
+            等待任务启动
+          </p>
         </div>
       </div>
     </div>
@@ -210,188 +265,147 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.insight-meta {
+.insight {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  flex: 1;
+  min-height: 420px;
 }
 
-.flight-no {
+.insight__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.insight__flight {
   font-family: var(--mono);
   font-size: var(--fs-section);
   font-weight: var(--fw-semibold);
   color: var(--ink);
 }
 
-.status-badge {
-  font-size: var(--fs-label);
-  font-weight: var(--fw-semibold);
-  padding: 2px 8px;
-  border-radius: var(--r-cell);
-  background: var(--act-soft);
-  color: var(--act);
-}
-
-.insight-layout {
+.insight__cols {
   display: flex;
-  min-height: 420px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  overflow: hidden;
-}
-
-.insight-left {
-  flex: 1.2;
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: var(--face-page);
-}
-
-.insight-terminal {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  font-family: var(--mono);
   min-height: 0;
 }
 
-.insight-terminal-header {
-  padding: 8px 12px;
+/* 诊断输出降一级：页底 + 一根线，不再自己描边、投影、换圆角 */
+.insight__log {
+  flex: 1.2;
+  min-width: 0;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  background: var(--face-page);
+  border-right: 1px solid var(--line);
+}
+
+.insight__impact {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.insight__head {
+  flex: none;
+  display: flex;
   align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--line);
+}
+
+.insight__name {
   font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
   color: var(--ink-subtle);
 }
 
-.tone-warn { color: var(--warn); }
-.tone-ok { color: var(--ok); }
-
-.insight-terminal-body {
-  padding: 12px;
-  font-size: var(--fs-body);
-  color: var(--ink);
-  line-height: 1.6;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.insight-terminal-body p {
-  margin: 0 0 6px;
-}
-
-.log-time {
-  color: var(--ink-muted);
-  margin-right: 8px;
-}
-.log-success { color: var(--ok); }
-.log-error { color: var(--danger); }
-.log-warning { color: var(--warn); }
-.log-worker { color: var(--act); }
-
-.terminal-placeholder {
-  color: var(--ink-muted);
-  text-align: center;
-  margin-top: 40px;
-}
-
-.insight-right {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  background: var(--face-work);
-  min-width: 0;
-}
-
-.panel-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.insight-right h4 {
-  margin: 0;
-  color: var(--ink);
-  font-size: var(--fs-section);
-  font-weight: var(--fw-semibold);
-}
-
-.node-count {
+.insight__count {
+  margin-left: auto;
   font-size: var(--fs-label);
   font-variant-numeric: tabular-nums;
   color: var(--ink-subtle);
 }
 
-.topology-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  flex: 1;
+.insight__alert {
+  flex: none;
+  padding: var(--s3) var(--s3) 0;
 }
 
-.insight-node-card {
+.insight__stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s3);
+  font-family: var(--mono);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+/* 一行日志就是一个对象，事态染在这一行上 */
+.line {
+  margin: 0 0 var(--s2);
+  color: var(--ink);
+}
+
+.line__time {
+  margin-right: var(--s2);
+  color: var(--ink-muted);
+}
+
+.line[data-kind='info'] { color: var(--ink-subtle); }
+.line[data-kind='success'] { color: var(--ok); }
+.line[data-kind='warning'] { color: var(--warn); }
+.line[data-kind='error'] { color: var(--danger); }
+
+.insight__nodes {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.node {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  background: var(--face-raised);
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
 }
 
-.insight-node-card[data-status="affected"] {
-  border-left: 3px solid var(--warn);
-}
-.insight-node-card[data-status="critical"] {
-  border-left: 3px solid var(--danger);
+.node__id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.node-info { flex: 1; }
-
-.node-label {
+.node__label {
+  font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
-  font-size: var(--fs-section);
   color: var(--ink);
-  margin-bottom: 4px;
 }
 
-.node-desc {
+.node__desc {
   font-size: var(--fs-label);
   color: var(--ink-muted);
   line-height: 1.4;
 }
 
-.node-status-tag {
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  padding: 2px 6px;
-  border-radius: var(--r-cell);
-  background: var(--line);
-  color: var(--ink-subtle);
-  text-transform: uppercase;
-}
-
-.insight-placeholder {
+.void {
   flex: 1;
-  border: 1px dashed var(--line);
-  border-radius: var(--r-control);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
+  padding: var(--s5) var(--s4);
   color: var(--ink-muted);
   font-size: var(--fs-body);
-}
-
-.insight-placeholder.error-state {
-  border-color: var(--danger);
-  color: var(--danger);
 }
 </style>

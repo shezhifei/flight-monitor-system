@@ -1,115 +1,105 @@
 <template>
-  <div v-if="isOpen" class="ai-assistant-panel">
-    <div class="panel-container">
-      <div class="panel-header">
-        <div class="header-info">
-          <h3>极智 AI 指挥官</h3>
-          <span class="status-indicator" :class="{ 'online': isConnected }">
-            {{ isConnected ? '实时桥接中' : '离线' }}
-          </span>
-        </div>
-        <div class="header-actions">
-          <div v-if="showMenu" class="dropdown-wrapper">
-            <div class="dropdown-menu">
-              <button class="menu-item" @click="clearHistory">
-                <span class="menu-icon">🧹</span> 清空会话
-              </button>
-              <button class="menu-item" @click="endSession">
-                <span class="menu-icon">🏁</span> 结束会话
-              </button>
-              <div class="menu-divider" />
-              <button class="menu-item" @click="exportHistory('json')">
-                <span class="menu-icon">📄</span> 导出 JSON
-              </button>
-              <button class="menu-item" @click="exportHistory('md')">
-                <span class="menu-icon">📝</span> 导出 Markdown
-              </button>
-            </div>
-          </div>
-          <button class="action-icon-btn" title="更多操作" @click="showMenu = !showMenu">
-            ⋮
-          </button>
-          <button class="close-btn" @click="togglePanel">
-            ✕
-          </button>
-        </div>
-      </div>
-      
-      <div ref="chatBody" class="panel-body">
-        <div v-for="(msg, index) in chatHistory" :key="index" :class="['chat-message', msg.role]">
-          <div class="message-content">
-            <template v-if="msg.type === 'ai_suggestion' && msg.data">
-              <div class="suggestion-card">
-                <div class="suggestion-header">
-                  💡 AI 诊断建议
-                </div>
-                <div class="suggestion-body" v-html="renderMarkdown(msg.content)" />
-                <div v-if="msg.data.actions" class="suggestion-actions">
-                  <button
-                    v-for="(action, aIdx) in (msg.data.actions as Record<string, unknown>[])"
-                    :key="aIdx"
-                    class="action-btn-sm"
-                    @click="handleAction(action)"
-                  >
-                    {{ action.label }}
-                  </button>
-                </div>
-              </div>
+  <UiFloatPanel
+    :open="isOpen"
+    title="极智 AI 指挥官"
+    :subtitle="isConnected ? '实时桥接中' : '桥接离线'"
+    :scroll="false"
+    @close="togglePanel"
+  >
+    <template #meta>
+      <UiPill :tone="isConnected ? 'ok' : 'mute'">
+        {{ isConnected ? '在线' : '离线' }}
+      </UiPill>
+      <div class="assistant__overflow">
+        <UiButton
+          variant="quiet"
+          title="更多操作"
+          aria-label="更多操作"
+          :pressed="showMenu"
+          @click="showMenu = !showMenu"
+        >
+          ⋮
+        </UiButton>
+        <UiMenu v-if="showMenu" class="assistant__menu" label="会话操作">
+          <UiMenuItem @click="clearHistory">
+            <template #icon>
+              🧹
             </template>
-            <template v-else>
-              <div v-html="renderMarkdown(msg.content)" />
-              <AIVisualization v-if="msg.type || msg.data" :type="msg.type" :data="msg.data" />
+            清空会话
+          </UiMenuItem>
+          <UiMenuItem @click="endSession">
+            <template #icon>
+              🏁
             </template>
-          </div>
-          <div class="message-time">
-            {{ msg.time }}
-          </div>
-        </div>
-        <div v-if="isSending" class="chat-message assistant loading">
-          <div class="typing-indicator">
-            <span /><span /><span />
-          </div>
-        </div>
+            结束会话
+          </UiMenuItem>
+          <hr>
+          <UiMenuItem @click="exportHistory('json')">
+            <template #icon>
+              📄
+            </template>
+            导出 JSON
+          </UiMenuItem>
+          <UiMenuItem @click="exportHistory('md')">
+            <template #icon>
+              📝
+            </template>
+            导出 Markdown
+          </UiMenuItem>
+        </UiMenu>
       </div>
-      
-      <div class="panel-footer">
-        <div v-if="effectiveSelectedFlightNo" class="context-pill">
-          Context: {{ effectiveSelectedFlightNo }}
-          <button @click="clearContext">
-            ✕
-          </button>
+    </template>
+
+    <ChatMessageList
+      :messages="chatHistory"
+      :streaming="isSending"
+      class="assistant__stream"
+    >
+      <template #body="{ msg }">
+        <div v-if="isSuggestion(msg)" class="assistant__suggest-title">
+          AI 诊断建议
         </div>
-        <div class="input-wrapper">
-          <input 
-            v-model="inputText" 
-            type="text" 
-            :placeholder="effectiveSelectedFlightNo ? `针对 ${effectiveSelectedFlightNo} 提问...` : '咨询 AI 指挥官...'" 
-            :disabled="isSending"
-            @keyup.enter="sendMessage"
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div v-html="renderMarkdown(msg.content)" />
+        <div v-if="suggestionActions(msg).length" class="assistant__suggest-verbs">
+          <UiButton
+            v-for="(action, aIdx) in suggestionActions(msg)"
+            :key="aIdx"
+            size="sm"
+            @click="handleAction(action)"
           >
-          <button :disabled="!inputText.trim() || isSending" class="send-btn" @click="sendMessage">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            ><line
-              x1="22"
-              y1="2"
-              x2="11"
-              y2="13"
-            /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-          </button>
+            {{ action.label }}
+          </UiButton>
         </div>
+        <AIVisualization
+          v-if="!isSuggestion(msg) && (msg.type || msg.data)"
+          :type="msg.type"
+          :data="msg.data"
+        />
+      </template>
+    </ChatMessageList>
+
+    <template #footer>
+      <div v-if="effectiveSelectedFlightNo" class="assistant__context">
+        <UiPill tone="act">
+          追问 {{ effectiveSelectedFlightNo }}
+        </UiPill>
+        <UiButton variant="quiet" size="sm" aria-label="清除航班上下文" @click="clearContext">
+          ✕
+        </UiButton>
       </div>
-    </div>
-  </div>
+      <ChatSender
+        v-model="inputText"
+        :disabled="isSending"
+        :placeholder="senderPlaceholder"
+        @send="sendMessage"
+      />
+    </template>
+  </UiFloatPanel>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick, watch, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useAuth } from '../../composables/useAuth';
 import { useApi } from '../../composables/useApi';
 import { useAiStream } from '../../composables/useAiStream';
@@ -118,6 +108,13 @@ import { downloadTextFile } from '../../lib/download';
 import { useToast } from '../../composables/useToast';
 import { unwrapApiData } from '../../shared/apiEnvelope';
 import AIVisualization from './AIVisualization.vue';
+import ChatMessageList from '../ui/ChatMessageList.vue';
+import ChatSender from '../ui/ChatSender.vue';
+import UiButton from '../ui/UiButton.vue';
+import UiFloatPanel from '../ui/UiFloatPanel.vue';
+import UiMenu from '../ui/UiMenu.vue';
+import UiMenuItem from '../ui/UiMenuItem.vue';
+import UiPill from '../ui/UiPill.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -153,12 +150,28 @@ const unreadCount = ref(0);
 watch(unreadCount, (value) => emit('update:unread', value));
 const inputText = ref('');
 const isSending = ref(false);
-const chatBody = ref<HTMLElement | null>(null);
 const conversationId = ref<string | null>(null);
 const contextDismissed = ref(false);
 
+/** 建议卡 = 带 ai_suggestion 标与载荷的那一条；判定只在这里写一次。 */
+function isSuggestion(msg: ChatMessage): boolean {
+  return msg.type === 'ai_suggestion' && !!msg.data;
+}
+
+/** 建议卡的动作条；没有就是空数组，模板不必判空。 */
+function suggestionActions(msg: ChatMessage): Record<string, unknown>[] {
+  const actions = msg.data?.actions;
+  return Array.isArray(actions) ? actions as Record<string, unknown>[] : [];
+}
+
 const effectiveSelectedFlightId = computed(() => contextDismissed.value ? null : props.selectedFlightId);
 const effectiveSelectedFlightNo = computed(() => contextDismissed.value ? null : props.selectedFlightNo);
+
+const senderPlaceholder = computed(() => (
+  effectiveSelectedFlightNo.value
+    ? '针对 ' + effectiveSelectedFlightNo.value + ' 提问，Enter 发送'
+    : '咨询 AI 指挥官，Enter 发送'
+));
 
 const DEFAULT_WELCOME = '你好！我是您的极智 AI 指挥官。针对当前航班编排或保障流程有任何需要推演的吗？';
 
@@ -174,16 +187,8 @@ const togglePanel = () => {
   isOpen.value = !isOpen.value;
   if (isOpen.value) {
     unreadCount.value = 0;
-    scrollToBottom();
   } else {
     showMenu.value = false;
-  }
-};
-
-const scrollToBottom = async () => {
-  await nextTick();
-  if (chatBody.value) {
-    chatBody.value.scrollTop = chatBody.value.scrollHeight;
   }
 };
 
@@ -208,7 +213,6 @@ const sendMessage = async () => {
   
   inputText.value = '';
   isSending.value = true;
-  await scrollToBottom();
 
   try {
     const endpoint = `${auth.apiBase.value}/ai/nl-query`;
@@ -250,7 +254,6 @@ const sendMessage = async () => {
   } finally {
     isSending.value = false;
     currentRequestId = null;
-    await scrollToBottom();
   }
 };
 
@@ -263,9 +266,7 @@ const triggerDiagnosis = async (flightId: string, flightNo: string) => {
     content: `正在对航班 **${flightNo}** 进行深度诊断...`,
     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   });
-  
-  await scrollToBottom();
-  
+
   try {
     const response = await api.raw(`${auth.apiBase.value}/ai/tools/execute`, {
       method: 'POST',
@@ -326,7 +327,6 @@ const endSession = async () => {
   });
   inputText.value = '';
   showMenu.value = false;
-  await scrollToBottom();
 };
 
 const exportHistory = (format: 'json' | 'md') => {
@@ -372,7 +372,6 @@ const clearContext = () => {
     content: '已清除当前航班上下文。后续提问将按全局航班监控视角处理。',
     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   });
-  scrollToBottom();
 };
 
 watch(
@@ -415,7 +414,6 @@ watch(() => messages.value.length, (newLen, oldLen) => {
     if (!isOpen.value) {
       unreadCount.value++;
     }
-    scrollToBottom();
   }
 });
 
@@ -429,324 +427,47 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.ai-assistant-panel {
-  position: fixed;
-  bottom: 108px;
-  right: 20px;
-  z-index: 9100;
-  font-family: 'MiSans', -apple-system, BlinkMacSystemFont, sans-serif;
-}
+/* 浮舱的形与帽在 UiFloatPanel；气泡与 Markdown 排版在 ChatMessageList；
+   发送器在 ChatSender；溢出菜单在 UiMenu。这一页只剩落点。 */
 
-.panel-container {
-  width: 400px;
-  height: 600px;
-  background: var(--face-raised);
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--line);
-}
-
-.panel-header {
-  background-color: var(--face-work);
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-}
-
-.header-info h3 {
-  margin: 0;
-  font-size: var(--fs-title);
-  font-weight: var(--fw-semibold);
-  color: var(--ink);
-}
-
-.status-indicator {
-  font-size: 10px;
-  color: var(--text-tertiary, var(--admin-text-muted));
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.status-indicator::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--admin-text-muted);
-}
-
-.status-indicator.online::before {
-  background-color: var(--system-green);
-  box-shadow: 0 0 4px var(--system-green);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.assistant__overflow {
   position: relative;
+  display: inline-flex;
 }
 
-.action-icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary, #546E7A);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-
-.dropdown-wrapper {
+/* 溢出菜单贴扳机右对齐落下 */
+.assistant__menu {
   position: absolute;
-  top: 30px;
+  top: calc(100% + 4px);
   right: 0;
   z-index: 10;
 }
 
-.dropdown-menu {
-  background: white;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  padding: 4px;
-  min-width: 140px;
+.assistant__stream {
+  padding: 12px 14px;
 }
 
-.menu-item {
-  width: 100%;
-  text-align: left;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  font-size: 13px;
-  color: var(--text-primary, #1D1D1F);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 4px;
-}
-
-.menu-item:hover {
-  background: var(--bg-app, #F5F5F7);
-}
-
-.menu-icon {
-  font-size: 14px;
-}
-
-.menu-divider {
-  height: 1px;
-  background: var(--border-light, #E5E5EA);
-  margin: 4px 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary, #546E7A);
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.panel-body {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background-color: var(--bg-app, #F5F5F7);
-}
-
-.chat-message {
-  max-width: 90%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  word-wrap: break-word;
-  position: relative;
-}
-
-.chat-message.user {
-  align-self: flex-end;
-  background-color: var(--system-blue, #007AFF);
-  color: var(--admin-card-bg);
-  border-bottom-right-radius: 2px;
-}
-
-.chat-message.assistant {
-  align-self: flex-start;
-  background-color: var(--bg-card, var(--admin-card-bg));
-  color: var(--text-primary, #1D1D1F);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-bottom-left-radius: 2px;
-}
-
-.chat-message.system {
-  align-self: center;
-  background-color: rgba(0,0,0,0.05);
-  color: var(--text-secondary, var(--admin-text-muted));
-  font-size: 11px;
-  max-width: 100%;
-  text-align: center;
-  padding: 4px 12px;
-  border-radius: 999px;
-}
-
-.message-content :deep(p) {
-  margin: 0 0 8px 0;
-}
-.message-content :deep(p:last-child) {
-  margin-bottom: 0;
-}
-.message-content :deep(strong) {
-  font-weight: 700;
-}
-.message-content :deep(code) {
-  background: rgba(0,0,0,0.05);
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: monospace;
-}
-
-.typing-indicator {
-  display: flex;
-  gap: 4px;
-  padding: 4px 0;
-}
-
-.typing-indicator span {
-  width: 6px;
-  height: 6px;
-  background: var(--admin-text-muted);
-  border-radius: 50%;
-  animation: typing 1.4s infinite ease-in-out;
-}
-
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typing {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-4px); opacity: 1; }
-}
-
-.suggestion-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.suggestion-header {
-  font-weight: 700;
-  color: var(--system-orange, #FF9500);
-  font-size: 12px;
-  border-bottom: 1px solid rgba(255, 149, 0, 0.2);
+/* 建议卡不是第二张卡：气泡里一根警声线起头，就够把它认出来 */
+.assistant__suggest-title {
+  margin-bottom: 6px;
   padding-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  color: var(--warn);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
 }
 
-.suggestion-actions {
+.assistant__suggest-verbs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  gap: var(--s2);
+  margin-top: 8px;
 }
 
-.action-btn-sm {
-  background: var(--bg-app, #F5F5F7);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.action-btn-sm:hover {
-  background: var(--system-blue-subtle);
-  border-color: var(--system-blue);
-  color: var(--system-blue);
-}
-
-.message-time {
-  font-size: 9px;
-  margin-top: 4px;
-  opacity: 0.5;
-  text-align: right;
-}
-
-.panel-footer {
-  padding: 12px 16px 16px;
-  background: var(--bg-card, var(--admin-card-bg));
-  border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.context-pill {
-  font-size: 11px;
-  background: var(--system-blue-subtle);
-  color: var(--system-blue);
-  padding: 2px 8px;
-  border-radius: 4px;
+.assistant__context {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: fit-content;
-}
-
-.context-pill button {
-  background: none;
-  border: none;
-  color: var(--system-blue);
-  margin-left: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.input-wrapper {
-  display: flex;
-  gap: 8px;
-}
-
-.panel-footer input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 10px;
-  outline: none;
-  font-size: 13px;
-  background-color: var(--bg-app, #F5F5F7);
-}
-
-.panel-footer input:focus {
-  border-color: var(--system-blue, #007AFF);
-  background-color: var(--admin-card-bg);
-}
-
-.send-btn {
-  background-color: var(--system-blue, #007AFF);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.send-btn:disabled {
-  opacity: 0.5;
-  background-color: var(--admin-text-muted);
+  gap: var(--s1);
+  margin-bottom: 8px;
 }
 </style>

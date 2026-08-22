@@ -3,6 +3,9 @@
 pub mod cache_service;
 pub mod flight_cache_backend;
 
+#[cfg(test)]
+mod tests;
+
 use bb8::{ManageConnection, Pool};
 use bb8_redis::RedisConnectionManager;
 use redis::sentinel::Sentinel;
@@ -12,7 +15,11 @@ use crate::config::RedisConfig;
 use crate::error::InfraError;
 
 // 重新导出缓存服务
-pub use cache_service::{CacheService, LocalCacheService, MultiLevelCacheService, RedisCacheService};
+pub use cache_service::{
+    assemble_batch_get_results, redis_pipeline_enabled, CacheService, LocalCacheService, MultiLevelCacheService,
+    RedisCacheService,
+};
+pub use crate::observability::{shadow_mode_enabled, serialize_json, serialize_json_pretty};
 
 /// Redis 连接池类型别名
 pub type RedisPool = Pool<RedisConnectionManager>;
@@ -147,10 +154,21 @@ pub struct PoolStatus {
 
 /// 记录一次 Redis 命令执行（成功/失败）到 `fms_redis_commands_total` (Counter)。
 pub fn record_redis_command(command: &str, status: &str) {
+    record_redis_command_with_latency(command, status, None);
+}
+
+pub fn record_redis_command_with_latency(command: &str, status: &str, latency: Option<std::time::Duration>) {
     metrics::counter!(
         "fms_redis_commands_total",
         "command" => command.to_string(),
         "status" => status.to_string()
     )
     .increment(1);
+    if let Some(duration) = latency {
+        metrics::histogram!(
+            "fms_redis_command_latency_seconds",
+            "command" => command.to_string()
+        )
+        .record(duration.as_secs_f64());
+    }
 }

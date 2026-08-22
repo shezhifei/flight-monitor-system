@@ -19,7 +19,11 @@ use fms_domain::ports::flight_repository::{
     FlightRepository, FlightSearchCriteria, FlightTransactionalRepository, FlightUpdatePatch,
 };
 
+use std::time::Duration;
+
+use crate::cache::cache_service::RedisCacheService;
 use crate::cache::RedisPool;
+use crate::observability::redis_pipeline_enabled;
 use crate::repositories::pg_flight_repository::PgFlightRepository;
 
 /// 缓存 TTL 配置（秒）
@@ -96,6 +100,74 @@ impl CachedFlightRepository {
 
     fn cache_keys_by_flight_ids<'a>(flight_ids: impl IntoIterator<Item = &'a str>) -> Vec<String> {
         flight_ids.into_iter().map(Self::cache_key_by_id).collect()
+    }
+
+    pub(crate) fn should_use_pipeline_batch(pipeline_enabled: bool, key_count: usize) -> bool {
+        pipeline_enabled && key_count > 1
+    }
+
+    fn redis_cache(&self) -> RedisCacheService {
+        RedisCacheService::new(self.redis.clone(), Duration::from_secs(CACHE_TTL_BY_ID), String::new())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn decode_cached_flights(
+        flight_ids: &[String],
+        raw_values: Vec<Option<String>>,
+    ) -> std::collections::HashMap<String, Flight> {
+        use crate::cache::cache_service::assemble_batch_get_results;
+        let keys: Vec<&str> = flight_ids.iter().map(String::as_str).collect();
+        assemble_batch_get_results::<FlightCacheEntry>(&keys, raw_values)
+            .into_iter()
+            .map(|(id, entry)| (id, entry.flight))
+            .collect()
+    }
+
+    async fn find_by_ids_sequential(&self, flight_ids: &[String]) -> Result<Vec<Flight>, DomainError> {
+        let mut flights = Vec::with_capacity(flight_ids.len());
+        let mut seen = std::collections::HashSet::new();
+        for flight_id in flight_ids {
+            if !seen.insert(flight_id.clone()) {
+                continue;
+            }
+            if let Some(flight) = self.find_by_id(flight_id).await? {
+                flights.push(flight);
+            }
+        }
+        Ok(flights)
+    }
+
+    async fn find_by_ids_pipeline(&self, flight_ids: &[String]) -> Result<Vec<Flight>, DomainError> {
+        let cache_keys: Vec<String> = flight_ids.iter().map(|id| Self::cache_key_by_id(id)).collect();
+        let key_refs: Vec<&str> = cache_keys.iter().map(String::as_str).collect();
+        let batch = self.redis_cache().get_batch::<FlightCacheEntry>(&key_refs).await;
+
+        let mut flights = Vec::with_capacity(flight_ids.len());
+        let mut missing = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for flight_id in flight_ids {
+            if !seen.insert(flight_id.clone()) {
+                continue;
+            }
+            let cache_key = Self::cache_key_by_id(flight_id);
+            if let Some(entry) = batch.get(&cache_key) {
+                flights.push(entry.flight.clone());
+            } else {
+                missing.push(flight_id.clone());
+            }
+        }
+
+        for flight_id in missing {
+            if let Some(flight) = self.inner.find_by_id(&flight_id).await? {
+                let entry = FlightCacheEntry {
+                    flight: flight.clone(),
+                };
+                self.set_cache(&Self::cache_key_by_id(&flight_id), &entry, CACHE_TTL_BY_ID)
+                    .await;
+                flights.push(flight);
+            }
+        }
+        Ok(flights)
     }
 
     /// 尝试从 Redis 读取缓存
@@ -265,6 +337,17 @@ impl FlightRepository for CachedFlightRepository {
         }
 
         Ok(flight)
+    }
+
+    async fn find_by_ids(&self, flight_ids: &[String]) -> Result<Vec<Flight>, DomainError> {
+        if flight_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        if Self::should_use_pipeline_batch(redis_pipeline_enabled(), flight_ids.len()) {
+            self.find_by_ids_pipeline(flight_ids).await
+        } else {
+            self.find_by_ids_sequential(flight_ids).await
+        }
     }
 
     async fn find_all(&self, limit: i64, offset: i64) -> Result<Vec<Flight>, DomainError> {
@@ -486,5 +569,67 @@ mod tests {
         let keys = CachedFlightRepository::cache_keys_by_flight_ids(["FL-1", "FL-2", "FL-3"]);
 
         assert_eq!(keys, vec!["flight:FL-1", "flight:FL-2", "flight:FL-3"]);
+    }
+
+    #[test]
+    fn pipeline_flag_selects_batch_loader_for_multi_key() {
+        assert!(CachedFlightRepository::should_use_pipeline_batch(true, 3));
+        assert!(!CachedFlightRepository::should_use_pipeline_batch(false, 3));
+        assert!(!CachedFlightRepository::should_use_pipeline_batch(true, 1));
+        assert!(!CachedFlightRepository::should_use_pipeline_batch(true, 0));
+    }
+
+    #[test]
+    fn decode_cached_flights_uses_shipped_batch_assemble() {
+        let now = chrono::Utc::now();
+        let entry = FlightCacheEntry {
+            flight: Flight {
+                flight_id: fms_domain::models::value_objects::FlightId::from("FL-1"),
+                airline_code: None,
+                flight_number: None,
+                registration: None,
+                aircraft_type_detail: None,
+                stand: None,
+                gate: None,
+                terminal: None,
+                position: None,
+                baggage_carousel: None,
+                scheduled_departure: None,
+                scheduled_arrival: None,
+                estimated_departure: None,
+                estimated_arrival: None,
+                actual_departure: None,
+                actual_arrival: None,
+                cobt_time: None,
+                codt: None,
+                has_boarding_restriction: false,
+                is_quick_turnaround: false,
+                is_commercial_signed: true,
+                status: Default::default(),
+                inbound_leg: None,
+                outbound_leg: None,
+                anomaly_summary: Default::default(),
+                created_at: now,
+                updated_at: now,
+                version: 1,
+                labels: vec![],
+                flight_remarks: None,
+                load_planning_remarks: None,
+                aircraft_maintenance_remarks: None,
+                aircraft_check_remarks: None,
+                direction: None,
+                flight_kind: "passenger".to_string(),
+                is_draft: false,
+                divert: false,
+            },
+        };
+        let encoded = serde_json::to_string(&entry).expect("encode cache entry");
+        let ids = vec!["FL-1".to_string(), "FL-2".to_string(), "FL-3".to_string()];
+        let raw = vec![Some(encoded), None, Some("not-json".to_string())];
+        let decoded = CachedFlightRepository::decode_cached_flights(&ids, raw);
+        assert_eq!(decoded.len(), 1);
+        assert!(decoded.contains_key("FL-1"));
+        assert!(!decoded.contains_key("FL-2"));
+        assert!(!decoded.contains_key("FL-3"));
     }
 }

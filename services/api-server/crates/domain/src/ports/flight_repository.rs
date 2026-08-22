@@ -122,6 +122,21 @@ pub trait FlightRepository {
     /// 根据 flight_id 查询航班
     async fn find_by_id(&self, flight_id: &str) -> Result<Option<Flight>, DomainError>;
 
+    /// Load many flights by id. Default loops `find_by_id`; cache wrappers override with MGET.
+    async fn find_by_ids(&self, flight_ids: &[String]) -> Result<Vec<Flight>, DomainError> {
+        let mut flights = Vec::with_capacity(flight_ids.len());
+        let mut seen = std::collections::HashSet::new();
+        for flight_id in flight_ids {
+            if !seen.insert(flight_id.clone()) {
+                continue;
+            }
+            if let Some(flight) = self.find_by_id(flight_id).await? {
+                flights.push(flight);
+            }
+        }
+        Ok(flights)
+    }
+
     /// 分页查询航班列表
     async fn find_all(&self, limit: i64, offset: i64) -> Result<Vec<Flight>, DomainError>;
 

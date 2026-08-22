@@ -3,6 +3,7 @@
 //! 负责将组装好的 DiContainer 状态资源及所有 API 路由注册到 Actix-Web 服务配置中。
 
 use crate::di::DiContainer;
+use crate::profiling::handle_profiling;
 use actix_web::web;
 use utoipa::OpenApi;
 
@@ -180,14 +181,22 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
             }),
         )
         .service(utoipa_swagger_ui::SwaggerUi::new("/swagger-ui/{_:.*}").url("/api/v2/openapi.json", ApiDoc::openapi()))
-        .route("/", web::get().to(redirect_root_to_login));
+        .route("/", web::get().to(redirect_root_to_login))
+        .route("/debug/pprof", web::get().to(handle_profiling))
+        .route("/debug/pprof/{_:.*}", web::get().to(handle_profiling));
 }
 
 #[cfg(test)]
 mod tests {
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::sync::Mutex;
+
     use actix_web::{http::StatusCode, test, web, App};
 
     use super::redirect_root_to_login;
+    use crate::profiling::handle_profiling;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[actix_web::test]
     async fn root_redirects_to_canonical_vue_login() {
@@ -200,4 +209,68 @@ mod tests {
             Some("/frontend/login.html")
         );
     }
+
+    #[actix_web::test]
+    async fn pprof_is_forbidden_when_profiling_is_disabled() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::remove_var("ENABLE_PROFILING");
+        let app = test::init_service(App::new().route("/debug/pprof", web::get().to(handle_profiling))).await;
+        let response = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/debug/pprof?seconds=0")
+                .peer_addr(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4321))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        let body = test::read_body(response).await;
+        let text = String::from_utf8_lossy(&body);
+        assert!(text.contains("Profiling is disabled"));
+        assert!(!text.to_ascii_lowercase().contains("not implemented"));
+    }
+
+    #[actix_web::test]
+    async fn pprof_rejects_public_peers_even_when_enabled() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::set_var("ENABLE_PROFILING", "true");
+        let app = test::init_service(App::new().route("/debug/pprof", web::get().to(handle_profiling))).await;
+        let response = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/debug/pprof?seconds=0")
+                .peer_addr(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)), 4321))
+                .to_request(),
+        )
+        .await;
+        std::env::remove_var("ENABLE_PROFILING");
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        let body = test::read_body(response).await;
+        let text = String::from_utf8_lossy(&body);
+        assert!(text.contains("internal"));
+        assert!(!text.to_ascii_lowercase().contains("not implemented"));
+    }
+
+    #[actix_web::test]
+    async fn pprof_returns_svg_for_loopback_when_enabled() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        std::env::set_var("ENABLE_PROFILING", "true");
+        let app = test::init_service(App::new().route("/debug/pprof", web::get().to(handle_profiling))).await;
+        let response = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/debug/pprof?seconds=0")
+                .peer_addr(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4321))
+                .to_request(),
+        )
+        .await;
+        std::env::remove_var("ENABLE_PROFILING");
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = test::read_body(response).await;
+        let text = String::from_utf8_lossy(&body).to_ascii_lowercase();
+        assert!(text.contains("<svg"), "expected flamegraph svg, got {text}");
+        assert!(!text.contains("not implemented"));
+    }
 }
+
+

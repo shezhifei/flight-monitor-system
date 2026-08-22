@@ -149,14 +149,14 @@ describe('BASE_COLUMNS 列体系', () => {
     expect(cells[2].text()).toBe('G08');
   });
 
-  it('时间细分列 HH:MM 渲染、空值 --', () => {
+  it('时间细分列 HH:MM 渲染、空值 —', () => {
     const wrapper = mountTable(makeFlight({ estimated_departure: '2026-07-22T08:30:00Z' }));
-    const estCell = wrapper.findAll('td.cell-time').find((td) => td.text() !== '--');
+    const estCell = wrapper.findAll('td.cell-time').find((td) => td.text() !== '—');
     expect(estCell).toBeDefined();
-    // 空的时间列显示 --
+    // 空的时间列显示 —
     const flight = makeFlight({ codt: null });
     const wrapper2 = mountTable(flight);
-    const codtCell = wrapper2.findAll('td').find((td) => td.classes().includes('cell-time') && td.text() === '--');
+    const codtCell = wrapper2.findAll('td').find((td) => td.classes().includes('cell-time') && td.text() === '—');
     expect(codtCell).toBeDefined();
   });
 });
@@ -277,7 +277,7 @@ describe('交互式打卡单元格', () => {
     confirmSpy.mockRestore();
   });
 
-  it('无权限时撤销菜单项禁用并 toast 报错', async () => {
+  it('无权限时撤销菜单项转静声并 toast 报错', async () => {
     mockUser = null;
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const flight = makeFlight({ cabin_door_open_time: '2026-07-22T07:30:00Z' });
@@ -285,7 +285,8 @@ describe('交互式打卡单元格', () => {
     await cell(wrapper, 'cabin_door_open_time').trigger('contextmenu', { clientX: 100, clientY: 100 });
     const revokeBtn = Array.from(document.body.querySelectorAll<HTMLButtonElement>('.punch-context-menu-item'))
       .find((el) => el.textContent?.trim() === '撤销');
-    expect(revokeBtn?.classList.contains('disabled')).toBe(true);
+    // 静声（mute）= 看得见、点得动，但点了会被拒并说明原因
+    expect(revokeBtn?.getAttribute('data-tone')).toBe('mute');
     revokeBtn?.click();
     await vi.waitFor(() => {
       expect(mockShowToast).toHaveBeenCalled();

@@ -77,7 +77,7 @@ defineProps<{
 
 .ui-place__here {
   color: var(--ink);
-  font-weight: 550;
+  font-weight: var(--fw-medium);
   font-size: var(--fs-section);
 }
 
@@ -91,7 +91,7 @@ defineProps<{
 
 .ui-place__state {
   color: var(--ink-muted);
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-variant-numeric: tabular-nums;
   font-family: var(--mono);
 }

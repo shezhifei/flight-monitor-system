@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 39,
+  "title": "FMS Rust API Performance",
+  "uid": "fms-rust-performance",
+  "version": 2,
+  "editable": true,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "prometheus", "value": "prometheus" },
+        "label": "Datasource"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Latency Distribution (P50/P95/P99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(fms_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(fms_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(fms_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "description": "HTTP request latency distribution from fms_http_request_duration_seconds"
+    },
+    {
+      "id": 2,
+      "title": "Database Pool Saturation",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(fms_db_pool_connections{state=\"active\"}) / clamp_min(sum(fms_db_pool_connections_max), 1)",
+          "legendFormat": "active / max",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.7 },
+              { "color": "red", "value": 0.9 }
+            ]
+          }
+        }
+      },
+      "description": "Active connections divided by pool max (fms_db_pool_connections / fms_db_pool_connections_max)"
+    },
+    {
+      "id": 3,
+      "title": "DB Pool Connections Active vs Idle",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "fms_db_pool_connections{state=\"active\"}",
+          "legendFormat": "Active",
+          "refId": "A"
+        },
+        {
+          "expr": "fms_db_pool_connections{state=\"idle\"}",
+          "legendFormat": "Idle",
+          "refId": "B"
+        },
+        {
+          "expr": "fms_db_pool_connections_max",
+          "legendFormat": "Max",
+          "refId": "C"
+        }
+      ],
+      "description": "Database pool gauges exported by the Rust API"
+    },
+    {
+      "id": 4,
+      "title": "Redis Command Throughput & Latency",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(fms_redis_commands_total[5m])) by (command)",
+          "legendFormat": "qps {{command}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(fms_redis_command_latency_seconds_bucket[5m])) by (le, command))",
+          "legendFormat": "p95 {{command}}",
+          "refId": "B"
+        }
+      ],
+      "description": "Redis command throughput and p95 latency grouped by command"
+    },
+    {
+      "id": 5,
+      "title": "Serialization Duration",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(fms_serialization_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(fms_serialization_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(fms_serialization_total[5m])",
+          "legendFormat": "ops/s",
+          "refId": "C"
+        }
+      ],
+      "description": "JSON serialization duration histogram exported by the Rust API"
+    },
+    {
+      "id": 6,
+      "title": "SSE Active Connections",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "fms_sse_connections_active",
+          "legendFormat": "active",
+          "refId": "A"
+        },
+        {
+          "expr": "fms_sse_max_connections",
+          "legendFormat": "max",
+          "refId": "B"
+        }
+      ],
+      "description": "SSE connection occupancy used by FmsSseConnectionSaturation"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 import type { DepartmentResponse, TaskTypeResponse } from './dispatchRuleWorkbenchApi';
 import type { ManualOrderDraft } from './useDispatchRuleWorkbench';
 
@@ -29,6 +31,41 @@ function update<K extends keyof ManualOrderDraft>(key: K, value: ManualOrderDraf
   emit('update:draft', { ...props.draft, [key]: value });
   emit('dirty', true);
 }
+
+/* UiSelect 收 string，桥回受控表单 */
+function stringBridge(key: 'task_type' | 'department_id' | 'publication_state' | 'leg_scope') {
+  return computed<string>({
+    get: () => props.draft[key],
+    set: (value) => update(key, value),
+  });
+}
+
+const taskTypeModel = stringBridge('task_type');
+const departmentModel = stringBridge('department_id');
+const publicationModel = stringBridge('publication_state');
+const legScopeModel = stringBridge('leg_scope');
+
+const taskTypeOptions = computed(() => [
+  { value: '', label: '— 选择任务类型 —' },
+  ...props.taskTypes.map((t) => ({ value: t.code, label: `${t.name} (${t.code})` })),
+]);
+
+const departmentOptions = computed(() => [
+  { value: '', label: '— 默认当前科室 —' },
+  ...props.departments.map((d) => ({ value: d.id, label: d.name })),
+]);
+
+const publicationOptions = [
+  { value: 'prepublished', label: '预发布' },
+  { value: 'published', label: '已发布' },
+  { value: 'draft', label: '草稿' },
+];
+
+const legScopeOptions = [
+  { value: 'outbound', label: '出港' },
+  { value: 'inbound', label: '进港' },
+  { value: 'both', label: '双向' },
+];
 
 const payloadPreview = computed(() => {
   const draft = props.draft;
@@ -82,16 +119,20 @@ function onSubmit(): void {
         >
       </label>
       <label>任务类型 <span class="required">*</span>
-        <select :value="localDraft.task_type" required @change="update('task_type', ($event.target as HTMLSelectElement).value)">
-          <option value="">— 选择任务类型 —</option>
-          <option v-for="t in taskTypes" :key="t.code" :value="t.code">{{ t.name }} ({{ t.code }})</option>
-        </select>
+        <UiSelect
+          v-model="taskTypeModel"
+          :options="taskTypeOptions"
+          label="任务类型"
+          min-width="100%"
+        />
       </label>
       <label>承担科室
-        <select :value="localDraft.department_id" @change="update('department_id', ($event.target as HTMLSelectElement).value)">
-          <option value="">— 默认当前科室 —</option>
-          <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
-        </select>
+        <UiSelect
+          v-model="departmentModel"
+          :options="departmentOptions"
+          label="承担科室"
+          min-width="100%"
+        />
       </label>
       <label>班组 ID
         <input :value="localDraft.team_id" type="text" @input="update('team_id', ($event.target as HTMLInputElement).value)">
@@ -121,18 +162,20 @@ function onSubmit(): void {
         >
       </label>
       <label>发布状态
-        <select :value="localDraft.publication_state" @change="update('publication_state', ($event.target as HTMLSelectElement).value)">
-          <option value="prepublished">预发布</option>
-          <option value="published">已发布</option>
-          <option value="draft">草稿</option>
-        </select>
+        <UiSelect
+          v-model="publicationModel"
+          :options="publicationOptions"
+          label="发布状态"
+          min-width="100%"
+        />
       </label>
       <label>航段
-        <select :value="localDraft.leg_scope" @change="update('leg_scope', ($event.target as HTMLSelectElement).value)">
-          <option value="outbound">出港</option>
-          <option value="inbound">进港</option>
-          <option value="both">双向</option>
-        </select>
+        <UiSelect
+          v-model="legScopeModel"
+          :options="legScopeOptions"
+          label="航段"
+          min-width="100%"
+        />
       </label>
       <label class="checkbox-label">
         <input :checked="localDraft.manual_lock" type="checkbox" @change="update('manual_lock', ($event.target as HTMLInputElement).checked)">
@@ -143,12 +186,12 @@ function onSubmit(): void {
       </label>
 
       <div class="form-actions full-row">
-        <button type="button" class="btn ghost" @click="showPayloadPreview = !showPayloadPreview">
+        <UiButton @click="showPayloadPreview = !showPayloadPreview">
           {{ showPayloadPreview ? '隐藏 Payload' : '查看 Payload' }}
-        </button>
-        <button type="submit" class="btn primary" :disabled="!canSubmit">
+        </UiButton>
+        <UiButton native-type="submit" variant="primary" :disabled="!canSubmit">
           {{ saving ? '提交中…' : '创建派工单' }}
-        </button>
+        </UiButton>
       </div>
     </form>
 
@@ -162,73 +205,122 @@ function onSubmit(): void {
 </template>
 
 <style scoped>
+/* 按钮归 UiButton、下拉归 UiSelect；这里只留表单与页内反馈。 */
 .manual-order-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s3);
 }
-.head h3 { margin: 0; font-size: 16px; }
-.muted { font-size: 12px; color: var(--text-tertiary); margin: 4px 0 0; }
-.muted code { background: var(--ws-surface-muted); padding: 1px 4px; border-radius: 4px; }
+
+.head h3 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+
+.muted {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  margin: var(--s1) 0 0;
+}
+
+.muted code {
+  font-family: var(--mono);
+  background: var(--face-page);
+  padding: 1px 4px;
+  border-radius: var(--r-cell);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: var(--s3);
 }
+
 .form-grid label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
+  gap: var(--s1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-subtle);
 }
-.form-grid input, .form-grid select, .form-grid textarea {
-  padding: 6px 10px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  font-size: 13px;
+
+.form-grid input,
+.form-grid textarea {
+  min-height: var(--h-md);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: var(--face-page);
+  font-family: inherit;
+  box-sizing: border-box;
 }
-.full-row { grid-column: span 3; }
+
+.form-grid textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.form-grid input:focus-visible,
+.form-grid textarea:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
+.full-row {
+  grid-column: span 3;
+}
+
 .checkbox-label {
   flex-direction: row !important;
   align-items: center;
-  gap: 6px !important;
+  gap: var(--s2) !important;
 }
-.required { color: var(--system-red); }
+
+.checkbox-label input {
+  min-height: auto;
+  accent-color: var(--act);
+}
+
+.required {
+  color: var(--danger);
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px dashed var(--border-light);
-  padding-top: 8px;
+  gap: var(--s2);
+  border-top: 1px dashed var(--line-strong);
+  padding-top: var(--s2);
 }
-.btn {
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-card);
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.btn.primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn.ghost { background: transparent; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .payload-preview {
+  /* 开发者预览刻意用深色码块，不随主题翻转 */
   background: #0f172a;
   color: #f1f5f9;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 11px;
+  padding: var(--s3);
+  border-radius: var(--r-control);
+  font-family: var(--mono);
+  font-size: var(--fs-label);
   max-height: 240px;
   overflow: auto;
 }
+
 .success-banner {
-  background: var(--success-bg-subtle);
-  border: 1px solid var(--success-border-subtle);
-  color: #14532d;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  background: var(--ok-soft);
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
+  color: var(--ok);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
 }
-.success-banner a { color: #15803d; margin-left: 6px; }
+
+.success-banner a {
+  color: var(--ok);
+  margin-left: var(--s2);
+}
 </style>

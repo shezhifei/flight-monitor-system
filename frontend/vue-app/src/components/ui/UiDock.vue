@@ -13,13 +13,13 @@ defineProps<{
 <style scoped>
 .ui-dock {
   position: fixed;
-  right: 20px;
-  bottom: 64px;
+  right: var(--dock-right);
+  bottom: var(--dock-bottom);
   display: flex;
   flex-direction: column;
-  /* 角浮：悬钮锚右，抬起面板在其上 */
+  /* 角浮：悬钮锚右，浮舱（UiFloatPanel）在其上，落点共用同一组 token */
   align-items: flex-end;
-  gap: 8px;
-  z-index: 9000;
+  gap: var(--s2);
+  z-index: var(--z-dock);
 }
 </style>

@@ -44,14 +44,14 @@ provide(flightBusinessCaseKey, ctx);
 
 const flightNumbers = computed(() => (props.flight ? getFlightNumbers(props.flight) : null));
 const route = computed(() => (props.flight ? getFlightEndpoints(props.flight, props.airportContext, 'name') : null));
-const operationDate = computed(() => (props.flight ? deriveOperationDateLabel(props.flight) : '--'));
+const operationDate = computed(() => (props.flight ? deriveOperationDateLabel(props.flight) : '—'));
 const inboundLabels = computed(() => ((props.flight?.inbound_leg as unknown as { labels?: unknown[] })?.labels || []) as string[]);
 const outboundLabels = computed(() => ((props.flight?.outbound_leg as unknown as { labels?: unknown[] })?.labels || []) as string[]);
 
 function formatTimeValue(value: unknown): string {
-  if (!value) return '--';
+  if (!value) return '—';
   const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return '--';
+  if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
@@ -67,23 +67,23 @@ const detailItems = computed(() => {
   const hasOutbound = Boolean(flightNumbers.value?.outbound);
 
   const items: Array<{ label: string; value: string; field?: string; type?: string; readonly?: boolean }> = [
-    { label: '机型', value: flight.aircraft_type_detail || '--' },
+    { label: '机型', value: flight.aircraft_type_detail || '—' },
     { label: '任务类型', value: getMissionDisplay(flight) },
     { label: '执行日期', value: operationDate.value },
-    { label: '重要旅客', value: hasInbound || hasOutbound ? (hasVipMarker(model) ? '是' : '否') : '--' },
+    { label: '重要旅客', value: hasInbound || hasOutbound ? (hasVipMarker(model) ? '是' : '否') : '—' },
     { label: '快速过站', value: flight.is_quick_turnaround ? '是' : '否' },
   ];
 
   if (hasInbound) {
     items.push(
-      { label: '进港航班号', value: flightNumbers.value?.inbound || '--' },
-      { label: '进港类别', value: getLegFlightTypeLabel(model, 'inbound') || '--' },
+      { label: '进港航班号', value: flightNumbers.value?.inbound || '—' },
+      { label: '进港类别', value: getLegFlightTypeLabel(model, 'inbound') || '—' },
     );
   }
   if (hasOutbound) {
     items.push(
-      { label: '出港航班号', value: flightNumbers.value?.outbound || '--' },
-      { label: '出港类别', value: getLegFlightTypeLabel(model, 'outbound') || '--' },
+      { label: '出港航班号', value: flightNumbers.value?.outbound || '—' },
+      { label: '出港类别', value: getLegFlightTypeLabel(model, 'outbound') || '—' },
       { label: '结束登机', value: formatTimeValue(raw.end_boarding_time) },
       { label: '登机限制', value: flight.has_boarding_restriction ? '是' : '否' },
       { label: '撤轮挡', value: formatTimeValue(raw.off_blocks_time), field: 'off_blocks_time', type: 'datetime-local' },
@@ -91,9 +91,9 @@ const detailItems = computed(() => {
   }
 
   items.push(
-    { label: '行李转盘', value: String(raw.baggage_carousel || '--') },
+    { label: '行李转盘', value: String(raw.baggage_carousel || '—') },
     { label: '复核机号', value: flight.aircraft_check_remarks || '点击编辑', field: 'aircraft_check_remarks' },
-    { label: '登机机号', value: String(raw.boarding_id || '--') },
+    { label: '登机机号', value: String(raw.boarding_id || '—') },
   );
 
   return items;

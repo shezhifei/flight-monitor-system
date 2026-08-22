@@ -7,6 +7,21 @@ import LabelTable from './components/LabelTable.vue';
 import LabelFormDialog from './components/LabelFormDialog.vue';
 import type { LabelDefinition, CreateLabelRequest, UpdateLabelRequest } from '../../types/backend';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
+
+const scopeOptions = [
+  { value: '', label: '全部范围' },
+  { value: 'flight', label: '航班级' },
+  { value: 'leg', label: '航段级' },
+  { value: 'both', label: '两者' },
+];
+
+const categoryOptions = [
+  { value: '', label: '全部类型' },
+  { value: 'system', label: '系统' },
+  { value: 'custom', label: '自定义' },
+];
 
 const auth = useAuth();
 const toast = useToast();
@@ -89,10 +104,10 @@ async function handleDelete(label: LabelDefinition) {
         </p>
       </div>
       <div v-if="isAdmin" class="header-actions">
-        <button class="btn btn-primary" @click="openCreateDialog">
+        <UiButton variant="primary" @click="openCreateDialog">
           <span class="btn-icon">+</span>
           新建标签
-        </button>
+        </UiButton>
       </div>
     </div>
 
@@ -119,39 +134,24 @@ async function handleDelete(label: LabelDefinition) {
         >
       </div>
       <div class="filter-group">
-        <select v-model="scopeFilter" class="filter-select">
-          <option value="">
-            全部范围
-          </option>
-          <option value="flight">
-            航班级
-          </option>
-          <option value="leg">
-            航段级
-          </option>
-          <option value="both">
-            两者
-          </option>
-        </select>
-        <select v-model="categoryFilter" class="filter-select">
-          <option value="">
-            全部类型
-          </option>
-          <option value="system">
-            系统
-          </option>
-          <option value="custom">
-            自定义
-          </option>
-        </select>
+        <UiSelect
+          v-model="scopeFilter"
+          :options="scopeOptions"
+          label="按适用范围筛选"
+        />
+        <UiSelect
+          v-model="categoryFilter"
+          :options="categoryOptions"
+          label="按标签类型筛选"
+        />
       </div>
     </div>
 
     <div v-if="error" class="error-message">
       {{ error }}
-      <button class="retry-btn" @click="refreshLabels">
+      <UiButton variant="danger" size="sm" @click="refreshLabels">
         重试
-      </button>
+      </UiButton>
     </div>
 
     <LabelTable
@@ -174,8 +174,9 @@ async function handleDelete(label: LabelDefinition) {
 </template>
 
 <style scoped>
+/* 信号面：admin 内容页，页面标题用展示级 24px，其余走梯子 */
 .label-manager-page {
-  padding: 24px;
+  padding: var(--s4);
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -184,9 +185,9 @@ async function handleDelete(label: LabelDefinition) {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  margin-bottom: var(--s5);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--line);
 }
 
 .header-content {
@@ -194,16 +195,16 @@ async function handleDelete(label: LabelDefinition) {
 }
 
 .page-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--s2) 0;
   font-size: 24px;
-  font-weight: 600;
-  color: var(--text-primary, #111827);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .page-subtitle {
   margin: 0;
-  font-size: 14px;
-  color: var(--text-secondary, #546E7A);
+  font-size: var(--fs-section);
+  color: var(--ink-subtle);
 }
 
 .header-actions {
@@ -214,25 +215,31 @@ async function handleDelete(label: LabelDefinition) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
   flex-wrap: wrap;
 }
 
 .search-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
-  padding: 8px 12px;
+  gap: var(--s2);
+  background: var(--face-work);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: 0 var(--s3);
+  height: var(--h-sm);
   flex: 1;
   max-width: 400px;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.search-group:focus-within {
+  border-color: var(--act);
 }
 
 .search-icon {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--ink-muted);
   display: flex;
   align-items: center;
 }
@@ -241,78 +248,38 @@ async function handleDelete(label: LabelDefinition) {
   border: none;
   outline: none;
   flex: 1;
-  font-size: 14px;
+  min-width: 0;
+  font-size: var(--fs-section);
+  font-family: inherit;
+  color: var(--ink);
   background: transparent;
+}
+
+.search-input::placeholder {
+  color: var(--ink-muted);
 }
 
 .filter-group {
   display: flex;
-  gap: 12px;
-}
-
-.filter-select {
-  padding: 8px 12px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
-  font-size: 14px;
-  background: var(--bg-primary, #fff);
-  color: var(--text-primary, #374151);
-  cursor: pointer;
-  min-width: 120px;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: var(--primary-color, #3b82f6);
+  gap: var(--s3);
 }
 
 .error-message {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--error-bg-subtle);
-  border: 1px solid var(--error-border-subtle);
-  border-radius: 8px;
-  color: var(--system-red);
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-.retry-btn {
-  padding: 4px 12px;
-  background: var(--system-red);
-  color: var(--text-inverse);
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: var(--primary-color, #3b82f6);
-  color: var(--text-inverse);
-}
-
-.btn-primary:hover {
-  background: var(--primary-hover, #2563eb);
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--r-control);
+  color: var(--danger);
+  font-size: var(--fs-section);
+  margin-bottom: var(--s3);
 }
 
 .btn-icon {
-  margin-right: 6px;
-  font-size: 16px;
+  font-size: var(--fs-title);
+  line-height: 1;
 }
 </style>

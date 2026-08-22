@@ -213,7 +213,7 @@ impl SseHub {
             .and_then(|value| value.parse::<u64>().ok())
             .filter(|value| *value > 0)
             .unwrap_or(DEFAULT_QUEUE_FULL_DISCONNECT_SECS);
-        Arc::new(Self {
+        let hub = Arc::new(Self {
             topics: DashMap::new(),
             topic_subscriber_counts: DashMap::new(),
             runtime_connections: DashMap::new(),
@@ -230,7 +230,16 @@ impl SseHub {
             messages_failed: AtomicU64::new(0),
             lagged_total: AtomicU64::new(0),
             lifetime_connections: AtomicU64::new(0),
-        })
+        });
+        hub.export_connection_gauges();
+        hub
+    }
+
+    fn export_connection_gauges(&self) {
+        let active = self.active_connections.load(Ordering::Relaxed) as f64;
+        metrics::gauge!("fms_sse_connections").set(active);
+        metrics::gauge!("fms_sse_connections_active").set(active);
+        metrics::gauge!("fms_sse_max_connections").set(self.max_connections as f64);
     }
 
     pub fn try_acquire_connection(&self) -> bool {
@@ -255,14 +264,14 @@ impl SseHub {
             }
         };
         if acquired {
-            metrics::gauge!("fms_sse_connections").set(self.active_connections.load(Ordering::Relaxed) as f64);
+            self.export_connection_gauges();
         }
         acquired
     }
 
     pub fn release_connection(&self) {
         self.active_connections.fetch_sub(1, Ordering::Release);
-        metrics::gauge!("fms_sse_connections").set(self.active_connections.load(Ordering::Relaxed) as f64);
+        self.export_connection_gauges();
     }
 
     pub fn connection_queue_size(&self) -> usize {

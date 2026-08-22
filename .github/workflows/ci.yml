@@ -56,6 +56,38 @@ jobs:
       - name: Test
         run: cargo test
 
+      - name: Seed Criterion baseline
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          src = Path("benches/criterion-baseline")
+          dst = Path("target/criterion")
+          for estimates in src.glob("*/new/estimates.json"):
+              name = estimates.parent.parent.name
+              out = dst / name / "base"
+              out.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(estimates, out / "estimates.json")
+          PY
+
+      - name: Run performance benchmarks
+        run: cargo bench -p fms-benches --bench simd_json_benchmarks -- --baseline base
+
+      - name: Validate benchmark regression
+        working-directory: .
+        run: |
+          python scripts/validate_performance_regression.py \
+            --baseline services/api-server/benches/criterion-baseline \
+            --current services/api-server/target/criterion \
+            --output services/api-server/performance_validation.json
+          python - <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path("services/api-server/performance_validation.json").read_text())
+          print(report)
+          if report.get("recommendation") == "BLOCKED":
+              sys.exit(1)
+          PY
+
       - name: Architecture boundary guard
         run: |
           cargo test -p fms-api --test layer_boundary_guard
@@ -191,6 +223,10 @@ jobs:
             tests/tools/test_ci_architecture_guardrails.py \
             tests/tools/test_schema_baseline_consistency.py \
             tests/tools/test_observability_alerting_config.py \
+            tests/tools/test_validate_performance_regression.py \
+            tests/tools/test_sql_bind_parameters.py \
+            tests/tools/test_precommit_performance_check.py \
+            tests/tools/test_performance_migrations.py \
             tests/tools/test_deploy_security_guardrails.py \
             -q
 

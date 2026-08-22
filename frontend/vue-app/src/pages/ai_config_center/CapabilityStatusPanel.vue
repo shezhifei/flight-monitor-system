@@ -41,9 +41,9 @@
       <details class="cap-section" open>
         <summary class="cap-section-title">
           工具
-          <span :class="['badge', vm.tools.total === 0 ? 'badge-orange' : 'badge-green']">
+          <UiPill :tone="vm.tools.total === 0 ? 'warn' : 'ok'">
             {{ vm.tools.total }}
-          </span>
+          </UiPill>
         </summary>
         <div class="cap-kv-grid cap-kv-grid-3">
           <div class="cap-kv">
@@ -56,9 +56,9 @@
           </div>
           <div class="cap-kv">
             <span class="cap-kv-label">Subagent Tool</span>
-            <span :class="['badge', vm.tools.subagentToolEnabled ? 'badge-green' : 'badge-gray']">
+            <UiPill :tone="vm.tools.subagentToolEnabled ? 'ok' : 'mute'">
               {{ vm.tools.subagentToolEnabled ? '启用' : '禁用' }}
-            </span>
+            </UiPill>
           </div>
         </div>
         <div v-if="vm.tools.emptyWarning" class="cap-alert cap-alert-warning">
@@ -70,9 +70,9 @@
       <details class="cap-section">
         <summary class="cap-section-title">
           MCP
-          <span :class="['badge', vm.mcp.enabled ? 'badge-green' : 'badge-gray']">
+          <UiPill :tone="vm.mcp.enabled ? 'ok' : 'mute'">
             {{ vm.mcp.enabled ? '启用' : '禁用' }}
-          </span>
+          </UiPill>
           <span v-if="vm.mcp.enabled" class="cap-section-sub">{{ vm.mcp.serverCount }} 服务器</span>
         </summary>
         <div v-if="vm.mcp.noServersWarning" class="cap-alert cap-alert-warning">
@@ -81,9 +81,9 @@
         <div v-if="vm.mcp.enabled" class="cap-kv-grid">
           <div class="cap-kv">
             <span class="cap-kv-label">Allowlist 配置</span>
-            <span :class="['badge', vm.mcp.allowlistConfigured ? 'badge-green' : 'badge-orange']">
+            <UiPill :tone="vm.mcp.allowlistConfigured ? 'ok' : 'warn'">
               {{ vm.mcp.allowlistConfigured ? '已配置' : '未配置' }}
-            </span>
+            </UiPill>
           </div>
         </div>
         <table v-if="vm.mcp.servers.length > 0" class="cap-table">
@@ -100,14 +100,20 @@
               <td>{{ srv.displayName }}</td>
               <td><code>{{ srv.transport }}</code></td>
               <td>
-                <span v-if="!srv.commandRefPresent" class="badge badge-gray">无</span>
-                <span v-else-if="srv.commandAllowlisted === false" class="badge badge-red">未授权</span>
-                <span v-else class="badge badge-green">已授权</span>
+                <UiPill v-if="!srv.commandRefPresent" tone="mute">
+                  无
+                </UiPill>
+                <UiPill v-else-if="srv.commandAllowlisted === false" tone="danger">
+                  未授权
+                </UiPill>
+                <UiPill v-else tone="ok">
+                  已授权
+                </UiPill>
               </td>
               <td>
-                <span :class="['badge', statusBadgeClass(srv.statusBadge)]">
+                <UiPill :tone="statusBadgeTone(srv.statusBadge)">
                   {{ srv.statusBadge.label }}
-                </span>
+                </UiPill>
                 <span v-if="srv.statusBadge.detail" class="cap-detail-hint" :title="srv.statusBadge.detail">ⓘ</span>
               </td>
             </tr>
@@ -119,9 +125,9 @@
       <details class="cap-section">
         <summary class="cap-section-title">
           Skills
-          <span :class="['badge', vm.skills.enabled ? 'badge-green' : 'badge-gray']">
+          <UiPill :tone="vm.skills.enabled ? 'ok' : 'mute'">
             {{ vm.skills.enabled ? '启用' : '禁用' }}
-          </span>
+          </UiPill>
           <span v-if="vm.skills.enabled" class="cap-section-sub">{{ vm.skills.skillCount }} 个</span>
         </summary>
         <div v-if="vm.skills.noBindingsWarning" class="cap-alert cap-alert-warning">
@@ -134,9 +140,9 @@
           </div>
           <div class="cap-kv">
             <span class="cap-kv-label">Fail Closed</span>
-            <span :class="['badge', vm.skills.failClosed ? 'badge-orange' : 'badge-gray']">
+            <UiPill :tone="vm.skills.failClosed ? 'warn' : 'mute'">
               {{ vm.skills.failClosed ? '是' : '否' }}
-            </span>
+            </UiPill>
           </div>
         </div>
         <table v-if="vm.skills.bindings.length > 0" class="cap-table">
@@ -165,9 +171,9 @@
       <details class="cap-section">
         <summary class="cap-section-title">
           Subagents
-          <span :class="['badge', vm.subagents.enabled ? 'badge-green' : 'badge-gray']">
+          <UiPill :tone="vm.subagents.enabled ? 'ok' : 'mute'">
             {{ vm.subagents.enabled ? '启用' : '禁用' }}
-          </span>
+          </UiPill>
         </summary>
         <div v-if="vm.subagents.riskBadge" :class="['cap-alert', vm.subagents.riskBadge.level === 'error' ? 'cap-alert-error' : 'cap-alert-warning']">
           {{ vm.subagents.riskBadge.label }}
@@ -188,9 +194,9 @@
           </div>
           <div class="cap-kv">
             <span class="cap-kv-label">继承上下文</span>
-            <span :class="['badge', vm.subagents.inheritParentContext ? 'badge-green' : 'badge-gray']">
+            <UiPill :tone="vm.subagents.inheritParentContext ? 'ok' : 'mute'">
               {{ vm.subagents.inheritParentContext ? '是' : '否' }}
-            </span>
+            </UiPill>
           </div>
         </div>
       </details>
@@ -199,9 +205,9 @@
       <details class="cap-section">
         <summary class="cap-section-title">
           缓存
-          <span :class="['badge', vm.cache.enabled ? 'badge-green' : 'badge-gray']">
+          <UiPill :tone="vm.cache.enabled ? 'ok' : 'mute'">
             {{ vm.cache.enabled ? '启用' : '禁用' }}
-          </span>
+          </UiPill>
         </summary>
         <table class="cap-table">
           <thead>
@@ -215,9 +221,9 @@
             <tr v-for="b in vm.cache.backends" :key="b.key">
               <td>{{ b.label }}</td>
               <td>
-                <span :class="['badge', cacheBackendBadgeClass(b)]">
+                <UiPill :tone="cacheBackendBadgeTone(b)">
                   {{ b.note }}
-                </span>
+                </UiPill>
               </td>
               <td class="cap-detail-cell">
                 {{ b.detail || '—' }}
@@ -260,6 +266,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import UiPill from '@/components/ui/UiPill.vue';
 import type {
   EnrichedCapabilitySnapshot,
   ValidationResult,
@@ -290,72 +297,75 @@ const vm = computed(() => {
 // are real configuration risks and must not be hidden.
 const validationErrors = computed(() => validationBadges(props.validation));
 
-function statusBadgeClass(badge: StatusBadge): string {
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+function statusBadgeTone(badge: StatusBadge): PillTone {
   switch (badge.level) {
-    case 'ok': return 'badge-green';
-    case 'disabled': return 'badge-gray';
-    case 'warning': return 'badge-orange';
-    case 'error': return 'badge-red';
-    default: return 'badge-gray';
+    case 'ok': return 'ok';
+    case 'disabled': return 'mute';
+    case 'warning': return 'warn';
+    case 'error': return 'danger';
+    default: return 'mute';
   }
 }
 
-function cacheBackendBadgeClass(backend: CacheBackendRow): string {
-  if (backend.note === 'adapter_available') return 'badge-blue';
-  if (backend.enabled) return 'badge-green';
-  return 'badge-gray';
+function cacheBackendBadgeTone(backend: CacheBackendRow): PillTone {
+  if (backend.note === 'adapter_available') return 'act';
+  if (backend.enabled) return 'ok';
+  return 'mute';
 }
 </script>
 
 <style scoped>
+/* 状态章归 UiPill；这里只留面板骨架与键值/表格排版。 */
 .capability-status-panel {
-  font-size: 13px;
+  font-size: var(--fs-body);
   line-height: 1.5;
 }
 
 .cap-loading {
-  padding: 12px;
-  color: var(--text-tertiary);
+  padding: var(--s3);
+  color: var(--ink-muted);
   text-align: center;
 }
 
 .cap-error {
-  padding: 12px;
-  color: var(--ws-danger);
-  background: var(--dh-signal-critical-soft);
-  border-radius: 4px;
+  padding: var(--s3);
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-radius: var(--r-cell);
 }
 
 /* Validation */
 .cap-validation {
-  margin-bottom: 12px;
+  margin-bottom: var(--s3);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--s1);
 }
 
 .cap-validation-item {
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-label);
   display: flex;
-  gap: 8px;
+  gap: var(--s2);
   align-items: center;
 }
 
 .cap-validation-error {
-  background: var(--dh-signal-critical-soft);
-  color: var(--ws-danger);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .cap-validation-warning {
-  background: #ffedd5;
-  color: var(--ws-warn);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .cap-validation-code {
-  font-weight: 600;
-  font-family: monospace;
+  font-weight: var(--fw-semibold);
+  font-family: var(--mono);
   white-space: nowrap;
 }
 
@@ -366,20 +376,20 @@ function cacheBackendBadgeClass(backend: CacheBackendRow): string {
 
 /* Section (collapsible) */
 .cap-section {
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  margin-bottom: 8px;
-  background: var(--bg-card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-cell);
+  margin-bottom: var(--s2);
+  background: var(--face-work);
 }
 
 .cap-section-title {
-  padding: 8px 12px;
-  font-weight: 600;
-  font-size: 13px;
+  padding: var(--s2) var(--s3);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
   user-select: none;
   list-style: none;
 }
@@ -390,6 +400,7 @@ function cacheBackendBadgeClass(backend: CacheBackendRow): string {
 
 .cap-section-title::before {
   content: '▸';
+  /* 折叠指示符刻意小于字阶最小档 */
   font-size: 11px;
   transition: transform 0.15s;
 }
@@ -399,18 +410,18 @@ details[open] > .cap-section-title::before {
 }
 
 .cap-section-sub {
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 /* KV Grid */
 .cap-kv-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 16px;
-  padding: 8px 12px;
-  border-top: 1px solid #f1f5f9;
+  gap: var(--s1) var(--s4);
+  padding: var(--s2) var(--s3);
+  border-top: 1px solid var(--line);
 }
 
 .cap-kv-grid-3 {
@@ -420,113 +431,99 @@ details[open] > .cap-section-title::before {
 .cap-kv {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s2);
   padding: 2px 0;
 }
 
 .cap-kv-label {
-  color: var(--text-tertiary);
-  font-size: 12px;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
   white-space: nowrap;
 }
 
 .cap-kv-value {
-  font-size: 12px;
-  font-family: monospace;
+  font-size: var(--fs-label);
+  font-family: var(--mono);
   word-break: break-all;
 }
-
-/* Badge (matching parent page) */
-.badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.badge-green { background: var(--dh-signal-ok-soft); color: var(--status-text-departed); }
-.badge-red { background: var(--dh-signal-critical-soft); color: var(--ws-danger); }
-.badge-blue { background: #dbeafe; color: #1e40af; }
-.badge-gray { background: var(--ws-surface-muted); color: var(--text-tertiary); }
-.badge-orange { background: #ffedd5; color: var(--ws-warn); }
 
 /* Table */
 .cap-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
-  border-top: 1px solid #f1f5f9;
+  font-size: var(--fs-label);
+  border-top: 1px solid var(--line);
 }
 
 .cap-table th {
   text-align: left;
-  padding: 6px 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--bg-page);
-  border-bottom: 1px solid var(--border-light);
+  padding: var(--s2) var(--s3);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-subtle);
+  background: var(--face-page);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .cap-table td {
-  padding: 5px 12px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
 
 .cap-table code {
-  font-size: 11px;
-  background: var(--ws-surface-muted);
+  font-size: var(--fs-label);
+  font-family: var(--mono);
+  background: var(--face-page);
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--r-cell);
 }
 
 .cap-detail-cell {
-  color: var(--text-tertiary);
-  font-size: 11px;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
 }
 
 .cap-detail-hint {
   cursor: help;
-  color: var(--system-gray2);
-  font-size: 11px;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
   margin-left: 2px;
 }
 
 /* Alerts */
 .cap-alert {
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin: 4px 12px 8px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-label);
+  margin: var(--s1) var(--s3) var(--s2);
 }
 
 .cap-alert-warning {
-  background: #ffedd5;
-  color: var(--ws-warn);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .cap-alert-error {
-  background: var(--dh-signal-critical-soft);
-  color: var(--ws-danger);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .cap-alert-detail {
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   opacity: 0.8;
 }
 
 .cap-metrics-title {
-  padding: 8px 12px 4px;
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--text-secondary);
-  border-top: 1px solid #f1f5f9;
+  padding: var(--s2) var(--s3) var(--s1);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-label);
+  color: var(--ink-subtle);
+  border-top: 1px solid var(--line);
 }
 
 .cap-muted {
-  padding: 8px 12px;
-  color: var(--system-gray2);
-  font-size: 12px;
+  padding: var(--s2) var(--s3);
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
 }
 </style>

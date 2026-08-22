@@ -178,11 +178,11 @@ function handleLogout(): void {
 .connection-status {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
+  gap: var(--s1);
+  padding: var(--s1) var(--s2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
   line-height: 1.3;
   /* 配置模式是持守身份（动蓝其衬），不是警告 */
   background: var(--act-soft);
@@ -201,8 +201,8 @@ function handleLogout(): void {
 .flowable-sidebar-nav {
   overflow: hidden;
   min-height: 0;
-  gap: 12px;
-  padding-top: 12px;
+  gap: var(--s3);
+  padding-top: var(--s3);
 }
 
 .flowable-sidebar-nav :deep(.admin-overview-list) {
@@ -234,7 +234,7 @@ function handleLogout(): void {
   width: calc((100% - 4px) / 2);
   height: calc(100% - 4px);
   transform: translateX(0);
-  background: var(--view-glider-bg, var(--admin-card-bg, var(--bg-card)));
+  background: var(--face-raised);
 }
 
 .scope-switcher[data-active='department'] .view-glider {
@@ -249,22 +249,22 @@ function handleLogout(): void {
 .scope-switcher-btn.view-btn {
   flex: 1 1 50%;
   width: auto;
-  height: 32px;
-  min-height: 32px;
-  padding: 0 8px;
+  height: var(--h-sm);
+  min-height: var(--h-sm);
+  padding: 0 var(--s2);
   line-height: 1.2;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
   font-family: inherit;
-  color: var(--admin-text-subtle, var(--text-secondary));
+  color: var(--ink-subtle);
 }
 
 .scope-switcher-btn.view-btn:hover:not(:disabled) {
-  color: var(--admin-text, var(--text-primary));
+  color: var(--ink);
 }
 
 .scope-switcher-btn.view-btn.active {
-  color: var(--ws-primary, var(--system-blue));
+  color: var(--act);
 }
 
 .scope-switcher-btn.view-btn:disabled {

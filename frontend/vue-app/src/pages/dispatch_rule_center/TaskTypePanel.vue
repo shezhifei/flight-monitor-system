@@ -3,6 +3,9 @@ import { computed, ref, watch } from 'vue';
 import AdminMasterDetail from '@/components/admin/AdminMasterDetail.vue';
 import AdminOverviewList from '@/components/admin/AdminOverviewList.vue';
 import AdminOverviewTools from '@/components/admin/AdminOverviewTools.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 import type { AdminOverviewItem } from '@/components/admin/adminOverviewTypes';
 import type {
   RequirementVersionResponse,
@@ -100,6 +103,19 @@ function confirmDelete(code: string): void {
 function toggleCreateForm(): void {
   emit('update:showCreateForm', !props.showCreateForm);
 }
+
+const triggerOptions = [
+  { value: 'before_eta', label: '起飞前' },
+  { value: 'after_etd', label: '起飞后' },
+  { value: 'manual', label: '人工触发' },
+];
+
+const triggerModel = computed<string>({
+  get: () => draft.value.trigger_type ?? 'before_eta',
+  set: (value) => {
+    draft.value.trigger_type = value;
+  },
+});
 </script>
 
 <template>
@@ -113,14 +129,14 @@ function toggleCreateForm(): void {
           :show-create="false"
         />
       </div>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm"
+      <UiButton
+        variant="primary"
+        size="sm"
         :disabled="disabled || saving"
         @click="toggleCreateForm"
       >
         {{ props.showCreateForm ? '取消新增' : '新增任务类型' }}
-      </button>
+      </UiButton>
     </div>
 
     <p v-if="disabled && disabledReason" class="disabled-note">
@@ -178,17 +194,12 @@ function toggleCreateForm(): void {
         </label>
         <label>
           <span>触发类型</span>
-          <select v-model="draft.trigger_type">
-            <option value="before_eta">
-              起飞前
-            </option>
-            <option value="after_etd">
-              起飞后
-            </option>
-            <option value="manual">
-              人工触发
-            </option>
-          </select>
+          <UiSelect
+            v-model="triggerModel"
+            :options="triggerOptions"
+            label="触发类型"
+            min-width="100%"
+          />
         </label>
       </div>
       <label class="full-row">
@@ -201,9 +212,14 @@ function toggleCreateForm(): void {
         />
       </label>
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary btn-sm" :disabled="saving">
+        <UiButton
+          native-type="submit"
+          variant="primary"
+          size="sm"
+          :disabled="saving"
+        >
           {{ saving ? '保存中…' : '保存任务类型' }}
-        </button>
+        </UiButton>
       </div>
     </form>
 
@@ -282,9 +298,9 @@ function toggleCreateForm(): void {
                 <tbody>
                   <tr v-for="v in versionsForSelectedTaskType" :key="v.id">
                     <td>
-                      <span class="badge" :class="v.status === 'published' ? 'badge-success' : 'badge-warning'">
+                      <UiPill :tone="v.status === 'published' ? 'ok' : 'warn'">
                         {{ v.status }}
-                      </span>
+                      </UiPill>
                     </td>
                     <td>v{{ v.version_no }}</td>
                     <td>
@@ -312,63 +328,64 @@ function toggleCreateForm(): void {
 </template>
 
 <style scoped>
-/* 壳层 toolbar / panel / table / btn / master-detail 走 admin-page */
+/* 壳层 panel / table-container / empty-state 走 admin-page / admin-layout 全局；
+   按钮归 UiButton、状态章归 UiPill、下拉归 UiSelect。 */
 
 .task-type-workbench {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--s4);
   min-height: 0;
 }
 
 .disabled-note {
   margin: 0;
-  font-size: 12px;
-  color: var(--ws-warn);
-  background: var(--dh-signal-warn-soft);
-  border: 1px solid color-mix(in srgb, var(--ws-warn) 35%, transparent);
-  padding: 8px 12px;
-  border-radius: 10px;
+  font-size: var(--fs-label);
+  color: var(--warn);
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-panel);
 }
 
 .create-form {
-  padding: 16px 18px;
+  padding: var(--s4);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s3);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--s3);
 }
 
 .form-grid label,
 .full-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--admin-text-subtle);
+  gap: var(--s2);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-subtle);
 }
 
 .form-grid input,
-.form-grid select,
 .full-row textarea {
-  min-height: 36px;
-  padding: 6px 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--admin-text);
-  background: var(--admin-card-bg);
+  min-height: var(--h-md);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+  background: var(--face-page);
   font-family: inherit;
 }
 
 .full-row textarea {
+  /* 说明区刻意给两行留位，不走控件高 */
   min-height: 64px;
   resize: vertical;
 }
@@ -379,49 +396,49 @@ function toggleCreateForm(): void {
 }
 
 .muted {
-  font-size: 11px;
-  color: var(--admin-text-muted);
-  font-weight: 500;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  font-weight: var(--fw-medium);
 }
 
 .detail-head h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--admin-text);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
   letter-spacing: -0.02em;
 }
 
 .detail-head p {
-  margin: 4px 0 0;
+  margin: var(--s1) 0 0;
 }
 
 .inner-tabs {
   display: flex;
-  gap: 16px;
-  border-bottom: 1px solid var(--admin-border);
+  gap: var(--s4);
+  border-bottom: 1px solid var(--line-strong);
   margin: 0 -2px;
 }
 
 .inner-tab {
-  padding: 10px 2px 12px;
+  padding: var(--s3) 2px;
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--admin-text-subtle);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-subtle);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
 
 .inner-tab:hover {
-  color: var(--admin-text);
+  color: var(--ink);
 }
 
 .inner-tab.active {
-  color: var(--ws-primary);
-  border-bottom-color: var(--ws-primary);
+  color: var(--act);
+  border-bottom-color: var(--act);
 }
 
 .tab-body {
@@ -431,7 +448,7 @@ function toggleCreateForm(): void {
 }
 
 .history-table {
-  margin-top: 8px;
+  margin-top: var(--s2);
 }
 
 @media (max-width: 1024px) {

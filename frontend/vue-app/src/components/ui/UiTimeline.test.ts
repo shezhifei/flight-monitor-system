@@ -15,10 +15,10 @@ describe('UiTimeline', () => {
     expect(wrapper.findAll('.ui-timeline-item')).toHaveLength(4);
   });
 
-  it('maps tone to data-tone, defaulting to neutral', () => {
+  it('maps tone to data-tone, defaulting to mute', () => {
     const wrapper = mount(UiTimeline, { props: { items } });
     const tones = wrapper.findAll('.ui-timeline-item').map((n) => n.attributes('data-tone'));
-    expect(tones).toEqual(['ok', 'warn', 'danger', 'neutral']);
+    expect(tones).toEqual(['ok', 'warn', 'danger', 'mute']);
   });
 
   it('renders time only when provided', () => {

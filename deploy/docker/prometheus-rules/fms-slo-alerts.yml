@@ -104,3 +104,14 @@ groups:
           summary: Time to first agent progress is above the alert threshold
           description: The p95 time-to-first-progress of agent runs has exceeded three seconds for 15 minutes.
           runbook_url: docs/observability/ALERT_RESPONSE.md#fmsaifirstprogressslow
+
+      - alert: FmsSseConnectionSaturation
+        expr: fms_sse_connections_active / fms_sse_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: rust-api
+        annotations:
+          summary: FMS SSE connections are above 80% of the configured cap
+          description: Active SSE connections have remained above 80% of fms_sse_max_connections for five minutes.
+          runbook_url: docs/observability/ALERT_RESPONSE.md#fmssseconnectionsaturation

@@ -76,6 +76,20 @@ impl std::fmt::Display for FlightBatchCellError {
     }
 }
 
+pub(crate) async fn load_flights_for_batch(
+    repo: &(dyn FlightRepository + Send + Sync),
+    flight_ids: &[String],
+) -> Result<HashMap<String, Flight>, FlightBatchCellError> {
+    let flights = repo
+        .find_by_ids(flight_ids)
+        .await
+        .map_err(|error| FlightBatchCellError::Internal(error.to_string()))?;
+    Ok(flights
+        .into_iter()
+        .map(|flight| (flight.flight_id.0.clone(), flight))
+        .collect())
+}
+
 pub struct FlightBatchCellUpdateService {
     repo: Arc<dyn FlightRepository + Send + Sync>,
     tx_repo: Arc<dyn SqlxFlightTransactionalRepository>,
@@ -146,15 +160,13 @@ impl FlightBatchCellUpdateService {
         // Pre-load flights and collect all conflicts before any write.
         // Timeline expected_value is re-checked inside the transaction under
         // an advisory lock (see apply_timeline) to close the TOCTOU window.
+        let ids: Vec<String> = targets.iter().map(|target| target.flight_id.clone()).collect();
+        let flights_by_id = load_flights_for_batch(self.repo.as_ref(), &ids).await?;
+
         let mut loaded: Vec<(ValidatedTarget, Flight)> = Vec::with_capacity(targets.len());
         let mut conflicts = Vec::new();
         for target in targets {
-            let Some(current) = self
-                .repo
-                .find_by_id(&target.flight_id)
-                .await
-                .map_err(|e| FlightBatchCellError::Internal(e.to_string()))?
-            else {
+            let Some(current) = flights_by_id.get(&target.flight_id).cloned() else {
                 return Err(FlightBatchCellError::NotFound(format!(
                     "航班 {} 未找到",
                     target.flight_id
@@ -994,5 +1006,130 @@ mod tests {
         assert_eq!(value, json!(dt));
         let remarks = current_field_value(FlightBatchEditableField::FlightRemarks, &flight, Some(dt));
         assert!(remarks.is_null());
+    }
+
+    struct CountingFlightRepo {
+        flights: HashMap<String, Flight>,
+        find_by_id_calls: std::sync::atomic::AtomicUsize,
+        find_by_ids_calls: std::sync::atomic::AtomicUsize,
+    }
+
+    #[async_trait::async_trait]
+    impl FlightRepository for CountingFlightRepo {
+        async fn find_by_id(&self, flight_id: &str) -> Result<Option<Flight>, DomainError> {
+            self.find_by_id_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok(self.flights.get(flight_id).cloned())
+        }
+
+        async fn find_by_ids(&self, flight_ids: &[String]) -> Result<Vec<Flight>, DomainError> {
+            self.find_by_ids_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok(flight_ids
+                .iter()
+                .filter_map(|id| self.flights.get(id).cloned())
+                .collect())
+        }
+
+        async fn find_all(&self, _limit: i64, _offset: i64) -> Result<Vec<Flight>, DomainError> {
+            unimplemented!("counting repo: find_all")
+        }
+        async fn find_by_date(&self, _date: chrono::NaiveDate) -> Result<Vec<Flight>, DomainError> {
+            unimplemented!("counting repo: find_by_date")
+        }
+        async fn find_by_flight_number(&self, _flight_no: &str) -> Result<Vec<Flight>, DomainError> {
+            unimplemented!("counting repo: find_by_flight_number")
+        }
+        async fn find_by_status(&self, _status: i32, _limit: i64, _offset: i64) -> Result<Vec<Flight>, DomainError> {
+            unimplemented!("counting repo: find_by_status")
+        }
+        async fn save(&self, _flight: &Flight) -> Result<(), DomainError> {
+            unimplemented!("counting repo: save")
+        }
+        async fn update_partial(
+            &self,
+            _flight_id: &str,
+            _patch: &FlightUpdatePatch,
+        ) -> Result<Option<Flight>, DomainError> {
+            unimplemented!("counting repo: update_partial")
+        }
+        async fn save_batch(&self, _flights: &[Flight]) -> Result<usize, DomainError> {
+            unimplemented!("counting repo: save_batch")
+        }
+        async fn update_status(&self, _flight_id: &str, _status: i32) -> Result<bool, DomainError> {
+            unimplemented!("counting repo: update_status")
+        }
+        async fn delete(&self, _flight_id: &str) -> Result<bool, DomainError> {
+            unimplemented!("counting repo: delete")
+        }
+        async fn search(
+            &self,
+            _criteria: &fms_domain::ports::flight_repository::FlightSearchCriteria,
+            _limit: i64,
+            _offset: i64,
+        ) -> Result<Vec<Flight>, DomainError> {
+            unimplemented!("counting repo: search")
+        }
+        async fn count_by_date(&self, _date: chrono::NaiveDate) -> Result<i64, DomainError> {
+            unimplemented!("counting repo: count_by_date")
+        }
+    }
+
+    fn counting_sample_flight(flight_id: &str) -> Flight {
+        Flight {
+            flight_id: fms_domain::models::value_objects::FlightId::from(flight_id),
+            airline_code: None,
+            flight_number: None,
+            registration: None,
+            aircraft_type_detail: None,
+            stand: None,
+            gate: None,
+            terminal: None,
+            position: None,
+            baggage_carousel: None,
+            scheduled_departure: None,
+            scheduled_arrival: None,
+            estimated_departure: None,
+            estimated_arrival: None,
+            actual_departure: None,
+            actual_arrival: None,
+            cobt_time: None,
+            codt: None,
+            has_boarding_restriction: false,
+            is_quick_turnaround: false,
+            is_commercial_signed: true,
+            status: fms_domain::models::value_objects::FlightStatus::Scheduled,
+            inbound_leg: None,
+            outbound_leg: None,
+            anomaly_summary: Default::default(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            version: 1,
+            labels: vec![],
+            flight_remarks: None,
+            load_planning_remarks: None,
+            aircraft_maintenance_remarks: None,
+            aircraft_check_remarks: None,
+            direction: None,
+            flight_kind: "passenger".to_string(),
+            is_draft: false,
+            divert: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn batch_preload_uses_find_by_ids_not_per_key_get() {
+        let mut flights = HashMap::new();
+        flights.insert("F1".to_string(), counting_sample_flight("F1"));
+        flights.insert("F2".to_string(), counting_sample_flight("F2"));
+        let repo = CountingFlightRepo {
+            flights,
+            find_by_id_calls: std::sync::atomic::AtomicUsize::new(0),
+            find_by_ids_calls: std::sync::atomic::AtomicUsize::new(0),
+        };
+        let loaded = load_flights_for_batch(&repo, &["F1".to_string(), "F2".to_string()])
+            .await
+            .expect("load");
+        assert_eq!(loaded.len(), 2);
+        assert_eq!(repo.find_by_ids_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        assert_eq!(repo.find_by_id_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
     }
 }

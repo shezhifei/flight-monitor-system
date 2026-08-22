@@ -52,7 +52,7 @@ describe('DashboardAiWidget', () => {
   it('shows floating button without badge initially', () => {
     const wrapper = mount(DashboardAiWidget);
     expect(wrapper.find('.ai-widget-fab').exists()).toBe(true);
-    expect(wrapper.find('.ai-widget-badge').exists()).toBe(false);
+    expect(wrapper.find('.ui-fab__badge').exists()).toBe(false);
   });
 
   it('increments unread badge for visible event types while drawer closed', async () => {
@@ -60,14 +60,14 @@ describe('DashboardAiWidget', () => {
     emitSse('ai_execution', makeExecution());
     emitSse('ai_execution', makeExecution({ event: 'execution_end', message: '执行完成' }));
     await wrapper.vm.$nextTick();
-    expect(wrapper.find('.ai-widget-badge').text()).toBe('2');
+    expect(wrapper.find('.ui-fab__badge').text()).toBe('2');
   });
 
   it('ignores non-visible semantic types', async () => {
     const wrapper = mount(DashboardAiWidget);
     emitSse('ai_execution', makeExecution({ event: 'chunk' }));
     await wrapper.vm.$nextTick();
-    expect(wrapper.find('.ai-widget-badge').exists()).toBe(false);
+    expect(wrapper.find('.ui-fab__badge').exists()).toBe(false);
   });
 
   it('opens drawer with events and clears unread', async () => {
@@ -76,7 +76,7 @@ describe('DashboardAiWidget', () => {
     await wrapper.find('.ai-widget-fab').trigger('click');
     expect(wrapper.find('.ui-drawer').exists()).toBe(true);
     expect(wrapper.findAll('.ui-timeline-item')).toHaveLength(1);
-    expect(wrapper.find('.ai-widget-badge').exists()).toBe(false);
+    expect(wrapper.find('.ui-fab__badge').exists()).toBe(false);
   });
 
   it('records stream error as danger event', async () => {

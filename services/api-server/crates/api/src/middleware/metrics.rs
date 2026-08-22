@@ -68,14 +68,25 @@ where
                 "fms_http_requests_total",
                 "method" => method.clone(),
                 "path" => path.clone(),
-                "status" => status
+                "route" => path.clone(),
+                "status" => status.clone()
             )
             .increment(1);
+
+            if status.starts_with('4') || status.starts_with('5') {
+                metrics::counter!(
+                    "fms_http_errors_total",
+                    "error_type" => status.clone(),
+                    "route" => path.clone()
+                )
+                .increment(1);
+            }
 
             metrics::histogram!(
                 "fms_http_request_duration_seconds",
                 "method" => method,
-                "path" => path
+                "path" => path.clone(),
+                "route" => path
             )
             .record(duration);
 

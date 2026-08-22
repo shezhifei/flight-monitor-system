@@ -3,7 +3,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiButton from '@/components/ui/UiButton.vue';
 import UiDrawer from '@/components/ui/UiDrawer.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiSwitch from '@/components/ui/UiSwitch.vue';
 import { useApi } from '@/composables/useApi';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
@@ -35,7 +38,7 @@ const drawerOpen = ref(false);
 
 const createForm = ref({
   name: 'agent eval',
-  dataset_path: DATASET_OPTIONS[0]!.value,
+  dataset_path: DATASET_OPTIONS[0]?.value ?? '',
   description: '',
   run: true,
 });
@@ -50,19 +53,21 @@ const sidebarUser = computed(() => {
 
 const gates = computed(() => currentJob.value?.gates ?? []);
 
-function statusBadgeClass(status: string): string {
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+function statusBadgeTone(status: string): PillTone {
   switch (status) {
-    case 'completed': return 'badge-success';
-    case 'running': return 'badge-info';
-    case 'failed': return 'badge-danger';
-    default: return 'badge-neutral';
+    case 'completed': return 'ok';
+    case 'running': return 'act';
+    case 'failed': return 'danger';
+    default: return 'mute';
   }
 }
 
-function gateBadgeClass(status: string): string {
-  if (status === 'pass') return 'badge-success';
-  if (status === 'fail') return 'badge-danger';
-  return 'badge-neutral';
+function gateBadgeTone(status: string): PillTone {
+  if (status === 'pass') return 'ok';
+  if (status === 'fail') return 'danger';
+  return 'mute';
 }
 
 function isActive(status: string | undefined): boolean {
@@ -240,17 +245,12 @@ function handleLogout(): void {
           </div>
         </div>
         <div class="header-actions">
-          <button type="button" class="btn btn-primary" @click="drawerOpen = true">
+          <UiButton variant="primary" @click="drawerOpen = true">
             创建任务
-          </button>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :disabled="loadingJobs"
-            @click="refreshJobs"
-          >
+          </UiButton>
+          <UiButton :disabled="loadingJobs" @click="refreshJobs">
             {{ loadingJobs ? '加载中…' : '刷新' }}
-          </button>
+          </UiButton>
         </div>
       </header>
 
@@ -287,9 +287,9 @@ function handleLogout(): void {
                     {{ job.dataset_path || '-' }}
                   </td>
                   <td>
-                    <span class="badge" :class="statusBadgeClass(job.status)">
+                    <UiPill :tone="statusBadgeTone(job.status)">
                       {{ job.status || 'unknown' }}
-                    </span>
+                    </UiPill>
                   </td>
                   <td class="mono muted">
                     {{ job.completed_runs ?? 0 }}/{{ job.total_runs ?? 0 }}
@@ -299,21 +299,16 @@ function handleLogout(): void {
                   </td>
                   <td>
                     <div class="eval-row-actions">
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn-sm"
-                        @click="refreshCurrentJob(String(job.job_id || ''))"
-                      >
+                      <UiButton @click="refreshCurrentJob(String(job.job_id || ''))">
                         查看
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-danger btn-sm"
+                      </UiButton>
+                      <UiButton
+                        variant="danger"
                         :disabled="!isActive(job.status)"
                         @click="handleCancelJob(job)"
                       >
                         取消
-                      </button>
+                      </UiButton>
                     </div>
                   </td>
                 </tr>
@@ -327,9 +322,9 @@ function handleLogout(): void {
             <div class="eval-gates-head">
               <div class="eval-gates-title">
                 <span class="eval-panel-title">门禁结果</span>
-                <span class="badge" :class="statusBadgeClass(String(currentJob.status || ''))">
+                <UiPill :tone="statusBadgeTone(String(currentJob.status || ''))">
                   {{ String(currentJob.status || '') }}
-                </span>
+                </UiPill>
               </div>
               <span class="mono muted">{{ String(currentJob.job_id || '') }}</span>
             </div>
@@ -360,9 +355,9 @@ function handleLogout(): void {
                       {{ Number(gate.threshold).toFixed(2) }}
                     </td>
                     <td>
-                      <span class="badge" :class="gateBadgeClass(gate.status)">
+                      <UiPill :tone="gateBadgeTone(gate.status)">
                         {{ gate.status }}
-                      </span>
+                      </UiPill>
                     </td>
                   </tr>
                 </tbody>
@@ -379,11 +374,21 @@ function handleLogout(): void {
       </div>
     </main>
 
-    <UiDrawer :open="drawerOpen" title="创建评测任务" :width="460" @close="drawerOpen = false">
+    <UiDrawer
+      :open="drawerOpen"
+      title="创建评测任务"
+      :width="460"
+      @close="drawerOpen = false"
+    >
       <form class="eval-form" @submit.prevent="handleCreate">
         <label class="eval-field">
           <span class="eval-field-label">任务名</span>
-          <input v-model="createForm.name" type="text" class="eval-input" required>
+          <input
+            v-model="createForm.name"
+            type="text"
+            class="eval-input"
+            required
+          >
         </label>
         <label class="eval-field">
           <span class="eval-field-label">评测数据集 (JSONL)</span>
@@ -411,11 +416,17 @@ function handleLogout(): void {
         </label>
         <label class="eval-field eval-switch-row">
           <span class="eval-field-label">创建后立即执行</span>
-          <input v-model="createForm.run" type="checkbox" class="eval-switch">
+          <UiSwitch v-model:checked="createForm.run" label="创建后立即执行" />
         </label>
-        <button type="submit" class="eval-submit" :disabled="creating">
+        <UiButton
+          class="eval-submit"
+          native-type="submit"
+          variant="primary"
+          size="md"
+          :disabled="creating"
+        >
           {{ creating ? '创建中…' : '创建任务' }}
-        </button>
+        </UiButton>
       </form>
     </UiDrawer>
   </div>
@@ -430,8 +441,6 @@ function handleLogout(): void {
 .eval-panel-title {
   font-size: var(--fs-label);
   font-weight: var(--fw-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--ink-muted);
   margin-bottom: var(--s3);
 }
@@ -443,15 +452,10 @@ function handleLogout(): void {
 
 .mono {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-label);
 }
 
 .muted {
-  color: var(--ink-muted);
-}
-
-.badge-neutral {
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
   color: var(--ink-muted);
 }
 
@@ -478,7 +482,7 @@ function handleLogout(): void {
 .eval-gates-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s2);
 }
 
 .eval-gates-title .eval-panel-title {
@@ -486,7 +490,7 @@ function handleLogout(): void {
 }
 
 .eval-error-banner {
-  padding: 8px 12px;
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-control);
   font-size: var(--fs-label);
   margin: 0 0 var(--s3);
@@ -529,7 +533,7 @@ function handleLogout(): void {
   box-sizing: border-box;
   width: 100%;
   min-height: var(--h-sm);
-  padding: 0 10px;
+  padding: 0 var(--s2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
   font-size: var(--fs-label);
@@ -549,7 +553,7 @@ function handleLogout(): void {
 }
 
 .eval-textarea {
-  padding: 8px 10px;
+  padding: var(--s2);
   resize: vertical;
   font-family: inherit;
 }
@@ -560,72 +564,8 @@ function handleLogout(): void {
   justify-content: space-between;
 }
 
-.eval-switch {
-  appearance: none;
-  width: 36px;
-  height: 20px;
-  border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--ink) 16%, transparent);
-  position: relative;
-  cursor: pointer;
-  transition: background-color var(--t-fast) var(--ease);
-  flex-shrink: 0;
-}
-
-.eval-switch::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--face-raised);
-  transition: left var(--t-fast) var(--ease);
-}
-
-.eval-switch:checked {
-  background: var(--act);
-}
-
-.eval-switch:checked::after {
-  left: 18px;
-  background: var(--act-on);
-}
-
-.eval-switch:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 2px;
-}
-
+/* 提交钮归 UiButton，页内只定满宽 */
 .eval-submit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
-  min-height: var(--h-sm);
-  border: none;
-  border-radius: var(--r-control);
-  background: var(--act);
-  color: var(--act-on);
-  font-size: var(--fs-label);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-  transition: filter var(--t-fast) var(--ease);
-}
-
-.eval-submit:hover:not(:disabled) {
-  filter: brightness(1.06);
-}
-
-.eval-submit:disabled {
-  background: color-mix(in srgb, var(--ink) 7%, transparent);
-  color: var(--ink-muted);
-  cursor: not-allowed;
-}
-
-.eval-submit:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 2px;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useApi } from '@/composables/useApi';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
@@ -17,6 +17,10 @@ import {
   unwrapApiData,
 } from './systemStatusModel';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiReadoutStrip from '@/components/ui/UiReadoutStrip.vue';
+import UiSkeleton from '@/components/ui/UiSkeleton.vue';
 
 const api = useApi();
 const auth = useAuth();
@@ -32,6 +36,13 @@ const countFlights = ref('-');
 const countSSE = ref('-');
 const countErrors = ref('-');
 const responseTime = ref('-');
+
+const metricItems = computed(() => [
+  { id: 'countFlights', label: '航班存储总量', value: countFlights.value },
+  { id: 'countSSE', label: '活跃并发连接(SSE)', value: countSSE.value },
+  { id: 'countErrors', label: '当日捕获异常', value: countErrors.value, tone: 'warn' as const },
+  { id: 'responseTime', label: '接口平均响应', value: responseTime.value, unit: 'ms' },
+]);
 
 // SSE gateway metrics
 const sseTotal = ref('-');
@@ -65,6 +76,8 @@ const logRealtimeLag = ref('连接中');
 const statusError = ref('');
 const logActionError = ref('');
 const isClearingErrors = ref(false);
+// 首轮快照未回来之前画骨架（§3.9）；已有内容后的轮询刷新不退回骨架。
+const initialLoading = ref(true);
 
 // Last-good snapshot pieces so a single failing endpoint does not wipe others.
 const lastHealth = ref<HealthPayload | null>(null);
@@ -80,12 +93,20 @@ let reconnectAttempt = 0;
 const RECONNECT_BASE_MS = 2000;
 const RECONNECT_MAX_MS = 30000;
 
-function toneClass(tone: ServiceTone): Record<string, boolean> {
-  return {
-    'status-up': tone === 'up',
-    'status-down': tone === 'down',
-    'status-degraded': tone === 'degraded',
-  };
+// 服务健康是事态：语义 tone 只在页里映射一次（§5.3 状态章回 tone，不回类名串）
+type PillTone = 'ok' | 'warn' | 'danger' | 'mute';
+
+function servicePillTone(tone: ServiceTone): PillTone {
+  switch (tone) {
+    case 'up':
+      return 'ok';
+    case 'down':
+      return 'danger';
+    case 'degraded':
+      return 'warn';
+    default:
+      return 'mute';
+  }
 }
 
 function applyStatusView(
@@ -207,6 +228,7 @@ async function fetchStatusSnapshot() {
     lastUpdated.value = new Date().toLocaleTimeString();
   } finally {
     pollInFlight = false;
+    initialLoading.value = false;
   }
 }
 
@@ -320,34 +342,26 @@ async function clearErrors() {
 }
 
 // ============================================================
-// Status orb color
+// Overall status pill tone (color lives in UiPill via tone)
 // ============================================================
-const statusOrbColor = ref('grey');
-
-function updateStatusOrbColor() {
+const statusPillTone = computed<PillTone>(() => {
   switch (overallStatus.value) {
     case 'healthy':
-      statusOrbColor.value = '#4caf50';
-      break;
+      return 'ok';
     case 'degraded':
-      statusOrbColor.value = '#ff9800';
-      break;
+      return 'warn';
     case 'down':
-      statusOrbColor.value = '#f44336';
-      break;
+      return 'danger';
     default:
-      statusOrbColor.value = 'grey';
+      return 'mute';
   }
-}
-
-watch(overallStatus, updateStatusOrbColor);
+});
 
 // ============================================================
 // Lifecycle
 // ============================================================
 onMounted(async () => {
   await fetchStatusSnapshot();
-  updateStatusOrbColor();
 
   // Poll every 5 seconds (skip if previous poll still in flight).
   pollTimer = setInterval(() => {
@@ -375,11 +389,11 @@ onUnmounted(() => {
 
 <template>
   <nav class="navbar">
-    <div style="display:flex;align-items:center;gap:14px;">
+    <div class="nav-brand">
       <a
         :href="pageUrl('dashboard')"
         title="返回工作台"
-        style="display:flex;align-items:center;text-decoration:none;color:inherit;"
+        class="nav-home"
       >
         <div class="logo">系统管理</div>
       </a>
@@ -400,47 +414,12 @@ onUnmounted(() => {
             {{ statusError }}
           </p>
         </div>
-        <div style="display:flex;align-items:center;">
-          <div id="statusOrb" class="status-orb" :style="{ background: statusOrbColor }" />
-          <span id="statusText" style="font-weight:600;font-size:14px;">{{ statusText }}</span>
-        </div>
+        <UiPill id="statusText" :tone="statusPillTone">
+          {{ statusText }}
+        </UiPill>
       </div>
 
-      <!-- Metrics Strip -->
-      <div class="metrics-strip">
-        <div class="metric-box">
-          <div class="m-label">
-            航班存储总量
-          </div>
-          <div id="countFlights" class="m-value">
-            {{ countFlights }}
-          </div>
-        </div>
-        <div class="metric-box">
-          <div class="m-label">
-            活跃并发连接(SSE)
-          </div>
-          <div id="countSSE" class="m-value">
-            {{ countSSE }}
-          </div>
-        </div>
-        <div class="metric-box">
-          <div class="m-label">
-            当日捕获异常
-          </div>
-          <div id="countErrors" class="m-value" style="color:var(--system-orange)">
-            {{ countErrors }}
-          </div>
-        </div>
-        <div class="metric-box">
-          <div class="m-label">
-            接口平均响应
-          </div>
-          <div id="responseTime" class="m-value">
-            {{ responseTime }} ms
-          </div>
-        </div>
-      </div>
+      <UiReadoutStrip class="metrics-strip" :items="metricItems" />
     </div>
 
     <!-- Main Grid -->
@@ -451,7 +430,10 @@ onUnmounted(() => {
           <div class="panel-header">
             SSE 实时推流网关
           </div>
-          <div class="data-list">
+          <div v-if="initialLoading" class="sk-list" aria-busy="true" aria-label="正在读取 SSE 网关指标">
+            <UiSkeleton v-for="i in 4" :key="i" height="14px" />
+          </div>
+          <div v-else class="data-list">
             <div class="data-row">
               <span class="label">客户端连接总数</span><span id="sseTotal" class="value">{{ sseTotal }}</span>
             </div>
@@ -470,22 +452,33 @@ onUnmounted(() => {
           <div class="panel-header">
             核心基础设施
           </div>
-          <div class="data-list">
+          <div v-if="initialLoading" class="sk-list" aria-busy="true" aria-label="正在读取基础设施状态">
+            <UiSkeleton v-for="i in 4" :key="i" height="14px" />
+          </div>
+          <div v-else class="data-list">
             <div class="data-row">
               <span class="label">API Server</span>
-              <span id="infraApi" class="value" :class="toneClass(infraApiTone)">{{ infraApi }}</span>
+              <UiPill :tone="servicePillTone(infraApiTone)">
+                {{ infraApi }}
+              </UiPill>
             </div>
             <div class="data-row">
               <span class="label">Postgres 数据库</span>
-              <span id="infraPostgres" class="value" :class="toneClass(infraPostgresTone)">{{ infraPostgres }}</span>
+              <UiPill :tone="servicePillTone(infraPostgresTone)">
+                {{ infraPostgres }}
+              </UiPill>
             </div>
             <div class="data-row">
               <span class="label">Redis 缓存层</span>
-              <span id="infraRedis" class="value" :class="toneClass(infraRedisTone)">{{ infraRedis }}</span>
+              <UiPill :tone="servicePillTone(infraRedisTone)">
+                {{ infraRedis }}
+              </UiPill>
             </div>
             <div class="data-row">
               <span class="label">Auth 鉴权服务</span>
-              <span id="infraAuth" class="value" :class="toneClass(infraAuthTone)">{{ infraAuth }}</span>
+              <UiPill :tone="servicePillTone(infraAuthTone)">
+                {{ infraAuth }}
+              </UiPill>
             </div>
           </div>
         </div>
@@ -496,14 +489,22 @@ onUnmounted(() => {
         <div class="panel panel-flex">
           <div class="panel-header">
             性能指标监控
-            <span id="perfTimestamp" style="font-weight:normal;opacity:0.6">{{ perfTimestamp }}</span>
+            <span id="perfTimestamp" class="panel-header-meta">{{ perfTimestamp }}</span>
           </div>
-          <div class="data-list">
+          <div v-if="initialLoading" class="sk-list" aria-busy="true" aria-label="正在读取性能指标">
+            <UiSkeleton v-for="i in 4" :key="i" height="14px" />
+          </div>
+          <div v-else class="data-list">
             <div class="data-row">
               <span class="label">DB 连接池使用率</span>
-              <div style="display:flex;align-items:center;gap:8px;">
+              <div class="metric-inline">
                 <div class="bar-bg">
-                  <div id="dbPoolBar" class="bar-fill" :style="{ width: dbPoolPct + '%', background: dbPoolPct > 80 ? 'var(--system-red)' : dbPoolPct > 60 ? 'var(--system-orange)' : 'var(--accent-blue)' }" />
+                  <div
+                    id="dbPoolBar"
+                    class="bar-fill"
+                    :data-tone="dbPoolPct > 80 ? 'danger' : dbPoolPct > 60 ? 'warn' : 'act'"
+                    :style="{ '--bar-pct': dbPoolPct + '%' }"
+                  />
                 </div>
                 <span id="dbPoolPct" class="value">{{ dbPoolPct }}%</span>
               </div>
@@ -513,7 +514,7 @@ onUnmounted(() => {
               <span
                 id="redisLatency"
                 class="value"
-                :class="toneClass(redisLatencyTone)"
+                :data-tone="servicePillTone(redisLatencyTone)"
               >{{ redisLatency === '已断开' ? redisLatency : `${redisLatency} ms` }}</span>
             </div>
             <div class="data-row">
@@ -521,9 +522,14 @@ onUnmounted(() => {
             </div>
             <div class="data-row">
               <span class="label">SSE 连接数</span>
-              <div style="display:flex;align-items:center;gap:8px;">
+              <div class="metric-inline">
                 <div class="bar-bg">
-                  <div id="sseBar" class="bar-fill" :style="{ width: sseConnPct + '%', background: 'var(--system-green)' }" />
+                  <div
+                    id="sseBar"
+                    class="bar-fill"
+                    data-tone="ok"
+                    :style="{ '--bar-pct': sseConnPct + '%' }"
+                  />
                 </div>
                 <span id="sseConnPct" class="value">{{ sseConnPct }}%</span>
               </div>
@@ -537,18 +543,22 @@ onUnmounted(() => {
         <div class="panel panel-flex">
           <div class="panel-header">
             <span>运行时错误监控 · <span id="logRealtimeLag">SSE {{ logRealtimeLag }}</span></span>
-            <button
+            <UiButton
+              variant="quiet"
+              size="sm"
               :disabled="isClearingErrors"
-              class="link-button"
               @click="clearErrors"
             >
               {{ isClearingErrors ? '清空中' : '清空' }}
-            </button>
+            </UiButton>
           </div>
           <div v-if="logActionError" class="log-error">
             {{ logActionError }}
           </div>
-          <div id="logConsole" class="log-container">
+          <div v-if="initialLoading" class="log-container sk-list" aria-busy="true" aria-label="正在读取运行时错误">
+            <UiSkeleton v-for="i in 8" :key="i" height="12px" />
+          </div>
+          <div v-else id="logConsole" class="log-container">
             <div v-for="log in logs" :key="log.id" class="log-line">
               <span class="l-time">[{{ log.time }}]</span>
               <span class="l-tag" :class="`tag-${log.level}`">{{ log.tag }}</span>
@@ -563,70 +573,73 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-:global(:root) {
-  --bg-body: #1e1e1e;
-  --bg-panel: #252526;
-  --bg-header: #333333;
-  --text-main: #e0e0e0;
-  --text-dim: #a0a0a0;
-  --border-color: #3e3e42;
-  --accent-blue: #007acc;
-  --system-green: #4caf50;
-  --system-red: #f44336;
-  --system-orange: #ff9800;
-}
+/* 信号面：本页是独立 iframe 页面，直接用标本 token，两面自动变位。
+   旧别名块已移除：variables.css 已定义同名旧色，本块无人消费。 */
 
 :global(body) {
-  background-color: var(--bg-body);
-  color: var(--text-main);
-  font-family: var(--font-sans, "MiSans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+  background-color: var(--face-page);
+  color: var(--ink);
+  font-family: var(--sans);
 }
 
 :global(#app) {
-  background-color: #1e1e1e;
-  color: #e0e0e0;
-  font-family: var(--font-sans, "MiSans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+  background-color: var(--face-page);
+  color: var(--ink);
+  font-family: var(--sans);
   height: 100vh;
 }
 
 .navbar {
-  height: 40px;
-  background: #333333;
-  border-bottom: 1px solid #3e3e42;
+  height: var(--h-lg);
+  background: var(--face-raised);
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 var(--s4);
   flex-shrink: 0;
 }
 
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.nav-home {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
 .logo {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-inverse);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .dashboard-container {
   flex: 1;
   display: grid;
   grid-template-rows: auto 1fr;
-  padding: 8px;
-  gap: 8px;
-  height: calc(100vh - 40px);
+  padding: var(--s2);
+  gap: var(--s2);
+  height: calc(100vh - var(--h-lg));
   box-sizing: border-box;
 }
 
 .top-bar {
   display: flex;
-  gap: 8px;
+  gap: var(--s2);
   height: 80px;
 }
 
 .status-card {
-  background: #252526;
-  border: 1px solid #3e3e42;
-  border-radius: 4px;
-  padding: 0 16px;
+  background: var(--face-work);
+  border: 1px solid var(--line);
+  border-radius: var(--r-cell);
+  padding: 0 var(--s4);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -635,59 +648,37 @@ onUnmounted(() => {
 }
 
 .inline-error {
-  color: #ffb4ab;
+  color: var(--danger);
 }
 
 .metrics-strip {
   display: flex;
   flex: 3;
-  gap: 8px;
-}
-
-.metric-box {
-  flex: 1;
-  background: #252526;
-  border: 1px solid #3e3e42;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 16px;
-}
-
-.m-label {
-  font-size: 11px;
-  color: #a0a0a0;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.m-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-inverse);
-  font-family: 'Segoe UI', monospace;
+  align-items: center;
+  background: var(--face-work);
+  border: 1px solid var(--line);
+  border-radius: var(--r-cell);
 }
 
 .main-grid {
   display: grid;
   grid-template-columns: 350px 350px 1fr;
-  gap: 8px;
+  gap: var(--s2);
   overflow: hidden;
 }
 
 .col-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
   height: 100%;
   overflow: hidden;
 }
 
 .panel {
-  background: #252526;
-  border: 1px solid #3e3e42;
-  border-radius: 4px;
+  background: var(--face-work);
+  border: 1px solid var(--line);
+  border-radius: var(--r-cell);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -698,43 +689,36 @@ onUnmounted(() => {
 }
 
 .panel-header {
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid #3e3e42;
-  font-size: 12px;
-  font-weight: 600;
-  color: #a0a0a0;
-  text-transform: uppercase;
+  padding: var(--s2) var(--s3);
+  background: var(--face-raised);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-muted);
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: var(--s2);
 }
 
-.link-button {
-  background: none;
-  border: none;
-  color: var(--accent-blue);
-  cursor: pointer;
-  font-size: 10px;
-  padding: 0;
-}
-
-.link-button:disabled {
-  color: #6f6f6f;
-  cursor: wait;
+.panel-header-meta {
+  font-weight: var(--fw-regular);
+  color: var(--ink-muted);
 }
 
 .data-list {
-  padding: 8px 12px;
+  padding: var(--s2) var(--s3);
   overflow-y: auto;
 }
 
 .data-row {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 13px;
-  gap: 12px;
+  align-items: center;
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-body);
+  gap: var(--s3);
 }
 
 .data-row:last-child {
@@ -742,124 +726,150 @@ onUnmounted(() => {
 }
 
 .label {
-  color: #a0a0a0;
+  color: var(--ink-muted);
   flex-shrink: 0;
 }
 
 .value {
-  color: #e0e0e0;
-  font-family: monospace;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   text-align: right;
   word-break: break-all;
 }
 
-.value.status-up {
-  color: #4caf50;
+/* 读数带声时声画在数上（§3.2），tone 名与 UiPill 同一套 */
+.value[data-tone='ok'] {
+  color: var(--ok);
 }
 
-.value.status-down {
-  color: #f44336;
+.value[data-tone='danger'] {
+  color: var(--danger);
 }
 
-.value.status-degraded {
-  color: #ff9800;
+.value[data-tone='warn'] {
+  color: var(--warn);
+}
+
+.metric-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
 }
 
 .bar-bg {
   width: 80px;
   height: 6px;
-  background: #333;
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  border-radius: var(--r-pill);
   overflow: hidden;
 }
 
 .bar-fill {
+  /* 宽度是数据，经 --bar-pct 桥进来；其余形全在这一份规则里 */
+  width: var(--bar-pct, 0%);
   height: 100%;
-  background: #007acc;
-  transition: width 0.3s;
+  background: var(--act);
+  border-radius: var(--r-pill);
+  transition: width var(--t-slow) var(--ease);
 }
 
+.bar-fill[data-tone='act'] {
+  background: var(--act);
+}
+
+.bar-fill[data-tone='ok'] {
+  background: var(--ok);
+}
+
+.bar-fill[data-tone='warn'] {
+  background: var(--warn);
+}
+
+.bar-fill[data-tone='danger'] {
+  background: var(--danger);
+}
+
+/* 日志台：墨分三阶读，不再用终端仿色的固定蓝橙 */
 .log-container {
   flex: 1;
-  background: #101010;
-  padding: 8px;
-  font-family: "Consolas", "Courier New", monospace;
-  font-size: 12px;
+  background: var(--face-page);
+  padding: var(--s2);
+  font-family: var(--mono);
+  font-size: var(--fs-label);
   line-height: 1.4;
   overflow-y: auto;
-  color: #d4d4d4;
+  color: var(--ink-subtle);
 }
 
 .log-error {
-  background: rgba(244, 67, 54, 0.12);
-  border-bottom: 1px solid rgba(244, 67, 54, 0.35);
-  color: #ffb4ab;
-  font-size: 12px;
-  padding: 8px 12px;
+  background: var(--danger-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
+  font-size: var(--fs-label);
+  padding: var(--s2) var(--s3);
 }
 
 .log-line {
   display: flex;
-  gap: 8px;
+  gap: var(--s2);
   padding: 2px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--line);
 }
 
 .l-time {
-  color: #569cd6;
+  color: var(--ink-muted);
   min-width: 70px;
 }
 
 .l-tag {
-  font-weight: bold;
+  font-weight: var(--fw-semibold);
   min-width: 50px;
 }
 
 .l-msg {
-  color: #ce9178;
+  color: var(--ink-subtle);
   word-break: break-all;
 }
 
 .tag-low {
-  color: #4caf50;
+  color: var(--ok);
 }
 
 .tag-medium {
-  color: #ff9800;
+  color: var(--warn);
 }
 
 .tag-high {
-  color: #f44336;
+  color: var(--danger);
 }
 
-.status-orb {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
+/* 首轮等待的骨架群：与 data-row 同构，洗光配方只在 UiSkeleton */
+.sk-list {
+  padding: var(--s2) var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  overflow-y: auto;
 }
 
 h1 {
-  font-size: 18px;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
   margin: 0;
-  color: var(--text-inverse);
+  color: var(--ink);
 }
 
 p {
-  margin: 4px 0 0 0;
-  font-size: 11px;
-  color: #a0a0a0;
+  margin: var(--s1) 0 0 0;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 @media (max-width: 1200px) {
   .main-grid {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-  }
-
-  .col-logs {
-    grid-column: 1 / -1;
   }
 }
 </style>

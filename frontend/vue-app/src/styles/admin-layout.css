@@ -20,7 +20,7 @@
     flex-direction: column;
     padding: 0;
     flex-shrink: 0;
-    transition: width 0.3s ease;
+    transition: width var(--t-slow) var(--ease);
 }
 
 .sidebar-header {
@@ -53,7 +53,7 @@
 }
 
 .sidebar-logo span {
-    font-family: var(--font-sans, "MiSans", sans-serif);
+    font-family: var(--sans);
 }
 
 .sidebar-meta,
@@ -72,7 +72,7 @@
     width: fit-content;
     padding: 2px 8px;
     border-radius: var(--r-pill);
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: var(--fw-medium);
     background: var(--act-soft);
     color: var(--act);
@@ -106,7 +106,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 32px;
+    min-height: var(--h-sm);
     padding: 6px 8px;
     border-radius: var(--r-control);
     color: var(--ink-subtle);
@@ -242,7 +242,7 @@
 
 .nav-count {
     margin-left: auto;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: var(--fw-semibold);
     min-width: 1.5em;
     text-align: center;
@@ -314,8 +314,8 @@
 
 /* 头像是身份，用墨不用品牌渐变 */
 .user-avatar {
-    width: 32px;
-    height: 32px;
+    width: var(--h-sm);
+    height: var(--h-sm);
     background: color-mix(in srgb, var(--ink) 8%, transparent);
     border-radius: 50%;
     display: flex;
@@ -342,7 +342,7 @@
 }
 
 .user-role {
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--ink-subtle);
     white-space: nowrap;
     overflow: hidden;
@@ -350,14 +350,14 @@
 }
 
 .logout-btn {
-    width: 32px;
-    height: 32px;
+    width: var(--h-sm);
+    height: var(--h-sm);
     background: transparent;
     border: 1px solid var(--line-strong);
     border-radius: var(--r-control);
     color: var(--ink-subtle);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--fs-section);
     padding: 0;
     display: flex;
     align-items: center;
@@ -373,7 +373,7 @@
 /* --- Empty state & Loading --- */
 .empty-state {
     text-align: center;
-    padding: 48px 20px;
+    padding: var(--s5) var(--s4);
     color: var(--ink-subtle);
 }
 

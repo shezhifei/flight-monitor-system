@@ -52,7 +52,7 @@ const emit = defineEmits<{
 <template>
   <div>
     <template v-if="isInitialLoading">
-      <div v-show="viewMode === 'card'" class="card-layout-view" style="padding: 8px 16px 20px;">
+      <div v-show="viewMode === 'card'" class="card-layout-view">
         <SkeletonCard :count="6" />
       </div>
       <div
@@ -142,10 +142,60 @@ const emit = defineEmits<{
       role="status"
       aria-live="polite"
     >
-      <svg class="reconnect-spinner" width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="20" stroke-dashoffset="8" opacity="0.5" />
+      <svg
+        class="reconnect-spinner"
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+      >
+        <circle
+          cx="8"
+          cy="8"
+          r="6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-dasharray="20"
+          stroke-dashoffset="8"
+          opacity="0.5"
+        />
       </svg>
       <span>{{ connectionStatusText }}</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 卡片视区内边距归梯，不再内联 */
+.card-layout-view {
+  padding: var(--s2) var(--s4) var(--s4);
+}
+.reconnect-skeleton-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--face-raised);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  border-radius: var(--r-control);
+  /* 同一定位祖先内压住表格 chrome，不是 §3.5 层序（梯子从 --z-dock: 9000 起） */
+  z-index: 11;
+  pointer-events: none;
+}
+
+.reconnect-skeleton-overlay .reconnect-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>

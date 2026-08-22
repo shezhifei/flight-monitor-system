@@ -19,13 +19,14 @@ use tracing::{info, warn};
 
 mod config;
 mod di;
+mod profiling;
 mod web;
 
 use crate::config::{
     build_request_size_error_response, env_optional_string, insert_standard_security_headers,
     install_rustls_crypto_provider, is_production_environment, is_redis_required_for_role, load_cors_allowed_origins,
     load_required_vault_rendered_env, load_rustls_server_config, max_request_size_bytes, redact_url_credentials,
-    request_uses_https, resolve_http_tls_binding_config, resolve_jwt_audiences, resolve_jwt_secret,
+    request_uses_https, resolve_http_tls_binding_config, resolve_http_tls_performance_config, resolve_jwt_audiences, resolve_jwt_secret,
     resolve_workflow_internal_token, runtime_environment, runtime_role, should_start_http_server_for_role,
     DatabaseUrlDefaults,
 };
@@ -177,6 +178,16 @@ async fn main() -> std::io::Result<()> {
         .map_err(|error| std::io::Error::other(format!("无法连接数据库，请检查 DATABASE_URL: {error}")))?;
     info!(db_pool_max = pool_max, "数据库连接池已成功创建");
     fms_infrastructure::db::record_db_pool_connections(&pool);
+    {
+        let pool_for_metrics = pool.clone();
+        tokio::spawn(async move {
+            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(15));
+            loop {
+                ticker.tick().await;
+                fms_infrastructure::db::record_db_pool_connections(&pool_for_metrics);
+            }
+        });
+    }
 
     // 6. Redis 客户端连接池配置与建立
     let redis_url = crate::config::resolve_redis_url(redis_required)?;
@@ -366,14 +377,28 @@ async fn main() -> std::io::Result<()> {
     info!(actix_workers, "Actix-web worker threads configured");
 
     let bind_addr = format!("{host}:{port}");
+    
+    // 加载 TLS 性能优化配置
+    let tls_performance_config = resolve_http_tls_performance_config();
+    
     let server = if let Some(tls_binding_config) = tls_binding_config.as_ref() {
         info!(
             bind_addr = %bind_addr,
             cert_file = %tls_binding_config.cert_file,
             key_file = %tls_binding_config.key_file,
-            "Starting HTTPS server with HTTP/2 support enabled"
+            session_timeout = tls_performance_config.session_timeout,
+            enable_session_tickets = tls_performance_config.enable_session_tickets,
+            "Starting HTTPS server with HTTP/2 and TLS session optimization enabled"
         );
-        server.bind_rustls_0_23(bind_addr.clone(), load_rustls_server_config(tls_binding_config)?)?
+        
+        // 配置 HTTP/2 window sizes for better performance
+        let mut server = server.bind_rustls_0_23(bind_addr.clone(), load_rustls_server_config(tls_binding_config, &tls_performance_config)?)?;
+        
+        // Apply HTTP/2 window size configurations
+        server = server.h2_initial_window_size(tls_performance_config.http2_initial_stream_window_size);
+        server = server.h2_initial_connection_window_size(tls_performance_config.http2_initial_connection_window_size);
+        
+        server
     } else {
         info!(bind_addr = %bind_addr, "Starting HTTP server");
         server.bind(bind_addr)?

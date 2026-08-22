@@ -5,6 +5,7 @@ import { useOpsReview } from '@/composables/useOpsReview';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiBanner from '@/components/ui/UiBanner.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import { ref, computed } from 'vue';
 import { downloadTextFile } from '@/lib/download';
@@ -134,9 +135,11 @@ function onSliderInput(e: Event) {
         </div>
       </header>
 
-      <section v-if="error" class="inline-error" role="alert">
-        {{ error }}
-      </section>
+      <div v-if="error" class="inline-error">
+        <UiBanner tone="danger">
+          {{ error }}
+        </UiBanner>
+      </div>
 
       <section class="ops-top-grid">
         <article class="panel replay-panel">
@@ -255,7 +258,7 @@ function onSliderInput(e: Event) {
                   {{ evt.title }}
                 </div>
               </template>
-              <div v-else style="text-align:center;padding:24px;color:#94a3b8;">
+              <div v-else class="ops-empty">
                 暂无事件数据
               </div>
             </div>
@@ -330,22 +333,22 @@ function onSliderInput(e: Event) {
               <tbody id="kpiCompareRows">
                 <template v-if="kpiComparison.length">
                   <tr v-for="(kpi, idx) in kpiComparison" :key="idx">
-                    <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                    <td>
                       {{ kpi.metric || kpi.name }}
                     </td>
-                    <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                    <td>
                       {{ kpi.baseline ?? '-' }}
                     </td>
-                    <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+                    <td>
                       {{ kpi.compare ?? kpi.current ?? '-' }}
                     </td>
-                    <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;" :style="{ color: (kpi.change ?? 0) > 0 ? '#22c55e' : (kpi.change ?? 0) < 0 ? '#ef4444' : '#64748b', fontWeight: 600 }">
+                    <td class="kpi-change" :data-tone="(kpi.change ?? 0) > 0 ? 'ok' : (kpi.change ?? 0) < 0 ? 'danger' : 'mute'">
                       {{ (kpi.change ?? 0) > 0 ? '+' : '' }}{{ kpi.change ?? '-' }}
                     </td>
                   </tr>
                 </template>
                 <tr v-else>
-                  <td colspan="4" style="text-align:center;padding:24px;color:#94a3b8;">
+                  <td colspan="4" class="ops-empty">
                     {{ loading ? '加载中...' : '暂无对比数据' }}
                   </td>
                 </tr>
@@ -359,14 +362,14 @@ function onSliderInput(e: Event) {
             </div>
             <div id="trendOverlayList" class="trend-list">
               <template v-if="trendData.length">
-                <div v-for="(item, idx) in trendData" :key="idx" style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;">
+                <div v-for="(item, idx) in trendData" :key="idx" class="ops-trend-row">
                   <span>{{ item.label || item.metric || `数据点 ${idx + 1}` }}</span>
-                  <span :style="{ color: item.anomaly ? '#ef4444' : 'var(--text-primary)', fontWeight: item.anomaly ? 700 : 400 }">
+                  <span class="ops-trend-value" :class="{ 'is-anomaly': item.anomaly }">
                     {{ item.value ?? '-' }}{{ item.anomaly ? ' ⚠' : '' }}
                   </span>
                 </div>
               </template>
-              <div v-else style="text-align:center;padding:24px;color:#94a3b8;">
+              <div v-else class="ops-empty">
                 暂无趋势数据
               </div>
             </div>
@@ -409,14 +412,56 @@ function onSliderInput(e: Event) {
   min-height: 100vh;
 }
 
+/* 错误提示的形归 UiBanner；这里只给它在页里的落点 */
 .inline-error {
-  margin: 16px 24px 0;
-  padding: 12px 14px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: var(--dh-signal-critical-soft);
-  color: var(--ws-danger);
-  font-size: 13px;
-  font-weight: 600;
+  margin: var(--s4) var(--s4) 0;
+}
+
+/* 面板内空态：居中淡墨 */
+.ops-empty {
+  padding: var(--s4);
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+/* KPI 变化列：涨踩 ok、跌踩 danger、平用淡墨 */
+.kpi-change {
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-change[data-tone='ok'] {
+  color: var(--ok);
+}
+
+.kpi-change[data-tone='danger'] {
+  color: var(--danger);
+}
+
+.kpi-change[data-tone='mute'] {
+  color: var(--ink-subtle);
+}
+
+/* 趋势行：两根柱拉开，线分行（页内变体，不用全局四列网格） */
+.ops-trend-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-body);
+}
+
+.ops-trend-row:last-child {
+  border-bottom: 0;
+}
+
+.ops-trend-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.ops-trend-value.is-anomaly {
+  color: var(--danger);
+  font-weight: var(--fw-semibold);
 }
 </style>

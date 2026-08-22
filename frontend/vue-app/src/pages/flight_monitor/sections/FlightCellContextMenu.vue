@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import UiMenu from '../../../components/ui/UiMenu.vue';
+import UiMenuItem from '../../../components/ui/UiMenuItem.vue';
+
 defineProps<{
   isOpen: boolean;
   x: number;
@@ -22,94 +25,40 @@ const emit = defineEmits<{
 
 <template>
   <teleport to="body">
-    <div
+    <UiMenu
       v-if="isOpen"
       id="flightCellContextMenu"
-      class="context-menu flight-cell-context-menu"
-      role="menu"
-      :style="{ top: `${y}px`, left: `${x}px` }"
+      :x="x"
+      :y="y"
+      min-width="200px"
+      label="单元格操作"
       @click.stop
       @contextmenu.prevent
     >
-      <button
+      <UiMenuItem
         v-if="multi"
-        type="button"
-        class="context-menu-item"
-        role="menuitem"
         :disabled="overLimit"
-        :title="overLimit ? `一次最多修改 200 个单元格，请缩小选区` : undefined"
+        :title="overLimit ? '一次最多修改 200 个单元格，请缩小选区' : undefined"
         @click.stop="!overLimit && emit('batch-edit')"
       >
         批量修改「{{ fieldLabel }}」({{ selectedCount }})
-      </button>
-      <button
-        type="button"
-        class="context-menu-item"
-        role="menuitem"
-        @click.stop="emit('single-edit')"
-      >
+      </UiMenuItem>
+      <UiMenuItem @click.stop="emit('single-edit')">
         {{ multi ? '仅修改此单元格' : `修改「${fieldLabel}」` }}
-      </button>
-      <button
+      </UiMenuItem>
+      <UiMenuItem
         v-if="canRevoke && !multi"
-        type="button"
-        class="context-menu-item danger-action"
-        role="menuitem"
+        tone="danger"
         @click.stop="emit('revoke')"
       >
         撤销此时间
-      </button>
-      <button
+      </UiMenuItem>
+      <UiMenuItem
         v-if="selectedCount > 0"
-        type="button"
-        class="context-menu-item"
-        role="menuitem"
         @click.stop="emit('clear-selection')"
       >
         清除选择
-      </button>
-    </div>
+      </UiMenuItem>
+    </UiMenu>
   </teleport>
 </template>
-
-<style scoped>
-.flight-cell-context-menu {
-  position: fixed;
-  background-color: var(--face-raised);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-md);
-  border-radius: var(--r-control);
-  z-index: 10001;
-  min-width: 200px;
-  display: flex;
-  flex-direction: column;
-}
-
-.flight-cell-context-menu .context-menu-item {
-  background: none;
-  border: none;
-  padding: 10px 16px;
-  text-align: left;
-  color: var(--ink);
-  cursor: pointer;
-  font-size: var(--fs-body);
-}
-
-.flight-cell-context-menu .context-menu-item:hover:not(:disabled) {
-  background-color: var(--face-work);
-}
-
-.flight-cell-context-menu .context-menu-item:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: -2px;
-}
-
-.flight-cell-context-menu .context-menu-item:disabled {
-  color: var(--ink-muted);
-  cursor: not-allowed;
-}
-
-.flight-cell-context-menu .context-menu-item.danger-action {
-  color: var(--danger);
-}
-</style>

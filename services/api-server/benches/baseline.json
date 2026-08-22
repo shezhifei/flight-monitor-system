@@ -1,0 +1,14 @@
+{
+  "benchmarks": {
+    "serde_json_to_string": {
+      "mean": 1.0,
+      "p95": 1.0,
+      "throughput": 1000
+    },
+    "simd_json_to_string": {
+      "mean": 1.0,
+      "p95": 1.0,
+      "throughput": 1000
+    }
+  }
+}

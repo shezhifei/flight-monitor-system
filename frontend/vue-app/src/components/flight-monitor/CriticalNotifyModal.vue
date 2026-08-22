@@ -5,7 +5,16 @@ import type { UserNotification } from '@/composables/useFlightStream';
 import UiModal from '../ui/UiModal.vue';
 import UiButton from '../ui/UiButton.vue';
 import UiField from '../ui/UiField.vue';
+import UiInset from '../ui/UiInset.vue';
+import UiPill from '../ui/UiPill.vue';
 
+/**
+ * 关键通知：必须回执才能继续。弹窗 closable 关掉、脚上两颗谓词已经把这句话说完了
+ * （§3.8 / §4.4 不要加教学小字）。
+ *
+ * 正文用嵌板降到页底，身里不再描第二道边、不再铺抬起面（§3.8 / §3.7）。
+ * 事态一颗胶囊，来源次墨小字排在时刻旁边（§2.5 / §4.4）。
+ */
 const props = defineProps<{
   notificationQueue: UserNotification[];
   popNotification: () => UserNotification | undefined;
@@ -23,6 +32,32 @@ const relatedFlightText = computed(() => {
   if (!activeNotification.value) return '';
   return activeNotification.value.related_flight_label || activeNotification.value.related_flight_no || activeNotification.value.flight_no || activeNotification.value.flight_id || '';
 });
+
+/** 事态画在对象上用胶囊（§2.5）；声只有四声（§2.4），枚举原样不丢给值班的人。 */
+function severityTone(s: string): 'warn' | 'danger' | 'mute' {
+  const v = s.trim().toLowerCase();
+  if (v === 'critical') return 'danger';
+  if (v === 'high' || v === 'urgent') return 'danger';
+  if (v === 'warning' || v === 'medium') return 'warn';
+  return 'mute';
+}
+
+function severityLabel(s: string): string {
+  const v = s.trim().toLowerCase();
+  if (v === 'critical') return '关键';
+  if (v === 'high' || v === 'urgent') return '紧急';
+  if (v === 'warning' || v === 'medium') return '警示';
+  return s.trim();
+}
+
+/** 来源不是事态，不另开胶囊（§4.4）。 */
+function originLabel(s: string): string {
+  const v = s.trim().toLowerCase();
+  if (v === 'system') return '系统';
+  if (v === 'dispatch') return '调度';
+  if (v === 'manual') return '人工';
+  return s.trim();
+}
 
 function pollQueue() {
   if (!activeNotification.value && props.notificationQueue.length > 0) {
@@ -81,19 +116,23 @@ async function handleAck(action: 'acknowledged' | 'rejected') {
     :closable="false"
   >
     <template v-if="activeNotification">
-      <p class="critical-lede">
-        此通知必须确认收到或拒绝后才能继续操作。
-      </p>
       <div class="notification-meta">
-        {{ activeNotification.timestamp }} · {{ (activeNotification.severity || 'CRITICAL').toUpperCase() }} · {{ activeNotification.origin_type || 'SYSTEM' }}
+        <span class="notification-time">{{ activeNotification.timestamp }}</span>
+        <span class="notification-origin">{{ originLabel(String(activeNotification.origin_type || 'SYSTEM')) }}</span>
+        <UiPill :tone="severityTone(String(activeNotification.severity || 'CRITICAL'))">
+          {{ severityLabel(String(activeNotification.severity || 'CRITICAL')) }}
+        </UiPill>
         <span v-if="relatedFlightText" class="flight-related">航班 {{ relatedFlightText }}</span>
       </div>
       <div class="notification-title">
         {{ activeNotification.title || '系统安全通知' }}
       </div>
-      <div class="notification-body">
-        {{ activeNotification.body || '暂无正文内容...' }}
-      </div>
+      <!-- 身自带内衬；正文降一级到嵌板，不再铺抬起面（§3.8 / §3.7）。 -->
+      <UiInset class="notification-inset">
+        <div class="notification-body">
+          {{ activeNotification.body || '暂无正文内容...' }}
+        </div>
+      </UiInset>
       <UiField label="拒绝原因（若拒绝执行则必填）" for-id="criticalRejectNote" :error="errorMsg">
         <textarea
           id="criticalRejectNote"
@@ -115,22 +154,29 @@ async function handleAck(action: 'acknowledged' | 'rejected') {
 </template>
 
 <style scoped>
-.critical-lede {
-  margin: 0 0 12px;
-  font-size: var(--fs-body);
-  color: var(--ink-subtle);
-  line-height: 1.5;
-}
-
 .notification-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: var(--fs-label);
   color: var(--ink-subtle);
   margin-bottom: 8px;
 }
 
+/* 时刻用等宽（§2.4）。 */
+.notification-time {
+  font-family: var(--mono);
+}
+
+.notification-origin {
+  color: var(--ink-subtle);
+}
+
+/* 航班号是标识，用等宽主墨，不用行动蓝冒充强调（§2.4）。 */
 .flight-related {
-  margin-left: 8px;
-  color: var(--act);
+  color: var(--ink);
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -141,80 +187,15 @@ async function handleAck(action: 'acknowledged' | 'rejected') {
   margin-bottom: 12px;
 }
 
+.notification-inset {
+  margin-bottom: 16px;
+}
+
+/* 形交给嵌板；这里只留正文自己的排版（§3.7 降到页底，不是升到工作面）。 */
 .notification-body {
   font-size: var(--fs-section);
   line-height: 1.6;
   color: var(--ink);
   white-space: pre-wrap;
-  background: var(--face-work);
-  padding: 12px 14px;
-  border-radius: var(--r-control);
-  border: 1px solid var(--line);
-  margin-bottom: 16px;
-}
-
-.reject-label {
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-  color: var(--ink);
-  display: block;
-  margin-bottom: 8px;
-}
-
-.reject-input {
-  width: 100%;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-control);
-  padding: 10px 12px;
-  font-size: var(--fs-section);
-  resize: vertical;
-  background: var(--face-work);
-  color: var(--ink);
-  box-sizing: border-box;
-}
-
-.reject-input:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 1px;
-}
-
-.error-text {
-  font-size: var(--fs-body);
-  color: var(--danger);
-  margin-top: 8px;
-}
-
-.btn-reject,
-.btn-ack {
-  padding: 0 16px;
-  height: var(--h-md);
-  border-radius: var(--r-control);
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-}
-
-.btn-reject {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-
-.btn-ack {
-  background: var(--act);
-  color: var(--act-on);
-  border: 1px solid var(--act);
-}
-
-.btn-reject:disabled,
-.btn-ack:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-reject:focus-visible,
-.btn-ack:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 2px;
 }
 </style>

@@ -3,6 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import LabelManagerPanel from '@/pages/label_manager/components/LabelManagerPanel.vue';
@@ -386,20 +388,18 @@ const pageSubtitle = computed(() => {
             :disabled="!bootstrapped || loading"
             @update:model-value="handleSelectDepartment"
           />
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
+          <UiButton
             :disabled="loading || isAggregateView"
             @click="handleRefresh"
           >
             {{ loading ? '加载中…' : '刷新' }}
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" @click="drawerOpen = true">
+          </UiButton>
+          <UiButton @click="drawerOpen = true">
             导出
-          </button>
-          <span class="status-pill" :data-status="dirtyCount > 0 ? 'warn' : 'neutral'">
+          </UiButton>
+          <UiPill :tone="dirtyCount > 0 ? 'warn' : 'mute'">
             未保存 {{ dirtyCount }}
-          </span>
+          </UiPill>
         </div>
       </header>
 
@@ -436,7 +436,7 @@ const pageSubtitle = computed(() => {
                     :key="panel.id"
                     type="button"
                     role="tab"
-                    class="inner-tab"
+                    class="tab inner-tab"
                     :class="{ active: activePanel === panel.id }"
                     :aria-selected="activePanel === panel.id"
                     @click="setActivePanel(panel.id)"
@@ -531,7 +531,8 @@ const pageSubtitle = computed(() => {
 </template>
 
 <style scoped>
-/* 侧栏 button.nav-item 清默认 button 样式；右侧壳层走 admin-layout / admin-page */
+/* 侧栏 button.nav-item 清默认 button 样式；右侧壳层走 admin-layout / admin-page；
+   头部按钮归 UiButton、未保存章归 UiPill */
 .dispatch-rule-page :deep(.admin-sidebar button.nav-item) {
   width: 100%;
   border: none;
@@ -541,28 +542,13 @@ const pageSubtitle = computed(() => {
   color: inherit;
 }
 
-.status-pill {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
-  color: var(--ink-muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.status-pill[data-status='warn'] {
-  background: var(--warn-soft);
-  color: var(--warn);
-}
-
 .dirty-banner,
 .error-banner,
 .aggregate-note {
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  margin: 0 0 16px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-panel);
+  font-size: var(--fs-label);
+  margin: 0 0 var(--s3);
 }
 
 .dirty-banner {
@@ -587,38 +573,23 @@ const pageSubtitle = computed(() => {
   min-width: 0;
 }
 
+/* 头部 actions 与标签页 .tab 走 admin-layout 全局；内层标签条只加底线对齐 */
 .rules-tabs {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s3);
 }
 
 .inner-tabs {
   display: flex;
-  gap: 16px;
-  border-bottom: 1px solid var(--admin-border);
+  gap: var(--s4);
+  border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
 
+/* .tab 全局不带字号继承限制，内层保持同一外观，仅补 margin 负值对齐底线 */
 .inner-tab {
-  padding: 10px 2px 12px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--admin-text-subtle);
-  border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-}
-
-.inner-tab:hover {
-  color: var(--admin-text);
-}
-
-.inner-tab.active {
-  color: var(--act);
-  border-bottom-color: var(--act);
 }
 
 .tab-body {

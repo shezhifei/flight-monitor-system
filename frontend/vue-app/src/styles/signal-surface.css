@@ -71,6 +71,7 @@
 
 :root {
   /* 字与标尺：与标本 :root 一致 */
+  --sans: "MiSans", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
   --r-cell: 6px;
   --r-control: 8px;
@@ -96,6 +97,26 @@
   --t-mid: 200ms;
   --t-slow: 250ms;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 骨架的洗光：墨兑透明，不是黑兑透明 —— 黑兑透明在夜色面上等于看不见。
+     两档：底与高光。只有 UiSkeleton 用它，各页不要再写第 N 套 shimmer。 */
+  --sk-base: color-mix(in srgb, var(--ink) 9%, transparent);
+  --sk-hi: color-mix(in srgb, var(--ink) 17%, transparent);
+
+  /* 角浮：坞（悬钮）锚右下，浮舱钉在坞之上。
+     两者共用这一组落点，任何页面都不要再各自写 right/bottom/z-index。 */
+  --dock-right: 20px;
+  --dock-bottom: 64px;
+  --float-bottom: 108px;
+
+  /* 层序：由低到高 —— 坞 → 浮舱 → 幕/弹窗 → 菜单 → 吐司。
+     菜单压在弹窗之上（弹窗里也要能开菜单），吐司压在最上（任何时候都要能报话）。
+     新面只从这五个名里挑；不要再各自发明第 N 个 99999。 */
+  --z-dock: 9000;
+  --z-float: 9100;
+  --z-modal: 11000;
+  --z-menu: 11100;
+  --z-toast: 11200;
 }
 
 /* ================================================================
@@ -103,6 +124,12 @@
    新代码直接用 --face-* / --ink-* / --act 等标本名，别再发明第三套。
    ================================================================ */
 :root {
+  /* 字：旧名一律指向 --sans / --mono，不再各页各写一串 fallback */
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+  --font-display: var(--sans);
+  --font-numeric: var(--mono);
+
   --admin-bg: var(--face-page);
   --admin-sidebar-bg: var(--face-page);
   --admin-card-bg: var(--face-work);

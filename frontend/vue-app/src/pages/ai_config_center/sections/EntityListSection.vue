@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AiEntitySummary } from '../aiConfigApi';
 import SvgIcon from '../../../components/ui/SvgIcon.vue';
+import UiButton from '../../../components/ui/UiButton.vue';
 
 defineProps<{
   entities: AiEntitySummary[];
@@ -19,15 +20,14 @@ const emit = defineEmits<{
   <aside class="models-side">
     <div class="models-side-header">
       <span class="models-side-title">实体列表</span>
-      <button
-        type="button"
-        class="btn btn-sm btn-secondary"
+      <UiButton
+        variant="ghost"
         :disabled="modelsLoading"
         @click="emit('refresh')"
       >
-        <SvgIcon src="/frontend/icons/refresh.svg" :size="14" style="vertical-align: -2px;" />
+        <SvgIcon src="/frontend/icons/refresh.svg" :size="14" />
         刷新
-      </button>
+      </UiButton>
     </div>
     <input
       :value="entitySearch"

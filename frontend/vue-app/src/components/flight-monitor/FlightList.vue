@@ -77,13 +77,19 @@ export const DEFAULT_VISIBLE_COLUMN_KEYS: readonly string[] = [
 import { computed, onBeforeUnmount, ref, watch, toRef } from 'vue';
 import type { AirportContext, FlightSortDirection } from '../../composables/useFlightData';
 import type { Flight as FlightModel } from '../../composables/useFlightData';
-import { getAnomalyCountForFlight, formatTimeValue, EMPTY_DISPLAY_TEXT } from '../../composables/useFlightData';
+import { getAnomalyCountForFlight, formatTimeValue } from '../../composables/useFlightData';
 import { writeDispatchTimelineField } from '../../composables/useFlightSync';
 import { useAuth, hasUserPermission } from '../../composables/useAuth';
 import { useToast } from '../../composables/useToast';
 import type { Flight } from '@/types/bindings';
 import FlightItem from './FlightItem.vue';
 import EmptyState from '../ui/EmptyState.vue';
+import UiButton from '../ui/UiButton.vue';
+import UiField from '../ui/UiField.vue';
+import UiMenu from '../ui/UiMenu.vue';
+import UiMenuItem from '../ui/UiMenuItem.vue';
+import UiModal from '../ui/UiModal.vue';
+import UiPill from '../ui/UiPill.vue';
 import { useVirtualScroll } from '../../composables/useVirtualScroll';
 import {
   getAircraftBodyLabel,
@@ -94,8 +100,8 @@ import {
   getFlightNumbers,
   getFlightTypeColumnDisplay,
   getMissionDisplay,
-  getStatusClassName,
   getStatusRowClassName,
+  getStatusTone,
   getTimeDisplay,
   getTimeFieldDisplay,
   getTimeFieldRawValue,
@@ -917,14 +923,9 @@ onBeforeUnmount(() => {
           <span class="anomaly-severity-badge badge-medium">高优 {{ alertSeverityCounts.medium }}</span>
           <span class="anomaly-severity-badge badge-low">中优 {{ alertSeverityCounts.low }}</span>
         </div>
-        <button
-          id="alertBackToCardBtn"
-          type="button"
-          class="flight-text-btn"
-          @click="emit('exit-alert-pool')"
-        >
+        <UiButton id="alertBackToCardBtn" variant="quiet" @click="emit('exit-alert-pool')">
           返回航班列表
-        </button>
+        </UiButton>
       </div>
     </div>
 
@@ -960,7 +961,7 @@ onBeforeUnmount(() => {
     role="grid"
     aria-label="航班表格"
   >
-    <div class="table-header-controls" style="display: none;" />
+    <div class="table-header-controls" aria-hidden="true" />
     <div ref="tableContainerRef" class="table-scroll-wrapper">
       <table id="flightTable">
         <caption class="sr-only">
@@ -1014,12 +1015,13 @@ onBeforeUnmount(() => {
                   <span v-else-if="!getFlightNumbers(flight).inbound" :class="getFlightNumberStyleClass(flight, 'outbound')">{{ getFlightNumbers(flight).combined }}</span>
                 </td>
                 <td v-if="column.key === 'status'">
-                  <span class="cell-status-pill" :class="getStatusClassName(flight.status)">{{ flight.status || '计划中' }}</span>
+                  <UiPill :tone="getStatusTone(flight.status)">
+                    {{ flight.status || '计划中' }}
+                  </UiPill>
                 </td>
                 <td
                   v-if="column.key === 'route'"
-                  class="table-route"
-                  style="cursor: pointer; user-select: none;"
+                  class="table-route route-toggle"
                   @dblclick.prevent="toggleRouteDisplayMode"
                 >
                   <div class="flight-route centered">
@@ -1074,10 +1076,10 @@ onBeforeUnmount(() => {
                   @contextmenu="onEditableContextMenu($event, flight, 'stand')"
                   @dblclick="emit('edit-field', getFlightDomId(flight), 'stand', 'text', flight.stand || '')"
                 >
-                  {{ flight.stand || EMPTY_DISPLAY_TEXT }}
+                  {{ flight.stand || '—' }}
                 </td>
                 <td v-if="column.key === 'gate'">
-                  {{ flight.gate || EMPTY_DISPLAY_TEXT }}
+                  {{ flight.gate || '—' }}
                 </td>
                 <td
                   v-if="column.key === 'baggage_carousel'"
@@ -1091,11 +1093,11 @@ onBeforeUnmount(() => {
                   @contextmenu="onEditableContextMenu($event, flight, 'baggage_carousel')"
                   @dblclick="emit('edit-field', getFlightDomId(flight), 'baggage_carousel', 'text', flight.baggage_carousel || '')"
                 >
-                  {{ flight.baggage_carousel || EMPTY_DISPLAY_TEXT }}
+                  {{ flight.baggage_carousel || '—' }}
                 </td>
 
                 <td v-if="column.key === 'aircraft_type'">
-                  {{ `${flight.aircraft_type_detail || '--'} · ${getAircraftBodyLabel(flight)}` }}
+                  {{ `${flight.aircraft_type_detail || '—'} · ${getAircraftBodyLabel(flight)}` }}
                 </td>
                 <td v-if="column.key === 'missions'">
                   {{ getMissionDisplay(flight) }}
@@ -1258,7 +1260,7 @@ onBeforeUnmount(() => {
                   @contextmenu="onEditableContextMenu($event, flight, 'flight_remarks')"
                   @dblclick="emit('edit-field', getFlightDomId(flight), 'flight_remarks', 'text', flight.flight_remarks || '')"
                 >
-                  {{ flight.flight_remarks || '--' }}
+                  {{ flight.flight_remarks || '—' }}
                 </td>
                 <td
                   v-if="EXTRA_REMARK_FIELD_KEYS.has(column.key)"
@@ -1266,10 +1268,10 @@ onBeforeUnmount(() => {
                   :title="readCellRawValue(flight, column.key)"
                   @dblclick="emit('edit-field', getFlightDomId(flight), column.key, 'text', readCellRawValue(flight, column.key))"
                 >
-                  {{ readCellRawValue(flight, column.key) || '--' }}
+                  {{ readCellRawValue(flight, column.key) || '—' }}
                 </td>
                 <td v-if="column.key === 'registration'">
-                  {{ flight.registration || EMPTY_DISPLAY_TEXT }}
+                  {{ flight.registration || '—' }}
                 </td>
                 <td v-if="column.key === 'tags'">
                   {{ `${getMissionDisplay(flight)} · ${getCommercialSignedLabel(flight)}` }}
@@ -1289,82 +1291,76 @@ onBeforeUnmount(() => {
   </div>
 
   <teleport to="body">
-    <div
+    <UiMenu
       v-if="punchMenu.isOpen"
       class="punch-context-menu"
-      :style="{ top: `${punchMenu.y}px`, left: `${punchMenu.x}px` }"
-      role="menu"
+      :x="punchMenu.x"
+      :y="punchMenu.y"
+      min-width="140px"
+      label="打卡时间操作"
     >
-      <button
-        type="button"
+      <UiMenuItem
         class="punch-context-menu-item"
-        :class="{ disabled: !canPunchField(punchMenu.field) }"
+        :tone="canPunchField(punchMenu.field) ? 'ink' : 'mute'"
         @click.stop="onPunchMenuModify"
       >
         修改
-      </button>
-      <button
-        type="button"
-        class="punch-context-menu-item danger"
-        :class="{ disabled: !canPunchField(punchMenu.field) }"
+      </UiMenuItem>
+      <UiMenuItem
+        class="punch-context-menu-item"
+        :tone="canPunchField(punchMenu.field) ? 'danger' : 'mute'"
         @click.stop="onPunchMenuRevoke"
       >
         撤销
-      </button>
-    </div>
+      </UiMenuItem>
+    </UiMenu>
   </teleport>
 
   <teleport to="body">
-    <div
+    <UiMenu
       v-if="headerMenu.isOpen"
       id="headerContextMenu"
-      class="punch-context-menu header-context-menu"
-      :style="{ top: `${headerMenu.y}px`, left: `${headerMenu.x}px` }"
-      role="menu"
-      aria-label="表格列设置"
+      class="punch-context-menu"
+      :x="headerMenu.x"
+      :y="headerMenu.y"
+      min-width="140px"
+      label="表格列设置"
     >
-      <button
+      <UiMenuItem
         id="ctxConfigColumns"
-        type="button"
         class="punch-context-menu-item"
         @click.stop="onHeaderMenuConfigColumns"
       >
         配置列...
-      </button>
-    </div>
+      </UiMenuItem>
+    </UiMenu>
   </teleport>
 
-  <teleport to="body">
-    <div
-      v-if="punchEdit.isOpen"
-      class="punch-edit-overlay"
-      @click.self="punchEdit.isOpen = false"
-    >
-      <div class="punch-edit-modal" role="dialog" :aria-label="`修改${punchEdit.label}`">
-        <h3>修改{{ punchEdit.label }}</h3>
-        <input
-          v-model="punchEdit.value"
-          type="datetime-local"
-          class="punch-edit-input"
-          @keydown.enter="onPunchEditSave"
-          @keydown.esc="punchEdit.isOpen = false"
-        >
-        <div class="punch-edit-actions">
-          <button type="button" @click="punchEdit.isOpen = false">
-            取消
-          </button>
-          <button
-            type="button"
-            class="primary"
-            :disabled="punchEdit.saving"
-            @click="onPunchEditSave"
-          >
-            保存
-          </button>
-        </div>
-      </div>
-    </div>
-  </teleport>
+  <!-- 幕、帽、脚、Esc、层序都归 UiModal（§3.8 / §3.5）；这里只剩一个器和两颗谓词。
+       名已经写在帽上，字段这一格不再重一遍（§4.4）。 -->
+  <UiModal
+    :open="punchEdit.isOpen"
+    :title="`修改${punchEdit.label}`"
+    :width="360"
+    @close="punchEdit.isOpen = false"
+  >
+    <UiField>
+      <input
+        v-model="punchEdit.value"
+        type="datetime-local"
+        :aria-label="punchEdit.label"
+        @keydown.enter="onPunchEditSave"
+      >
+    </UiField>
+    <template #footer>
+      <UiButton @click="punchEdit.isOpen = false">
+        取消
+      </UiButton>
+      <UiButton variant="primary" :disabled="punchEdit.saving" @click="onPunchEditSave">
+        {{ punchEdit.saving ? '保存中…' : '保存' }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <style scoped>
@@ -1375,123 +1371,34 @@ onBeforeUnmount(() => {
   min-width: 20px;
   height: 20px;
   padding: 0 4px;
-  border-radius: 4px;
-  border: 1px dashed var(--border-light, #d1d5db);
-  color: var(--text-secondary, #9ca3af);
-  font-weight: 600;
+  border-radius: var(--r-cell);
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-muted);
+  font-weight: var(--fw-semibold);
   line-height: 1;
   cursor: pointer;
   user-select: none;
 }
 
+/* 「可以填」由那圈虚线说，交感只淡墨一层（§4.2 悬停不许用行动蓝） */
 .cell-punch-placeholder:hover {
-  color: var(--primary-blue, #2563eb);
-  border-color: var(--primary-blue, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
+  color: var(--ink-subtle);
+  border-color: var(--ink-subtle);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
 .cell-punch-value {
   cursor: context-menu;
 }
 
-.punch-context-menu {
-  position: fixed;
-  z-index: 99999;
-  min-width: 140px;
-  display: flex;
-  flex-direction: column;
-  padding: 4px;
-  background: var(--face-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  box-shadow: var(--shadow-md);
+/* 旧布局占位：永久隐藏 */
+.table-header-controls {
+  display: none;
 }
 
-.punch-context-menu-item {
-  padding: 8px 12px;
-  border: none;
-  border-radius: var(--r-cell);
-  background: none;
-  font-size: var(--fs-body);
-  text-align: left;
+/* 航线格可双击换显示法，指针说明可点 */
+.route-toggle {
   cursor: pointer;
-  color: var(--ink);
-}
-
-.punch-context-menu-item:hover {
-  background: var(--face-work);
-}
-
-.punch-context-menu-item.danger {
-  color: var(--danger);
-}
-
-.punch-context-menu-item.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.punch-edit-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--scrim);
-}
-
-.punch-edit-modal {
-  min-width: 300px;
-  padding: 16px 20px;
-  background: var(--face-raised);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow-md);
-}
-
-.punch-edit-modal h3 {
-  margin: 0 0 12px;
-  font-size: 14px;
-}
-
-.punch-edit-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-control);
-  background: var(--face-page);
-  color: var(--ink);
-  font-size: var(--fs-body);
-}
-
-.punch-edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.punch-edit-actions button {
-  padding: 6px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-control);
-  background: var(--face-work);
-  color: var(--ink);
-  font-size: var(--fs-body);
-  cursor: pointer;
-}
-
-.punch-edit-actions button.primary {
-  background: var(--act);
-  border-color: var(--act);
-  color: var(--act-on);
-}
-
-.punch-edit-actions button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  user-select: none;
 }
 </style>

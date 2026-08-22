@@ -6,6 +6,9 @@ import { computed } from 'vue';
 import { hasUserPermission, useAuth } from '@/composables/useAuth';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 
 const {
   loading,
@@ -24,7 +27,6 @@ const {
 
 const auth = useAuth();
 const canManageAnomalies = computed(() => hasUserPermission(auth.getUser(), 'anomaly:write'));
-function handleLogout() { auth.logout(); }
 
 async function handleAcknowledge(id: string): Promise<void> {
   try {
@@ -62,6 +64,57 @@ const statusLabels: Record<string, string> = {
   acknowledged: '已确认',
   resolved: '已解决',
 };
+
+const statusOptions = [
+  { value: '', label: '全部状态' },
+  { value: 'open', label: '待处理' },
+  { value: 'acknowledged', label: '已确认' },
+  { value: 'resolved', label: '已解决' },
+];
+
+const typeOptions = [
+  { value: '', label: '全部类型' },
+  { value: 'service_node_timeout', label: '节点超时' },
+  { value: 'gate_stand_conflict', label: '机位冲突' },
+  { value: 'kpi_degradation', label: 'KPI退化' },
+  { value: 'ai_risk', label: 'AI风险' },
+  { value: 'dispatch_issue', label: '调度异常' },
+];
+
+const limitOptions = [
+  { value: '50', label: '50 条' },
+  { value: '100', label: '100 条' },
+  { value: '200', label: '200 条' },
+];
+
+const limitValue = computed<string>({
+  get: () => String(filters.value.limit),
+  set: (value) => {
+    filters.value.limit = Number(value);
+  },
+});
+
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+function severityTone(severity: string): PillTone {
+  if (severity === 'critical') return 'danger';
+  if (severity === 'high') return 'warn';
+  if (severity === 'medium') return 'act';
+  return 'mute';
+}
+
+function statusTone(status: string): PillTone {
+  if (status === 'open') return 'danger';
+  if (status === 'acknowledged') return 'warn';
+  if (status === 'resolved') return 'ok';
+  return 'mute';
+}
+
+const streamTone = computed<PillTone>(() => {
+  if (streamState.value === 'online') return 'ok';
+  if (streamState.value === 'connecting') return 'warn';
+  return 'danger';
+});
 </script>
 
 <template>
@@ -75,20 +128,20 @@ const statusLabels: Record<string, string> = {
         <span class="utility-note">自动检测与闭环处置</span>
       </div>
       <div class="utility-actions">
-        <span id="streamState" :class="['stream-chip', streamState]">
+        <UiPill id="streamState" :tone="streamTone">
           流状态: {{ streamState === 'online' ? '在线' : streamState === 'connecting' ? '连接中' : '离线' }}
-        </span>
-        <button
+        </UiPill>
+        <UiButton
           id="refreshButton"
-          class="btn primary"
+          variant="primary"
           :disabled="loading"
           @click="fetchRecords"
         >
           刷新
-        </button>
-        <button id="logoutButton" class="btn" @click="handleLogout">
+        </UiButton>
+        <UiButton id="logoutButton" @click="auth.logout()">
           退出
-        </button>
+        </UiButton>
       </div>
     </header>
 
@@ -98,34 +151,36 @@ const statusLabels: Record<string, string> = {
           筛选条件
         </h2>
         <div class="filter-form">
-          <label class="filter-field">
+          <div class="filter-field">
             <span class="field-label">状态</span>
-            <select id="statusFilter" v-model="filters.status">
-              <option value="">全部状态</option>
-              <option value="open">待处理</option>
-              <option value="acknowledged">已确认</option>
-              <option value="resolved">已解决</option>
-            </select>
-          </label>
-          <label class="filter-field">
+            <UiSelect
+              id="statusFilter"
+              v-model="filters.status"
+              :options="statusOptions"
+              label="状态筛选"
+              min-width="100%"
+            />
+          </div>
+          <div class="filter-field">
             <span class="field-label">类型</span>
-            <select id="typeFilter" v-model="filters.type">
-              <option value="">全部类型</option>
-              <option value="service_node_timeout">节点超时</option>
-              <option value="gate_stand_conflict">机位冲突</option>
-              <option value="kpi_degradation">KPI退化</option>
-              <option value="ai_risk">AI风险</option>
-              <option value="dispatch_issue">调度异常</option>
-            </select>
-          </label>
-          <label class="filter-field">
+            <UiSelect
+              id="typeFilter"
+              v-model="filters.type"
+              :options="typeOptions"
+              label="类型筛选"
+              min-width="100%"
+            />
+          </div>
+          <div class="filter-field">
             <span class="field-label">数量</span>
-            <select id="limitFilter" v-model="filters.limit">
-              <option value="50">50 条</option>
-              <option value="100">100 条</option>
-              <option value="200">200 条</option>
-            </select>
-          </label>
+            <UiSelect
+              id="limitFilter"
+              v-model="limitValue"
+              :options="limitOptions"
+              label="数量筛选"
+              min-width="100%"
+            />
+          </div>
         </div>
         <div id="updatedAt" class="meta-line">
           {{ lastUpdatedAt ? `最后更新: ${new Date(lastUpdatedAt).toLocaleString()}` : '已开启实时监控流' }}
@@ -194,33 +249,40 @@ const statusLabels: Record<string, string> = {
                 <td>{{ record.flight_id }}</td>
                 <td>{{ typeLabels[record.anomaly_type] || record.anomaly_type }}</td>
                 <td>
-                  <span :class="['badge', 'severity-' + record.severity]">{{ severityLabels[record.severity] || record.severity }}</span>
+                  <UiPill :tone="severityTone(record.severity)">
+                    {{ severityLabels[record.severity] || record.severity }}
+                  </UiPill>
                 </td>
                 <td>
-                  <span :class="['badge', 'status-' + record.status]">{{ statusLabels[record.status] || record.status }}</span>
+                  <UiPill :tone="statusTone(record.status)">
+                    {{ statusLabels[record.status] || record.status }}
+                  </UiPill>
                 </td>
                 <td>{{ record.escalation_level }}</td>
                 <td>{{ record.title }}</td>
                 <td class="actions">
-                  <span v-if="!canManageAnomalies" class="readonly-badge">只读</span>
+                  <UiPill v-if="!canManageAnomalies">
+                    只读
+                  </UiPill>
                   <template v-else>
-                    <button
+                    <UiButton
                       v-if="record.status === 'open'"
-                      class="btn btn-sm"
+                      size="sm"
                       :disabled="isActionBusy(record.anomaly_id)"
                       @click="handleAcknowledge(record.anomaly_id)"
                     >
                       {{ isActionBusy(record.anomaly_id) ? '处理中...' : '确认' }}
-                    </button>
-                    <button
+                    </UiButton>
+                    <UiButton
                       v-if="record.status !== 'resolved'"
-                      class="btn btn-sm primary"
+                      variant="primary"
+                      size="sm"
                       :disabled="isActionBusy(record.anomaly_id)"
                       @click="handleResolve(record.anomaly_id)"
                     >
                       {{ isActionBusy(record.anomaly_id) ? '处理中...' : '解决' }}
-                    </button>
-                    <span v-else style="color: var(--ws-text-muted);">已处理</span>
+                    </UiButton>
+                    <span v-else class="resolved-note">已处理</span>
                   </template>
                 </td>
               </tr>
@@ -234,271 +296,175 @@ const statusLabels: Record<string, string> = {
 </template>
 
 <style scoped>
-/* AnomalyMonitor specific styles */
-.page {
-  min-height: 100vh;
-  background: var(--bg-app, #F5F5F7);
-}
-
-.utility-bar {
+/* 信号面 token + UI 库件（UiButton / UiPill / UiSelect） */
+.anomaly-monitor-page {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-light);
+  flex-direction: column;
 }
 
-.utility-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.home-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--ws-surface-muted);
-  color: var(--text-tertiary);
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.home-link:hover {
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.utility-note {
-  color: var(--system-gray2);
-  font-size: 13px;
-}
-
-.utility-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stream-chip {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stream-chip.connecting {
-  background: var(--dh-signal-warn-soft);
-  color: var(--system-orange);
-}
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid var(--border-light);
-  background: var(--bg-card);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:hover {
-  background: var(--bg-page);
-  border-color: var(--border-light);
-}
-
-.btn.primary {
-  background: var(--system-blue);
-  color: var(--text-inverse);
-  border-color: var(--system-blue);
-}
-
-.btn.primary:hover {
-  background: var(--system-blue);
-}
-
-.btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.readonly-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--ws-surface-muted);
-  color: var(--text-tertiary);
-  font-size: 12px;
-  font-weight: 600;
+.home-link:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 
 .anomaly-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 20px;
-  padding: 20px 24px;
+  grid-template-columns: minmax(268px, 292px) minmax(0, 1fr);
+  gap: var(--s4);
+  padding: var(--s4) var(--s5);
+  overflow: auto;
 }
 
-.panel {
-  background: var(--bg-card);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.filter-panel {
+.filter-panel.panel {
+  /* UiSelect 下拉列表需要溢出面板 */
+  overflow: visible;
   height: fit-content;
-}
-
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 16px;
+  padding: var(--s4);
+  gap: var(--s4);
 }
 
 .filter-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  gap: var(--s3);
 }
 
 .filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  gap: var(--s1);
 }
 
 .field-label {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.filter-field select {
-  padding: 8px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  font-size: 13px;
-  background: var(--bg-card);
-}
-
-.filter-field select:focus {
-  outline: none;
-  border-color: var(--system-blue);
-  box-shadow: 0 0 0 3px var(--focus-ring-blue);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-subtle);
+  letter-spacing: 0.03em;
 }
 
 .meta-line {
-  margin-top: 16px;
-  font-size: 12px;
-  color: var(--system-gray2);
+  margin-top: auto;
+  padding-top: var(--s2);
+  border-top: 1px dashed var(--line);
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 .records-panel {
-  min-height: 500px;
+  min-height: 0;
 }
 
 .metrics-strip {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-  padding: 16px;
-  background: var(--bg-page);
-  border-radius: 10px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
 }
 
 .metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
   text-align: center;
 }
 
 .metric-label {
-  display: block;
-  font-size: 11px;
-  color: var(--system-gray2);
-  margin-bottom: 4px;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 .metric-value {
-  display: block;
+  /* 展示级统计数字，不入字阶梯子 */
   font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.section-headline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.section-meta {
-  font-size: 12px;
-  color: var(--system-gray2);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .inline-error {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: var(--dh-signal-critical-soft);
-  color: var(--ws-danger);
-  font-size: 13px;
+  margin: var(--s3) var(--s4) 0;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-cell);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--fs-body);
 }
 
 .records-table-wrap {
+  flex: 1;
   overflow-x: auto;
+  padding: 0 var(--s2) var(--s2);
 }
 
 .records-table-wrap table {
   width: 100%;
+  min-width: 980px;
   border-collapse: collapse;
 }
 
 .records-table-wrap th,
 .records-table-wrap td {
-  padding: 12px 16px;
+  padding: var(--s3) var(--s4);
   text-align: left;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--line);
 }
 
 .records-table-wrap th {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  background: var(--bg-page);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  white-space: nowrap;
 }
 
 .records-table-wrap td {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: var(--fs-body);
+  color: var(--ink-subtle);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.resolved-note {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 .empty-placeholder {
+  padding: var(--s5);
   text-align: center;
-  padding: 40px;
-  color: var(--system-gray2);
+  color: var(--ink-muted);
 }
 
-.empty {
-  text-align: center;
-  padding: 40px;
-  color: var(--system-gray2);
+@media (min-width: 1720px) {
+  .anomaly-grid {
+    grid-template-columns: minmax(286px, 320px) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1439px) {
+  .anomaly-grid {
+    grid-template-columns: minmax(248px, 272px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1099px) {
+  .anomaly-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metrics-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .records-table-wrap table {
+    min-width: 760px;
+  }
 }
 </style>

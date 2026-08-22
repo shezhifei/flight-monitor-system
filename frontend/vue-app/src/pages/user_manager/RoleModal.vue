@@ -8,11 +8,10 @@ import {
   type TemplateApplyMode,
   type UserRole,
 } from '@/composables/useUserManager';
-
-interface PermissionGroup {
-  prefix: string;
-  permissions: Permission[];
-}
+import UiButton from '@/components/ui/UiButton.vue';
+import UiModal from '@/components/ui/UiModal.vue';
+import UiPermissionTree, { type PermissionItem } from '@/components/ui/UiPermissionTree.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 
 const props = defineProps<{
   show: boolean;
@@ -30,43 +29,19 @@ const emit = defineEmits<{
   (e: 'apply-template', templateId: string, mode: TemplateApplyMode): void;
 }>();
 
-const searchText = ref('');
 const selectedTemplateId = ref('');
 
-function prefixOf(name: string): string {
-  const match = name.match(/^([^:._]+)/);
-  return match ? match[1] : name;
-}
+const permItems = computed<PermissionItem[]>(() =>
+  props.permissions.map((p) => ({
+    key: permissionNameOf(p),
+    description: p.description ?? undefined,
+  })),
+);
 
-const filteredPermissions = computed(() => {
-  const q = searchText.value.trim().toLowerCase();
-  if (!q) return props.permissions;
-  return props.permissions.filter(
-    (p) =>
-      permissionNameOf(p).toLowerCase().includes(q)
-      || (p.description ?? '').toLowerCase().includes(q),
-  );
+const permissionCodes = computed<string[]>({
+  get: () => props.form.permission_codes,
+  set: (value) => update('permission_codes', value),
 });
-
-const grouped = computed<PermissionGroup[]>(() => {
-  const groups = new Map<string, Permission[]>();
-  for (const perm of filteredPermissions.value) {
-    const key = prefixOf(permissionNameOf(perm));
-    const list = groups.get(key) ?? [];
-    list.push(perm);
-    groups.set(key, list);
-  }
-  return Array.from(groups.entries())
-    .map(([prefix, items]) => ({
-      prefix,
-      permissions: items.slice().sort((a, b) =>
-        permissionNameOf(a).localeCompare(permissionNameOf(b)),
-      ),
-    }))
-    .sort((a, b) => a.prefix.localeCompare(b.prefix));
-});
-
-const selectedCount = computed(() => props.form.permission_codes.length);
 
 const validationError = computed(() => {
   if (!props.form.name.trim()) return '请输入角色名称';
@@ -75,45 +50,16 @@ const validationError = computed(() => {
 
 const canSubmit = computed(() => !validationError.value && !props.saving);
 
+const templateOptions = computed(() => [
+  { value: '', label: '选择模板...' },
+  ...(props.templates ?? []).map((tmpl) => ({
+    value: tmpl.id,
+    label: `[${tmpl.category || '其他'}] ${tmpl.name}`,
+  })),
+]);
+
 function update<K extends keyof RoleFormState>(key: K, value: RoleFormState[K]): void {
   emit('update:form', { ...props.form, [key]: value });
-}
-
-function togglePermission(name: string, checked: boolean): void {
-  const current = props.form.permission_codes;
-  const next = checked
-    ? Array.from(new Set([...current, name]))
-    : current.filter((c) => c !== name);
-  update('permission_codes', next);
-}
-
-function toggleGroup(group: PermissionGroup, checked: boolean): void {
-  const names = group.permissions.map((p) => permissionNameOf(p));
-  const current = props.form.permission_codes;
-  let next: string[];
-  if (checked) {
-    next = Array.from(new Set([...current, ...names]));
-  } else {
-    next = current.filter((c) => !names.includes(c));
-  }
-  update('permission_codes', next);
-}
-
-function groupChecked(group: PermissionGroup): boolean {
-  return group.permissions.every((p) =>
-    props.form.permission_codes.includes(permissionNameOf(p)),
-  );
-}
-
-function groupIndeterminate(group: PermissionGroup): boolean {
-  const some = group.permissions.some((p) =>
-    props.form.permission_codes.includes(permissionNameOf(p)),
-  );
-  return some && !groupChecked(group);
-}
-
-function isChecked(name: string): boolean {
-  return props.form.permission_codes.includes(name);
 }
 
 function applyTemplate(mode: TemplateApplyMode): void {
@@ -127,219 +73,119 @@ function onSubmit(): void {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="show" class="modal-overlay" @click.self="emit('close')">
-      <div
-        class="modal-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="role-modal-title"
-      >
-        <div class="modal-header">
-          <h3 id="role-modal-title">
-            {{ editing ? '编辑角色' : '创建角色' }}
-          </h3>
-          <button
-            type="button"
-            class="modal-close"
-            aria-label="关闭"
-            @click="emit('close')"
-          >
-            ×
-          </button>
-        </div>
+  <UiModal
+    :open="show"
+    :title="editing ? '编辑角色' : '创建角色'"
+    :width="640"
+    @close="emit('close')"
+  >
+    <form class="role-form" @submit.prevent="onSubmit">
+      <div v-if="validationError" class="validation-summary" role="alert">
+        {{ validationError }}
+      </div>
 
-        <form class="modal-body" @submit.prevent="onSubmit">
-          <div v-if="validationError" class="validation-summary" role="alert">
-            {{ validationError }}
-          </div>
+      <div class="form-group">
+        <label for="role-name">角色名称<span class="required">*</span></label>
+        <input
+          id="role-name"
+          type="text"
+          :value="form.name"
+          required
+          placeholder="例如：调度主管"
+          @input="update('name', ($event.target as HTMLInputElement).value)"
+        >
+      </div>
 
-          <div class="form-group">
-            <label for="role-name">角色名称<span class="required">*</span></label>
-            <input
-              id="role-name"
-              type="text"
-              :value="form.name"
-              required
-              placeholder="例如：调度主管"
-              @input="update('name', ($event.target as HTMLInputElement).value)"
-            >
-          </div>
+      <div class="form-group">
+        <label for="role-description">描述</label>
+        <textarea
+          id="role-description"
+          :value="form.description"
+          rows="2"
+          placeholder="角色职责说明，可选"
+          @input="update('description', ($event.target as HTMLTextAreaElement).value)"
+        />
+      </div>
 
-          <div class="form-group">
-            <label for="role-description">描述</label>
-            <textarea
-              id="role-description"
-              :value="form.description"
-              rows="2"
-              placeholder="角色职责说明，可选"
-              @input="update('description', ($event.target as HTMLTextAreaElement).value)"
-            />
-          </div>
-
-          <div class="form-group template-apply">
-            <label for="role-template-select">快速应用模板</label>
-            <div class="template-apply-row">
-              <select
-                id="role-template-select"
-                v-model="selectedTemplateId"
-                class="template-select"
-              >
-                <option value="">
-                  选择模板...
-                </option>
-                <option
-                  v-for="tmpl in (templates ?? [])"
-                  :key="tmpl.id"
-                  :value="tmpl.id"
-                >
-                  [{{ tmpl.category || '其他' }}] {{ tmpl.name }}
-                </option>
-              </select>
-              <button type="button" class="btn btn-secondary btn-sm" @click="applyTemplate('replace')">
-                替换
-              </button>
-              <button type="button" class="btn btn-secondary btn-sm" @click="applyTemplate('append')">
-                追加
-              </button>
-              <button type="button" class="btn btn-secondary btn-sm" @click="applyTemplate('clear')">
-                清空
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="permission-header">
-              <label>权限分配</label>
-              <span class="permission-count">已选 {{ selectedCount }} 项</span>
-            </div>
-            <input
-              v-model="searchText"
-              type="search"
-              class="permission-search"
-              placeholder="搜索权限名称或描述..."
-            >
-            <div v-if="grouped.length === 0" class="permission-empty">
-              暂无可分配权限
-            </div>
-            <div v-else class="permission-groups">
-              <div v-for="group in grouped" :key="group.prefix" class="permission-group">
-                <label class="permission-group-header">
-                  <input
-                    type="checkbox"
-                    :checked="groupChecked(group)"
-                    :indeterminate.prop="groupIndeterminate(group)"
-                    @change="toggleGroup(group, ($event.target as HTMLInputElement).checked)"
-                  >
-                  <span class="permission-group-title">{{ group.prefix }}</span>
-                  <span class="permission-group-meta">{{ group.permissions.length }} 项</span>
-                </label>
-                <div class="permission-items">
-                  <label
-                    v-for="perm in group.permissions"
-                    :key="perm.id || permissionNameOf(perm)"
-                    class="permission-item"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="isChecked(permissionNameOf(perm))"
-                      @change="togglePermission(permissionNameOf(perm), ($event.target as HTMLInputElement).checked)"
-                    >
-                    <span class="permission-code">{{ permissionNameOf(perm) }}</span>
-                    <span v-if="perm.description" class="permission-desc">{{ perm.description }}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="emit('close')">
-            取消
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            :disabled="!canSubmit"
-            @click="onSubmit"
-          >
-            {{ saving ? '保存中...' : '保存' }}
-          </button>
+      <div class="form-group template-apply">
+        <label>快速应用模板</label>
+        <div class="template-apply-row">
+          <UiSelect
+            v-model="selectedTemplateId"
+            :options="templateOptions"
+            label="选择权限模板"
+            min-width="180px"
+          />
+          <UiButton size="sm" @click="applyTemplate('replace')">
+            替换
+          </UiButton>
+          <UiButton size="sm" @click="applyTemplate('append')">
+            追加
+          </UiButton>
+          <UiButton size="sm" @click="applyTemplate('clear')">
+            清空
+          </UiButton>
         </div>
       </div>
-    </div>
-  </Teleport>
+
+      <div class="form-group">
+        <UiPermissionTree
+          v-model="permissionCodes"
+          :items="permItems"
+          label="权限分配"
+        />
+      </div>
+    </form>
+
+    <template #footer>
+      <UiButton @click="emit('close')">
+        取消
+      </UiButton>
+      <UiButton
+        variant="primary"
+        :disabled="!canSubmit"
+        @click="onSubmit"
+      >
+        {{ saving ? '保存中...' : '保存' }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <style scoped>
-/* 对话框 = 抬起面 + scrim；控件走标本配方（signal-surface.css token） */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--scrim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-.modal-content {
-  background: var(--face-raised);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow-md);
-  width: 640px;
-  max-width: 92vw;
-  max-height: 88vh;
+/* 信号面：帽、幕、Esc、关归 UiModal，权限树归 UiPermissionTree；这里只留表单与模板行。 */
+.role-form {
   display: flex;
   flex-direction: column;
 }
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
-}
-.modal-header h3 { margin: 0; font-size: var(--fs-title); font-weight: var(--fw-semibold); }
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: var(--ink-subtle);
-  line-height: 1;
-}
-.modal-close:hover { color: var(--ink); }
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-}
+
 .validation-summary {
   background: var(--danger-soft);
   border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
   color: var(--danger);
-  padding: 8px 12px;
+  padding: var(--s2) var(--s3);
   border-radius: var(--r-control);
   font-size: var(--fs-body);
-  margin-bottom: 12px;
+  margin-bottom: var(--s3);
 }
-.form-group { margin-bottom: 16px; }
-.form-group label {
+
+.form-group {
+  margin-bottom: var(--s3);
+}
+
+.form-group > label {
   display: block;
   font-size: var(--fs-label);
   font-weight: var(--fw-medium);
-  margin-bottom: 6px;
+  margin-bottom: var(--s1);
   color: var(--ink-subtle);
 }
+
 .form-group input[type="text"],
-.form-group textarea,
-.permission-search,
-.template-select {
+.form-group textarea {
   width: 100%;
-  padding: 7px 12px;
+  min-height: var(--h-md);
+  padding: var(--s1) var(--s3);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
   font-size: var(--fs-body);
@@ -348,135 +194,27 @@ function onSubmit(): void {
   box-sizing: border-box;
   font-family: inherit;
 }
+
 .form-group input:focus-visible,
-.form-group textarea:focus-visible,
-.permission-search:focus-visible,
-.template-select:focus-visible { outline: 2px solid var(--act); outline-offset: 1px; }
-.required { color: var(--danger); margin-left: 2px; }
-input[type="checkbox"] { accent-color: var(--act); width: 14px; height: 14px; }
+.form-group textarea:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
+.required {
+  color: var(--danger);
+}
+
 .template-apply {
   background: color-mix(in srgb, var(--ink) 6%, transparent);
-  padding: 12px;
+  padding: var(--s3);
   border-radius: var(--r-control);
 }
+
 .template-apply-row {
   display: flex;
-  gap: 8px;
+  gap: var(--s2);
   flex-wrap: wrap;
   align-items: center;
 }
-.template-select {
-  flex: 1;
-  min-width: 150px;
-}
-.permission-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.permission-count {
-  font-size: var(--fs-label);
-  color: var(--ink-muted);
-  font-weight: normal;
-}
-.permission-search {
-  margin-bottom: 8px;
-}
-.permission-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--ink-muted);
-  font-size: var(--fs-body);
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--r-control);
-}
-.permission-groups {
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  max-height: 320px;
-  overflow-y: auto;
-}
-.permission-group {
-  border-bottom: 1px solid var(--line);
-}
-.permission-group:last-child { border-bottom: none; }
-.permission-group-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--face-page);
-  font-weight: var(--fw-semibold);
-  font-size: var(--fs-body);
-  cursor: pointer;
-  margin: 0;
-}
-.permission-group-title { flex: 1; }
-.permission-group-meta {
-  font-size: 11px;
-  color: var(--ink-muted);
-  font-weight: normal;
-}
-.permission-items {
-  padding: 6px 12px 10px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.permission-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-body);
-  cursor: pointer;
-  margin: 0;
-  font-weight: normal;
-}
-.permission-code {
-  font-family: var(--mono);
-  font-size: var(--fs-label);
-  color: var(--ink);
-}
-.permission-desc {
-  color: var(--ink-muted);
-  font-size: var(--fs-label);
-}
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--line);
-}
-.btn {
-  min-height: var(--h-sm);
-  padding: 0 14px;
-  border-radius: var(--r-control);
-  font-size: var(--fs-label);
-  font-weight: var(--fw-medium);
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--ink);
-  cursor: pointer;
-}
-.btn:hover { border-color: var(--act); color: var(--act); }
-.btn-sm {
-  min-height: 28px;
-  padding: 0 10px;
-  font-size: var(--fs-label);
-}
-.btn-primary {
-  background: var(--act);
-  color: var(--act-on);
-  border-color: transparent;
-}
-.btn-primary:hover { background: var(--act); color: var(--act-on); filter: brightness(1.06); }
-.btn-primary:disabled {
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
-  color: var(--ink-muted);
-  border-color: transparent;
-  cursor: not-allowed;
-  filter: none;
-}
-.btn-secondary { background: transparent; color: var(--ink-subtle); }
 </style>

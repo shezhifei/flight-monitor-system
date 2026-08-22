@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
 import { createDefaultField } from '../formTaskDesigner';
 import type { FormFieldDefinition, FormFieldOption, FormFieldType } from '../types';
 
@@ -129,12 +131,16 @@ function readCheckboxValue(event: Event): boolean {
   <div class="field-designer">
     <div class="field-designer-header">
       <div>
-        <div class="field-designer-title">字段设计器</div>
+        <div class="field-designer-title">
+          字段设计器
+        </div>
         <div class="field-designer-hint">
           增删改与排序字段；保存流程时会写入表单模板 schema。
         </div>
       </div>
-      <button class="field-add-button" type="button" @click="addField">+ 新增字段</button>
+      <UiButton variant="primary" @click="addField">
+        + 新增字段
+      </UiButton>
     </div>
 
     <div v-if="fields.length === 0" class="field-designer-empty">
@@ -146,24 +152,62 @@ function readCheckboxValue(event: Event): boolean {
         <div class="field-card-index">
           <span class="field-index-badge">{{ index + 1 }}</span>
           字段 {{ index + 1 }}
-          <span v-if="field.required" class="field-req-tag">必填</span>
+          <UiPill v-if="field.required" tone="warn">
+            必填
+          </UiPill>
         </div>
         <div class="field-card-actions">
-          <button class="icon-btn" type="button" title="上移" :disabled="index === 0" @click="moveField(index, -1)">↑</button>
-          <button class="icon-btn" type="button" title="下移" :disabled="index === fields.length - 1" @click="moveField(index, 1)">↓</button>
-          <button class="icon-btn danger" type="button" title="删除" @click="removeField(index)">删除</button>
+          <button
+            class="icon-btn"
+            type="button"
+            title="上移"
+            :disabled="index === 0"
+            @click="moveField(index, -1)"
+          >
+            ↑
+          </button>
+          <button
+            class="icon-btn"
+            type="button"
+            title="下移"
+            :disabled="index === fields.length - 1"
+            @click="moveField(index, 1)"
+          >
+            ↓
+          </button>
+          <button
+            class="icon-btn danger"
+            type="button"
+            title="删除"
+            @click="removeField(index)"
+          >
+            删除
+          </button>
         </div>
       </div>
 
       <div class="field-grid">
         <label class="field-item">
           <span>显示名称</span>
-          <input type="text" :value="field.label" maxlength="80" placeholder="例如：座位号" @input="updateField(index, { label: readInputValue($event) })">
+          <input
+            type="text"
+            :value="field.label"
+            maxlength="80"
+            placeholder="例如：座位号"
+            @input="updateField(index, { label: readInputValue($event) })"
+          >
         </label>
 
         <label class="field-item">
           <span>字段键 Key</span>
-          <input type="text" class="mono" :value="field.key" maxlength="80" placeholder="seat_no" @input="updateField(index, { key: readInputValue($event) })">
+          <input
+            type="text"
+            class="mono"
+            :value="field.key"
+            maxlength="80"
+            placeholder="seat_no"
+            @input="updateField(index, { key: readInputValue($event) })"
+          >
         </label>
 
         <label class="field-item">
@@ -183,12 +227,24 @@ function readCheckboxValue(event: Event): boolean {
 
         <label class="field-item">
           <span>占位提示</span>
-          <input type="text" :value="field.placeholder" maxlength="120" placeholder="输入提示文案" @input="updateField(index, { placeholder: readInputValue($event) })">
+          <input
+            type="text"
+            :value="field.placeholder"
+            maxlength="120"
+            placeholder="输入提示文案"
+            @input="updateField(index, { placeholder: readInputValue($event) })"
+          >
         </label>
 
         <label class="field-item">
           <span>默认值</span>
-          <input type="text" :value="field.defaultValue" maxlength="120" placeholder="可选" @input="updateField(index, { defaultValue: readInputValue($event) })">
+          <input
+            type="text"
+            :value="field.defaultValue"
+            maxlength="120"
+            placeholder="可选"
+            @input="updateField(index, { defaultValue: readInputValue($event) })"
+          >
         </label>
       </div>
 
@@ -209,96 +265,75 @@ function readCheckboxValue(event: Event): boolean {
 .field-designer {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s3);
 }
 
 .field-designer-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s3);
 }
 
 .field-designer-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--admin-text);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .field-designer-hint {
   margin-top: 4px;
-  font-size: 12px;
-  color: var(--admin-text-muted);
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
   line-height: 1.5;
 }
 
-.field-add-button {
-  white-space: nowrap;
-  border: none;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--ws-primary);
-  color: var(--text-inverse, #fff);
-}
-
 .field-designer-empty {
-  border: 1px dashed var(--admin-border);
-  border-radius: 12px;
-  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-panel);
+  padding: var(--s4);
   text-align: center;
-  color: var(--admin-text-muted);
-  font-size: 12px;
-  background: var(--ws-surface-muted);
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .field-card {
-  border: 1px solid var(--admin-border);
-  border-radius: 12px;
-  background: var(--admin-card-bg);
-  padding: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--face-work);
+  padding: var(--s3);
+  box-shadow: var(--shadow-sm);
 }
 
 .field-card-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
 }
 
 .field-card-index {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--admin-text-subtle);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-subtle);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .field-index-badge {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--r-cell);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--system-blue-subtle);
-  color: var(--ws-primary);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.field-req-tag {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ws-warn);
-  background: color-mix(in srgb, var(--ws-warn) 14%, transparent);
-  padding: 1px 6px;
-  border-radius: 999px;
+  background: var(--act-soft);
+  color: var(--act);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
 }
 
 .field-card-actions {
@@ -308,20 +343,26 @@ function readCheckboxValue(event: Event): boolean {
 
 .icon-btn {
   min-width: 32px;
-  height: 30px;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
-  background: var(--ws-surface-muted);
-  color: var(--admin-text-subtle);
+  height: var(--h-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink-subtle);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0 8px;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  padding: 0 var(--s2);
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
 }
 
 .icon-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--ws-primary) 35%, var(--admin-border));
-  color: var(--ws-primary);
+  border-color: color-mix(in srgb, var(--act) 35%, var(--line));
+  color: var(--act);
 }
 
 .icon-btn:disabled {
@@ -330,52 +371,53 @@ function readCheckboxValue(event: Event): boolean {
 }
 
 .icon-btn.danger {
-  color: var(--ws-danger);
-  border-color: color-mix(in srgb, var(--ws-danger) 28%, var(--admin-border));
-  background: color-mix(in srgb, var(--ws-danger) 8%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
 }
 
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--s3);
 }
 
 .field-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--admin-text-subtle);
+  gap: var(--s2);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-subtle);
 }
 
 .field-item input,
 .field-item select,
 .field-item textarea {
   width: 100%;
-  border: 1px solid var(--admin-border);
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  padding: var(--s2) var(--s3);
+  font-size: var(--fs-body);
   font-weight: 400;
-  color: var(--admin-text);
-  background: var(--ws-surface-muted);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
   box-sizing: border-box;
+  transition: border-color var(--t-fast) var(--ease);
 }
 
 .field-item input:focus,
 .field-item select:focus,
 .field-item textarea:focus {
-  outline: none;
-  border-color: var(--ws-primary);
-  box-shadow: 0 0 0 3px var(--focus-ring-blue, var(--system-blue-subtle));
-  background: var(--admin-card-bg);
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
+  border-color: var(--act);
+  background: var(--face-work);
 }
 
 .field-item input.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-label);
 }
 
 .checkbox-item {
@@ -385,26 +427,26 @@ function readCheckboxValue(event: Event): boolean {
 .req-switch {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 10px;
-  border: 1px solid var(--admin-border);
-  border-radius: 10px;
-  background: var(--ws-surface-muted);
-  font-weight: 500;
-  color: var(--admin-text);
+  gap: var(--s2);
+  min-height: var(--h-md);
+  padding: 0 var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
   cursor: pointer;
 }
 
 .req-switch input {
   width: 15px;
   height: 15px;
-  accent-color: var(--ws-primary);
+  accent-color: var(--act);
   padding: 0;
 }
 
 .option-textarea {
-  margin-top: 10px;
+  margin-top: var(--s3);
 }
 
 .option-textarea textarea {

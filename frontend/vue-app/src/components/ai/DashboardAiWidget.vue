@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import { useSSE } from '@/composables/useSSE';
 import UiDrawer from '@/components/ui/UiDrawer.vue';
+import UiFab from '@/components/ui/UiFab.vue';
 import UiTimeline, { type UiTimelineItem } from '@/components/ui/UiTimeline.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 
@@ -29,7 +30,7 @@ function toneOf(type: string): UiTimelineItem['tone'] {
     case 'execution_end':
     case 'approval_result': return 'ok';
     case 'stream_error': return 'danger';
-    default: return 'neutral';
+    default: return 'mute';
   }
 }
 
@@ -86,19 +87,21 @@ function toTimeline(eventsList: EventItem[]): UiTimelineItem[] {
 </script>
 
 <template>
-  <button
-    type="button"
+  <UiFab
     class="ai-widget-fab"
-    aria-label="管理员 AI 事件"
+    label="管理员 AI 事件"
+    :count="unreadCount"
     @click="open = true"
   >
     <SvgIcon src="/frontend/icons/ai.svg" :size="22" />
-    <span v-if="unreadCount > 0" class="ai-widget-badge">
-      {{ unreadCount > 99 ? '99+' : unreadCount }}
-    </span>
-  </button>
+  </UiFab>
 
-  <UiDrawer :open="open" title="管理员 AI 助手" :width="420" @close="open = false">
+  <UiDrawer
+    :open="open"
+    title="管理员 AI 助手"
+    :width="420"
+    @close="open = false"
+  >
     <p class="ai-widget-count">
       事件 {{ events.length }}
     </p>
@@ -110,53 +113,22 @@ function toTimeline(eventsList: EventItem[]): UiTimelineItem[] {
 </template>
 
 <style scoped>
+/* 形归 UiFab；这里只给它在页角的落点 */
 .ai-widget-fab {
   position: fixed;
-  right: 20px;
+  right: var(--s5);
   bottom: 72px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: var(--act);
-  color: var(--act-on);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  z-index: 9000;
-}
-
-.ai-widget-fab:focus-visible {
-  outline: 2px solid var(--act);
-  outline-offset: 2px;
-}
-
-.ai-widget-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--danger);
-  color: #fff;
-  font-size: 11px;
-  line-height: 18px;
-  text-align: center;
-  box-sizing: border-box;
+  z-index: var(--z-dock);
 }
 
 .ai-widget-count {
-  margin: 0 0 12px;
+  margin: 0 0 var(--s3);
   font-size: var(--fs-label);
   color: var(--ink-subtle);
 }
 
 .ai-widget-empty {
-  margin-top: 24px;
+  margin-top: var(--s4);
   text-align: center;
   font-size: var(--fs-body);
   color: var(--ink-muted);

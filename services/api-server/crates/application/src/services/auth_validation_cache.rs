@@ -1,7 +1,7 @@
 use lru::LruCache;
 use std::num::NonZeroUsize;
+use std::sync::RwLock;
 use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
 
 const DEFAULT_FRESHNESS_CACHE_TTL_MS: u64 = 2000;
 const DEFAULT_PERMISSION_CACHE_TTL_MS: u64 = 2000;
@@ -54,14 +54,11 @@ impl AuthValidationCache {
 
     pub async fn get_cached_freshness(&self, user_id: &str, session_key: &str) -> Option<bool> {
         let cache_key = format!("{}:{}", user_id, session_key);
-        let mut cache = self.freshness_cache.write().await;
-        if let Some(entry) = cache.get(&cache_key) {
-            if entry.is_valid() {
-                return Some(entry.value);
-            }
-            cache.pop(&cache_key);
+        let cache = self.freshness_cache.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+        match cache.peek(&cache_key) {
+            Some(entry) if entry.is_valid() => Some(entry.value),
+            _ => None,
         }
-        None
     }
 
     pub async fn set_cached_freshness(&self, user_id: &str, session_key: &str, valid: bool) {
@@ -69,7 +66,7 @@ impl AuthValidationCache {
             return;
         }
         let cache_key = format!("{}:{}", user_id, session_key);
-        let mut cache = self.freshness_cache.write().await;
+        let mut cache = self.freshness_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
         put_with_expiration_guard(
             &mut cache,
             cache_key,
@@ -81,7 +78,7 @@ impl AuthValidationCache {
     }
 
     pub async fn invalidate_freshness(&self, user_id: &str) {
-        let mut cache = self.freshness_cache.write().await;
+        let mut cache = self.freshness_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
         let prefix = format!("{}:", user_id);
         let keys: Vec<String> = cache
             .iter()
@@ -95,14 +92,11 @@ impl AuthValidationCache {
 
     pub async fn get_cached_permission(&self, user_id: &str, permission_version: i64) -> Option<bool> {
         let key = format!("{}:{}", user_id, permission_version);
-        let mut cache = self.permission_cache.write().await;
-        if let Some(entry) = cache.get(&key) {
-            if entry.is_valid() {
-                return Some(entry.value);
-            }
-            cache.pop(&key);
+        let cache = self.permission_cache.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+        match cache.peek(&key) {
+            Some(entry) if entry.is_valid() => Some(entry.value),
+            _ => None,
         }
-        None
     }
 
     pub async fn set_cached_permission(&self, user_id: &str, permission_version: i64, valid: bool) {
@@ -110,7 +104,7 @@ impl AuthValidationCache {
             return;
         }
         let key = format!("{}:{}", user_id, permission_version);
-        let mut cache = self.permission_cache.write().await;
+        let mut cache = self.permission_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
         put_with_expiration_guard(
             &mut cache,
             key,
@@ -122,7 +116,7 @@ impl AuthValidationCache {
     }
 
     pub async fn invalidate_permission(&self, user_id: &str) {
-        let mut cache = self.permission_cache.write().await;
+        let mut cache = self.permission_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
         let prefix = format!("{}:", user_id);
         let keys: Vec<String> = cache
             .iter()
@@ -260,7 +254,7 @@ mod tests {
         let cache = make_cache(3, 5000, 5000);
         let now = Instant::now();
         {
-            let mut freshness_cache = cache.freshness_cache.write().await;
+            let mut freshness_cache = cache.freshness_cache.write().unwrap();
             freshness_cache.put(
                 "expired:s1".to_string(),
                 CacheEntry {
@@ -303,5 +297,24 @@ mod tests {
         assert_eq!(cache.get_cached_permission("user1", 1).await, None);
         assert_eq!(cache.get_cached_permission("user2", 1).await, Some(true));
         assert_eq!(cache.get_cached_permission("user3", 1).await, Some(true));
+    }
+
+    #[tokio::test]
+    async fn concurrent_hits_share_read_lock() {
+        let cache = std::sync::Arc::new(make_cache(1000, 5000, 5000));
+        cache.set_cached_freshness("user1", "s1", true).await;
+        cache.set_cached_permission("user1", 1, true).await;
+
+        let mut joins = Vec::new();
+        for _ in 0..32 {
+            let cache = std::sync::Arc::clone(&cache);
+            joins.push(tokio::spawn(async move {
+                assert_eq!(cache.get_cached_freshness("user1", "s1").await, Some(true));
+                assert_eq!(cache.get_cached_permission("user1", 1).await, Some(true));
+            }));
+        }
+        for join in joins {
+            join.await.unwrap();
+        }
     }
 }

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import UiSkeleton from './UiSkeleton.vue';
+
+/** 航班卡的骨架：与卡的最终版同构（声胶囊 / 航线 / 两个时刻 / 脚）。
+    砖与洗光都来自 UiSkeleton，这里只负责摆位。 */
 const props = defineProps<{
   count?: number;
 }>();
@@ -9,108 +13,71 @@ const repeatCount = Math.max(1, props.count ?? 1);
   <div
     v-for="i in repeatCount"
     :key="i"
-    class="skeleton-card"
+    class="sk-card"
     role="status"
     aria-label="加载中"
+    aria-busy="true"
     aria-live="polite"
   >
-    <div class="skeleton-header">
-      <div class="skeleton-pill skeleton-shimmer" style="width: 64px; height: 22px;" />
-      <div class="skeleton-pill skeleton-shimmer" style="width: 48px; height: 22px; margin-left: auto;" />
+    <div class="sk-card__head">
+      <UiSkeleton shape="pill" width="64px" />
+      <UiSkeleton shape="pill" width="48px" />
     </div>
-    <div class="skeleton-route skeleton-shimmer" style="width: 70%; height: 18px; margin-top: 12px;" />
-    <div class="skeleton-meta skeleton-shimmer" style="width: 50%; height: 14px; margin-top: 8px;" />
-    <div class="skeleton-times">
-      <div class="skeleton-time-block">
-        <div class="skeleton-shimmer" style="width: 32px; height: 11px;" />
-        <div class="skeleton-shimmer" style="width: 56px; height: 20px; margin-top: 4px;" />
-      </div>
-      <div class="skeleton-time-block">
-        <div class="skeleton-shimmer" style="width: 32px; height: 11px;" />
-        <div class="skeleton-shimmer" style="width: 56px; height: 20px; margin-top: 4px;" />
+    <UiSkeleton width="70%" height="18px" />
+    <UiSkeleton width="50%" />
+    <div class="sk-card__times">
+      <div v-for="t in 2" :key="t" class="sk-card__time">
+        <UiSkeleton width="32px" height="11px" />
+        <UiSkeleton width="56px" height="20px" />
       </div>
     </div>
-    <div class="skeleton-footer">
-      <div class="skeleton-shimmer" style="width: 80px; height: 14px;" />
-      <div class="skeleton-shimmer" style="width: 60px; height: 14px;" />
+    <div class="sk-card__foot">
+      <UiSkeleton width="80px" />
+      <UiSkeleton width="60px" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.skeleton-card {
-  background: linear-gradient(145deg, var(--bg-card) 0%, var(--ws-surface-muted) 100%);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 10px;
+.sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3);
+  margin-bottom: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--face-work);
   contain: layout style paint;
 }
 
-.skeleton-header {
+.sk-card__head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: var(--s2);
 }
 
-.skeleton-pill {
-  border-radius: 999px;
-}
-
-.skeleton-route {
-  border-radius: 6px;
-}
-
-.skeleton-meta {
-  border-radius: 4px;
-}
-
-.skeleton-times {
+.sk-card__times {
   display: flex;
   justify-content: space-between;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-light);
+  gap: var(--s2);
+  margin-top: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
 }
 
-.skeleton-time-block {
+.sk-card__time {
   display: flex;
   flex-direction: column;
+  gap: var(--s1);
 }
 
-.skeleton-footer {
+.sk-card__foot {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-light);
-}
-
-.skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.06) 25%,
-    rgba(0, 0, 0, 0.10) 50%,
-    rgba(0, 0, 0, 0.06) 75%
-  );
-  background-size: 200% 100%;
-  border-radius: 4px;
-  animation: skeleton-shimmer 1.6s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer {
-    animation: none;
-    background: rgba(0, 0, 0, 0.08);
-  }
-}
-
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  gap: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--line);
 }
 </style>

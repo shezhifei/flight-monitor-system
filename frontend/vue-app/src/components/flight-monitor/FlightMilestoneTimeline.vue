@@ -16,6 +16,8 @@
 import { computed, inject, nextTick, ref, onMounted, onUnmounted, watch } from 'vue';
 import * as echarts from 'echarts';
 import { useTheme } from '@/composables/useTheme';
+import { alpha, useSignalTokens } from '@/composables/useSignalTokens';
+import { useChartTheme } from '@/composables/useChartTheme';
 import { toSortableTimestamp } from '@/composables/useFlightFilter';
 import { flightBusinessCaseKey } from '@/composables/useFlightBusinessCases';
 import type { BusinessCaseSummary } from '@/types/backend';
@@ -37,43 +39,50 @@ let resizeObserver: ResizeObserver | null = null;
 let observedElement: HTMLElement | null = null;
 let renderFrame = 0;
 
-const TIME_NODE_CONFIG = [
-  { field: 'scheduled_arrival', label: '计划到达', color: '#007AFF' },
-  { field: 'actual_arrival', label: '实际到达', color: '#34C759' },
-  { field: 'on_blocks_time', label: '上轮挡', color: '#FF9500' },
-  { field: 'cabin_door_open_time', label: '开舱门', color: '#5856D6' },
-  { field: 'deboarding_complete_time', label: '下客完成', color: '#FF2D55' },
-  { field: 'cleaning_start_time', label: '清洁开始', color: '#AF52DE' },
-  { field: 'cleaning_end_time', label: '清洁结束', color: '#FF9500' },
-  { field: 'cabin_door_close_time', label: '关客舱门', color: '#5856D6' },
-  { field: 'cargo_door_close_time', label: '关货舱门', color: '#007AFF' },
-  { field: 'loading_complete_time', label: '装载完成', color: '#34C759' },
-  { field: 'boarding_allowed_time', label: '允许登机', color: '#FF9500' },
-  { field: 'start_boarding_time', label: '开始登机', color: '#FFCC00' },
-  { field: 'passenger_ready_time', label: '人齐', color: '#34C759' },
-  { field: 'end_boarding_time', label: '结束登机', color: '#5856D6' },
-  { field: 'off_blocks_time', label: '撤轮挡', color: '#FF9500' },
-  { field: 'scheduled_departure', label: '计划起飞', color: '#007AFF' },
-  { field: 'actual_departure', label: '实际起飞', color: '#34C759' }
+/**
+ * 时间刻（信号面 §2.3）：以前每个里程碑挂一个 Apple 系统色，17 个节点 17 种颜色 ——
+ * 颜色不说话，只是装饰，而且和事态抢声。这里只留数据里真有的那一条区分：
+ * `scheduled_*` 是计划（静，参考线），其余是观测到的实际（行动色）。
+ * 节点靠标签认，不靠颜色认。
+ */
+type NodeKind = 'plan' | 'actual';
+
+const TIME_NODE_CONFIG: { field: string; label: string; kind: NodeKind }[] = [
+  { field: 'scheduled_arrival', label: '计划到达', kind: 'plan' },
+  { field: 'actual_arrival', label: '实际到达', kind: 'actual' },
+  { field: 'on_blocks_time', label: '上轮挡', kind: 'actual' },
+  { field: 'cabin_door_open_time', label: '开舱门', kind: 'actual' },
+  { field: 'deboarding_complete_time', label: '下客完成', kind: 'actual' },
+  { field: 'cleaning_start_time', label: '清洁开始', kind: 'actual' },
+  { field: 'cleaning_end_time', label: '清洁结束', kind: 'actual' },
+  { field: 'cabin_door_close_time', label: '关客舱门', kind: 'actual' },
+  { field: 'cargo_door_close_time', label: '关货舱门', kind: 'actual' },
+  { field: 'loading_complete_time', label: '装载完成', kind: 'actual' },
+  { field: 'boarding_allowed_time', label: '允许登机', kind: 'actual' },
+  { field: 'start_boarding_time', label: '开始登机', kind: 'actual' },
+  { field: 'passenger_ready_time', label: '人齐', kind: 'actual' },
+  { field: 'end_boarding_time', label: '结束登机', kind: 'actual' },
+  { field: 'off_blocks_time', label: '撤轮挡', kind: 'actual' },
+  { field: 'scheduled_departure', label: '计划起飞', kind: 'plan' },
+  { field: 'actual_departure', label: '实际起飞', kind: 'actual' },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  INITIAL: '#8E8E93',
-  PENDING: '#FF9500',
-  PROCESSING: '#5856D6',
-  SUCCESS: '#34C759',
-  COMPLETED: '#34C759',
-  FAILED: '#FF3B30',
+/** 业务事项状态 → 四声。声只表事态，不表种类。 */
+const CASE_TONE: Record<string, 'mute' | 'act' | 'ok' | 'warn' | 'danger'> = {
+  INITIAL: 'mute',
+  PENDING: 'warn',
+  PROCESSING: 'act',
+  SUCCESS: 'ok',
+  COMPLETED: 'ok',
+  FAILED: 'danger',
 };
 
 const FLIGHT_STATUS_LANE = '航班状态转换';
-/** Canvas text does not inherit CSS — pass MiSans explicitly into ECharts. */
-const CHART_FONT_FAMILY = 'MiSans, "PingFang SC", "Microsoft YaHei", sans-serif';
 
 interface TimeNode {
   field: string;
   label: string;
-  color: string;
+  kind: NodeKind;
   timestamp: number;
 }
 
@@ -85,9 +94,47 @@ type GanttRaw =
 interface GanttItem {
   name: string;
   value: [number, number, number];
-  itemStyle: { color: string };
+  /** 面：段=常态脊线洗底，刻=静/行动，事项=四声 */
+  fill: string;
+  /** 字：透明洗底上用墨，实色声上用反墨 */
+  textFill: string;
+  /** 段与计划刻是参考，压一档不透明度 */
+  quiet: boolean;
   raw: GanttRaw;
 }
+
+const { tokens } = useSignalTokens();
+const { chartBase } = useChartTheme();
+
+/** 画布取声：token 真值现读，主题一换整块重算（见 useSignalTokens） */
+const paint = computed(() => {
+  const t = tokens.value;
+  return {
+    /** 状态段：常态脊线，只是「这段时间过去了」，不该有声 */
+    spine: alpha(t.ink, 0.1),
+    spineText: t.ink,
+    /** 计划刻：静，参考用 */
+    plan: alpha(t['ink-subtle'], 0.28),
+    planText: t.ink,
+    /** 实际刻：行动色，实底 */
+    actual: t.act,
+    actualText: t['ink-inverse'],
+    /** 事项四声 */
+    tone: {
+      mute: t['ink-muted'],
+      act: t.act,
+      ok: t.ok,
+      warn: t.warn,
+      danger: t.danger,
+    },
+    toneText: t['ink-inverse'],
+    /** 条边与此刻线（骨架其余部分见 chartBase） */
+    stroke: alpha(t.ink, 0.22),
+    now: t.danger,
+    nowBg: alpha(t.danger, 0.12),
+    nowLine: alpha(t.danger, 0.35),
+  };
+});
 
 const timeNodes = computed<TimeNode[]>(() => {
   if (!props.flight) return [];
@@ -140,21 +187,27 @@ const timeRange = computed(() => {
 const seriesData = computed<GanttItem[]>(() => {
   const items: GanttItem[] = [];
   const nodes = timeNodes.value;
+  const c = paint.value;
 
   for (let i = 0; i < nodes.length - 1; i++) {
     items.push({
       name: `${nodes[i].label} → ${nodes[i + 1].label}`,
       value: [nodes[i].timestamp, nodes[i + 1].timestamp, 0],
-      itemStyle: { color: nodes[i].color },
+      fill: c.spine,
+      textFill: c.spineText,
+      quiet: true,
       raw: { type: 'flight_status', from: nodes[i].label, to: nodes[i + 1].label, fromTime: nodes[i].timestamp, toTime: nodes[i + 1].timestamp },
     });
   }
 
   nodes.forEach((node) => {
+    const isPlan = node.kind === 'plan';
     items.push({
       name: node.label,
       value: [node.timestamp - 60000, node.timestamp + 60000, 0],
-      itemStyle: { color: node.color },
+      fill: isPlan ? c.plan : c.actual,
+      textFill: isPlan ? c.planText : c.actualText,
+      quiet: isPlan,
       raw: { type: 'time_node', label: node.label, time: node.timestamp },
     });
   });
@@ -168,7 +221,9 @@ const seriesData = computed<GanttItem[]>(() => {
     items.push({
       name,
       value: [start, end, index + 1],
-      itemStyle: { color: STATUS_COLORS[normalizeCaseStatusValue(c.status)] || '#8E8E93' },
+      fill: paint.value.tone[CASE_TONE[normalizeCaseStatusValue(c.status)] ?? 'mute'],
+      textFill: paint.value.toneText,
+      quiet: false,
       raw: {
         type: 'business_case',
         caseId: String(c.case_id || ''),
@@ -225,7 +280,7 @@ function scheduleRender(): void {
   });
 }
 
-const { isDark, theme } = useTheme();
+const { theme } = useTheme();
 watch(theme, () => {
   chartInstance?.dispose();
   chartInstance = null;
@@ -235,19 +290,19 @@ watch(theme, () => {
 function buildTooltip(raw: GanttRaw): string {
   if (raw.type === 'flight_status') {
     return `
-      <div style="font-weight:700;margin-bottom:4px;">${FLIGHT_STATUS_LANE}</div>
+      <div class="gantt-tip__title">${FLIGHT_STATUS_LANE}</div>
       <div>${raw.from} → ${raw.to}</div>
       <div>时间: ${formatTooltipTime(raw.fromTime)} - ${formatTooltipTime(raw.toTime)}</div>
     `;
   }
   if (raw.type === 'time_node') {
     return `
-      <div style="font-weight:700;margin-bottom:4px;">${raw.label}</div>
+      <div class="gantt-tip__title">${raw.label}</div>
       <div>时间: ${formatTooltipTime(raw.time)}</div>
     `;
   }
   return `
-    <div style="font-weight:700;margin-bottom:4px;">${raw.name}</div>
+    <div class="gantt-tip__title">${raw.name}</div>
     <div>状态: ${raw.status}</div>
     <div>创建时间: ${formatTooltipTime(raw.createdAt)}</div>
     ${raw.finishedAt ? `<div>完成时间: ${formatTooltipTime(raw.finishedAt)}</div>` : ''}
@@ -263,7 +318,8 @@ async function renderChart(): Promise<void> {
   observeChartContainer(element);
   if (!hasChartSize(element)) return;
   if (!chartInstance) {
-    chartInstance = echarts.init(element, isDark() ? 'dark' : null, { renderer: 'canvas' });
+    // 不用 echarts 内建 dark 主题：明暗全由 token 现算，见 paint
+    chartInstance = echarts.init(element, null, { renderer: 'canvas' });
   }
 
   const items = seriesData.value;
@@ -272,12 +328,9 @@ async function renderChart(): Promise<void> {
     return;
   }
 
-  const dark = isDark();
-  const axisLabelColor = dark ? 'rgba(159, 179, 200, 0.85)' : '#5f7082';
-  const axisLineColor = dark ? 'rgba(159, 179, 200, 0.45)' : '#8a97a8';
-  const yAxisLabelColor = dark ? '#c7d5e5' : '#33485f';
-  const splitLineColor = dark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(15, 23, 42, 0.08)';
-  const barStrokeColor = dark ? 'rgba(226, 232, 240, 0.25)' : 'rgba(15, 23, 42, 0.22)';
+  const c = paint.value;
+  const base = chartBase.value;
+  const font = base.fontFamily;
 
   // Fit Y-axis gutter to longest label (was fixed 140px → large blank when only short lanes).
   const longestLabelChars = yAxisData.value.reduce((max, label) => {
@@ -289,19 +342,10 @@ async function renderChart(): Promise<void> {
 
   const option = {
     animation: false,
-    backgroundColor: 'transparent',
-    textStyle: {
-      fontFamily: CHART_FONT_FAMILY,
-    },
+    ...base.root,
     tooltip: {
+      ...base.tooltip,
       trigger: 'item',
-      confine: true,
-      borderWidth: 1,
-      borderColor: 'rgba(15, 23, 42, 0.1)',
-      textStyle: {
-        fontFamily: CHART_FONT_FAMILY,
-        fontSize: 12,
-      },
       formatter: function (params: Record<string, unknown>) {
         const dataItem = items[params.dataIndex as number];
         if (!dataItem) return '';
@@ -313,27 +357,19 @@ async function renderChart(): Promise<void> {
       type: 'time',
       min: timeRange.value.min,
       max: timeRange.value.max,
-      axisLine: { lineStyle: { color: axisLineColor } },
+      ...base.axis,
       axisLabel: {
-        color: axisLabelColor,
-        fontSize: 11,
-        fontFamily: CHART_FONT_FAMILY,
-        hideOverlap: true,
+        ...base.axis.axisLabel,
         formatter: (value: number) => formatAxisTime(value),
       },
-      splitLine: { lineStyle: { color: splitLineColor, type: 'dashed' } }
     },
     yAxis: {
       type: 'category',
       inverse: true,
       data: yAxisData.value,
-      axisTick: { show: false },
-      axisLine: { show: false },
+      ...base.laneAxis,
       axisLabel: {
-        color: yAxisLabelColor,
-        fontSize: 12,
-        fontFamily: CHART_FONT_FAMILY,
-        fontWeight: 500,
+        ...base.laneAxis.axisLabel,
         width: yLabelWidth,
         overflow: 'truncate',
         margin: 8,
@@ -352,9 +388,7 @@ async function renderChart(): Promise<void> {
         xAxisIndex: 0,
         bottom: 8,
         height: 12,
-        borderColor: 'rgba(15, 23, 42, 0.12)',
-        backgroundColor: dark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(255,255,255,0.74)',
-        fillerColor: 'rgba(11,119,227,0.2)',
+        ...base.zoom,
         showDetail: false
       }
     ],
@@ -383,8 +417,6 @@ async function renderChart(): Promise<void> {
 
         if (!clippedRect) return null;
 
-        const isTimeNode = dataItem.raw.type === 'time_node';
-
         return {
           type: 'group',
           children: [
@@ -392,10 +424,10 @@ async function renderChart(): Promise<void> {
               type: 'rect',
               shape: { ...clippedRect, r: 4 },
               style: {
-                fill: dataItem.itemStyle.color,
-                stroke: barStrokeColor,
+                fill: dataItem.fill,
+                stroke: c.stroke,
                 lineWidth: 1,
-                opacity: isTimeNode ? 0.6 : 0.9
+                opacity: dataItem.quiet ? 0.85 : 1
               }
             },
             {
@@ -405,11 +437,11 @@ async function renderChart(): Promise<void> {
                 y: clippedRect.y + clippedRect.height / 2,
                 text: clippedRect.width > 60 ? dataItem.name : '',
                 verticalAlign: 'middle',
-                fill: '#ffffff',
-                font: `500 11px ${CHART_FONT_FAMILY}`,
+                fill: dataItem.textFill,
+                font: `500 11px ${font}`,
                 fontSize: 11,
                 fontWeight: 500,
-                fontFamily: CHART_FONT_FAMILY,
+                fontFamily: font,
                 width: Math.max(20, clippedRect.width - 10),
                 overflow: 'truncate'
               },
@@ -423,15 +455,15 @@ async function renderChart(): Promise<void> {
       markLine: {
         symbol: ['none', 'none'],
         silent: true,
-        lineStyle: { color: '#FF3B30', width: 1, type: 'dashed' },
+        lineStyle: { color: c.now, width: 1, type: 'dashed' },
         label: {
           show: true,
           formatter: '现在',
-          color: '#FF3B30',
+          color: c.now,
           fontWeight: 600,
-          fontFamily: CHART_FONT_FAMILY,
-          backgroundColor: 'rgba(255, 59, 48, 0.12)',
-          borderColor: 'rgba(255, 59, 48, 0.35)',
+          fontFamily: font,
+          backgroundColor: c.nowBg,
+          borderColor: c.nowLine,
           borderWidth: 1,
           borderRadius: 4,
           padding: [2, 6]
@@ -506,9 +538,14 @@ watch(() => caseCtx?.caseFilter.value, () => {
   min-height: 0;
 }
 
+.gantt-chart-container :deep(.gantt-tip__title) {
+  font-weight: var(--fw-semibold);
+  margin-bottom: var(--s1);
+}
+
 .timeline-empty {
-  color: var(--text-secondary, #546E7A);
-  font-size: 13px;
+  color: var(--ink-muted);
+  font-size: var(--fs-body);
   text-align: center;
   padding: 40px 0;
 }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import UiButton from '../../../components/ui/UiButton.vue';
+import UiPill from '../../../components/ui/UiPill.vue';
 import type { AudioLogEntry } from '../composables/useAiConfigCenter';
 
 defineProps<{
@@ -15,6 +17,19 @@ const emit = defineEmits<{
   sendSelectedChunk: [];
   sendEnd: [];
 }>();
+
+type AudioStatus = 'idle' | 'connecting' | 'connected' | 'closed' | 'error';
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+/* 会话状态 → 四声：已连=ok，连接中=act，异常=danger，其余=mute */
+function statusTone(status: AudioStatus): PillTone {
+  switch (status) {
+    case 'connected': return 'ok';
+    case 'connecting': return 'act';
+    case 'error': return 'danger';
+    default: return 'mute';
+  }
+}
 </script>
 
 <template>
@@ -24,7 +39,9 @@ const emit = defineEmits<{
   >
     <div class="audio-panel-header">
       <h4>实时音频测试</h4>
-      <span class="audio-status-badge" :data-status="audioStatus">{{ audioStatus }}</span>
+      <UiPill :tone="statusTone(audioStatus)">
+        {{ audioStatus }}
+      </UiPill>
     </div>
     <div class="audio-panel-actions">
       <input
@@ -34,38 +51,34 @@ const emit = defineEmits<{
         :disabled="audioStatus === 'connecting'"
         @change="emit('handleFile', $event)"
       >
-      <button
-        type="button"
-        class="btn btn-sm btn-secondary"
+      <UiButton
+        variant="ghost"
         :disabled="audioStatus === 'connecting' || audioStatus === 'connected'"
         @click="emit('connect')"
       >
         连接
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-secondary"
+      </UiButton>
+      <UiButton
+        variant="ghost"
         :disabled="audioStatus !== 'connected' && audioStatus !== 'connecting'"
         @click="emit('disconnect')"
       >
         断开
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-secondary"
+      </UiButton>
+      <UiButton
+        variant="ghost"
         :disabled="audioStatus !== 'connected' || !audioSelectedFile"
         @click="emit('sendSelectedChunk')"
       >
         发送音频
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-secondary"
+      </UiButton>
+      <UiButton
+        variant="ghost"
         :disabled="audioStatus !== 'connected'"
         @click="emit('sendEnd')"
       >
         结束音频
-      </button>
+      </UiButton>
     </div>
     <div v-if="audioError" class="audio-panel-error">
       {{ audioError }}

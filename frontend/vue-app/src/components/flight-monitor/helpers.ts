@@ -1,6 +1,5 @@
 import { ref } from 'vue';
 import {
-  EMPTY_DISPLAY_TEXT,
   formatMissionLabel,
   formatTimeValue,
   getAirportDisplayValue,
@@ -83,12 +82,34 @@ export function normalizeStatusToken(status: unknown): string {
   return 'scheduled';
 }
 
-export function getStatusClassName(status: unknown): string {
-  return `status-${normalizeStatusToken(status)}`;
-}
-
 export function getStatusRowClassName(status: unknown): string {
   return `row-${normalizeStatusToken(status)}`;
+}
+
+/**
+ * 状态 -> 四声（信号面 §2.4：声是唯一色相出口）。
+ * 唯一出口：状态只经这里换成声，再交给 UiPill 上色。
+ * 页里那套 .status-* class 已经退役——不要再按状态名往 markup 上挂 class。
+ * mute 是常态（计划中、登机已结束），不是「没查到」。
+ */
+export function getStatusTone(status: unknown): 'act' | 'ok' | 'warn' | 'danger' | 'mute' {
+  switch (normalizeStatusToken(status)) {
+    case 'cancelled':
+      return 'danger';
+    case 'delayed':
+    case 'boarding-urge':
+    case 'checkin-end':
+      return 'warn';
+    case 'departed':
+    case 'arrived':
+    case 'next-arrived':
+      return 'ok';
+    case 'boarding':
+    case 'prev-departed':
+      return 'act';
+    default:
+      return 'mute';
+  }
 }
 
 export function deriveOperationDateLabel(flight: Flight): string {
@@ -105,7 +126,7 @@ export function deriveOperationDateLabel(flight: Flight): string {
       return date.toLocaleDateString('zh-CN');
     }
   }
-  return '--';
+  return '—';
 }
 
 export function getFlightNumbers(flight: Flight): { inbound: string; outbound: string; combined: string } {
@@ -115,7 +136,7 @@ export function getFlightNumbers(flight: Flight): { inbound: string; outbound: s
   return {
     inbound,
     outbound,
-    combined: getFlightNumberDisplay(model) || EMPTY_DISPLAY_TEXT,
+    combined: getFlightNumberDisplay(model) || '—',
   };
 }
 
@@ -164,15 +185,15 @@ export function getFlightEndpoints(
     destination = getRouteEndpoint(model, 'outbound', fieldMode) || airport;
   } else if (hasInbound) {
     // 仅进港：来源 → 本站
-    origin = getRouteEndpoint(model, 'inbound', fieldMode) || '--';
+    origin = getRouteEndpoint(model, 'inbound', fieldMode) || '—';
     destination = airport;
   } else {
     // 仅出港：本站 → 目的
     origin = airport;
-    destination = getRouteEndpoint(model, 'outbound', fieldMode) || '--';
+    destination = getRouteEndpoint(model, 'outbound', fieldMode) || '—';
   }
 
-  return { origin: origin || '--', airport, destination: destination || '--', hasInbound, hasOutbound };
+  return { origin: origin || '—', airport, destination: destination || '—', hasInbound, hasOutbound };
 }
 
 export function getTimeDisplay(flight: Flight, kind: 'arrival' | 'departure'): TimeDisplay {
@@ -195,15 +216,15 @@ export function getTimeDisplay(flight: Flight, kind: 'arrival' | 'departure'): T
     }
   }
 
-  return { value: EMPTY_DISPLAY_TEXT, tone: 'scheduled' };
+  return { value: '—', tone: 'scheduled' };
 }
 
 /**
  * Raw time field formatted as HH:MM (legacy FIELD_MAP time columns),
- * `--` when empty. Uses the preprocessed `_fmt` cache when available.
+ * `—` when empty. Uses the preprocessed `_fmt` cache when available.
  */
 export function getTimeFieldDisplay(flight: Flight, field: string): string {
-  return getFormattedField(flight, field) || EMPTY_DISPLAY_TEXT;
+  return getFormattedField(flight, field) || '—';
 }
 
 /** Raw (unformatted) value of a time field, '' when empty. */
@@ -214,7 +235,7 @@ export function getTimeFieldRawValue(flight: Flight, field: string): string {
 
 /** 属性 column (legacy FIELD_MAP `flight_type`). */
 export function getFlightTypeColumnDisplay(flight: Flight): string {
-  return getFlightTypeSummary(asFlightModel(flight)) || EMPTY_DISPLAY_TEXT;
+  return getFlightTypeSummary(asFlightModel(flight)) || '—';
 }
 
 export function getTimeToneClass(tone: TimeTone): string {
@@ -228,7 +249,7 @@ export function getMissionDisplay(flight: Flight): string {
   return getMissionSummary(model)
     || formatMissionLabel(model.outbound_leg?.mission)
     || formatMissionLabel(model.inbound_leg?.mission)
-    || EMPTY_DISPLAY_TEXT;
+    || '—';
 }
 
 export function getFlightTypeDisplay(flight: Flight): string {
@@ -246,11 +267,11 @@ export function getAircraftBodyLabel(flight: Flight): string {
 
 export function getStandGateDisplay(flight: Flight): string {
   const stand = String(flight?.stand ?? '').trim();
-  const standDisplay = stand ? stand : '--';
+  const standDisplay = stand ? stand : '—';
   
   if (flight?.outbound_leg) {
     const gate = String(flight?.gate ?? '').trim();
-    const gateDisplay = gate ? gate : '--';
+    const gateDisplay = gate ? gate : '—';
     return `机位 ${standDisplay} / 登机口 ${gateDisplay}`;
   }
   return `机位 ${standDisplay}`;
@@ -270,11 +291,11 @@ export function getFlightNumberStyleClass(flight: Flight, legType: 'inbound' | '
 }
 
 export function getCommercialSignedLabel(flight: Flight): string {
-  return normalizeSignedFlag(flight?.is_commercial_signed) ? '已签约' : '--';
+  return normalizeSignedFlag(flight?.is_commercial_signed) ? '已签约' : '—';
 }
 
 export function getVipLabel(flight: Flight): string {
-  return hasVipMarker(asFlightModel(flight)) ? 'VIP' : '--';
+  return hasVipMarker(asFlightModel(flight)) ? 'VIP' : '—';
 }
 
 export function getAnomalySeverity(flight: Flight): 'high' | 'medium' | 'low' {

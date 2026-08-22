@@ -6,6 +6,12 @@ import type {
   WorkflowFormUiSchemaField,
   WorkflowFormUiSchemaObject,
 } from '../../types/backend';
+import UiBanner from '../ui/UiBanner.vue';
+import UiButton from '../ui/UiButton.vue';
+import UiCheckChip from '../ui/UiCheckChip.vue';
+import UiFacts, { type Fact } from '../ui/UiFacts.vue';
+import UiField from '../ui/UiField.vue';
+import UiSelect from '../ui/UiSelect.vue';
 
 type PrimitiveOptionValue = string | number | boolean;
 type FieldKind =
@@ -123,6 +129,13 @@ const readonlyEntries = computed(() => {
       options: [] as FieldOption[],
     }));
 });
+
+/** 只读态就是一叠属性：名值对只此一套配方（§3.2）。时刻用等宽（§2.4）。 */
+const readonlyFacts = computed<Fact[]>(() => readonlyEntries.value.map((entry) => ({
+  label: entry.label,
+  value: formatReadonlyValue(entry.kind, entry.value, entry.options),
+  mono: entry.kind === 'date-time',
+})));
 
 watch(
   () => [props.schema, props.initialValue, props.uiSchema],
@@ -360,6 +373,29 @@ function getTextLikeValue(key: string): string {
   return typeof value === 'string' ? value : value === null || value === undefined ? '' : String(value);
 }
 
+/** 空值那一条必须真的在 options 里：UiSelect 的兜底会拿第一条顶上来（§4.22）。 */
+function singleSelectOptions(field: ResolvedField): { value: string; label: string }[] {
+  return [
+    { value: '', label: '请选择' },
+    ...field.options.map((option) => ({ value: option.serialized, label: option.label })),
+  ];
+}
+
+/** 裸控件才能给 UiField 传 for-id；button/芯片组不是 labelable（UiSelect 说明第 3 点）。 */
+function fieldControlId(field: ResolvedField): string | undefined {
+  if (
+    field.kind === 'textarea'
+    || field.kind === 'text'
+    || field.kind === 'integer'
+    || field.kind === 'number'
+    || field.kind === 'boolean'
+    || field.kind === 'date-time'
+  ) {
+    return `workflow-form-${field.key}`;
+  }
+  return undefined;
+}
+
 function getCheckboxValue(key: string): boolean {
   return Boolean(formState[key]);
 }
@@ -369,12 +405,12 @@ function getMultiSelectValue(key: string): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
-function onMultiSelectChange(key: string, event: Event): void {
-  const target = event.target as HTMLSelectElement | null;
-  updateFieldValue(
-    key,
-    target ? Array.from(target.selectedOptions).map((option) => option.value) : [],
-  );
+function toggleMultiSelect(key: string, serialized: string, checked: boolean): void {
+  const current = getMultiSelectValue(key);
+  const next = checked
+    ? (current.includes(serialized) ? current : [...current, serialized])
+    : current.filter((item) => item !== serialized);
+  updateFieldValue(key, next);
 }
 
 function onSubmit(): void {
@@ -388,7 +424,7 @@ function onSubmit(): void {
 
 function formatDateTimeDisplay(value: unknown): string {
   if (typeof value !== 'string' || !value.trim()) {
-    return '--';
+    return '';
   }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -409,7 +445,7 @@ function hasDisplayValue(value: unknown): boolean {
 
 function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOption[]): string {
   if (value === null || value === undefined) {
-    return '--';
+    return '';
   }
   if (kind === 'boolean') {
     return value ? '是' : '否';
@@ -417,7 +453,7 @@ function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOpti
   if (kind === 'multi-select' && Array.isArray(value)) {
     return value
       .map((item) => options.find((option) => option.value === item)?.label || String(item))
-      .join(' / ') || '--';
+      .join(' / ') || '';
   }
   if (kind === 'single-select') {
     return options.find((option) => option.value === value)?.label || String(value);
@@ -438,41 +474,26 @@ function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOpti
 <template>
   <div class="workflow-form">
     <div v-if="readonly">
-      <div v-if="readonlyEntries.length > 0" class="workflow-form-readonly">
-        <div
-          v-for="entry in readonlyEntries"
-          :key="entry.key"
-          class="workflow-form-readonly-row"
-        >
-          <div class="workflow-form-readonly-label">
-            {{ entry.label }}
-          </div>
-          <div class="workflow-form-readonly-value">
-            {{ formatReadonlyValue(entry.kind, entry.value, entry.options) }}
-          </div>
-        </div>
-      </div>
-      <div v-else class="workflow-form-empty">
+      <UiFacts v-if="readonlyFacts.length > 0" :items="readonlyFacts" :columns="1" />
+      <p v-else class="workflow-form-note">
         {{ emptyText }}
-      </div>
+      </p>
     </div>
 
     <form v-else class="workflow-form-editable" @submit.prevent="onSubmit">
       <div v-if="resolvedFields.length > 0" class="workflow-form-fields">
-        <div v-for="field in resolvedFields" :key="field.key" class="workflow-form-field">
-          <label class="workflow-form-label" :for="`workflow-form-${field.key}`">
-            {{ field.label }}
-            <span v-if="field.required" class="workflow-form-required">*</span>
-          </label>
-          <div v-if="field.description" class="workflow-form-description">
-            {{ field.description }}
-          </div>
-
+        <UiField
+          v-for="field in resolvedFields"
+          :key="field.key"
+          :label="field.label"
+          :required="field.required"
+          :hint="field.description"
+          :for-id="fieldControlId(field)"
+        >
           <textarea
             v-if="field.kind === 'textarea'"
             :id="`workflow-form-${field.key}`"
             :value="getTextLikeValue(field.key)"
-            class="workflow-form-input workflow-form-textarea"
             :placeholder="field.placeholder"
             rows="4"
             @input="updateFieldValue(field.key, ($event.target as HTMLTextAreaElement).value)"
@@ -482,7 +503,6 @@ function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOpti
             v-else-if="field.kind === 'text'"
             :id="`workflow-form-${field.key}`"
             :value="getTextLikeValue(field.key)"
-            class="workflow-form-input"
             type="text"
             :placeholder="field.placeholder"
             @input="updateFieldValue(field.key, ($event.target as HTMLInputElement).value)"
@@ -492,7 +512,6 @@ function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOpti
             v-else-if="field.kind === 'integer'"
             :id="`workflow-form-${field.key}`"
             :value="getTextLikeValue(field.key)"
-            class="workflow-form-input"
             type="number"
             step="1"
             :placeholder="field.placeholder"
@@ -503,165 +522,94 @@ function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOpti
             v-else-if="field.kind === 'number'"
             :id="`workflow-form-${field.key}`"
             :value="getTextLikeValue(field.key)"
-            class="workflow-form-input"
             type="number"
             step="any"
             :placeholder="field.placeholder"
             @input="updateFieldValue(field.key, ($event.target as HTMLInputElement).value)"
           >
 
-          <label
+          <UiCheckChip
             v-else-if="field.kind === 'boolean'"
-            class="workflow-form-checkbox"
-            :for="`workflow-form-${field.key}`"
-          >
-            <input
-              :id="`workflow-form-${field.key}`"
-              :checked="getCheckboxValue(field.key)"
-              type="checkbox"
-              @change="updateFieldValue(field.key, ($event.target as HTMLInputElement).checked)"
-            >
-            <span>是/否</span>
-          </label>
+            :id="`workflow-form-${field.key}`"
+            label="是"
+            :aria-label="field.label"
+            :checked="getCheckboxValue(field.key)"
+            @update:checked="updateFieldValue(field.key, $event)"
+          />
 
           <input
             v-else-if="field.kind === 'date-time'"
             :id="`workflow-form-${field.key}`"
             :value="getTextLikeValue(field.key)"
-            class="workflow-form-input"
             type="datetime-local"
             @input="updateFieldValue(field.key, ($event.target as HTMLInputElement).value)"
           >
 
-          <select
+          <UiSelect
             v-else-if="field.kind === 'single-select'"
-            :id="`workflow-form-${field.key}`"
-            :value="getTextLikeValue(field.key)"
-            class="workflow-form-input"
-            @change="updateFieldValue(field.key, ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">
-              请选择
-            </option>
-            <option
-              v-for="option in field.options"
-              :key="option.serialized"
-              :value="option.serialized"
-            >
-              {{ option.label }}
-            </option>
-          </select>
+            :model-value="getTextLikeValue(field.key)"
+            :options="singleSelectOptions(field)"
+            :label="field.label"
+            @update:model-value="updateFieldValue(field.key, $event)"
+          />
 
-          <select
+          <div
             v-else-if="field.kind === 'multi-select'"
-            :id="`workflow-form-${field.key}`"
-            :value="getMultiSelectValue(field.key)"
-            class="workflow-form-input workflow-form-multi-select"
-            multiple
-            @change="onMultiSelectChange(field.key, $event)"
+            class="workflow-form-chips"
+            role="group"
+            :aria-label="field.label"
           >
-            <option
-              v-for="option in field.options"
+            <UiCheckChip
+              v-for="(option, optionIndex) in field.options"
+              :id="`workflow-form-${field.key}-${optionIndex}`"
               :key="option.serialized"
-              :value="option.serialized"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-
-          <div v-else class="workflow-form-unsupported">
-            当前字段类型暂不支持编辑
+              :label="option.label"
+              :checked="getMultiSelectValue(field.key).includes(option.serialized)"
+              @update:checked="toggleMultiSelect(field.key, option.serialized, $event)"
+            />
           </div>
-        </div>
+
+          <p v-else class="workflow-form-note">
+            当前字段类型暂不支持编辑
+          </p>
+        </UiField>
       </div>
 
-      <div v-else class="workflow-form-empty">
+      <p v-else class="workflow-form-note">
         {{ emptyText }}
-      </div>
+      </p>
 
-      <div v-if="validationError" class="workflow-form-error">
+      <UiBanner v-if="validationError" tone="danger">
         {{ validationError }}
-      </div>
+      </UiBanner>
 
       <div class="workflow-form-actions">
-        <button
-          class="btn btn-primary"
+        <UiButton
+          variant="primary"
           type="submit"
           :disabled="submitting || resolvedFields.length === 0"
         >
           {{ submitting ? '提交中...' : submitText }}
-        </button>
+        </UiButton>
       </div>
     </form>
   </div>
 </template>
 
 <style scoped>
-.workflow-form {
+/* 表单本身只管排布：名/器/说明由 UiField 给，动词由 UiButton 给，错由 UiBanner 给。 */
+.workflow-form,
+.workflow-form-editable,
+.workflow-form-fields {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s3);
 }
 
-.workflow-form-fields,
-.workflow-form-readonly {
+.workflow-form-chips {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.workflow-form-field,
-.workflow-form-readonly-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.workflow-form-label,
-.workflow-form-readonly-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary, #102132);
-}
-
-.workflow-form-description {
-  font-size: 12px;
-  color: var(--text-tertiary, #8E8E93);
-  line-height: 1.5;
-}
-
-.workflow-form-input,
-.workflow-form-textarea {
-  width: 100%;
-  padding: 9px 10px;
-  border: 1px solid var(--border-light, #d8e0e8);
-  border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text-primary, #102132);
-  font-size: 13px;
-  line-height: 1.5;
-  box-sizing: border-box;
-}
-
-.workflow-form-textarea {
-  resize: vertical;
-  min-height: 96px;
-}
-
-.workflow-form-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-secondary, #526477);
-}
-
-.workflow-form-multi-select {
-  min-height: 112px;
-}
-
-.workflow-form-required {
-  color: var(--status-text-boarding-urge);
+  flex-wrap: wrap;
+  gap: var(--s2);
 }
 
 .workflow-form-actions {
@@ -669,27 +617,11 @@ function formatReadonlyValue(kind: FieldKind, value: unknown, options: FieldOpti
   justify-content: flex-end;
 }
 
-.workflow-form-error {
-  font-size: 12px;
-  color: var(--ws-danger);
-}
-
-.workflow-form-readonly-value {
-  font-size: 13px;
-  color: var(--text-secondary, #526477);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.workflow-form-empty,
-.workflow-form-unsupported {
-  padding: 12px;
-  border: 1px dashed var(--border-light, #d8e0e8);
-  border-radius: 10px;
-  background: var(--bg-secondary, #F8FAFC);
-  color: var(--text-tertiary, #8E8E93);
-  font-size: 12px;
+/* 一句话就别开嵌板（§3.7）：淡墨小字，不描边、不铺面 */
+.workflow-form-note {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
   line-height: 1.6;
 }
 </style>

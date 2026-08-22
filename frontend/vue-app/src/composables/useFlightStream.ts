@@ -124,7 +124,7 @@ function isBinaryPayload(value: unknown): value is ArrayBuffer | Uint8Array {
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === '') {
-    return '--';
+    return '—';
   }
 
   if (typeof value === 'boolean') {
@@ -132,7 +132,7 @@ function formatValue(value: unknown): string {
   }
 
   if (Array.isArray(value)) {
-    return value.map((entry) => formatValue(entry)).join('、') || '--';
+    return value.map((entry) => formatValue(entry)).join('、') || '—';
   }
 
   if (typeof value === 'string') {
@@ -142,7 +142,7 @@ function formatValue(value: unknown): string {
         return timestamp.toLocaleString('zh-CN', { hour12: false });
       }
     }
-    return value.trim() || '--';
+    return value.trim() || '—';
   }
 
   if (typeof value === 'object') {

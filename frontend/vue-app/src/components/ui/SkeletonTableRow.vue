@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import UiSkeleton from './UiSkeleton.vue';
+
+/** 表行骨架：行高与格内衬跟真表一致，第 3 列是声胶囊的位。 */
 const props = defineProps<{
   count?: number;
   columns?: number;
@@ -11,57 +14,30 @@ const colCount = Math.max(1, props.columns ?? 16);
   <tr
     v-for="i in repeatCount"
     :key="i"
-    class="skeleton-table-row"
+    class="sk-row"
     role="status"
     aria-label="加载中"
+    aria-busy="true"
   >
-    <td v-for="c in colCount" :key="c" class="skeleton-cell">
-      <div
-        class="skeleton-shimmer"
-        :style="{
-          width: c === 1 ? '60px' : c === 3 ? '48px' : '80%',
-          height: c === 3 ? '20px' : '14px',
-          borderRadius: c === 3 ? '999px' : '4px'
-        }"
+    <td v-for="c in colCount" :key="c" class="sk-row__cell">
+      <UiSkeleton
+        v-if="c === 3"
+        shape="pill"
+        width="48px"
+        height="20px"
       />
+      <UiSkeleton v-else :width="c === 1 ? '60px' : '80%'" height="14px" />
     </td>
   </tr>
 </template>
 
 <style scoped>
-.skeleton-table-row {
-  height: 40px;
+.sk-row {
+  height: var(--h-lg);
 }
 
-.skeleton-cell {
-  padding: 8px 12px;
+.sk-row__cell {
+  padding: 8px var(--s3);
   vertical-align: middle;
-}
-
-.skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.06) 25%,
-    rgba(0, 0, 0, 0.10) 50%,
-    rgba(0, 0, 0, 0.06) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.6s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer {
-    animation: none;
-    background: rgba(0, 0, 0, 0.08);
-  }
-}
-
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
 }
 </style>

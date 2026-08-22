@@ -12,9 +12,12 @@ const props = withDefaults(defineProps<{
   /** 触发器与列表的无障碍名称（组件内绑到 aria-label） */
   label: string;
   minWidth?: string;
+  /** 真的不该改的时候才给（正在提交、缺前置）：字仍可读，不用透明度溶掉 */
+  disabled?: boolean;
 }>(), {
   id: undefined,
   minWidth: '128px',
+  disabled: false,
 });
 
 const emit = defineEmits<{
@@ -45,6 +48,7 @@ function close(): void {
 }
 
 function toggle(): void {
+  if (props.disabled) return;
   open.value = !open.value;
   if (open.value) {
     const current = props.options.findIndex((option) => option.value === props.modelValue);
@@ -53,6 +57,7 @@ function toggle(): void {
 }
 
 function moveActive(delta: number): void {
+  if (props.disabled) return;
   if (!open.value) {
     open.value = true;
     const current = props.options.findIndex((option) => option.value === props.modelValue);
@@ -114,13 +119,14 @@ onBeforeUnmount(() => {
       :aria-haspopup="'listbox'"
       :aria-expanded="open"
       :aria-label="label"
+      :disabled="disabled"
       @click="toggle"
       @keydown="onTriggerKeydown"
     >
       <span class="ui-select__value">{{ selectedLabel }}</span>
     </button>
     <ul
-      v-if="open"
+      v-if="open && !disabled"
       class="ui-select__list"
       role="listbox"
       :aria-label="label"
@@ -151,10 +157,10 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--s2);
   width: 100%;
   height: var(--h-sm);
-  padding: 0 10px;
+  padding: 0 var(--s3);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
   background: var(--face-page);
@@ -189,6 +195,11 @@ onBeforeUnmount(() => {
   border-color: var(--act);
 }
 
+.ui-select__btn:disabled {
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
 .ui-select__btn[aria-expanded='true']::after {
   transform: rotate(180deg);
 }
@@ -203,21 +214,21 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--s1));
   margin: 0;
-  padding: 4px;
+  padding: var(--s1);
   list-style: none;
   background: var(--face-raised);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-panel);
   box-shadow: var(--shadow-md);
-  z-index: 30;
+  z-index: var(--z-menu);
   animation: ui-select-pop-in var(--t-mid) var(--ease);
 }
 
 .ui-select__list li {
-  height: 32px;
-  padding: 0 10px;
+  height: var(--h-sm);
+  padding: 0 var(--s3);
   border-radius: var(--r-cell);
   display: flex;
   align-items: center;
@@ -233,7 +244,7 @@ onBeforeUnmount(() => {
 
 .ui-select__list li[aria-selected='true'] {
   color: var(--act);
-  font-weight: 550;
+  font-weight: var(--fw-medium);
 }
 
 @keyframes ui-select-pop-in {

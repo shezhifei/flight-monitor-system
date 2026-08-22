@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Equipment, EquipmentStatusFormData } from '@/composables/useResourceManager';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiModal from '@/components/ui/UiModal.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 
 const props = defineProps<{
   show: boolean;
@@ -20,201 +23,134 @@ const canSave = computed(() => Boolean(props.form.status) && !props.saving);
 function patch<K extends keyof EquipmentStatusFormData>(field: K, value: EquipmentStatusFormData[K]) {
   emit('update:form', { ...props.form, [field]: value });
 }
+
+const statusOptions = [
+  { value: 'available', label: '可用' },
+  { value: 'in_use', label: '使用中' },
+  { value: 'maintenance', label: '维护中' },
+  { value: 'retired', label: '已报废' },
+];
+
+/* UiSelect 收 string，桥回受控表单 */
+const statusModel = computed<string>({
+  get: () => props.form.status,
+  set: (value) => patch('status', value as EquipmentStatusFormData['status']),
+});
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="show" class="modal-overlay" @click.self="emit('close')">
-      <div
-        class="modal-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="equip-status-modal-title"
-      >
-        <header class="modal-header">
-          <div>
-            <div class="modal-eyebrow">
-              设备状态
-            </div>
-            <h3 id="equip-status-modal-title">
-              {{ equipment?.name || '更新设备状态' }}
-            </h3>
-          </div>
-          <button
-            class="modal-close"
-            type="button"
-            aria-label="关闭"
-            @click="emit('close')"
-          >
-            ×
-          </button>
-        </header>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="es-status">状态 <span class="required">*</span></label>
-            <select
-              id="es-status"
-              :value="form.status"
-              @change="patch('status', ($event.target as HTMLSelectElement).value)"
-            >
-              <option value="available">
-                可用
-              </option>
-              <option value="in_use">
-                使用中
-              </option>
-              <option value="maintenance">
-                维护中
-              </option>
-              <option value="retired">
-                已报废
-              </option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="es-terminal">航站楼 / 位置</label>
-            <input
-              id="es-terminal"
-              type="text"
-              :value="form.terminal"
-              placeholder="例如：T1"
-              @input="patch('terminal', ($event.target as HTMLInputElement).value)"
-            >
-          </div>
-          <div class="form-group">
-            <label for="es-next">下次保养日期</label>
-            <input
-              id="es-next"
-              type="date"
-              :value="form.next_maintenance_date"
-              @input="patch('next_maintenance_date', ($event.target as HTMLInputElement).value)"
-            >
-          </div>
+  <UiModal
+    :open="show"
+    :title="equipment?.name || '更新设备状态'"
+    :width="480"
+    @close="emit('close')"
+  >
+    <template #header>
+      <div class="status-heading">
+        <div class="modal-eyebrow">
+          设备状态
         </div>
-        <footer class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="emit('close')">
-            取消
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            :disabled="!canSave"
-            @click="emit('save')"
-          >
-            {{ saving ? '保存中...' : '保存' }}
-          </button>
-        </footer>
+        <h3 id="equip-status-modal-title" class="modal-title">
+          {{ equipment?.name || '更新设备状态' }}
+        </h3>
       </div>
+    </template>
+
+    <div class="form-group">
+      <label>状态 <span class="required">*</span></label>
+      <UiSelect
+        v-model="statusModel"
+        :options="statusOptions"
+        label="设备状态"
+        min-width="100%"
+      />
     </div>
-  </Teleport>
+    <div class="form-group">
+      <label for="es-terminal">航站楼 / 位置</label>
+      <input
+        id="es-terminal"
+        type="text"
+        :value="form.terminal"
+        placeholder="例如：T1"
+        @input="patch('terminal', ($event.target as HTMLInputElement).value)"
+      >
+    </div>
+    <div class="form-group">
+      <label for="es-next">下次保养日期</label>
+      <input
+        id="es-next"
+        type="date"
+        :value="form.next_maintenance_date"
+        @input="patch('next_maintenance_date', ($event.target as HTMLInputElement).value)"
+      >
+    </div>
+
+    <template #footer>
+      <UiButton @click="emit('close')">
+        取消
+      </UiButton>
+      <UiButton
+        variant="primary"
+        :disabled="!canSave"
+        @click="emit('save')"
+      >
+        {{ saving ? '保存中...' : '保存' }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2100;
+/* 信号面：帽、幕、Esc、关归 UiModal；按钮归 UiButton；这里只留表单。 */
+.status-heading {
+  min-width: 0;
 }
-.modal-content {
-  width: 480px;
-  max-width: 95vw;
-  background: var(--bg-card, #fff);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-}
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-}
+
 .modal-eyebrow {
-  font-size: 11px;
+  font-size: var(--fs-label);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  color: var(--ink-muted);
 }
-.modal-header h3 {
-  margin: 4px 0 0;
-  font-size: 16px;
-  font-weight: 600;
+
+.modal-title {
+  margin: var(--s1) 0 0;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-tertiary);
-}
-.modal-body {
-  padding: 20px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
+
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: var(--s3);
 }
-.form-group label {
+
+.form-group > label {
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 6px;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--s1);
+  color: var(--ink-subtle);
 }
+
 .required {
-  color: var(--system-red);
+  color: var(--danger);
 }
-.form-group input,
-.form-group textarea,
-.form-group select {
+
+.form-group input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  border-radius: 6px;
-  font-size: 14px;
+  height: var(--h-md);
+  padding: 0 var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
+  background: var(--face-page);
+  color: var(--ink);
   box-sizing: border-box;
+  font-family: inherit;
 }
-.form-group textarea {
-  min-height: 60px;
-  resize: vertical;
-}
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  border: none;
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: var(--system-blue);
-  color: var(--text-inverse);
-}
-.btn-secondary {
-  background: rgba(60, 60, 67, 0.08);
-  color: var(--text-primary);
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+
+.form-group input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
 }
 </style>

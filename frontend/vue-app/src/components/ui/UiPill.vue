@@ -20,7 +20,7 @@ withDefaults(defineProps<{
   height: 22px;
   padding: 0 8px;
   border-radius: var(--r-pill);
-  font-size: 11px;
+  font-size: var(--fs-label);
   font-weight: var(--fw-medium);
   font-variant-numeric: tabular-nums;
 }

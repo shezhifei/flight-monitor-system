@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import type { LabelDefinition, CreateLabelRequest, UpdateLabelRequest } from '../../../types/backend';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
+
+const scopeOptions = [
+  { value: 'flight', label: '航班级' },
+  { value: 'leg', label: '航段级' },
+  { value: 'both', label: '两者' },
+];
 
 interface Props {
   visible: boolean;
@@ -20,6 +28,14 @@ const emit = defineEmits<{
 
 const isEdit = computed(() => !!props.label);
 const canSubmit = computed(() => Boolean(formData.value.code.trim() && formData.value.name.trim()));
+
+/* UiSelect 收 string，桥接回联合类型 */
+const scopeValue = computed<string>({
+  get: () => formData.value.scope,
+  set: (value) => {
+    formData.value.scope = value as CreateLabelRequest['scope'];
+  },
+});
 
 const formData = ref<CreateLabelRequest>({
   code: '',
@@ -167,22 +183,14 @@ function handleOverlayClick(e: MouseEvent) {
 
           <div class="form-group">
             <label class="form-label" for="labelScope">适用范围</label>
-            <select
+            <UiSelect
               id="labelScope"
-              v-model="formData.scope"
-              class="form-input"
+              v-model="scopeValue"
+              :options="scopeOptions"
+              label="适用范围"
+              min-width="100%"
               :disabled="isEdit"
-            >
-              <option value="flight">
-                航班级
-              </option>
-              <option value="leg">
-                航段级
-              </option>
-              <option value="both">
-                两者
-              </option>
-            </select>
+            />
           </div>
 
           <div v-if="isEdit" class="form-group">
@@ -199,21 +207,16 @@ function handleOverlayClick(e: MouseEvent) {
         </form>
 
         <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            @click="emit('close')"
-          >
+          <UiButton variant="ghost" @click="emit('close')">
             取消
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
+          </UiButton>
+          <UiButton
+            variant="primary"
             :disabled="props.loading || !canSubmit"
             @click="handleSubmit"
           >
             {{ props.loading ? '保存中...' : '保存' }}
-          </button>
+          </UiButton>
         </div>
       </div>
     </div>
@@ -221,64 +224,73 @@ function handleOverlayClick(e: MouseEvent) {
 </template>
 
 <style scoped>
+/* 信号面：弹窗用抬起面 + 幕布 scrim；层序用 --z-modal，不再发明 1000 */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 20px;
+  z-index: var(--z-modal);
+  padding: var(--s4);
 }
 
 .modal-content {
-  background: var(--admin-card-bg, var(--bg-card, var(--ws-surface-strong)));
-  color: var(--admin-text, var(--text-primary));
-  border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 12px;
+  background: var(--face-raised);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: var(--ws-shadow-md, 0 20px 40px rgba(0, 0, 0, 0.28));
+  box-shadow: var(--shadow-md);
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--admin-border, var(--border-light));
+  padding: var(--s4) var(--s4) var(--s3);
+  border-bottom: 1px solid var(--line);
 }
 
 .modal-title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--admin-text, var(--text-primary));
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
 }
 
 .modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-sm);
+  height: var(--h-sm);
   background: none;
   border: none;
-  font-size: 24px;
-  color: var(--admin-text-subtle, var(--text-secondary));
+  border-radius: var(--r-cell);
+  font-size: var(--fs-page);
+  color: var(--ink-muted);
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 
 .modal-close:hover {
-  color: var(--admin-text, var(--text-primary));
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .modal-body {
-  padding: 22px;
+  padding: var(--s4);
 }
 
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: var(--s3);
 }
 
 .form-group:last-child {
@@ -287,77 +299,79 @@ function handleOverlayClick(e: MouseEvent) {
 
 .form-label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--admin-text, var(--text-primary));
+  margin-bottom: var(--s2);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
 }
 
 .form-input {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--admin-text, var(--text-primary));
-  background: var(--ws-surface-muted, var(--bg-secondary));
-  transition: border-color 0.2s, box-shadow 0.2s;
+  height: var(--h-md);
+  padding: 0 var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--face-page);
+  transition: border-color var(--t-fast) var(--ease);
   box-sizing: border-box;
 }
 
 .form-input:focus {
-  outline: none;
-  border-color: var(--ws-primary, var(--primary-color, #3b82f6));
-  box-shadow: 0 0 0 3px var(--focus-ring-blue, rgba(10, 124, 255, 0.2));
+  outline: 2px solid var(--act);
+  outline-offset: 2px;
+  border-color: var(--act);
 }
 
 .form-input:disabled {
-  opacity: 0.65;
+  color: var(--ink-muted);
   cursor: not-allowed;
 }
 
 .form-hint {
   display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--admin-text-muted, var(--text-secondary));
+  margin-top: var(--s1);
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 .color-picker-row {
   display: flex;
-  gap: 12px;
+  gap: var(--s3);
   align-items: center;
 }
 
 .color-picker {
   width: 48px;
-  height: 40px;
+  height: var(--h-md);
   padding: 2px;
-  border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
   cursor: pointer;
-  background: transparent;
+  background: var(--face-page);
 }
 
 .color-text {
   flex: 1;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--mono);
 }
 
 .color-preview {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--admin-border, var(--border-light));
+  width: var(--h-sm);
+  height: var(--h-sm);
+  border-radius: var(--r-cell);
+  border: 1px solid var(--line);
   flex-shrink: 0;
 }
 
 .form-checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--admin-text, var(--text-primary));
+  gap: var(--s2);
+  font-size: var(--fs-body);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -365,51 +379,15 @@ function handleOverlayClick(e: MouseEvent) {
   width: 16px;
   height: 16px;
   cursor: pointer;
+  accent-color: var(--act);
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 14px 22px;
-  border-top: 1px solid var(--admin-border, var(--border-light));
-  background: var(--ws-surface-muted, var(--bg-secondary));
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: background 0.15s ease, opacity 0.15s ease;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--ws-surface-muted, var(--bg-secondary));
-  color: var(--admin-text, var(--text-primary));
-  border: 1px solid var(--admin-border, transparent);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--ws-primary, #0a7cff) 10%, transparent);
-}
-
-.btn-primary {
-  background: var(--ws-primary, var(--primary-color, #3b82f6));
-  color: var(--text-inverse, #fff);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--ws-primary-strong, var(--primary-hover, #2563eb));
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--line);
+  background: var(--face-work);
 }
 </style>

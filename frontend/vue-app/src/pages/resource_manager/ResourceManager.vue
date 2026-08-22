@@ -3,6 +3,11 @@ import { computed } from 'vue';
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiModal from '@/components/ui/UiModal.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiSearch from '@/components/ui/UiSearch.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 import { useResourceManager } from '@/composables/useResourceManager';
 import { hasUserPermission, useAuth } from '@/composables/useAuth';
 import TeamMemberDrawer from './TeamMemberDrawer.vue';
@@ -31,6 +36,8 @@ const editingEquipmentType = computed(() => rm.modal.value.kind === 'equipment-t
 const editingEquipmentStatus = computed(() => rm.modal.value.kind === 'equipment-status' ? rm.modal.value.item : null);
 const activeMemberTeam = computed(() => rm.modal.value.kind === 'team-members' ? rm.modal.value.team : null);
 
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
 function teamStatusLabel(s: string | null | undefined) {
   if (s === 'on_duty') return '在岗';
   if (s === 'off_duty') return '离岗';
@@ -39,11 +46,10 @@ function teamStatusLabel(s: string | null | undefined) {
   return s || '-';
 }
 
-function teamStatusClass(s: string | null | undefined) {
-  if (s === 'on_duty') return 'badge badge-on-duty';
-  if (s === 'break') return 'badge badge-break';
-  if (s === 'available') return 'badge badge-available';
-  return 'badge badge-off-duty';
+function teamStatusTone(s: string | null | undefined): PillTone {
+  if (s === 'on_duty' || s === 'available') return 'ok';
+  if (s === 'break') return 'warn';
+  return 'mute';
 }
 
 function equipmentStatusLabel(s: string | null | undefined) {
@@ -54,17 +60,72 @@ function equipmentStatusLabel(s: string | null | undefined) {
   return s || '-';
 }
 
-function equipmentStatusClass(s: string | null | undefined) {
-  if (s === 'available') return 'badge badge-available';
-  if (s === 'in_use') return 'badge badge-in-use';
-  if (s === 'maintenance') return 'badge badge-maintenance';
-  if (s === 'retired') return 'badge badge-retired';
-  return 'badge';
+function equipmentStatusTone(s: string | null | undefined): PillTone {
+  if (s === 'available') return 'ok';
+  if (s === 'in_use') return 'act';
+  if (s === 'maintenance') return 'warn';
+  if (s === 'retired') return 'danger';
+  return 'mute';
 }
 
 function userLabel(u: { display_name?: string; username?: string; id: string }) {
   return u.display_name || u.username || u.id;
 }
+
+/* 工具栏筛选与模态表单的下拉选项 */
+const teamTypeFilterOptions = computed(() => [
+  { value: '', label: '全部类型' },
+  ...rm.rawTeamTypes.value.map((tt) => ({ value: tt.id, label: tt.name })),
+]);
+
+const teamStatusFilterOptions = [
+  { value: '', label: '全部状态' },
+  { value: 'on_duty', label: '在岗' },
+  { value: 'off_duty', label: '离岗' },
+  { value: 'break', label: '休息' },
+];
+
+const equipmentTypeFilterOptions = computed(() => [
+  { value: '', label: '全部类型' },
+  ...rm.rawEquipmentTypes.value.map((et) => ({ value: et.id, label: et.name })),
+]);
+
+const equipmentStatusFilterOptions = [
+  { value: '', label: '全部状态' },
+  { value: 'available', label: '可用' },
+  { value: 'in_use', label: '使用中' },
+  { value: 'maintenance', label: '维护中' },
+  { value: 'retired', label: '已报废' },
+];
+
+const teamTypeOptions = computed(() => [
+  { value: '', label: '请选择...' },
+  ...rm.rawTeamTypes.value.map((tt) => ({ value: tt.id, label: tt.name })),
+]);
+
+const leaderOptions = computed(() => [
+  { value: '', label: '请选择班组长' },
+  ...rm.assignableUsers.value.map((u) => ({ value: u.id, label: userLabel(u) })),
+]);
+
+const teamStatusOptions = [
+  { value: 'available', label: '可用' },
+  { value: 'on_duty', label: '在岗' },
+  { value: 'off_duty', label: '离岗' },
+  { value: 'break', label: '休息' },
+];
+
+const equipmentTypeOptions = computed(() => [
+  { value: '', label: '请选择...' },
+  ...rm.rawEquipmentTypes.value.map((et) => ({ value: et.id, label: et.name })),
+]);
+
+const equipmentStatusOptions = [
+  { value: 'available', label: '可用' },
+  { value: 'in_use', label: '使用中' },
+  { value: 'maintenance', label: '维护中' },
+  { value: 'retired', label: '已报废' },
+];
 
 async function confirmDeleteTeam(id: string, name: string) {
   if (!canManageTeams.value) return;
@@ -257,41 +318,30 @@ async function onSaveEquipment() {
 
           <div class="section-toolbar">
             <div class="filter-group">
-              <div class="search-group">
-                <span class="search-icon"><SvgIcon src="/frontend/icons/search.svg" :size="16" /></span>
-                <input
-                  v-model="rm.teamSearch.value"
-                  type="text"
-                  class="search-input"
-                  placeholder="搜索班组..."
-                >
-              </div>
-              <select v-model="rm.teamTypeFilter.value" class="filter-select">
-                <option value="">
-                  全部类型
-                </option>
-                <option v-for="tt in rm.rawTeamTypes.value" :key="tt.id" :value="tt.id">
-                  {{ tt.name }}
-                </option>
-              </select>
-              <select v-model="rm.teamStatusFilter.value" class="filter-select">
-                <option value="">
-                  全部状态
-                </option>
-                <option value="on_duty">
-                  在岗
-                </option>
-                <option value="off_duty">
-                  离岗
-                </option>
-                <option value="break">
-                  休息
-                </option>
-              </select>
+              <UiSearch
+                v-model="rm.teamSearch.value"
+                label="搜索班组"
+                placeholder="搜索班组..."
+              />
+              <UiSelect
+                v-model="rm.teamTypeFilter.value"
+                :options="teamTypeFilterOptions"
+                label="按班组类型筛选"
+              />
+              <UiSelect
+                v-model="rm.teamStatusFilter.value"
+                :options="teamStatusFilterOptions"
+                label="按班组状态筛选"
+              />
             </div>
-            <button v-if="canManageTeams" class="btn btn-primary" type="button" @click="rm.openTeamModal()">
-              <span><SvgIcon src="/frontend/icons/add.svg" :size="14" /></span> 新建班组
-            </button>
+            <UiButton
+              v-if="canManageTeams"
+              variant="primary"
+              size="md"
+              @click="rm.openTeamModal()"
+            >
+              <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 新建班组
+            </UiButton>
           </div>
 
           <div class="table-container">
@@ -304,7 +354,7 @@ async function onSaveEquipment() {
                   <th>成员</th>
                   <th>状态</th>
                   <th>当前位置</th>
-                  <th style="text-align: right;">
+                  <th class="col-actions">
                     操作
                   </th>
                 </tr>
@@ -332,7 +382,7 @@ async function onSaveEquipment() {
                     <template v-if="team.team_type_name">
                       <span
                         class="team-type-dot"
-                        :style="{ background: team.team_type_color || '#1677ff' }"
+                        :style="{ background: team.team_type_color ?? undefined }"
                       />
                       {{ team.team_type_name }}
                     </template>
@@ -343,25 +393,29 @@ async function onSaveEquipment() {
                   <td>{{ team.leader_name || '-' }}</td>
                   <td>
                     <div class="cell-stack">
-                      <span class="badge badge-info">{{ team.member_count || 0 }} 人</span>
-                      <button type="button" class="btn btn-secondary btn-sm" @click="rm.openTeamMembersDrawer(team)">
+                      <UiPill tone="act">
+                        {{ team.member_count || 0 }} 人
+                      </UiPill>
+                      <UiButton @click="rm.openTeamMembersDrawer(team)">
                         {{ canManageTeams ? '管理成员' : '查看成员' }}
-                      </button>
+                      </UiButton>
                     </div>
                   </td>
                   <td>
-                    <span :class="teamStatusClass(team.current_status)">
+                    <UiPill :tone="teamStatusTone(team.current_status)">
                       {{ teamStatusLabel(team.current_status) }}
-                    </span>
+                    </UiPill>
                   </td>
                   <td>{{ team.current_stand_id || team.terminal || '-' }}</td>
-                  <td style="text-align: right;">
-                    <button v-if="canManageTeams" type="button" class="btn btn-secondary btn-sm" @click="rm.openTeamModal(team)">
-                      编辑
-                    </button>
-                    <button v-if="canManageTeams" type="button" class="btn btn-secondary btn-sm danger" @click="confirmDeleteTeam(team.id, team.name)">
-                      删除
-                    </button>
+                  <td>
+                    <div class="row-actions">
+                      <UiButton v-if="canManageTeams" @click="rm.openTeamModal(team)">
+                        编辑
+                      </UiButton>
+                      <UiButton v-if="canManageTeams" variant="danger" @click="confirmDeleteTeam(team.id, team.name)">
+                        删除
+                      </UiButton>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -388,19 +442,20 @@ async function onSaveEquipment() {
         <div class="content-body">
           <div class="section-toolbar">
             <div class="filter-group">
-              <div class="search-group">
-                <span class="search-icon"><SvgIcon src="/frontend/icons/search.svg" :size="16" /></span>
-                <input
-                  v-model="rm.teamTypeSearch.value"
-                  type="text"
-                  class="search-input"
-                  placeholder="搜索班组类型..."
-                >
-              </div>
+              <UiSearch
+                v-model="rm.teamTypeSearch.value"
+                label="搜索班组类型"
+                placeholder="搜索班组类型..."
+              />
             </div>
-            <button v-if="canManageTeams" class="btn btn-primary" type="button" @click="rm.openTeamTypeModal()">
-              <span><SvgIcon src="/frontend/icons/add.svg" :size="14" /></span> 新建类型
-            </button>
+            <UiButton
+              v-if="canManageTeams"
+              variant="primary"
+              size="md"
+              @click="rm.openTeamTypeModal()"
+            >
+              <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 新建类型
+            </UiButton>
           </div>
 
           <div class="table-container">
@@ -411,7 +466,7 @@ async function onSaveEquipment() {
                   <th>代码</th>
                   <th>可作业类型</th>
                   <th>关联班组</th>
-                  <th style="text-align: right;">
+                  <th class="col-actions">
                     操作
                   </th>
                 </tr>
@@ -430,18 +485,22 @@ async function onSaveEquipment() {
                       :style="{ background: tt.color }"
                     />
                     {{ tt.name }}
-                    <span v-if="tt.is_driver_type" class="badge badge-info" style="margin-left:6px;">司机</span>
+                    <UiPill v-if="tt.is_driver_type" tone="act" class="driver-pill">
+                      司机
+                    </UiPill>
                   </td>
                   <td>{{ tt.code || '-' }}</td>
                   <td>{{ (tt.task_types ?? []).join(', ') || '-' }}</td>
                   <td>{{ tt.team_count ?? '-' }}</td>
-                  <td style="text-align: right;">
-                    <button v-if="canManageTeams" type="button" class="btn btn-secondary btn-sm" @click="rm.openTeamTypeModal(tt)">
-                      编辑
-                    </button>
-                    <button v-if="canManageTeams" type="button" class="btn btn-secondary btn-sm danger" @click="confirmDeleteTeamType(tt.id, tt.name)">
-                      删除
-                    </button>
+                  <td>
+                    <div class="row-actions">
+                      <UiButton v-if="canManageTeams" @click="rm.openTeamTypeModal(tt)">
+                        编辑
+                      </UiButton>
+                      <UiButton v-if="canManageTeams" variant="danger" @click="confirmDeleteTeamType(tt.id, tt.name)">
+                        删除
+                      </UiButton>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -503,44 +562,30 @@ async function onSaveEquipment() {
 
           <div class="section-toolbar">
             <div class="filter-group">
-              <div class="search-group">
-                <span class="search-icon"><SvgIcon src="/frontend/icons/search.svg" :size="16" /></span>
-                <input
-                  v-model="rm.equipmentSearch.value"
-                  type="text"
-                  class="search-input"
-                  placeholder="搜索设备..."
-                >
-              </div>
-              <select v-model="rm.equipmentTypeFilter.value" class="filter-select">
-                <option value="">
-                  全部类型
-                </option>
-                <option v-for="et in rm.rawEquipmentTypes.value" :key="et.id" :value="et.id">
-                  {{ et.name }}
-                </option>
-              </select>
-              <select v-model="rm.equipmentStatusFilter.value" class="filter-select">
-                <option value="">
-                  全部状态
-                </option>
-                <option value="available">
-                  可用
-                </option>
-                <option value="in_use">
-                  使用中
-                </option>
-                <option value="maintenance">
-                  维护中
-                </option>
-                <option value="retired">
-                  已报废
-                </option>
-              </select>
+              <UiSearch
+                v-model="rm.equipmentSearch.value"
+                label="搜索设备"
+                placeholder="搜索设备..."
+              />
+              <UiSelect
+                v-model="rm.equipmentTypeFilter.value"
+                :options="equipmentTypeFilterOptions"
+                label="按设备类型筛选"
+              />
+              <UiSelect
+                v-model="rm.equipmentStatusFilter.value"
+                :options="equipmentStatusFilterOptions"
+                label="按设备状态筛选"
+              />
             </div>
-            <button v-if="canManageEquipment" class="btn btn-primary" type="button" @click="rm.openEquipmentModal()">
-              <span><SvgIcon src="/frontend/icons/add.svg" :size="14" /></span> 新建设备
-            </button>
+            <UiButton
+              v-if="canManageEquipment"
+              variant="primary"
+              size="md"
+              @click="rm.openEquipmentModal()"
+            >
+              <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 新建设备
+            </UiButton>
           </div>
 
           <div class="table-container">
@@ -553,7 +598,7 @@ async function onSaveEquipment() {
                   <th>状态</th>
                   <th>当前位置</th>
                   <th>下次保养</th>
-                  <th style="text-align: right;">
+                  <th class="col-actions">
                     操作
                   </th>
                 </tr>
@@ -580,22 +625,24 @@ async function onSaveEquipment() {
                   <td>{{ eq.equipment_type_name || '-' }}</td>
                   <td>{{ eq.license_plate || '-' }}</td>
                   <td>
-                    <span :class="equipmentStatusClass(eq.status)">
+                    <UiPill :tone="equipmentStatusTone(eq.status)">
                       {{ equipmentStatusLabel(eq.status) }}
-                    </span>
+                    </UiPill>
                   </td>
                   <td>{{ eq.current_stand_id || eq.terminal || '-' }}</td>
                   <td>{{ eq.next_maintenance_date || '-' }}</td>
-                  <td style="text-align: right;">
-                    <button v-if="canManageEquipment" type="button" class="btn btn-secondary btn-sm" @click="rm.openEquipmentModal(eq)">
-                      编辑
-                    </button>
-                    <button v-if="canManageEquipment" type="button" class="btn btn-secondary btn-sm" @click="rm.openEquipmentStatusModal(eq)">
-                      状态
-                    </button>
-                    <button v-if="canManageEquipment" type="button" class="btn btn-secondary btn-sm danger" @click="confirmDeleteEquipment(eq.id, eq.name || eq.code)">
-                      删除
-                    </button>
+                  <td>
+                    <div class="row-actions">
+                      <UiButton v-if="canManageEquipment" @click="rm.openEquipmentModal(eq)">
+                        编辑
+                      </UiButton>
+                      <UiButton v-if="canManageEquipment" @click="rm.openEquipmentStatusModal(eq)">
+                        状态
+                      </UiButton>
+                      <UiButton v-if="canManageEquipment" variant="danger" @click="confirmDeleteEquipment(eq.id, eq.name || eq.code)">
+                        删除
+                      </UiButton>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -622,19 +669,20 @@ async function onSaveEquipment() {
         <div class="content-body">
           <div class="section-toolbar">
             <div class="filter-group">
-              <div class="search-group">
-                <span class="search-icon"><SvgIcon src="/frontend/icons/search.svg" :size="16" /></span>
-                <input
-                  v-model="rm.equipmentTypeSearch.value"
-                  type="text"
-                  class="search-input"
-                  placeholder="搜索设备类型..."
-                >
-              </div>
+              <UiSearch
+                v-model="rm.equipmentTypeSearch.value"
+                label="搜索设备类型"
+                placeholder="搜索设备类型..."
+              />
             </div>
-            <button v-if="canManageEquipment" class="btn btn-primary" type="button" @click="rm.openEquipmentTypeModal()">
-              <span><SvgIcon src="/frontend/icons/add.svg" :size="14" /></span> 新建类型
-            </button>
+            <UiButton
+              v-if="canManageEquipment"
+              variant="primary"
+              size="md"
+              @click="rm.openEquipmentTypeModal()"
+            >
+              <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 新建类型
+            </UiButton>
           </div>
 
           <div class="table-container">
@@ -646,7 +694,7 @@ async function onSaveEquipment() {
                   <th>分类</th>
                   <th>需要司机</th>
                   <th>关联设备</th>
-                  <th style="text-align: right;">
+                  <th class="col-actions">
                     操作
                   </th>
                 </tr>
@@ -663,13 +711,15 @@ async function onSaveEquipment() {
                   <td>{{ et.category || '-' }}</td>
                   <td>{{ et.requires_driver ? '是' : '否' }}</td>
                   <td>{{ et.equipment_count ?? '-' }}</td>
-                  <td style="text-align: right;">
-                    <button v-if="canManageEquipment" type="button" class="btn btn-secondary btn-sm" @click="rm.openEquipmentTypeModal(et)">
-                      编辑
-                    </button>
-                    <button v-if="canManageEquipment" type="button" class="btn btn-secondary btn-sm danger" @click="confirmDeleteEquipmentType(et.id, et.name)">
-                      删除
-                    </button>
+                  <td>
+                    <div class="row-actions">
+                      <UiButton v-if="canManageEquipment" @click="rm.openEquipmentTypeModal(et)">
+                        编辑
+                      </UiButton>
+                      <UiButton v-if="canManageEquipment" variant="danger" @click="confirmDeleteEquipmentType(et.id, et.name)">
+                        删除
+                      </UiButton>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -682,220 +732,155 @@ async function onSaveEquipment() {
       </section>
     </main>
 
-    <!-- Modals & Drawer -->
-    <Teleport to="body">
-      <div v-if="teamModalShow" class="modal-overlay" @click.self="rm.closeModal()">
-        <div
-          class="modal-content"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="team-modal-title"
+    <!-- Modals & Drawer：帽幕关一律走库件 -->
+    <UiModal
+      :open="teamModalShow"
+      :title="editingTeam ? '编辑班组' : '新建班组'"
+      :width="480"
+      @close="rm.closeModal()"
+    >
+      <div class="form-group">
+        <label for="t-name">名称 <span class="required">*</span></label>
+        <input
+          id="t-name"
+          v-model="rm.teamForm.value.name"
+          type="text"
+          placeholder="例如：地服一组"
         >
-          <header class="modal-header">
-            <h3 id="team-modal-title">
-              {{ editingTeam ? '编辑班组' : '新建班组' }}
-            </h3>
-            <button
-              class="modal-close"
-              type="button"
-              aria-label="关闭"
-              @click="rm.closeModal()"
-            >
-              ×
-            </button>
-          </header>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="t-name">名称 <span class="required">*</span></label>
-              <input
-                id="t-name"
-                v-model="rm.teamForm.value.name"
-                type="text"
-                placeholder="例如：地服一组"
-              >
-            </div>
-            <div class="form-group">
-              <label for="t-code">代码</label>
-              <input
-                id="t-code"
-                v-model="rm.teamForm.value.code"
-                type="text"
-                placeholder="例如：GROUND-01"
-              >
-            </div>
-            <div class="form-group">
-              <label for="t-type">类型</label>
-              <select id="t-type" v-model="rm.teamForm.value.team_type_id">
-                <option value="">
-                  请选择...
-                </option>
-                <option v-for="tt in rm.rawTeamTypes.value" :key="tt.id" :value="tt.id">
-                  {{ tt.name }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="t-leader">班组长</label>
-              <select id="t-leader" v-model="rm.teamForm.value.leader_id">
-                <option value="">
-                  请选择班组长
-                </option>
-                <option v-for="u in rm.assignableUsers.value" :key="u.id" :value="u.id">
-                  {{ userLabel(u) }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="t-terminal">航站楼</label>
-              <input
-                id="t-terminal"
-                v-model="rm.teamForm.value.terminal"
-                type="text"
-                placeholder="例如：T1"
-              >
-            </div>
-            <div class="form-group">
-              <label for="t-status">状态</label>
-              <select id="t-status" v-model="rm.teamForm.value.current_status">
-                <option value="available">
-                  可用
-                </option>
-                <option value="on_duty">
-                  在岗
-                </option>
-                <option value="off_duty">
-                  离岗
-                </option>
-                <option value="break">
-                  休息
-                </option>
-              </select>
-            </div>
-          </div>
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="rm.closeModal()">
-              取消
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="!rm.teamForm.value.name.trim() || rm.saving.value"
-              @click="onSaveTeam"
-            >
-              {{ rm.saving.value ? '保存中...' : '保存' }}
-            </button>
-          </footer>
-        </div>
       </div>
-    </Teleport>
+      <div class="form-group">
+        <label for="t-code">代码</label>
+        <input
+          id="t-code"
+          v-model="rm.teamForm.value.code"
+          type="text"
+          placeholder="例如：GROUND-01"
+        >
+      </div>
+      <div class="form-group">
+        <UiSelect
+          v-model="rm.teamForm.value.team_type_id"
+          :options="teamTypeOptions"
+          label="班组类型"
+          min-width="100%"
+        />
+      </div>
+      <div class="form-group">
+        <UiSelect
+          v-model="rm.teamForm.value.leader_id"
+          :options="leaderOptions"
+          label="班组长"
+          min-width="100%"
+        />
+      </div>
+      <div class="form-group">
+        <label for="t-terminal">航站楼</label>
+        <input
+          id="t-terminal"
+          v-model="rm.teamForm.value.terminal"
+          type="text"
+          placeholder="例如：T1"
+        >
+      </div>
+      <div class="form-group">
+        <UiSelect
+          v-model="rm.teamForm.value.current_status"
+          :options="teamStatusOptions"
+          label="班组状态"
+          min-width="100%"
+        />
+      </div>
+      <template #footer>
+        <UiButton size="md" @click="rm.closeModal()">
+          取消
+        </UiButton>
+        <UiButton
+          size="md"
+          variant="primary"
+          :disabled="!rm.teamForm.value.name.trim() || rm.saving.value"
+          @click="onSaveTeam"
+        >
+          {{ rm.saving.value ? '保存中...' : '保存' }}
+        </UiButton>
+      </template>
+    </UiModal>
 
-    <Teleport to="body">
-      <div v-if="equipmentModalShow" class="modal-overlay" @click.self="rm.closeModal()">
-        <div
-          class="modal-content"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="equipment-modal-title"
+    <UiModal
+      :open="equipmentModalShow"
+      :title="editingEquipment ? '编辑设备' : '新建设备'"
+      :width="480"
+      @close="rm.closeModal()"
+    >
+      <div class="form-group">
+        <label for="e-code">代码 <span class="required">*</span></label>
+        <input
+          id="e-code"
+          v-model="rm.equipmentForm.value.code"
+          type="text"
+          placeholder="例如：TUG-01"
         >
-          <header class="modal-header">
-            <h3 id="equipment-modal-title">
-              {{ editingEquipment ? '编辑设备' : '新建设备' }}
-            </h3>
-            <button
-              class="modal-close"
-              type="button"
-              aria-label="关闭"
-              @click="rm.closeModal()"
-            >
-              ×
-            </button>
-          </header>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="e-code">代码 <span class="required">*</span></label>
-              <input
-                id="e-code"
-                v-model="rm.equipmentForm.value.code"
-                type="text"
-                placeholder="例如：TUG-01"
-              >
-            </div>
-            <div class="form-group">
-              <label for="e-name">名称</label>
-              <input
-                id="e-name"
-                v-model="rm.equipmentForm.value.name"
-                type="text"
-                placeholder="例如：一号牵引车"
-              >
-            </div>
-            <div class="form-group">
-              <label for="e-type">类型</label>
-              <select id="e-type" v-model="rm.equipmentForm.value.equipment_type_id">
-                <option value="">
-                  请选择...
-                </option>
-                <option v-for="et in rm.rawEquipmentTypes.value" :key="et.id" :value="et.id">
-                  {{ et.name }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="e-plate">车牌</label>
-              <input
-                id="e-plate"
-                v-model="rm.equipmentForm.value.license_plate"
-                type="text"
-                placeholder="可选"
-              >
-            </div>
-            <div class="form-group">
-              <label for="e-terminal">航站楼</label>
-              <input
-                id="e-terminal"
-                v-model="rm.equipmentForm.value.terminal"
-                type="text"
-                placeholder="例如：T1"
-              >
-            </div>
-            <div class="form-group">
-              <label for="e-status">状态</label>
-              <select id="e-status" v-model="rm.equipmentForm.value.status">
-                <option value="available">
-                  可用
-                </option>
-                <option value="in_use">
-                  使用中
-                </option>
-                <option value="maintenance">
-                  维护中
-                </option>
-                <option value="retired">
-                  已报废
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="e-next">下次保养</label>
-              <input id="e-next" v-model="rm.equipmentForm.value.next_maintenance_date" type="date">
-            </div>
-          </div>
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="rm.closeModal()">
-              取消
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="!rm.equipmentForm.value.code.trim() || rm.saving.value"
-              @click="onSaveEquipment"
-            >
-              {{ rm.saving.value ? '保存中...' : '保存' }}
-            </button>
-          </footer>
-        </div>
       </div>
-    </Teleport>
+      <div class="form-group">
+        <label for="e-name">名称</label>
+        <input
+          id="e-name"
+          v-model="rm.equipmentForm.value.name"
+          type="text"
+          placeholder="例如：一号牵引车"
+        >
+      </div>
+      <div class="form-group">
+        <UiSelect
+          v-model="rm.equipmentForm.value.equipment_type_id"
+          :options="equipmentTypeOptions"
+          label="设备类型"
+          min-width="100%"
+        />
+      </div>
+      <div class="form-group">
+        <label for="e-plate">车牌</label>
+        <input
+          id="e-plate"
+          v-model="rm.equipmentForm.value.license_plate"
+          type="text"
+          placeholder="可选"
+        >
+      </div>
+      <div class="form-group">
+        <label for="e-terminal">航站楼</label>
+        <input
+          id="e-terminal"
+          v-model="rm.equipmentForm.value.terminal"
+          type="text"
+          placeholder="例如：T1"
+        >
+      </div>
+      <div class="form-group">
+        <UiSelect
+          v-model="rm.equipmentForm.value.status"
+          :options="equipmentStatusOptions"
+          label="设备状态"
+          min-width="100%"
+        />
+      </div>
+      <div class="form-group">
+        <label for="e-next">下次保养</label>
+        <input id="e-next" v-model="rm.equipmentForm.value.next_maintenance_date" type="date">
+      </div>
+      <template #footer>
+        <UiButton size="md" @click="rm.closeModal()">
+          取消
+        </UiButton>
+        <UiButton
+          size="md"
+          variant="primary"
+          :disabled="!rm.equipmentForm.value.code.trim() || rm.saving.value"
+          @click="onSaveEquipment"
+        >
+          {{ rm.saving.value ? '保存中...' : '保存' }}
+        </UiButton>
+      </template>
+    </UiModal>
 
     <TeamTypeModal
       :show="teamTypeModalShow"
@@ -947,7 +932,8 @@ async function onSaveEquipment() {
 </template>
 
 <style scoped>
-/* 壳层复用 admin-layout / admin-page；仅保留本页分区与业务控件 */
+/* 壳层复用 admin-layout / admin-page；帽幕关归 UiModal，按钮归 UiButton，
+   状态章归 UiPill，搜索归 UiSearch，下拉归 UiSelect。 */
 
 .section-content {
   display: none;
@@ -971,112 +957,91 @@ async function onSaveEquipment() {
   overflow-y: auto;
 }
 
-.stat-value.blue { color: var(--ws-primary, var(--system-blue)); }
-.stat-value.green { color: var(--ws-success, var(--system-green)); }
-.stat-value.orange { color: var(--ws-warn, var(--system-orange)); }
+.stat-value.blue { color: var(--act); }
+.stat-value.green { color: var(--ok); }
+.stat-value.orange { color: var(--warn); }
 
-.btn-secondary.danger { color: var(--ws-danger, var(--system-red)); }
-.btn-sm { margin-left: 4px; }
-.btn-sm:first-child { margin-left: 0; }
+.cell-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
 
-.cell-stack { display: inline-flex; align-items: center; gap: 6px; }
-.empty-state { text-align: center; padding: 40px 20px; color: var(--admin-text-muted, var(--text-tertiary)); }
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s1);
+}
+
+/* 操作列表头右对齐，与行内 .row-actions 同一方向 */
+.col-actions {
+  text-align: right;
+}
+
+.driver-pill {
+  margin-left: var(--s2);
+}
+
 .loading-spinner {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--admin-border, var(--border-light));
-  border-top-color: var(--ws-primary, var(--system-blue));
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--act);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 8px;
+  margin-bottom: var(--s2);
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-.muted-code { color: var(--admin-text-muted, var(--text-tertiary)); font-size: 12px; }
+.muted-code {
+  color: var(--ink-muted);
+  font-size: var(--fs-label);
+}
+
 .team-type-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
+  margin-right: var(--s2);
   vertical-align: middle;
+  /* 后端未给色时的底声：动蓝，不再在模板里写死 hex 兕底 */
+  background: var(--act);
 }
 
-.badge-on-duty,
-.badge-available { background: var(--dh-signal-ok-soft); color: var(--ws-success); }
-.badge-off-duty { background: var(--ws-surface-muted); color: var(--admin-text-muted); }
-.badge-break { background: var(--dh-signal-warn-soft); color: var(--ws-warn); }
-.badge-in-use { background: var(--system-blue-subtle); color: var(--ws-primary); }
-.badge-maintenance { background: var(--dh-signal-warn-soft); color: var(--ws-warn); }
-.badge-retired { background: var(--error-bg-subtle); color: var(--ws-danger, var(--system-red)); }
+/* UiModal 身内表单 */
+.form-group {
+  margin-bottom: var(--s3);
+}
 
-/* Inline modals */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-modal, rgba(15, 23, 42, 0.55));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2100;
-}
-.modal-content {
-  width: 480px;
-  max-width: 95vw;
-  background: var(--admin-card-bg, var(--bg-card));
-  color: var(--admin-text, var(--text-primary));
-  border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--ws-shadow-md, 0 20px 40px rgba(0, 0, 0, 0.28));
-}
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--admin-border, var(--border-light));
-}
-.modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--admin-text-muted, var(--text-tertiary));
-}
-.modal-body { padding: 20px; max-height: 60vh; overflow-y: auto; }
-.form-group { margin-bottom: 16px; }
-.form-group label {
+.form-group > label {
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 6px;
-  color: var(--admin-text, var(--text-primary));
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--s1);
+  color: var(--ink-subtle);
 }
-.required { color: var(--ws-danger, var(--system-red)); }
-.form-group input,
-.form-group textarea,
-.form-group select {
+
+.required {
+  color: var(--danger);
+}
+
+.form-group input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--admin-border, var(--border-light));
-  border-radius: 6px;
-  font-size: 14px;
+  height: var(--h-md);
+  padding: 0 var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
   box-sizing: border-box;
-  background: var(--ws-surface-muted, var(--bg-input));
-  color: var(--admin-text, var(--text-primary));
+  background: var(--face-page);
+  color: var(--ink);
+  font-family: inherit;
 }
-.form-group textarea { min-height: 60px; resize: vertical; }
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--admin-border, var(--border-light));
+
+.form-group input:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
 }
 
 /* 侧栏 button.nav-item 去掉默认 button 样式 */

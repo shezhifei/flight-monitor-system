@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useToast } from '@/composables/useToast';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiPill from '@/components/ui/UiPill.vue';
+import UiSelect from '@/components/ui/UiSelect.vue';
 import type {
   CompletionTimeMode,
   FlightGenerationRulePayload,
@@ -208,6 +211,82 @@ function confirmDelete(rule: FlightGenerationRuleResponse): void {
 function onFieldChange(): void {
   emit('dirty', true);
 }
+
+type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+
+function ruleStatusTone(status: string): PillTone {
+  if (status === 'published') return 'ok';
+  return 'mute';
+}
+
+/* UiSelect 收 string，桥回本地 draft 并标脏 */
+type SelectField = 'leg_scope' | 'status' | 'generation_anchor_type'
+  | 'completion_anchor_type' | 'publication_state' | 'publish_trigger_mode';
+
+function fieldBridge(key: SelectField) {
+  return computed<string>({
+    get: () => draft.value[key] ?? '',
+    set: (value) => {
+      draft.value[key] = value;
+      onFieldChange();
+    },
+  });
+}
+
+const legScopeModel = fieldBridge('leg_scope');
+const statusModel = fieldBridge('status');
+const anchorModel = fieldBridge('generation_anchor_type');
+const completionAnchorModel = fieldBridge('completion_anchor_type');
+const publicationModel = fieldBridge('publication_state');
+const publishTriggerModel = fieldBridge('publish_trigger_mode');
+
+const completionModeModel = computed<string>({
+  get: () => draft.value.completion_time_mode,
+  set: (value) => {
+    draft.value.completion_time_mode = value as CompletionTimeMode;
+    onCompletionModeChange();
+  },
+});
+
+const legScopeOptions = [
+  { value: 'outbound', label: '出港' },
+  { value: 'inbound', label: '进港' },
+];
+
+/* 后端 DepartmentRuleStatus 只认 draft/published/archived；
+   曾经送出的 "active" 会被判为未知状态而保存失败。 */
+const statusOptions = [
+  { value: 'draft', label: '草稿' },
+  { value: 'published', label: '启用' },
+  { value: 'archived', label: '归档' },
+];
+
+const anchorOptions = [
+  { value: 'scheduled_time', label: '计划时间' },
+  { value: 'actual_arrival', label: '实际到达' },
+  { value: 'estimated_arrival', label: '预计到达' },
+  { value: 'scheduled_arrival', label: '计划到达' },
+  { value: 'actual_departure', label: '实际出发' },
+  { value: 'estimated_departure', label: '预计出发' },
+  { value: 'scheduled_departure', label: '计划出发' },
+];
+
+const completionModeOptions = [
+  { value: 'start_plus_duration', label: '预计开始 + 作业时长' },
+  { value: 'completion_anchor_offset', label: '完成锚点 + 完成偏移' },
+];
+
+const publicationOptions = [
+  { value: 'prepublished', label: '预发布' },
+  { value: 'published', label: '已发布' },
+];
+
+const publishTriggerOptions = [
+  { value: 'time', label: '按时间' },
+  { value: 'event', label: '按事件' },
+  { value: 'either', label: '时间或事件任一满足' },
+  { value: 'both_required', label: '时间和事件都满足' },
+];
 </script>
 
 <template>
@@ -221,29 +300,28 @@ function onFieldChange(): void {
       <li v-for="rule in rulesForTaskType" :key="rule.id">
         <div class="rule-summary">
           <strong>{{ rule.rule_name || rule.id }}</strong>
-          <span class="badge" :data-status="rule.status">{{ rule.status }}</span>
+          <UiPill :tone="ruleStatusTone(rule.status)">
+            {{ rule.status }}
+          </UiPill>
           <span class="muted">v{{ rule.version_no }} · {{ rule.leg_scope }}</span>
           <span class="muted">
             {{ rule.completion_time_mode === 'completion_anchor_offset' ? '完成锚点' : '开始 + 时长' }}
           </span>
         </div>
         <div class="rule-actions">
-          <button
-            type="button"
-            class="ghost"
+          <UiButton
             :disabled="disabled"
             @click="loadRule(rule)"
           >
             编辑
-          </button>
-          <button
-            type="button"
-            class="ghost danger"
+          </UiButton>
+          <UiButton
+            variant="danger"
             :disabled="disabled || saving"
             @click="confirmDelete(rule)"
           >
             删除
-          </button>
+          </UiButton>
         </div>
       </li>
     </ul>
@@ -256,39 +334,39 @@ function onFieldChange(): void {
       <div class="form-grid">
         <label>规则名称 <input v-model="draft.rule_name" type="text" @input="onFieldChange"></label>
         <label>航段
-          <select v-model="draft.leg_scope" @change="onFieldChange">
-            <option value="outbound">出港</option>
-            <option value="inbound">进港</option>
-          </select>
+          <UiSelect
+            v-model="legScopeModel"
+            :options="legScopeOptions"
+            label="航段"
+            min-width="100%"
+          />
         </label>
         <label>状态
-          <select v-model="draft.status" @change="onFieldChange">
-            <option value="draft">草稿</option>
-            <!-- 后端 DepartmentRuleStatus 只认 draft/published/archived；
-                 曾经送出的 "active" 会被判为未知状态而保存失败。 -->
-            <option value="published">启用</option>
-            <option value="archived">归档</option>
-          </select>
+          <UiSelect
+            v-model="statusModel"
+            :options="statusOptions"
+            label="状态"
+            min-width="100%"
+          />
         </label>
         <label>开始锚点
-          <select v-model="draft.generation_anchor_type" @change="onFieldChange">
-            <option value="scheduled_time">计划时间</option>
-            <option value="actual_arrival">实际到达</option>
-            <option value="estimated_arrival">预计到达</option>
-            <option value="scheduled_arrival">计划到达</option>
-            <option value="actual_departure">实际出发</option>
-            <option value="estimated_departure">预计出发</option>
-            <option value="scheduled_departure">计划出发</option>
-          </select>
+          <UiSelect
+            v-model="anchorModel"
+            :options="anchorOptions"
+            label="开始锚点"
+            min-width="100%"
+          />
         </label>
         <label>开始偏移 (分)
           <input v-model.number="draft.start_offset_minutes" type="number" @input="onFieldChange">
         </label>
         <label>预计完成方式
-          <select v-model="draft.completion_time_mode" @change="onCompletionModeChange">
-            <option value="start_plus_duration">预计开始 + 作业时长</option>
-            <option value="completion_anchor_offset">完成锚点 + 完成偏移</option>
-          </select>
+          <UiSelect
+            v-model="completionModeModel"
+            :options="completionModeOptions"
+            label="预计完成方式"
+            min-width="100%"
+          />
         </label>
         <label v-if="draft.completion_time_mode === 'start_plus_duration'">时长 (分)
           <input
@@ -299,15 +377,12 @@ function onFieldChange(): void {
           >
         </label>
         <label v-if="draft.completion_time_mode === 'completion_anchor_offset'">完成锚点
-          <select v-model="draft.completion_anchor_type" @change="onFieldChange">
-            <option value="scheduled_time">计划时间</option>
-            <option value="actual_arrival">实际到达</option>
-            <option value="estimated_arrival">预计到达</option>
-            <option value="scheduled_arrival">计划到达</option>
-            <option value="actual_departure">实际出发</option>
-            <option value="estimated_departure">预计出发</option>
-            <option value="scheduled_departure">计划出发</option>
-          </select>
+          <UiSelect
+            v-model="completionAnchorModel"
+            :options="anchorOptions"
+            label="完成锚点"
+            min-width="100%"
+          />
         </label>
         <label v-if="draft.completion_time_mode === 'completion_anchor_offset'">完成偏移 (分)
           <input
@@ -339,18 +414,20 @@ function onFieldChange(): void {
           >
         </label>
         <label>发布状态
-          <select v-model="draft.publication_state" @change="onFieldChange">
-            <option value="prepublished">预发布</option>
-            <option value="published">已发布</option>
-          </select>
+          <UiSelect
+            v-model="publicationModel"
+            :options="publicationOptions"
+            label="发布状态"
+            min-width="100%"
+          />
         </label>
         <label>发布触发
-          <select v-model="draft.publish_trigger_mode" @change="onFieldChange">
-            <option value="time">按时间</option>
-            <option value="event">按事件</option>
-            <option value="either">时间或事件任一满足</option>
-            <option value="both_required">时间和事件都满足</option>
-          </select>
+          <UiSelect
+            v-model="publishTriggerModel"
+            :options="publishTriggerOptions"
+            label="发布触发"
+            min-width="100%"
+          />
         </label>
         <label>发布偏移 (分)
           <input v-model.number="draft.publish_offset_minutes" type="number" @input="onFieldChange">
@@ -372,61 +449,142 @@ function onFieldChange(): void {
         <label class="full">备注 <input v-model="draft.notes" type="text" @input="onFieldChange"></label>
       </div>
       <div class="form-actions">
-        <button type="button" class="ghost" @click="clearDraft">
+        <UiButton @click="clearDraft">
           清空
-        </button>
-        <button type="submit" class="btn primary" :disabled="disabled || saving || !taskTypeCode">
+        </UiButton>
+        <UiButton native-type="submit" variant="primary" :disabled="disabled || saving || !taskTypeCode">
           {{ saving ? '保存中…' : (draft.rule_id ? '保存修改' : '新增规则') }}
-        </button>
+        </UiButton>
       </div>
     </form>
   </section>
 </template>
 
 <style scoped>
-.generation-rule-panel { display: flex; flex-direction: column; gap: 12px; }
-.head { display: flex; justify-content: space-between; align-items: center; }
-.head h4 { margin: 0; font-size: 14px; }
-.muted { font-size: 12px; color: var(--text-tertiary); }
-.rule-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+/* 按钮归 UiButton、状态章归 UiPill、下拉归 UiSelect */
+.generation-rule-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.head h4 {
+  margin: 0;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+
+.muted {
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+}
+
+.rule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
 .rule-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--ws-surface-muted);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--face-page);
 }
-.rule-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--ws-surface-muted);
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
+
+.rule-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
 }
-.badge[data-status='published'] { background: rgba(34, 197, 94, 0.15); color: #15803d; }
-.badge[data-status='archived'] { background: #e5e7eb; color: var(--status-text-cancelled); }
-.rule-actions { display: flex; gap: 6px; }
-.ghost { background: transparent; border: 1px solid var(--border-light); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-.ghost.danger { color: var(--system-red); border-color: #f1c0c0; }
-.ghost:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-tertiary); border: 1px dashed var(--border-light); border-radius: 8px; }
-.draft-form { border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.draft-form h5 { margin: 0; font-size: 13px; }
-.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
-.form-grid input, .form-grid select, .form-grid textarea {
-  padding: 6px 8px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  font-size: 12px;
+
+.rule-actions {
+  display: flex;
+  gap: var(--s2);
 }
-.full { grid-column: span 3; }
-.form-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.btn { border: 1px solid var(--border-light); border-radius: 8px; padding: 6px 14px; background: var(--bg-card); cursor: pointer; font-size: 13px; }
-.btn.primary { background: var(--system-blue); color: var(--text-inverse); border-color: var(--system-blue); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.empty {
+  padding: var(--s4);
+  text-align: center;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-control);
+}
+
+.draft-form {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
+  padding: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.draft-form h5 {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--ink);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--ink-subtle);
+}
+
+.form-grid input,
+.form-grid textarea {
+  padding: var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-cell);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: var(--face-page);
+  font-family: inherit;
+}
+
+.form-grid input:focus-visible,
+.form-grid textarea:focus-visible {
+  outline: 2px solid var(--act);
+  outline-offset: 1px;
+}
+
+.form-grid textarea {
+  resize: vertical;
+}
+
+.full {
+  grid-column: span 3;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
 </style>

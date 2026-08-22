@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick, useId } from 'vue';
 import * as echarts from 'echarts';
 import { useToast } from '@/composables/useToast';
 import { downloadTextFile } from '@/lib/download';
 import { useTheme } from '@/composables/useTheme';
 import { useChartTheme } from '@/composables/useChartTheme';
+import UiButton from '@/components/ui/UiButton.vue';
+import UiFacts, { type Fact } from '@/components/ui/UiFacts.vue';
+import UiInset from '@/components/ui/UiInset.vue';
+import UiTable from '@/components/ui/UiTable.vue';
 
 const props = defineProps<{
   type?: string;
@@ -54,7 +58,8 @@ let chartInstance: echarts.ECharts | null = null;
 const renderChart = () => {
   if (!chartContainer.value) return;
   if (!chartInstance) {
-    chartInstance = echarts.init(chartContainer.value, isDark() ? 'dark' : null);
+    // 明暗不靠 echarts 内建主题，全部由 token 现算（chartBase / chartColors）
+    chartInstance = echarts.init(chartContainer.value, null);
   }
   
   let options: echarts.EChartsCoreOption = {};
@@ -69,12 +74,19 @@ const renderChart = () => {
         values.push(Number(v) || 0);
       }
     }
+    const base = chartBase.value;
     options = {
-      tooltip: { trigger: 'axis' },
+      ...base.root,
+      tooltip: { ...base.tooltip, trigger: 'axis' },
       grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-      xAxis: { type: 'value' },
-      yAxis: { type: 'category', data: labels, axisLabel: { interval: 0, width: 80, overflow: 'truncate' } },
-      series: [{ type: 'bar', data: values, itemStyle: { color: chartColors.value.focusStroke, borderRadius: [0, 4, 4, 0] } }]
+      xAxis: { type: 'value', ...base.axis },
+      yAxis: {
+        type: 'category',
+        data: labels,
+        ...base.laneAxis,
+        axisLabel: { ...base.laneAxis.axisLabel, interval: 0, width: 80, overflow: 'truncate' },
+      },
+      series: [{ type: 'bar', data: values, itemStyle: { color: chartColors.value.statusAssigned, borderRadius: [0, 4, 4, 0] } }]
     };
   } else if (isTimeline.value) {
     const items = Array.isArray(dataRecord.value.items) ? dataRecord.value.items : [];
@@ -83,8 +95,11 @@ const renderChart = () => {
         const timeVal = timeStr ? new Date(timeStr).getTime() : Date.now() + i * 1000;
         return [timeVal, i, (item.flight_number || item.flight_id || `事件 ${i+1}`) as string];
      });
+     const base = chartBase.value;
      options = {
-       tooltip: { 
+       ...base.root,
+       tooltip: {
+         ...base.tooltip,
          trigger: 'item',
          formatter: (params: Record<string, unknown>) => {
             const value = params.value as unknown[];
@@ -92,13 +107,14 @@ const renderChart = () => {
          }
       },
       grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-      xAxis: { type: 'time', splitLine: { show: false } },
+      xAxis: { type: 'time', ...base.axis, splitLine: { show: false } },
       yAxis: { type: 'value', show: false },
-      series: [{ 
-        type: 'scatter', 
+      series: [{
+        type: 'scatter',
         data: dataPoints,
         symbolSize: 10,
-        itemStyle: { color: chartColors.value.nowLine }
+        // 事件点是「有这件事」，不是「出事了」——用行动色，不用危声
+        itemStyle: { color: chartColors.value.statusAssigned }
       }]
     };
   }
@@ -106,8 +122,8 @@ const renderChart = () => {
   chartInstance.setOption(options, true);
 };
 
-const { isDark, theme } = useTheme();
-const { chartColors } = useChartTheme();
+const { theme } = useTheme();
+const { chartColors, chartBase } = useChartTheme();
 watch(theme, () => {
   chartInstance?.dispose();
   chartInstance = null;
@@ -155,12 +171,22 @@ const handleExportJson = () => {
   exportFile(JSON.stringify(jsonPayload, null, 2), `Insight_Export_${Date.now()}.json`, 'application/json;charset=utf-8');
 };
 
+/** 一组名+值属性走事实格；缺值交给 UiFacts 写成「—」，这里不写 '--'（§3.2 / §5.2） */
+const insightFacts = computed<Fact[]>(() => [
+  { label: '生成时间', value: insightPayload.value?.generatedAt as Fact['value'], mono: true },
+  { label: '模型', value: insightPayload.value?.model as Fact['value'] },
+]);
+
+/** 展开是持守：绑 aria-expanded，不绑一次性 class；id 用 useId，一页可能有多条消息（§2.5） */
+const mdOpen = ref(false);
+const mdId = useId();
+
 </script>
 
 <template>
   <div v-if="isTable || isInsightCard || isAnyChart" class="ai-chat-viz">
     <div v-if="isTable && tableRows.length > 0" class="viz-table-wrapper">
-      <table class="viz-table">
+      <UiTable label="查询结果" :sticky-head="false">
         <thead>
           <tr>
             <th v-for="h in tableHeaders" :key="h">
@@ -175,7 +201,7 @@ const handleExportJson = () => {
             </td>
           </tr>
         </tbody>
-      </table>
+      </UiTable>
     </div>
 
     <div v-if="isAnyChart" class="viz-chart-wrapper">
@@ -185,67 +211,51 @@ const handleExportJson = () => {
     <div v-if="isInsightCard && insightPayload" class="ai-chat-insight-card">
       <div class="ai-chat-insight-header">
         <strong>{{ insightPayload.title || '航班分析报告' }}</strong>
-        <span>{{ insightPayload.flightNo || '--' }}</span>
+        <span class="ai-chat-insight-flight-no">{{ insightPayload.flightNo || '—' }}</span>
       </div>
-      <div class="ai-chat-insight-summary">
-        {{ insightPayload.kind === 'history_report' ? '已生成航班动态报表，可展开全文并导出。' : '已生成航班事件经过，可展开全文并导出。' }}
-      </div>
-      <div class="ai-chat-insight-meta">
-        生成时间: {{ insightPayload.generatedAt || '--' }} | 模型: {{ insightPayload.model || 'unknown-model' }}
-      </div>
+      <UiFacts :items="insightFacts" :columns="2" />
 
-      <details class="ai-chat-markdown-details">
-        <summary>展开 Markdown 全文</summary>
-        <pre>{{ insightPayload.markdown || '(未返回 Markdown 内容)' }}</pre>
-      </details>
+      <UiButton
+        variant="quiet"
+        :aria-expanded="mdOpen ? 'true' : 'false'"
+        :aria-controls="mdId"
+        @click="mdOpen = !mdOpen"
+      >
+        {{ mdOpen ? '收起 Markdown 全文' : '展开 Markdown 全文' }}
+      </UiButton>
+      <UiInset v-if="mdOpen" :id="mdId">
+        <pre class="ai-chat-markdown-pre">{{ insightPayload.markdown || '(未返回 Markdown 内容)' }}</pre>
+      </UiInset>
 
       <div class="ai-chat-insight-actions">
-        <button class="viz-action-btn" @click="handleExportMd">
+        <UiButton variant="quiet" @click="handleExportMd">
           导出 md
-        </button>
-        <button class="viz-action-btn" @click="handleExportJson">
+        </UiButton>
+        <UiButton variant="quiet" @click="handleExportJson">
           导出 json
-        </button>
+        </UiButton>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* 这里只留排布。本组件坐在气泡 #body 槽里，不再铺一张卡，只用一根线跟上面的 Markdown 分开（§3.3 / §4.21）。 */
 .ai-chat-viz {
-  margin-top: 12px;
-  background: var(--glass-bg);
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 13px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-body);
 }
 
 .viz-table-wrapper {
   overflow-x: auto;
 }
 
-.viz-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.viz-table th, .viz-table td {
-  padding: 6px 8px;
-  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
-  text-align: left;
-}
-
-.viz-table th {
-  background: rgba(0, 0, 0, 0.02);
-  font-weight: 600;
-  color: var(--text-secondary, #3A3A3C);
-}
-
 .viz-chart-wrapper {
   width: 100%;
   height: 240px;
-  margin-bottom: 8px;
+  margin-bottom: var(--s2);
 }
 
 .echarts-container {
@@ -256,55 +266,39 @@ const handleExportJson = () => {
 .ai-chat-insight-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .ai-chat-insight-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  gap: var(--s3);
+  font-size: var(--fs-section);
+  color: var(--ink);
 }
 
-.ai-chat-insight-meta {
-  color: var(--text-tertiary, #8E8E93);
-  font-size: 12px;
+/* 航班号是标识，用等宽（§2.4） */
+.ai-chat-insight-flight-no {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-subtle);
 }
 
-.ai-chat-markdown-details {
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 6px;
-  padding: 8px;
-  cursor: pointer;
-}
-
-.ai-chat-markdown-details pre {
-  margin: 8px 0 0 0;
+/* 原始报文放进嵌板（§3.7）；pre 自己不再描边、不再换底。 */
+.ai-chat-markdown-pre {
+  margin: 0;
   white-space: pre-wrap;
-  font-size: 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-label);
+  color: var(--ink);
   max-height: 200px;
   overflow-y: auto;
 }
 
 .ai-chat-insight-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.viz-action-btn {
-  padding: 4px 12px;
-  background: white;
-  border: 1px solid var(--system-blue, #007AFF);
-  color: var(--system-blue, #007AFF);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.viz-action-btn:hover {
-  background: var(--system-blue, #007AFF);
-  color: white;
+  gap: var(--s2);
+  margin-top: var(--s1);
 }
 </style>

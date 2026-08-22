@@ -11,6 +11,8 @@ import ContextCacheSection from './sections/ContextCacheSection.vue';
 import MultimodalSecuritySection from './sections/MultimodalSecuritySection.vue';
 import AudioTestSection from './sections/AudioTestSection.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import UiButton from '@/components/ui/UiButton.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import './AiConfigCenter.css';
 
 const {
@@ -83,9 +85,11 @@ const {
             />
 
             <section class="models-main">
-              <div v-if="!selectedEntityId" class="empty-state">
-                <p>请选择一个实体进行配置</p>
-              </div>
+              <EmptyState
+                v-if="!selectedEntityId"
+                icon="data"
+                title="请选择一个实体进行配置"
+              />
 
               <CapabilityEditorSection
                 v-if="selectedEntityId"
@@ -168,22 +172,22 @@ const {
               />
 
               <div v-if="selectedEntityId" class="models-form-actions">
-                <button
-                  type="button"
-                  class="btn btn-primary"
+                <UiButton
+                  variant="primary"
+                  size="md"
                   :disabled="modelsSaving || !selectedEntityId || !isModelsDirty"
                   @click="saveModelsForm()"
                 >
                   {{ modelsSaving ? '正在保存...' : '保存配置' }}
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-secondary"
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="md"
                   :disabled="!entityDetail"
                   @click="revertModelsForm()"
                 >
                   还原
-                </button>
+                </UiButton>
               </div>
 
               <AudioTestSection
