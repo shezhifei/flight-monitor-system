@@ -26,6 +26,8 @@ use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationR
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 use fms_domain::ports::user_repository::{RoleRepository, UserRepository};
 
+use fms_domain::ports::flowable_gateway::FlowableGateway;
+use fms_infrastructure::integrations::embedded_flowable::EmbeddedFlowableEngine;
 use fms_infrastructure::integrations::flowable_client::FlowableClient;
 use fms_infrastructure::messaging::MessageQueueGatewayClient;
 use fms_infrastructure::repositories::cached_user_repository::{CachedRoleRepository, CachedUserRepository};
@@ -289,7 +291,7 @@ pub(crate) struct SharedInfra {
     pub sse_hub: Arc<SseHub>,
     pub message_queue: Arc<MessageQueueGatewayClient>,
     pub domain_events_topic: String,
-    pub flowable_client: Arc<FlowableClient>,
+    pub flowable_client: Arc<dyn FlowableGateway>,
     pub flowable_svc: Arc<FlowableService>,
     pub performance_metrics: Arc<PerformanceMetricsService>,
     pub business_case_event_publisher: Option<Arc<dyn BusinessCaseEventPublisher>>,
@@ -318,18 +320,33 @@ pub(crate) fn build_shared_infra(repos: &SharedRepos) -> SharedInfra {
     let business_case_event_publisher =
         Some(Arc::new(OutboxBusinessCaseEventPublisher::new(pool.clone())) as Arc<dyn BusinessCaseEventPublisher>);
 
-    let flowable_admin_pass = std::env::var("FLOWABLE_ADMIN_PASSWORD")
-        .or_else(|_| std::env::var("FLOWABLE_PASSWORD"))
-        .unwrap_or_else(|_| "test".to_string());
-    let flowable_client = Arc::new(
-        FlowableClient::try_new(
-            std::env::var("FLOWABLE_BASE_URL")
-                .unwrap_or_else(|_| "http://localhost:8082/flowable-rest/service".to_string()),
-            std::env::var("FLOWABLE_USERNAME").unwrap_or_else(|_| "rest-admin".to_string()),
-            flowable_admin_pass,
-        )
-        .expect("FLOWABLE_BASE_URL must be a valid absolute URL with a host"),
-    );
+    let flowable_client: Arc<dyn FlowableGateway> =
+        match std::env::var("FLOWABLE_ENGINE_MODE")
+            .unwrap_or_else(|_| "remote".to_string())
+            .trim()
+            .to_ascii_lowercase()
+            .as_str()
+        {
+            "embedded" => {
+                let engine = EmbeddedFlowableEngine::try_new_from_env()
+                    .expect("FLOWABLE_ENGINE_MODE=embedded requires a bootable flowable engine");
+                Arc::new(engine)
+            }
+            _ => {
+                let flowable_admin_pass = std::env::var("FLOWABLE_ADMIN_PASSWORD")
+                    .or_else(|_| std::env::var("FLOWABLE_PASSWORD"))
+                    .unwrap_or_else(|_| "test".to_string());
+                Arc::new(
+                    FlowableClient::try_new(
+                        std::env::var("FLOWABLE_BASE_URL")
+                            .unwrap_or_else(|_| "http://localhost:8082/flowable-rest/service".to_string()),
+                        std::env::var("FLOWABLE_USERNAME").unwrap_or_else(|_| "rest-admin".to_string()),
+                        flowable_admin_pass,
+                    )
+                    .expect("FLOWABLE_BASE_URL must be a valid absolute URL with a host"),
+                )
+            }
+        };
     let flowable_svc = Arc::new(FlowableService::new(flowable_client.clone()));
 
     let performance_metrics = PerformanceMetricsService::new();
