@@ -35,7 +35,11 @@ x-app-common-env: &app-common-env
   REDIS_HOST: redis
   REDIS_PORT: "6379"
   REDIS_DB: ${REDIS_DB:-0}
-  FLOWABLE_API_URL: ${FLOWABLE_API_URL:-http://flowable:8080/flowable-rest/service}
+  # 嵌入式 Flowable 引擎（进程内调库，直连 flowable 库；remote 为过渡回退）
+  FLOWABLE_ENGINE_MODE: ${FLOWABLE_ENGINE_MODE:-embedded}
+  FLOWABLE_DATABASE_URL: ${FLOWABLE_DATABASE_URL:-postgresql://flowable:${FLOWABLE_DB_PASSWORD:-flowable}@postgres:5432/flowable}
+  # legacy-backend 经 api-server 代理访问工作流
+  RUST_API_BASE_URL: ${RUST_API_BASE_URL:-http://rust-api:8080}
   LOG_FORMAT: ${LOG_FORMAT:-json}
   MOBILE_UPLOAD_STORAGE_ROOT: /shared/mobile_uploads
 
@@ -374,37 +378,6 @@ services:
     volumes:
       - ../../scripts/database/bootstrap_flowable_database.sh:/scripts/bootstrap_flowable_database.sh:ro
       - ../../scripts/database/bootstrap_flowable_database.sql:/scripts/bootstrap_flowable_database.sql:ro
-    logging: *default-logging
-    networks:
-      - internal
-
-  flowable:
-    image: tomcat:11.0.18-jre21-temurin
-    restart: unless-stopped
-    env_file: *runtime-env-file
-    depends_on:
-      flowable-db-bootstrap:
-        condition: service_completed_successfully
-    environment:
-      JAVA_OPTS: ${FLOWABLE_JAVA_OPTS:--Xms512m -Xmx1024m}
-      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
-      FLOWABLE_REST_APP_CREATE_DEMO_DEFINITIONS: "false"
-      FLOWABLE_REST_APP_ADMIN_USER_ID: ${FLOWABLE_ADMIN_USER:-rest-admin}
-    ports:
-      - "127.0.0.1:${FLOWABLE_HOST_PORT:-8082}:8080"
-    volumes:
-      - ../../tomcat/lib/postgresql-42.7.8.jar:/usr/local/tomcat/lib/postgresql-42.7.8.jar:ro
-      - ../../tomcat/webapps/flowable-rest.war:/usr/local/tomcat/webapps/flowable-rest.war:ro
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/flowable-rest/actuator/health > /dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
     logging: *default-logging
     networks:
       - internal
