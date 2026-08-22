@@ -18,16 +18,15 @@
 
 也可双击：`deploy/docker/Start-FlightMonitorDocker.bat`
 
-脚本大致会：检查 Docker → 准备 `deploy/docker/.env.local` → Vault Agent 渲染密钥 → 构建/复用镜像 → 拉起拓扑 → 启动宿主机 Caddy → 等待 Rust API 与 Flowable 就绪。
+脚本大致会：检查 Docker → 准备 `deploy/docker/.env.local` → Vault Agent 渲染密钥 → 构建/复用镜像 → 拉起拓扑 → 启动宿主机 Caddy → 等待 Rust API 就绪。
 
-默认相关服务：`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`、`rust-api`、`flowable`、Vault 相关服务，以及宿主机 Caddy。新的 HTTP 行为应落在 `services/api-server/`。
+默认相关服务：`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`、`rust-api`、`flowable-db-bootstrap`、Vault 相关服务，以及宿主机 Caddy。Flowable 引擎内嵌在 api-server 进程中（`FLOWABLE_ENGINE_MODE=embedded`），不再有独立 Tomcat 服务。新的 HTTP 行为应落在 `services/api-server/`。
 
 ### 验证
 
 - `https://localhost:18443/api/v2/health/ping`
 - `https://localhost:18443/frontend/login.html`
 - `https://localhost:18443/frontend/dashboard.html`
-- `http://localhost:8082/flowable-rest/service/management/engine`
 
 ```powershell
 docker compose -f deploy\docker\docker-compose.distributed.yml ps
@@ -43,7 +42,7 @@ docker compose -f deploy\docker\docker-compose.distributed.yml ps
 .\scripts\fms.ps1 -Command start -Runtime host
 ```
 
-常见行为：加载 `.env` 与 Vault 渲染 env；检测 PostgreSQL；按需起 Redis / Vault / Tomcat·Flowable / Caddy；默认迁移（bootstrap + `sqlx migrate run`）；默认 `cargo build --release` 后后台起 `fms-server.exe`。
+常见行为：加载 `.env` 与 Vault 渲染 env；检测 PostgreSQL；按需起 Redis / Vault / Caddy；默认迁移（bootstrap + `sqlx migrate run`）；默认 `cargo build --release` 后后台起 `fms-server.exe`。
 
 参数：
 
@@ -53,7 +52,7 @@ docker compose -f deploy\docker\docker-compose.distributed.yml ps
 | `-UseCargoRun` | 前台 `cargo run --release` |
 | `-SkipMigrations` | 跳过迁移 |
 
-依赖：本机 PostgreSQL、Java、Rust toolchain，以及仓库内 `vault.exe`、`redis-server.exe`、`tomcat/`。
+依赖：本机 PostgreSQL、Rust toolchain，以及仓库内 `vault.exe`、`redis-server.exe`。
 
 ```powershell
 .\scripts\fms.ps1 -Command status -Runtime host

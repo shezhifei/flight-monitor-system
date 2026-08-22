@@ -41,7 +41,7 @@ function Write-Err {
 # =============================================================================
 # Host Runtime Service Helpers
 # =============================================================================
-$script:HostServiceNames = @("postgres", "redis", "vault", "tomcat", "caddy", "fms-server")
+$script:HostServiceNames = @("postgres", "redis", "vault", "caddy", "fms-server")
 
 function Get-HostRuntimeDir {
     $runtimeDir = Join-Path $repoRoot ".runtime\host-services"
@@ -143,11 +143,6 @@ function Test-Vault {
     } catch {
         return $false
     }
-}
-
-function Test-Flowable {
-    $port = if ($env:FLOWABLE_REST_PORT) { [int]$env:FLOWABLE_REST_PORT } else { 8082 }
-    return (Test-TcpPort -HostName "127.0.0.1" -Port $port)
 }
 
 function Test-Caddy {
@@ -402,14 +397,6 @@ function Start-HostService {
     if ($isReady) {
         $detail = & $Descriptor.RunningDetail
         return @{ Name = $name; Display = $display; Status = "running"; Detail = $detail }
-    }
-
-    # Prerequisite check (optional, for services with multi-step validation like Tomcat)
-    if ($Descriptor.PrerequisiteCheck) {
-        $prereqResult = & $Descriptor.PrerequisiteCheck
-        if ($prereqResult) {
-            return @{ Name = $name; Display = $display; Status = $prereqResult.Status; Detail = $prereqResult.Detail }
-        }
     }
 
     # Find executable
@@ -712,47 +699,6 @@ $HostServiceDescriptors = @(
         CustomStop          = $null
     },
     @{
-        Name                = "tomcat"
-        Display             = "Tomcat/Flowable"
-        TestReady           = { Test-Flowable }
-        PrerequisiteCheck   = {
-            $tomcatHome = Join-Path $repoRoot "tomcat"
-            if (-not (Test-Path $tomcatHome)) {
-                return @{ Status = "skipped"; Detail = "未找到 tomcat 目录" }
-            }
-            $catalinaBat = Join-Path $tomcatHome "bin\catalina.bat"
-            if (-not (Test-Path $catalinaBat)) {
-                return @{ Status = "skipped"; Detail = "未找到 catalina.bat" }
-            }
-            return $null
-        }
-        FindExe             = { Join-Path $repoRoot "tomcat\bin\catalina.bat" }
-        ExeNotFoundStatus   = "skipped"
-        ExeNotFoundDetail   = "未找到 tomcat 目录"
-        BuildArguments      = { @("run") }
-        GetWorkingDirectory = { Join-Path $repoRoot "tomcat" }
-        ReadyWaitSeconds    = 20
-        Environment         = @{}
-        PreStart            = {
-            $tomcatHome = Join-Path $repoRoot "tomcat"
-            $env:CATALINA_HOME = $tomcatHome
-            if (-not $env:JAVA_HOME) {
-                $javaExe = Get-Command java.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
-                if ($javaExe) {
-                    $env:JAVA_HOME = Split-Path -Parent (Split-Path -Parent $javaExe)
-                }
-            }
-            $catalinaOpts = if ($env:CATALINA_OPTS) { $env:CATALINA_OPTS } else { "" }
-            $env:CATALINA_OPTS = $catalinaOpts
-        }
-        RunningDetail       = { "http://127.0.0.1:8082" }
-        StartedDetail       = { "http://127.0.0.1:8082" }
-        FailedDetail        = { "启动后端口 8082 未响应" }
-        StatusDetail        = { "http://127.0.0.1:8082" }
-        FallbackProcessName = "java"
-        CustomStop          = $null
-    },
-    @{
         Name                = "caddy"
         Display             = "Caddy"
         TestReady           = { Test-Caddy }
@@ -812,7 +758,6 @@ function Invoke-DockerStart {
     Write-Info "访问地址:"
     Write-Info "  - https://localhost:18443/api/v2/health/ping"
     Write-Info "  - https://localhost:18443/frontend/login.html"
-    Write-Info "  - http://localhost:8082/flowable-rest/service/management/engine"
 }
 
 function Invoke-DockerStop {
@@ -953,8 +898,7 @@ function Invoke-HostStart {
     }
     Invoke-DbSchemaVerification
 
-    # 6-7. Tomcat, Caddy (from descriptor table)
-    $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "tomcat" })
+    # 6. Caddy (from descriptor table)
     $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "caddy" })
 
     # 8. Rust API (background unless -UseCargoRun)
@@ -970,7 +914,6 @@ function Invoke-HostStart {
     Write-Info "访问地址:"
     Write-Info "  - https://localhost:$httpsPort/api/v2/health/ping"
     Write-Info "  - https://localhost:$httpsPort/frontend/login.html"
-    Write-Info "  - http://127.0.0.1:8082/flowable-rest/service/management/engine"
     Write-Info "  - http://$($env:API_HOST):$apiPort (Rust API direct)"
 }
 
@@ -980,7 +923,7 @@ function Invoke-HostStop {
     # Stop Rust API first (special)
     Stop-BackgroundService -ServiceName "fms-server" -DisplayName "Rust API" -FallbackProcessName "fms-server"
 
-    # Stop descriptor-based services in reverse order (caddy → tomcat → vault → redis)
+    # Stop descriptor-based services in reverse order (caddy → vault → redis)
     for ($i = $HostServiceDescriptors.Count - 1; $i -ge 0; $i--) {
         Stop-HostService $HostServiceDescriptors[$i]
     }

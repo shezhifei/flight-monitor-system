@@ -204,9 +204,7 @@ def _required_keys(template_name: str) -> list[str]:
             "JWT_SECRET_KEY",
             "JWT_SECRET",
             "AI_CONFIG_ENCRYPTION_KEY",
-            "FLOWABLE_ADMIN_PASSWORD",
             "FLOWABLE_DB_PASSWORD",
-            "FLOWABLE_PASSWORD",
         ]
     if template == "api.env.ctmpl":
         return [
@@ -215,7 +213,6 @@ def _required_keys(template_name: str) -> list[str]:
             "REDIS_PASSWORD",
             "JWT_SECRET_KEY",
             "AI_CONFIG_ENCRYPTION_KEY",
-            "FLOWABLE_ADMIN_PASSWORD",
         ]
     if template == "worker.env.ctmpl":
         return [
@@ -224,7 +221,6 @@ def _required_keys(template_name: str) -> list[str]:
             "REDIS_PASSWORD",
             "JWT_SECRET_KEY",
             "AI_CONFIG_ENCRYPTION_KEY",
-            "FLOWABLE_ADMIN_PASSWORD",
         ]
     if template == "rust-api.env.ctmpl":
         return [
@@ -234,8 +230,7 @@ def _required_keys(template_name: str) -> list[str]:
             "JWT_SECRET_KEY",
             "JWT_SECRET",
             "AI_CONFIG_ENCRYPTION_KEY",
-            "FLOWABLE_ADMIN_PASSWORD",
-            "FLOWABLE_PASSWORD",
+            "FLOWABLE_DB_PASSWORD",
         ]
     return []
 

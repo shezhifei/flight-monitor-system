@@ -43,7 +43,7 @@ async fn main() -> std::io::Result<()> {
         "REDIS_PASSWORD",
         "JWT_SECRET_KEY",
         "AI_CONFIG_ENCRYPTION_KEY",
-        "FLOWABLE_ADMIN_PASSWORD",
+        "FLOWABLE_DB_PASSWORD",
     ])?;
 
     // 2. 初始化日志与全局 Panic Hook

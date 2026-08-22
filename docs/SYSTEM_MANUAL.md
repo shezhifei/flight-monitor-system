@@ -21,7 +21,7 @@
 2. **Python 收窄角色**：AI 侧车 + 可选 worker/runtime/脚本；不新增 Python HTTP 主链。
 3. **显式装配**：进程启动时注入依赖；不用导入期全局单例当正式接线方式。
 4. **密钥走 Vault**：CE + AppRole + Agent 渲染文件；缺失关键 secret 应拒绝启动。
-5. **存储分工**：PostgreSQL 业务/配置/outbox；Redis 缓存与实时状态；RocketMQ gateway 消息边界；Flowable 独立 Tomcat/REST。
+5. **存储分工**：PostgreSQL 业务/配置/outbox；Redis 缓存与实时状态；RocketMQ gateway 消息边界；Flowable 嵌入式引擎（api-server 进程内 flowable-rust-oss 调库，`FLOWABLE_ENGINE_MODE=embedded`）。
 
 ## 3. 目录与分层
 
@@ -57,13 +57,12 @@ config/                       # 侧车相关配置（如 ai_config.py）
 ```
 
 编排：`deploy/docker/docker-compose.distributed.yml`。  
-常见服务：`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`、`rust-api`、`flowable`、Vault 相关服务；宿主机常配 Caddy（18443）。
+常见服务：`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`、`rust-api`、`flowable-db-bootstrap`、Vault 相关服务；宿主机常配 Caddy（18443）。
 
 访问示例：
 
 - `https://localhost:18443/api/v2/health/ping`
 - `https://localhost:18443/frontend/login.html`
-- `http://localhost:8082/flowable-rest/service/management/engine`
 
 ### 4.2 Host Rust
 

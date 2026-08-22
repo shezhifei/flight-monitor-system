@@ -26,7 +26,7 @@
 
 - 你明确需要演练多台 Linux VM 的网络隔离
 - 你要验证 VM 级 CPU / 内存切分
-- 你准备自己手工完成 PostgreSQL 主从、Redis、Tomcat 与 Nginx 的多机安装
+- 你准备自己手工完成 PostgreSQL 主从、Redis 与 Nginx 的多机安装
 
 ## 限制
 

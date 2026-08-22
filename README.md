@@ -29,7 +29,7 @@ Browser / Vue MPA
 | 移动端 | `mobile/flutter-app/` + `mobile/core/` | Flutter + Rust（Android）；旧 Kotlin 在 `legacy/android-kotlin/` |
 | 迁移 | `migrations/*.sql` | 按编号顺序；当前最新 **121** |
 
-标准 Docker 拓扑（`deploy/docker/docker-compose.distributed.yml`）默认服务包括：`rust-api`、`flowable`、`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`（及 Vault 相关服务）。Python HTTP API 不是默认路径。
+标准 Docker 拓扑（`deploy/docker/docker-compose.distributed.yml`）默认服务包括：`rust-api`、`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`（及 `flowable-db-bootstrap`、Vault 相关服务）。Flowable 工作流引擎以 embedded 模式运行在 api-server 进程内（flowable-rust-oss 调库，`FLOWABLE_ENGINE_MODE=embedded`），不再有独立 Tomcat 服务。Python HTTP API 不是默认路径。
 
 旧静态页兼容路径：`/frontend/html/<page>.html`，不要作为新功能入口。根路径 `/` 跳到正式 Vue 登录页 `/frontend/login.html`。
 
@@ -54,12 +54,11 @@ Browser / Vue MPA
 
 - `https://localhost:18443/api/v2/health/ping`
 - `https://localhost:18443/frontend/login.html`
-- `http://localhost:8082/flowable-rest/service/management/engine`
 
 ```powershell
 .\scripts\fms.ps1 -Command stop  -Runtime docker
 .\scripts\fms.ps1 -Command logs  -Runtime docker
-.\scripts\fms.ps1 -Command start -Runtime host   # 本机 Rust + Vault/Redis/Tomcat/RocketMQ
+.\scripts\fms.ps1 -Command start -Runtime host   # 本机 Rust + Vault/Redis/RocketMQ
 ```
 
 细节见 `QUICK_START.md`、`docs/DEPLOYMENT.md`。

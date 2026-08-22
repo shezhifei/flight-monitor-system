@@ -74,7 +74,7 @@
 .\scripts\fms.ps1 -Command start -Runtime host
 ```
 
-Host 模式会启动本机辅助服务并运行 Rust API，适合本机联调和排障。它依赖本机 PostgreSQL、Java、Rust toolchain，以及仓库内的 Vault、Redis、Tomcat 运行资产。
+Host 模式会启动本机辅助服务并运行 Rust API，适合本机联调和排障。它依赖本机 PostgreSQL、Rust toolchain，以及仓库内的 Vault、Redis 运行资产。
 
 ### 1.3 Edge runtime
 
@@ -101,7 +101,7 @@ Host 模式会启动本机辅助服务并运行 Rust API，适合本机联调和
 - `rocketmq-namesrv` / `rocketmq-broker`（及可选第二组）
 - `mq-gateway`
 - `rust-api`
-- `flowable`（及 `flowable-db-bootstrap`）
+- `flowable-db-bootstrap`（初始化嵌入式 Flowable 引擎所需的 flowable 库）
 - `vault`（及可选第二节点）
 - 宿主机 `caddy`（由 `fms.ps1` 拉起，不在 compose 服务列表里）
 
@@ -112,7 +112,7 @@ flowchart LR
     RustAPI --> PG["PostgreSQL"]
     RustAPI --> Redis["Redis"]
     RustAPI --> MQ["MQ Gateway"]
-    RustAPI --> Flowable["Tomcat + Flowable REST<br/>127.0.0.1:8082"]
+    RustAPI --> Flowable["嵌入式 Flowable 引擎<br/>（api-server 进程内调库）"]
     RustAPI --> Sidecar["AI sidecar 可选"]
     MQ --> Namesrv["RocketMQ NameServer"]
     MQ --> Broker["RocketMQ Broker"]
@@ -125,7 +125,7 @@ flowchart LR
 - Python worker **不是**该 compose 的默认服务；后台任务可按 host/systemd 另部。
 - AI 侧车同样可选，不替代 Rust HTTP。
 - RocketMQ 相关服务用于事件消息边界。
-- Flowable 独立运行，不混入应用镜像。
+- Flowable 引擎以 embedded 模式运行在 api-server 进程内（`FLOWABLE_ENGINE_MODE=embedded`），不再有独立 Tomcat 服务。
 
 ### 2.2 Host Rust 拓扑
 
@@ -134,9 +134,8 @@ Host 模式会自动检测并按需启动宿主机基础设施：
 - PostgreSQL（检测是否运行，不自动启停）
 - Redis
 - Vault（dev 模式或已有实例）
-- Tomcat / Flowable
 - Caddy HTTP/3 代理
-- Rust API 进程
+- Rust API 进程（内嵌 Flowable 引擎）
 
 Host 模式特性：
 
@@ -165,7 +164,7 @@ Host 模式特性：
 - 健康检查：`https://localhost:18443/api/v2/health/ping`
 - 登录页：`https://localhost:18443/frontend/login.html`
 - Rust 直连：`http://localhost:18080`
-- Flowable API：`http://localhost:8082/flowable-rest/service/management/engine`
+- 工作流 API：经 api-server 代理 `https://localhost:18443/api/v2/workflows`（嵌入式引擎）
 
 ### 3.2 Edge
 
@@ -240,7 +239,8 @@ Vault runtime 文件：
 - `DB_PORT`
 - `CORS_ALLOWED_ORIGINS`
 - `RUST_API_HOST_PORT`
-- `FLOWABLE_HOST_PORT`
+- `FLOWABLE_ENGINE_MODE`
+- `FLOWABLE_DATABASE_URL`
 - `ROCKETMQ_NAMESRV_HOST_PORT`
 - `ROCKETMQ_BROKER_HOST_PORT`
 - `MQ_GATEWAY_HOST_PORT`
@@ -264,7 +264,7 @@ Vault runtime 文件：
 ### 5.3 安全约束
 
 - `VAULT_*` bootstrap 项必须完整。
-- 渲染文件必须包含 `DB_PASSWORD`、`DB_REPLICATION_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET_KEY`、`AI_CONFIG_ENCRYPTION_KEY`、`FLOWABLE_ADMIN_PASSWORD` 等关键 secret。
+- 渲染文件必须包含 `DB_PASSWORD`、`DB_REPLICATION_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET_KEY`、`AI_CONFIG_ENCRYPTION_KEY`、`FLOWABLE_DB_PASSWORD` 等关键 secret。
 - `CORS_ALLOWED_ORIGINS` 必须是精确 Origin 白名单。
 - 内部依赖端口默认绑定 loopback，不应直接暴露到外网。
 - 外部访问应通过 Caddy、边缘 Nginx 或云负载均衡暴露。
@@ -301,10 +301,10 @@ Vault runtime 文件：
 
 从本机 Docker 向云上迁移时，建议保持当前角色边界：
 
-1. 保持 Rust API / Flowable / MQ gateway（及可选 AI 侧车、后台 worker）的职责拆分。
+1. 保持 Rust API（含嵌入式 Flowable 引擎）/ MQ gateway（及可选 AI 侧车、后台 worker）的职责拆分。
 2. 先迁移 PostgreSQL 到独立或托管库。
 3. 再迁移 Redis。
-4. 再拆分 API、Flowable、MQ、侧车到独立主机或服务。
+4. 再拆分 API、MQ、侧车到独立主机或服务。
 5. 最后用云负载均衡或边缘代理替换本机 Caddy。
 
 ## 9. 验收基线
@@ -315,10 +315,10 @@ Vault runtime 文件：
 
 - `https://localhost:18443/api/v2/health/ping` 返回 200。
 - `https://localhost:18443/frontend/login.html` 可访问。
-- Flowable 引擎接口可访问。
+- 工作流接口（`/api/v2/workflows`）可访问。
 - `rust-api` 健康。
 - `mq-gateway` 健康。
-- `flowable` 稳定运行。
+- 嵌入式 Flowable 引擎随 `rust-api` 正常启动。
 
 ### 9.2 Edge
 
@@ -328,7 +328,7 @@ Vault runtime 文件：
 - `http://localhost:18080/frontend/login.html` 可访问。
 - `rust-api` 容器内存符合限制。
 - 核心功能可用。
-- worker、Flowable、MQ 不存在时相关能力能清晰降级。
+- worker、MQ 不存在时相关能力能清晰降级。
 
 ## 10. 高可用与故障切换
 

@@ -74,27 +74,19 @@ def _apply_common_derivations(
     if redis_host and redis_port and redis_password and not values.get("REDIS_URL", "").strip():
         values["REDIS_URL"] = f"redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
 
-    flowable_api_url = values.get("FLOWABLE_API_URL", "").strip()
-    if flowable_api_url and not values.get("FLOWABLE_BASE_URL", "").strip():
-        values["FLOWABLE_BASE_URL"] = flowable_api_url
-
-    if values.get("FLOWABLE_ADMIN_PASSWORD", "").strip() and not values.get("FLOWABLE_PASSWORD", "").strip():
-        values["FLOWABLE_PASSWORD"] = values["FLOWABLE_ADMIN_PASSWORD"]
-    if values.get("FLOWABLE_ADMIN_PASSWORD", "").strip() and not values.get(
-        "FLOWABLE_REST_APP_ADMIN_PASSWORD", ""
-    ).strip():
-        values["FLOWABLE_REST_APP_ADMIN_PASSWORD"] = values["FLOWABLE_ADMIN_PASSWORD"]
-    if values.get("FLOWABLE_DB_PASSWORD", "").strip() and not values.get(
-        "SPRING_DATASOURCE_PASSWORD", ""
-    ).strip():
-        values["SPRING_DATASOURCE_PASSWORD"] = values["FLOWABLE_DB_PASSWORD"]
-    if values.get("FLOWABLE_DB_USER", "").strip() and not values.get(
-        "SPRING_DATASOURCE_USERNAME", ""
-    ).strip():
-        values["SPRING_DATASOURCE_USERNAME"] = values["FLOWABLE_DB_USER"]
+    flowable_db_user = values.get("FLOWABLE_DB_USER", "").strip()
+    flowable_db_password = values.get("FLOWABLE_DB_PASSWORD", "").strip()
     flowable_db_name = values.get("FLOWABLE_DB_NAME", "").strip()
-    if flowable_db_name and not values.get("SPRING_DATASOURCE_URL", "").strip():
-        values["SPRING_DATASOURCE_URL"] = f"jdbc:postgresql://{db_host or 'postgres'}:{db_port or '5432'}/{flowable_db_name}"
+    if (
+        flowable_db_user
+        and flowable_db_password
+        and flowable_db_name
+        and not values.get("FLOWABLE_DATABASE_URL", "").strip()
+    ):
+        values["FLOWABLE_DATABASE_URL"] = (
+            f"postgresql://{flowable_db_user}:{flowable_db_password}"
+            f"@{db_host or 'postgres'}:{db_port or '5432'}/{flowable_db_name}"
+        )
 
     if values.get("JWT_SECRET_KEY", "").strip() and not values.get("JWT_SECRET", "").strip():
         values["JWT_SECRET"] = values["JWT_SECRET_KEY"]

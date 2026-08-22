@@ -6,7 +6,3 @@ services:
   redis:
     ports:
       - "127.0.0.1:${HOST_REDIS_PORT:-6379}:6379"
-
-  flowable:
-    ports:
-      - "127.0.0.1:${HOST_FLOWABLE_PORT:-8082}:8080"

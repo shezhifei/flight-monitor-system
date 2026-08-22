@@ -9,7 +9,7 @@ name: flight-monitor-edge
 #
 # Resource budget:
 #   Core only:  ~672MB  (Rust 256MB + PG 256MB + Redis 128MB + Nginx 32MB)
-#   With AI:    ~1600MB (above + Python AI Sidecar 512MB + Flowable 512MB)
+#   With AI:    ~1600MB (above + Python AI Sidecar 512MB)
 
 x-edge-common-env: &edge-common-env
   APP_ENVIRONMENT: production

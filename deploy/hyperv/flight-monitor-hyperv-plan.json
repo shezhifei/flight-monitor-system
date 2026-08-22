@@ -75,18 +75,6 @@
       ]
     },
     {
-      "name": "fm-flowable-01",
-      "role": "tomcat",
-      "vcpu": 4,
-      "memory_gb": 10,
-      "disk_gb": 100,
-      "ip": "172.16.10.20",
-      "services": [
-        "tomcat",
-        "flowable"
-      ]
-    },
-    {
       "name": "fm-pg-primary-01",
       "role": "postgres-primary",
       "vcpu": 4,
@@ -121,8 +109,8 @@
     }
   ],
   "totals": {
-    "allocated_vcpu": 26,
-    "allocated_memory_gb": 64,
-    "allocated_disk_gb": 900
+    "allocated_vcpu": 22,
+    "allocated_memory_gb": 54,
+    "allocated_disk_gb": 800
   }
 }

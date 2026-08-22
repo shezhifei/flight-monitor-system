@@ -14,7 +14,7 @@ AI tool execution, mobile work, realtime events.
 
 ```
 Browser / Vue MPA -> Caddy/Nginx edge -> Rust API (Actix-web)
-  -> PostgreSQL / Redis / RocketMQ gateway / Flowable
+  -> PostgreSQL / Redis / RocketMQ gateway / Flowable（嵌入式引擎，api-server 进程内）
   -> Python AI sidecar (FastAPI; tools, NL Query, LLM eval)
 ```
 
