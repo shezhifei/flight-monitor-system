@@ -59,5 +59,8 @@ rocketmq-client-rust = { workspace = true }
 rocketmq-common = { workspace = true }
 rocketmq-error = { workspace = true }
 
+# Flowable (vendored)
+flowable-engine = { workspace = true }
+
 # Metrics (recording macros; recorder installed by the server crate)
 metrics = "0.24"

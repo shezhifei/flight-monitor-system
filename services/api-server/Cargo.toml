@@ -13,7 +13,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.85"   # flowable-rust-oss 为 edition 2024，工具链下限 1.85
 authors = ["Flight Monitor Team"]
 license = "Apache-2.0"
 
@@ -101,6 +101,9 @@ rocketmq-client-rust = { path = "../../libs/vendor/rocketmq-rust/rocketmq-client
 rocketmq-common = { path = "../../libs/vendor/rocketmq-rust/rocketmq-common" }
 rocketmq-error = { path = "../../libs/vendor/rocketmq-rust/rocketmq-error" }
 
+# -- Flowable (vendored) --
+flowable-engine = { path = "../../libs/vendor/flowable-rust-oss/modules/flowable-engine" }
+
 [profile.release]
 opt-level = 3
 lto = "fat"
@@ -108,6 +111,7 @@ codegen-units = 1
 incremental = false
 strip = true
 panic = "abort"
+overflow-checks = true
 
 [profile.dev]
 opt-level = 1
