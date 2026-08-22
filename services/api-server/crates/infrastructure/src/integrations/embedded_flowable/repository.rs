@@ -137,9 +137,10 @@ pub(super) async fn get_deployments(
         let deployments = engine.get_repository_service().get_deployments()?;
         Ok(deployments
             .into_iter()
+            // 对齐旧 FlowableClient 的 nameLike %name% 子串语义（flowable_client.rs:132）
             .filter(|deployment| {
                 name.as_deref()
-                    .map(|n| deployment.name.as_deref() == Some(n))
+                    .map(|n| deployment.name.as_deref().map(|name| name.contains(n)).unwrap_or(false))
                     .unwrap_or(true)
             })
             .filter(|deployment| {
