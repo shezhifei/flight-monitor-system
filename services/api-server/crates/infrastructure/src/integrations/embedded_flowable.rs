@@ -13,6 +13,7 @@ use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::error::FlowableError;
 use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfiguration};
 
+mod history;
 mod repository;
 mod runtime;
 mod tasks;
@@ -231,29 +232,29 @@ impl FlowableGateway for EmbeddedFlowableEngine {
 
     async fn get_historic_process_instances(
         &self,
-        _filters: &[(&str, String)],
+        filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 7")
+        history::get_historic_process_instances(&self.engine, filters).await
     }
 
     async fn get_historic_tasks(
         &self,
-        _filters: &[(&str, String)],
+        filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 7")
+        history::get_historic_tasks(&self.engine, filters).await
     }
 
     async fn get_historic_process_instance(
         &self,
-        _process_instance_id: &str,
+        process_instance_id: &str,
     ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 7")
+        history::get_historic_process_instance(&self.engine, process_instance_id).await
     }
 
     async fn get_historic_variable_instances(
         &self,
-        _filters: &[(&str, String)],
+        filters: &[(&str, String)],
     ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
-        unimplemented!("Task 7")
+        history::get_historic_variable_instances(&self.engine, filters).await
     }
 }

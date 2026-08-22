@@ -223,3 +223,86 @@ async fn task_lifecycle_claim_complete_roundtrip() {
         .unwrap();
     assert!(tasks.is_empty());
 }
+
+#[tokio::test]
+async fn history_records_after_completed_process() {
+    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
+    gateway
+        .deploy_process(bpmn, Some("history-test"), None, None)
+        .await
+        .unwrap();
+    let mut variables = serde_json::Map::new();
+    variables.insert("initiator".to_string(), Value::from("tester"));
+    let instance_id = gateway
+        .start_process_instance("minimalUserTask", Some(&variables), Some("hist-biz-1"), None)
+        .await
+        .unwrap()
+        .expect("instance started");
+
+    // 完成流程：claim + complete 唯一任务
+    let tasks = gateway
+        .get_tasks(&[("processInstanceId", instance_id.clone())])
+        .await
+        .unwrap();
+    let task_id = tasks[0].get("id").and_then(Value::as_str).unwrap().to_string();
+    gateway.claim_task(&task_id, "kermit").await.unwrap();
+    gateway.complete_task(&task_id, None).await.unwrap();
+
+    // 历史流程实例
+    let historic = gateway
+        .get_historic_process_instances(&[])
+        .await
+        .unwrap();
+    let found = historic
+        .iter()
+        .find(|i| i.get("id").and_then(Value::as_str) == Some(&instance_id))
+        .expect("historic instance recorded");
+    assert!(found.get("endTime").is_some());
+    assert_eq!(
+        found.get("processDefinitionKey").and_then(Value::as_str),
+        Some("minimalUserTask")
+    );
+    assert_eq!(
+        found.get("businessKey").and_then(Value::as_str),
+        Some("hist-biz-1")
+    );
+
+    // 按 businessKey 过滤
+    let filtered = gateway
+        .get_historic_process_instances(&[("businessKey", "hist-biz-1".to_string())])
+        .await
+        .unwrap();
+    assert_eq!(filtered.len(), 1);
+
+    // 单查历史实例
+    let single = gateway
+        .get_historic_process_instance(&instance_id)
+        .await
+        .unwrap()
+        .expect("historic instance");
+    assert!(single.get("durationInMillis").is_some());
+
+    // 历史任务
+    let historic_tasks = gateway
+        .get_historic_tasks(&[("processInstanceId", instance_id.clone())])
+        .await
+        .unwrap();
+    assert!(!historic_tasks.is_empty());
+    assert!(
+        historic_tasks
+            .iter()
+            .all(|t| t.get("endTime").is_some() && !t.get("endTime").unwrap().is_null())
+    );
+
+    // 历史变量
+    let historic_vars = gateway
+        .get_historic_variable_instances(&[("processInstanceId", instance_id.clone())])
+        .await
+        .unwrap();
+    assert!(
+        historic_vars
+            .iter()
+            .any(|v| v.get("name").and_then(Value::as_str) == Some("initiator"))
+    );
+}
