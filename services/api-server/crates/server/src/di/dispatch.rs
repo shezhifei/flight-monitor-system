@@ -92,7 +92,8 @@ pub(crate) fn build_dispatch_services(
         DispatchChatService::new(repos.dispatch_collaboration_repo.clone())
             .with_dispatch_order_repo(repos.dispatch_order_repo.clone())
             .with_flight_repo(repos.flight_repo.clone())
-            .with_event_publisher(infra.dispatch_chat_event_publisher.clone()),
+            .with_event_publisher(infra.dispatch_chat_event_publisher.clone())
+            .with_mention_notifier(shared.notification_svc.clone()),
     );
     let resource_availability_svc = Arc::new(ResourceAvailabilityService::new(
         repos.shift_instance_repo.clone(),
@@ -115,44 +116,35 @@ pub(crate) fn build_dispatch_services(
             .with_scan_interval(std::time::Duration::from_secs(scan_interval_secs)),
     );
     let dispatch_svc = Arc::new(
-        DispatchService::new(repos.dispatch_order_repo.clone())
-            .with_transactional_repos(
-                repos.dispatch_order_repo.clone() as Arc<dyn SqlxDispatchOrderTransactionalRepository>,
-                Some(repos.dispatch_member_repo.clone() as Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>),
-            )
-            .with_dispatch_repos(
-                repos.team_repo.clone(),
-                repos.team_type_repo.clone(),
-                repos.stand_repo.clone(),
-                repos.task_type_repo.clone(),
-                repos.task_type_requirement_repo.clone(),
-                repos.temporary_task_template_repo.clone(),
-            )
-            .with_generation_repos(
-                repos.department_repo.clone(),
-                repos.flight_repo.clone(),
-                repos.generation_rule_repo.clone(),
-                repos.adjustment_rule_repo.clone(),
-            )
-            .with_publication_preparation_repos(
-                repos.qualification_repo.clone(),
-                repos.qualification_grant_repo.clone(),
-                repos.equipment_repo.clone(),
-            )
-            .with_member_repos(
-                repos.dispatch_member_repo.clone(),
-                repos.team_member_repo.clone(),
-                repos.dispatch_travel_stats_repo.clone(),
-                repos.dispatch_checklist_repo.clone(),
-            )
-            .with_issue_reporting(repos.anomaly_repo.clone())
-            .with_collaboration_repo(repos.dispatch_collaboration_repo.clone())
-            .with_alert_repo(repos.dispatch_alert_repo.clone())
-            .with_notification_service(shared.notification_svc.clone())
-            .with_dispatch_chat_service(dispatch_chat_svc.clone())
-            .with_resource_availability_service(resource_availability_svc.clone())
-            .with_todo_repo(repos.todo_repo.clone())
-            .with_overrun_warning_service(dispatch_overrun_warning_svc.clone()),
+        DispatchService::new(
+            repos.dispatch_order_repo.clone(),
+            repos.dispatch_order_repo.clone() as Arc<dyn SqlxDispatchOrderTransactionalRepository>,
+            repos.dispatch_member_repo.clone(),
+            repos.dispatch_member_repo.clone() as Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
+            repos.todo_repo.clone(),
+            repos.department_repo.clone(),
+            repos.task_type_repo.clone(),
+            repos.task_type_requirement_repo.clone(),
+            repos.flight_repo.clone(),
+            repos.generation_rule_repo.clone(),
+            repos.adjustment_rule_repo.clone(),
+            repos.temporary_task_template_repo.clone(),
+            repos.team_repo.clone(),
+            repos.team_type_repo.clone(),
+            repos.stand_repo.clone(),
+            repos.qualification_repo.clone(),
+            repos.qualification_grant_repo.clone(),
+            repos.equipment_repo.clone(),
+            repos.team_member_repo.clone(),
+            repos.dispatch_travel_stats_repo.clone(),
+            repos.dispatch_checklist_repo.clone(),
+            resource_availability_svc.clone(),
+            repos.anomaly_repo.clone(),
+            repos.dispatch_collaboration_repo.clone(),
+            repos.dispatch_alert_repo.clone(),
+            shared.notification_svc.clone(),
+            dispatch_chat_svc.clone(),
+        )
     );
     let dispatch_frontend_replan_svc = Arc::new(
         DispatchFrontendReplanService::new(repos.dispatch_order_repo.clone(), repos.dispatch_member_repo.clone())
