@@ -31,9 +31,17 @@ impl NotificationRepository for PgNotificationRepository {
                 sender_user_id, sender_username_snapshot,
                 origin_type, receipt_required, receipt_group_id,
                 delivery_status, delivered_at, is_read, ack_status, ack_at, ack_note,
-                related_entity_type, related_entity_id, created_at, read_at
+                related_entity_type, related_entity_id, created_at, read_at,
+                recipient_username_snapshot, recipient_display_name_snapshot,
+                recipient_department_snapshot, recipient_job_title_snapshot
             ) VALUES (
-                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
+                -- 发送时刻定格接收人快照（migration 100 的设计意图）；
+                -- 调用方未显式提供时从 users 表取当前值
+                COALESCE($26, (SELECT username FROM users WHERE id = $2)),
+                COALESCE($27, (SELECT display_name FROM users WHERE id = $2)),
+                COALESCE($28, (SELECT department FROM users WHERE id = $2)),
+                COALESCE($29, (SELECT job_title FROM users WHERE id = $2))
             )
             ON CONFLICT (notification_id) DO UPDATE SET
                 title = EXCLUDED.title,
@@ -76,6 +84,10 @@ impl NotificationRepository for PgNotificationRepository {
         .bind(&n.related_entity_id)
         .bind(n.created_at)
         .bind(n.read_at)
+        .bind(&n.recipient_username_snapshot)
+        .bind(&n.recipient_display_name_snapshot)
+        .bind(&n.recipient_department_snapshot)
+        .bind(&n.recipient_job_title_snapshot)
         .execute(&self.pool)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
@@ -454,9 +466,16 @@ impl<'tx> NotificationTransactionalRepository<Transaction<'tx, Postgres>> for Pg
                 sender_user_id, sender_username_snapshot,
                 origin_type, receipt_required, receipt_group_id,
                 delivery_status, delivered_at, is_read, ack_status, ack_at, ack_note,
-                related_entity_type, related_entity_id, created_at, read_at
+                related_entity_type, related_entity_id, created_at, read_at,
+                recipient_username_snapshot, recipient_display_name_snapshot,
+                recipient_department_snapshot, recipient_job_title_snapshot
             ) VALUES (
-                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
+                -- 发送时刻定格接收人快照；调用方未显式提供时从 users 表取当前值
+                COALESCE($26, (SELECT username FROM users WHERE id = $2)),
+                COALESCE($27, (SELECT display_name FROM users WHERE id = $2)),
+                COALESCE($28, (SELECT department FROM users WHERE id = $2)),
+                COALESCE($29, (SELECT job_title FROM users WHERE id = $2))
             )
             ON CONFLICT (notification_id) DO UPDATE SET
                 title = EXCLUDED.title,
@@ -506,6 +525,10 @@ impl<'tx> NotificationTransactionalRepository<Transaction<'tx, Postgres>> for Pg
         .bind(&n.related_entity_id)
         .bind(n.created_at)
         .bind(n.read_at)
+        .bind(&n.recipient_username_snapshot)
+        .bind(&n.recipient_display_name_snapshot)
+        .bind(&n.recipient_department_snapshot)
+        .bind(&n.recipient_job_title_snapshot)
         .execute(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;

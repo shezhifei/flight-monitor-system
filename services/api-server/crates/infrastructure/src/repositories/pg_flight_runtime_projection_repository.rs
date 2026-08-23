@@ -330,11 +330,12 @@ async fn load_business_cases(pool: &PgPool, flight_id: &str) -> Result<Vec<Value
                         'recipient_username', COALESCE(
                             NULLIF(trim(n.recipient_username_snapshot), ''),
                             NULLIF(trim(n.recipient_display_name_snapshot), ''),
+                            NULLIF(trim(ru.username), ''),
                             '未知账号'
                         ),
-                        'recipient_display_name', n.recipient_display_name_snapshot,
-                        'recipient_department', n.recipient_department_snapshot,
-                        'recipient_job_title', n.recipient_job_title_snapshot,
+                        'recipient_display_name', COALESCE(NULLIF(trim(n.recipient_display_name_snapshot), ''), ru.display_name),
+                        'recipient_department', COALESCE(NULLIF(trim(n.recipient_department_snapshot), ''), ru.department),
+                        'recipient_job_title', COALESCE(NULLIF(trim(n.recipient_job_title_snapshot), ''), ru.job_title),
                         'ack_status', n.ack_status,
                         'ack_at', n.ack_at,
                         'ack_note', n.ack_note,
@@ -343,6 +344,7 @@ async fn load_business_cases(pool: &PgPool, flight_id: &str) -> Result<Vec<Value
                     ORDER BY n.created_at ASC, n.notification_id ASC
                 ) AS items_json
                 FROM notifications n
+                LEFT JOIN users ru ON ru.id = n.user_id
                 WHERE n.receipt_group_id = wr.receipt_group_id
             ) wr_items ON true
             WHERE c.flight_id = $1
