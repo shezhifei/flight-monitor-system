@@ -236,7 +236,7 @@ export function useFlightStream(options: FlightStreamOptions) {
   const auth = useAuth();
   const protobuf = useProtobuf(PROTO_SCHEMA_PATH);
   const { showToast } = useToast();
-  const { sentReceiptReminderQueue, updateUnreadCount } = useNotification();
+  const { sentReceiptReminderQueue, updateUnreadCount, fetchInbox } = useNotification();
 
   const unifiedSSE = useSSE({
     url: UNIFIED_STREAM_URL,
@@ -722,17 +722,8 @@ export function useFlightStream(options: FlightStreamOptions) {
       return;
     }
 
-    const recipientLabel = String(payload.recipient_username || payload.recipient_user_id || '对方').trim() || '对方';
-    const title = String(payload.title || '通知').trim() || '通知';
-    const ackStatus = String(payload.ack_status || '').trim().toLowerCase();
-
-    if (ackStatus === 'acknowledged') {
-      showToast('success', `${recipientLabel} 已确认《${title}》`, { duration: 3200 });
-    } else if (ackStatus === 'rejected') {
-      const suffix = payload.ack_note ? `：${String(payload.ack_note).trim()}` : '';
-      showToast('warning', `${recipientLabel} 已拒绝《${title}》${suffix}`, { duration: 4200 });
-    }
-
+    // 回执 toast 由 bootstrapProtectedPage 的全局通道统一弹出（页面无关，
+    // 切标签/换页面都不丢），这里只维护超时提醒队列。
     const summary = payload.summary && typeof payload.summary === 'object'
       ? payload.summary as Record<string, unknown>
       : {};
@@ -758,6 +749,21 @@ export function useFlightStream(options: FlightStreamOptions) {
     }
     setConnectionStatus('connecting');
     await unifiedSSE.connect();
+    // 统一流不会补发离线期间的通知：连上后拉一次收件箱，
+    // 把漏推的待确认 critical 通知重新入队（initial 模式不弹 toast）。
+    void backfillPendingNotifications();
+  }
+
+  async function backfillPendingNotifications(): Promise<void> {
+    try {
+      const { ok, items } = await fetchInbox(true, 50, 0);
+      if (!ok || items.length === 0) {
+        return;
+      }
+      handleNotificationPayload({ items }, true);
+    } catch (error) {
+      console.warn('Failed to backfill pending notifications:', error);
+    }
   }
 
     // Unified SSE: anomaly-alerts / business_cases topics are multiplexed on the same connection.

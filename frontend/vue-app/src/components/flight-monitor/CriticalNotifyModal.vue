@@ -55,6 +55,7 @@ function originLabel(s: string): string {
   const v = s.trim().toLowerCase();
   if (v === 'system') return '系统';
   if (v === 'dispatch') return '调度';
+  if (v === 'workflow') return '流程';
   if (v === 'manual') return '人工';
   return s.trim();
 }

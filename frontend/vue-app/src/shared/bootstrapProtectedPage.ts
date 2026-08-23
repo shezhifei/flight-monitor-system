@@ -1,5 +1,8 @@
+import { createApp } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { pageUrl } from '@/shared/page-routes';
+import ToastRegion from '@/components/ui/ToastRegion.vue';
+import { startGlobalReceiptToasts } from '@/shared/globalReceiptToasts';
 
 export interface ProtectedPageAuth {
   restoreSession(): Promise<boolean>;
@@ -56,6 +59,19 @@ export function markWorkspaceEmbed(): void {
 markWorkspaceEmbed();
 
 /**
+ * 把全局 toast 渲染器挂到 body 末尾（独立于页面 #app，避免被页面根组件的
+ * 样式/卸载影响）。每个受保护页面只挂一次。
+ */
+function mountGlobalToastRegion(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('fms-toast-region-host')) return;
+  const host = document.createElement('div');
+  host.id = 'fms-toast-region-host';
+  document.body.appendChild(host);
+  createApp(ToastRegion).mount(host);
+}
+
+/**
  * Restores the cookie-backed session before any protected Vue tree is created.
  * Returning false means the page failed closed and no protected component was mounted.
  */
@@ -74,5 +90,7 @@ export async function bootstrapProtectedPage(
   }
 
   mount();
+  mountGlobalToastRegion();
+  startGlobalReceiptToasts();
   return true;
 }

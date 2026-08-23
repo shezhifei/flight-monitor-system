@@ -1558,15 +1558,17 @@ input:-webkit-autofill:focus {
 }
 
 /* --- Toast Component --- */
+/* 顶部居中、从上滑入：落在「寻」与内容之间的主动线上，不许在角落闪（§2.3 势）。 */
 .toast-region {
     position: fixed;
     top: max(var(--s2), env(safe-area-inset-top, 0px));
-    right: max(var(--s2), env(safe-area-inset-right, 0px));
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: var(--s2);
-    width: min(calc(var(--sidebar-width) - (var(--s5) * 2)), calc(100vw - (var(--s2) * 3)));
+    width: min(440px, calc(100vw - (var(--s2) * 3)));
     z-index: var(--z-toast);
     pointer-events: none;
 }
@@ -1708,6 +1710,7 @@ input:-webkit-autofill:focus {
         left: max(var(--s2), env(safe-area-inset-left, 0px));
         right: max(var(--s2), env(safe-area-inset-right, 0px));
         width: auto;
+        transform: none;
     }
 
     .toast__content {
