@@ -519,8 +519,8 @@ impl DefaultMQProducerImpl {
         if msg.topic() != mq.topic_str() {
             return Err(mq_client_err!(format!(
                 "message topic [{}] is not equal with message queue topic [{}]",
-                msg.get_topic(),
-                mq.get_topic()
+                msg.topic(),
+                mq.topic_str()
             )));
         }
         let cost_time = begin_start_time.elapsed().as_millis() as u64;
@@ -687,7 +687,7 @@ impl DefaultMQProducerImpl {
         self.validate_name_server_setting()?;
         Err(mq_client_err!(format!(
             "No route info for this topic, {}",
-            msg.get_topic()
+            msg.topic()
         )))
     }
 

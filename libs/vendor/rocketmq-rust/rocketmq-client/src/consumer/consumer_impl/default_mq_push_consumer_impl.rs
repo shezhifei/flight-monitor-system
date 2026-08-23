@@ -21,6 +21,7 @@ use std::time::Instant;
 
 use cheetah_string::CheetahString;
 use rocketmq_common::common::base::service_state::ServiceState;
+use rocketmq_common::common::FAQUrl;
 use rocketmq_common::common::consumer::consume_from_where::ConsumeFromWhere;
 use rocketmq_common::common::key_builder::KeyBuilder;
 use rocketmq_common::common::message::message_ext::MessageExt;
