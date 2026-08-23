@@ -166,7 +166,15 @@ fn resolve_process_definition(
     Ok(process_definitions
         .values()
         .filter(|definition| definition.key == process_definition_key)
-        .filter(|definition| definition.tenant_id.as_deref() == builder.tenant_id.as_deref())
+        // Java `StartProcessInstanceCmd#execute` (`:105-111`): tenantId 为空时走
+        // `findLatestProcessDefinitionByKey`（不按租户过滤），非空才走
+        // `findLatestProcessDefinitionByKeyAndTenantId` 精确匹配租户。
+        .filter(|definition| match builder.tenant_id.as_deref() {
+            Some(tenant_id) if !tenant_id.is_empty() => {
+                definition.tenant_id.as_deref() == Some(tenant_id)
+            }
+            _ => true,
+        })
         .max_by(|left, right| {
             left.version
                 .cmp(&right.version)
