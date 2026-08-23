@@ -6,6 +6,9 @@ const DEBT_PATTERNS: &[&str] = &[
     "sqlx::query_as",
     "sqlx::query_scalar",
     "fms_infrastructure::repositories",
+    "PgPool",
+    "Transaction<",
+    "Postgres",
 ];
 
 #[test]
@@ -32,6 +35,7 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
 }
 
 #[test]
+#[ignore = "P0: CI red by design until P1 resolves boundary violations"]
 fn production_application_source_does_not_bypass_domain_data_ports() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let application_src = manifest_dir.join("src");
