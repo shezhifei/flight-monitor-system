@@ -41,7 +41,7 @@ function Write-Err {
 # =============================================================================
 # Host Runtime Service Helpers
 # =============================================================================
-$script:HostServiceNames = @("postgres", "redis", "vault", "caddy", "fms-server")
+$script:HostServiceNames = @("postgres", "redis", "vault", "rocketmq-namesrv", "rocketmq-broker", "mq-gateway", "caddy", "fms-server")
 
 function Get-HostRuntimeDir {
     $runtimeDir = Join-Path $repoRoot ".runtime\host-services"
@@ -699,6 +699,90 @@ $HostServiceDescriptors = @(
         CustomStop          = $null
     },
     @{
+        Name                = "rocketmq-namesrv"
+        Display             = "RocketMQ NameSrv"
+        TestReady           = { Test-TcpPort -HostName "127.0.0.1" -Port 9876 }
+        FindExe             = { Join-Path $repoRoot "libs\vendor\rocketmq-rust\target\release\rocketmq-namesrv-rust.exe" }
+        ExeNotFoundStatus   = "failed"
+        ExeNotFoundDetail   = "未找到 rocketmq-namesrv-rust.exe，请先构建: cargo build --release --manifest-path libs\vendor\rocketmq-rust\Cargo.toml -p rocketmq-namesrv"
+        BuildArguments      = { @("--listenPort", "9876", "--bindAddress", "127.0.0.1") }
+        GetWorkingDirectory = { Get-HostServiceDir -ServiceName "rocketmq-namesrv" }
+        ReadyWaitSeconds    = 3
+        Environment         = @{ ROCKETMQ_HOME = (Get-HostServiceDir -ServiceName "rocketmq-namesrv") }
+        PreStart            = $null
+        RunningDetail       = { "127.0.0.1:9876" }
+        StartedDetail       = { "port:9876" }
+        FailedDetail        = { "启动后端口未响应" }
+        StatusDetail        = { "127.0.0.1:9876" }
+        FallbackProcessName = "rocketmq-namesrv-rust"
+        CustomStop          = $null
+    },
+    @{
+        Name                = "rocketmq-broker"
+        Display             = "RocketMQ Broker"
+        TestReady           = { Test-TcpPort -HostName "127.0.0.1" -Port 10911 }
+        FindExe             = { Join-Path $repoRoot "libs\vendor\rocketmq-rust\target\release\rocketmq-broker-rust.exe" }
+        ExeNotFoundStatus   = "failed"
+        ExeNotFoundDetail   = "未找到 rocketmq-broker-rust.exe，请先构建: cargo build --release --manifest-path libs\vendor\rocketmq-rust\Cargo.toml -p rocketmq-broker"
+        BuildArguments      = {
+            # 从模板生成 broker.toml（替换存储目录占位符）
+            $brokerDir = Get-HostServiceDir -ServiceName "rocketmq-broker"
+            $storeDir = Join-Path $brokerDir "store"
+            if (-not (Test-Path $storeDir)) {
+                New-Item -ItemType Directory -Path $storeDir -Force | Out-Null
+            }
+            $template = Get-Content -LiteralPath (Join-Path $repoRoot "deploy\host\broker.toml") -Raw
+            $brokerToml = Join-Path $brokerDir "broker.toml"
+            $template.Replace("{{STORE_DIR}}", $storeDir.Replace('\', '/')) | Out-File -LiteralPath $brokerToml -Encoding utf8 -Force
+            return @("-c", $brokerToml, "-n", "127.0.0.1:9876")
+        }
+        GetWorkingDirectory = { Get-HostServiceDir -ServiceName "rocketmq-broker" }
+        ReadyWaitSeconds    = 8
+        Environment         = @{ ROCKETMQ_HOME = (Get-HostServiceDir -ServiceName "rocketmq-broker") }
+        PreStart            = $null
+        RunningDetail       = { "127.0.0.1:10911" }
+        StartedDetail       = { "port:10911" }
+        FailedDetail        = { "启动后端口未响应（首次启动建 store 较慢，可查日志）" }
+        StatusDetail        = { "127.0.0.1:10911" }
+        FallbackProcessName = "rocketmq-broker-rust"
+        CustomStop          = $null
+    },
+    @{
+        Name                = "mq-gateway"
+        Display             = "MQ Gateway"
+        TestReady           = {
+            try {
+                $response = Invoke-WebRequest -Uri "http://127.0.0.1:8097/health" -Method GET -TimeoutSec 2 -UseBasicParsing -ErrorAction SilentlyContinue
+                return ($response.StatusCode -eq 200)
+            } catch {
+                return $false
+            }
+        }
+        FindExe             = { Join-Path $repoRoot "services\mq-gateway\target\release\fms-mq-gateway.exe" }
+        ExeNotFoundStatus   = "failed"
+        ExeNotFoundDetail   = "未找到 fms-mq-gateway.exe，请先构建: cargo build --release --manifest-path services\mq-gateway\Cargo.toml --features rocketmq-backend"
+        BuildArguments      = { @() }
+        GetWorkingDirectory = { Get-HostServiceDir -ServiceName "mq-gateway" }
+        ReadyWaitSeconds    = 4
+        Environment         = @{
+            ROCKETMQ_NAME_SERVER_ADDR   = "127.0.0.1:9876"
+            NAMESRV_ADDR                = "127.0.0.1:9876"
+            MQ_GATEWAY_HOST             = "127.0.0.1"
+            MQ_GATEWAY_PORT             = "8097"
+            MQ_GATEWAY_PRODUCER_GROUP   = "fms_mq_gateway"
+            MQ_GATEWAY_BROKER_ADDR      = "127.0.0.1:10911"
+            MQ_GATEWAY_BOOTSTRAP_TOPICS = "fms_domain_events,fms_realtime,fms_diagnostics,ai_runtime_events"
+            ENVIRONMENT                 = "development"
+        }
+        PreStart            = $null
+        RunningDetail       = { "http://127.0.0.1:8097" }
+        StartedDetail       = { "http://127.0.0.1:8097" }
+        FailedDetail        = { "启动后健康检查未通过" }
+        StatusDetail        = { "http://127.0.0.1:8097" }
+        FallbackProcessName = "fms-mq-gateway"
+        CustomStop          = $null
+    },
+    @{
         Name                = "caddy"
         Display             = "Caddy"
         TestReady           = { Test-Caddy }
@@ -879,6 +963,11 @@ function Invoke-HostStart {
     # 2-3. Redis, Vault (from descriptor table)
     $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "redis" })
     $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "vault" })
+
+    # 3b. MQ 栈：namesrv → broker → gateway（fms-server 的 push consumer 与事件发布依赖）
+    $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "rocketmq-namesrv" })
+    $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "rocketmq-broker" })
+    $results += Start-HostService ($HostServiceDescriptors | Where-Object { $_.Name -eq "mq-gateway" })
 
     # 4. Vault bootstrap
     $vaultBootstrap = Join-Path $repoRoot "scripts\vault\Initialize-VaultCe.ps1"

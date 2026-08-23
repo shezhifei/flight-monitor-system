@@ -1,0 +1,26 @@
+# FMS 宿主机开发环境 RocketMQ broker 配置模板（扁平 camelCase 键，broker 解析器不认 TOML section）。
+# fms.ps1 启动 broker 时把 {{STORE_DIR}} 替换为 .runtime/host-services/rocketmq-broker/store
+# 的实际路径后写入运行时目录。完整可调项参考
+# libs/vendor/rocketmq-rust/distribution/config/broker/broker-simple-master.toml
+
+brokerName = "fms-host-broker"
+brokerClusterName = "FmsHostCluster"
+brokerId = 0
+brokerRole = "ASYNC_MASTER"
+flushDiskType = "ASYNC_FLUSH"
+listenPort = 10911
+brokerIp1 = "127.0.0.1"
+brokerIp2 = "127.0.0.1"
+autoCreateTopicEnable = true
+namesrvAddr = "127.0.0.1:9876"
+storePathRootDir = "{{STORE_DIR}}"
+
+defaultTopicQueueNums = 4
+
+# 开发环境缩小映射文件，避免在磁盘上铺 1GB 的 commitlog
+mappedFileSizeCommitLog = 67108864        # 64MB
+mappedFileSizeConsumeQueue = 6000000
+timerWheelEnable = false
+enableCompaction = false
+fileReservedTime = 24                     # 开发环境只保留 24h
+diskMaxUsedSpaceRatio = 88
