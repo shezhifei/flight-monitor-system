@@ -452,6 +452,14 @@ async function renderChart(): Promise<void> {
       },
       encode: { x: [0, 1], y: 2 },
       data: items,
+    },
+    // echarts 6 回归：markLine 直接挂在 custom series 上会在 SeriesData 初始化时
+    // 对 y 类目轴取 ordinalMeta 崩溃（getOrdinalMeta of undefined）。
+    // 挪到一条空的隐形 line series 上承载「现在」竖线，行为不变。
+    {
+      type: 'line',
+      data: [],
+      silent: true,
       markLine: {
         symbol: ['none', 'none'],
         silent: true,
