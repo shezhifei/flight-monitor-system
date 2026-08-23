@@ -7,8 +7,7 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 
 pub use fms_domain::ports::message_queue::{
-    MessageHandler, MessageQueue, MessageQueueError, PublishMessage, PushConsumer, ReceiveMessages, ReceivedMessage,
-    SubscriberMessage,
+    MessageHandler, MessageQueue, MessageQueueError, PublishMessage, PushConsumer, SubscriberMessage,
 };
 
 pub mod memory_push_consumer;
@@ -20,11 +19,6 @@ pub use rocketmq_push_consumer::RocketMqPushConsumer;
 #[derive(Debug, Deserialize)]
 struct PublishResponse {
     message_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct ReceiveResponse {
-    messages: Vec<ReceivedMessage>,
 }
 
 #[derive(Debug, Clone)]
@@ -170,42 +164,6 @@ impl MessageQueue for MessageQueueGatewayClient {
             .map_err(|error| MessageQueueError::Gateway(error.to_string()))?;
         Ok(body.message_id)
     }
-
-    async fn receive(&self, request: ReceiveMessages) -> Result<Vec<ReceivedMessage>, MessageQueueError> {
-        // Per-request timeout overrides the default 10s client timeout so that
-        // long-polling consumers can block for up to wait_ms + 5s margin.
-        let wait_ms = request.wait_ms.unwrap_or(200);
-        let timeout = Duration::from_millis(wait_ms.saturating_add(5000).min(60000));
-        let url = format!("{}/messages/receive", self.base_url);
-        let response = self
-            .send_with_retry(|| self.http.post(url.clone()).json(&request).timeout(timeout))
-            .await?;
-        let response = expect_success(response).await?;
-        let body = response
-            .json::<ReceiveResponse>()
-            .await
-            .map_err(|error| MessageQueueError::Gateway(error.to_string()))?;
-        Ok(body.messages)
-    }
-
-    async fn ack(&self, receipt_handle: &str) -> Result<(), MessageQueueError> {
-        let url = format!("{}/messages/ack", self.base_url);
-        let response = self
-            .send_with_retry(|| {
-                self.http
-                    .post(url.clone())
-                    .json(&serde_json::json!({ "receipt_handle": receipt_handle }))
-            })
-            .await?;
-
-        match response.status() {
-            StatusCode::NO_CONTENT | StatusCode::OK => Ok(()),
-            StatusCode::NOT_FOUND => Err(MessageQueueError::UnknownReceipt(response_text(response).await)),
-            StatusCode::BAD_REQUEST => Err(MessageQueueError::BadRequest(response_text(response).await)),
-            StatusCode::SERVICE_UNAVAILABLE => Err(MessageQueueError::Unavailable(response_text(response).await)),
-            _ => Err(MessageQueueError::Gateway(response_text(response).await)),
-        }
-    }
 }
 
 fn is_retryable_status(status: StatusCode) -> bool {
@@ -307,16 +265,6 @@ mod tests {
         }
     }
 
-    fn sample_receive_request() -> ReceiveMessages {
-        ReceiveMessages {
-            topic: "flight.events".to_string(),
-            consumer_group: "dispatch".to_string(),
-            filter_tag: None,
-            batch_size: Some(1),
-            wait_ms: Some(1),
-        }
-    }
-
     #[tokio::test]
     async fn publish_retries_transient_gateway_failures_with_exponential_backoff() {
         let gateway = start_stub_gateway(vec![
@@ -355,64 +303,6 @@ mod tests {
         assert_eq!(
             *delays.lock().expect("test delays lock poisoned"),
             vec![Duration::from_millis(10), Duration::from_millis(20)]
-        );
-    }
-
-    #[tokio::test]
-    async fn receive_retries_transient_gateway_failure() {
-        let gateway = start_stub_gateway(vec![
-            StubAction::Respond {
-                status: StatusCode::SERVICE_UNAVAILABLE,
-                body: "not ready",
-            },
-            StubAction::Respond {
-                status: StatusCode::OK,
-                body: r#"{"messages":[{"receipt_handle":"rh-1","message_id":"msg-1","topic":"flight.events","tag":null,"key":null,"body":{"ok":true},"properties":{}}]}"#,
-            },
-        ])
-        .await;
-        let delays = Arc::new(Mutex::new(Vec::new()));
-        let client = retrying_client(gateway.base_url.clone(), delays.clone());
-
-        let messages = client
-            .receive(sample_receive_request())
-            .await
-            .expect("receive should succeed after transient failure");
-
-        assert_eq!(messages.len(), 1);
-        assert_eq!(messages[0].receipt_handle, "rh-1");
-        assert_eq!(gateway.attempts(), 2);
-        assert_eq!(
-            *delays.lock().expect("test delays lock poisoned"),
-            vec![Duration::from_millis(10)]
-        );
-    }
-
-    #[tokio::test]
-    async fn ack_retries_transient_gateway_failure() {
-        let gateway = start_stub_gateway(vec![
-            StubAction::Respond {
-                status: StatusCode::GATEWAY_TIMEOUT,
-                body: "timeout",
-            },
-            StubAction::Respond {
-                status: StatusCode::NO_CONTENT,
-                body: "",
-            },
-        ])
-        .await;
-        let delays = Arc::new(Mutex::new(Vec::new()));
-        let client = retrying_client(gateway.base_url.clone(), delays.clone());
-
-        client
-            .ack("rh-1")
-            .await
-            .expect("ack should succeed after transient failure");
-
-        assert_eq!(gateway.attempts(), 2);
-        assert_eq!(
-            *delays.lock().expect("test delays lock poisoned"),
-            vec![Duration::from_millis(10)]
         );
     }
 

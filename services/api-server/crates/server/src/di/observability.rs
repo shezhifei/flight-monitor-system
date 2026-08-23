@@ -193,13 +193,9 @@ pub(crate) async fn build_observability_services(
     ));
 
     let cache_invalidation_subscriber_svc = Arc::new(CacheInvalidationSubscriberService::new(
-        Some(message_queue.clone()),
         cache_invalidation_svc.clone(),
-        env_flag("CACHE_INVALIDATION_SUBSCRIBER_ENABLED", true),
         domain_events_topic.clone(),
         env_optional_string("CACHE_INVALIDATION_CONSUMER_GROUP"),
-        env_i64("CACHE_INVALIDATION_BATCH_SIZE", 100),
-        env_i64("CACHE_INVALIDATION_WAIT_MS", 200),
     ));
 
     let flight_realtime_broadcaster: Arc<dyn fms_domain::broadcaster::Broadcaster + Send + Sync> =
@@ -208,8 +204,6 @@ pub(crate) async fn build_observability_services(
         Arc::new(PgDomainEventSubscriptionStateRepository::new(pool.clone()));
     let domain_event_subscriber_svc = Arc::new(DomainEventSubscriberService::new(
         subscription_state_repo,
-        Some(message_queue.clone()),
-        env_flag("EVENTS_SUBSCRIBER_ENABLED", true),
         Some(flight.flight_cache_svc.clone()),
         Some(flight_runtime_svc.clone()),
         Some(dispatch.anomaly_svc.clone()),
@@ -224,9 +218,6 @@ pub(crate) async fn build_observability_services(
         Some(cache_invalidation_svc.clone()),
         Some(domain_events_topic.clone()),
         std::env::var("EVENTS_SUBSCRIBER_CONSUMER_GROUP").ok(),
-        std::env::var("EVENTS_SUBSCRIBER_CONSUMER_NAME").ok(),
-        env_i64("EVENTS_SUBSCRIBER_BATCH_SIZE", 100),
-        env_i64("EVENTS_SUBSCRIBER_BLOCK_MS", 200),
         env_i64("EVENTS_SUBSCRIBER_MAX_RETRY", 5) as i32,
     ));
 
@@ -253,13 +244,15 @@ pub(crate) async fn build_observability_services(
     let runtime_error_monitor = RuntimeErrorMonitor::new(Some(infra.sse_hub.clone()));
     set_global_runtime_error_monitor(&runtime_error_monitor);
 
-    let push_consumer: Option<Arc<dyn PushConsumer + Send + Sync>> = if env_flag("EVENTS_PUSH_CONSUMER_ENABLED", true) {
+    // RocketMQ push consumer 是 MQ 消息的唯一消费路径，无条件构造；
+    // 订阅/启动失败由 SchedulerRuntimeService::start_push_consumer 致命处理。
+    let push_consumer: Option<Arc<dyn PushConsumer + Send + Sync>> = {
         let name_server =
             std::env::var("ROCKETMQ_NAME_SERVER_ADDR").unwrap_or_else(|_| "rocketmq-namesrv:9876".to_string());
         let consumer: Arc<dyn PushConsumer + Send + Sync> =
             Arc::new(RocketMqPushConsumer::new(name_server)) as Arc<dyn PushConsumer + Send + Sync>;
         let ai_event_handler: Arc<dyn MessageHandler> = ai.ai_event_consumer.clone();
-        let ai_runtime_topic = env_string("AI_RUNTIME_EVENTS_TOPIC", "ai.runtime.events");
+        let ai_runtime_topic = env_string("AI_RUNTIME_EVENTS_TOPIC", "ai_runtime_events");
         let ai_runtime_group = env_string("AI_RUNTIME_EVENTS_CONSUMER_GROUP", "fms-ai-runtime");
         if let Err(error) = consumer
             .subscribe(&ai_runtime_topic, &ai_runtime_group, Some("*"), ai_event_handler)
@@ -268,13 +261,10 @@ pub(crate) async fn build_observability_services(
             info!(
                 topic = %ai_runtime_topic,
                 error = %error,
-                "failed to subscribe ai.runtime.events on push consumer; ai event consumption disabled"
+                "failed to subscribe ai_runtime_events on push consumer; ai event consumption disabled"
             );
         }
         Some(consumer)
-    } else {
-        info!("EVENTS_PUSH_CONSUMER_ENABLED is false, falling back to scheduler polling");
-        None
     };
 
     let scheduler_runtime_svc = SchedulerRuntimeService::new(

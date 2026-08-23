@@ -116,7 +116,6 @@ struct RegisteredTask {
     name: String,
     contract_name: Option<&'static str>,
     interval_seconds: i64,
-    interval_ms: Option<i64>,
     is_async: bool,
     runner: TaskRunner,
     running: AtomicBool,
@@ -134,35 +133,6 @@ impl RegisteredTask {
             name: name.into(),
             contract_name,
             interval_seconds,
-            interval_ms: None,
-            is_async: true,
-            runner,
-            running: AtomicBool::new(false),
-            state: Mutex::new(TaskState {
-                next_run: Utc::now(),
-                last_run: None,
-                last_success: None,
-                last_error: None,
-                last_error_message: None,
-                last_result: None,
-                run_count: 0,
-                fail_count: 0,
-                last_duration_ms: 0.0,
-            }),
-        }
-    }
-
-    fn new_ms(
-        name: impl Into<String>,
-        contract_name: Option<&'static str>,
-        interval_ms: i64,
-        runner: TaskRunner,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            contract_name,
-            interval_seconds: (interval_ms / 1000).max(1),
-            interval_ms: Some(interval_ms.max(100)),
             is_async: true,
             runner,
             running: AtomicBool::new(false),
@@ -181,19 +151,11 @@ impl RegisteredTask {
     }
 
     fn effective_interval_duration(&self) -> ChronoDuration {
-        if let Some(ms) = self.interval_ms {
-            ChronoDuration::milliseconds(ms)
-        } else {
-            ChronoDuration::seconds(self.interval_seconds)
-        }
+        ChronoDuration::seconds(self.interval_seconds)
     }
 
     fn effective_sleep_duration(&self) -> std::time::Duration {
-        if let Some(ms) = self.interval_ms {
-            std::time::Duration::from_millis(ms.min(200) as u64)
-        } else {
-            std::time::Duration::from_secs(1)
-        }
+        std::time::Duration::from_secs(1)
     }
 }
 
@@ -291,8 +253,8 @@ impl SchedulerRuntimeService {
             return;
         }
 
-        // Subscribe domain event and cache invalidation topics on the push
-        // consumer so messages are delivered via callback instead of polling.
+        // RocketMQ push consumer 是唯一消费路径：订阅失败或启动失败直接
+        // panic，不再回退到 HTTP 轮询。
         self.start_push_consumer().await;
 
         let runtime = Arc::clone(self);
@@ -304,7 +266,10 @@ impl SchedulerRuntimeService {
 
     async fn start_push_consumer(self: &Arc<Self>) {
         let Some(push_consumer) = self.push_consumer.clone() else {
-            return;
+            panic!(
+                "push consumer 未配置：RocketMQ push consumer 是唯一消费路径，\
+                 事件驱动为强制要求，请确认 ROCKETMQ_NAME_SERVER_ADDR 指向的 RocketMQ namesrv 可达"
+            );
         };
 
         let domain_event_handler: Arc<dyn MessageHandler> =
@@ -328,7 +293,10 @@ impl SchedulerRuntimeService {
                 error = %error,
                 "failed to subscribe domain events on push consumer"
             );
-            return;
+            panic!(
+                "订阅 domain events topic（{domain_topic}）失败：{error}；\
+                 事件驱动为强制要求，请确认 ROCKETMQ_NAME_SERVER_ADDR 指向的 RocketMQ namesrv 可达"
+            );
         }
 
         if let Err(error) = push_consumer
@@ -346,13 +314,20 @@ impl SchedulerRuntimeService {
                 error = %error,
                 "failed to subscribe cache invalidations on push consumer"
             );
-            return;
+            panic!(
+                "订阅 cache invalidation topic（{cache_topic}）失败：{error}；\
+                 事件驱动为强制要求，请确认 ROCKETMQ_NAME_SERVER_ADDR 指向的 RocketMQ namesrv 可达"
+            );
         }
 
         if let Err(error) = push_consumer.start().await {
             error!(
                 error = %error,
                 "failed to start push consumer"
+            );
+            panic!(
+                "push consumer 启动失败：{error}；\
+                 事件驱动为强制要求，请确认 ROCKETMQ_NAME_SERVER_ADDR 指向的 RocketMQ namesrv 可达"
             );
         }
     }
@@ -808,65 +783,8 @@ impl SchedulerRuntimeService {
         )
         .await;
 
-        // When a push consumer is configured, messages are delivered via
-        // callback in SchedulerRuntimeService::start. Otherwise we fall back
-        // to periodic scheduler-based polling.
-        if self.push_consumer.is_none() {
-            let domain_event_subscriber_service = self.domain_event_subscriber_service.clone();
-            let domain_event_subscriber_interval_ms = env_i64("DOMAIN_EVENT_SUBSCRIBER_INTERVAL_MS", 200);
-            self.register_task_runner_ms(
-                "domain_event_subscriber",
-                None,
-                domain_event_subscriber_interval_ms,
-                Arc::new(move || {
-                    let domain_event_subscriber_service = domain_event_subscriber_service.clone();
-                    Box::pin(async move {
-                        let consumed_count = domain_event_subscriber_service
-                            .consume_once()
-                            .await
-                            .map_err(|error| error.to_string())?;
-                        Ok(augment_task_payload(
-                            "domain_event_subscriber",
-                            "domain_event_subscriber_service",
-                            json!({
-                                "topic": domain_event_subscriber_service.topic(),
-                                "consumer_group": domain_event_subscriber_service.consumer_group(),
-                                "consumer_name": domain_event_subscriber_service.consumer_name(),
-                                "consumed_count": consumed_count,
-                            }),
-                        ))
-                    })
-                }),
-            )
-            .await;
-
-            let cache_invalidation_subscriber_service = self.cache_invalidation_subscriber_service.clone();
-            let cache_invalidation_subscriber_interval_ms = env_i64("CACHE_INVALIDATION_SUBSCRIBER_INTERVAL_MS", 200);
-            self.register_task_runner_ms(
-                "cache_invalidation_subscriber",
-                None,
-                cache_invalidation_subscriber_interval_ms,
-                Arc::new(move || {
-                    let cache_invalidation_subscriber_service = cache_invalidation_subscriber_service.clone();
-                    Box::pin(async move {
-                        let consumed_count = cache_invalidation_subscriber_service
-                            .consume_once()
-                            .await
-                            .map_err(|error| error.to_string())?;
-                        Ok(augment_task_payload(
-                            "cache_invalidation_subscriber",
-                            "cache_invalidation_subscriber_service",
-                            json!({
-                                "topic": cache_invalidation_subscriber_service.topic(),
-                                "consumer_group": cache_invalidation_subscriber_service.consumer_group(),
-                                "consumed_count": consumed_count,
-                            }),
-                        ))
-                    })
-                }),
-            )
-            .await;
-        }
+        // MQ 消息消费只走 push consumer 回调（见 start_push_consumer），
+        // 这里不再注册 HTTP 轮询回退任务。
 
         let dispatch_chat_service = self.dispatch_chat_service.clone();
         self.register_task_runner(
@@ -1119,21 +1037,6 @@ impl SchedulerRuntimeService {
             name,
             contract_name,
             interval_seconds,
-            runner,
-        )));
-    }
-
-    async fn register_task_runner_ms(
-        &self,
-        name: &'static str,
-        contract_name: Option<&'static str>,
-        interval_ms: i64,
-        runner: TaskRunner,
-    ) {
-        self.tasks.write().await.push(Arc::new(RegisteredTask::new_ms(
-            name,
-            contract_name,
-            interval_ms,
             runner,
         )));
     }

@@ -1,6 +1,6 @@
-//! `ai.runtime.events` RocketMQ message schema.
+//! `ai_runtime_events` RocketMQ message schema.
 //!
-//! The Python sidecar publishes control events to the `ai.runtime.events`
+//! The Python sidecar publishes control events to the `ai_runtime_events`
 //! topic using these envelopes; the Rust API consumes them to durably
 //! record tool calls, checkpoints, and run lifecycle transitions.
 //!
@@ -27,7 +27,7 @@ use serde_json::Value;
 /// to the Rust control plane. Same-run messages must use [`AiRuntimeEvent::run_id`]
 /// as the MQ `Message Key` so they land on the same queue and are
 /// processed serially.
-pub const AI_RUNTIME_EVENTS_TOPIC: &str = "ai.runtime.events";
+pub const AI_RUNTIME_EVENTS_TOPIC: &str = "ai_runtime_events";
 
 /// Event tag / type discriminator.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]

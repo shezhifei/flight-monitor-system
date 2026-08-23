@@ -315,7 +315,7 @@ pub(crate) fn build_shared_infra(repos: &SharedRepos) -> SharedInfra {
         .unwrap_or(1024);
     let sse_hub = SseHub::new(sse_hub_capacity);
     let mq_gateway_url = env_string("MQ_GATEWAY_URL", "http://mq-gateway:8097");
-    let domain_events_topic = env_string("EVENTS_DOMAIN_TOPIC", "fms.domain-events");
+    let domain_events_topic = env_string("EVENTS_DOMAIN_TOPIC", "fms_domain_events");
     let message_queue = Arc::new(MessageQueueGatewayClient::new(mq_gateway_url.clone()));
     let business_case_event_publisher =
         Some(Arc::new(OutboxBusinessCaseEventPublisher::new(pool.clone())) as Arc<dyn BusinessCaseEventPublisher>);

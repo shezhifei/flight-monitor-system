@@ -28,6 +28,19 @@ const CDC_RECONNECT_TOTAL_METRIC: &str = "domain_event_cdc_reconnect_total";
 const CDC_DECODE_FAILED_TOTAL_METRIC: &str = "domain_event_cdc_decode_failed_total";
 const CDC_LAST_COMMIT_LSN_METRIC: &str = "domain_event_cdc_last_commit_lsn";
 
+/// 解析 outbox `occurred_at`。pgoutput 文本协议下发的是 PostgreSQL
+/// timestamptz 文本格式（`2026-08-12 21:57:15.408335+08`，空格分隔、无 'T'），
+/// 而历史数据/测试也可能是 RFC3339（`2026-03-27T12:30:00Z`）——两种都兼容，
+/// 避免单行解码失败卡死整个复制流。
+fn parse_outbox_occurred_at(raw: &str) -> Result<DateTime<Utc>, chrono::ParseError> {
+    if let Ok(value) = DateTime::parse_from_rfc3339(raw) {
+        return Ok(value.with_timezone(&Utc));
+    }
+    DateTime::parse_from_str(raw, "%Y-%m-%d %H:%M:%S%.f%#z")
+        .or_else(|_| DateTime::parse_from_str(raw, "%Y-%m-%d %H:%M:%S%.f%:z"))
+        .map(|value| value.with_timezone(&Utc))
+}
+
 #[derive(Debug, Clone)]
 pub struct DomainEventCdcConfig {
     publication_name: String,
@@ -303,8 +316,7 @@ impl DomainEventCdcRelayService {
             }
         };
         let occurred_at_raw = required_value(values, "occurred_at")?;
-        let occurred_at = DateTime::parse_from_rfc3339(&occurred_at_raw)
-            .map(|value| value.with_timezone(&Utc))
+        let occurred_at = parse_outbox_occurred_at(&occurred_at_raw)
             .map_err(|error| {
                 metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
                 DomainError::Internal(format!(
@@ -460,6 +472,17 @@ mod tests {
 
         assert_eq!(tls.mode, SslMode::VerifyFull);
         assert_eq!(tls.sni_hostname.as_deref(), Some("db.internal"));
+    }
+
+    #[test]
+    fn parse_outbox_occurred_at_accepts_pg_text_and_rfc3339() {
+        // pgoutput 文本协议实际下发的 timestamptz 格式（曾因此卡死复制流）
+        let pg_text = super::parse_outbox_occurred_at("2026-08-12 21:57:15.408335+08").unwrap();
+        assert_eq!(pg_text.to_rfc3339(), "2026-08-12T13:57:15.408335+00:00");
+
+        // 历史 RFC3339 格式保持兼容
+        let rfc3339 = super::parse_outbox_occurred_at("2026-03-27T12:30:00Z").unwrap();
+        assert_eq!(rfc3339, Utc.with_ymd_and_hms(2026, 3, 27, 12, 30, 0).unwrap());
     }
 
     #[test]

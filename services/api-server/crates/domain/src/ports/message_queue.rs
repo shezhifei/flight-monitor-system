@@ -29,40 +29,6 @@ pub struct PublishMessage {
     pub properties: BTreeMap<String, String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ReceiveMessages {
-    pub topic: String,
-    pub consumer_group: String,
-    pub filter_tag: Option<String>,
-    pub batch_size: Option<usize>,
-    pub wait_ms: Option<u64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ReceivedMessage {
-    pub receipt_handle: String,
-    pub message_id: String,
-    pub topic: String,
-    pub tag: Option<String>,
-    pub key: Option<String>,
-    pub body: serde_json::Value,
-    #[serde(default)]
-    pub properties: BTreeMap<String, String>,
-}
-
-impl ReceivedMessage {
-    pub fn into_subscriber_message(self) -> SubscriberMessage {
-        SubscriberMessage {
-            message_id: self.message_id,
-            topic: self.topic,
-            tag: self.tag,
-            key: self.key,
-            body: self.body,
-            properties: self.properties,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SubscriberMessage {
     pub message_id: String,
@@ -95,8 +61,4 @@ pub trait PushConsumer: Send + Sync {
 #[async_trait]
 pub trait MessageQueue {
     async fn publish(&self, message: PublishMessage) -> Result<String, MessageQueueError>;
-
-    async fn receive(&self, request: ReceiveMessages) -> Result<Vec<ReceivedMessage>, MessageQueueError>;
-
-    async fn ack(&self, receipt_handle: &str) -> Result<(), MessageQueueError>;
 }

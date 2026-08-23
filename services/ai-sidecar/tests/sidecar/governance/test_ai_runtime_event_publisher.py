@@ -41,7 +41,7 @@ def _make_publisher(monkeypatch, handler, **config_kwargs) -> AiRuntimeEventPubl
 
 
 def test_topic_constant() -> None:
-    assert AI_RUNTIME_EVENTS_TOPIC == "ai.runtime.events"
+    assert AI_RUNTIME_EVENTS_TOPIC == "ai_runtime_events"
 
 
 def test_build_tool_call_requested_envelope_shape() -> None:
@@ -211,7 +211,7 @@ async def test_publish_sends_envelope_to_gateway_and_uses_run_id_as_message_key(
     assert captured["url"] == "https://gw.example/mq/messages"
     assert captured["auth"] == "Bearer sk-test"
     body = captured["body"].decode("utf-8")
-    assert '"topic":"ai.runtime.events"' in body
+    assert '"topic":"ai_runtime_events"' in body
     assert '"tag":"tool.call.requested"' in body
     assert '"message_key":"run-1"' in body
     assert '"event_type":"tool_call_requested"' in body

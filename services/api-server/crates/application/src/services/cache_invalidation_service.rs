@@ -4,9 +4,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use fms_domain::error::DomainError;
 use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjectionRepository;
-use fms_domain::ports::message_queue::{
-    MessageHandler, MessageQueue, MessageQueueError, PublishMessage, ReceiveMessages, SubscriberMessage,
-};
+use fms_domain::ports::message_queue::{MessageHandler, MessageQueue, MessageQueueError, PublishMessage, SubscriberMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tracing::warn;
@@ -14,10 +12,8 @@ use tracing::warn;
 use crate::types::ConcreteFlightService;
 
 pub const CACHE_INVALIDATION_EVENT_TYPE: &str = "cache.invalidation";
-pub const DEFAULT_CACHE_INVALIDATION_TOPIC: &str = "fms.domain-events";
+pub const DEFAULT_CACHE_INVALIDATION_TOPIC: &str = "fms_domain_events";
 const DEFAULT_CONSUMER_GROUP_PREFIX: &str = "cache_invalidation";
-const DEFAULT_BATCH_SIZE: usize = 100;
-const DEFAULT_WAIT_MS: u64 = 200;
 const PUBLISH_FAILED_TOTAL_METRIC: &str = "cache_invalidation_publish_failed_total";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -224,37 +220,25 @@ impl CacheInvalidationService {
 }
 
 pub struct CacheInvalidationSubscriberService {
-    message_queue: Option<Arc<dyn MessageQueue + Send + Sync>>,
     invalidation_service: Arc<CacheInvalidationService>,
-    enabled: bool,
     topic: String,
     consumer_group: String,
-    batch_size: usize,
-    wait_ms: u64,
 }
 
 impl CacheInvalidationSubscriberService {
     pub fn new(
-        message_queue: Option<Arc<dyn MessageQueue + Send + Sync>>,
         invalidation_service: Arc<CacheInvalidationService>,
-        enabled: bool,
         topic: impl Into<String>,
         consumer_group: Option<String>,
-        batch_size: i64,
-        wait_ms: i64,
     ) -> Self {
         let source_instance = invalidation_service.source_instance().to_string();
         Self {
-            message_queue,
             invalidation_service,
-            enabled,
             topic: trim_or_default(topic.into(), DEFAULT_CACHE_INVALIDATION_TOPIC),
             consumer_group: consumer_group
                 .map(|value| value.trim().to_string())
                 .filter(|value| !value.is_empty())
                 .unwrap_or_else(|| format!("{DEFAULT_CONSUMER_GROUP_PREFIX}_{source_instance}")),
-            batch_size: sanitize_usize(batch_size, DEFAULT_BATCH_SIZE),
-            wait_ms: sanitize_u64(wait_ms, DEFAULT_WAIT_MS),
         }
     }
 
@@ -264,60 +248,6 @@ impl CacheInvalidationSubscriberService {
 
     pub fn consumer_group(&self) -> &str {
         &self.consumer_group
-    }
-
-    pub async fn consume_once(&self) -> Result<i64, DomainError> {
-        if !self.enabled {
-            return Ok(0);
-        }
-        let Some(message_queue) = self.message_queue.as_ref() else {
-            return Ok(0);
-        };
-
-        let messages = message_queue
-            .receive(ReceiveMessages {
-                topic: self.topic.clone(),
-                consumer_group: self.consumer_group.clone(),
-                filter_tag: Some(CACHE_INVALIDATION_EVENT_TYPE.to_string()),
-                batch_size: Some(self.batch_size),
-                wait_ms: Some(self.wait_ms),
-            })
-            .await
-            .map_err(|error| DomainError::Internal(error.to_string()))?;
-
-        self.process_messages(message_queue.as_ref(), messages).await
-    }
-
-    async fn process_messages(
-        &self,
-        message_queue: &(dyn MessageQueue + Send + Sync),
-        messages: Vec<fms_domain::ports::message_queue::ReceivedMessage>,
-    ) -> Result<i64, DomainError> {
-        let mut consumed = 0_i64;
-        for message in messages {
-            match decode_cache_invalidation_event(&message.body) {
-                Some(event) => {
-                    self.invalidation_service.invalidate_local(&event).await;
-                    message_queue
-                        .ack(&message.receipt_handle)
-                        .await
-                        .map_err(|error| DomainError::Internal(error.to_string()))?;
-                    consumed += 1;
-                }
-                None => {
-                    warn!(
-                        message_id = %message.message_id,
-                        "received malformed cache invalidation message"
-                    );
-                    message_queue
-                        .ack(&message.receipt_handle)
-                        .await
-                        .map_err(|error| DomainError::Internal(error.to_string()))?;
-                    consumed += 1;
-                }
-            }
-        }
-        Ok(consumed)
     }
 }
 
@@ -363,22 +293,6 @@ fn trim_or_default(value: String, default: &str) -> String {
         default.to_string()
     } else {
         trimmed.to_string()
-    }
-}
-
-fn sanitize_usize(value: i64, default: usize) -> usize {
-    if value > 0 {
-        value as usize
-    } else {
-        default
-    }
-}
-
-fn sanitize_u64(value: i64, default: u64) -> u64 {
-    if value > 0 {
-        value as u64
-    } else {
-        default
     }
 }
 

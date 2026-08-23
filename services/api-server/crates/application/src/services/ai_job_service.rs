@@ -740,7 +740,7 @@ impl AiJobService {
     /// has already been committed at this point and is not rolled back.
     ///
     /// The CDC relay picks up the outbox row and publishes it to the
-    /// `fms.domain-events` MQ topic; the `DomainEventSubscriberService`
+    /// `fms_domain_events` MQ topic; the `DomainEventSubscriberService`
     /// then dispatches it to `AiJobEventHandler` which broadcasts on the
     /// `ai_execution` SSE topic.
     async fn emit_job_event(

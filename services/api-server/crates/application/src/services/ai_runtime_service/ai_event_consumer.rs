@@ -58,7 +58,7 @@ impl MessageHandler for AiEventConsumer {
                             message_id = %message.message_id,
                             tag = ?message.tag,
                             error = %error,
-                            "poison ai.runtime.events message; acking without retry"
+                            "poison ai_runtime_events message; acking without retry"
                         );
                     }
                     other => {

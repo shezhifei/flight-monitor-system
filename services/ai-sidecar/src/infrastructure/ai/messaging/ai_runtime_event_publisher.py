@@ -25,7 +25,7 @@ from src.infrastructure.logging.core import get_logger
 logger = get_logger(__name__)
 
 
-AI_RUNTIME_EVENTS_TOPIC: str = "ai.runtime.events"
+AI_RUNTIME_EVENTS_TOPIC: str = "ai_runtime_events"
 SCHEMA_VERSION: int = 1
 
 EventTypeStr = Literal[
