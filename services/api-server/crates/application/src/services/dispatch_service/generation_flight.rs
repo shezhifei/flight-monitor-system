@@ -393,31 +393,11 @@ impl DispatchService {
         etd: DateTime<Utc>,
         terminal: Option<&str>,
     ) -> Result<Vec<GeneratedFlightDispatchRequest>, DomainError> {
-        let department_repo = self
-            .rules
-            .department_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("department_repo not injected".into()))?;
-        let generation_rule_repo = self
-            .rules
-            .generation_rule_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("generation_rule_repo not injected".into()))?;
-        let adjustment_rule_repo = self
-            .rules
-            .adjustment_rule_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("adjustment_rule_repo not injected".into()))?;
-        let task_type_repo = self
-            .rules
-            .task_type_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("task_type_repo not injected".into()))?;
-        let task_type_requirement_repo = self
-            .rules
-            .task_type_requirement_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("task_type_requirement_repo not injected".into()))?;
+        let department_repo = &self.rules.department_repo;
+        let generation_rule_repo = &self.rules.generation_rule_repo;
+        let adjustment_rule_repo = &self.rules.adjustment_rule_repo;
+        let task_type_repo = &self.rules.task_type_repo;
+        let task_type_requirement_repo = &self.rules.task_type_requirement_repo;
 
         let flight = if let Some(flight_repo) = self.rules.flight_repo.as_ref() {
             flight_repo.find_by_id(flight_id).await?

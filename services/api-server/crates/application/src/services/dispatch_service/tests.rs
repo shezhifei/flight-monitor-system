@@ -15,6 +15,37 @@ struct RecordingDispatchOrderRepo {
     logs: Mutex<Vec<(String, String, Option<String>, Option<serde_json::Value>)>>,
 }
 
+// Test fixture for DispatchService dependencies
+struct InMemoryDispatchServiceDependencies {
+    order_repo: Arc<RecordingDispatchOrderRepo>,
+    order_tx_repo: Arc<RecordingDispatchOrderRepo>, // Cast as SqlxDispatchOrderTransactionalRepository
+    member_repo: Arc<RecordingDispatchOrderRepo>,   // Cast as DispatchOrderMemberRepository
+    member_tx_repo: Arc<RecordingDispatchOrderRepo>, // Cast as SqlxDispatchOrderMemberTransactionalRepository
+    todo_repo: Arc<RecordingDispatchOrderRepo>,      // Cast as TodoRepository
+    department_repo: Arc<RecordingDispatchOrderRepo>,
+    task_type_repo: Arc<RecordingDispatchOrderRepo>,
+    task_type_requirement_repo: Arc<RecordingDispatchOrderRepo>,
+    flight_repo: Arc<RecordingDispatchOrderRepo>,
+    generation_rule_repo: Arc<RecordingDispatchOrderRepo>,
+    adjustment_rule_repo: Arc<RecordingDispatchOrderRepo>,
+    temporary_task_template_repo: Arc<RecordingDispatchOrderRepo>,
+    team_repo: Arc<RecordingDispatchOrderRepo>,
+    team_type_repo: Arc<RecordingDispatchOrderRepo>,
+    stand_repo: Arc<RecordingDispatchOrderRepo>,
+    qualification_repo: Arc<RecordingDispatchOrderRepo>,
+    qualification_grant_repo: Arc<RecordingDispatchOrderRepo>,
+    equipment_repo: Arc<RecordingDispatchOrderRepo>,
+    team_member_repo: Arc<RecordingDispatchOrderRepo>,
+    travel_stats_repo: Arc<RecordingDispatchOrderRepo>,
+    checklist_repo: Arc<RecordingDispatchOrderRepo>,
+    resource_availability_service: Arc<RecordingDispatchOrderRepo>,
+    anomaly_repo: Arc<RecordingDispatchOrderRepo>,
+    collaboration_repo: Arc<RecordingDispatchOrderRepo>,
+    alert_repo: Arc<RecordingDispatchOrderRepo>,
+    notification_service: Arc<RecordingDispatchOrderRepo>,
+    dispatch_chat_service: Arc<RecordingDispatchOrderRepo>,
+}
+
 #[async_trait::async_trait]
 impl DispatchOrderRepository for RecordingDispatchOrderRepo {
     async fn save(&self, order: &DispatchOrder) -> Result<(), DomainError> {

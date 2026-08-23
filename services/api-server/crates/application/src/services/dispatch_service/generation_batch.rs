@@ -38,16 +38,8 @@ impl DispatchService {
         terminal: Option<&str>,
         department_id: Option<&str>,
     ) -> Result<serde_json::Value, DomainError> {
-        let stand_repo = self
-            .resources
-            .stand_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("stand_repo not injected".into()))?;
-        let task_type_repo = self
-            .rules
-            .task_type_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("task_type_repo not injected".into()))?;
+        let stand_repo = &self.resources.stand_repo;
+        let task_type_repo = &self.rules.task_type_repo;
         let Some(stand) = stand_repo.find_by_id(stand_id).await? else {
             return Ok(json!({
                 "success": false,
@@ -324,11 +316,7 @@ impl DispatchService {
         etd: DateTime<Utc>,
         terminal: Option<&str>,
     ) -> Result<Vec<DispatchOrder>, DomainError> {
-        let stand_repo = self
-            .resources
-            .stand_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("stand_repo not injected".into()))?;
+        let stand_repo = &self.resources.stand_repo;
         let stand = stand_repo
             .find_by_id(stand_id)
             .await?
@@ -484,11 +472,7 @@ impl DispatchService {
             return Ok(0);
         }
 
-        let flight_repo = self
-            .rules
-            .flight_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("flight_repo not injected".to_string()))?;
+        let flight_repo = &self.rules.flight_repo;
         let flight = flight_repo
             .find_by_id(flight_id)
             .await?
@@ -678,16 +662,8 @@ impl DispatchService {
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
                 .ok_or_else(|| DomainError::ValidationError(format!("派工单 {} 缺少部门上下文", order.id)))?;
-            let grant_repo = self
-                .resources
-                .qualification_grant_repo
-                .as_ref()
-                .ok_or_else(|| DomainError::ValidationError("资质授权仓储未配置，无法校验草稿发布".to_string()))?;
-            let qualification_repo = self
-                .resources
-                .qualification_repo
-                .as_ref()
-                .ok_or_else(|| DomainError::ValidationError("资质等级仓储未配置，无法校验草稿发布".to_string()))?;
+            let grant_repo = &self.resources.qualification_grant_repo;
+            let qualification_repo = &self.resources.qualification_repo;
             let grants = grant_repo
                 .find_by_department(department_id, Some(planned_start), &user_ids, false)
                 .await?;
@@ -758,11 +734,7 @@ impl DispatchService {
         }
 
         if !equipment_ids.is_empty() {
-            let equipment_repo = self
-                .resources
-                .equipment_repo
-                .as_ref()
-                .ok_or_else(|| DomainError::ValidationError("设备仓储未配置，无法校验草稿发布".to_string()))?;
+            let equipment_repo = &self.resources.equipment_repo;
             for assignment in &order.equipment_assignment {
                 let equipment_id = assignment
                     .get("equipment_id")
