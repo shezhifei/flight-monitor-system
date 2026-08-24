@@ -256,3 +256,22 @@ pub type ConcreteDispatchResourceService = DispatchResourceService<
     dyn StandRepository + Send + Sync,
     dyn TaskTypeRepository + Send + Sync,
 >;
+
+use crate::services::dispatch_schedule_service::DispatchScheduleService;
+use crate::services::resource_availability_service::ResourceAvailabilityGateway;
+use fms_domain::ports::dispatch_repository::{
+    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository,
+};
+
+/// 排班服务的生产单态。API 处理器与 DI 必须引用同一个别名——
+/// 此前处理器写的是裸 `DispatchScheduleService`，默认类型参数把它解析成一组空实现桩，
+/// 与 DI 注册的类型不是同一个单态，`web::Data` 取不到，7 个排班端点全部 500。
+pub type ConcreteDispatchScheduleService = DispatchScheduleService<
+    dyn ShiftTemplateRepository + Send + Sync,
+    dyn ShiftInstanceRepository + Send + Sync,
+    dyn ScheduleExceptionRepository + Send + Sync,
+    dyn TeamRepository + Send + Sync,
+    dyn TeamMemberRepository + Send + Sync,
+    dyn EquipmentRepository + Send + Sync,
+    dyn ResourceAvailabilityGateway + Send + Sync,
+>;

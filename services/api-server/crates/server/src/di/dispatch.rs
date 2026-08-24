@@ -26,7 +26,9 @@ use fms_application::services::dispatch_service::{
 };
 use fms_application::services::event_rule_admin_service::EventRuleAdminService;
 use fms_application::services::llm_eval_service::LLMEvalService;
-use fms_application::services::resource_availability_service::ResourceAvailabilityService;
+use fms_application::services::resource_availability_service::{
+    ResourceAvailabilityGateway, ResourceAvailabilityService,
+};
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
 use fms_application::sqlx_transactional_repositories::{
@@ -36,8 +38,9 @@ use fms_application::sqlx_transactional_repositories::{
 use fms_domain::broadcaster::Broadcaster;
 
 use fms_domain::ports::dispatch_repository::{
-    DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository,
-    TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
+    DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository,
+    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository, StandRepository, TaskTypeRepository,
+    TeamMemberRepository, TeamRepository, TeamTypeRepository,
 };
 use fms_domain::ports::event_rule_repository::EventRuleRepository;
 use fms_domain::ports::user_repository::UserRepository;
@@ -205,14 +208,15 @@ pub(crate) fn build_dispatch_services(
         event_rule_repo.clone(),
         event_rule_dispatch_order_repo,
     ));
+    // 显式转成 trait object：API 处理器与 DI 必须落在同一个单态上。
     let dispatch_schedule_svc = Arc::new(DispatchScheduleService::new(
-        repos.shift_template_repo.clone(),
-        repos.shift_instance_repo.clone(),
-        repos.schedule_exception_repo.clone(),
-        repos.team_repo.clone(),
-        repos.team_member_repo.clone(),
-        repos.equipment_repo.clone(),
-        resource_availability_svc.clone(),
+        repos.shift_template_repo.clone() as Arc<dyn ShiftTemplateRepository + Send + Sync>,
+        repos.shift_instance_repo.clone() as Arc<dyn ShiftInstanceRepository + Send + Sync>,
+        repos.schedule_exception_repo.clone() as Arc<dyn ScheduleExceptionRepository + Send + Sync>,
+        repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+        repos.team_member_repo.clone() as Arc<dyn TeamMemberRepository + Send + Sync>,
+        repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
+        resource_availability_svc.clone() as Arc<dyn ResourceAvailabilityGateway + Send + Sync>,
     ));
     let dispatch_analytics_svc = Arc::new(DispatchAnalyticsService::new(
         repos.dispatch_order_repo.clone(),
