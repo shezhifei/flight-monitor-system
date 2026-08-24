@@ -141,8 +141,7 @@ export function useDispatchBoardPage() {
   // Chat state
   const chatInput = ref('');
   const chatInputCount = ref(0);
-  const chatAtAll = ref(false);
-  const { chatGroups: chatGroupList, chatMessages: chatMessageList, chatSelectedGroupId: chatActiveGroup, chatLoadingMessages, chatMessagesError, chatMessagesHasMore, chatMessagesNextBeforeSeq, chatUnreadTotal, loadChatGroups, loadChatMessages, selectChatGroup, sendChatMessage, initChatSession, destroyChatSession } = useDispatchChat();
+  const { chatGroups: chatGroupList, chatMessages: chatMessageList, chatSelectedGroupId: chatActiveGroup, chatLoadingMessages, chatMessagesError, chatMessagesHasMore, chatMessagesNextBeforeSeq, chatUnreadTotal, chatGroupMembers, loadChatGroups, loadChatMessages, selectChatGroup, sendChatMessage, initChatSession, destroyChatSession, setChatPanelVisible } = useDispatchChat();
 
   // Settings state
   const guideSettings = reactive<GuideSettings>(loadGuideSettings());
@@ -190,7 +189,7 @@ export function useDispatchBoardPage() {
     conflictRawList, conflictList, availableConflictTypes, conflictSeverityFilter, conflictTypeFilter, conflictQueryInput, conflictMetrics,
     scenarioEquipment, scenarioStand, scenarioDelay, scenarioFrozen, scenarioImpactedOrders, scenarioProjectedConflicts, scenarioRecommendations, scenarioMetricsData,
     replanMaxSuggestions, replanStrategy, replanMode, replanSuggestionList, solverMetadata, replanCanApply, replanStatusLabel, categorizedReplanSuggestions, runReplan, applyReplan, clearReplan,
-    chatInput, chatInputCount, chatAtAll, chatGroupList, chatMessageList, chatActiveGroup, chatLoadingMessages, chatMessagesError, chatMessagesHasMore, chatMessagesNextBeforeSeq, chatUnreadTotal,
+    chatInput, chatInputCount, chatGroupMembers, chatGroupList, chatMessageList, chatActiveGroup, chatLoadingMessages, chatMessagesError, chatMessagesHasMore, chatMessagesNextBeforeSeq, chatUnreadTotal,
     guideSettings, settingRefreshInterval, settingSafetyGateFilter,
     selectedStatus, selectedOrderIds, batchProcess,
     searchQuery, searchResults, searchIndex, searchMetaLabel,
@@ -204,7 +203,7 @@ export function useDispatchBoardPage() {
     detailCompletionReady, detailCompletionButtonText, detailRoutinePendingCount,
     detailCanSubmitChecklist, detailCanCompleteOrder,
     isDetailDrawerVisible,
-    loadChatGroups, loadChatMessages, selectChatGroup, sendChatMessage, initChatSession, destroyChatSession,
+    loadChatGroups, loadChatMessages, selectChatGroup, sendChatMessage, initChatSession, destroyChatSession, setChatPanelVisible,
     loadTerminals: async () => { const loaded = await loadTerminalInfoList(); terminals.value = [{ terminal: 'all', label: '全部', active: true }, ...loaded]; },
     switchTerminal: (terminal: string) => { activeTerminal.value = terminal; terminals.value.forEach(t => { t.active = t.terminal === terminal; }); setTerminal(terminal); refreshTimeline(); },
     refreshTimeline, refreshSafetyProgress, setSafetyGateFilter, setWindow,

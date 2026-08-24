@@ -6,15 +6,16 @@
 //! - `GET  /groups/{id}/messages` → raw `ChatMessageListResponse`
 //! - `POST /groups/{id}/messages` → raw `ChatMessage`
 //! - `POST /groups/{id}/read` → raw `ChatReadResult`
+//! - `GET  /groups/{id}/members` → raw `ChatMemberList`
 //!
-//! All four return bare objects (no envelope). SSE events for chat arrive on
+//! All five return bare objects (no envelope). SSE events for chat arrive on
 //! the universal `/api/v2/sse/stream` under event names
 //! `chat_message` / `chat_read_synced` / `chat_group_upserted` / …
 
 use crate::client::ApiClient;
 use crate::dto::chat::{
-    ChatGroupListResponse, ChatMarkReadRequest, ChatMessage, ChatMessageListResponse,
-    ChatReadResult, ChatSendMessageRequest,
+    ChatGroupListResponse, ChatMarkReadRequest, ChatMemberList, ChatMessage,
+    ChatMessageListResponse, ChatReadResult, ChatSendMessageRequest,
 };
 use crate::error::CoreError;
 
@@ -62,6 +63,7 @@ pub async fn send_chat_message(
     group_id: &str,
     content: &str,
     at_all: bool,
+    mention_user_ids: &[String],
 ) -> Result<ChatMessage, CoreError> {
     client
         .call_raw(
@@ -70,7 +72,23 @@ pub async fn send_chat_message(
             Some(&ChatSendMessageRequest {
                 content: content.to_string(),
                 at_all,
+                mention_user_ids: mention_user_ids.to_vec(),
+                client_msg_id: Some(uuid::Uuid::new_v4().to_string()),
             }),
+        )
+        .await
+}
+
+/// `GET /api/v2/dispatch/collaboration/groups/{group_id}/members`.
+pub async fn chat_group_members(
+    client: &ApiClient,
+    group_id: &str,
+) -> Result<ChatMemberList, CoreError> {
+    client
+        .call_raw(
+            "GET",
+            &format!("/api/v2/dispatch/collaboration/groups/{group_id}/members"),
+            Option::<&()>::None,
         )
         .await
 }
@@ -100,5 +118,15 @@ mod tests {
             None => "...?limit=50".to_string(),
         };
         assert_eq!(path, "...?limit=50");
+    }
+
+    #[test]
+    fn members_path_is_group_members() {
+        let group_id = "g1";
+        let path = format!("/api/v2/dispatch/collaboration/groups/{group_id}/members");
+        assert_eq!(
+            path,
+            "/api/v2/dispatch/collaboration/groups/g1/members"
+        );
     }
 }

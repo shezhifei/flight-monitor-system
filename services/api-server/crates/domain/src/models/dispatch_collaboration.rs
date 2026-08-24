@@ -148,6 +148,10 @@ pub struct DispatchChatMessage {
     pub content: String,
     #[serde(default)]
     pub is_at_all: bool,
+    /// Mentions stored in `metadata.mention_user_ids`, echoed so clients do not
+    /// have to dig into metadata. Empty when the message did not @ anyone.
+    #[serde(default)]
+    pub mention_user_ids: Vec<String>,
     #[serde(default)]
     pub metadata: serde_json::Value,
     pub sent_at: DateTime<Utc>,
@@ -159,6 +163,22 @@ pub struct DispatchChatMessage {
     pub dispatch_order_id: Option<String>,
     #[serde(skip_serializing)]
     pub event_id: Option<String>,
+}
+
+impl DispatchChatMessage {
+    /// Pulls `mention_user_ids` out of message metadata, ignoring blanks.
+    pub fn mention_user_ids_from_metadata(metadata: &serde_json::Value) -> Vec<String> {
+        metadata
+            .get("mention_user_ids")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_str)
+            .map(str::trim)
+            .filter(|id| !id.is_empty())
+            .map(str::to_string)
+            .collect()
+    }
 }
 
 /// Which slice of a group's history to read.

@@ -203,6 +203,7 @@ void main() {
       groupId: group.groupId,
       content: 'p2-write ${DateTime.now().toUtc().toIso8601String()}',
       atAll: false,
+      mentionUserIds: const [],
     );
     expect(sent.messageId, isNotEmpty);
     final read = await markChatRead(

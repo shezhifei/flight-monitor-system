@@ -156,8 +156,9 @@ const {
     <ChatDrawerSection
       :is-chat-drawer-visible="p.isChatDrawerVisible.value" :chat-group-list="p.chatGroupList.value" :chat-active-group="p.chatActiveGroup.value"
       :chat-message-list="p.chatMessageList.value" :chat-messages-error="p.chatMessagesError.value" :chat-input="p.chatInput.value"
+      :chat-group-members="p.chatGroupMembers.value"
       @close="actions.closeChatDrawer" @select-chat-group="p.selectChatGroup"
-      @send-chat-message="() => { p.sendChatMessage(p.chatInput.value, p.chatAtAll.value); p.chatInput.value = ''; }"
+      @send-chat-message="actions.sendChatFromDrawer"
       @update:chat-input="p.chatInput.value = $event"
     />
 

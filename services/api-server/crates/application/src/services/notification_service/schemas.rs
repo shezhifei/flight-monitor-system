@@ -72,6 +72,8 @@ pub struct NotificationResponse {
     pub ack_note: Option<String>,
     pub related_entity_type: Option<String>,
     pub related_entity_id: Option<String>,
+    pub flight_id: Option<String>,
+    pub group_id: Option<String>,
     pub sender_user_id: Option<String>,
     pub sender_username: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,

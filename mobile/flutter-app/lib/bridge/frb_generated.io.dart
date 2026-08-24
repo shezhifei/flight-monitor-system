@@ -92,6 +92,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatGroupList dco_decode_chat_group_list(dynamic raw);
 
   @protected
+  ChatMember dco_decode_chat_member(dynamic raw);
+
+  @protected
+  ChatMemberList dco_decode_chat_member_list(dynamic raw);
+
+  @protected
   ChatMessage dco_decode_chat_message(dynamic raw);
 
   @protected
@@ -147,6 +153,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ChatGroup> dco_decode_list_chat_group(dynamic raw);
+
+  @protected
+  List<ChatMember> dco_decode_list_chat_member(dynamic raw);
 
   @protected
   List<ChatMessage> dco_decode_list_chat_message(dynamic raw);
@@ -369,6 +378,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatGroupList sse_decode_chat_group_list(SseDeserializer deserializer);
 
   @protected
+  ChatMember sse_decode_chat_member(SseDeserializer deserializer);
+
+  @protected
+  ChatMemberList sse_decode_chat_member_list(SseDeserializer deserializer);
+
+  @protected
   ChatMessage sse_decode_chat_message(SseDeserializer deserializer);
 
   @protected
@@ -436,6 +451,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ChatGroup> sse_decode_list_chat_group(SseDeserializer deserializer);
+
+  @protected
+  List<ChatMember> sse_decode_list_chat_member(SseDeserializer deserializer);
 
   @protected
   List<ChatMessage> sse_decode_list_chat_message(SseDeserializer deserializer);
@@ -718,6 +736,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_chat_group_list(ChatGroupList self, SseSerializer serializer);
 
   @protected
+  void sse_encode_chat_member(ChatMember self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chat_member_list(
+    ChatMemberList self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_chat_message(ChatMessage self, SseSerializer serializer);
 
   @protected
@@ -801,6 +828,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_chat_group(
     List<ChatGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_chat_member(
+    List<ChatMember> self,
     SseSerializer serializer,
   );
 

@@ -130,7 +130,14 @@ class _NotifTile extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelSmall),
         ],
       ),
-      onTap: () => context.push('/notifications/${item.notificationId}'),
+      onTap: () {
+        if (item.category == 'dispatch_chat_mention' &&
+            (item.relatedEntityId?.isNotEmpty ?? false)) {
+          context.push('/chat/${item.relatedEntityId}');
+        } else {
+          context.push('/notifications/${item.notificationId}');
+        }
+      },
     );
   }
 }

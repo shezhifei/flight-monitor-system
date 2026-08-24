@@ -129,6 +129,42 @@ async fn unread_count_ignores_other_groups_traffic(pool: PgPool) {
     assert_eq!(by_flight.unread_count, 2);
 }
 
+#[sqlx::test(migrations = "tests/migrations_dispatch_chat")]
+#[ignore = "requires DATABASE_URL with PostgreSQL"]
+async fn deactivated_members_remain_listed_as_read_only(pool: PgPool) {
+    let repo = PgDispatchCollaborationRepository::new(pool.clone());
+    seed_user(&pool, "reader", "读者").await;
+    seed_user(&pool, "sender", "发送者").await;
+    seed_group(&pool, "group-a", "flight-a").await;
+    seed_member(&pool, "group-a", "reader", 0).await;
+    seed_member(&pool, "group-a", "sender", 0).await;
+    repo.insert_message(&new_message("group-a", "sender", "hello", None))
+        .await
+        .unwrap();
+
+    repo.deactivate_members_except("group-a", &["sender".to_string()])
+        .await
+        .unwrap();
+
+    let groups = repo.list_user_groups("reader", "active", 50, 0).await.unwrap();
+    let listed = groups
+        .items
+        .iter()
+        .find(|item| item.group_id == "group-a")
+        .expect("read-only member still sees the group");
+    assert!(listed.read_only, "deactivated membership is exposed as read_only");
+    assert_eq!(listed.unread_count, 1);
+
+    let fanout = repo
+        .count_unread_for_group_members("group-a")
+        .await
+        .unwrap();
+    assert!(
+        fanout.iter().any(|entry| entry.user_id == "reader"),
+        "read-only members still receive live unread fan-out"
+    );
+}
+
 /// A member's own messages are never unread for that member, so a skipped
 /// auto-mark-on-send cannot inflate their own badge.
 #[sqlx::test(migrations = "tests/migrations_dispatch_chat")]

@@ -88,6 +88,10 @@ pub trait DispatchCollaborationRepository {
 
     async fn find_active_members(&self, group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError>;
 
+    /// Every membership row for the group, including read-only / inactive members.
+    /// Used when validating @mentions so a just-deactivated member can still be tagged.
+    async fn find_group_members(&self, group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError>;
+
     async fn find_users_by_ids(&self, user_ids: &[String]) -> Result<Vec<DispatchChatUserProfile>, DomainError>;
 
     async fn find_dispatchers_by_departments(

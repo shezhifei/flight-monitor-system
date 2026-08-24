@@ -20,6 +20,7 @@ import { useMilestonePulse } from './useMilestonePulse';
 import { useFlightCellSelection } from './useFlightCellSelection';
 import { useFlightBatchEdit } from './useFlightBatchEdit';
 import { getBatchFieldLabel } from '../flightBatchEditableFields';
+import type { ChatNotificationTarget } from '../../../composables/chatTargetFromNotification';
 
 export interface UseFlightMonitorPageReturn {
   // Navigation
@@ -42,7 +43,11 @@ export interface UseFlightMonitorPageReturn {
   ariaAnnouncement: Ref<string>;
   dispatchNotifyOpen: Ref<boolean>;
   dispatchChatOpen: Ref<boolean>;
+  chatFocusGroupId: Ref<string | null>;
   flightInsightOpen: Ref<boolean>;
+  openChatFromDock: () => void;
+  openChatFromNotification: (target: ChatNotificationTarget) => void;
+  closeChat: () => void;
 
   // Computed
   selectedFlight: ComputedRef<Flight | null>;
@@ -137,6 +142,7 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
   const ariaAnnouncement = ref('');
   const dispatchNotifyOpen = ref(false);
   const dispatchChatOpen = ref(false);
+  const chatFocusGroupId = ref<string | null>(null);
   const flightInsightOpen = ref(false);
 
   const selectedFlight = computed(() => flightData.findFlightById(selectedFlightId.value));
@@ -282,6 +288,25 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
     businessFilterExpanded,
     announce,
   });
+
+  function openChatFromDock(): void {
+    chatFocusGroupId.value = null;
+    dispatchChatOpen.value = true;
+  }
+
+  function openChatFromNotification(target: ChatNotificationTarget): void {
+    if (target.flightId) {
+      list.selectFlight(target.flightId);
+    }
+    chatFocusGroupId.value = target.groupId;
+    dispatchNotifyOpen.value = false;
+    dispatchChatOpen.value = true;
+  }
+
+  function closeChat(): void {
+    dispatchChatOpen.value = false;
+    chatFocusGroupId.value = null;
+  }
 
   const modals = useFlightMonitorModals({
     flightData,
@@ -481,7 +506,11 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
     ariaAnnouncement,
     dispatchNotifyOpen,
     dispatchChatOpen,
+    chatFocusGroupId,
     flightInsightOpen,
+    openChatFromDock,
+    openChatFromNotification,
+    closeChat,
     selectedFlight,
     isAuthenticated,
     lastUpdatedLabel,

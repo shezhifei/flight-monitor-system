@@ -50,6 +50,9 @@ class S {
   static const String chatInputHint = '输入消息…';
   static const String chatReadOnly = '只读';
   static const String chatReadOnlyHint = '该群已只读，无法发送消息';
+  static const String chatMentionAll = '全体';
+  static const String chatRoleDispatcher = '调度';
+  static const String chatRoleAssignee = '责任人';
 
   // 通知
   static const String notificationsTitle = '通知';

@@ -42,6 +42,8 @@ export interface NotificationResponse {
   ack_note?: string | null;
   related_entity_type?: string | null;
   related_entity_id?: string | null;
+  flight_id?: string | null;
+  group_id?: string | null;
   sender_user_id?: string | null;
   sender_username?: string | null;
   created_at: string;

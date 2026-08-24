@@ -4,6 +4,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
 import { type DispatchChatSSEEvent, normalizeDispatchChatEvent } from '@/composables/sseEvents';
 import { describeApiError } from '@/composables/useApiError';
+import type { Stakeholder } from '@/composables/useMentionStakeholders';
 
 export interface ChatGroup {
   group_id: string;
@@ -39,7 +40,36 @@ export interface ChatMessage {
   sent_at?: string;
   at_all?: boolean;
   is_at_all?: boolean;
+  mention_user_ids?: string[];
   [key: string]: unknown;
+}
+
+interface GroupMemberRaw {
+  user_id?: string;
+  username?: string;
+  is_assignee?: boolean;
+  is_dispatcher?: boolean;
+  is_active?: boolean;
+}
+
+function asTrimmedStringIds(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+}
+
+/** Prefer top-level `mention_user_ids`; fall back to `metadata.mention_user_ids`. */
+export function mentionUserIdsFromRaw(raw: Record<string, unknown>): string[] {
+  const fromTop = asTrimmedStringIds(raw.mention_user_ids);
+  if (fromTop !== null) return fromTop;
+  const metadata = raw.metadata;
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const fromMeta = asTrimmedStringIds((metadata as Record<string, unknown>).mention_user_ids);
+    if (fromMeta !== null) return fromMeta;
+  }
+  return [];
 }
 
 export type SendChatResult =
@@ -104,7 +134,35 @@ function normalizeMessage(raw: Record<string, unknown>): ChatMessage {
     sent_at: raw.sent_at as string | undefined,
     at_all: Boolean(raw.at_all ?? raw.is_at_all),
     is_at_all: Boolean(raw.is_at_all ?? raw.at_all),
+    mention_user_ids: mentionUserIdsFromRaw(raw),
   };
+}
+
+export function chatMessageIdentity(msg: ChatMessage): string {
+  const messageId = String(msg.message_id || msg.id || '').trim();
+  if (messageId) return `id:${messageId}`;
+  const groupId = String(msg.group_id || '').trim();
+  const seqNo = Number(msg.seq_no || 0);
+  if (groupId && seqNo > 0) return `seq:${groupId}:${seqNo}`;
+  const sender = String(msg.sender_user_id || msg.sender_id || '').trim();
+  return `fallback:${msg.sent_at ?? ''}|${sender}|${msg.content}`;
+}
+
+export function appendUniqueChatMessage(list: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
+  const identity = chatMessageIdentity(incoming);
+  if (list.some((msg) => chatMessageIdentity(msg) === identity)) {
+    return list;
+  }
+  const next = [...list, incoming];
+  next.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
+  return next;
+}
+
+export function newChatClientMsgId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export function useDispatchChat() {
@@ -117,6 +175,7 @@ export function useDispatchChat() {
   const chatGroups = ref<ChatGroup[]>([]);
   const chatMessages = ref<ChatMessage[]>([]);
   const chatSelectedGroupId = ref<string>('');
+  const chatPanelVisible = ref(false);
 
   const chatLoadingGroups = ref(false);
   const chatLoadingMessages = ref(false);
@@ -125,6 +184,9 @@ export function useDispatchChat() {
   const chatMessagesHasMore = ref(false);
   const chatMessagesNextBeforeSeq = ref<number | null>(null);
   const chatUnreadTotal = ref(0);
+  const chatGroupMembers = ref<Stakeholder[]>([]);
+  let loadGeneration = 0;
+  let memberLoadGeneration = 0;
 
   const activeGroup = computed(() => {
     return chatGroups.value.find(g => g.group_id === chatSelectedGroupId.value) || null;
@@ -175,6 +237,8 @@ export function useDispatchChat() {
           chatMessages.value = [];
           chatMessagesHasMore.value = false;
           chatMessagesNextBeforeSeq.value = null;
+          memberLoadGeneration += 1;
+          chatGroupMembers.value = [];
         }
         return true;
       }
@@ -193,22 +257,31 @@ export function useDispatchChat() {
     }
   }
 
-  async function loadChatMessages(groupId: string, options: { prepend?: boolean, beforeSeq?: number | null } = {}) {
-    if (!groupId || chatLoadingMessages.value) return;
+  async function loadChatMessages(
+    groupId: string,
+    options: { prepend?: boolean; beforeSeq?: number | null; afterSeq?: number | null } = {},
+  ) {
+    if (!groupId) return;
+    const prepend = options.prepend === true;
+    const afterSeq = options.afterSeq;
+    if (prepend && chatLoadingMessages.value) return;
 
+    const generation = ++loadGeneration;
     chatLoadingMessages.value = true;
     chatMessagesError.value = '';
-    const prepend = options.prepend === true;
     const beforeSeq = options.beforeSeq;
 
     try {
       const params = new URLSearchParams();
-      params.set('limit', prepend ? '40' : '50');
-      if (beforeSeq && beforeSeq > 0) {
+      params.set('limit', afterSeq != null ? '200' : prepend ? '40' : '50');
+      if (afterSeq != null && afterSeq >= 0) {
+        params.set('after_seq', String(afterSeq));
+      } else if (beforeSeq && beforeSeq > 0) {
         params.set('before_seq', String(beforeSeq));
       }
 
       const response = await get<ChatMessagesResponse>(`/api/v2/dispatch/collaboration/groups/${encodeURIComponent(groupId)}/messages?${params.toString()}`);
+      if (generation !== loadGeneration) return;
       if (!response.ok) {
         chatMessagesError.value = `聊天记录加载失败 (${response.status})`;
         toast.showToast('error', chatMessagesError.value);
@@ -220,25 +293,33 @@ export function useDispatchChat() {
         const payload = response.data;
         const items: ChatMessage[] = Array.isArray(payload.items) ? payload.items.map(m => normalizeMessage(m as unknown as Record<string, unknown>)) : [];
 
-        if (prepend) {
-          const existingIds = new Set(chatMessages.value.map(m => String(m.id || m.seq_no)));
-          const newItems = items.filter(m => !existingIds.has(String(m.id || m.seq_no)));
+        if (afterSeq != null && afterSeq >= 0) {
+          for (const item of items) {
+            chatMessages.value = appendUniqueChatMessage(chatMessages.value, item);
+          }
+        } else if (prepend) {
+          const existingIds = new Set(chatMessages.value.map(chatMessageIdentity));
+          const newItems = items.filter(m => !existingIds.has(chatMessageIdentity(m)));
           chatMessages.value = [...newItems, ...chatMessages.value];
+          chatMessages.value.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
+          chatMessagesHasMore.value = Boolean(payload.has_more);
+          chatMessagesNextBeforeSeq.value = Number(payload.next_before_seq || 0) || null;
         } else {
           chatMessages.value = items;
+          chatMessages.value.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
+          chatMessagesHasMore.value = Boolean(payload.has_more);
+          chatMessagesNextBeforeSeq.value = Number(payload.next_before_seq || 0) || null;
         }
-
-        chatMessages.value.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
-
-        chatMessagesHasMore.value = Boolean(payload.has_more);
-        chatMessagesNextBeforeSeq.value = Number(payload.next_before_seq || 0) || null;
       }
     } catch (error) {
+      if (generation !== loadGeneration) return;
       console.error('Failed to load messages', error);
       chatMessagesError.value = error instanceof Error ? error.message : '聊天记录加载失败';
       toast.showToast('error', chatMessagesError.value);
     } finally {
-      chatLoadingMessages.value = false;
+      if (generation === loadGeneration) {
+        chatLoadingMessages.value = false;
+      }
     }
   }
 
@@ -278,8 +359,48 @@ export function useDispatchChat() {
     }
   }
 
+  async function loadGroupMembers(groupId: string): Promise<void> {
+    const id = String(groupId || '').trim();
+    const generation = ++memberLoadGeneration;
+    if (!id) {
+      chatGroupMembers.value = [];
+      return;
+    }
+
+    try {
+      const response = await get<{ items?: GroupMemberRaw[] }>(
+        `/api/v2/dispatch/collaboration/groups/${encodeURIComponent(id)}/members`,
+      );
+      if (generation !== memberLoadGeneration) return;
+      if (!response.ok || !response.data) {
+        chatGroupMembers.value = [];
+        return;
+      }
+      const items = Array.isArray(response.data.items) ? response.data.items : [];
+      chatGroupMembers.value = items
+        .map((item) => {
+          const userId = String(item.user_id ?? '').trim();
+          const username = String(item.username ?? '').trim() || userId;
+          return {
+            user_id: userId,
+            username,
+            is_assignee: Boolean(item.is_assignee),
+            is_dispatcher: Boolean(item.is_dispatcher),
+          };
+        })
+        .filter((member) => member.user_id !== '');
+    } catch {
+      if (generation !== memberLoadGeneration) return;
+      chatGroupMembers.value = [];
+    }
+  }
+
   async function selectChatGroup(groupId: string, options: { refreshMessages?: boolean, markRead?: boolean } = {}) {
-    if (!groupId) return;
+    if (!groupId) {
+      memberLoadGeneration += 1;
+      chatGroupMembers.value = [];
+      return;
+    }
 
     const changed = chatSelectedGroupId.value !== groupId;
     chatSelectedGroupId.value = groupId;
@@ -288,18 +409,25 @@ export function useDispatchChat() {
       chatMessages.value = [];
       chatMessagesHasMore.value = false;
       chatMessagesNextBeforeSeq.value = null;
+      chatGroupMembers.value = [];
     }
+
+    void loadGroupMembers(groupId);
 
     if (options.refreshMessages !== false) {
       await loadChatMessages(groupId, { prepend: false });
     }
 
-    if (options.markRead !== false) {
+    if (options.markRead !== false && chatPanelVisible.value) {
       await markChatGroupRead(groupId);
     }
   }
 
-  async function sendChatMessage(content: string, atAll: boolean = false): Promise<SendChatResult> {
+  async function sendChatMessage(
+    content: string,
+    atAll: boolean = false,
+    mentionUserIds: string[] = [],
+  ): Promise<SendChatResult> {
     if (!chatEnabled.value || chatSending.value) return { ok: false, reason: 'error' };
 
     const selectedGroup = activeGroup.value;
@@ -313,6 +441,8 @@ export function useDispatchChat() {
       const response = await post<ChatMessage>(`/api/v2/dispatch/collaboration/groups/${encodeURIComponent(selectedGroup.group_id)}/messages`, {
         content,
         at_all: atAll,
+        mention_user_ids: mentionUserIds,
+        client_msg_id: newChatClientMsgId(),
       });
 
       if (!response.ok) {
@@ -321,7 +451,7 @@ export function useDispatchChat() {
       }
       if (response.data) {
         const message = normalizeMessage(response.data as unknown as Record<string, unknown>);
-        chatMessages.value.push(message);
+        chatMessages.value = appendUniqueChatMessage(chatMessages.value, message);
 
         selectedGroup.last_message_preview = String(message.content || '');
         selectedGroup.last_message_at = message.sent_at || new Date().toISOString();
@@ -345,6 +475,7 @@ export function useDispatchChat() {
   // --- SSE Logic ---
   let stream: EventSource | null = null;
   let reconnectTimer: number | null = null;
+  let streamEverConnected = false;
   const RECONNECT_DELAY_MS = 5000;
   const sessionActive = ref(false);
 
@@ -365,6 +496,8 @@ export function useDispatchChat() {
         if (chatSelectedGroupId.value && !chatGroups.value.some(g => String(g.group_id) === chatSelectedGroupId.value)) {
           chatSelectedGroupId.value = '';
           chatMessages.value = [];
+          memberLoadGeneration += 1;
+          chatGroupMembers.value = [];
         }
         break;
       }
@@ -397,14 +530,15 @@ export function useDispatchChat() {
         sortChatGroups();
 
         if (chatSelectedGroupId.value === groupId) {
-          const existingIds = new Set(chatMessages.value.map(m => String(m.id || m.message_id || m.seq_no)));
-          if (!existingIds.has(String(normalized.id || normalized.message_id || normalized.seq_no))) {
-            chatMessages.value.push(normalized);
-            chatMessages.value.sort((a, b) => (a.seq_no || 0) - (b.seq_no || 0));
-          }
+          chatMessages.value = appendUniqueChatMessage(chatMessages.value, normalized);
           const user = auth.getUser();
           const currentUserId = String(user?.sub || user?.id || user?.user_id || '').trim();
-          if (normalized.sender_user_id && currentUserId && normalized.sender_user_id !== currentUserId) {
+          if (
+            chatPanelVisible.value
+            && normalized.sender_user_id
+            && currentUserId
+            && normalized.sender_user_id !== currentUserId
+          ) {
             markChatGroupRead(groupId, Number(normalized.seq_no || 0));
           }
         }
@@ -463,8 +597,27 @@ export function useDispatchChat() {
     }, RECONNECT_DELAY_MS);
   }
 
+  async function recoverAfterReconnect() {
+    await loadChatGroups({ silent: true });
+    const groupId = chatSelectedGroupId.value;
+    if (!groupId) return;
+    const lastSeq = chatMessages.value.reduce((max, msg) => Math.max(max, Number(msg.seq_no || 0)), 0);
+    await loadChatMessages(groupId, { afterSeq: lastSeq });
+    if (chatPanelVisible.value) {
+      await markChatGroupRead(groupId);
+    }
+  }
+
+  function setChatPanelVisible(visible: boolean) {
+    chatPanelVisible.value = visible;
+    if (visible && chatSelectedGroupId.value) {
+      void markChatGroupRead(chatSelectedGroupId.value);
+    }
+  }
+
   function connectStream() {
     if (!sessionActive.value || !chatEnabled.value) return;
+    const isReconnect = streamEverConnected;
 
     void auth.refreshSSEToken();
     disconnectStream(false);
@@ -501,6 +654,13 @@ export function useDispatchChat() {
 
     stream.onmessage = (e: MessageEvent) => dispatchFrame(e.data, '');
 
+    stream.onopen = () => {
+      streamEverConnected = true;
+      if (isReconnect) {
+        void recoverAfterReconnect();
+      }
+    };
+
     stream.onerror = () => {
       disconnectStream(false);
       scheduleReconnect();
@@ -515,6 +675,8 @@ export function useDispatchChat() {
 
   function destroyChatSession() {
     sessionActive.value = false;
+    streamEverConnected = false;
+    chatPanelVisible.value = false;
     disconnectStream();
   }
 
@@ -558,16 +720,19 @@ export function useDispatchChat() {
     chatMessagesHasMore,
     chatMessagesNextBeforeSeq,
     chatUnreadTotal,
+    chatGroupMembers,
     activeGroup,
 
     loadChatGroups,
     loadChatMessages,
     loadMoreMessages,
+    loadGroupMembers,
     selectChatGroup,
     markChatGroupRead,
     sendChatMessage,
     initChatSession,
     destroyChatSession,
+    setChatPanelVisible,
     openGroupByFlightId,
   };
 }

@@ -5,20 +5,28 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use serde_json::json;
+use tracing::warn;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{DispatchOrder, DispatchOrderStatus};
 use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 use fms_domain::models::dispatch_collaboration::{
-    DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMemberUpsert, DispatchChatMessage,
-    DispatchChatMessageCursor, DispatchChatUserProfile, NewDispatchChatMessage,
+    DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember, DispatchChatMemberUpsert,
+    DispatchChatMessage, DispatchChatMessageCursor, DispatchChatUserProfile, NewDispatchChatMessage,
 };
 use fms_domain::models::flight::Flight;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::dispatch_repository::DispatchOrderRepository;
 use fms_domain::ports::flight_repository::FlightRepository;
+use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
+
+use crate::services::notification_service::{
+    DispatchBatchNotificationCreate, NotificationDeliveryPublisher, NotificationMetricsRecorder,
+    NotificationReceiptGroupSync, NotificationService,
+};
 
 const DEPRECATION_REASON_ARRIVAL_GUARANTEE_COMPLETED: &str = "arrival_guarantee_completed";
 const DEPRECATION_REASON_DEPARTURE_DEPARTED: &str = "departure_departed";
@@ -41,6 +49,26 @@ pub trait DispatchChatEventPublisher: Send + Sync {
         event_name: &'a str,
         events: Vec<(String, serde_json::Value)>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+}
+
+#[async_trait]
+pub trait DispatchChatMentionNotifier: Send + Sync {
+    async fn notify_chat_mentions(&self, dto: DispatchBatchNotificationCreate) -> Result<(), DomainError>;
+}
+
+#[async_trait]
+impl<NR, PR, CR, DP, MR, RS> DispatchChatMentionNotifier for NotificationService<NR, PR, CR, DP, MR, RS>
+where
+    NR: NotificationRepository + Send + Sync + ?Sized,
+    PR: NotificationPreferenceRepository + Send + Sync + ?Sized,
+    CR: DispatchCollaborationRepository + Send + Sync + ?Sized,
+    DP: NotificationDeliveryPublisher + Send + Sync + ?Sized,
+    MR: NotificationMetricsRecorder + Send + Sync + ?Sized,
+    RS: NotificationReceiptGroupSync + Send + Sync + ?Sized,
+{
+    async fn notify_chat_mentions(&self, dto: DispatchBatchNotificationCreate) -> Result<(), DomainError> {
+        self.send_batch(dto).await.map(|_| ())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -84,6 +112,7 @@ pub struct DispatchChatService {
     dispatch_order_repo: Option<Arc<dyn DispatchOrderRepository + Send + Sync>>,
     flight_repo: Option<Arc<dyn FlightRepository + Send + Sync>>,
     event_publisher: Option<Arc<dyn DispatchChatEventPublisher + Send + Sync>>,
+    mention_notifier: Option<Arc<dyn DispatchChatMentionNotifier>>,
 }
 
 impl DispatchChatService {
@@ -93,6 +122,7 @@ impl DispatchChatService {
             dispatch_order_repo: None,
             flight_repo: None,
             event_publisher: None,
+            mention_notifier: None,
         }
     }
 }
@@ -113,6 +143,11 @@ impl DispatchChatService {
 
     pub fn with_event_publisher(mut self, event_publisher: Arc<dyn DispatchChatEventPublisher + Send + Sync>) -> Self {
         self.event_publisher = Some(event_publisher);
+        self
+    }
+
+    pub fn with_mention_notifier(mut self, mention_notifier: Arc<dyn DispatchChatMentionNotifier>) -> Self {
+        self.mention_notifier = Some(mention_notifier);
         self
     }
 
@@ -224,9 +259,16 @@ impl DispatchChatService {
             .filter(|(user_id, _)| !user_id.is_empty())
             .collect::<HashMap<_, _>>();
 
+        let retained_dispatcher_user_ids = existing_members
+            .iter()
+            .filter(|member| member.is_dispatcher)
+            .map(|member| normalize(&member.user_id))
+            .filter(|user_id| !user_id.is_empty())
+            .collect::<Vec<_>>();
         let memberships = build_group_memberships(
             &assignee_user_ids,
             &dispatcher_candidates,
+            &retained_dispatcher_user_ids,
             &existing_read_seq_map,
             latest_seq,
         );
@@ -351,6 +393,7 @@ impl DispatchChatService {
             )
             .await?;
             message.event_id = Some(event_id);
+            self.emit_chat_message_event(&group_id, &message).await?;
         }
 
         let lifecycle_change = self.refresh_group_lifecycle_for_flight(&flight_id).await?;
@@ -558,11 +601,54 @@ impl DispatchChatService {
             .collaboration_repo
             .list_group_messages(&normalized_group_id, limit.clamp(1, 200), cursor)
             .await?;
+        for item in &mut payload.items {
+            if item.mention_user_ids.is_empty() {
+                item.mention_user_ids = DispatchChatMessage::mention_user_ids_from_metadata(&item.metadata);
+            }
+        }
         payload.limit = limit.clamp(1, 200);
         if !group.member_is_active && payload.items.is_empty() {
             payload.has_more = false;
         }
         Ok(payload)
+    }
+
+    pub async fn list_group_members(
+        &self,
+        group_id: &str,
+        user_id: &str,
+    ) -> Result<serde_json::Value, DispatchChatError> {
+        let normalized_group_id = normalize(group_id);
+        let normalized_user_id = normalize(user_id);
+        if normalized_group_id.is_empty() || normalized_user_id.is_empty() {
+            return Err(DispatchChatError::Forbidden("群聊访问被拒绝".into()));
+        }
+
+        if self
+            .collaboration_repo
+            .get_group_for_user(&normalized_group_id, &normalized_user_id)
+            .await?
+            .is_none()
+        {
+            return Err(DispatchChatError::Forbidden("当前用户不是该群成员".into()));
+        }
+
+        let items: Vec<serde_json::Value> = self
+            .collaboration_repo
+            .find_group_members(&normalized_group_id)
+            .await?
+            .into_iter()
+            .map(|member| {
+                json!({
+                    "user_id": member.user_id.trim(),
+                    "username": member.username.as_deref().unwrap_or("").trim(),
+                    "is_assignee": member.is_assignee,
+                    "is_dispatcher": member.is_dispatcher,
+                    "is_active": member.is_active,
+                })
+            })
+            .collect();
+        Ok(json!({ "items": items }))
     }
 
     pub async fn send_message(
@@ -572,6 +658,7 @@ impl DispatchChatService {
         content: &str,
         at_all: bool,
         client_msg_id: Option<&str>,
+        mention_user_ids: &[String],
     ) -> Result<DispatchChatSendOutcome, DispatchChatError> {
         let normalized_group_id = normalize(group_id);
         let normalized_user_id = normalize(user_id);
@@ -628,6 +715,18 @@ impl DispatchChatService {
             return Err(DispatchChatError::Archived("群已归档，当前只读".into()));
         }
 
+        let members = self
+            .collaboration_repo
+            .find_group_members(&normalized_group_id)
+            .await?;
+        let (is_at_all, mention_ids) = resolve_mentions(
+            mention_user_ids,
+            at_all,
+            &normalized_content,
+            &normalized_user_id,
+            &members,
+        );
+
         let message_id = ulid::Ulid::new().to_string();
         let event_id = ulid::Ulid::new().to_string();
         let mut message = self
@@ -640,8 +739,8 @@ impl DispatchChatService {
                 event_id: Some(event_id.clone()),
                 message_type: "text".to_string(),
                 content: normalized_content.clone(),
-                is_at_all: at_all || contains_at_all(&normalized_content),
-                metadata: json!({}),
+                is_at_all,
+                metadata: json!({ "mention_user_ids": mention_ids }),
                 client_msg_id: normalized_client_msg_id.clone(),
             })
             .await?;
@@ -655,6 +754,7 @@ impl DispatchChatService {
                 deduplicated: true,
             });
         }
+        message.mention_user_ids = mention_ids;
 
         if message.seq_no > 0 {
             let _ = self
@@ -671,7 +771,7 @@ impl DispatchChatService {
                 &message,
                 Some(ulid::Ulid::new().to_string()),
                 Some(event_id.clone()),
-                Some(normalized_user_id),
+                Some(normalized_user_id.clone()),
             )
             .await?;
             let _ = self
@@ -680,6 +780,16 @@ impl DispatchChatService {
                 .await?;
             message.event_id = Some(event_id);
         }
+
+        self.notify_mentioned_members_best_effort(
+            &group,
+            &normalized_group_id,
+            &normalized_user_id,
+            &message,
+            is_at_all,
+            &members,
+        )
+        .await;
 
         Ok(DispatchChatSendOutcome {
             message,
@@ -725,11 +835,11 @@ impl DispatchChatService {
         &self,
         group_id: &str,
     ) -> Result<Vec<(String, serde_json::Value)>, DispatchChatError> {
-        let members = self.collaboration_repo.find_active_members(group_id).await?;
+        let member_unread = self.collaboration_repo.count_unread_for_group_members(group_id).await?;
         let timestamp = Utc::now().to_rfc3339();
         let mut events = Vec::new();
-        for member in members {
-            let user_id = normalize(&member.user_id);
+        for entry in member_unread {
+            let user_id = normalize(&entry.user_id);
             if user_id.is_empty() {
                 continue;
             }
@@ -753,11 +863,11 @@ impl DispatchChatService {
         group_id: &str,
         archived_at: DateTime<Utc>,
     ) -> Result<Vec<(String, serde_json::Value)>, DispatchChatError> {
-        let members = self.collaboration_repo.find_active_members(group_id).await?;
+        let member_unread = self.collaboration_repo.count_unread_for_group_members(group_id).await?;
         let timestamp = Utc::now().to_rfc3339();
         let mut events = Vec::new();
-        for member in members {
-            let user_id = normalize(&member.user_id);
+        for entry in member_unread {
+            let user_id = normalize(&entry.user_id);
             if user_id.is_empty() {
                 continue;
             }
@@ -889,6 +999,16 @@ impl DispatchChatService {
             return;
         }
         event_publisher.publish_user_event(event_name, events).await;
+    }
+
+    async fn emit_chat_message_event(
+        &self,
+        group_id: &str,
+        message: &DispatchChatMessage,
+    ) -> Result<(), DispatchChatError> {
+        let events = self.build_message_stream_events(group_id, message).await?;
+        self.publish_stream_events("chat_message", events).await;
+        Ok(())
     }
 
     async fn emit_group_upserted_event(&self, group_id: &str) -> Result<(), DispatchChatError> {
@@ -1167,6 +1287,7 @@ impl DispatchChatService {
             None,
         )
         .await?;
+        self.emit_chat_message_event(&updated_group.group_id, &message).await?;
         Ok(true)
     }
 
@@ -1228,11 +1349,93 @@ impl DispatchChatService {
             None,
         )
         .await?;
+        self.emit_chat_message_event(&updated_group.group_id, &message).await?;
 
         Ok(Some(DispatchChatLifecycleChange::Archived {
             group_id: updated_group.group_id,
             archived_at,
         }))
+    }
+
+    async fn notify_mentioned_members_best_effort(
+        &self,
+        group: &DispatchChatGroupSummary,
+        group_id: &str,
+        sender_user_id: &str,
+        message: &DispatchChatMessage,
+        is_at_all: bool,
+        members: &[DispatchChatMember],
+    ) {
+        let Some(notifier) = self.mention_notifier.as_ref() else {
+            return;
+        };
+
+        let recipients = if is_at_all {
+            let mut ids: Vec<String> = members
+                .iter()
+                .map(|member| normalize(&member.user_id))
+                .filter(|id| !id.is_empty() && id != sender_user_id)
+                .collect();
+            ids.sort();
+            ids.dedup();
+            ids
+        } else {
+            message.mention_user_ids.clone()
+        };
+        if recipients.is_empty() {
+            return;
+        }
+
+        let title = if is_at_all {
+            format!("{} 群聊有人@全体", group.group_name)
+        } else {
+            format!("{} 群聊有人@你", group.group_name)
+        };
+        let sender_label = message
+            .sender_username
+            .as_deref()
+            .map(normalize)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| sender_user_id.to_string());
+        let preview: String = message.content.chars().take(200).collect();
+        let flight_id = {
+            let trimmed = group.flight_id.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        };
+
+        if let Err(error) = notifier
+            .notify_chat_mentions(DispatchBatchNotificationCreate {
+                user_ids: recipients,
+                title,
+                body: format!("{sender_label}: {preview}"),
+                category: "dispatch_chat_mention".to_string(),
+                severity: if is_at_all {
+                    "warning".to_string()
+                } else {
+                    "info".to_string()
+                },
+                flight_id,
+                related_entity_type: Some("dispatch_chat_group".to_string()),
+                related_entity_id: Some(group_id.to_string()),
+                dispatch_order_id: None,
+                group_id: Some(group_id.to_string()),
+                sender_user_id: Some(sender_user_id.to_string()),
+                sender_username_snapshot: message.sender_username.clone(),
+                origin_type: "dispatch_chat".to_string(),
+                receipt_required: false,
+            })
+            .await
+        {
+            warn!(
+                group_id = %group_id,
+                error = %error,
+                "failed to send dispatch chat mention notifications"
+            );
+        }
     }
 
     async fn record_message_event(
@@ -1266,6 +1469,7 @@ impl DispatchChatService {
                     "content": message.content,
                     "is_at_all": message.is_at_all,
                     "seq_no": message.seq_no,
+                    "mention_user_ids": message.mention_user_ids,
                 }),
                 occurred_at: message.sent_at,
                 source_table: Some("dispatch_chat_messages".to_string()),
@@ -1300,6 +1504,30 @@ fn contains_at_all(content: &str) -> bool {
     normalized.contains("@all") || content.contains("@全体")
 }
 
+fn resolve_mentions(
+    requested: &[String],
+    at_all_flag: bool,
+    content: &str,
+    sender_user_id: &str,
+    members: &[DispatchChatMember],
+) -> (bool, Vec<String>) {
+    let is_at_all = at_all_flag || contains_at_all(content);
+    let member_ids: HashSet<String> = members
+        .iter()
+        .map(|m| normalize(&m.user_id))
+        .filter(|id| !id.is_empty())
+        .collect();
+    let mut ids: Vec<String> = requested
+        .iter()
+        .map(|id| normalize(id))
+        .filter(|id| !id.is_empty() && id != sender_user_id && member_ids.contains(id))
+        .collect();
+    ids.sort();
+    ids.dedup();
+    ids.truncate(50);
+    (is_at_all, ids)
+}
+
 fn extract_related_dispatch_order_ids(metadata: &serde_json::Value) -> Vec<String> {
     let mut order_ids = metadata
         .get("related_dispatch_order_ids")
@@ -1325,8 +1553,28 @@ fn extract_related_dispatch_order_ids(metadata: &serde_json::Value) -> Vec<Strin
     order_ids
 }
 
+fn resolve_archive_anchor(
+    inbound: bool,
+    outbound: bool,
+    actual_departure: Option<DateTime<Utc>>,
+    actual_arrival: Option<DateTime<Utc>>,
+) -> Option<DateTime<Utc>> {
+    let arrival_only = inbound && !outbound;
+    if arrival_only {
+        actual_arrival.or(actual_departure)
+    } else {
+        actual_departure
+    }
+}
+
 fn resolve_archive_at(flight: &Flight) -> Option<DateTime<Utc>> {
-    flight.actual_departure.map(|value| value + Duration::hours(6))
+    resolve_archive_anchor(
+        flight.inbound_leg.is_some(),
+        flight.outbound_leg.is_some(),
+        flight.actual_departure,
+        flight.actual_arrival,
+    )
+    .map(|value| value + Duration::hours(6))
 }
 
 fn build_group_name(flight_id: &str, flight: Option<&Flight>) -> String {
@@ -1370,6 +1618,7 @@ fn build_group_metadata(
 fn build_group_memberships(
     assignee_user_ids: &[String],
     dispatcher_candidates: &[fms_domain::models::dispatch_collaboration::DispatchChatDispatcherCandidate],
+    retained_dispatcher_user_ids: &[String],
     existing_read_seq_map: &HashMap<String, i64>,
     latest_seq: i64,
 ) -> Vec<DispatchChatMemberUpsert> {
@@ -1379,6 +1628,16 @@ fn build_group_memberships(
     }
     for candidate in dispatcher_candidates {
         let user_id = normalize(&candidate.user_id);
+        if user_id.is_empty() {
+            continue;
+        }
+        membership_map
+            .entry(user_id)
+            .and_modify(|flags| flags.1 = true)
+            .or_insert((false, true));
+    }
+    for user_id in retained_dispatcher_user_ids {
+        let user_id = normalize(user_id);
         if user_id.is_empty() {
             continue;
         }
@@ -1573,6 +1832,7 @@ mod tests {
             message_type: "text".to_string(),
             content: "内容".to_string(),
             is_at_all: false,
+            mention_user_ids: vec![],
             metadata: json!({}),
             sent_at: Utc::now(),
             client_msg_id: client_msg_id.map(str::to_string),
@@ -1605,11 +1865,15 @@ mod tests {
     }
 
     fn member_row(last_read_seq: i64) -> DispatchChatMember {
+        member_row_for(USER_ID, last_read_seq)
+    }
+
+    fn member_row_for(user_id: &str, last_read_seq: i64) -> DispatchChatMember {
         DispatchChatMember {
-            id: "member-1".to_string(),
+            id: format!("member-{user_id}"),
             group_id: GROUP_ID.to_string(),
-            user_id: USER_ID.to_string(),
-            username: Some("张三".to_string()),
+            user_id: user_id.to_string(),
+            username: Some(user_id.to_string()),
             is_assignee: true,
             is_dispatcher: false,
             is_active: true,
@@ -1640,8 +1904,11 @@ mod tests {
         async fn get_group_for_user(
             &self,
             _group_id: &str,
-            _user_id: &str,
+            user_id: &str,
         ) -> Result<Option<DispatchChatGroupSummary>, DomainError> {
+            if user_id == "stranger" {
+                return Ok(None);
+            }
             Ok(Some(group_row()))
         }
 
@@ -1709,6 +1976,9 @@ mod tests {
                 message.client_msg_id.as_deref(),
             );
             stored.content = message.content.clone();
+            stored.is_at_all = message.is_at_all;
+            stored.metadata = message.metadata.clone();
+            stored.mention_user_ids = DispatchChatMessage::mention_user_ids_from_metadata(&message.metadata);
             messages.push(stored.clone());
             Ok(stored)
         }
@@ -1775,7 +2045,22 @@ mod tests {
         }
 
         async fn find_active_members(&self, _group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {
-            Ok(vec![member_row(*self.last_read_seq.lock().expect("lock cursor"))])
+            let last_read_seq = *self.last_read_seq.lock().expect("lock cursor");
+            Ok(vec![
+                member_row(last_read_seq),
+                member_row_for("user-2", last_read_seq),
+                member_row_for("user-3", last_read_seq),
+            ])
+        }
+
+        async fn find_group_members(&self, group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {
+            let mut members = self.find_active_members(group_id).await?;
+            let mut inactive = member_row_for("user-readonly", 0);
+            inactive.is_active = false;
+            inactive.is_assignee = false;
+            inactive.username = None;
+            members.push(inactive);
+            Ok(members)
         }
 
         async fn find_users_by_ids(&self, _user_ids: &[String]) -> Result<Vec<DispatchChatUserProfile>, DomainError> {
@@ -1906,8 +2191,39 @@ mod tests {
         }
     }
 
+    #[derive(Default)]
+    struct FakeMentionNotifier {
+        batches: Mutex<Vec<DispatchBatchNotificationCreate>>,
+        fail: Mutex<bool>,
+    }
+
+    impl FakeMentionNotifier {
+        fn fail(&self) {
+            *self.fail.lock().expect("lock fail") = true;
+        }
+
+        fn batches(&self) -> Vec<DispatchBatchNotificationCreate> {
+            self.batches.lock().expect("lock batches").clone()
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl DispatchChatMentionNotifier for FakeMentionNotifier {
+        async fn notify_chat_mentions(&self, dto: DispatchBatchNotificationCreate) -> Result<(), DomainError> {
+            if *self.fail.lock().expect("lock fail") {
+                return Err(DomainError::Internal("mention notifier failed".into()));
+            }
+            self.batches.lock().expect("lock batches").push(dto);
+            Ok(())
+        }
+    }
+
     fn service(repo: Arc<FakeChatRepo>) -> DispatchChatService {
         DispatchChatService::new(repo)
+    }
+
+    fn service_with_notifier(repo: Arc<FakeChatRepo>, notifier: Arc<FakeMentionNotifier>) -> DispatchChatService {
+        DispatchChatService::new(repo).with_mention_notifier(notifier)
     }
 
     #[tokio::test]
@@ -1916,7 +2232,7 @@ mod tests {
         let svc = service(repo.clone());
 
         let first = svc
-            .send_message(GROUP_ID, USER_ID, "只发一次", false, Some("key-1"))
+            .send_message(GROUP_ID, USER_ID, "只发一次", false, Some("key-1"), &[])
             .await
             .expect("first send succeeds");
         assert!(!first.deduplicated, "the first send is a real insert");
@@ -1925,7 +2241,7 @@ mod tests {
         let mark_read_calls_after_first = repo.mark_read_call_count();
 
         let retry = svc
-            .send_message(GROUP_ID, USER_ID, "只发一次", false, Some("key-1"))
+            .send_message(GROUP_ID, USER_ID, "只发一次", false, Some("key-1"), &[])
             .await
             .expect("retry succeeds");
         assert!(retry.deduplicated, "the retry must be reported as a duplicate");
@@ -1951,7 +2267,7 @@ mod tests {
 
         for _ in 0..2 {
             let outcome = svc
-                .send_message(GROUP_ID, USER_ID, "同样的内容", false, None)
+                .send_message(GROUP_ID, USER_ID, "同样的内容", false, None, &[])
                 .await
                 .expect("send succeeds");
             assert!(!outcome.deduplicated);
@@ -1965,17 +2281,209 @@ mod tests {
         let svc = service(repo.clone());
 
         let outcome = svc
-            .send_message(GROUP_ID, USER_ID, "空白键", false, Some("   "))
+            .send_message(GROUP_ID, USER_ID, "空白键", false, Some("   "), &[])
             .await
             .expect("a blank key is treated as absent");
         assert!(!outcome.deduplicated);
         assert_eq!(outcome.message.client_msg_id, None);
 
         let error = svc
-            .send_message(GROUP_ID, USER_ID, "超长键", false, Some(&"k".repeat(65)))
+            .send_message(GROUP_ID, USER_ID, "超长键", false, Some(&"k".repeat(65)), &[])
             .await
             .expect_err("an overlong key cannot be stored");
         assert!(matches!(error, DispatchChatError::Validation(_)), "got {error:?}");
+    }
+
+    #[tokio::test]
+    async fn send_message_keeps_only_member_mentions_and_sets_metadata() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo.clone());
+        let outcome = svc
+            .send_message(
+                GROUP_ID,
+                USER_ID,
+                "请看 @李四",
+                false,
+                None,
+                &["user-2".into(), "stranger".into(), USER_ID.into()],
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            outcome.message.metadata["mention_user_ids"],
+            json!(["user-2"])
+        );
+        assert_eq!(outcome.message.mention_user_ids, vec!["user-2".to_string()]);
+        assert!(!outcome.message.is_at_all);
+        assert_eq!(
+            repo.events
+                .lock()
+                .expect("lock events")
+                .iter()
+                .find(|event| event.event_type == "message_sent")
+                .expect("message_sent event")
+                .payload["mention_user_ids"],
+            json!(["user-2"])
+        );
+    }
+
+    #[tokio::test]
+    async fn send_message_sets_at_all_from_flag_or_content_and_empty_mentions_stay_empty() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo);
+
+        let flagged = svc
+            .send_message(GROUP_ID, USER_ID, "hello", true, None, &[])
+            .await
+            .unwrap();
+        assert!(flagged.message.is_at_all);
+        assert!(flagged.message.mention_user_ids.is_empty());
+        assert_eq!(flagged.message.metadata["mention_user_ids"], json!([]));
+
+        let from_content = svc
+            .send_message(GROUP_ID, USER_ID, "请看 @全体", false, None, &[])
+            .await
+            .unwrap();
+        assert!(from_content.message.is_at_all);
+        assert!(from_content.message.mention_user_ids.is_empty());
+
+        let from_all = svc
+            .send_message(GROUP_ID, USER_ID, "please see @ALL", false, None, &[])
+            .await
+            .unwrap();
+        assert!(from_all.message.is_at_all);
+        assert!(from_all.message.mention_user_ids.is_empty());
+    }
+
+    #[tokio::test]
+    async fn send_message_notifies_mentioned_member() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let notifier = Arc::new(FakeMentionNotifier::default());
+        let svc = service_with_notifier(repo, notifier.clone());
+
+        let outcome = svc
+            .send_message(GROUP_ID, USER_ID, "请看 @李四", false, None, &["user-2".into()])
+            .await
+            .unwrap();
+        assert!(!outcome.deduplicated);
+
+        let batches = notifier.batches();
+        assert_eq!(batches.len(), 1);
+        let batch = &batches[0];
+        assert_eq!(batch.user_ids, vec!["user-2".to_string()]);
+        assert_eq!(batch.category, "dispatch_chat_mention");
+        assert_eq!(batch.severity, "info");
+        assert_eq!(batch.title, "保障群 群聊有人@你");
+        assert_eq!(batch.body, "user-1: 请看 @李四");
+        assert_eq!(batch.flight_id.as_deref(), Some(FLIGHT_ID));
+        assert_eq!(batch.group_id.as_deref(), Some(GROUP_ID));
+        assert_eq!(batch.sender_user_id.as_deref(), Some(USER_ID));
+        assert_eq!(batch.sender_username_snapshot, None);
+        assert_eq!(batch.related_entity_type.as_deref(), Some("dispatch_chat_group"));
+        assert_eq!(batch.related_entity_id.as_deref(), Some(GROUP_ID));
+        assert_eq!(batch.dispatch_order_id, None);
+        assert_eq!(batch.origin_type, "dispatch_chat");
+        assert!(!batch.receipt_required);
+    }
+
+    #[tokio::test]
+    async fn send_message_at_all_notifies_all_members_except_sender() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let notifier = Arc::new(FakeMentionNotifier::default());
+        let svc = service_with_notifier(repo, notifier.clone());
+
+        let outcome = svc
+            .send_message(GROUP_ID, USER_ID, "请看 @全体", true, None, &[])
+            .await
+            .unwrap();
+        assert!(outcome.message.is_at_all);
+
+        let batches = notifier.batches();
+        assert_eq!(batches.len(), 1);
+        let batch = &batches[0];
+        assert_eq!(
+            batch.user_ids,
+            vec![
+                "user-2".to_string(),
+                "user-3".to_string(),
+                "user-readonly".to_string()
+            ]
+        );
+        assert_eq!(batch.category, "dispatch_chat_mention");
+        assert_eq!(batch.severity, "warning");
+        assert_eq!(batch.title, "保障群 群聊有人@全体");
+        assert_eq!(batch.body, "user-1: 请看 @全体");
+        assert!(!batch.user_ids.iter().any(|id| id == USER_ID));
+    }
+
+    #[tokio::test]
+    async fn deduplicated_send_does_not_notify_again() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let notifier = Arc::new(FakeMentionNotifier::default());
+        let svc = service_with_notifier(repo, notifier.clone());
+
+        let first = svc
+            .send_message(
+                GROUP_ID,
+                USER_ID,
+                "请看 @李四",
+                false,
+                Some("key-mention-1"),
+                &["user-2".into()],
+            )
+            .await
+            .unwrap();
+        assert!(!first.deduplicated);
+        assert_eq!(notifier.batches().len(), 1);
+
+        let retry = svc
+            .send_message(
+                GROUP_ID,
+                USER_ID,
+                "请看 @李四",
+                false,
+                Some("key-mention-1"),
+                &["user-2".into()],
+            )
+            .await
+            .unwrap();
+        assert!(retry.deduplicated);
+        assert_eq!(notifier.batches().len(), 1, "a deduplicated retry must not send_batch");
+    }
+
+    #[tokio::test]
+    async fn mention_notifier_failure_does_not_fail_send_message() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let notifier = Arc::new(FakeMentionNotifier::default());
+        notifier.fail();
+        let svc = service_with_notifier(repo.clone(), notifier.clone());
+
+        let outcome = svc
+            .send_message(GROUP_ID, USER_ID, "请看 @李四", false, None, &["user-2".into()])
+            .await
+            .expect("notification failure must not fail send_message");
+        assert!(!outcome.deduplicated);
+        assert_eq!(outcome.message.mention_user_ids, vec!["user-2".to_string()]);
+        assert_eq!(repo.stored_count(), 1);
+        assert!(notifier.batches().is_empty());
+    }
+
+    #[test]
+    fn resolve_mentions_drops_strangers_self_and_blanks() {
+        let members = vec![member_row(0), member_row_for("user-2", 0)];
+        let (is_at_all, ids) = resolve_mentions(
+            &["user-2".into(), "stranger".into(), USER_ID.into(), "  ".into()],
+            false,
+            "请看 @李四",
+            USER_ID,
+            &members,
+        );
+        assert!(!is_at_all);
+        assert_eq!(ids, vec!["user-2".to_string()]);
+
+        let (is_at_all, ids) = resolve_mentions(&[], false, "no mention", USER_ID, &members);
+        assert!(!is_at_all);
+        assert!(ids.is_empty());
     }
 
     #[tokio::test]
@@ -2044,5 +2552,113 @@ mod tests {
             .expect("gap-fill is accepted on its own");
         assert_eq!(gap.after_seq, Some(2));
         assert_eq!(gap.before_seq, None);
+    }
+
+    #[tokio::test]
+    async fn list_group_members_includes_inactive_colleague() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo);
+
+        let payload = svc
+            .list_group_members(GROUP_ID, USER_ID)
+            .await
+            .expect("a member can list group members");
+        let items = payload["items"].as_array().expect("items array");
+        assert!(
+            items.iter().any(|item| {
+                item["user_id"] == USER_ID && item["is_active"] == true && item["username"] == USER_ID
+            }),
+            "active caller should appear, got {items:?}"
+        );
+        assert!(
+            items.iter().any(|item| {
+                item["user_id"] == "user-readonly"
+                    && item["is_active"] == false
+                    && item["is_assignee"] == false
+                    && item["username"] == ""
+            }),
+            "inactive colleague should appear with empty username, got {items:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn list_group_members_rejects_non_members() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo);
+
+        let error = svc
+            .list_group_members(GROUP_ID, "stranger")
+            .await
+            .expect_err("non-members cannot list");
+        match error {
+            DispatchChatError::Forbidden(message) => {
+                assert_eq!(message, "当前用户不是该群成员");
+            }
+            other => panic!("expected Forbidden, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn list_group_members_rejects_empty_ids() {
+        let repo = Arc::new(FakeChatRepo::default());
+        let svc = service(repo);
+
+        let empty_group = svc
+            .list_group_members("   ", USER_ID)
+            .await
+            .expect_err("empty group_id is forbidden");
+        assert!(
+            matches!(empty_group, DispatchChatError::Forbidden(_)),
+            "got {empty_group:?}"
+        );
+
+        let empty_user = svc
+            .list_group_members(GROUP_ID, "   ")
+            .await
+            .expect_err("empty user_id is forbidden");
+        assert!(
+            matches!(empty_user, DispatchChatError::Forbidden(_)),
+            "got {empty_user:?}"
+        );
+    }
+
+    #[test]
+    fn archive_anchor_for_arrival_uses_actual_arrival() {
+        let arrived = Utc::now();
+        let departed = arrived - Duration::hours(2);
+        assert_eq!(
+            resolve_archive_anchor(true, false, Some(departed), Some(arrived)),
+            Some(arrived)
+        );
+        assert_eq!(
+            resolve_archive_anchor(true, false, None, Some(arrived)),
+            Some(arrived)
+        );
+        assert_eq!(
+            resolve_archive_anchor(false, true, Some(departed), Some(arrived)),
+            Some(departed)
+        );
+        assert_eq!(
+            resolve_archive_anchor(true, true, Some(departed), Some(arrived)),
+            Some(departed)
+        );
+    }
+
+    #[test]
+    fn memberships_retain_existing_dispatchers() {
+        let memberships = build_group_memberships(
+            &[],
+            &[],
+            &["ops-admin".to_string()],
+            &HashMap::new(),
+            4,
+        );
+        let retained = memberships
+            .iter()
+            .find(|membership| membership.user_id == "ops-admin")
+            .expect("force-joined dispatcher stays in the plan");
+        assert!(retained.is_dispatcher);
+        assert!(!retained.is_assignee);
+        assert_eq!(retained.last_read_seq, 4);
     }
 }

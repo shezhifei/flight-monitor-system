@@ -2102,6 +2102,18 @@
         .chat-send-btn {
             min-height: 44px;
             min-width: 88px;
+            border: 0;
+            border-radius: var(--r-control);
+            background: var(--act);
+            color: var(--face-page);
+            font: inherit;
+            font-weight: var(--fw-medium);
+            cursor: pointer;
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
         }
 
         .chat-readonly-tip {

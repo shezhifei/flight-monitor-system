@@ -305,6 +305,10 @@ impl DispatchCollaborationRepository for FakeCollaborationRepo {
         Ok(vec![])
     }
 
+    async fn find_group_members(&self, _group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {
+        Ok(vec![])
+    }
+
     async fn find_users_by_ids(&self, _user_ids: &[String]) -> Result<Vec<DispatchChatUserProfile>, DomainError> {
         Ok(vec![])
     }

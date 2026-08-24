@@ -119,9 +119,27 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
   function closeStatusPanel() { p.isStatusPanelVisible.value = false; }
   function toggleChatDrawer() {
     p.isChatDrawerVisible.value = !p.isChatDrawerVisible.value;
-    if (p.isChatDrawerVisible.value) { p.loadChatGroups(); p.initChatSession(); } else { p.destroyChatSession(); }
+    p.setChatPanelVisible(p.isChatDrawerVisible.value);
+    if (p.isChatDrawerVisible.value) {
+      void p.loadChatGroups({ silent: true });
+    }
   }
-  function closeChatDrawer() { p.isChatDrawerVisible.value = false; p.destroyChatSession(); }
+  function closeChatDrawer() {
+    p.isChatDrawerVisible.value = false;
+    p.setChatPanelVisible(false);
+  }
+
+  async function sendChatFromDrawer(payload?: { mentionUserIds?: string[]; atAll?: boolean }) {
+    const content = p.chatInput.value;
+    const result = await p.sendChatMessage(
+      content,
+      Boolean(payload?.atAll),
+      payload?.mentionUserIds ?? [],
+    );
+    if (result.ok) {
+      p.chatInput.value = '';
+    }
+  }
   function toggleOpsMenu() { p.isOpsMenuVisible.value = !p.isOpsMenuVisible.value; }
   function closeOpsMenu() { p.isOpsMenuVisible.value = false; }
   function toggleGanttLegend() { p.isGanttLegendPopoverVisible.value = !p.isGanttLegendPopoverVisible.value; }
@@ -547,12 +565,15 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
     startAutoRefresh();
     // Non-blocking overrun warnings: fetch unresolved + SSE topic dispatch_alerts
     void overrunWarnings.start();
+    p.initChatSession();
+    void p.loadChatGroups({ silent: true });
     window.addEventListener('keydown', handleKeydown);
   });
 
   onUnmounted(() => {
     stopAutoRefresh();
     overrunWarnings.stop();
+    p.destroyChatSession();
     window.removeEventListener('keydown', handleKeydown);
   });
 
@@ -589,7 +610,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
   return {
     switchTerminal,
     handleSearch, handleSearchNext,
-    toggleAiDrawer, closeAiDrawer, openAssistantShell, replanDirectApplyEnabled, toggleStatusPanel, closeStatusPanel, toggleChatDrawer, closeChatDrawer, toggleOpsMenu, closeOpsMenu, toggleGanttLegend, toggleGuideAndLegendPanel, closeGuideAndLegendPanel, toggleBatchToolbar,
+    toggleAiDrawer, closeAiDrawer, openAssistantShell, replanDirectApplyEnabled, toggleStatusPanel, closeStatusPanel, toggleChatDrawer, closeChatDrawer, sendChatFromDrawer, toggleOpsMenu, closeOpsMenu, toggleGanttLegend, toggleGuideAndLegendPanel, closeGuideAndLegendPanel, toggleBatchToolbar,
     handleViewTabChange, resetWindowToNow, handleSettingsApply, handleGuideSettingsChange,
     handleStatusFilterBlocked, handleStatusShowAll, handleStatusSelectAll, handleStatusOrderOpen, toggleOrderSelection,
     handleReplanPreview, handleReplanApply, handleReplanClear,

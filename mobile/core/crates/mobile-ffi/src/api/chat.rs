@@ -68,11 +68,13 @@ pub struct ChatMessage {
     pub message_type: String,
     pub content: String,
     pub is_at_all: bool,
+    pub mention_user_ids: Vec<String>,
     pub sent_at: String,
 }
 
 impl From<core::ChatMessage> for ChatMessage {
     fn from(m: core::ChatMessage) -> Self {
+        let mention_user_ids = m.mention_user_ids_resolved();
         Self {
             message_id: m.message_id,
             seq_no: m.seq_no,
@@ -82,6 +84,7 @@ impl From<core::ChatMessage> for ChatMessage {
             message_type: m.message_type,
             content: m.content,
             is_at_all: m.is_at_all,
+            mention_user_ids,
             sent_at: m.sent_at,
         }
     }
@@ -157,15 +160,66 @@ pub async fn chat_messages(
     )
 }
 
+/// Mirror of `ChatMember`.
+pub struct ChatMember {
+    pub user_id: String,
+    pub username: String,
+    pub is_assignee: bool,
+    pub is_dispatcher: bool,
+    pub is_active: bool,
+}
+
+impl From<core::ChatMember> for ChatMember {
+    fn from(m: core::ChatMember) -> Self {
+        Self {
+            user_id: m.user_id,
+            username: m.username,
+            is_assignee: m.is_assignee,
+            is_dispatcher: m.is_dispatcher,
+            is_active: m.is_active,
+        }
+    }
+}
+
+/// Mirror of `ChatMemberList`.
+pub struct ChatMemberList {
+    pub items: Vec<ChatMember>,
+}
+
+impl From<core::ChatMemberList> for ChatMemberList {
+    fn from(r: core::ChatMemberList) -> Self {
+        Self {
+            items: r.items.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 /// `POST .../groups/{group_id}/messages`.
 pub async fn send_chat_message(
     group_id: String,
     content: String,
     at_all: bool,
+    mention_user_ids: Vec<String>,
 ) -> anyhow::Result<ChatMessage> {
     let rt = runtime()?;
     Ok(
-        mobile_core::api::chat::send_chat_message(&rt.client, &group_id, &content, at_all)
+        mobile_core::api::chat::send_chat_message(
+            &rt.client,
+            &group_id,
+            &content,
+            at_all,
+            &mention_user_ids,
+        )
+        .await?
+        .into(),
+    )
+}
+
+/// `GET .../groups/{group_id}/members`.
+pub async fn chat_group_members(group_id: String) -> anyhow::Result<ChatMemberList> {
+    let rt = runtime()?;
+    Ok(
+        mobile_core::api::chat::chat_group_members(&rt.client, &group_id)
             .await?
             .into(),
     )
