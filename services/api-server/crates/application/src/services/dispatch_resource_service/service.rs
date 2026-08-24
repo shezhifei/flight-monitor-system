@@ -17,14 +17,14 @@ use fms_domain::ports::dispatch_repository::{
 use super::mappers::equipment_status_value;
 
 pub struct DispatchResourceService<
-    DR: DepartmentRepository + ?Sized = fms_domain::ports::NullRepository,
-    TTR: TeamTypeRepository + ?Sized = fms_domain::ports::NullRepository,
-    TR: TeamRepository + ?Sized = fms_domain::ports::NullRepository,
-    TMR: TeamMemberRepository + ?Sized = fms_domain::ports::NullRepository,
-    ETR: EquipmentTypeRepository + ?Sized = fms_domain::ports::NullRepository,
-    ER: EquipmentRepository + ?Sized = fms_domain::ports::NullRepository,
-    SR: StandRepository + ?Sized = fms_domain::ports::NullRepository,
-    TTR2: TaskTypeRepository + ?Sized = fms_domain::ports::NullRepository,
+    DR: DepartmentRepository + ?Sized,
+    TTR: TeamTypeRepository + ?Sized,
+    TR: TeamRepository + ?Sized,
+    TMR: TeamMemberRepository + ?Sized,
+    ETR: EquipmentTypeRepository + ?Sized,
+    ER: EquipmentRepository + ?Sized,
+    SR: StandRepository + ?Sized,
+    TTR2: TaskTypeRepository + ?Sized,
 > {
     department_repo: Arc<DR>,
     team_type_repo: Arc<TTR>,
