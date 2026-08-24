@@ -325,14 +325,18 @@ function onTabClose(event: Event, moduleId: string): void {
   opacity: 0.9;
 }
 
-/* 行动色实底上，图标洗成 --act-on 同色：夜色底黑、白天底白 */
-.ws-func-chip.is-active :deep(img),
-.ws-func-chip.is-active :deep(svg) {
+/* 行动色实底上，图标洗成 --act-on 同色：夜色底黑、白天底白。
+   内联 SVG 自己就吃 currentColor（见 SvgIcon），随 .is-active 的 --act-on 变位，
+   不需要再洗一遍。只有取图失败退回 <img> 那一路无法重着色，按面各洗一次。
+
+   注意：scoped 块里的选择器不能以 :global(...) 开头 —— 编译器会把 :global()
+   之后的部分整段丢掉，规则落到 <html> 上（曾把浅色整页 filter 成纯白）。
+   要带主题前缀就把整条选择器包进 :global()。两个主题互斥，不存在覆盖次序问题。 */
+:global([data-theme='dark'] .ws-func-chip.is-active img.svg-icon--fallback) {
   filter: brightness(0) saturate(100%);
 }
 
-:global([data-theme='light']) .ws-func-chip.is-active :deep(img),
-:global([data-theme='light']) .ws-func-chip.is-active :deep(svg) {
+:global([data-theme='light'] .ws-func-chip.is-active img.svg-icon--fallback) {
   filter: brightness(0) invert(1);
 }
 
