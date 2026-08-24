@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
 use crate::services::dispatch_service::DispatchService;
 use crate::types::ConcreteNotificationService;
 use serde_json::json;
@@ -144,10 +145,12 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
     let business_case_service = Arc::new(
-        BusinessCaseService::new(business_case_repo)
-            .with_transactional_repository(business_case_tx_repo)
-            .with_event_publisher(Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>)
-            .with_dispatch_chat_repository(business_case_collaboration_repo),
+        BusinessCaseService::new(
+                business_case_repo,
+                Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
+                Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo)) as Arc<dyn BusinessCaseMentionAudience>,
+            )
+            .with_transactional_repository(business_case_tx_repo),
     );
 
     DomainActionExecutor::new(

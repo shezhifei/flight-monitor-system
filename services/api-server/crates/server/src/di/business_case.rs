@@ -8,7 +8,9 @@ use tracing::{info, warn};
 
 use crate::di::types::*;
 
-use fms_application::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService};
+use fms_application::services::business_case_service::{
+    BusinessCaseEventPublisher, BusinessCaseMentionAudience, BusinessCaseService, CollaborationMentionAudience,
+};
 use fms_application::services::business_case_type_service::BusinessCaseTypeService;
 use fms_application::services::business_case_workflow_service::BusinessCaseWorkflowService;
 use fms_application::services::notification_service::NotificationReceiptGroupSync;
@@ -40,18 +42,20 @@ pub(crate) async fn build_business_case_services(
         repos.business_case_repo.clone();
     let business_case_dispatch_chat_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync> =
         repos.dispatch_collaboration_repo.clone();
-    let mut business_case_svc_inner: ConcreteBusinessCaseService =
-        if let Some(event_publisher) = &infra.business_case_event_publisher {
-            BusinessCaseService::new(business_case_repo_for_service.clone())
-                .with_transactional_repository(business_case_tx_repo.clone())
-                .with_event_publisher(event_publisher.clone())
-                .with_dispatch_chat_repository(business_case_dispatch_chat_repo.clone())
-        } else {
-            BusinessCaseService::new(business_case_repo_for_service)
-                .with_transactional_repository(business_case_tx_repo)
-                .with_event_publisher(Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>)
-                .with_dispatch_chat_repository(business_case_dispatch_chat_repo)
-        };
+    // 两条分支以前只差事件发布器，却把整条构造链重复了一遍。
+    // 依赖必填之后，先挑发布器，再构造一次。
+    let event_publisher: Arc<dyn BusinessCaseEventPublisher> = match &infra.business_case_event_publisher {
+        Some(publisher) => publisher.clone(),
+        None => Arc::new(NoopBusinessCaseEventPublisher),
+    };
+    let mention_audience: Arc<dyn BusinessCaseMentionAudience> =
+        Arc::new(CollaborationMentionAudience::new(business_case_dispatch_chat_repo));
+    let mut business_case_svc_inner: ConcreteBusinessCaseService = BusinessCaseService::new(
+        business_case_repo_for_service,
+        event_publisher,
+        mention_audience,
+    )
+    .with_transactional_repository(business_case_tx_repo);
     business_case_svc_inner.set_notification_service(shared.notification_svc.clone());
     business_case_svc_inner.set_business_case_type_service(business_case_type_svc.clone());
     business_case_svc_inner.set_flight_runtime_projection_repository(repos.flight_runtime_projection_repo.clone());

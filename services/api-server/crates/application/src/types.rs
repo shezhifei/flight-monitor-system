@@ -22,7 +22,7 @@ use fms_domain::ports::workflow_dispatch_repository::WorkflowDispatchRepository;
 use crate::services::ai_action_proposal_service::AiActionProposalService;
 use crate::services::anomaly_service::AnomalyService;
 use crate::services::auth_service::AuthService;
-use crate::services::business_case_service::BusinessCaseEventPublisher;
+use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseMentionAudience};
 use crate::services::business_case_service::BusinessCaseService;
 use crate::services::business_case_type_service::BusinessCaseTypeService;
 use crate::services::business_case_workflow_service::BusinessCaseWorkflowService;
@@ -126,7 +126,8 @@ impl DispatchRecommendationService for NoopDispatchRecommendationService {
     }
 }
 
-// No-op implementations for BusinessCaseService default type parameters
+// 显式 no-op 事件发布器：给不关心事件外发的测试与 DI 分支使用。
+// （以前它还兼任默认类型参数的填充物，默认参数已删除。）
 pub struct NoopBusinessCaseEventPublisher;
 
 impl BusinessCaseEventPublisher for NoopBusinessCaseEventPublisher {
@@ -201,7 +202,7 @@ pub type ConcreteLabelService = LabelService;
 pub type ConcreteBusinessCaseService = BusinessCaseService<
     dyn BusinessCaseRepository + Send + Sync,
     dyn BusinessCaseEventPublisher,
-    dyn DispatchCollaborationRepository + Send + Sync,
+    dyn BusinessCaseMentionAudience,
 >;
 
 pub type ConcreteBusinessCaseTypeService = BusinessCaseTypeService;

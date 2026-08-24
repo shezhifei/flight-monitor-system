@@ -4,6 +4,7 @@ mod tests {
         AiActionProposalError, AiActionProposalService, ApproveProposalRequest, ExecuteProposalRequest,
         GenerateProposalRequest, ValidateProposalRequest,
     };
+    use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
     use crate::services::ai_execution_allowlist::ExecutionAllowlist;
     use crate::services::ai_execution_readiness_service::AiExecutionReadinessService;
     use crate::services::ai_proposal_audit_recorder::AiProposalAuditEventRecorder;
@@ -483,10 +484,12 @@ mod tests {
             dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
         > = collab_repo;
         let bc_svc = Arc::new(
-            BusinessCaseService::new(business_case_repo_port)
-                .with_transactional_repository(business_case_tx_repo)
-                .with_event_publisher(Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>)
-                .with_dispatch_chat_repository(business_case_collab_repo_port),
+            BusinessCaseService::new(
+                    business_case_repo_port,
+                    Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
+                    Arc::new(CollaborationMentionAudience::new(business_case_collab_repo_port)) as Arc<dyn BusinessCaseMentionAudience>,
+                )
+                .with_transactional_repository(business_case_tx_repo),
         );
 
         Arc::new(crate::services::domain_action_executor::DomainActionExecutor::new(
