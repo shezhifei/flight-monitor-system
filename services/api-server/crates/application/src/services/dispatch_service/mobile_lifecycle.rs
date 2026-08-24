@@ -54,7 +54,8 @@ impl DispatchService {
             return Err(DomainError::BusinessRuleViolation("请先接单再开始执行".to_string()));
         }
 
-        if let Some(member_repo) = self.order.member_repo.as_ref() {
+        {
+            let member_repo = self.order.member_repo.as_ref();
             let member = member_repo.find_by_order_and_user(order_id, actor_id).await?;
             if let Some(m) = &member {
                 if m.check_in_time.is_none() {
@@ -95,7 +96,7 @@ impl DispatchService {
             });
         }
 
-        self.maybe_evaluate_overrun_warning(order_id).await;
+        self.evaluate_overrun_warning(order_id).await;
 
         Ok(serde_json::json!({
             "message": "派工单已开始执行",
@@ -151,7 +152,8 @@ impl DispatchService {
             "routine_total": 0,
             "completed_routine": 0,
         });
-        if let Some(checklist_repo) = self.resources.checklist_repo.as_ref() {
+        {
+            let checklist_repo = self.resources.checklist_repo.as_ref();
             let template = checklist_repo.get_template(&order.task_type).await?;
             let records = checklist_repo.list_records(order_id).await?;
             gate = Self::build_checklist_status(order_id, &order.task_type, template.as_ref(), &records)?;
@@ -294,7 +296,7 @@ impl DispatchService {
             ).await?;
         }
 
-        self.maybe_evaluate_overrun_warning(order_id).await;
+        self.evaluate_overrun_warning(order_id).await;
 
         Ok(json!({
             "message": "派工单已完成",
@@ -396,7 +398,7 @@ impl DispatchService {
         )
         .await;
         self.sync_dispatch_chat_for_order(order_id).await;
-        self.maybe_evaluate_overrun_warning(order_id).await;
+        self.evaluate_overrun_warning(order_id).await;
 
         Ok(true)
     }
@@ -589,7 +591,8 @@ impl DispatchService {
         let mut verification_status = "pending_verification".to_string();
         let mut verification_source = "manual".to_string();
         if let (Some(lat), Some(lng), Some(stand_id)) = (dto.lat, dto.lng, order.stand_id.as_deref()) {
-            if let Some(stand_repo) = self.resources.stand_repo.as_ref() {
+            {
+                let stand_repo = self.resources.stand_repo.as_ref();
                 if let Some(stand) = stand_repo.find_by_id(stand_id).await? {
                     if stand.position_lat != 0.0 || stand.position_lng != 0.0 {
                         let distance_m = helpers::haversine_distance(lat, lng, stand.position_lat, stand.position_lng);
@@ -618,7 +621,8 @@ impl DispatchService {
         let mut followup_todo = None;
         let mut auto_started = false;
 
-        if let Some(member_repo) = self.order.member_repo.as_ref() {
+        {
+            let member_repo = self.order.member_repo.as_ref();
             let existing = member_repo.find_by_order_and_user(order_id, actor_id).await?;
             match existing {
                 Some(mut m) => {
@@ -867,7 +871,8 @@ impl DispatchService {
         let mut auto_completed = false;
         let mut travel_info = None;
 
-        if let Some(member_repo) = self.order.member_repo.as_ref() {
+        {
+            let member_repo = self.order.member_repo.as_ref();
             let existing = member_repo.find_by_order_and_user(order_id, actor_id).await?;
             match existing {
                 Some(mut m) => {

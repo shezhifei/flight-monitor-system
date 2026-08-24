@@ -49,11 +49,7 @@ impl DispatchService {
         self.ensure_actor_can_complete_order(&order, order_id, actor_id, "无权操作此派工单安全检查清单")
             .await?;
 
-        let checklist_repo = self
-            .resources
-            .checklist_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("安全检查清单服务不可用".to_string()))?;
+        let checklist_repo = self.resources.checklist_repo.as_ref();
         let template = checklist_repo
             .get_template(&order.task_type)
             .await?
@@ -164,11 +160,7 @@ impl DispatchService {
         self.ensure_actor_can_complete_order(&order, order_id, actor_id, "无权操作此派工单安全检查清单")
             .await?;
 
-        let checklist_repo = self
-            .resources
-            .checklist_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("安全检查清单服务不可用".to_string()))?;
+        let checklist_repo = self.resources.checklist_repo.as_ref();
         if dto.items.is_empty() {
             return Err(DomainError::BusinessRuleViolation(
                 "invalid safety checklist batch submission".to_string(),
@@ -256,11 +248,7 @@ impl DispatchService {
                 return Err(DomainError::ValidationError("invalid source_type".to_string()));
             }
         }
-        let todo_repo = self
-            .order
-            .todo_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("todo service unavailable".to_string()))?;
+        let todo_repo = self.order.todo_repo.as_ref();
 
         let mut items = Vec::new();
         let fetch_limit = 10_000;
@@ -367,11 +355,7 @@ impl DispatchService {
 
     /// 获取安全检查清单模板
     pub async fn get_safety_template(&self, task_type: &str) -> Result<Option<serde_json::Value>, DomainError> {
-        let checklist_repo = self
-            .resources
-            .checklist_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("安全检查清单服务不可用".to_string()))?;
+        let checklist_repo = self.resources.checklist_repo.as_ref();
         checklist_repo.get_template(task_type).await
     }
 
@@ -387,7 +371,8 @@ impl DispatchService {
                 id: order_id.to_string(),
             })?;
 
-        if let Some(checklist_repo) = self.resources.checklist_repo.as_ref() {
+        {
+            let checklist_repo = self.resources.checklist_repo.as_ref();
             let template = checklist_repo.get_template(&order.task_type).await?;
             let records = checklist_repo.list_records(order_id).await?;
             return Self::build_checklist_status(order_id, &order.task_type, template.as_ref(), &records);
@@ -439,11 +424,7 @@ impl DispatchService {
             return Err(Self::invalid_safety_template_request());
         }
 
-        let checklist_repo = self
-            .resources
-            .checklist_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("安全检查清单服务不可用".to_string()))?;
+        let checklist_repo = self.resources.checklist_repo.as_ref();
         let normalized_version = Self::normalize_safety_template_version(&dto.checklist_version)?;
         let normalized_items = Self::normalize_safety_template_items(&dto.checklist_items)?;
 
@@ -478,7 +459,8 @@ impl DispatchService {
             }
         }
 
-        if let Some(checklist_repo) = self.resources.checklist_repo.as_ref() {
+        {
+            let checklist_repo = self.resources.checklist_repo.as_ref();
             let empty_array = serde_json::Value::Array(vec![]);
             let zero = serde_json::Value::from(0);
             let true_val = serde_json::Value::Bool(true);

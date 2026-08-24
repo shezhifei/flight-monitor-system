@@ -152,7 +152,7 @@ impl DispatchService {
         )
         .await;
         self.sync_dispatch_chat_for_order(order_id).await;
-        self.maybe_evaluate_overrun_warning(order_id).await;
+        self.evaluate_overrun_warning(order_id).await;
 
         Ok(serde_json::json!({
             "dispatch_order_id": order_id,
@@ -188,11 +188,7 @@ impl DispatchService {
         self.ensure_actor_can_complete_order(&order, order_id, actor_id, "无权上报此派工单异常")
             .await?;
 
-        let anomaly_repo = self
-            .notifications
-            .anomaly_repo
-            .as_ref()
-            .ok_or_else(|| DomainError::Internal("异常仓储未配置".to_string()))?;
+        let anomaly_repo = self.notifications.anomaly_repo.as_ref();
 
         let client_action_id = Self::normalize_optional_ref(dto.client_action_id.as_deref()).map(str::to_string);
         if let Some(ref cid) = client_action_id {

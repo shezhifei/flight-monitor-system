@@ -428,8 +428,11 @@ mod tests {
                 .with_outbox_repository(outbox_repo.clone()),
         );
         let dispatch_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-        let dispatch_svc =
-            Arc::new(DispatchService::new(dispatch_repo.clone()).with_transactional_repos(dispatch_repo, None));
+        // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
+        let mut dispatch_deps = crate::test_support::stub_dispatch_dependencies();
+        dispatch_deps.order.order_repo = dispatch_repo.clone();
+        dispatch_deps.order.order_tx_repo = dispatch_repo;
+        let dispatch_svc = Arc::new(DispatchService::new(dispatch_deps));
         let notif_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
         let notif_repo_port: Arc<dyn fms_domain::ports::notification_repository::NotificationRepository + Send + Sync> =

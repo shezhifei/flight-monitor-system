@@ -24,9 +24,7 @@ impl DispatchService {
         payload: Value,
         occurred_at: DateTime<Utc>,
     ) {
-        let Some(collaboration_repo) = self.notifications.collaboration_repo.as_ref() else {
-            return;
-        };
+        let collaboration_repo = self.notifications.collaboration_repo.as_ref();
 
         let event = DispatchCollaborationEvent {
             event_id: Self::new_dispatch_id(),
@@ -75,7 +73,8 @@ impl DispatchService {
             }
         }
 
-        if let (Some(team_repo), Some(team_id)) = (self.resources.team_repo.as_ref(), order.team_id.as_deref()) {
+        if let Some(team_id) = order.team_id.as_deref() {
+            let team_repo = self.resources.team_repo.as_ref();
             if let Ok(Some(team)) = team_repo.find_by_id(team_id, false).await {
                 if let Some(leader_id) = team.leader_id.as_deref() {
                     let normalized = leader_id.trim();
@@ -127,9 +126,7 @@ impl DispatchService {
         receipt_required: bool,
         origin_type: &str,
     ) {
-        let Some(notification_service) = self.notifications.notification_service.as_ref() else {
-            return;
-        };
+        let notification_service = self.notifications.notification_service.as_ref();
 
         let recipient_ids = self.collect_notification_recipient_ids(order, actor_id).await;
         if recipient_ids.is_empty() {
@@ -165,9 +162,7 @@ impl DispatchService {
     }
 
     pub async fn send_publication_notifications(&self, order: &DispatchOrder) {
-        let Some(notification_service) = self.notifications.notification_service.as_ref() else {
-            return;
-        };
+        let notification_service = self.notifications.notification_service.as_ref();
 
         let recipient_ids = Self::collect_publication_recipient_ids(order);
         if recipient_ids.is_empty() {
@@ -207,9 +202,7 @@ impl DispatchService {
     }
 
     pub async fn sync_dispatch_chat_for_order(&self, order_id: &str) {
-        let Some(dispatch_chat_service) = self.notifications.dispatch_chat_service.as_ref() else {
-            return;
-        };
+        let dispatch_chat_service = self.notifications.dispatch_chat_service.as_ref();
         dispatch_chat_service.sync_dispatch_order_chat(order_id).await;
     }
 
@@ -354,8 +347,8 @@ impl DispatchService {
     ) -> Option<serde_json::Value> {
         let checkin_time = member.check_in_time?;
         let current_stand = order.stand_id.as_deref()?;
-        let member_repo = self.order.member_repo.as_ref()?;
-        let travel_repo = self.resources.travel_stats_repo.as_ref()?;
+        let member_repo = self.order.member_repo.as_ref();
+        let travel_repo = self.resources.travel_stats_repo.as_ref();
         let prev = member_repo
             .find_latest_checkout_for_user(actor_id, checkin_time)
             .await
@@ -543,9 +536,7 @@ impl DispatchService {
         message: String,
         severity: AlertSeverity,
     ) -> Result<Option<DispatchAlert>, DomainError> {
-        let Some(alert_repo) = self.notifications.alert_repo.as_ref() else {
-            return Ok(None);
-        };
+        let alert_repo = self.notifications.alert_repo.as_ref();
         let alert = DispatchAlert {
             id: Self::new_dispatch_id(),
             flight_id: Some(flight_id.trim().to_string()).filter(|value| !value.is_empty()),

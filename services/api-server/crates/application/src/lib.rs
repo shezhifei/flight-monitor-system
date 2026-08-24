@@ -11,5 +11,9 @@ pub mod services;
 pub mod sqlx_transactional_repositories;
 pub mod types;
 
+/// 测试专用桩件。生产构建不编译。
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
+
 #[cfg(test)]
 mod split_assert;

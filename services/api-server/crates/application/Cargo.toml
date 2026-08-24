@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+# 仅供其他 crate 的测试引用 test_support 模块；生产构建不启用。
+test-support = []
+
 [dependencies]
 fms-domain = { path = "../domain" }
 fms-infrastructure = { path = "../infrastructure" }

@@ -1,4 +1,5 @@
 use super::DispatchService;
+use crate::test_support::stub_dispatch_dependencies;
 use chrono::{TimeZone, Utc};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
@@ -13,37 +14,6 @@ struct RecordingDispatchOrderRepo {
     existing_orders: Mutex<Vec<DispatchOrder>>,
     saved_orders: Mutex<Vec<DispatchOrder>>,
     logs: Mutex<Vec<(String, String, Option<String>, Option<serde_json::Value>)>>,
-}
-
-// Test fixture for DispatchService dependencies
-struct InMemoryDispatchServiceDependencies {
-    order_repo: Arc<RecordingDispatchOrderRepo>,
-    order_tx_repo: Arc<RecordingDispatchOrderRepo>, // Cast as SqlxDispatchOrderTransactionalRepository
-    member_repo: Arc<RecordingDispatchOrderRepo>,   // Cast as DispatchOrderMemberRepository
-    member_tx_repo: Arc<RecordingDispatchOrderRepo>, // Cast as SqlxDispatchOrderMemberTransactionalRepository
-    todo_repo: Arc<RecordingDispatchOrderRepo>,      // Cast as TodoRepository
-    department_repo: Arc<RecordingDispatchOrderRepo>,
-    task_type_repo: Arc<RecordingDispatchOrderRepo>,
-    task_type_requirement_repo: Arc<RecordingDispatchOrderRepo>,
-    flight_repo: Arc<RecordingDispatchOrderRepo>,
-    generation_rule_repo: Arc<RecordingDispatchOrderRepo>,
-    adjustment_rule_repo: Arc<RecordingDispatchOrderRepo>,
-    temporary_task_template_repo: Arc<RecordingDispatchOrderRepo>,
-    team_repo: Arc<RecordingDispatchOrderRepo>,
-    team_type_repo: Arc<RecordingDispatchOrderRepo>,
-    stand_repo: Arc<RecordingDispatchOrderRepo>,
-    qualification_repo: Arc<RecordingDispatchOrderRepo>,
-    qualification_grant_repo: Arc<RecordingDispatchOrderRepo>,
-    equipment_repo: Arc<RecordingDispatchOrderRepo>,
-    team_member_repo: Arc<RecordingDispatchOrderRepo>,
-    travel_stats_repo: Arc<RecordingDispatchOrderRepo>,
-    checklist_repo: Arc<RecordingDispatchOrderRepo>,
-    resource_availability_service: Arc<RecordingDispatchOrderRepo>,
-    anomaly_repo: Arc<RecordingDispatchOrderRepo>,
-    collaboration_repo: Arc<RecordingDispatchOrderRepo>,
-    alert_repo: Arc<RecordingDispatchOrderRepo>,
-    notification_service: Arc<RecordingDispatchOrderRepo>,
-    dispatch_chat_service: Arc<RecordingDispatchOrderRepo>,
 }
 
 #[async_trait::async_trait]
@@ -370,7 +340,10 @@ fn event_generated_order() -> DispatchOrder {
 #[tokio::test]
 async fn save_event_generated_order_persists_order_and_records_log() {
     let repo = Arc::new(RecordingDispatchOrderRepo::default());
-    let service = DispatchService::new(repo.clone());
+    // 本测试只用到 order_repo；其余端口是会报错的桩（见 test_support）。
+    let mut deps = stub_dispatch_dependencies();
+    deps.order.order_repo = repo.clone();
+    let service = DispatchService::new(deps);
     let order = event_generated_order();
     let details = json!({
         "event_id": "evt-1",
@@ -399,7 +372,10 @@ async fn save_event_generated_order_persists_order_and_records_log() {
 #[tokio::test]
 async fn save_event_generated_order_once_skips_existing_rule_order() {
     let repo = Arc::new(RecordingDispatchOrderRepo::default());
-    let service = DispatchService::new(repo.clone());
+    // 本测试只用到 order_repo；其余端口是会报错的桩（见 test_support）。
+    let mut deps = stub_dispatch_dependencies();
+    deps.order.order_repo = repo.clone();
+    let service = DispatchService::new(deps);
     let order = event_generated_order();
     let mut existing_order = order.clone();
     existing_order.id = "existing-order-1".to_string();

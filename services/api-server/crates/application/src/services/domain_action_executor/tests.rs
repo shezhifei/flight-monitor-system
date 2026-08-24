@@ -89,8 +89,11 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
     );
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-    let dispatch_service =
-        Arc::new(DispatchService::new(dispatch_order_repo.clone()).with_transactional_repos(dispatch_order_repo, None));
+    // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
+    let mut dispatch_deps = crate::test_support::stub_dispatch_dependencies();
+    dispatch_deps.order.order_repo = dispatch_order_repo.clone();
+    dispatch_deps.order.order_tx_repo = dispatch_order_repo;
+    let dispatch_service = Arc::new(DispatchService::new(dispatch_deps));
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
