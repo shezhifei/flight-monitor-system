@@ -6,7 +6,7 @@ use crate::test_support::{
     proposal_status_by_id, todo_count_by_source, todo_exists_by_source, todo_exists_by_source_id,
     todo_title_by_source_id,
 };
-use actix_web::{App, http::StatusCode, test};
+use actix_web::{http::StatusCode, test, App};
 use fms_application::services::ai_action_proposal_service::{
     AiActionProposalService, GenerateProposalRequest, ValidateProposalRequest,
 };
@@ -83,7 +83,7 @@ static SMOKE_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 fn make_jwt(permissions: &[&str], department_id: Option<&str>) -> String {
     use chrono::Utc;
-    use jsonwebtoken::{EncodingKey, Header, encode};
+    use jsonwebtoken::{encode, EncodingKey, Header};
     let now = Utc::now().timestamp();
     let claims = json!({
         "sub": "test_user",
@@ -534,8 +534,8 @@ async fn build_test_executor(
     };
     use fms_application::services::{
         business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter},
-        dispatch_service::DispatchService,
         dispatch_service::writer::DispatchOrderWriter,
+        dispatch_service::DispatchService,
         flight_service::FlightService,
         flight_writer::FlightWriter,
         label_service::LabelService,

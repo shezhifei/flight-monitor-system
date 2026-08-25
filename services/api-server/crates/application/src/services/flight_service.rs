@@ -4,8 +4,8 @@
 
 use dashmap::DashMap;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
@@ -22,10 +22,11 @@ use crate::services::flight_writer::FlightTransactionalWrites;
 const NEGATIVE_CACHE_TTL: Duration = Duration::from_secs(5);
 
 pub use crate::services::flight_domain_events::{
-    FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT, FLIGHT_LEG_UPSERTED_EVENT,
-    FLIGHT_REMARKS_UPDATED_EVENT, FLIGHT_RESOURCE_UPDATED_EVENT, FLIGHT_STATUS_UPDATED_EVENT, build_created_payload,
-    build_deleted_payload, build_leg_upserted_payload, build_remarks_updated_payload, build_resource_updated_payload,
-    build_status_updated_payload, write_flight_outbox_event, write_flight_update_outbox_events,
+    build_created_payload, build_deleted_payload, build_leg_upserted_payload, build_remarks_updated_payload,
+    build_resource_updated_payload, build_status_updated_payload, write_flight_outbox_event,
+    write_flight_update_outbox_events, FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT,
+    FLIGHT_LEG_UPSERTED_EVENT, FLIGHT_REMARKS_UPDATED_EVENT, FLIGHT_RESOURCE_UPDATED_EVENT,
+    FLIGHT_STATUS_UPDATED_EVENT,
 };
 
 pub struct FlightService {

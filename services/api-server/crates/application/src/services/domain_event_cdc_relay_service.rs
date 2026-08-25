@@ -416,7 +416,7 @@ fn build_tls_config(config: &ReplicationDatabaseConfig) -> Result<TlsConfig, Dom
         other => {
             return Err(DomainError::Internal(format!(
                 "unsupported replication ssl mode: {other}"
-            )))
+            )));
         }
     };
 

@@ -558,9 +558,7 @@ pub(super) fn build_contextual_sections(
         warnings.push("上下文缺少 BPMN XML，回答将无法引用具体节点。".to_string());
     }
     vec![
-        format!(
-            "## 建议\n围绕 `{process_name}`，当前问题 `{message}` 更像是在收敛节点边界和分支条件。"
-        ),
+        format!("## 建议\n围绕 `{process_name}`，当前问题 `{message}` 更像是在收敛节点边界和分支条件。"),
         format!(
             "## 结合现有草案可先检查\n- 当前摘要覆盖的主链路：\n{summary}\n- 与问题直接相关的节点，是否已经补齐责任人、输入变量和出口条件。\n- 异常、回退、超时场景是否已经建成显式分支。"
         ),

@@ -19,8 +19,8 @@ use fms_domain::ports::unit_of_work::UnitOfWork;
 use crate::schemas::flight_schemas::{FlightResponse, FlightUpdate};
 use crate::services::flight_command_validator;
 use crate::services::flight_domain_events::{
-    FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT, build_created_payload, build_deleted_payload,
-    write_flight_outbox_event, write_flight_update_outbox_events,
+    build_created_payload, build_deleted_payload, write_flight_outbox_event, write_flight_update_outbox_events,
+    FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT,
 };
 use crate::services::flight_mappers::{to_response, update_patch_from_dto};
 

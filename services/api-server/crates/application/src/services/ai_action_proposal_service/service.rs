@@ -982,7 +982,7 @@ impl AiActionProposalService {
             other => {
                 return Err(AiActionProposalError::validation(format!(
                     "Unknown ontology risk level: {other}"
-                )))
+                )));
             }
         };
         let policy = match action.approval_policy.as_str() {
@@ -993,7 +993,7 @@ impl AiActionProposalService {
             other => {
                 return Err(AiActionProposalError::validation(format!(
                     "Unknown ontology approval policy: {other}"
-                )))
+                )));
             }
         };
         Ok((risk, policy))
