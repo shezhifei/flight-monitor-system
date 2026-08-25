@@ -50,8 +50,8 @@ use fms_application::services::ai_runtime_service::tool_authorization_service::{
 };
 use fms_application::services::ai_runtime_service::AiRuntimeService;
 use fms_application::services::authorization_service::AuthorizationService;
-use fms_application::services::domain_action_executor::DomainActionExecutor;
 use fms_application::services::business_case_service::BusinessCaseWriter;
+use fms_application::services::domain_action_executor::DomainActionExecutor;
 use fms_application::services::todo_service::TodoWriter;
 
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
@@ -171,6 +171,7 @@ pub(crate) fn build_ai_services(
         business_case_writer,
         repos.domain_event_outbox_repo.clone(),
         repos.anomaly_repo.clone(),
+        repos.notification_repo.clone(),
         pool.clone(),
     ));
 
@@ -270,11 +271,9 @@ pub(crate) fn build_ai_services(
     // the requester's permissions from Rust-persisted data. Used both by the
     // execution control service (tool authorization) and by the internal
     // ontology action endpoints (agent-loop read/advisory actions).
-    let ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync> =
-        Arc::new(PgRunAuthorizationContextLoader::new(
-            pool.clone(),
-            repos.ai_entity_config_repo.clone(),
-        ));
+    let ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync> = Arc::new(
+        PgRunAuthorizationContextLoader::new(pool.clone(), repos.ai_entity_config_repo.clone()),
+    );
 
     let ai_control_svc = Arc::new(build_ai_execution_control_service(
         pool.clone(),

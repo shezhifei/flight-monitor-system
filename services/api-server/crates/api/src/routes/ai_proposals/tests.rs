@@ -1,6 +1,5 @@
 use super::*;
 use crate::middleware::jwt::JwtSecret;
-use fms_application::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
 use crate::test_support::{
     ai_run_event_types, cleanup_outbox_by_aggregate_id, cleanup_todo_by_id, ensure_test_user,
     insert_idempotent_conflict_proposal, outbox_count_by_aggregate_id, outbox_count_by_event_type,
@@ -11,6 +10,7 @@ use actix_web::{http::StatusCode, test, App};
 use fms_application::services::ai_action_proposal_service::{
     AiActionProposalService, GenerateProposalRequest, ValidateProposalRequest,
 };
+use fms_application::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
 use fms_domain::models::ai_proposal::{ActionProposalStatus, ApprovalPolicy, RiskLevel};
 use fms_domain::ports::ai_object_policy_repository::{
     AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicyRepositoryError,
@@ -582,18 +582,15 @@ async fn build_test_executor(
     let notification_tx_repo_port: Arc<
         dyn fms_application::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
     > = notification_repo.clone();
-    let notification_service = Arc::new(
-        NotificationService::new(
-            notification_repo_port,
-            notification_pref_repo_port,
-            Arc::new(CollaborationEventRecorder::new(notification_collaboration_repo_port))
-                as Arc<dyn NotificationCollaborationEvents>,
-            Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
-            Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
-            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
-        )
-        .with_transactional_repository(notification_tx_repo_port),
-    );
+    let notification_service = Arc::new(NotificationService::new(
+        notification_repo_port,
+        notification_pref_repo_port,
+        Arc::new(CollaborationEventRecorder::new(notification_collaboration_repo_port))
+            as Arc<dyn NotificationCollaborationEvents>,
+        Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
+        Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
+        Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
+    ));
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
 
@@ -607,18 +604,18 @@ async fn build_test_executor(
     let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
     let business_case_repo: Arc<dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync> =
         business_case_pg_repo.clone();
-    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
-        Arc::new(BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo));
+    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+        BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo),
+    );
     let business_case_collaboration_repo: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
-    let business_case_service = Arc::new(
-        BusinessCaseService::new(
-                business_case_repo,
-                Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
-                Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo)) as Arc<dyn BusinessCaseMentionAudience>,
-        ),
-    );
+    let business_case_service = Arc::new(BusinessCaseService::new(
+        business_case_repo,
+        Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
+        Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo))
+            as Arc<dyn BusinessCaseMentionAudience>,
+    ));
 
     fms_application::services::domain_action_executor::DomainActionExecutor::new(
         flight_service,
@@ -630,6 +627,7 @@ async fn build_test_executor(
         business_case_writer,
         outbox_repo,
         anomaly_repo,
+        notification_tx_repo_port,
         pool,
     )
 }

@@ -4,10 +4,10 @@ mod tests {
         AiActionProposalError, AiActionProposalService, ApproveProposalRequest, ExecuteProposalRequest,
         GenerateProposalRequest, ValidateProposalRequest,
     };
-    use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
     use crate::services::ai_execution_allowlist::ExecutionAllowlist;
     use crate::services::ai_execution_readiness_service::AiExecutionReadinessService;
     use crate::services::ai_proposal_audit_recorder::AiProposalAuditEventRecorder;
+    use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
     use crate::services::dispatch_service::DispatchService;
     use crate::types::ConcreteNotificationService;
     use fms_domain::models::ai_proposal::{ActionProposalStatus, ApprovalPolicy, RiskLevel};
@@ -399,7 +399,9 @@ mod tests {
     async fn build_smoke_executor(
         pool: sqlx::PgPool,
     ) -> Arc<crate::services::domain_action_executor::DomainActionExecutor> {
-        use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
+        use crate::services::business_case_service::{
+            BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter,
+        };
         use crate::services::flight_service::FlightService;
         use crate::services::label_service::LabelService;
         use crate::services::notification_service::{
@@ -446,19 +448,14 @@ mod tests {
         let notif_tx_repo_port: Arc<
             dyn crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
         > = notif_repo.clone();
-        let notif_svc: Arc<ConcreteNotificationService> =
-            Arc::new(
-                NotificationService::new(
-                    notif_repo_port,
-                    notif_pref_repo_port,
-                    Arc::new(CollaborationEventRecorder::new(collab_repo_port))
-                        as Arc<dyn NotificationCollaborationEvents>,
-                    Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
-                    Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
-                    Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
-                )
-                .with_transactional_repository(notif_tx_repo_port),
-            );
+        let notif_svc: Arc<ConcreteNotificationService> = Arc::new(NotificationService::new(
+            notif_repo_port,
+            notif_pref_repo_port,
+            Arc::new(CollaborationEventRecorder::new(collab_repo_port)) as Arc<dyn NotificationCollaborationEvents>,
+            Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
+            Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
+            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
+        ));
         let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
         let label_svc = Arc::new(LabelService::new(
             Arc::new(PgLabelRepository::new(pool.clone())),
@@ -471,18 +468,18 @@ mod tests {
         let business_case_repo_port: Arc<
             dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync,
         > = business_case_pg_repo.clone();
-        let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
-            Arc::new(BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo));
+        let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+            BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo),
+        );
         let business_case_collab_repo_port: Arc<
             dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
         > = collab_repo;
-        let bc_svc = Arc::new(
-            BusinessCaseService::new(
-                    business_case_repo_port,
-                    Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
-                    Arc::new(CollaborationMentionAudience::new(business_case_collab_repo_port)) as Arc<dyn BusinessCaseMentionAudience>,
-            ),
-        );
+        let bc_svc = Arc::new(BusinessCaseService::new(
+            business_case_repo_port,
+            Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
+            Arc::new(CollaborationMentionAudience::new(business_case_collab_repo_port))
+                as Arc<dyn BusinessCaseMentionAudience>,
+        ));
 
         Arc::new(crate::services::domain_action_executor::DomainActionExecutor::new(
             flight_svc,
@@ -494,6 +491,7 @@ mod tests {
             business_case_writer,
             outbox_repo,
             anomaly_repo,
+            notif_tx_repo_port,
             pool,
         ))
     }

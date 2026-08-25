@@ -6,10 +6,9 @@ use tracing::{error, warn};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 use fms_domain::models::notification::{Notification, NotificationPreference};
-use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
-use sqlx::{Postgres, Transaction};
-
-use crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository;
+use fms_domain::ports::notification_repository::{
+    NotificationPreferenceRepository, NotificationRepository, NotificationTransactionalRepository,
+};
 
 use super::helpers::{
     build_remind_after_at, default_preference, get_val, is_muted_now, is_overdue, normalize_ack_action,
@@ -34,7 +33,6 @@ pub struct NotificationService<
     RS: NotificationReceiptGroupSync + ?Sized,
 > {
     pub(crate) repo: Arc<NR>,
-    pub(crate) tx_repo: Option<Arc<dyn SqlxNotificationTransactionalRepository>>,
     pub(crate) preference_repo: Arc<PR>,
     pub(crate) collaboration_events: Arc<CE>,
     pub(crate) delivery_publisher: Arc<DP>,
@@ -63,7 +61,6 @@ impl<
     ) -> Self {
         Self {
             repo,
-            tx_repo: None,
             preference_repo,
             collaboration_events,
             delivery_publisher,
@@ -79,11 +76,6 @@ impl<
             .receipt_group_sync
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = receipt_group_sync;
-    }
-
-    pub fn with_transactional_repository(mut self, tx_repo: Arc<dyn SqlxNotificationTransactionalRepository>) -> Self {
-        self.tx_repo = Some(tx_repo);
-        self
     }
 
     /// 获取用户通知列表
@@ -273,9 +265,20 @@ impl<
         self.send(dto, None, None).await
     }
 
-    pub async fn send_notification_in_tx(
+    /// 这个方法是泛型的，服务本身不是。
+    ///
+    /// 通知服务已经带着六个类型参数，且有一大票 `web::Data` 注入点；把事务类型加成第七个
+    /// 参数会落到每一个注入点上。而这段 40 行的逻辑要用到本服务 7 个实例方法（共 151 行）
+    /// 和 6 个字段里的 5 个——搬到独立写入方就得把服务大半复制过去，或者让写入方反过来
+    /// 持有服务，那只是多一层转发。
+    ///
+    /// 所以事务仓储改由调用方传入：`DomainActionExecutor` 本来就已经这样持有
+    /// `anomaly_tx_repo`。方法级泛型在这里是安全的——这个方法不属于任何 trait，
+    /// 没有对象安全的约束。
+    pub async fn send_notification_in_tx<Tx: Send>(
         &self,
-        tx: &mut Transaction<'static, Postgres>,
+        tx: &mut Tx,
+        tx_repo: &(dyn NotificationTransactionalRepository<Tx> + Send + Sync),
         dto: NotificationCreate,
     ) -> Result<NotificationResponse, DomainError> {
         let mut notification = self.build_notification(dto, None, None)?;
@@ -295,9 +298,6 @@ impl<
             should_send_in_app = true;
         }
         if should_send_in_app {
-            let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-                DomainError::Internal("NotificationService transactional repository is not configured".to_string())
-            })?;
             tx_repo.save_in_tx(tx, &notification).await?;
             self.metrics_recorder.record_delivery_attempt("in_app", true);
             self.record_created_collaboration_event(&notification).await;

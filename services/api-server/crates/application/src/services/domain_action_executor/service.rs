@@ -9,14 +9,14 @@ use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::services::todo_service::TodoWriter;
+use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::types::{
-    ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService,
-    ConcreteNotificationService,
+    ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService, ConcreteNotificationService,
 };
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
+use fms_domain::ports::notification_repository::NotificationTransactionalRepository;
 
 use super::helpers::{optional_string, required_string};
 use super::types::{DomainActionError, DomainActionReceipt};
@@ -33,6 +33,7 @@ pub struct DomainActionExecutor {
     pool: sqlx::PgPool,
     outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
     anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
+    notification_tx_repo: Arc<dyn NotificationTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync>,
 }
 
 impl DomainActionExecutor {
@@ -46,6 +47,9 @@ impl DomainActionExecutor {
         business_case_writer: Arc<BusinessCaseWriter<Transaction<'static, Postgres>>>,
         outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
+        notification_tx_repo: Arc<
+            dyn NotificationTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync,
+        >,
         pool: sqlx::PgPool,
     ) -> Self {
         Self {
@@ -59,6 +63,7 @@ impl DomainActionExecutor {
             flowable_service: None,
             outbox_repo,
             anomaly_tx_repo,
+            notification_tx_repo,
             pool,
         }
     }
@@ -338,6 +343,7 @@ impl DomainActionExecutor {
                     .notification_service
                     .send_notification_in_tx(
                         tx,
+                        self.notification_tx_repo.as_ref(),
                         NotificationCreate {
                             user_id: user_id.to_string(),
                             title: title.to_string(),
