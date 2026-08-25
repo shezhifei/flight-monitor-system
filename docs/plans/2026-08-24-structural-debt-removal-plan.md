@@ -25,7 +25,38 @@ P3 已落地的三步：
    `serde_json::to_string_pretty` 加一个没人读的指标，直接换掉）。
 3. `e5f57bf` **HRTB 已删除**——18 个 `for<'tx>` 归零，代价是 23 处事务签名钉成 `'static`。
 
-P3 剩余：`sqlx` 生产依赖（`Cargo.toml:22`）与 13 个持有 `PgPool` 的生产文件。
+4. `ab40062` **打样成功**：`UnitOfWork` 端口成立，3 个文件已彻底无 sqlx，守门清单 32 → **29**。
+
+P3 剩余：`sqlx` 生产依赖（`Cargo.toml:22`）、清单里剩下的 29 个文件、以及 8 个仍持有 `PgPool` 的事务拥有者。
+
+### 打样结论（`ab40062`，供后续逐个推进时照抄）
+
+- **`Tx` 必须是关联类型**，不是 trait 的泛型参数。既有的 `XxxTransactionalRepository<Tx>` 本来就对 `Tx` 泛型，
+  所以**一个仓储端口都不用改**。
+- **泛型要在 crate 边界停住。** 把 `U` 一路穿到 `fms-api` 会落到十来个
+  `web::Data<Arc<SchedulerRuntimeService>>` 处理器签名上，逼 `fms-api` 为了拼出类型而把
+  `fms-infrastructure` 升为生产依赖——那是把 P3 的成果换成隔一个 crate 的同一种违规。
+  做法是在接缝上放一个窄端口（`DomainEventRelay`，两个方法），泛型到此为止。
+  副作用是好的：`fms-api` 从点名具体应用服务变成只认端口。
+- **别在 `impl<U: UnitOfWork>` 里留不用 `self` 也不用 `U` 的函数**，否则调用方推不出 `U`（E0283）。
+- 不要加 `rollback`：`sqlx::Transaction` drop 即回滚，加了就是死代码。
+
+### 顺带发现：P1 删掉的模式在别处活得很好
+
+P1 清掉了 `DispatchService` 的 26 个 `Option<Arc<dyn …>>`，但**同一个模式在 application 生产代码里还剩 82 处**，
+分布在约 35 个服务上，配套 37 个 `with_*_repository` 建造器。其中 6 处正好是事务仓储
+（`anomaly_service.rs:19`、`notification_service/service.rs:37`、`business_case_service/service.rs:28`、
+`todo_service.rs:35`、`flight_service.rs:37,40`、`flight_runtime_service/types.rs:27`、`ai_job_service.rs:228`）。
+
+这**不算** P1 失败——P1 的范围就写明是 `DispatchService` 的 26 个，它确实归零了。
+但失败判据第 3 条把三个月后的复测**只**指向 `dispatch_service/mod.rs`，这个范围现在看太窄：
+它让同一个反模式在别处的存活完全不进入测量。判据不追溯修改，所以这里只记录事实，
+并给出正确的复测口径供下一轮使用：
+
+```powershell
+# 现值 82（2026-08-25）。降不下来就说明「删 Option」只是在一个服务里做了一次，不是修好了。
+Select-String -Path servicespi-server\cratespplication\src\**\*.rs -Pattern 'Option<Arc<dyn' | Measure-Object
+```
 
 ---
 
