@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::di::types::*;
 
 use fms_application::services::flight_archive_service::FlightArchiveService;
-use fms_application::services::flight_batch_cell_update_service::FlightBatchCellUpdateService;
+use fms_application::services::flight_batch_cell_update_service::{FlightBatchCellUpdate, FlightBatchCellUpdateService};
 use fms_application::services::flight_cache_service::FlightCacheService;
 use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
@@ -47,7 +47,7 @@ pub(crate) struct FlightServices {
     pub flight_import_svc: Arc<FlightImportService>,
     pub flight_archive_svc: Arc<FlightArchiveService>,
     pub flight_cache_svc: Arc<FlightCacheService>,
-    pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
+    pub flight_batch_cell_svc: Arc<dyn FlightBatchCellUpdate>,
     pub ontology_svc: Arc<OntologyService>,
     pub ontology_actions: Arc<OntologyActionServices>,
 }
@@ -75,14 +75,14 @@ pub(crate) fn build_flight_services(
             .with_outbox_repository(outbox_tx_repo.clone())
             .with_pool(repos.pool.clone()),
     );
-    let flight_batch_cell_svc = Arc::new(
+    let flight_batch_cell_svc: Arc<dyn FlightBatchCellUpdate> = Arc::new(
         FlightBatchCellUpdateService::new(
             repos.flight_repo.clone(),
             flight_tx_repo.clone(),
             timeline_tx_repo,
             timeline_read,
             outbox_tx_repo.clone(),
-            repos.pool.clone(),
+            repos.unit_of_work.clone(),
         )
         .with_projection_repository(repos.flight_runtime_projection_repo.clone()),
     );

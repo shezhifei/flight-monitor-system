@@ -6,6 +6,8 @@
 
 use std::sync::Arc;
 
+use fms_infrastructure::db::transaction::PgUnitOfWork;
+
 use crate::di::types::*;
 use fms_api::services::performance_metrics::PerformanceMetricsService;
 use fms_api::sse::hub::SseHub;
@@ -84,6 +86,9 @@ use crate::di::adapters::*;
 /// 所有 Postgres 仓库（+ 缓存型 user/role 仓库、session runtime 仓库）的集合。
 pub(crate) struct SharedRepos {
     pub pool: sqlx::PgPool,
+    /// 事务边界的唯一具体实现。放在这里而不是每个 di 模块各造一个，
+    /// 是为了让 `PgUnitOfWork` 在整个组合根里只被点名一次。
+    pub unit_of_work: Arc<PgUnitOfWork>,
     pub flight_repo: Arc<PgFlightRepository>,
     pub label_repo: Arc<PgLabelRepository>,
     pub flight_archive_repo: Arc<PgFlightArchiveRepository>,
@@ -227,9 +232,11 @@ pub(crate) fn build_shared_repos(
     let shift_instance_repo = Arc::new(PgShiftInstanceRepository::new(pool.clone()));
     let schedule_exception_repo = Arc::new(PgScheduleExceptionRepository::new(pool.clone()));
     let domain_event_outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
+    let unit_of_work = Arc::new(PgUnitOfWork::new(pool.clone()));
 
     SharedRepos {
         pool,
+        unit_of_work,
         flight_repo,
         label_repo,
         flight_archive_repo,

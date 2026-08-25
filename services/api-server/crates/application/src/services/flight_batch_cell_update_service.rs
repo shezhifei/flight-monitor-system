@@ -9,16 +9,19 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use serde_json::{json, Value};
-use sqlx::PgPool;
 use tracing::warn;
 use ulid::Ulid;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::flight::Flight;
 use fms_domain::models::value_objects::StandNumber;
-use fms_domain::ports::flight_repository::{FlightRepository, FlightUpdatePatch, PatchField};
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField};
 use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjectionRepository;
-use fms_domain::ports::flight_timeline_event_repository::{FlightTimelineEvent, FlightTimelineEventRepository};
+use fms_domain::ports::flight_timeline_event_repository::{
+    FlightTimelineEvent, FlightTimelineEventRepository, FlightTimelineEventTransactionalRepository,
+};
+use fms_domain::ports::unit_of_work::UnitOfWork;
 
 use crate::schemas::flight_schemas::{
     FlightBatchCellConflictItem, FlightBatchCellResultItem, FlightBatchCellUpdateRequest,
@@ -27,10 +30,6 @@ use crate::schemas::flight_schemas::{
 use crate::services::flight_domain_events::{
     build_timeline_upserted_payload, write_flight_outbox_event, write_flight_update_outbox_events,
     FLIGHT_AGGREGATE_TYPE, FLIGHT_TIMELINE_UPSERTED_EVENT,
-};
-use crate::sqlx_transactional_repositories::{
-    SqlxDomainEventOutboxTransactionalRepository, SqlxFlightTimelineTransactionalRepository,
-    SqlxFlightTransactionalRepository,
 };
 
 pub const MAX_BATCH_CELL_TARGETS: usize = 200;
@@ -90,24 +89,41 @@ pub(crate) async fn load_flights_for_batch(
         .collect())
 }
 
-pub struct FlightBatchCellUpdateService {
-    repo: Arc<dyn FlightRepository + Send + Sync>,
-    tx_repo: Arc<dyn SqlxFlightTransactionalRepository>,
-    timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository>,
-    timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync>,
-    projection_repo: Option<Arc<dyn FlightRuntimeProjectionRepository + Send + Sync>>,
-    outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-    pool: PgPool,
+/// 批量改单元格的入口。
+///
+/// api 层只需要 `execute`，而服务本身因为持有事务句柄而带上了泛型参数。
+/// 这个端口的存在就是为了**让那个泛型参数在这里停住**：否则 `fms-api`
+/// 的处理器签名就得点名 `PgUnitOfWork`，于是 api 层多出一条对
+/// `fms-infrastructure` 的生产依赖——把 P3 刚押下的边界输到隔壁一层。
+#[async_trait::async_trait]
+pub trait FlightBatchCellUpdate: Send + Sync {
+    async fn execute(
+        &self,
+        request: FlightBatchCellUpdateRequest,
+        actor_id: &str,
+        is_admin: bool,
+        permissions: &[String],
+    ) -> Result<FlightBatchCellUpdateResponse, FlightBatchCellError>;
 }
 
-impl FlightBatchCellUpdateService {
+pub struct FlightBatchCellUpdateService<U: UnitOfWork> {
+    repo: Arc<dyn FlightRepository + Send + Sync>,
+    tx_repo: Arc<dyn FlightTransactionalRepository<U::Tx> + Send + Sync>,
+    timeline_tx_repo: Arc<dyn FlightTimelineEventTransactionalRepository<U::Tx> + Send + Sync>,
+    timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync>,
+    projection_repo: Option<Arc<dyn FlightRuntimeProjectionRepository + Send + Sync>>,
+    outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
+    uow: Arc<U>,
+}
+
+impl<U: UnitOfWork> FlightBatchCellUpdateService<U> {
     pub fn new(
         repo: Arc<dyn FlightRepository + Send + Sync>,
-        tx_repo: Arc<dyn SqlxFlightTransactionalRepository>,
-        timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository>,
+        tx_repo: Arc<dyn FlightTransactionalRepository<U::Tx> + Send + Sync>,
+        timeline_tx_repo: Arc<dyn FlightTimelineEventTransactionalRepository<U::Tx> + Send + Sync>,
         timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync>,
-        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-        pool: PgPool,
+        outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
+        uow: Arc<U>,
     ) -> Self {
         Self {
             repo,
@@ -116,7 +132,7 @@ impl FlightBatchCellUpdateService {
             timeline_repo,
             projection_repo: None,
             outbox_repo,
-            pool,
+            uow,
         }
     }
 
@@ -224,7 +240,7 @@ impl FlightBatchCellUpdateService {
         }
 
         let mut tx = self
-            .pool
+            .uow
             .begin()
             .await
             .map_err(|e| FlightBatchCellError::Internal(e.to_string()))?;
@@ -261,7 +277,8 @@ impl FlightBatchCellUpdateService {
             results.push(item);
         }
 
-        tx.commit()
+        self.uow
+            .commit(tx)
             .await
             .map_err(|e| FlightBatchCellError::Internal(e.to_string()))?;
 
@@ -291,7 +308,7 @@ impl FlightBatchCellUpdateService {
 
     async fn apply_snapshot(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut U::Tx,
         field: FlightBatchEditableField,
         value: &ParsedBatchValue,
         target: &ValidatedTarget,
@@ -330,7 +347,7 @@ impl FlightBatchCellUpdateService {
 
     async fn apply_timeline(
         &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        tx: &mut U::Tx,
         batch_id: &str,
         field: FlightBatchEditableField,
         value: &ParsedBatchValue,
@@ -463,6 +480,19 @@ impl FlightBatchCellUpdateService {
             value: json!(write.event.occurred_at),
             timeline_id: Some(write.event.timeline_id),
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl<U: UnitOfWork> FlightBatchCellUpdate for FlightBatchCellUpdateService<U> {
+    async fn execute(
+        &self,
+        request: FlightBatchCellUpdateRequest,
+        actor_id: &str,
+        is_admin: bool,
+        permissions: &[String],
+    ) -> Result<FlightBatchCellUpdateResponse, FlightBatchCellError> {
+        FlightBatchCellUpdateService::execute(self, request, actor_id, is_admin, permissions).await
     }
 }
 

@@ -132,9 +132,10 @@ pub(crate) async fn build_observability_services(
         "EVENTS_OUTBOX_RETRY_RECOVERY_BATCH_SIZE",
         env_i64("EVENTS_OUTBOX_BATCH_SIZE", 200),
     );
-    // `PgUnitOfWork` 只在这一处（组合根）被点名：它是 `Transaction<'static, Postgres>`
-    // 唯一被具体化的地方，应用层与 api 层都只见到 `U::Tx` 或端口。
-    let unit_of_work = Arc::new(PgUnitOfWork::new(pool.clone()));
+    // `PgUnitOfWork` 在整个仓库里只被造一次，在 `di::shared`；它是
+    // `Transaction<'static, Postgres>` 唯一被具体化的地方，应用层与 api 层都
+    // 只见到 `U::Tx` 或端口。这里只是把它取过来。
+    let unit_of_work = repos.unit_of_work.clone();
 
     let domain_event_relay_svc = Arc::new(DomainEventRelayService::new(
         unit_of_work.clone(),

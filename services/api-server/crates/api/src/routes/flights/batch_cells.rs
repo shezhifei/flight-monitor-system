@@ -12,14 +12,14 @@ use crate::middleware::permissions::PermissionCheck;
 use super::shared::{actor_id, ok_resp};
 use fms_application::schemas::flight_schemas::FlightBatchCellUpdateRequest;
 use fms_application::services::authorization_service::PermissionCatalog;
-use fms_application::services::flight_batch_cell_update_service::{FlightBatchCellError, FlightBatchCellUpdateService};
+use fms_application::services::flight_batch_cell_update_service::{FlightBatchCellError, FlightBatchCellUpdate};
 
 /// PATCH /api/v2/flights/batch-cells
 ///
 /// All-or-nothing: either every target is updated (same transaction + outbox)
 /// or none are. Conflicts return 409 with code `FLIGHT_BATCH_CONFLICT`.
 pub async fn batch_update_cells(
-    svc: web::Data<Arc<FlightBatchCellUpdateService>>,
+    svc: web::Data<Arc<dyn FlightBatchCellUpdate>>,
     body: web::Json<FlightBatchCellUpdateRequest>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {

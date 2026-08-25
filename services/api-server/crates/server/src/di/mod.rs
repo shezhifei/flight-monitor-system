@@ -43,7 +43,7 @@ use fms_application::services::dispatch_service::dispatch_overrun_warning_servic
 use fms_application::services::domain_event_cdc_relay_service::DomainEventCdcRelayService;
 use fms_infrastructure::db::transaction::PgUnitOfWork;
 use fms_application::services::flight_archive_service::FlightArchiveService;
-use fms_application::services::flight_batch_cell_update_service::FlightBatchCellUpdateService;
+use fms_application::services::flight_batch_cell_update_service::FlightBatchCellUpdate;
 use fms_application::services::flight_cache_service::FlightCacheService;
 use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
@@ -96,7 +96,7 @@ pub struct DiContainer {
     pub scheduler_runtime_svc: Arc<SchedulerRuntimeService>,
 
     pub flight_svc: Arc<ConcreteFlightService>,
-    pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
+    pub flight_batch_cell_svc: Arc<dyn FlightBatchCellUpdate>,
     pub cache_invalidation_svc: Arc<CacheInvalidationService>,
     pub label_svc: Arc<ConcreteLabelService>,
     pub flight_import_svc: Arc<FlightImportService>,
