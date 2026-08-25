@@ -55,7 +55,7 @@ P1 清掉了 `DispatchService` 的 26 个 `Option<Arc<dyn …>>`，但**同一�
 
 ```powershell
 # 现值 82（2026-08-25）。降不下来就说明「删 Option」只是在一个服务里做了一次，不是修好了。
-Select-String -Path servicespi-server\cratespplication\src\**\*.rs -Pattern 'Option<Arc<dyn' | Measure-Object
+Select-String -Path services\api-server\crates\application\src\**\*.rs -Pattern 'Option<Arc<dyn' | Measure-Object
 ```
 
 ---
