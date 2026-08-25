@@ -68,8 +68,6 @@ pub struct AiActionProposalService {
     domain_action_executor: Option<Arc<crate::services::domain_action_executor::DomainActionExecutor>>,
     object_policy_repository: Option<Arc<dyn AiObjectPolicyRepository + Send + Sync>>,
     ontology_repository: Option<Arc<dyn fms_domain::ports::ai_ontology_repository::AiOntologyRepository + Send + Sync>>,
-    #[allow(dead_code)] // retained for API/DI compatibility; SQL now goes through ports
-    pool: Option<sqlx::PgPool>,
     flight_repository: Option<Arc<dyn FlightRepository + Send + Sync>>,
     anomaly_repository: Option<Arc<dyn AnomalyRepository + Send + Sync>>,
     stand_repository: Option<Arc<dyn StandRepository + Send + Sync>>,
@@ -87,7 +85,6 @@ impl AiActionProposalService {
             domain_action_executor: None,
             object_policy_repository: None,
             ontology_repository: None,
-            pool: None,
             flight_repository: None,
             anomaly_repository: None,
             stand_repository: None,
@@ -133,11 +130,6 @@ impl AiActionProposalService {
         repository: Arc<dyn fms_domain::ports::ai_ontology_repository::AiOntologyRepository + Send + Sync>,
     ) -> Self {
         self.ontology_repository = Some(repository);
-        self
-    }
-
-    pub fn with_pool(mut self, pool: sqlx::PgPool) -> Self {
-        self.pool = Some(pool);
         self
     }
 

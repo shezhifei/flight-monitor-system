@@ -31,7 +31,6 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
     // `application -> fms-infrastructure`/`sqlx` edge one service at a time, and
     // each such step must remove a line here. A new entry means new debt.
     let expected = [
-        "ai_action_proposal_service/service.rs",
         "ai_action_proposal_service/tests.rs",
         "ai_execution_readiness_service.rs",
         "ai_job_timeout_reaper_service.rs",

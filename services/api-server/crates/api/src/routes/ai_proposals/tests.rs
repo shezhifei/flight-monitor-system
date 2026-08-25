@@ -401,9 +401,7 @@ async fn test_execute_proposal_expected_version_mismatch() {
     }
     let pool = create_pool().await;
     let service = Arc::new(
-        AiActionProposalService::new()
-            .with_pool(pool.clone())
-            .with_flight_repository(Arc::new(PgFlightRepository::new(pool.clone()))),
+        AiActionProposalService::new().with_flight_repository(Arc::new(PgFlightRepository::new(pool.clone()))),
     );
 
     let req = GenerateProposalRequest {
@@ -466,7 +464,7 @@ async fn test_execute_proposal_idempotency_conflict() {
         return;
     }
     let pool = create_pool().await;
-    let service = Arc::new(AiActionProposalService::new().with_pool(pool.clone()));
+    let service = Arc::new(AiActionProposalService::new());
 
     let idemp_key = format!("idemp_{}", ulid::Ulid::new());
     let prop_id = format!("prop_{}", ulid::Ulid::new());
@@ -674,11 +672,7 @@ async fn test_execute_proposal_success() {
     ensure_test_user(&pool).await.unwrap();
 
     let executor = Arc::new(build_test_executor(pool.clone()).await);
-    let service = Arc::new(
-        AiActionProposalService::new()
-            .with_pool(pool.clone())
-            .with_domain_action_executor(executor),
-    );
+    let service = Arc::new(AiActionProposalService::new().with_domain_action_executor(executor));
 
     // Generate proposal
     let req = GenerateProposalRequest {
@@ -834,7 +828,6 @@ async fn build_smoke_proposal_service(
             .with_domain_action_executor(executor)
             .with_object_policy_repository(Arc::new(PgAiObjectPolicyRepository::new(pool.clone())))
             .with_ontology_repository(Arc::new(PgAiOntologyRepository::new(pool.clone())))
-            .with_pool(pool)
             .with_readiness_service(readiness.clone())
             .with_audit_recorder(audit),
     );
@@ -864,7 +857,6 @@ async fn build_smoke_proposal_service_with_readiness(
             .with_domain_action_executor(executor)
             .with_object_policy_repository(Arc::new(PgAiObjectPolicyRepository::new(pool.clone())))
             .with_ontology_repository(Arc::new(PgAiOntologyRepository::new(pool.clone())))
-            .with_pool(pool)
             .with_readiness_service(readiness)
             .with_audit_recorder(audit),
     )

@@ -126,7 +126,6 @@ pub struct RollbackService {
     control_service: Option<Arc<AiExecutionControlService>>,
     domain_executor: Option<Arc<DomainActionExecutor>>,
     planner: Arc<CompensationPlanner>,
-    pool: Option<sqlx::PgPool>,
     max_retries: u32,
 }
 
@@ -153,7 +152,6 @@ impl RollbackService {
             control_service: None,
             domain_executor: None,
             planner,
-            pool: None,
             max_retries: 3,
         }
     }
@@ -170,11 +168,6 @@ impl RollbackService {
 
     pub fn with_domain_executor(mut self, executor: Arc<DomainActionExecutor>) -> Self {
         self.domain_executor = Some(executor);
-        self
-    }
-
-    pub fn with_pool(mut self, pool: sqlx::PgPool) -> Self {
-        self.pool = Some(pool);
         self
     }
 

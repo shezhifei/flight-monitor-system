@@ -537,7 +537,6 @@ mod tests {
             .with_domain_action_executor(executor)
             .with_object_policy_repository(Arc::new(PgAiObjectPolicyRepository::new(pool.clone())))
             .with_ontology_repository(Arc::new(PgAiOntologyRepository::new(pool.clone())))
-            .with_pool(pool)
             .with_readiness_service(readiness)
             .with_audit_recorder(audit)
     }

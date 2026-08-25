@@ -234,7 +234,6 @@ pub(crate) fn build_ai_services(
             .with_domain_action_executor(domain_action_executor.clone())
             .with_object_policy_repository(ai_object_policy_repo.clone())
             .with_ontology_repository(ai_ontology_repo.clone())
-            .with_pool(pool.clone())
             .with_flight_repository(repos.flight_repo.clone())
             .with_anomaly_repository(repos.anomaly_repo.clone())
             .with_stand_repository(stand_repo)
