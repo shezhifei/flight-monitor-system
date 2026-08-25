@@ -10,7 +10,19 @@ use tracing::info;
 
 use crate::di::types::*;
 use fms_api::services::runtime_error_monitor::{set_global_runtime_error_monitor, RuntimeErrorMonitor};
-use fms_api::services::scheduler_runtime_service::SchedulerRuntimeService;
+use fms_api::services::scheduler_runtime_service::{DbPoolStatsSource, SchedulerRuntimeService};
+
+/// sqlx 连接池的指标适配器：把 pool.size()/num_idle() 桥接到 api 层端口。
+struct PgPoolStats(sqlx::PgPool);
+
+impl DbPoolStatsSource for PgPoolStats {
+    fn pool_size(&self) -> u32 {
+        self.0.size()
+    }
+    fn pool_num_idle(&self) -> u32 {
+        self.0.num_idle() as u32
+    }
+}
 
 use fms_application::services::alert_dispatch_service::AlertDispatchService;
 use fms_application::services::cache_invalidation_service::{
@@ -276,7 +288,7 @@ pub(crate) async fn build_observability_services(
     };
 
     let scheduler_runtime_svc = SchedulerRuntimeService::new(
-        pool.clone(),
+        Arc::new(PgPoolStats(pool.clone())) as Arc<dyn DbPoolStatsSource>,
         Arc::new(PgFlightSyncRepository::new(pool.clone())),
         infra.sse_hub.clone(),
         runtime_error_monitor.clone(),

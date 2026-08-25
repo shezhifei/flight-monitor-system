@@ -488,7 +488,10 @@ mod tests {
             dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
         > = collab_repo.clone();
         let notif_tx_repo_port: Arc<
-            dyn crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
+            dyn fms_domain::ports::notification_repository::NotificationTransactionalRepository<
+                    sqlx::Transaction<'static, sqlx::Postgres>,
+                > + Send
+                + Sync,
         > = notif_repo.clone();
         let notif_svc: Arc<ConcreteNotificationService> = Arc::new(NotificationService::new(
             notif_repo_port,

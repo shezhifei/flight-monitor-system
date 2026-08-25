@@ -83,7 +83,7 @@ pub trait DomainEventOutboxRepository: Send + Sync {
 ///
 /// Methods that require an open transaction (insert, mark published, mark failed,
 /// claim with lock) live on this separate trait so application services can
-/// depend on `Arc<dyn SqlxDomainEventOutboxTransactionalRepository>` instead of
+/// depend on `Arc<dyn DomainEventOutboxTransactionalRepository<Tx>>` instead of
 /// the concrete `PgDomainEventOutboxRepository`.
 #[async_trait]
 pub trait DomainEventOutboxTransactionalRepository<Tx>: Send + Sync {

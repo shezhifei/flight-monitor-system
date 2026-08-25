@@ -4,8 +4,6 @@
 //! implementations used in production, allowing other services to reference
 //! them without repeating the full generic parameter lists.
 
-pub type PgPool = sqlx::PgPool;
-
 use std::future::Future;
 use std::pin::Pin;
 

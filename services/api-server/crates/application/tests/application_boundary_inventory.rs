@@ -9,11 +9,9 @@ const DEBT_PATTERNS: &[&str] = &[
     "PgPool",
     "Transaction<",
     "Postgres",
-    // `Sqlx*TransactionalRepository`（application/src/sqlx_transactional_repositories.rs 的
-    // 10 个别名 trait）存在的目的就是把 `Transaction<'tx, Postgres>` 从签名里藏起来，好让
-    // HRTB 变成 `dyn`-able。于是持有 `Arc<dyn SqlxFooTransactionalRepository>` 的文件在
-    // `Postgres` / `Transaction<` 上一个都不命中——这个变通做法正好绕过了守门测试本身。
-    // 在本仓库里 `Sqlx` 这个前缀只属于那 10 个别名 trait，所以它是一个精确模式。
+    // `Sqlx` 前缀曾是 10 个别名 trait（Sqlx*TransactionalRepository）的专属标记，那些
+    // trait 把 `Transaction<'tx, Postgres>` 从签名里藏起来，绕过 `Postgres` / `Transaction<`
+    // 的扫描。别名 trait 已随生产 sqlx 依赖一并删除；模式保留，防止同类变通回流。
     "Sqlx",
 ];
 

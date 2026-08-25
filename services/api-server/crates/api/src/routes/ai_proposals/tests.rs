@@ -618,7 +618,10 @@ async fn build_test_executor(
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo.clone();
     let notification_tx_repo_port: Arc<
-        dyn fms_application::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
+        dyn fms_domain::ports::notification_repository::NotificationTransactionalRepository<
+                sqlx::Transaction<'static, sqlx::Postgres>,
+            > + Send
+            + Sync,
     > = notification_repo.clone();
     let notification_service = Arc::new(NotificationService::new(
         notification_repo_port,
