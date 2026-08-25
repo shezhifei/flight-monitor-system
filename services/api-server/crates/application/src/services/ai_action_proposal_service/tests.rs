@@ -399,7 +399,7 @@ mod tests {
     async fn build_smoke_executor(
         pool: sqlx::PgPool,
     ) -> Arc<crate::services::domain_action_executor::DomainActionExecutor> {
-        use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService};
+        use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
         use crate::services::flight_service::FlightService;
         use crate::services::label_service::LabelService;
         use crate::services::notification_service::{
@@ -468,12 +468,11 @@ mod tests {
         let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
             Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
         let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
-        let business_case_tx_repo: Arc<
-            dyn crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
-        > = business_case_pg_repo.clone();
         let business_case_repo_port: Arc<
             dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync,
-        > = business_case_pg_repo;
+        > = business_case_pg_repo.clone();
+        let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+            Arc::new(BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo));
         let business_case_collab_repo_port: Arc<
             dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
         > = collab_repo;
@@ -482,8 +481,7 @@ mod tests {
                     business_case_repo_port,
                     Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
                     Arc::new(CollaborationMentionAudience::new(business_case_collab_repo_port)) as Arc<dyn BusinessCaseMentionAudience>,
-                )
-                .with_transactional_repository(business_case_tx_repo),
+            ),
         );
 
         Arc::new(crate::services::domain_action_executor::DomainActionExecutor::new(
@@ -493,6 +491,7 @@ mod tests {
             label_svc,
             todo_writer,
             bc_svc,
+            business_case_writer,
             outbox_repo,
             anomaly_repo,
             pool,

@@ -8,11 +8,9 @@ use fms_domain::error::DomainError;
 use fms_domain::models::business_case::{
     BusinessCaseAppendEntry, BusinessCaseTerminalMetadata, FlightBusinessCase, VisibilityScope,
 };
-use fms_domain::ports::business_case_repository::BusinessCaseRepository;
+use fms_domain::ports::business_case_repository::{BusinessCaseRepository, BusinessCaseTransactionalRepository};
 use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjectionRepository;
 use tracing::warn;
-
-use crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository;
 
 use super::schemas::{
     BusinessCaseAppendResult, BusinessCaseEventPublisher, BusinessCaseMentionAudience,
@@ -25,7 +23,6 @@ pub struct BusinessCaseService<
     MA: BusinessCaseMentionAudience + ?Sized,
 > {
     repo: Arc<BR>,
-    tx_repo: Option<Arc<dyn SqlxBusinessCaseTransactionalRepository>>,
     event_publisher: Arc<EP>,
     mention_audience: Arc<MA>,
     notification_svc: Option<Arc<ConcreteNotificationService>>,
@@ -278,7 +275,6 @@ impl<
     pub fn new(repo: Arc<BR>, event_publisher: Arc<EP>, mention_audience: Arc<MA>) -> Self {
         Self {
             repo,
-            tx_repo: None,
             event_publisher,
             mention_audience,
             notification_svc: None,
@@ -297,11 +293,6 @@ impl<
 
     pub fn set_flight_runtime_projection_repository(&mut self, repo: Arc<dyn FlightRuntimeProjectionRepository>) {
         self.flight_runtime_projection_repo = Some(repo);
-    }
-
-    pub fn with_transactional_repository(mut self, tx_repo: Arc<dyn SqlxBusinessCaseTransactionalRepository>) -> Self {
-        self.tx_repo = Some(tx_repo);
-        self
     }
 
     pub async fn refresh_flight_runtime_projection(&self, flight_id: &str) {
@@ -325,53 +316,20 @@ impl<
 
     async fn enrich_case_type_names(
         &self,
-        mut items: Vec<FlightBusinessCase>,
+        items: Vec<FlightBusinessCase>,
         _viewer_department_id: Option<&str>,
         _viewer_department_name: Option<&str>,
     ) -> Result<Vec<FlightBusinessCase>, DomainError> {
-        let Some(case_type_svc) = self.business_case_type_svc.as_ref() else {
-            return Ok(items);
-        };
-        if items.is_empty() {
-            return Ok(items);
-        }
-
-        let type_name_map = case_type_svc
-            .list_case_types(false)
-            .await?
-            .into_iter()
-            .map(|item| (item.code, item.name))
-            .collect::<HashMap<_, _>>();
-
-        for item in &mut items {
-            if item
-                .case_type_name
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .is_some()
-            {
-                continue;
-            }
-            item.case_type_name = type_name_map.get(&item.case_type).cloned();
-        }
-
-        Ok(items)
+        enrich_case_type_names(self.business_case_type_svc.as_ref(), items).await
     }
 
     async fn enrich_case_type_name(
         &self,
         item: Option<FlightBusinessCase>,
-        viewer_department_id: Option<&str>,
-        viewer_department_name: Option<&str>,
+        _viewer_department_id: Option<&str>,
+        _viewer_department_name: Option<&str>,
     ) -> Result<Option<FlightBusinessCase>, DomainError> {
-        let Some(item) = item else {
-            return Ok(None);
-        };
-        let mut items = self
-            .enrich_case_type_names(vec![item], viewer_department_id, viewer_department_name)
-            .await?;
-        Ok(items.pop())
+        enrich_case_type_name(self.business_case_type_svc.as_ref(), item).await
     }
 
     async fn resolve_case_type_source_for_viewer(
@@ -577,54 +535,6 @@ impl<
         };
         self.repo.save(&case).await?;
         self.refresh_flight_runtime_projection(&case.flight_id).await;
-        self.enrich_case_type_name(Some(case), None, None)
-            .await?
-            .ok_or_else(|| DomainError::Internal("failed to enrich created business case".into()))
-    }
-
-    pub async fn create_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        case_type: &str,
-        flight_id: &str,
-        flight_no: &str,
-        description: &str,
-        context: HashMap<String, serde_json::Value>,
-        status: Option<&str>,
-        actor: &str,
-    ) -> Result<FlightBusinessCase, DomainError> {
-        let now = Utc::now();
-        let resolved_status = resolve_create_status(status, &context)?;
-        let case = FlightBusinessCase {
-            case_id: ulid::Ulid::new().to_string(),
-            case_type: case_type.trim().to_string(),
-            case_type_name: None,
-            flight_id: flight_id.trim().to_string(),
-            flight_no: flight_no.trim().to_string(),
-            created_at: now,
-            created_by: actor.to_string(),
-            updated_by: actor.to_string(),
-            description: description.to_string(),
-            status: resolved_status,
-            stand: None,
-            gate: None,
-            visibility_scope: VisibilityScope::Common,
-            department_id: None,
-            department_name_snapshot: None,
-            finished_at: None,
-            cancelled_at: None,
-            log: vec![],
-            context,
-            workflow_receipt: None,
-            terminal_metadata: None,
-            append_count: 0,
-            latest_append: None,
-            append_entries: vec![],
-        };
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("BusinessCaseService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.save_in_tx(tx, &case).await?;
         self.enrich_case_type_name(Some(case), None, None)
             .await?
             .ok_or_else(|| DomainError::Internal("failed to enrich created business case".into()))
@@ -909,58 +819,6 @@ impl<
 
         self.repo.update_case(&case).await?;
         self.refresh_flight_runtime_projection(&case.flight_id).await;
-        let refreshed = self.repo.find_by_id(case_id).await?;
-        self.enrich_case_type_name(refreshed, None, None).await
-    }
-
-    pub async fn apply_workflow_terminal_action_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        case_id: &str,
-        payload: BusinessCaseTerminalUpdatePayload,
-    ) -> Result<Option<FlightBusinessCase>, DomainError> {
-        let Some(mut case) = self.repo.find_by_id(case_id).await? else {
-            return Ok(None);
-        };
-
-        let now = Utc::now();
-        case.status = payload.target_status.trim().to_string();
-        case.updated_by = payload.actor.trim().to_string();
-        if payload.write_finished_at {
-            case.finished_at = Some(now);
-        }
-
-        let metadata = BusinessCaseTerminalMetadata {
-            timestamp: now,
-            operator: payload.actor.trim().to_string(),
-            action: payload.action.trim().to_string(),
-            target_status: payload.target_status.trim().to_string(),
-            reason: payload.reason.as_ref().map(|value| value.trim().to_string()),
-            workflow_run_id: payload.workflow_run_id,
-            workflow_outcome: payload.workflow_outcome,
-            receipt_group_id: payload.receipt_group_id,
-        };
-
-        case.log.push(serde_json::json!({
-            "timestamp": now.to_rfc3339(),
-            "operator": metadata.operator.clone(),
-            "action": metadata.action.clone(),
-            "target_status": metadata.target_status.clone(),
-            "reason": metadata.reason.as_deref().unwrap_or_default(),
-            "workflow_run_id": metadata.workflow_run_id.clone(),
-            "workflow_outcome": metadata.workflow_outcome.clone(),
-            "receipt_group_id": metadata.receipt_group_id.clone(),
-        }));
-        case.context.insert(
-            "workflow_terminal".to_string(),
-            serde_json::to_value(&metadata).unwrap_or(serde_json::Value::Null),
-        );
-        case.terminal_metadata = Some(metadata);
-
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("BusinessCaseService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.update_case_in_tx(tx, &case).await?;
         let refreshed = self.repo.find_by_id(case_id).await?;
         self.enrich_case_type_name(refreshed, None, None).await
     }
@@ -1305,4 +1163,179 @@ impl<
 
 fn extract_terminal_metadata(context: &HashMap<String, serde_json::Value>) -> Option<BusinessCaseTerminalMetadata> {
     serde_json::from_value(context.get("workflow_terminal")?.clone()).ok()
+}
+
+/// 事项类型名回填只依赖 `BusinessCaseTypeService`，跟服务其余状态无关。服务和
+/// `BusinessCaseWriter` 都要用它，所以逻辑落在自由函数里、两边各调一次，而不是复制两份。
+async fn enrich_case_type_names(
+    case_type_svc: Option<&Arc<ConcreteBusinessCaseTypeService>>,
+    mut items: Vec<FlightBusinessCase>,
+) -> Result<Vec<FlightBusinessCase>, DomainError> {
+    let Some(case_type_svc) = case_type_svc else {
+        return Ok(items);
+    };
+    if items.is_empty() {
+        return Ok(items);
+    }
+
+    let type_name_map = case_type_svc
+        .list_case_types(false)
+        .await?
+        .into_iter()
+        .map(|item| (item.code, item.name))
+        .collect::<HashMap<_, _>>();
+
+    for item in &mut items {
+        if item
+            .case_type_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .is_some()
+        {
+            continue;
+        }
+        item.case_type_name = type_name_map.get(&item.case_type).cloned();
+    }
+
+    Ok(items)
+}
+
+async fn enrich_case_type_name(
+    case_type_svc: Option<&Arc<ConcreteBusinessCaseTypeService>>,
+    item: Option<FlightBusinessCase>,
+) -> Result<Option<FlightBusinessCase>, DomainError> {
+    let Some(item) = item else {
+        return Ok(None);
+    };
+    let mut items = enrich_case_type_names(case_type_svc, vec![item]).await?;
+    Ok(items.pop())
+}
+
+/// 业务事项那两个「在别人已经开好的事务里写」的单元。
+///
+/// `BusinessCaseService` 已经带着三个泛型参数，且它的方法在 api 层有大量调用点；再加一个
+/// `Tx` 会把具体的数据库事务类型推到每一个注入点上。只有这两个方法握着事务
+/// 句柄，唯一调用方是 `DomainActionExecutor`，api 层零调用——于是只有它们跟着泛型走。
+///
+/// 这里没有 `refresh_flight_runtime_projection`：两个 `_in_tx` 方法原本就不刷投影
+/// （非事务版本会刷）。那是既有的行为差异，这次搬迁不动它。
+pub struct BusinessCaseWriter<Tx> {
+    repo: Arc<dyn BusinessCaseRepository + Send + Sync>,
+    tx_repo: Arc<dyn BusinessCaseTransactionalRepository<Tx> + Send + Sync>,
+    case_type_svc: Option<Arc<ConcreteBusinessCaseTypeService>>,
+}
+
+impl<Tx> BusinessCaseWriter<Tx> {
+    pub fn new(
+        repo: Arc<dyn BusinessCaseRepository + Send + Sync>,
+        tx_repo: Arc<dyn BusinessCaseTransactionalRepository<Tx> + Send + Sync>,
+    ) -> Self {
+        Self {
+            repo,
+            tx_repo,
+            case_type_svc: None,
+        }
+    }
+
+    pub fn with_case_type_service(mut self, svc: Arc<ConcreteBusinessCaseTypeService>) -> Self {
+        self.case_type_svc = Some(svc);
+        self
+    }
+}
+
+impl<Tx: Send> BusinessCaseWriter<Tx> {
+    pub async fn create_in_tx(
+        &self,
+        tx: &mut Tx,
+        case_type: &str,
+        flight_id: &str,
+        flight_no: &str,
+        description: &str,
+        context: HashMap<String, serde_json::Value>,
+        status: Option<&str>,
+        actor: &str,
+    ) -> Result<FlightBusinessCase, DomainError> {
+        let now = Utc::now();
+        let resolved_status = resolve_create_status(status, &context)?;
+        let case = FlightBusinessCase {
+            case_id: ulid::Ulid::new().to_string(),
+            case_type: case_type.trim().to_string(),
+            case_type_name: None,
+            flight_id: flight_id.trim().to_string(),
+            flight_no: flight_no.trim().to_string(),
+            created_at: now,
+            created_by: actor.to_string(),
+            updated_by: actor.to_string(),
+            description: description.to_string(),
+            status: resolved_status,
+            stand: None,
+            gate: None,
+            visibility_scope: VisibilityScope::Common,
+            department_id: None,
+            department_name_snapshot: None,
+            finished_at: None,
+            cancelled_at: None,
+            log: vec![],
+            context,
+            workflow_receipt: None,
+            terminal_metadata: None,
+            append_count: 0,
+            latest_append: None,
+            append_entries: vec![],
+        };
+        self.tx_repo.save_in_tx(tx, &case).await?;
+        enrich_case_type_name(self.case_type_svc.as_ref(), Some(case))
+            .await?
+            .ok_or_else(|| DomainError::Internal("failed to enrich created business case".into()))
+    }
+
+    pub async fn apply_workflow_terminal_action_in_tx(
+        &self,
+        tx: &mut Tx,
+        case_id: &str,
+        payload: BusinessCaseTerminalUpdatePayload,
+    ) -> Result<Option<FlightBusinessCase>, DomainError> {
+        let Some(mut case) = self.repo.find_by_id(case_id).await? else {
+            return Ok(None);
+        };
+
+        let now = Utc::now();
+        case.status = payload.target_status.trim().to_string();
+        case.updated_by = payload.actor.trim().to_string();
+        if payload.write_finished_at {
+            case.finished_at = Some(now);
+        }
+
+        let metadata = BusinessCaseTerminalMetadata {
+            timestamp: now,
+            operator: payload.actor.trim().to_string(),
+            action: payload.action.trim().to_string(),
+            target_status: payload.target_status.trim().to_string(),
+            reason: payload.reason.as_ref().map(|value| value.trim().to_string()),
+            workflow_run_id: payload.workflow_run_id,
+            workflow_outcome: payload.workflow_outcome,
+            receipt_group_id: payload.receipt_group_id,
+        };
+
+        case.log.push(serde_json::json!({
+            "timestamp": now.to_rfc3339(),
+            "operator": metadata.operator.clone(),
+            "action": metadata.action.clone(),
+            "target_status": metadata.target_status.clone(),
+            "reason": metadata.reason.as_deref().unwrap_or_default(),
+            "workflow_run_id": metadata.workflow_run_id.clone(),
+            "workflow_outcome": metadata.workflow_outcome.clone(),
+            "receipt_group_id": metadata.receipt_group_id.clone(),
+        }));
+        case.context.insert(
+            "workflow_terminal".to_string(),
+            serde_json::to_value(&metadata).unwrap_or(serde_json::Value::Null),
+        );
+        case.terminal_metadata = Some(metadata);
+
+        self.tx_repo.update_case_in_tx(tx, &case).await?;
+        let refreshed = self.repo.find_by_id(case_id).await?;
+        enrich_case_type_name(self.case_type_svc.as_ref(), refreshed).await
+    }
 }

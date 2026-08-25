@@ -14,4 +14,4 @@ pub use schemas::{
     BusinessCaseTerminalUpdatePayload, BusinessCaseUpdatePayload, BUSINESS_CASE_ALLOWED_STATUSES,
     BUSINESS_CASE_STATUS_METADATA,
 };
-pub use service::{BusinessCaseService, BusinessCaseServiceOps};
+pub use service::{BusinessCaseService, BusinessCaseServiceOps, BusinessCaseWriter};

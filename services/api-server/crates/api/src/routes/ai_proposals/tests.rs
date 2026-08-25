@@ -535,7 +535,7 @@ async fn build_test_executor(
         NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
     };
     use fms_application::services::{
-        business_case_service::{BusinessCaseEventPublisher, BusinessCaseService},
+        business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter},
         dispatch_service::DispatchService,
         flight_service::FlightService,
         label_service::LabelService,
@@ -605,11 +605,10 @@ async fn build_test_executor(
         Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
 
     let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
-    let business_case_tx_repo: Arc<
-        dyn fms_application::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
-    > = business_case_pg_repo.clone();
     let business_case_repo: Arc<dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync> =
-        business_case_pg_repo;
+        business_case_pg_repo.clone();
+    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo));
     let business_case_collaboration_repo: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
@@ -618,8 +617,7 @@ async fn build_test_executor(
                 business_case_repo,
                 Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
                 Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo)) as Arc<dyn BusinessCaseMentionAudience>,
-            )
-            .with_transactional_repository(business_case_tx_repo),
+        ),
     );
 
     fms_application::services::domain_action_executor::DomainActionExecutor::new(
@@ -629,6 +627,7 @@ async fn build_test_executor(
         label_service,
         todo_writer,
         business_case_service,
+        business_case_writer,
         outbox_repo,
         anomaly_repo,
         pool,

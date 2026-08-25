@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::schemas::todo_schemas::{TodoComplete, TodoCreateCommand};
-use crate::services::business_case_service::BusinessCaseTerminalUpdatePayload;
+use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flowable_service::FlowableService;
@@ -28,6 +28,7 @@ pub struct DomainActionExecutor {
     label_service: Arc<ConcreteLabelService>,
     todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
     business_case_service: Arc<ConcreteBusinessCaseService>,
+    business_case_writer: Arc<BusinessCaseWriter<Transaction<'static, Postgres>>>,
     flowable_service: Option<FlowableService>,
     pool: sqlx::PgPool,
     outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
@@ -42,6 +43,7 @@ impl DomainActionExecutor {
         label_service: Arc<ConcreteLabelService>,
         todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
+        business_case_writer: Arc<BusinessCaseWriter<Transaction<'static, Postgres>>>,
         outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
         pool: sqlx::PgPool,
@@ -53,6 +55,7 @@ impl DomainActionExecutor {
             label_service,
             todo_writer,
             business_case_service,
+            business_case_writer,
             flowable_service: None,
             outbox_repo,
             anomaly_tx_repo,
@@ -630,7 +633,7 @@ impl DomainActionExecutor {
                 context.insert("aip_object_id".to_string(), serde_json::json!(object_id));
 
                 let created = self
-                    .business_case_service
+                    .business_case_writer
                     .create_in_tx(
                         tx,
                         case_type,
@@ -655,7 +658,7 @@ impl DomainActionExecutor {
                 let reason = optional_string(arguments, &["reason"]).map(str::to_string);
                 let target_status = optional_string(arguments, &["target_status", "status"]).unwrap_or("COMPLETED");
                 let updated = self
-                    .business_case_service
+                    .business_case_writer
                     .apply_workflow_terminal_action_in_tx(
                         tx,
                         object_id,

@@ -60,7 +60,7 @@ async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
 }
 
 async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
-    use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService};
+    use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
     use crate::services::flight_service::FlightService;
     use crate::services::label_service::LabelService;
     use crate::services::notification_service::{
@@ -133,11 +133,10 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
 
     let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
-    let business_case_tx_repo: Arc<
-        dyn crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
-    > = business_case_pg_repo.clone();
     let business_case_repo: Arc<dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync> =
-        business_case_pg_repo;
+        business_case_pg_repo.clone();
+    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo));
     let business_case_collaboration_repo: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
@@ -146,8 +145,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
                 business_case_repo,
                 Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
                 Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo)) as Arc<dyn BusinessCaseMentionAudience>,
-            )
-            .with_transactional_repository(business_case_tx_repo),
+        ),
     );
 
     DomainActionExecutor::new(
@@ -157,6 +155,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         label_service,
         todo_writer,
         business_case_service,
+        business_case_writer,
         outbox_repo,
         anomaly_repo,
         pool,

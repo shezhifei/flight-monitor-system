@@ -51,6 +51,7 @@ use fms_application::services::ai_runtime_service::tool_authorization_service::{
 use fms_application::services::ai_runtime_service::AiRuntimeService;
 use fms_application::services::authorization_service::AuthorizationService;
 use fms_application::services::domain_action_executor::DomainActionExecutor;
+use fms_application::services::business_case_service::BusinessCaseWriter;
 use fms_application::services::todo_service::TodoWriter;
 
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
@@ -156,6 +157,10 @@ pub(crate) fn build_ai_services(
         TodoWriter::new(repos.todo_repo.clone(), repos.todo_repo.clone())
             .with_agent_context_repository(repos.todo_agent_context_repo.clone()),
     );
+    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+        BusinessCaseWriter::new(repos.business_case_repo.clone(), repos.business_case_repo.clone())
+            .with_case_type_service(business_case.business_case_type_svc.clone()),
+    );
     let domain_action_executor = Arc::new(DomainActionExecutor::new(
         flight.flight_svc.clone(),
         dispatch.dispatch_svc.clone(),
@@ -163,6 +168,7 @@ pub(crate) fn build_ai_services(
         flight.label_svc.clone(),
         todo_writer,
         business_case.business_case_svc.clone(),
+        business_case_writer,
         repos.domain_event_outbox_repo.clone(),
         repos.anomaly_repo.clone(),
         pool.clone(),
