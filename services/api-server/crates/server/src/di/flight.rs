@@ -9,7 +9,9 @@ use fms_application::services::flight_archive_service::FlightArchiveService;
 use fms_application::services::flight_batch_cell_update_service::{FlightBatchCellUpdate, FlightBatchCellUpdateService};
 use fms_application::services::flight_cache_service::FlightCacheService;
 use fms_application::services::flight_import_service::FlightImportService;
-use fms_application::services::flight_runtime_service::FlightRuntimeService;
+use fms_application::services::flight_runtime_service::{
+    DispatchTimelineWriter, FlightRuntimeService, FlightTimelineWriter,
+};
 use fms_application::services::flight_service::FlightService;
 use fms_application::services::label_service::LabelService;
 use fms_application::services::ontology_actions::OntologyActionServices;
@@ -156,17 +158,17 @@ pub(crate) fn build_flight_runtime_service(
         Arc::new(PgAuditLogRepository::new(repos.pool.clone()));
     let timeline_pg = Arc::new(PgFlightTimelineEventRepository::new(repos.pool.clone()));
     let timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync> = timeline_pg.clone();
-    let timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository> = timeline_pg;
+    let timeline_writer: Arc<dyn DispatchTimelineWriter> = Arc::new(FlightTimelineWriter::new(
+        timeline_pg,
+        repos.domain_event_outbox_repo.clone(),
+        repos.unit_of_work.clone(),
+    ));
     Arc::new(
-        FlightRuntimeService::new(
-            repos.pool.clone(),
-            flight.flight_svc.clone(),
-            repos.domain_event_outbox_repo.clone(),
-        )
-        .with_business_case_service(business_case.business_case_svc.clone())
-        .with_projection_repository(repos.flight_runtime_projection_repo.clone())
-        .with_audit_log_repository(audit_log_repo)
-        .with_timeline_repository(timeline_repo, timeline_tx_repo)
-        .with_ai_runtime_service(ai.ai_runtime_svc.clone()),
+        FlightRuntimeService::new(flight.flight_svc.clone())
+            .with_business_case_service(business_case.business_case_svc.clone())
+            .with_projection_repository(repos.flight_runtime_projection_repo.clone())
+            .with_audit_log_repository(audit_log_repo)
+            .with_timeline_repository(timeline_repo, timeline_writer)
+            .with_ai_runtime_service(ai.ai_runtime_svc.clone()),
     )
 }

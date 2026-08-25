@@ -8,7 +8,6 @@ use std::time::Instant;
 
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{json, Map, Value};
-use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tracing::warn;
 use ulid::Ulid;
@@ -20,14 +19,13 @@ use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjec
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 
 use crate::schemas::flight_schemas::FlightResponse;
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
-use crate::sqlx_transactional_repositories::SqlxFlightTimelineTransactionalRepository;
 use crate::types::{ConcreteBusinessCaseService, ConcreteFlightService};
 
 use super::helpers::{
     apply_projection_to_flight, apply_timeline_to_flight, evict_idle_flights, should_emit_perf_trace,
     timestamp_from_value, trim_deque, MAX_RETAINED_FLIGHTS,
 };
+use super::timeline::DispatchTimelineWriter;
 use super::types::{FlightAuditEntry, FlightRuntimeService, FlightRuntimeState};
 use crate::services::ai_runtime_service::AiRuntimeService;
 use crate::services::flight_risk_service::apply_flight_risk;
@@ -36,20 +34,14 @@ static FLIGHT_RUNTIME_ENRICH_TRACE_COUNTER: AtomicU64 = AtomicU64::new(0);
 static FLIGHT_RUNTIME_PROJECTION_TRACE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 impl FlightRuntimeService {
-    pub fn new(
-        pool: PgPool,
-        flight_service: Arc<ConcreteFlightService>,
-        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-    ) -> Self {
+    pub fn new(flight_service: Arc<ConcreteFlightService>) -> Self {
         Self {
-            pool,
             flight_service,
             business_case_service: None,
             projection_repo: None,
             audit_log_repo: None,
             timeline_repo: None,
-            timeline_tx_repo: None,
-            outbox_repo,
+            timeline_writer: None,
             ai_runtime_service: None,
             state: RwLock::new(FlightRuntimeState::default()),
         }
@@ -73,10 +65,10 @@ impl FlightRuntimeService {
     pub fn with_timeline_repository(
         mut self,
         timeline_repo: Arc<dyn FlightTimelineEventRepository + Send + Sync>,
-        timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository>,
+        timeline_writer: Arc<dyn DispatchTimelineWriter>,
     ) -> Self {
         self.timeline_repo = Some(timeline_repo);
-        self.timeline_tx_repo = Some(timeline_tx_repo);
+        self.timeline_writer = Some(timeline_writer);
         self
     }
 
