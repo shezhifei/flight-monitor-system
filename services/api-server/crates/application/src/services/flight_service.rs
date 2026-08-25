@@ -317,7 +317,7 @@ impl FlightService {
 
     pub async fn update_flight_in_tx(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         flight_id: &str,
         dto: FlightUpdate,
         updated_by: Option<String>,

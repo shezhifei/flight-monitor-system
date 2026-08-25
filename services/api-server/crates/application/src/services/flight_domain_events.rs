@@ -130,7 +130,7 @@ pub fn build_deleted_payload(flight_id: &str, actor_id: Option<&str>) -> Value {
 /// flight_runtime_service/timeline.rs. The SQL and error mapping are unchanged.
 pub async fn write_flight_outbox_event(
     outbox_repo: &dyn SqlxDomainEventOutboxTransactionalRepository,
-    tx: &mut Transaction<'_, Postgres>,
+    tx: &mut Transaction<'static, Postgres>,
     aggregate_type: &str,
     aggregate_id: &str,
     event_type: &str,
@@ -147,7 +147,7 @@ pub async fn write_flight_outbox_event(
 /// Emit one outbox row per touched field on a flight update patch.
 pub async fn write_flight_update_outbox_events(
     outbox_repo: &dyn SqlxDomainEventOutboxTransactionalRepository,
-    tx: &mut Transaction<'_, Postgres>,
+    tx: &mut Transaction<'static, Postgres>,
     flight_id: &str,
     patch: &FlightUpdatePatch,
     actor_id: Option<&str>,

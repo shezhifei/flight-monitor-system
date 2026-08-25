@@ -41,6 +41,7 @@ use fms_application::services::dispatch_rule_service::DispatchRuleService;
 use fms_application::services::dispatch_scenario_service::DispatchScenarioService;
 use fms_application::services::dispatch_service::dispatch_overrun_warning_service::DispatchOverrunWarningService;
 use fms_application::services::domain_event_cdc_relay_service::DomainEventCdcRelayService;
+use fms_infrastructure::db::transaction::PgUnitOfWork;
 use fms_application::services::flight_archive_service::FlightArchiveService;
 use fms_application::services::flight_batch_cell_update_service::FlightBatchCellUpdateService;
 use fms_application::services::flight_cache_service::FlightCacheService;
@@ -179,7 +180,7 @@ pub struct DiContainer {
     pub redis_pool: Option<web::Data<fms_infrastructure::cache::RedisPool>>,
     pub anti_replay_store: Option<web::Data<std::sync::Arc<dyn NonceReplayStore>>>,
     pub background_jobs_enabled: bool,
-    pub cdc_relay_svc: Arc<DomainEventCdcRelayService>,
+    pub cdc_relay_svc: Arc<DomainEventCdcRelayService<PgUnitOfWork>>,
 }
 
 /// 按依赖顺序编排各子模块 builder，组装出完整的 [`DiContainer`]。

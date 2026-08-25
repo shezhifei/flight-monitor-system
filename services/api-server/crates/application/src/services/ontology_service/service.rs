@@ -1474,7 +1474,7 @@ impl OntologyService {
 
     async fn sync_flight_plan_field(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         flight_id: &str,
         stand: Option<PatchField<StandNumber>>,
         gate: Option<PatchField<GateNumber>>,

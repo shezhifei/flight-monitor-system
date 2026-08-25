@@ -82,7 +82,7 @@ impl AnomalyService {
 
     pub async fn acknowledge_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         anomaly_id: &str,
     ) -> Result<bool, DomainError> {
         let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
@@ -97,7 +97,7 @@ impl AnomalyService {
 
     pub async fn escalate_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         anomaly_id: &str,
     ) -> Result<bool, DomainError> {
         let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
@@ -112,7 +112,7 @@ impl AnomalyService {
 
     pub async fn resolve_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         anomaly_id: &str,
     ) -> Result<bool, DomainError> {
         let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {

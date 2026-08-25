@@ -61,8 +61,7 @@ pub(super) fn build_extraction_prompt(transcript: &str, catalog: &[CopilotCaseTy
         })
         .collect::<Vec<_>>();
 
-    let catalog_json =
-        fms_infrastructure::observability::serialize_json_pretty(&views).unwrap_or_else(|_| "[]".to_string());
+    let catalog_json = serde_json::to_string_pretty(&views).unwrap_or_else(|_| "[]".to_string());
 
     format!(
         r#"你是航班监控系统的语音业务事项抽取器。只输出 JSON，不要输出解释。

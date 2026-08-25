@@ -584,7 +584,7 @@ impl<
 
     pub async fn create_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         case_type: &str,
         flight_id: &str,
         flight_no: &str,
@@ -915,7 +915,7 @@ impl<
 
     pub async fn apply_workflow_terminal_action_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         case_id: &str,
         payload: BusinessCaseTerminalUpdatePayload,
     ) -> Result<Option<FlightBusinessCase>, DomainError> {

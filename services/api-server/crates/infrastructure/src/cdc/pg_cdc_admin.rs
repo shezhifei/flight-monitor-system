@@ -2,7 +2,9 @@
 //!
 //! Keeps pg_catalog / admin SQL out of application services.
 
+use async_trait::async_trait;
 use fms_domain::error::DomainError;
+use fms_domain::ports::cdc_admin_port::CdcAdminPort;
 use sqlx::{PgPool, Row};
 
 #[derive(Debug, Clone)]
@@ -107,5 +109,16 @@ mod tests {
     #[test]
     fn type_exists() {
         let _ = std::any::type_name::<PgCdcAdmin>();
+    }
+}
+
+#[async_trait]
+impl CdcAdminPort for PgCdcAdmin {
+    async fn ensure_publication_exists(&self, publication_name: &str) -> Result<(), DomainError> {
+        PgCdcAdmin::ensure_publication_exists(self, publication_name).await
+    }
+
+    async fn ensure_replication_slot(&self, slot_name: &str, expected_database: &str) -> Result<(), DomainError> {
+        PgCdcAdmin::ensure_replication_slot(self, slot_name, expected_database).await
     }
 }

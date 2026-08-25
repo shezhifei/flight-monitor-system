@@ -6,7 +6,7 @@ use fms_application::services::ai_business_case_copilot_service::DEFAULT_COMMIT_
 use fms_application::services::anomaly_service::AnomalyService;
 use fms_application::services::cache_invalidation_service::CacheInvalidationSubscriberService;
 use fms_application::services::dispatch_chat_service::DispatchChatService;
-use fms_application::services::domain_event_relay_service::DomainEventRelayService;
+use fms_application::services::domain_event_relay_service::DomainEventRelay;
 use fms_application::services::domain_event_subscriber_service::DomainEventSubscriberService;
 use fms_application::services::flight_service::FlightService;
 use fms_application::services::kpi_aggregation_service::KpiAggregationService;
@@ -167,7 +167,7 @@ pub struct SchedulerRuntimeService {
     performance_metrics: Arc<PerformanceMetricsService>,
     flight_service: Arc<FlightService>,
     dispatch_chat_service: Arc<DispatchChatService>,
-    domain_event_relay_service: Arc<DomainEventRelayService>,
+    domain_event_relay_service: Arc<dyn DomainEventRelay>,
     domain_event_subscriber_service: Arc<DomainEventSubscriberService>,
     cache_invalidation_subscriber_service: Arc<CacheInvalidationSubscriberService>,
     todo_scheduler_service: Arc<TodoSchedulerService>,
@@ -198,7 +198,7 @@ impl SchedulerRuntimeService {
         performance_metrics: Arc<PerformanceMetricsService>,
         flight_service: Arc<FlightService>,
         dispatch_chat_service: Arc<DispatchChatService>,
-        domain_event_relay_service: Arc<DomainEventRelayService>,
+        domain_event_relay_service: Arc<dyn DomainEventRelay>,
         domain_event_subscriber_service: Arc<DomainEventSubscriberService>,
         cache_invalidation_subscriber_service: Arc<CacheInvalidationSubscriberService>,
         todo_scheduler_service: Arc<TodoSchedulerService>,

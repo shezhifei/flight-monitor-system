@@ -291,7 +291,7 @@ impl FlightBatchCellUpdateService {
 
     async fn apply_snapshot(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         field: FlightBatchEditableField,
         value: &ParsedBatchValue,
         target: &ValidatedTarget,
@@ -330,7 +330,7 @@ impl FlightBatchCellUpdateService {
 
     async fn apply_timeline(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         batch_id: &str,
         field: FlightBatchEditableField,
         value: &ParsedBatchValue,

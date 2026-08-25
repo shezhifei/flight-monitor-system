@@ -275,7 +275,7 @@ impl<
 
     pub async fn send_notification_in_tx(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         dto: NotificationCreate,
     ) -> Result<NotificationResponse, DomainError> {
         let mut notification = self.build_notification(dto, None, None)?;
