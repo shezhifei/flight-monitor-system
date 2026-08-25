@@ -8,11 +8,11 @@ use fms_domain::models::ai_job::{AiJobRecord, AiJobStatus, AiRunEventRecord, AiR
 use fms_domain::ports::ai_job_repository::{AiJobRepository, AiJobRepositoryError};
 use fms_domain::ports::ai_run_event_repository::{AiRunEventRepository, AiRunEventRepositoryError};
 use fms_domain::ports::ai_run_repository::{AiRunRepository, AiRunRepositoryError};
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxRepository;
 
 use crate::services::ai_runtime_service::ai_execution_control_service::{
     AiExecutionControlService, RunInputCheckpointSummary,
 };
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 
 #[derive(Debug, Error)]
 pub enum AiJobServiceError {
@@ -225,10 +225,7 @@ pub struct AiJobService {
     /// `fail_run` / `cancel_job` / `timeout_job` write a domain event
     /// into `domain_event_outbox` so the CDC relay can fan-out the
     /// SSE event on the `ai_execution` topic.
-    outbox_repo: Option<Arc<dyn SqlxDomainEventOutboxTransactionalRepository>>,
-    /// Connection pool used to begin the outbox write transaction.
-    /// Required when `outbox_repo` is `Some`.
-    pool: Option<sqlx::PgPool>,
+    outbox_repo: Option<Arc<dyn DomainEventOutboxRepository + Send + Sync>>,
     /// Concurrency limits enforced in `create_run`.
     concurrency_limits: AiRunConcurrencyLimits,
 }
@@ -245,7 +242,6 @@ impl AiJobService {
             event_repo,
             control_service: None,
             outbox_repo: None,
-            pool: None,
             concurrency_limits: AiRunConcurrencyLimits::default(),
         }
     }
@@ -261,18 +257,12 @@ impl AiJobService {
         self
     }
 
-    /// Wire the transactional outbox repository + pool so that terminal
-    /// transitions (`complete_run`, `fail_run`, `cancel_job`,
-    /// `timeout_job`) emit a `ai_job.*` domain event into the outbox.
-    /// The CDC relay picks it up and pushes it to the SSE hub on the
-    /// `ai_execution` topic.
-    pub fn with_outbox_repository(
-        mut self,
-        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-        pool: sqlx::PgPool,
-    ) -> Self {
+    /// Wire the outbox repository so that terminal transitions
+    /// (`complete_run`, `fail_run`, `cancel_job`, `timeout_job`) emit a
+    /// `ai_job.*` domain event into the outbox. The CDC relay picks it up and
+    /// pushes it to the SSE hub on the `ai_execution` topic.
+    pub fn with_outbox_repository(mut self, outbox_repo: Arc<dyn DomainEventOutboxRepository + Send + Sync>) -> Self {
         self.outbox_repo = Some(outbox_repo);
-        self.pool = Some(pool);
         self
     }
 
@@ -734,8 +724,8 @@ impl AiJobService {
 
     /// Write a `ai_job.*` domain event into the transactional outbox.
     ///
-    /// This is **best-effort**: if the outbox is not wired (`outbox_repo`
-    /// or `pool` is `None`) or the write fails, the method logs a warning
+    /// This is **best-effort**: if the outbox is not wired (`outbox_repo` is
+    /// `None`) or the write fails, the method logs a warning
     /// and returns. The business state mutation (run/job status update)
     /// has already been committed at this point and is not rolled back.
     ///
@@ -751,7 +741,7 @@ impl AiJobService {
         output: Option<Value>,
         error: Option<(String, String)>,
     ) {
-        let (Some(outbox_repo), Some(pool)) = (self.outbox_repo.as_ref(), self.pool.as_ref()) else {
+        let Some(outbox_repo) = self.outbox_repo.as_ref() else {
             return; // outbox not configured — skip silently
         };
         let timestamp = chrono::Utc::now().to_rfc3339();
@@ -769,21 +759,8 @@ impl AiJobService {
         } else {
             format!("ai_job_{}_{}_{}", job_id, run_id, event_type)
         };
-        let mut tx = match pool.begin().await {
-            Ok(tx) => tx,
-            Err(error) => {
-                tracing::warn!(
-                    target: "ai_job_service",
-                    job_id = %job_id,
-                    event_type = %event_type,
-                    error = %error,
-                    "failed to begin outbox transaction for ai_job event"
-                );
-                return;
-            }
-        };
         if let Err(error) = outbox_repo
-            .insert_event_in_tx(&mut tx, "ai_job", job_id, event_type, payload, &source_change_id)
+            .insert_event("ai_job", job_id, event_type, payload, &source_change_id)
             .await
         {
             tracing::warn!(
@@ -792,16 +769,6 @@ impl AiJobService {
                 event_type = %event_type,
                 error = %error,
                 "failed to insert ai_job outbox event"
-            );
-            return;
-        }
-        if let Err(error) = tx.commit().await {
-            tracing::warn!(
-                target: "ai_job_service",
-                job_id = %job_id,
-                event_type = %event_type,
-                error = %error,
-                "failed to commit ai_job outbox transaction"
             );
         }
     }

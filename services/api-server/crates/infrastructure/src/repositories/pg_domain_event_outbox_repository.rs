@@ -23,14 +23,20 @@ impl PgDomainEventOutboxRepository {
     /// `event_id` and `occurred_at` are generated internally; `source_change_id`
     /// is provided by the caller to keep CDC decoding column-aligned.
     /// Associated function — does not require a repository instance, only the transaction.
-    pub async fn insert_event(
-        tx: &mut Transaction<'_, Postgres>,
+    /// 一条 INSERT，执行器由调用方给：事务里给 `&mut **tx`，事务外给 `&self.pool`。
+    /// 原先它只接受事务，于是「往 outbox 写一行」这件事在事务外就没有走法，
+    /// 逼出了下面 `insert_event_auto` 那种为单条语句开事务的写法。
+    pub async fn insert_event<'e, E>(
+        executor: E,
         aggregate_type: &str,
         aggregate_id: &str,
         event_type: &str,
         payload: Value,
         source_change_id: &str,
-    ) -> Result<String, sqlx::Error> {
+    ) -> Result<String, sqlx::Error>
+    where
+        E: sqlx::Executor<'e, Database = Postgres>,
+    {
         let event_id = ulid::Ulid::new().to_string();
         let occurred_at = Utc::now();
         sqlx::query(
@@ -48,7 +54,7 @@ impl PgDomainEventOutboxRepository {
         .bind(payload)
         .bind(occurred_at)
         .bind(source_change_id)
-        .execute(&mut **tx)
+        .execute(executor)
         .await?;
         Ok(event_id)
     }
@@ -63,18 +69,15 @@ impl PgDomainEventOutboxRepository {
         payload: Value,
         source_change_id: &str,
     ) -> Result<String, sqlx::Error> {
-        let mut tx = self.pool.begin().await?;
-        let event_id = Self::insert_event(
-            &mut tx,
+        Self::insert_event(
+            &self.pool,
             aggregate_type,
             aggregate_id,
             event_type,
             payload,
             source_change_id,
         )
-        .await?;
-        tx.commit().await?;
-        Ok(event_id)
+        .await
     }
 
     pub async fn mark_published_batch(
@@ -174,6 +177,19 @@ impl PgDomainEventOutboxRepository {
 
 #[async_trait]
 impl DomainEventOutboxRepository for PgDomainEventOutboxRepository {
+    async fn insert_event(
+        &self,
+        aggregate_type: &str,
+        aggregate_id: &str,
+        event_type: &str,
+        payload: Value,
+        source_change_id: &str,
+    ) -> Result<String, DomainError> {
+        Self::insert_event(&self.pool, aggregate_type, aggregate_id, event_type, payload, source_change_id)
+            .await
+            .map_err(|e| DomainError::Internal(format!("failed to insert domain event outbox row: {e}")))
+    }
+
     async fn claim_pending_for_relay(&self, limit: i64) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
         let mut tx = self.pool.begin().await.map_err(|error| {
             DomainError::Internal(format!(
@@ -300,7 +316,7 @@ impl<'tx> DomainEventOutboxTransactionalRepository<Transaction<'tx, Postgres>> f
         payload: Value,
         source_change_id: &str,
     ) -> Result<String, DomainError> {
-        Self::insert_event(tx, aggregate_type, aggregate_id, event_type, payload, source_change_id)
+        Self::insert_event(&mut **tx, aggregate_type, aggregate_id, event_type, payload, source_change_id)
             .await
             .map_err(|e| DomainError::Internal(format!("failed to insert domain event outbox row: {e}")))
     }

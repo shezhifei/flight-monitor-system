@@ -2,6 +2,11 @@
 //!
 //! Abstracts read / claim / retention access to `domain_event_outbox` so
 //! application services do not issue raw SQL against the table.
+//!
+//! `insert_event` is here, without a transaction, because an outbox write is
+//! one INSERT. It only belongs on the transactional trait when a caller needs
+//! it to land atomically *with something else*; a caller that writes nothing
+//! else has no transaction to join.
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -54,6 +59,24 @@ pub trait DomainEventOutboxRepository: Send + Sync {
         event_type: &str,
         older_than: DateTime<Utc>,
     ) -> Result<u64, DomainError>;
+
+    /// Insert one domain event, outside any transaction.
+    ///
+    /// The transactional twin lives on
+    /// [`DomainEventOutboxTransactionalRepository::insert_event_in_tx`] and
+    /// exists for callers that must write the event atomically alongside other
+    /// statements. Callers writing only the event should use this one.
+    ///
+    /// `event_id` and `occurred_at` are generated internally; the returned
+    /// `String` is the generated `event_id`.
+    async fn insert_event(
+        &self,
+        aggregate_type: &str,
+        aggregate_id: &str,
+        event_type: &str,
+        payload: Value,
+        source_change_id: &str,
+    ) -> Result<String, DomainError>;
 }
 
 /// Transactional persistence port for the domain-event outbox.
@@ -140,6 +163,16 @@ mod tests {
                 _older_than: DateTime<Utc>,
             ) -> Result<u64, DomainError> {
                 Ok(0)
+            }
+            async fn insert_event(
+                &self,
+                _aggregate_type: &str,
+                _aggregate_id: &str,
+                _event_type: &str,
+                _payload: Value,
+                _source_change_id: &str,
+            ) -> Result<String, DomainError> {
+                Ok("event_id".to_string())
             }
         }
 

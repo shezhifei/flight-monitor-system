@@ -55,6 +55,16 @@ impl DomainEventOutboxRepository for StubOutbox {
     ) -> Result<u64, DomainError> {
         Ok(0)
     }
+    async fn insert_event(
+        &self,
+        _aggregate_type: &str,
+        _aggregate_id: &str,
+        _event_type: &str,
+        _payload: serde_json::Value,
+        _source_change_id: &str,
+    ) -> Result<String, DomainError> {
+        Ok("stub_event".to_string())
+    }
 }
 
 fn stub_outbox() -> Arc<dyn DomainEventOutboxRepository + Send + Sync> {

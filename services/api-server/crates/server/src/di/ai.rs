@@ -237,7 +237,7 @@ pub(crate) fn build_ai_services(
         ai_proposal_repo.clone(),
         repos.todo_repo.clone(),
         db_metadata_port,
-        domain_event_outbox_port,
+        domain_event_outbox_port.clone(),
         ai_run_event_repo.clone(),
     ));
 
@@ -277,16 +277,14 @@ pub(crate) fn build_ai_services(
     ));
     let ai_recovery_orchestrator = build_ai_recovery_orchestrator(ai_control_svc.clone(), ai_rollback_svc.clone());
     let ai_event_consumer = Arc::new(AiEventConsumer::new(ai_control_svc.clone()));
-    // Wire the transactional outbox into AiJobService so that terminal
-    // transitions (complete_run / fail_run / cancel_job / timeout_job)
-    // emit `ai_job.*` domain events for SSE fan-out (CDC → MQ → SSE).
-    let outbox_tx_repo: Arc<
-        dyn fms_application::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository,
-    > = repos.domain_event_outbox_repo.clone();
+    // Wire the outbox into AiJobService so that terminal transitions
+    // (complete_run / fail_run / cancel_job / timeout_job) emit `ai_job.*`
+    // domain events for SSE fan-out (CDC → MQ → SSE). One INSERT, no
+    // transaction — `domain_event_outbox_port` above is the same object.
     let ai_job_svc = Arc::new(
         AiJobService::new(ai_job_repo, ai_run_repo, ai_run_event_repo)
             .with_control_service(ai_control_svc.clone())
-            .with_outbox_repository(outbox_tx_repo, pool.clone()),
+            .with_outbox_repository(domain_event_outbox_port.clone()),
     );
     let ai_job_timeout_reaper = Arc::new(AiJobTimeoutReaperService::new(
         ai_job_svc.clone(),
