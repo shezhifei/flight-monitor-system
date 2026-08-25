@@ -5,9 +5,10 @@ use std::sync::Arc;
 
 use crate::schemas::todo_schemas::{TodoComplete, TodoCreateCommand};
 use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
-use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
+use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::flight_domain_events::write_flight_outbox_event;
+use crate::services::flight_writer::FlightWriter;
 use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
 use crate::services::todo_service::TodoWriter;
@@ -24,6 +25,7 @@ use super::types::{DomainActionError, DomainActionReceipt};
 
 pub struct DomainActionExecutor {
     flight_service: Arc<ConcreteFlightService>,
+    flight_writer: Arc<FlightWriter<Transaction<'static, Postgres>>>,
     dispatch_service: Arc<DispatchService>,
     dispatch_writer: Arc<DispatchOrderWriter<Transaction<'static, Postgres>>>,
     notification_service: Arc<ConcreteNotificationService>,
@@ -41,6 +43,7 @@ pub struct DomainActionExecutor {
 impl DomainActionExecutor {
     pub fn new(
         flight_service: Arc<ConcreteFlightService>,
+        flight_writer: Arc<FlightWriter<Transaction<'static, Postgres>>>,
         dispatch_service: Arc<DispatchService>,
         dispatch_writer: Arc<DispatchOrderWriter<Transaction<'static, Postgres>>>,
         notification_service: Arc<ConcreteNotificationService>,
@@ -57,6 +60,7 @@ impl DomainActionExecutor {
     ) -> Self {
         Self {
             flight_service,
+            flight_writer,
             dispatch_service,
             dispatch_writer,
             notification_service,
@@ -205,13 +209,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({ "success": true, "note": note }))
             }
             "Flight.update_status" => {
@@ -229,13 +234,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({ "success": true, "status": status }))
             }
             "Flight.change_stand" => {
@@ -258,13 +264,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 let mut result = serde_json::json!({
                     "success": true,
                     "stand": new_stand_id,
@@ -320,13 +327,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({
                     "success": true,
                     "estimated_departure": estimated_departure,
@@ -606,13 +614,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, flight_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::Execution(format!("Flight {} not found", flight_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({
                     "success": true,
                     "stand_id": object_id,

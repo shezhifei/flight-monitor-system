@@ -4,40 +4,35 @@
 
 use dashmap::DashMap;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::value_objects::FlightStatus;
 use fms_domain::ports::flight_repository::{FlightRepository, FlightSearchCriteria, FlightUpdatePatch};
-use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::schemas::flight_schemas::{FlightCreate, FlightListResponse, FlightResponse, FlightUpdate};
 use crate::services::flight_command_validator;
 use crate::services::flight_commands::{FlightCreateCommand, FlightUpdateCommand};
 use crate::services::flight_mappers::{from_create, to_response, update_patch_from_dto};
-use crate::sqlx_transactional_repositories::{
-    SqlxDomainEventOutboxTransactionalRepository, SqlxFlightTransactionalRepository,
-};
+use crate::services::flight_writer::FlightTransactionalWrites;
 
 const NEGATIVE_CACHE_TTL: Duration = Duration::from_secs(5);
 
 pub use crate::services::flight_domain_events::{
-    build_created_payload, build_deleted_payload, build_leg_upserted_payload, build_remarks_updated_payload,
-    build_resource_updated_payload, build_status_updated_payload, write_flight_outbox_event,
-    write_flight_update_outbox_events, FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT,
-    FLIGHT_LEG_UPSERTED_EVENT, FLIGHT_REMARKS_UPDATED_EVENT, FLIGHT_RESOURCE_UPDATED_EVENT,
-    FLIGHT_STATUS_UPDATED_EVENT,
+    FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT, FLIGHT_LEG_UPSERTED_EVENT,
+    FLIGHT_REMARKS_UPDATED_EVENT, FLIGHT_RESOURCE_UPDATED_EVENT, FLIGHT_STATUS_UPDATED_EVENT, build_created_payload,
+    build_deleted_payload, build_leg_upserted_payload, build_remarks_updated_payload, build_resource_updated_payload,
+    build_status_updated_payload, write_flight_outbox_event, write_flight_update_outbox_events,
 };
 
 pub struct FlightService {
     repo: Arc<dyn FlightRepository + Send + Sync>,
-    tx_repo: Option<Arc<dyn SqlxFlightTransactionalRepository>>,
-    /// Optional pool for same-transaction outbox writes on create/update.
-    pool: Option<PgPool>,
-    outbox_repo: Option<Arc<dyn SqlxDomainEventOutboxTransactionalRepository>>,
+    /// 受控写入端口：save/update/delete 连同 outbox 事件在同一事务内提交。
+    /// 未接线时退化为不带 outbox 的单条仓储写入（测试装配使用）。
+    tx_writes: Option<Arc<dyn FlightTransactionalWrites>>,
     hot_list: RwLock<Option<FlightListResponse>>,
     negative_cache: DashMap<String, Instant>,
 }
@@ -66,33 +61,15 @@ impl FlightService {
     pub fn new(repo: Arc<dyn FlightRepository + Send + Sync>) -> Self {
         Self {
             repo,
-            tx_repo: None,
-            pool: None,
-            outbox_repo: None,
+            tx_writes: None,
             hot_list: RwLock::new(None),
             negative_cache: DashMap::new(),
         }
     }
 
-    pub fn with_transactional_repository(mut self, tx_repo: Arc<dyn SqlxFlightTransactionalRepository>) -> Self {
-        self.tx_repo = Some(tx_repo);
+    pub fn with_transactional_writer(mut self, writer: Arc<dyn FlightTransactionalWrites>) -> Self {
+        self.tx_writes = Some(writer);
         self
-    }
-
-    pub fn with_pool(mut self, pool: PgPool) -> Self {
-        self.pool = Some(pool);
-        self
-    }
-
-    pub fn with_outbox_repository(mut self, repository: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>) -> Self {
-        self.outbox_repo = Some(repository);
-        self
-    }
-
-    fn outbox_repository(&self) -> Result<&dyn SqlxDomainEventOutboxTransactionalRepository, DomainError> {
-        self.outbox_repo
-            .as_deref()
-            .ok_or_else(|| DomainError::Internal("domain event outbox repository unavailable".into()))
     }
 
     pub fn denied_update_fields(&self, dto: &FlightUpdate, is_admin: bool, permissions: &[String]) -> Vec<String> {
@@ -248,25 +225,9 @@ impl FlightService {
         let dto = flight_command_validator::validate_create_payload(self.repo.as_ref(), dto).await?;
         let flight = from_create(dto)?;
 
-        if let (Some(pool), Some(tx_repo)) = (self.pool.as_ref(), self.tx_repo.as_ref()) {
-            let mut tx = pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            tx_repo.save_in_tx(&mut tx, &flight).await?;
-            write_flight_outbox_event(
-                self.outbox_repository()?,
-                &mut tx,
-                FLIGHT_AGGREGATE_TYPE,
-                flight.flight_id.as_str(),
-                FLIGHT_CREATED_EVENT,
-                build_created_payload(
-                    flight.flight_id.as_str(),
-                    &flight.status.to_string(),
-                    created_by.as_deref(),
-                ),
-            )
-            .await?;
-            tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-        } else {
-            self.repo.save(&flight).await?;
+        match self.tx_writes.as_ref() {
+            Some(writes) => writes.save_with_created_event(&flight, created_by.as_deref()).await?,
+            None => self.repo.save(&flight).await?,
         }
 
         self.invalidate_hot_list().await;
@@ -287,54 +248,18 @@ impl FlightService {
         let patch = update_patch_from_dto(dto)?;
         flight_command_validator::ensure_status_transition(self.repo.as_ref(), flight_id, &patch).await?;
 
-        let flight = if let (Some(pool), Some(tx_repo)) = (self.pool.as_ref(), self.tx_repo.as_ref()) {
-            let mut tx = pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            let Some(flight) = tx_repo.update_partial_in_tx(&mut tx, flight_id, &patch).await? else {
-                return Ok(None);
-            };
-            write_flight_update_outbox_events(
-                self.outbox_repository()?,
-                &mut tx,
-                flight_id,
-                &patch,
-                updated_by.as_deref(),
-            )
-            .await?;
-            tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            flight
-        } else {
-            let Some(flight) = self.repo.update_partial(flight_id, &patch).await? else {
-                return Ok(None);
-            };
-            flight
+        let flight = match self.tx_writes.as_ref() {
+            Some(writes) => {
+                writes
+                    .update_partial_with_events(flight_id, &patch, updated_by.as_deref())
+                    .await?
+            }
+            None => self.repo.update_partial(flight_id, &patch).await?,
         };
-
-        self.invalidate_hot_list().await;
-        let mut response = to_response(&flight);
-        response.updated_by = updated_by;
-        Ok(Some(response))
-    }
-
-    pub async fn update_flight_in_tx(
-        &self,
-        tx: &mut Transaction<'static, Postgres>,
-        flight_id: &str,
-        dto: FlightUpdate,
-        updated_by: Option<String>,
-    ) -> Result<Option<FlightResponse>, DomainError> {
-        flight_command_validator::validate_update_payload(&dto)?;
-        let patch = update_patch_from_dto(dto)?;
-        flight_command_validator::ensure_status_transition(self.repo.as_ref(), flight_id, &patch).await?;
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("FlightService transactional repository is not configured".to_string())
-        })?;
-        let Some(flight) = tx_repo.update_partial_in_tx(tx, flight_id, &patch).await? else {
+        let Some(flight) = flight else {
             return Ok(None);
         };
-        // Domain flight facts for projection/SSE. Callers (e.g. DomainActionExecutor)
-        // may also write an action-level outbox row (Flight.update_status) in the same tx.
-        write_flight_update_outbox_events(self.outbox_repository()?, tx, flight_id, &patch, updated_by.as_deref())
-            .await?;
+
         self.invalidate_hot_list().await;
         let mut response = to_response(&flight);
         response.updated_by = updated_by;
@@ -372,26 +297,16 @@ impl FlightService {
             ..FlightUpdatePatch::default()
         };
 
-        let flight = if let (Some(pool), Some(tx_repo)) = (self.pool.as_ref(), self.tx_repo.as_ref()) {
-            let mut tx = pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            let Some(flight) = tx_repo.update_partial_in_tx(&mut tx, flight_id, &patch).await? else {
-                return Ok(None);
-            };
-            write_flight_update_outbox_events(
-                self.outbox_repository()?,
-                &mut tx,
-                flight_id,
-                &patch,
-                actor_id.as_deref(),
-            )
-            .await?;
-            tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            flight
-        } else {
-            let Some(flight) = self.repo.update_partial(flight_id, &patch).await? else {
-                return Ok(None);
-            };
-            flight
+        let flight = match self.tx_writes.as_ref() {
+            Some(writes) => {
+                writes
+                    .update_partial_with_events(flight_id, &patch, actor_id.as_deref())
+                    .await?
+            }
+            None => self.repo.update_partial(flight_id, &patch).await?,
+        };
+        let Some(flight) = flight else {
+            return Ok(None);
         };
 
         self.invalidate_hot_list().await;
@@ -402,24 +317,9 @@ impl FlightService {
 
     /// 删除航班
     pub async fn delete_flight(&self, flight_id: &str) -> Result<bool, DomainError> {
-        let deleted = if let (Some(pool), Some(tx_repo)) = (self.pool.as_ref(), self.tx_repo.as_ref()) {
-            let mut tx = pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            let deleted = tx_repo.delete_in_tx(&mut tx, flight_id).await?;
-            if deleted {
-                write_flight_outbox_event(
-                    self.outbox_repository()?,
-                    &mut tx,
-                    FLIGHT_AGGREGATE_TYPE,
-                    flight_id,
-                    FLIGHT_DELETED_EVENT,
-                    build_deleted_payload(flight_id, None),
-                )
-                .await?;
-            }
-            tx.commit().await.map_err(|e| DomainError::Internal(e.to_string()))?;
-            deleted
-        } else {
-            self.repo.delete(flight_id).await?
+        let deleted = match self.tx_writes.as_ref() {
+            Some(writes) => writes.delete_with_deleted_event(flight_id).await?,
+            None => self.repo.delete(flight_id).await?,
         };
         if deleted {
             self.invalidate_hot_list().await;

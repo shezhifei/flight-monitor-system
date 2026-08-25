@@ -65,6 +65,7 @@ pub mod flight_risk_service;
 pub mod flight_route_service;
 pub mod flight_runtime_service;
 pub mod flight_service;
+pub mod flight_writer;
 pub mod flowable_draft_service;
 pub mod flowable_service;
 pub mod in_memory_ai_proposal_repository;

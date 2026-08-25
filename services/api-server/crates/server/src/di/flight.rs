@@ -15,6 +15,7 @@ use fms_application::services::flight_runtime_service::{
     DispatchTimelineWriter, FlightRuntimeService, FlightTimelineWriter,
 };
 use fms_application::services::flight_service::FlightService;
+use fms_application::services::flight_writer::{FlightTransactionalWrites, FlightWriter, UowFlightWriter};
 use fms_application::services::label_service::LabelService;
 use fms_application::services::ontology_actions::OntologyActionServices;
 use fms_application::services::ontology_service::OntologyService;
@@ -26,7 +27,8 @@ use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::audit_log_repository::AuditLogRepository;
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
 use fms_domain::ports::dispatch_repository::{DispatchOrderRepository, StandRepository, TeamRepository};
-use fms_domain::ports::flight_repository::FlightRepository;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 use fms_domain::ports::ontology_repository::{
     AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
@@ -47,6 +49,7 @@ use crate::di::shared::{SharedInfra, SharedRepos};
 
 pub(crate) struct FlightServices {
     pub flight_svc: Arc<ConcreteFlightService>,
+    pub flight_writer: Arc<FlightWriter<sqlx::Transaction<'static, sqlx::Postgres>>>,
     pub label_svc: Arc<ConcreteLabelService>,
     pub flight_import_svc: Arc<FlightImportService>,
     pub flight_archive_svc: Arc<FlightArchiveService>,
@@ -73,11 +76,32 @@ pub(crate) fn build_flight_services(
     let timeline_pg = Arc::new(PgFlightTimelineEventRepository::new(repos.pool.clone()));
     let timeline_read: Arc<dyn FlightTimelineEventRepository + Send + Sync> = timeline_pg.clone();
     let timeline_tx_repo: Arc<dyn SqlxFlightTimelineTransactionalRepository> = timeline_pg;
+    let flight_writer: Arc<FlightWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(FlightWriter::new(
+        repos.flight_repo.clone() as Arc<dyn FlightRepository + Send + Sync>,
+        flight_tx_repo.clone()
+            as Arc<dyn FlightTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync>,
+        outbox_tx_repo.clone()
+            as Arc<
+                dyn DomainEventOutboxTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
+            >,
+    ));
+    let flight_uow_writer: Arc<UowFlightWriter<_>> = Arc::new(UowFlightWriter::new(
+        FlightWriter::new(
+            repos.flight_repo.clone() as Arc<dyn FlightRepository + Send + Sync>,
+            flight_tx_repo.clone()
+                as Arc<dyn FlightTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync>,
+            outbox_tx_repo.clone()
+                as Arc<
+                    dyn DomainEventOutboxTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>>
+                        + Send
+                        + Sync,
+                >,
+        ),
+        repos.unit_of_work.clone(),
+    ));
     let flight_svc = Arc::new(
         FlightService::new(repos.flight_repo.clone())
-            .with_transactional_repository(flight_tx_repo.clone())
-            .with_outbox_repository(outbox_tx_repo.clone())
-            .with_pool(repos.pool.clone()),
+            .with_transactional_writer(flight_uow_writer as Arc<dyn FlightTransactionalWrites>),
     );
     let flight_batch_cell_svc: Arc<dyn FlightBatchCellUpdate> = Arc::new(
         FlightBatchCellUpdateService::new(
@@ -140,6 +164,7 @@ pub(crate) fn build_flight_services(
 
     FlightServices {
         flight_svc,
+        flight_writer,
         label_svc,
         flight_import_svc,
         flight_archive_svc,

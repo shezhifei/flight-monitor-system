@@ -63,6 +63,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
     use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
     use crate::services::dispatch_service::writer::DispatchOrderWriter;
     use crate::services::flight_service::FlightService;
+    use crate::services::flight_writer::FlightWriter;
     use crate::services::label_service::LabelService;
     use crate::services::notification_service::{
         CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
@@ -84,11 +85,24 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
     let outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
-    let flight_service = Arc::new(
-        FlightService::new(flight_repo.clone())
-            .with_transactional_repository(flight_repo)
-            .with_outbox_repository(outbox_repo.clone()),
-    );
+    let flight_service = Arc::new(FlightService::new(flight_repo.clone()));
+    let flight_writer: Arc<FlightWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(FlightWriter::new(
+        flight_repo.clone() as Arc<dyn fms_domain::ports::flight_repository::FlightRepository + Send + Sync>,
+        flight_repo.clone()
+            as Arc<
+                dyn fms_domain::ports::flight_repository::FlightTransactionalRepository<
+                        sqlx::Transaction<'static, sqlx::Postgres>,
+                    > + Send
+                    + Sync,
+            >,
+        outbox_repo.clone()
+            as Arc<
+                dyn fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository<
+                        sqlx::Transaction<'static, sqlx::Postgres>,
+                    > + Send
+                    + Sync,
+            >,
+    ));
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
     // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
@@ -171,6 +185,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
 
     DomainActionExecutor::new(
         flight_service,
+        flight_writer,
         dispatch_service,
         dispatch_writer,
         notification_service,
