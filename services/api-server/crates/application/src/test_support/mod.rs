@@ -2,13 +2,16 @@
 //!
 //! 存在的唯一理由：`DispatchServiceDependencies` 的字段全部必填——这是刻意的，漏接依赖
 //! 必须是编译错误而不是运行期 500。测试通常只关心其中一两个端口，其余用**会报错的桩**
-//! 填充。桩被真的调用时错误会点名端口，所以「这个测试到底依赖了什么」是显式的：
+//! 填充（[`UnwiredRepository`]）。桩被真的调用时错误会点名端口，所以「这个测试到底依赖
+//! 了什么」是显式的：
 //!
 //! ```ignore
 //! let mut deps = stub_dispatch_dependencies();
 //! deps.order.order_repo = my_recording_repo.clone();   // 本测试只用到这一个端口
 //! let service = DispatchService::new(deps);
 //! ```
+
+mod unwired_repository;
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -19,7 +22,6 @@ use chrono::{DateTime, Utc};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{Equipment, Team};
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
-use fms_domain::ports::NullRepository;
 
 use crate::services::dispatch_service::dispatch_overrun_warning_service::DispatchOverrunWarningService;
 use crate::services::dispatch_service::{
@@ -34,6 +36,8 @@ use crate::services::resource_availability_service::{ResourceAvailability, Resou
 use crate::types::{
     NoopNotificationDeliveryPublisher, NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
 };
+
+pub use unwired_repository::UnwiredRepository;
 
 fn unwired(port: &str) -> DomainError {
     DomainError::Internal(format!("test stub: {port} was not wired for this test"))
@@ -109,45 +113,45 @@ impl DispatchChatOrderSyncer for UnwiredChatSyncer {
 ///
 /// 预排冲突预警的 feature flag 显式关掉，桩服务不会被扫描逻辑唤醒。
 pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
-    let null = Arc::new(NullRepository);
+    let unwired_repo = Arc::new(UnwiredRepository);
     DispatchServiceDependencies {
         order: DispatchOrderServiceDependencies {
-            order_repo: null.clone(),
-            order_tx_repo: null.clone(),
-            member_repo: null.clone(),
-            member_tx_repo: null.clone(),
-            todo_repo: null.clone(),
+            order_repo: unwired_repo.clone(),
+            order_tx_repo: unwired_repo.clone(),
+            member_repo: unwired_repo.clone(),
+            member_tx_repo: unwired_repo.clone(),
+            todo_repo: unwired_repo.clone(),
         },
         rules: DispatchRuleServiceDependencies {
-            department_repo: null.clone(),
-            task_type_repo: null.clone(),
-            task_type_requirement_repo: null.clone(),
-            flight_repo: null.clone(),
-            generation_rule_repo: null.clone(),
-            adjustment_rule_repo: null.clone(),
-            temporary_task_template_repo: null.clone(),
+            department_repo: unwired_repo.clone(),
+            task_type_repo: unwired_repo.clone(),
+            task_type_requirement_repo: unwired_repo.clone(),
+            flight_repo: unwired_repo.clone(),
+            generation_rule_repo: unwired_repo.clone(),
+            adjustment_rule_repo: unwired_repo.clone(),
+            temporary_task_template_repo: unwired_repo.clone(),
         },
         resources: DispatchResourceServiceDependencies {
-            team_repo: null.clone(),
-            team_type_repo: null.clone(),
-            stand_repo: null.clone(),
-            qualification_repo: null.clone(),
-            qualification_grant_repo: null.clone(),
-            equipment_repo: null.clone(),
-            team_member_repo: null.clone(),
-            travel_stats_repo: null.clone(),
-            checklist_repo: null.clone(),
+            team_repo: unwired_repo.clone(),
+            team_type_repo: unwired_repo.clone(),
+            stand_repo: unwired_repo.clone(),
+            qualification_repo: unwired_repo.clone(),
+            qualification_grant_repo: unwired_repo.clone(),
+            equipment_repo: unwired_repo.clone(),
+            team_member_repo: unwired_repo.clone(),
+            travel_stats_repo: unwired_repo.clone(),
+            checklist_repo: unwired_repo.clone(),
             resource_availability_service: Arc::new(UnwiredResourceAvailability),
         },
         notifications: DispatchNotificationServiceDependencies {
-            anomaly_repo: null.clone(),
-            collaboration_repo: null.clone(),
-            alert_repo: null.clone(),
+            anomaly_repo: unwired_repo.clone(),
+            collaboration_repo: unwired_repo.clone(),
+            alert_repo: unwired_repo.clone(),
             notification_service: Arc::new(UnwiredNotificationSender),
             dispatch_chat_service: Arc::new(UnwiredChatSyncer),
         },
         overrun_warning_service: Arc::new(
-            DispatchOverrunWarningService::new(null.clone(), null.clone()).with_feature_flags(false, false),
+            DispatchOverrunWarningService::new(unwired_repo.clone(), unwired_repo.clone()).with_feature_flags(false, false),
         ),
     }
 }
