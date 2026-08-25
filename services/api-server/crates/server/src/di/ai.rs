@@ -154,11 +154,11 @@ pub(crate) fn build_ai_services(
         flight.flight_svc.clone(),
         dispatch.dispatch_svc.clone(),
         shared.notification_svc.clone(),
-        dispatch.anomaly_svc.clone(),
         flight.label_svc.clone(),
         shared.todo_svc.clone(),
         business_case.business_case_svc.clone(),
         repos.domain_event_outbox_repo.clone(),
+        repos.anomaly_repo.clone(),
         pool.clone(),
     ));
 

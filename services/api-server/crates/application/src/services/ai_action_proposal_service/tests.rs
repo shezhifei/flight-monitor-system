@@ -399,7 +399,6 @@ mod tests {
     async fn build_smoke_executor(
         pool: sqlx::PgPool,
     ) -> Arc<crate::services::domain_action_executor::DomainActionExecutor> {
-        use crate::services::anomaly_service::AnomalyService;
         use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService};
         use crate::services::flight_service::FlightService;
         use crate::services::label_service::LabelService;
@@ -461,8 +460,6 @@ mod tests {
                 .with_transactional_repository(notif_tx_repo_port),
             );
         let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-        let anomaly_svc =
-            Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
         let label_svc = Arc::new(LabelService::new(
             Arc::new(PgLabelRepository::new(pool.clone())),
             Arc::new(NoopBroadcaster),
@@ -494,11 +491,11 @@ mod tests {
             flight_svc,
             dispatch_svc,
             notif_svc,
-            anomaly_svc,
             label_svc,
             todo_svc,
             bc_svc,
             outbox_repo,
+            anomaly_repo,
             pool,
         ))
     }

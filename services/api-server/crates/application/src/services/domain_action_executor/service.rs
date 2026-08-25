@@ -11,10 +11,11 @@ use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
 use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::types::{
-    ConcreteAnomalyService, ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService,
+    ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService,
     ConcreteNotificationService, ConcreteTodoService,
 };
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
+use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
 
 use super::helpers::{optional_string, required_string};
 use super::types::{DomainActionError, DomainActionReceipt};
@@ -23,13 +24,13 @@ pub struct DomainActionExecutor {
     flight_service: Arc<ConcreteFlightService>,
     dispatch_service: Arc<DispatchService>,
     notification_service: Arc<ConcreteNotificationService>,
-    anomaly_service: Arc<ConcreteAnomalyService>,
     label_service: Arc<ConcreteLabelService>,
     todo_service: Arc<ConcreteTodoService>,
     business_case_service: Arc<ConcreteBusinessCaseService>,
     flowable_service: Option<FlowableService>,
     pool: sqlx::PgPool,
     outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+    anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
 }
 
 impl DomainActionExecutor {
@@ -37,23 +38,23 @@ impl DomainActionExecutor {
         flight_service: Arc<ConcreteFlightService>,
         dispatch_service: Arc<DispatchService>,
         notification_service: Arc<ConcreteNotificationService>,
-        anomaly_service: Arc<ConcreteAnomalyService>,
         label_service: Arc<ConcreteLabelService>,
         todo_service: Arc<ConcreteTodoService>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
         outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+        anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
         pool: sqlx::PgPool,
     ) -> Self {
         Self {
             flight_service,
             dispatch_service,
             notification_service,
-            anomaly_service,
             label_service,
             todo_service,
             business_case_service,
             flowable_service: None,
             outbox_repo,
+            anomaly_tx_repo,
             pool,
         }
     }
@@ -368,7 +369,7 @@ impl DomainActionExecutor {
                 }))
             }
             "Anomaly.acknowledge" => {
-                self.anomaly_service
+                self.anomaly_tx_repo
                     .acknowledge_in_tx(tx, object_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -378,7 +379,7 @@ impl DomainActionExecutor {
             "Anomaly.resolve" => {
                 let resolution_note = optional_string(arguments, &["resolution_note", "note"]);
                 let resolved = self
-                    .anomaly_service
+                    .anomaly_tx_repo
                     .resolve_in_tx(tx, object_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -400,7 +401,7 @@ impl DomainActionExecutor {
                     .and_then(|v| v.as_str())
                     .unwrap_or("AI recommended escalation");
 
-                self.anomaly_service
+                self.anomaly_tx_repo
                     .escalate_in_tx(tx, object_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;

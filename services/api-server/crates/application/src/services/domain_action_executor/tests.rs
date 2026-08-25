@@ -60,7 +60,6 @@ async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
 }
 
 async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
-    use crate::services::anomaly_service::AnomalyService;
     use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService};
     use crate::services::flight_service::FlightService;
     use crate::services::label_service::LabelService;
@@ -125,8 +124,6 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
     );
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-    let anomaly_service =
-        Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
@@ -158,11 +155,11 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         flight_service,
         dispatch_service,
         notification_service,
-        anomaly_service,
         label_service,
         todo_service,
         business_case_service,
         outbox_repo,
+        anomaly_repo,
         pool,
     )
 }

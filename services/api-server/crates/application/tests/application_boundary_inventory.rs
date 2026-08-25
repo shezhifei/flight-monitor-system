@@ -40,7 +40,6 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
         "ai_runtime_service/in_memory_repos.rs",
         "ai_runtime_service/recovery_orchestrator.rs",
         "ai_runtime_service/rollback_service.rs",
-        "anomaly_service.rs",
         "business_case_service/service.rs",
         "dispatch_chat_service.rs",
         "dispatch_service/helpers_validation.rs",
@@ -67,7 +66,7 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
 // 还没做完。原来的 ignore 理由写的是「until P1 resolves boundary violations」，P1 早已落地
 // 而红灯依旧，那条理由已经变成假话；让守门说真话是 P0 的全部内容，所以这里改成真实的阻塞项。
 // 解除 ignore 的条件只有一个：下面的清单降到 0，而不是清单被改。
-#[ignore = "P3 未完成：application 层仍有 23 个文件持有 sqlx 类型；清单降到 0 时解除"]
+#[ignore = "P3 未完成：application 层仍有 22 个文件持有 sqlx 类型；清单降到 0 时解除"]
 fn production_application_source_does_not_bypass_domain_data_ports() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let application_src = manifest_dir.join("src");

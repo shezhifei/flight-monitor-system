@@ -535,7 +535,6 @@ async fn build_test_executor(
         NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
     };
     use fms_application::services::{
-        anomaly_service::AnomalyService,
         business_case_service::{BusinessCaseEventPublisher, BusinessCaseService},
         dispatch_service::DispatchService,
         flight_service::FlightService,
@@ -597,8 +596,6 @@ async fn build_test_executor(
     );
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-    let anomaly_service =
-        Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
@@ -630,11 +627,11 @@ async fn build_test_executor(
         flight_service,
         dispatch_service,
         notification_service,
-        anomaly_service,
         label_service,
         todo_service,
         business_case_service,
         outbox_repo,
+        anomaly_repo,
         pool,
     )
 }
