@@ -17,6 +17,7 @@ pub mod anomaly_repository;
 pub mod audit_log_repository;
 pub mod business_case_repository;
 pub mod business_case_workflow_run_repository;
+pub mod cdc_admin_port;
 pub mod database_metadata_port;
 pub mod dispatch_collaboration_repository;
 pub mod dispatch_repository;

@@ -10,7 +10,6 @@ test-support = []
 
 [dependencies]
 fms-domain = { path = "../domain" }
-fms-infrastructure = { path = "../infrastructure" }
 fms-runtime = { path = "../runtime" }
 
 # Async

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
+use fms_domain::ports::cdc_admin_port::CdcAdminPort;
 use fms_domain::ports::message_queue::MessageQueue;
 use pgwire_replication::{Lsn, ReplicationClient, ReplicationConfig, ReplicationEvent, SslMode, TlsConfig};
 use serde_json::Value;
@@ -14,7 +15,6 @@ use tracing::{info, warn};
 
 use fms_domain::error::DomainError;
 use fms_domain::pgoutput_decoder::{PgOutputDecoder, PgOutputInsert, PgOutputMessage};
-use fms_infrastructure::cdc::PgCdcAdmin;
 
 use crate::services::domain_event_outbox_delivery::{
     event_type_metric_label, DomainEventOutboxDelivery, DomainEventOutboxRow,
@@ -90,7 +90,7 @@ struct DomainEventCdcLifecycle {
 
 pub struct DomainEventCdcRelayService {
     pool: PgPool,
-    cdc_admin: PgCdcAdmin,
+    cdc_admin: Arc<dyn CdcAdminPort>,
     message_queue: Option<Arc<dyn MessageQueue + Send + Sync>>,
     enabled: bool,
     delivery: DomainEventOutboxDelivery,
@@ -109,10 +109,11 @@ impl DomainEventCdcRelayService {
         config: DomainEventCdcConfig,
         replication_db_config: ReplicationDatabaseConfig,
         outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+        cdc_admin: Arc<dyn CdcAdminPort>,
     ) -> Self {
         Self {
-            pool: pool.clone(),
-            cdc_admin: PgCdcAdmin::new(pool),
+            pool,
+            cdc_admin,
             message_queue,
             enabled,
             delivery: DomainEventOutboxDelivery::new(base_backoff_seconds, topic, outbox_repo),

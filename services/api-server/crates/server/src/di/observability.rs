@@ -36,6 +36,7 @@ use fms_domain::ports::kpi_port::KpiPort;
 use fms_domain::ports::message_queue::{MessageHandler, PushConsumer};
 use fms_domain::ports::system_flags_repository::SystemFlagsRepository;
 
+use fms_infrastructure::cdc::PgCdcAdmin;
 use fms_infrastructure::messaging::RocketMqPushConsumer;
 use fms_infrastructure::repositories::pg_domain_event_subscription_state_repository::PgDomainEventSubscriptionStateRepository;
 use fms_infrastructure::repositories::pg_flight_sync_repository::PgFlightSyncRepository;
@@ -190,6 +191,7 @@ pub(crate) async fn build_observability_services(
             ssl_client_key: env_optional_string("DB_SSL_CLIENT_KEY"),
         },
         domain_event_outbox_repo.clone(),
+        Arc::new(PgCdcAdmin::new(pool.clone())),
     ));
 
     let cache_invalidation_subscriber_svc = Arc::new(CacheInvalidationSubscriberService::new(
