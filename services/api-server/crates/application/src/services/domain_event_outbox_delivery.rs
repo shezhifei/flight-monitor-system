@@ -84,7 +84,7 @@ impl DomainEventOutboxDelivery {
 
     pub async fn claim_pending(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         limit: i64,
     ) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
         self.repo.claim_pending_in_tx(tx, limit).await
@@ -92,7 +92,7 @@ impl DomainEventOutboxDelivery {
 
     pub async fn mark_published(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         event_ids: &[String],
     ) -> Result<(), DomainError> {
         self.repo.mark_published_in_tx(tx, event_ids).await
@@ -100,7 +100,7 @@ impl DomainEventOutboxDelivery {
 
     pub async fn mark_failed(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         row: &DomainEventOutboxRow,
         error: &str,
     ) -> Result<i64, DomainError> {

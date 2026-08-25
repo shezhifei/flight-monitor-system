@@ -19,101 +19,101 @@ use fms_domain::ports::todo_repository::TodoTransactionalRepository;
 use sqlx::{Postgres, Transaction};
 
 pub trait SqlxFlightTransactionalRepository:
-    for<'tx> FlightTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    FlightTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxFlightTransactionalRepository for T where
-    T: for<'tx> FlightTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: FlightTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxTodoTransactionalRepository:
-    for<'tx> TodoTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    TodoTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxTodoTransactionalRepository for T where
-    T: for<'tx> TodoTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: TodoTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxNotificationTransactionalRepository:
-    for<'tx> NotificationTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    NotificationTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxNotificationTransactionalRepository for T where
-    T: for<'tx> NotificationTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: NotificationTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxAnomalyTransactionalRepository:
-    for<'tx> AnomalyTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    AnomalyTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxAnomalyTransactionalRepository for T where
-    T: for<'tx> AnomalyTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: AnomalyTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxBusinessCaseTransactionalRepository:
-    for<'tx> BusinessCaseTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    BusinessCaseTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxBusinessCaseTransactionalRepository for T where
-    T: for<'tx> BusinessCaseTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: BusinessCaseTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxDispatchOrderTransactionalRepository:
-    for<'tx> DispatchOrderTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    DispatchOrderTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxDispatchOrderTransactionalRepository for T where
-    T: for<'tx> DispatchOrderTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: DispatchOrderTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxDispatchOrderMemberTransactionalRepository:
-    for<'tx> DispatchOrderMemberTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    DispatchOrderMemberTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxDispatchOrderMemberTransactionalRepository for T where
-    T: for<'tx> DispatchOrderMemberTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: DispatchOrderMemberTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxFlightTimelineTransactionalRepository:
-    for<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    FlightTimelineEventTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxFlightTimelineTransactionalRepository for T where
-    T: for<'tx> FlightTimelineEventTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: FlightTimelineEventTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxOntologyTransactionalRepository:
-    for<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    OntologyTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxOntologyTransactionalRepository for T where
-    T: for<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: OntologyTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 pub trait SqlxDomainEventOutboxTransactionalRepository:
-    for<'tx> DomainEventOutboxTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    DomainEventOutboxTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
 impl<T> SqlxDomainEventOutboxTransactionalRepository for T where
-    T: for<'tx> DomainEventOutboxTransactionalRepository<Transaction<'tx, Postgres>> + Send + Sync
+    T: DomainEventOutboxTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }

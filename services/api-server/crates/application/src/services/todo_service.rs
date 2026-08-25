@@ -132,7 +132,7 @@ impl TodoService {
     /// 创建待办事项（使用外部事务）
     pub async fn create_todo_in_tx(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         dto: TodoCreateCommand,
         actor: &str,
     ) -> Result<TodoResponse, DomainError> {
@@ -432,7 +432,7 @@ impl TodoService {
     /// 完成待办（使用外部事务）
     pub async fn complete_todo_in_tx(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         todo_id: &str,
         mut dto: TodoComplete,
         actor: &str,

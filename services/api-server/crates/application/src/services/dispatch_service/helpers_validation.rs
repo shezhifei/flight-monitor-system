@@ -391,7 +391,7 @@ impl DispatchService {
 
     pub(super) async fn sync_assignment_members_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         order: &DispatchOrder,
         assignment: &Value,
     ) -> Result<(), DomainError> {

@@ -168,7 +168,7 @@ impl DomainActionExecutor {
 
     async fn execute_in_tx(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
         action_key: &str,
         object_type: &str,
         object_id: &str,

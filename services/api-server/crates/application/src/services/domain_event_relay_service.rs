@@ -107,7 +107,7 @@ impl DomainEventRelayService {
 
     async fn lock_pending_rows(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        tx: &mut Transaction<'static, Postgres>,
     ) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
         // Same-tx claim so FOR UPDATE locks are held until mark_published/mark_failed.
         self.delivery.claim_pending(tx, self.batch_size).await

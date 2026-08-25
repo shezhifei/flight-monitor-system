@@ -486,7 +486,7 @@ impl DispatchService {
 
     pub async fn reassign_order_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         order_id: &str,
         assignee_id: &str,
         assignee_type: Option<&str>,
@@ -582,7 +582,7 @@ impl DispatchService {
     /// 在调用方事务内更新派工单状态并写操作日志（与 outbox 同事务提交）。
     pub async fn update_order_status_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         order_id: &str,
         new_status: &str,
         actor_id: &str,
@@ -986,7 +986,7 @@ impl DispatchService {
 
     pub async fn publish_order_in_tx(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         order_id: &str,
         actor_id: &str,
     ) -> Result<Value, DomainError> {
