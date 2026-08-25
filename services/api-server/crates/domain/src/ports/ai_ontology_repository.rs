@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 
-use crate::models::ai_ontology::OntologySchema;
+use crate::ontology::governed::ActionOverlay;
 
 #[async_trait]
 pub trait AiOntologyRepository {
-    async fn load_active_schema(&self) -> Result<Option<OntologySchema>, AiOntologyRepositoryError>;
+    /// DB 只能交回对代码 schema 已知动作键的覆盖，无法整份替换 schema。
+    /// 要拿到 `OntologySchema` 必须经过 `load_governed_schema(&overlays)`。
+    async fn load_action_overlays(&self) -> Result<Vec<ActionOverlay>, AiOntologyRepositoryError>;
 
     // Count methods (no raw SQL in application services)
     async fn count_active_objects(&self) -> Result<i64, AiOntologyRepositoryError>;

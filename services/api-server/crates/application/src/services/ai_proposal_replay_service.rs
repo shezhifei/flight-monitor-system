@@ -132,61 +132,54 @@ impl AiProposalReplayService {
             );
         };
 
-        let schema = repo.load_active_schema().await;
-        match schema {
-            Ok(Some(schema)) => {
-                let object = schema.objects.get(&input.object_type);
-                match object {
-                    Some(obj) => {
-                        let action = obj.actions.get(&input.action_name);
-                        match action {
-                            Some(action_def) => (
-                                ReplayCheck {
-                                    name: "ontology".to_string(),
-                                    passed: true,
-                                    message: format!(
-                                        "action '{}' found on object '{}'",
-                                        input.action_name, input.object_type
-                                    ),
-                                },
-                                Some(action_def.clone()),
+        let schema = match repo.load_action_overlays().await {
+            Ok(overlays) => fms_domain::ontology::governed::load_governed_schema(&overlays),
+            Err(e) => {
+                return (
+                    ReplayCheck {
+                        name: "ontology".to_string(),
+                        passed: false,
+                        message: format!("failed to load ontology overlays: {e}"),
+                    },
+                    None,
+                );
+            }
+        };
+
+        let object = schema.objects.get(&input.object_type);
+        match object {
+            Some(obj) => {
+                let action = obj.actions.get(&input.action_name);
+                match action {
+                    Some(action_def) => (
+                        ReplayCheck {
+                            name: "ontology".to_string(),
+                            passed: true,
+                            message: format!(
+                                "action '{}' found on object '{}'",
+                                input.action_name, input.object_type
                             ),
-                            None => (
-                                ReplayCheck {
-                                    name: "ontology".to_string(),
-                                    passed: false,
-                                    message: format!(
-                                        "action '{}' not found on object '{}'",
-                                        input.action_name, input.object_type
-                                    ),
-                                },
-                                None,
-                            ),
-                        }
-                    }
+                        },
+                        Some(action_def.clone()),
+                    ),
                     None => (
                         ReplayCheck {
                             name: "ontology".to_string(),
                             passed: false,
-                            message: format!("object type '{}' not found in active schema", input.object_type),
+                            message: format!(
+                                "action '{}' not found on object '{}'",
+                                input.action_name, input.object_type
+                            ),
                         },
                         None,
                     ),
                 }
             }
-            Ok(None) => (
+            None => (
                 ReplayCheck {
                     name: "ontology".to_string(),
                     passed: false,
-                    message: "active schema not found (no active objects)".to_string(),
-                },
-                None,
-            ),
-            Err(e) => (
-                ReplayCheck {
-                    name: "ontology".to_string(),
-                    passed: false,
-                    message: format!("failed to load active schema: {e}"),
+                    message: format!("object type '{}' not found in governed schema", input.object_type),
                 },
                 None,
             ),
@@ -341,72 +334,33 @@ impl AiProposalReplayService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fms_domain::models::ai_ontology::{
-        OntologyActionDef, OntologyActionParameter, OntologyObjectDef, OntologySchema,
-    };
+    use fms_domain::models::ai_ontology::OntologyActionDef;
+    use fms_domain::ontology::governed::ActionOverlay;
     use fms_domain::ports::ai_ontology_repository::{AiOntologyRepository, AiOntologyRepositoryError};
-    use std::collections::HashMap;
 
+    /// DB 只能交回 overlay：覆盖代码 schema 里已经存在的 `(object, action)` 键。
+    /// 测试用 `BusinessCase.create`（代码 schema 现成的写动作）作为已知键。
     struct FakeOntologyRepository {
-        schema: Option<OntologySchema>,
+        overlays: Vec<ActionOverlay>,
     }
 
     impl FakeOntologyRepository {
         fn with_active_object(object_type: &str, action_name: &str) -> Self {
-            let mut objects = HashMap::new();
-            let mut actions = HashMap::new();
-            let mut params = HashMap::new();
-            params.insert(
-                "title".to_string(),
-                OntologyActionParameter {
-                    name: "title".to_string(),
-                    param_type: "string".to_string(),
-                    description: "title".to_string(),
-                    required: true,
-                },
-            );
-            actions.insert(
-                action_name.to_string(),
-                OntologyActionDef {
-                    name: action_name.to_string(),
-                    description: String::new(),
-                    category: "write".to_string(),
-                    parameters: params,
-                    parameters_schema: serde_json::json!({}),
-                    required_permissions: vec!["todo:create".to_string()],
-                    risk_level: "low".to_string(),
-                    approval_strategy: "auto".to_string(),
-                    approval_policy: "auto_execute".to_string(),
-                    constraints: vec![],
-                    execution_mapping: None,
-                    idempotency_key_strategy: None,
-                    compensation: None,
-                },
-            );
-            objects.insert(
-                object_type.to_string(),
-                OntologyObjectDef {
-                    name: object_type.to_string(),
-                    description: String::new(),
-                    object_id_strategy: "ulid".to_string(),
-                    fields: HashMap::new(),
-                    relations: HashMap::new(),
-                    actions,
-                },
-            );
-            let schema = OntologySchema {
-                version: "test.v1".to_string(),
-                description: String::new(),
-                objects,
-            };
-            Self { schema: Some(schema) }
+            let overlays = vec![ActionOverlay {
+                object: object_type.to_string(),
+                action: action_name.to_string(),
+                is_active: Some(true),
+                risk: Some(fms_domain::models::ai_proposal::RiskLevel::Low),
+                requires_approval: Some(false),
+            }];
+            Self { overlays }
         }
     }
 
     #[async_trait::async_trait]
     impl AiOntologyRepository for FakeOntologyRepository {
-        async fn load_active_schema(&self) -> Result<Option<OntologySchema>, AiOntologyRepositoryError> {
-            Ok(self.schema.clone())
+        async fn load_action_overlays(&self) -> Result<Vec<ActionOverlay>, AiOntologyRepositoryError> {
+            Ok(self.overlays.clone())
         }
 
         async fn count_active_objects(&self) -> Result<i64, AiOntologyRepositoryError> {
@@ -420,18 +374,22 @@ mod tests {
 
     #[tokio::test]
     async fn dry_run_replay_validates_without_business_side_effects() {
-        let ontology = Arc::new(FakeOntologyRepository::with_active_object("Todo", "create"));
+        let ontology = Arc::new(FakeOntologyRepository::with_active_object("BusinessCase", "create"));
         let service = AiProposalReplayService::new_for_test(ontology);
 
         let input = ReplayInput {
             proposal_id: "fixture-proposal".to_string(),
             ontology_version: Some("flight-ops.v1".to_string()),
-            object_type: "Todo".to_string(),
-            object_id: "TD_REPLAY_001".to_string(),
+            object_type: "BusinessCase".to_string(),
+            object_id: "BC_REPLAY_001".to_string(),
             action_name: "create".to_string(),
-            arguments: serde_json::json!({"title": "Replay todo"}),
+            arguments: serde_json::json!({
+                "flight_id": "FL123",
+                "case_type": "delays",
+                "description": "Replay case"
+            }),
             expected_object_version: None,
-            actor_permissions: vec!["todo:create".to_string()],
+            actor_permissions: vec!["business_case:create".to_string()],
             dry_run: true,
         };
 
@@ -444,18 +402,18 @@ mod tests {
 
     #[tokio::test]
     async fn dry_run_replay_fails_on_missing_ontology_action() {
-        let ontology = Arc::new(FakeOntologyRepository::with_active_object("Todo", "create"));
+        let ontology = Arc::new(FakeOntologyRepository::with_active_object("BusinessCase", "create"));
         let service = AiProposalReplayService::new_for_test(ontology);
 
         let input = ReplayInput {
             proposal_id: "fixture-proposal".to_string(),
             ontology_version: Some("flight-ops.v1".to_string()),
-            object_type: "Todo".to_string(),
-            object_id: "TD_REPLAY_001".to_string(),
+            object_type: "BusinessCase".to_string(),
+            object_id: "BC_REPLAY_001".to_string(),
             action_name: "nonexistent_action".to_string(),
-            arguments: serde_json::json!({"title": "Replay todo"}),
+            arguments: serde_json::json!({}),
             expected_object_version: None,
-            actor_permissions: vec!["todo:create".to_string()],
+            actor_permissions: vec!["business_case:create".to_string()],
             dry_run: true,
         };
 
@@ -467,16 +425,16 @@ mod tests {
 
     #[tokio::test]
     async fn dry_run_replay_rejects_empty_permissions() {
-        let ontology = Arc::new(FakeOntologyRepository::with_active_object("Todo", "create"));
+        let ontology = Arc::new(FakeOntologyRepository::with_active_object("BusinessCase", "create"));
         let service = AiProposalReplayService::new_for_test(ontology);
 
         let input = ReplayInput {
             proposal_id: "fixture-proposal".to_string(),
             ontology_version: Some("flight-ops.v1".to_string()),
-            object_type: "Todo".to_string(),
-            object_id: "TD_REPLAY_001".to_string(),
+            object_type: "BusinessCase".to_string(),
+            object_id: "BC_REPLAY_001".to_string(),
             action_name: "create".to_string(),
-            arguments: serde_json::json!({"title": "Replay todo"}),
+            arguments: serde_json::json!({}),
             expected_object_version: None,
             actor_permissions: vec![],
             dry_run: true,
@@ -489,42 +447,46 @@ mod tests {
 
     #[tokio::test]
     async fn dry_run_replay_returns_would_execute_receipt() {
-        let ontology = Arc::new(FakeOntologyRepository::with_active_object("Todo", "create"));
+        let ontology = Arc::new(FakeOntologyRepository::with_active_object("BusinessCase", "create"));
         let service = AiProposalReplayService::new_for_test(ontology);
 
         let input = ReplayInput {
             proposal_id: "fixture-proposal".to_string(),
             ontology_version: Some("flight-ops.v1".to_string()),
-            object_type: "Todo".to_string(),
-            object_id: "TD_REPLAY_001".to_string(),
+            object_type: "BusinessCase".to_string(),
+            object_id: "BC_REPLAY_001".to_string(),
             action_name: "create".to_string(),
-            arguments: serde_json::json!({"title": "Replay todo"}),
+            arguments: serde_json::json!({
+                "flight_id": "FL123",
+                "case_type": "delays",
+                "description": "Replay case"
+            }),
             expected_object_version: None,
-            actor_permissions: vec!["todo:create".to_string()],
+            actor_permissions: vec!["business_case:create".to_string()],
             dry_run: true,
         };
 
         let report = service.replay(input).await.expect("replay");
         let receipt = report.would_execute.expect("would_execute receipt");
 
-        assert_eq!(receipt.object_type, "Todo");
+        assert_eq!(receipt.object_type, "BusinessCase");
         assert_eq!(receipt.action_name, "create");
     }
 
     #[tokio::test]
     async fn dry_run_replay_fails_when_missing_required_permission() {
-        let ontology = Arc::new(FakeOntologyRepository::with_active_object("Todo", "create"));
+        let ontology = Arc::new(FakeOntologyRepository::with_active_object("BusinessCase", "create"));
         let service = AiProposalReplayService::new_for_test(ontology);
 
         let input = ReplayInput {
             proposal_id: "fixture-proposal".to_string(),
             ontology_version: Some("flight-ops.v1".to_string()),
-            object_type: "Todo".to_string(),
-            object_id: "TD_REPLAY_001".to_string(),
+            object_type: "BusinessCase".to_string(),
+            object_id: "BC_REPLAY_001".to_string(),
             action_name: "create".to_string(),
-            arguments: serde_json::json!({"title": "Replay todo"}),
+            arguments: serde_json::json!({}),
             expected_object_version: None,
-            actor_permissions: vec!["todo:read".to_string()],
+            actor_permissions: vec!["business_case:update".to_string()],
             dry_run: true,
         };
 
@@ -532,23 +494,23 @@ mod tests {
         assert!(!report.validation_passed);
         let perm_check = report.checks.iter().find(|c| c.name == "permissions").unwrap();
         assert!(!perm_check.passed);
-        assert!(perm_check.message.contains("todo:create"));
+        assert!(perm_check.message.contains("business_case:create"));
     }
 
     #[tokio::test]
     async fn dry_run_replay_fails_when_required_parameter_missing() {
-        let ontology = Arc::new(FakeOntologyRepository::with_active_object("Todo", "create"));
+        let ontology = Arc::new(FakeOntologyRepository::with_active_object("BusinessCase", "create"));
         let service = AiProposalReplayService::new_for_test(ontology);
 
         let input = ReplayInput {
             proposal_id: "fixture-proposal".to_string(),
             ontology_version: Some("flight-ops.v1".to_string()),
-            object_type: "Todo".to_string(),
-            object_id: "TD_REPLAY_001".to_string(),
+            object_type: "BusinessCase".to_string(),
+            object_id: "BC_REPLAY_001".to_string(),
             action_name: "create".to_string(),
             arguments: serde_json::json!({}),
             expected_object_version: None,
-            actor_permissions: vec!["todo:create".to_string()],
+            actor_permissions: vec!["business_case:create".to_string()],
             dry_run: true,
         };
 
@@ -556,6 +518,6 @@ mod tests {
         assert!(!report.validation_passed);
         let args_check = report.checks.iter().find(|c| c.name == "arguments").unwrap();
         assert!(!args_check.passed);
-        assert!(args_check.message.contains("title"));
+        assert!(args_check.message.contains("flight_id"));
     }
 }

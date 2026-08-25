@@ -6,7 +6,7 @@ use chrono::Utc;
 use fms_application::services::ontology_actions::{
     advisory_action_permission, read_action_permission, OntologyActionError, OntologyActionServices,
 };
-use fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema;
+use fms_domain::ontology::governed::load_governed_schema;
 use fms_domain::ontology::schema_export::{build_schema_export, OntologySchemaExport};
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use serde::Deserialize;
@@ -17,15 +17,14 @@ async fn load_schema(
     repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
 ) -> fms_domain::models::ai_ontology::OntologySchema {
     if let Some(repo) = repo {
-        match repo.load_active_schema().await {
-            Ok(Some(schema)) => return schema,
-            Ok(None) => {}
+        match repo.load_action_overlays().await {
+            Ok(overlays) => return load_governed_schema(&overlays),
             Err(error) => {
-                tracing::warn!("failed to load active AI ontology schema from DB: {}", error);
+                tracing::warn!("failed to load AI ontology overlays from DB: {}", error);
             }
         }
     }
-    build_flight_ops_v1_schema()
+    load_governed_schema(&[])
 }
 
 /// 返回稳定 schema export 结构（ontology_version / exported_at / objects / actions /

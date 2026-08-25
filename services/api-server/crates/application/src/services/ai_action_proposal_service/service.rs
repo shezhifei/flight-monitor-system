@@ -1179,14 +1179,17 @@ impl AiActionProposalService {
     }
 
     async fn validate_arguments_schema(&self, proposal: &AiActionProposal) -> Result<(), AiActionProposalError> {
-        let schema = if let Some(repo) = &self.ontology_repository {
-            match repo.load_active_schema().await {
-                Ok(Some(s)) => s,
-                _ => fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema(),
-            }
-        } else {
-            fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema()
+        let overlays = match &self.ontology_repository {
+            Some(repo) => match repo.load_action_overlays().await {
+                Ok(overlays) => overlays,
+                Err(error) => {
+                    tracing::warn!("failed to load AI ontology overlays for proposal validation: {}", error);
+                    Vec::new()
+                }
+            },
+            None => Vec::new(),
         };
+        let schema = fms_domain::ontology::governed::load_governed_schema(&overlays);
 
         let object_def = schema.objects.get(&proposal.object_type).ok_or_else(|| {
             AiActionProposalError::validation(format!(

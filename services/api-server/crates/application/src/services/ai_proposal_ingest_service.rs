@@ -109,11 +109,11 @@ impl AiProposalIngestService {
             return None;
         };
 
-        match repository.load_active_schema().await {
-            Ok(schema) => schema,
+        match repository.load_action_overlays().await {
+            Ok(overlays) => Some(fms_domain::ontology::governed::load_governed_schema(&overlays)),
             Err(error) => {
                 tracing::warn!(
-                    "failed to load active AI ontology schema for proposal ingest: {}",
+                    "failed to load AI ontology overlays for proposal ingest: {}",
                     error
                 );
                 None
