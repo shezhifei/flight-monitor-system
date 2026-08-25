@@ -1,10 +1,39 @@
 //! CPU profiling HTTP helpers gated by ENABLE_PROFILING and internal peers.
 
 use std::net::IpAddr;
+use std::sync::Mutex;
 use std::time::Duration;
 
-use actix_web::{HttpRequest, HttpResponse};
+use actix_web::{http::header, HttpRequest, HttpResponse};
 use fms_infrastructure::observability::profiling_enabled;
+
+static CPU_PROFILE_LOCK: Mutex<()> = Mutex::new(());
+
+pub struct CpuProfileArtifact {
+    body: Vec<u8>,
+    content_type: &'static str,
+    filename: Option<&'static str>,
+}
+
+impl CpuProfileArtifact {
+    #[cfg(unix)]
+    fn flamegraph(body: Vec<u8>) -> Self {
+        Self {
+            body,
+            content_type: "image/svg+xml",
+            filename: None,
+        }
+    }
+
+    #[cfg(windows)]
+    fn windows_etl(body: Vec<u8>) -> Self {
+        Self {
+            body,
+            content_type: "application/octet-stream",
+            filename: Some("fms-server-cpu-profile.etl"),
+        }
+    }
+}
 
 pub fn is_internal_ip(ip: IpAddr) -> bool {
     match ip {
@@ -46,7 +75,17 @@ pub fn profile_duration_from_query(req: &HttpRequest) -> Duration {
     Duration::from_secs(seconds)
 }
 
-pub fn collect_cpu_profile_blocking(duration: Duration) -> Result<Vec<u8>, String> {
+pub fn collect_cpu_profile_blocking(duration: Duration) -> Result<CpuProfileArtifact, String> {
+    let _profile_guard = match CPU_PROFILE_LOCK.try_lock() {
+        Ok(guard) => guard,
+        Err(std::sync::TryLockError::WouldBlock) => {
+            return Err("another CPU profile is already being collected".to_string());
+        }
+        Err(std::sync::TryLockError::Poisoned(_)) => {
+            return Err("CPU profiler lock is poisoned".to_string());
+        }
+    };
+
     #[cfg(unix)]
     {
         let guard = pprof::ProfilerGuardBuilder::default()
@@ -61,34 +100,155 @@ pub fn collect_cpu_profile_blocking(duration: Duration) -> Result<Vec<u8>, Strin
         let mut body = Vec::new();
         report.flamegraph(&mut body).map_err(|error| error.to_string())?;
         if body.is_empty() {
-            body.extend_from_slice(empty_flamegraph_svg(duration).as_bytes());
+            return Err("CPU profiler returned an empty flamegraph".to_string());
         }
-        Ok(body)
+        Ok(CpuProfileArtifact::flamegraph(body))
     }
 
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     {
-        if !duration.is_zero() {
-            std::thread::sleep(duration);
-        }
-        Ok(empty_flamegraph_svg(duration).into_bytes())
+        collect_windows_cpu_profile(duration)
+    }
+
+    #[cfg(all(not(unix), not(windows)))]
+    {
+        let _ = duration;
+        Err("CPU profiling is supported only on Unix and Windows".to_string())
     }
 }
 
-fn empty_flamegraph_svg(duration: Duration) -> String {
-    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
-    let mut svg = String::from(
-        "<?xml version=\"1.0\" standalone=\"no\"?>\n\
-         <svg version=\"1.1\" width=\"800\" height=\"40\" xmlns=\"http://www.w3.org/2000/svg\">\n\
-         <rect x=\"0\" y=\"0\" width=\"800\" height=\"20\" fill=\"#d62728\"/>\n\
-         <title>fms-server</title>\n",
-    );
-    svg.push_str(&format!(
-        "<text x=\"4\" y=\"14\" font-size=\"12\" fill=\"white\">fms-server cpu profile duration={secs}s threads={threads}</text>\n</svg>\n",
-        secs = duration.as_secs(),
-        threads = threads
-    ));
-    svg
+#[cfg(windows)]
+fn collect_windows_cpu_profile(duration: Duration) -> Result<CpuProfileArtifact, String> {
+    use std::ffi::{OsStr, OsString};
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::process::{Command, Output};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static SESSION_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    fn wpr_path() -> Result<PathBuf, String> {
+        let system_root =
+            std::env::var_os("SystemRoot").ok_or_else(|| "SystemRoot is not set; cannot locate wpr.exe".to_string())?;
+        let path = PathBuf::from(system_root).join("System32").join("wpr.exe");
+        if path.is_file() {
+            Ok(path)
+        } else {
+            Err(format!(
+                "Windows Performance Recorder was not found at {}",
+                path.display()
+            ))
+        }
+    }
+
+    fn run_wpr<I, S>(wpr: &Path, args: I) -> Result<Output, String>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        Command::new(wpr)
+            .args(args)
+            .output()
+            .map_err(|error| format!("failed to execute {}: {error}", wpr.display()))
+    }
+
+    fn command_error(action: &str, output: &Output) -> String {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!("exit status {}", output.status)
+        };
+        let normalized_detail = detail.to_ascii_lowercase();
+        let permission_hint = if normalized_detail.contains("0xc5585011")
+            || normalized_detail.contains("profile system performance")
+        {
+            " Run fms-server with elevated rights or grant its service account the 'Profile system performance' (SeSystemProfilePrivilege) user right."
+        } else {
+            ""
+        };
+        format!("WPR failed to {action}: {detail}.{permission_hint}")
+    }
+
+    let wpr = wpr_path()?;
+    let sequence = SESSION_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let process_id = std::process::id();
+    let session_name = format!("fms-server-{process_id}-{sequence}");
+    let output_path = std::env::temp_dir().join(format!("fms-server-cpu-profile-{process_id}-{sequence}.etl"));
+
+    let start_args = [
+        OsString::from("-start"),
+        OsString::from("CPU.light"),
+        OsString::from("-filemode"),
+        OsString::from("-instancename"),
+        OsString::from(&session_name),
+    ];
+    let start = run_wpr(&wpr, start_args)?;
+    if !start.status.success() {
+        return Err(command_error("start CPU sampling", &start));
+    }
+
+    if !duration.is_zero() {
+        std::thread::sleep(duration);
+    }
+
+    let stop_args = [
+        OsString::from("-stop"),
+        output_path.as_os_str().to_owned(),
+        OsString::from("FMS server CPU profile"),
+        OsString::from("-skipPdbGen"),
+        OsString::from("-compress"),
+        OsString::from("-instancename"),
+        OsString::from(&session_name),
+    ];
+    let stop = match run_wpr(&wpr, stop_args) {
+        Ok(output) => output,
+        Err(error) => {
+            let _ = run_wpr(
+                &wpr,
+                [
+                    OsString::from("-cancel"),
+                    OsString::from("-instancename"),
+                    OsString::from(&session_name),
+                ],
+            );
+            let _ = fs::remove_file(&output_path);
+            return Err(error);
+        }
+    };
+    if !stop.status.success() {
+        let _ = run_wpr(
+            &wpr,
+            [
+                OsString::from("-cancel"),
+                OsString::from("-instancename"),
+                OsString::from(&session_name),
+            ],
+        );
+        let _ = fs::remove_file(&output_path);
+        return Err(command_error("stop CPU sampling", &stop));
+    }
+
+    let body =
+        fs::read(&output_path).map_err(|error| format!("failed to read WPR trace {}: {error}", output_path.display()));
+    let cleanup = fs::remove_file(&output_path)
+        .map_err(|error| format!("failed to remove WPR trace {}: {error}", output_path.display()));
+
+    let body = match (body, cleanup) {
+        (Ok(body), Ok(())) => body,
+        (Err(read_error), Ok(())) => return Err(read_error),
+        (Ok(_), Err(cleanup_error)) => return Err(cleanup_error),
+        (Err(read_error), Err(cleanup_error)) => {
+            return Err(format!("{read_error}; additionally, {cleanup_error}"));
+        }
+    };
+    if body.is_empty() {
+        return Err("WPR returned an empty ETL trace".to_string());
+    }
+    Ok(CpuProfileArtifact::windows_etl(body))
 }
 
 pub async fn handle_profiling(req: HttpRequest) -> HttpResponse {
@@ -111,7 +271,19 @@ pub async fn handle_profiling(req: HttpRequest) -> HttpResponse {
 
     let duration = profile_duration_from_query(&req);
     match tokio::task::spawn_blocking(move || collect_cpu_profile_blocking(duration)).await {
-        Ok(Ok(body)) => HttpResponse::Ok().content_type("image/svg+xml").body(body),
+        Ok(Ok(artifact)) => {
+            let mut response = HttpResponse::Ok();
+            response
+                .insert_header((header::CONTENT_TYPE, artifact.content_type))
+                .insert_header((header::CACHE_CONTROL, "no-store"));
+            if let Some(filename) = artifact.filename {
+                response.insert_header((
+                    header::CONTENT_DISPOSITION,
+                    format!("attachment; filename=\"{filename}\""),
+                ));
+            }
+            response.body(artifact.body)
+        }
         Ok(Err(error)) => HttpResponse::InternalServerError()
             .content_type("text/plain")
             .body(format!("profiling failed: {error}")),
@@ -123,7 +295,8 @@ pub async fn handle_profiling(req: HttpRequest) -> HttpResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::{collect_cpu_profile_blocking, is_internal_ip};
+    use super::{is_internal_ip, profile_duration_from_query};
+    use actix_web::test as actix_test;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::time::Duration;
 
@@ -139,10 +312,30 @@ mod tests {
     }
 
     #[test]
+    fn profile_duration_defaults_to_ten_seconds_and_caps_at_thirty() {
+        let default_request = actix_test::TestRequest::default().to_http_request();
+        assert_eq!(profile_duration_from_query(&default_request), Duration::from_secs(10));
+
+        let capped_request = actix_test::TestRequest::with_uri("/?seconds=300").to_http_request();
+        assert_eq!(profile_duration_from_query(&capped_request), Duration::from_secs(30));
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn collect_cpu_profile_returns_svg_not_a_placeholder() {
-        let body = collect_cpu_profile_blocking(Duration::ZERO).expect("profile");
-        let text = String::from_utf8_lossy(&body).to_ascii_lowercase();
+        let artifact = super::collect_cpu_profile_blocking(Duration::ZERO).expect("profile");
+        let text = String::from_utf8_lossy(&artifact.body).to_ascii_lowercase();
         assert!(text.contains("<svg"), "expected flamegraph svg, got {text}");
-        assert!(!text.contains("not implemented"));
+        assert_eq!(artifact.content_type, "image/svg+xml");
+        assert!(artifact.filename.is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_profile_artifact_is_an_etl_download() {
+        let artifact = super::CpuProfileArtifact::windows_etl(vec![1, 2, 3]);
+        assert_eq!(artifact.content_type, "application/octet-stream");
+        assert_eq!(artifact.filename, Some("fms-server-cpu-profile.etl"));
+        assert_eq!(artifact.body, vec![1, 2, 3]);
     }
 }

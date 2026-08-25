@@ -1,5 +1,39 @@
 {
   "actions": {
+    "Aircraft.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "registration"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Aircraft",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Aircraft.reassign": {
+      "action_name": "reassign",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Aircraft.reassign",
+      "object_type": "Aircraft",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:aircraft.manage"
+      ],
+      "risk_level": "medium"
+    },
     "Anomaly.acknowledge": {
       "action_name": "acknowledge",
       "approval_policy": "auto_execute",
@@ -86,6 +120,24 @@
       ],
       "risk_level": "medium"
     },
+    "BaggageCarousel.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "carousel_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "BaggageCarousel",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
     "BusinessCase.close_case": {
       "action_name": "close_case",
       "approval_policy": "auto_execute",
@@ -119,6 +171,155 @@
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
         "business_case:create"
+      ],
+      "risk_level": "medium"
+    },
+    "CarouselAssignment.allocate": {
+      "action_name": "allocate",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "carousel_code",
+          "flight_id",
+          "starts_at",
+          "ends_at"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.CarouselAssignment.allocate",
+      "object_type": "CarouselAssignment",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:carousel.manage"
+      ],
+      "risk_level": "low"
+    },
+    "CarouselAssignment.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "assignment_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "CarouselAssignment",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "CarouselAssignment.release": {
+      "action_name": "release",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.CarouselAssignment.release",
+      "object_type": "CarouselAssignment",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:carousel.manage"
+      ],
+      "risk_level": "low"
+    },
+    "Department.create": {
+      "action_name": "create",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "Department",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:manage"
+      ],
+      "risk_level": "low"
+    },
+    "Department.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "department_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Department",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Department.update_profile": {
+      "action_name": "update_profile",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "department_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "Department",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:manage"
+      ],
+      "risk_level": "low"
+    },
+    "DispatchOrder.add_slot": {
+      "action_name": "add_slot",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id",
+          "slot_code"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.DispatchOrder.add_slot",
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
+    },
+    "DispatchOrder.assign_slot": {
+      "action_name": "assign_slot",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id",
+          "slot_code",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.DispatchOrder.assign_slot",
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
       ],
       "risk_level": "medium"
     },
@@ -156,24 +357,6 @@
       ],
       "risk_level": "high"
     },
-    "DispatchOrder.reassign": {
-      "action_name": "reassign",
-      "approval_policy": "require_approval",
-      "arguments_schema": {
-        "required": [
-          "assignee_id"
-        ],
-        "type": "object"
-      },
-      "category": "write",
-      "execution_mapping": "DomainActionExecutor.DispatchOrder.reassign",
-      "object_type": "DispatchOrder",
-      "ontology_version": "flight-ops.v1",
-      "required_permissions": [
-        "dispatch:admin"
-      ],
-      "risk_level": "high"
-    },
     "DispatchOrder.recommend_replan": {
       "action_name": "recommend_replan",
       "approval_policy": "require_approval",
@@ -191,6 +374,25 @@
         "dispatch:write"
       ],
       "risk_level": "medium"
+    },
+    "DispatchOrder.remove_slot": {
+      "action_name": "remove_slot",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id",
+          "slot_code"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.DispatchOrder.remove_slot",
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
     },
     "DispatchOrder.suggest_replan": {
       "action_name": "suggest_replan",
@@ -211,6 +413,25 @@
       ],
       "risk_level": "high"
     },
+    "DispatchOrder.unassign_slot": {
+      "action_name": "unassign_slot",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "dispatch_order_id",
+          "slot_code"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.DispatchOrder.unassign_slot",
+      "object_type": "DispatchOrder",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
+    },
     "DispatchOrder.update_status": {
       "action_name": "update_status",
       "approval_policy": "require_approval",
@@ -229,6 +450,58 @@
         "dispatch:write"
       ],
       "risk_level": "medium"
+    },
+    "EquipmentType.create": {
+      "action_name": "create",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "EquipmentType",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:manage"
+      ],
+      "risk_level": "low"
+    },
+    "EquipmentType.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "equipment_type_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "EquipmentType",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Flight.add_label": {
+      "action_name": "add_label",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "label_code"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Flight.add_label",
+      "object_type": "Flight",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "flight:write"
+      ],
+      "risk_level": "low"
     },
     "Flight.add_note": {
       "action_name": "add_note",
@@ -372,63 +645,115 @@
       ],
       "risk_level": "high"
     },
-    "Label.add": {
-      "action_name": "add",
+    "Gate.get_context": {
+      "action_name": "get_context",
       "approval_policy": "auto_execute",
       "arguments_schema": {
         "required": [
-          "flight_id",
-          "label"
+          "gate_id"
         ],
         "type": "object"
       },
-      "category": "write",
-      "execution_mapping": "DomainActionExecutor.Label.add",
-      "object_type": "Label",
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Gate",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "flight:write"
+        "ontology:read"
       ],
       "risk_level": "low"
     },
-    "Notification.send": {
-      "action_name": "send",
+    "GateAssignment.allocate": {
+      "action_name": "allocate",
       "approval_policy": "require_approval",
       "arguments_schema": {
         "required": [
-          "user_id",
-          "title",
-          "body"
+          "gate_code",
+          "flight_id",
+          "starts_at",
+          "ends_at"
         ],
         "type": "object"
       },
       "category": "write",
-      "execution_mapping": "DomainActionExecutor.Notification.send",
-      "object_type": "Notification",
+      "execution_mapping": "DomainActionExecutor.GateAssignment.allocate",
+      "object_type": "GateAssignment",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "notification:send"
+        "ontology:gate.manage"
       ],
       "risk_level": "medium"
     },
-    "Notification.suggest_broadcast": {
-      "action_name": "suggest_broadcast",
-      "approval_policy": "require_approval",
+    "GateAssignment.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
       "arguments_schema": {
         "required": [
-          "title",
-          "body"
+          "assignment_id"
         ],
         "type": "object"
       },
-      "category": "advisory",
+      "category": "read",
       "execution_mapping": null,
-      "object_type": "Notification",
+      "object_type": "GateAssignment",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "notification:send"
+        "ontology:read"
       ],
-      "risk_level": "medium"
+      "risk_level": "low"
+    },
+    "GateAssignment.release": {
+      "action_name": "release",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.GateAssignment.release",
+      "object_type": "GateAssignment",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:gate.manage"
+      ],
+      "risk_level": "low"
+    },
+    "Personnel.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Personnel",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Personnel.update_status": {
+      "action_name": "update_status",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "user_id",
+          "current_status"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Personnel.update_status",
+      "object_type": "Personnel",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:personnel.manage"
+      ],
+      "risk_level": "low"
     },
     "Report.generate_briefing": {
       "action_name": "generate_briefing",
@@ -483,75 +808,344 @@
       ],
       "risk_level": "medium"
     },
-    "Team.assign_task": {
-      "action_name": "assign_task",
-      "approval_policy": "auto_execute",
+    "StandOccupation.adjust": {
+      "action_name": "adjust",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.StandOccupation.adjust",
+      "object_type": "StandOccupation",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:stand.manage"
+      ],
+      "risk_level": "medium"
+    },
+    "StandOccupation.allocate": {
+      "action_name": "allocate",
+      "approval_policy": "require_approval",
       "arguments_schema": {
         "required": [
-          "task_id"
+          "stand_code",
+          "registration",
+          "starts_at",
+          "ends_at"
         ],
         "type": "object"
       },
       "category": "write",
-      "execution_mapping": "DomainActionExecutor.Team.assign_task",
-      "object_type": "Team",
+      "execution_mapping": "DomainActionExecutor.StandOccupation.allocate",
+      "object_type": "StandOccupation",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "dispatch:write"
+        "ontology:stand.manage"
       ],
       "risk_level": "medium"
     },
-    "Todo.complete": {
-      "action_name": "complete",
+    "StandOccupation.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "occupation_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "StandOccupation",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "StandOccupation.release": {
+      "action_name": "release",
       "approval_policy": "auto_execute",
       "arguments_schema": {
         "required": [],
         "type": "object"
       },
       "category": "write",
-      "execution_mapping": "DomainActionExecutor.Todo.complete",
-      "object_type": "Todo",
+      "execution_mapping": "DomainActionExecutor.StandOccupation.release",
+      "object_type": "StandOccupation",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "todo:write"
+        "ontology:stand.manage"
       ],
       "risk_level": "low"
     },
-    "Todo.create": {
+    "TaskType.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "task_type_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "TaskType",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Team.add_member": {
+      "action_name": "add_member",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "team_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Team.add_member",
+      "object_type": "Team",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
+    },
+    "Team.change_location": {
+      "action_name": "change_location",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Team.change_location",
+      "object_type": "Team",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
+    },
+    "Team.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "Team",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Team.remove_member": {
+      "action_name": "remove_member",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "team_id",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Team.remove_member",
+      "object_type": "Team",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
+    },
+    "Team.update_status": {
+      "action_name": "update_status",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "team_id",
+          "current_status"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Team.update_status",
+      "object_type": "Team",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "dispatch:manage"
+      ],
+      "risk_level": "low"
+    },
+    "TurnaroundLink.break": {
+      "action_name": "break",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "TurnaroundLink",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:turnaround.manage"
+      ],
+      "risk_level": "low"
+    },
+    "TurnaroundLink.create": {
+      "action_name": "create",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "TurnaroundLink",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:turnaround.create"
+      ],
+      "risk_level": "low"
+    },
+    "TurnaroundLink.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "link_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "TurnaroundLink",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "terminal.add_stand": {
+      "action_name": "add_stand",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "stand_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "terminal",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:manage"
+      ],
+      "risk_level": "low"
+    },
+    "terminal.create": {
       "action_name": "create",
       "approval_policy": "auto_execute",
       "arguments_schema": {
         "required": [
-          "title"
+          "code",
+          "name"
         ],
         "type": "object"
       },
       "category": "write",
-      "execution_mapping": "DomainActionExecutor.Todo.create",
-      "object_type": "Todo",
+      "execution_mapping": null,
+      "object_type": "terminal",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "todo:write"
+        "ontology:manage"
       ],
       "risk_level": "low"
     },
-    "Workflow.start": {
-      "action_name": "start",
+    "terminal.deactivate": {
+      "action_name": "deactivate",
+      "approval_policy": "require_approval",
+      "arguments_schema": {
+        "required": [],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "terminal",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:manage"
+      ],
+      "risk_level": "medium"
+    },
+    "terminal.get_context": {
+      "action_name": "get_context",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "terminal_id"
+        ],
+        "type": "object"
+      },
+      "category": "read",
+      "execution_mapping": null,
+      "object_type": "terminal",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "terminal.remove_stand": {
+      "action_name": "remove_stand",
       "approval_policy": "require_approval",
       "arguments_schema": {
         "required": [
-          "workflow_template_id"
+          "stand_id"
         ],
         "type": "object"
       },
       "category": "write",
-      "execution_mapping": "DomainActionExecutor.Workflow.start",
-      "object_type": "Workflow",
+      "execution_mapping": null,
+      "object_type": "terminal",
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
-        "workflow:start"
+        "ontology:manage"
       ],
-      "risk_level": "high"
+      "risk_level": "medium"
+    },
+    "terminal.update_profile": {
+      "action_name": "update_profile",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "terminal_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": null,
+      "object_type": "terminal",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:manage"
+      ],
+      "risk_level": "low"
     }
   },
   "constraints": [
@@ -565,15 +1159,6 @@
       "object_type": "Flight"
     },
     {
-      "action_name": "add",
-      "constraint": {
-        "constraint_type": "Precondition",
-        "description": "Label definition must exist",
-        "expression": "label.exists()"
-      },
-      "object_type": "Label"
-    },
-    {
       "action_name": "reserve",
       "constraint": {
         "constraint_type": "Precondition",
@@ -581,11 +1166,85 @@
         "expression": "is_available == true"
       },
       "object_type": "Stand"
+    },
+    {
+      "action_name": "deactivate",
+      "constraint": {
+        "constraint_type": "Precondition",
+        "description": "No active stand/gate/carousel occupations",
+        "expression": "no_active_occupations()"
+      },
+      "object_type": "terminal"
     }
   ],
   "description": "Flight Operations Ontology Schema V1",
   "exported_at": "2026-05-11T00:00:00Z",
   "objects": {
+    "Aircraft": {
+      "actions": {
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read aircraft details including current occupation.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "registration": {
+              "description": "Registration number",
+              "name": "registration",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "registration"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "reassign": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Reassign aircraft to a different stand/gate",
+          "execution_mapping": "DomainActionExecutor.Aircraft.reassign",
+          "idempotency_key_strategy": "client_action_id",
+          "name": "reassign",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:aircraft.manage"
+          ],
+          "risk_level": "medium"
+        }
+      },
+      "description": "Running aircraft object - not in resource management",
+      "fields": {
+        "registration": {
+          "description": "Aircraft registration (唯一标识)",
+          "field_type": "String",
+          "name": "registration",
+          "required": true
+        }
+      },
+      "name": "Aircraft",
+      "object_id_strategy": "registration",
+      "relations": {}
+    },
     "Anomaly": {
       "actions": {
         "acknowledge": {
@@ -754,6 +1413,63 @@
       "object_id_strategy": "anomaly_id",
       "relations": {}
     },
+    "BaggageCarousel": {
+      "actions": {
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read the full context of a carousel including current assignments.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "carousel_id": {
+              "description": "Carousel to inspect",
+              "name": "carousel_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "carousel_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Baggage claim carousel (行李转盘)",
+      "fields": {
+        "carousel_id": {
+          "description": "Unique identifier for the carousel",
+          "field_type": "String",
+          "name": "carousel_id",
+          "required": true
+        },
+        "code": {
+          "description": "Carousel code (e.g., C01)",
+          "field_type": "String",
+          "name": "code",
+          "required": true
+        },
+        "is_active": {
+          "description": "Whether the carousel is active",
+          "field_type": "Boolean",
+          "name": "is_active",
+          "required": true
+        }
+      },
+      "name": "BaggageCarousel",
+      "object_id_strategy": "carousel_id",
+      "relations": {}
+    },
     "BusinessCase": {
       "actions": {
         "close_case": {
@@ -839,8 +1555,379 @@
       "object_id_strategy": "business_case_id",
       "relations": {}
     },
+    "CarouselAssignment": {
+      "actions": {
+        "allocate": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Assign carousel to flight (NO business constraints - unlimited concurrent assignments allowed)",
+          "execution_mapping": "DomainActionExecutor.CarouselAssignment.allocate",
+          "idempotency_key_strategy": "client_action_id",
+          "name": "allocate",
+          "parameters": {
+            "carousel_code": {
+              "description": "Carousel code",
+              "name": "carousel_code",
+              "param_type": "String",
+              "required": true
+            },
+            "client_action_id": {
+              "description": "Idempotency token",
+              "name": "client_action_id",
+              "param_type": "String",
+              "required": false
+            },
+            "ends_at": {
+              "description": "ISO8601 end",
+              "name": "ends_at",
+              "param_type": "String",
+              "required": true
+            },
+            "flight_id": {
+              "description": "Flight ID",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "starts_at": {
+              "description": "ISO8601 start",
+              "name": "starts_at",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "carousel_code",
+              "flight_id",
+              "starts_at",
+              "ends_at"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:carousel.manage"
+          ],
+          "risk_level": "low"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read assignment details.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "assignment_id": {
+              "description": "Assignment to inspect",
+              "name": "assignment_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "assignment_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "release": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": {
+            "before_snapshot_required": false,
+            "followup_action_name": null,
+            "followup_args": null,
+            "inverse_action_name": "allocate",
+            "irreversible_fields": [],
+            "mode": "inverse_action",
+            "requires_approval": true
+          },
+          "constraints": [],
+          "description": "Release the carousel assignment",
+          "execution_mapping": "DomainActionExecutor.CarouselAssignment.release",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "release",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:carousel.manage"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Flight baggage claim carousel assignment (no constraints)",
+      "fields": {
+        "assignment_id": {
+          "description": "Unique identifier",
+          "field_type": "String",
+          "name": "assignment_id",
+          "required": true
+        },
+        "carousel_id": {
+          "description": "Carousel identifier",
+          "field_type": "String",
+          "name": "carousel_id",
+          "required": true
+        },
+        "ends_at": {
+          "description": "ISO8601 end time",
+          "field_type": "String",
+          "name": "ends_at",
+          "required": true
+        },
+        "flight_id": {
+          "description": "Flight identifier",
+          "field_type": "String",
+          "name": "flight_id",
+          "required": true
+        },
+        "starts_at": {
+          "description": "ISO8601 start time",
+          "field_type": "String",
+          "name": "starts_at",
+          "required": true
+        },
+        "status": {
+          "description": "draft|active|released",
+          "field_type": "String",
+          "name": "status",
+          "required": true
+        }
+      },
+      "name": "CarouselAssignment",
+      "object_id_strategy": "assignment_id",
+      "relations": {}
+    },
+    "Department": {
+      "actions": {
+        "create": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Create a department",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "create",
+          "parameters": {
+            "code": {
+              "description": "Department code",
+              "name": "code",
+              "param_type": "String",
+              "required": true
+            },
+            "name": {
+              "description": "Department name",
+              "name": "name",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "code",
+              "name"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "low"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read department details including teams and equipment.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "department_id": {
+              "description": "Department to inspect",
+              "name": "department_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "department_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "update_profile": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Update department profile",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_profile",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [
+              "department_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Operational department (科室)",
+      "fields": {
+        "code": {
+          "description": "Department code",
+          "field_type": "String",
+          "name": "code",
+          "required": true
+        },
+        "department_id": {
+          "description": "Unique identifier",
+          "field_type": "String",
+          "name": "department_id",
+          "required": true
+        },
+        "is_active": {
+          "description": "Active status",
+          "field_type": "Boolean",
+          "name": "is_active",
+          "required": true
+        },
+        "manager_id": {
+          "description": "Manager user_id",
+          "field_type": "String",
+          "name": "manager_id",
+          "required": false
+        },
+        "name": {
+          "description": "Department name",
+          "field_type": "String",
+          "name": "name",
+          "required": true
+        }
+      },
+      "name": "Department",
+      "object_id_strategy": "department_id",
+      "relations": {}
+    },
     "DispatchOrder": {
       "actions": {
+        "add_slot": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Add a new slot to this dispatch order",
+          "execution_mapping": "DomainActionExecutor.DispatchOrder.add_slot",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "add_slot",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order ID",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            },
+            "slot_code": {
+              "description": "New slot code",
+              "name": "slot_code",
+              "param_type": "String",
+              "required": true
+            },
+            "slot_name": {
+              "description": "Slot display name",
+              "name": "slot_name",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id",
+              "slot_code"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
+        },
+        "assign_slot": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Assign personnel to a named slot (slot_code). Same department, on_duty, qualified.",
+          "execution_mapping": "DomainActionExecutor.DispatchOrder.assign_slot",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "assign_slot",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order ID",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            },
+            "slot_code": {
+              "description": "Slot code to assign",
+              "name": "slot_code",
+              "param_type": "String",
+              "required": true
+            },
+            "user_id": {
+              "description": "Personnel user_id",
+              "name": "user_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id",
+              "slot_code",
+              "user_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "medium"
+        },
         "get_status": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
@@ -890,35 +1977,6 @@
           ],
           "risk_level": "high"
         },
-        "reassign": {
-          "approval_policy": "require_approval",
-          "approval_strategy": "require_approval",
-          "category": "write",
-          "compensation": null,
-          "constraints": [],
-          "description": "Reassign the dispatch order to another team or user",
-          "execution_mapping": "DomainActionExecutor.DispatchOrder.reassign",
-          "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "reassign",
-          "parameters": {
-            "assignee_id": {
-              "description": "Target team or user ID",
-              "name": "assignee_id",
-              "param_type": "String",
-              "required": true
-            }
-          },
-          "parameters_schema": {
-            "required": [
-              "assignee_id"
-            ],
-            "type": "object"
-          },
-          "required_permissions": [
-            "dispatch:admin"
-          ],
-          "risk_level": "high"
-        },
         "recommend_replan": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
@@ -947,6 +2005,42 @@
             "dispatch:write"
           ],
           "risk_level": "medium"
+        },
+        "remove_slot": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Remove a slot from this dispatch order",
+          "execution_mapping": "DomainActionExecutor.DispatchOrder.remove_slot",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "remove_slot",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order ID",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            },
+            "slot_code": {
+              "description": "Slot code to remove",
+              "name": "slot_code",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id",
+              "slot_code"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
         },
         "suggest_replan": {
           "approval_policy": "require_approval",
@@ -989,6 +2083,42 @@
             "dispatch:read"
           ],
           "risk_level": "high"
+        },
+        "unassign_slot": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Unassign personnel from a slot",
+          "execution_mapping": "DomainActionExecutor.DispatchOrder.unassign_slot",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "unassign_slot",
+          "parameters": {
+            "dispatch_order_id": {
+              "description": "Dispatch order ID",
+              "name": "dispatch_order_id",
+              "param_type": "String",
+              "required": true
+            },
+            "slot_code": {
+              "description": "Slot code to unassign",
+              "name": "slot_code",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "dispatch_order_id",
+              "slot_code"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
         },
         "update_status": {
           "approval_policy": "require_approval",
@@ -1075,8 +2205,132 @@
       "object_id_strategy": "equipment_id",
       "relations": {}
     },
+    "EquipmentType": {
+      "actions": {
+        "create": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Create an equipment type",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "create",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "low"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read equipment type details.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "equipment_type_id": {
+              "description": "Type to inspect",
+              "name": "equipment_type_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "equipment_type_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Ground handling equipment type classification",
+      "fields": {
+        "code": {
+          "description": "Equipment type code",
+          "field_type": "String",
+          "name": "code",
+          "required": true
+        },
+        "equipment_type_id": {
+          "description": "Unique identifier",
+          "field_type": "String",
+          "name": "equipment_type_id",
+          "required": true
+        },
+        "is_active": {
+          "description": "Active status",
+          "field_type": "Boolean",
+          "name": "is_active",
+          "required": true
+        },
+        "name": {
+          "description": "Equipment type name",
+          "field_type": "String",
+          "name": "name",
+          "required": true
+        },
+        "requires_driver": {
+          "description": "Requires qualified driver",
+          "field_type": "Boolean",
+          "name": "requires_driver",
+          "required": true
+        }
+      },
+      "name": "EquipmentType",
+      "object_id_strategy": "equipment_type_id",
+      "relations": {}
+    },
     "Flight": {
       "actions": {
+        "add_label": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Attach a label definition code to a flight (replaces deprecated Label object)",
+          "execution_mapping": "DomainActionExecutor.Flight.add_label",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "add_label",
+          "parameters": {
+            "label_code": {
+              "description": "Label definition code to attach",
+              "name": "label_code",
+              "param_type": "String",
+              "required": true
+            },
+            "reason": {
+              "description": "Optional reason for adding label",
+              "name": "reason",
+              "param_type": "String",
+              "required": false
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "label_code"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "flight:write"
+          ],
+          "risk_level": "low"
+        },
         "add_note": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
@@ -1423,122 +2677,272 @@
       "object_id_strategy": "flight_id",
       "relations": {}
     },
-    "FlightLeg": {
-      "actions": {},
-      "description": "A single leg of a flight",
-      "fields": {
-        "direction": {
-          "description": "Arrival or Departure",
-          "field_type": "String",
-          "name": "direction",
-          "required": true
-        },
-        "leg_id": {
-          "description": "Unique identifier",
-          "field_type": "String",
-          "name": "leg_id",
-          "required": true
-        }
-      },
-      "name": "FlightLeg",
-      "object_id_strategy": "leg_id",
-      "relations": {}
-    },
-    "Label": {
+    "Gate": {
       "actions": {
-        "add": {
+        "get_context": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
-          "category": "write",
+          "category": "read",
           "compensation": null,
-          "constraints": [
-            {
-              "constraint_type": "Precondition",
-              "description": "Label definition must exist",
-              "expression": "label.exists()"
-            }
-          ],
-          "description": "Attach an existing label definition to a flight",
-          "execution_mapping": "DomainActionExecutor.Label.add",
-          "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "add",
+          "constraints": [],
+          "description": "Read the full context of a gate including current assignments.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
           "parameters": {
-            "flight_id": {
-              "description": "Flight to label",
-              "name": "flight_id",
-              "param_type": "String",
-              "required": true
-            },
-            "label": {
-              "description": "Label definition code",
-              "name": "label",
+            "gate_id": {
+              "description": "Gate to inspect",
+              "name": "gate_id",
               "param_type": "String",
               "required": true
             }
           },
           "parameters_schema": {
             "required": [
-              "flight_id",
-              "label"
+              "gate_id"
             ],
             "type": "object"
           },
           "required_permissions": [
-            "flight:write"
+            "ontology:read"
           ],
           "risk_level": "low"
         }
       },
-      "description": "Flight label definition / attachment",
+      "description": "Airport departure gate (登机口)",
       "fields": {
-        "label_code": {
-          "description": "Label definition code",
+        "code": {
+          "description": "Gate code (e.g., G01)",
           "field_type": "String",
-          "name": "label_code",
+          "name": "code",
+          "required": true
+        },
+        "gate_id": {
+          "description": "Unique identifier for the gate",
+          "field_type": "String",
+          "name": "gate_id",
+          "required": true
+        },
+        "is_active": {
+          "description": "Whether the gate is active",
+          "field_type": "Boolean",
+          "name": "is_active",
           "required": true
         }
       },
-      "name": "Label",
-      "object_id_strategy": "label_code",
+      "name": "Gate",
+      "object_id_strategy": "gate_id",
       "relations": {}
     },
-    "Notification": {
+    "GateAssignment": {
       "actions": {
-        "send": {
+        "allocate": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Assign a gate to a flight (subject: flight_id REQUIRED)",
+          "execution_mapping": "DomainActionExecutor.GateAssignment.allocate",
+          "idempotency_key_strategy": "client_action_id",
+          "name": "allocate",
+          "parameters": {
+            "client_action_id": {
+              "description": "Idempotency token",
+              "name": "client_action_id",
+              "param_type": "String",
+              "required": false
+            },
+            "ends_at": {
+              "description": "ISO8601 end",
+              "name": "ends_at",
+              "param_type": "String",
+              "required": true
+            },
+            "flight_id": {
+              "description": "Flight ID",
+              "name": "flight_id",
+              "param_type": "String",
+              "required": true
+            },
+            "gate_code": {
+              "description": "Gate code",
+              "name": "gate_code",
+              "param_type": "String",
+              "required": true
+            },
+            "starts_at": {
+              "description": "ISO8601 start",
+              "name": "starts_at",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "gate_code",
+              "flight_id",
+              "starts_at",
+              "ends_at"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:gate.manage"
+          ],
+          "risk_level": "medium"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read assignment details.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "assignment_id": {
+              "description": "Assignment to inspect",
+              "name": "assignment_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "assignment_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "release": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
           "category": "write",
           "compensation": {
             "before_snapshot_required": false,
             "followup_action_name": null,
             "followup_args": null,
-            "inverse_action_name": null,
-            "irreversible_fields": [
-              "body"
-            ],
-            "mode": "irreversible",
+            "inverse_action_name": "allocate",
+            "irreversible_fields": [],
+            "mode": "inverse_action",
             "requires_approval": true
           },
           "constraints": [],
-          "description": "Send a governed notification",
-          "execution_mapping": "DomainActionExecutor.Notification.send",
+          "description": "Release the gate assignment",
+          "execution_mapping": "DomainActionExecutor.GateAssignment.release",
           "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "send",
+          "name": "release",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:gate.manage"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Flight assignment to a departure gate",
+      "fields": {
+        "assignment_id": {
+          "description": "Unique identifier",
+          "field_type": "String",
+          "name": "assignment_id",
+          "required": true
+        },
+        "ends_at": {
+          "description": "ISO8601 end time",
+          "field_type": "String",
+          "name": "ends_at",
+          "required": true
+        },
+        "flight_id": {
+          "description": "Flight identifier (REQUIRED, not optional)",
+          "field_type": "String",
+          "name": "flight_id",
+          "required": true
+        },
+        "gate_id": {
+          "description": "Gate identifier",
+          "field_type": "String",
+          "name": "gate_id",
+          "required": true
+        },
+        "starts_at": {
+          "description": "ISO8601 start time",
+          "field_type": "String",
+          "name": "starts_at",
+          "required": true
+        },
+        "status": {
+          "description": "draft|active|released",
+          "field_type": "String",
+          "name": "status",
+          "required": true
+        }
+      },
+      "name": "GateAssignment",
+      "object_id_strategy": "assignment_id",
+      "relations": {}
+    },
+    "Personnel": {
+      "actions": {
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read personnel details including qualifications and runtime status.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
           "parameters": {
-            "body": {
-              "description": "Notification body",
-              "name": "body",
+            "user_id": {
+              "description": "User ID",
+              "name": "user_id",
               "param_type": "String",
               "required": true
-            },
-            "title": {
-              "description": "Notification title",
-              "name": "title",
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "user_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "update_status": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Update on_duty/off_duty/break status",
+          "execution_mapping": "DomainActionExecutor.Personnel.update_status",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_status",
+          "parameters": {
+            "current_status": {
+              "description": "on_duty|off_duty|break",
+              "name": "current_status",
               "param_type": "String",
               "required": true
             },
             "user_id": {
-              "description": "Notification user_id",
+              "description": "User ID",
               "name": "user_id",
               "param_type": "String",
               "required": true
@@ -1547,76 +2951,39 @@
           "parameters_schema": {
             "required": [
               "user_id",
-              "title",
-              "body"
+              "current_status"
             ],
             "type": "object"
           },
           "required_permissions": [
-            "notification:send"
+            "ontology:personnel.manage"
           ],
-          "risk_level": "medium"
-        },
-        "suggest_broadcast": {
-          "approval_policy": "require_approval",
-          "approval_strategy": "require_approval",
-          "category": "advisory",
-          "compensation": null,
-          "constraints": [],
-          "description": "Generate a broadcast notification proposal without sending side effects.",
-          "execution_mapping": null,
-          "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "suggest_broadcast",
-          "parameters": {
-            "body": {
-              "description": "Broadcast body",
-              "name": "body",
-              "param_type": "String",
-              "required": true
-            },
-            "department_id": {
-              "description": "Required when scope=department",
-              "name": "department_id",
-              "param_type": "String",
-              "required": false
-            },
-            "scope": {
-              "description": "all|on_duty_teams|department",
-              "name": "scope",
-              "param_type": "String",
-              "required": false
-            },
-            "title": {
-              "description": "Broadcast title",
-              "name": "title",
-              "param_type": "String",
-              "required": true
-            }
-          },
-          "parameters_schema": {
-            "required": [
-              "title",
-              "body"
-            ],
-            "type": "object"
-          },
-          "required_permissions": [
-            "notification:send"
-          ],
-          "risk_level": "medium"
+          "risk_level": "low"
         }
       },
-      "description": "System notification",
+      "description": "Operational personnel (作业身份) - only for personal accounts",
       "fields": {
-        "notification_id": {
-          "description": "Notification ID",
+        "department_id": {
+          "description": "所属科室",
           "field_type": "String",
-          "name": "notification_id",
+          "name": "department_id",
+          "required": true
+        },
+        "name": {
+          "description": "Personal name",
+          "field_type": "String",
+          "name": "name",
+          "required": true
+        },
+        "user_id": {
+          "description": "User ID (must be personal account type)",
+          "field_type": "String",
+          "name": "user_id",
           "required": true
         }
       },
-      "name": "Notification",
-      "object_id_strategy": "notification_id",
+      "name": "Personnel",
+      "object_id_strategy": "user_id",
       "relations": {}
     },
     "Report": {
@@ -1767,44 +3134,471 @@
       "object_id_strategy": "stand_id",
       "relations": {}
     },
-    "Team": {
+    "StandOccupation": {
       "actions": {
-        "assign_task": {
-          "approval_policy": "auto_execute",
-          "approval_strategy": "auto_approve",
+        "adjust": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
           "category": "write",
           "compensation": null,
           "constraints": [],
-          "description": "Assign a task to the team",
-          "execution_mapping": "DomainActionExecutor.Team.assign_task",
+          "description": "Adjust occupation time window or registration",
+          "execution_mapping": "DomainActionExecutor.StandOccupation.adjust",
           "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "assign_task",
+          "name": "adjust",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:stand.manage"
+          ],
+          "risk_level": "medium"
+        },
+        "allocate": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Allocate a stand to an aircraft (hard constraint: stand must exist and be in active terminal)",
+          "execution_mapping": "DomainActionExecutor.StandOccupation.allocate",
+          "idempotency_key_strategy": "client_action_id",
+          "name": "allocate",
           "parameters": {
-            "task_id": {
-              "description": "Task ID",
-              "name": "task_id",
+            "client_action_id": {
+              "description": "Idempotency token",
+              "name": "client_action_id",
+              "param_type": "String",
+              "required": false
+            },
+            "ends_at": {
+              "description": "ISO8601 end",
+              "name": "ends_at",
+              "param_type": "String",
+              "required": true
+            },
+            "registration": {
+              "description": "Aircraft registration",
+              "name": "registration",
+              "param_type": "String",
+              "required": false
+            },
+            "stand_code": {
+              "description": "Stand code",
+              "name": "stand_code",
+              "param_type": "String",
+              "required": true
+            },
+            "starts_at": {
+              "description": "ISO8601 start",
+              "name": "starts_at",
               "param_type": "String",
               "required": true
             }
           },
           "parameters_schema": {
             "required": [
-              "task_id"
+              "stand_code",
+              "registration",
+              "starts_at",
+              "ends_at"
             ],
             "type": "object"
           },
           "required_permissions": [
-            "dispatch:write"
+            "ontology:stand.manage"
           ],
           "risk_level": "medium"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read occupation details.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "occupation_id": {
+              "description": "Occupation to inspect",
+              "name": "occupation_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "occupation_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "release": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": {
+            "before_snapshot_required": false,
+            "followup_action_name": null,
+            "followup_args": null,
+            "inverse_action_name": "allocate",
+            "irreversible_fields": [],
+            "mode": "inverse_action",
+            "requires_approval": true
+          },
+          "constraints": [],
+          "description": "Release the occupation",
+          "execution_mapping": "DomainActionExecutor.StandOccupation.release",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "release",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:stand.manage"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Aircraft occupation of a stand",
+      "fields": {
+        "ends_at": {
+          "description": "ISO8601 end time",
+          "field_type": "String",
+          "name": "ends_at",
+          "required": true
+        },
+        "flight_id": {
+          "description": "Related flight (optional)",
+          "field_type": "String",
+          "name": "flight_id",
+          "required": false
+        },
+        "occupation_id": {
+          "description": "Unique identifier for the occupation",
+          "field_type": "String",
+          "name": "occupation_id",
+          "required": true
+        },
+        "registration": {
+          "description": "Aircraft registration",
+          "field_type": "String",
+          "name": "registration",
+          "required": true
+        },
+        "stand_id": {
+          "description": "Stand identifier",
+          "field_type": "String",
+          "name": "stand_id",
+          "required": true
+        },
+        "starts_at": {
+          "description": "ISO8601 start time",
+          "field_type": "String",
+          "name": "starts_at",
+          "required": true
+        },
+        "status": {
+          "description": "draft|active|released",
+          "field_type": "String",
+          "name": "status",
+          "required": true
+        }
+      },
+      "name": "StandOccupation",
+      "object_id_strategy": "occupation_id",
+      "relations": {}
+    },
+    "TaskType": {
+      "actions": {
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read task type details.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "task_type_id": {
+              "description": "Type to inspect",
+              "name": "task_type_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "task_type_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        }
+      },
+      "description": "Ground handling task type directory",
+      "fields": {
+        "code": {
+          "description": "Task type code",
+          "field_type": "String",
+          "name": "code",
+          "required": true
+        },
+        "is_active": {
+          "description": "Active status",
+          "field_type": "Boolean",
+          "name": "is_active",
+          "required": true
+        },
+        "name": {
+          "description": "Task name (e.g., 接机/客梯/清洁)",
+          "field_type": "String",
+          "name": "name",
+          "required": true
+        },
+        "task_type_id": {
+          "description": "Unique identifier",
+          "field_type": "String",
+          "name": "task_type_id",
+          "required": true
+        }
+      },
+      "name": "TaskType",
+      "object_id_strategy": "task_type_id",
+      "relations": {}
+    },
+    "Team": {
+      "actions": {
+        "add_member": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Add a personnel to team (must be same department). Returns 409 if cross-department or not personal account",
+          "execution_mapping": "DomainActionExecutor.Team.add_member",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "add_member",
+          "parameters": {
+            "team_id": {
+              "description": "Team ID",
+              "name": "team_id",
+              "param_type": "String",
+              "required": true
+            },
+            "user_id": {
+              "description": "Personnel user_id",
+              "name": "user_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "team_id",
+              "user_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
+        },
+        "change_location": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Change team location",
+          "execution_mapping": "DomainActionExecutor.Team.change_location",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "change_location",
+          "parameters": {
+            "location": {
+              "description": "New location",
+              "name": "location",
+              "param_type": "String",
+              "required": false
+            },
+            "team_id": {
+              "description": "Team ID",
+              "name": "team_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "team_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read team details including members and runtime status.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "team_id": {
+              "description": "Team to inspect",
+              "name": "team_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "team_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "remove_member": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Remove a personnel from team",
+          "execution_mapping": "DomainActionExecutor.Team.remove_member",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "remove_member",
+          "parameters": {
+            "team_id": {
+              "description": "Team ID",
+              "name": "team_id",
+              "param_type": "String",
+              "required": true
+            },
+            "user_id": {
+              "description": "Personnel user_id",
+              "name": "user_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "team_id",
+              "user_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
+        },
+        "update_status": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Update on_duty/off_duty/break status for multiple members (代签支持)",
+          "execution_mapping": "DomainActionExecutor.Team.update_status",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_status",
+          "parameters": {
+            "current_status": {
+              "description": "on_duty|off_duty|break",
+              "name": "current_status",
+              "param_type": "String",
+              "required": true
+            },
+            "member_user_ids": {
+              "description": "List of member user IDs",
+              "name": "member_user_ids",
+              "param_type": "String",
+              "required": false
+            },
+            "team_id": {
+              "description": "Team ID",
+              "name": "team_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "team_id",
+              "current_status"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "dispatch:manage"
+          ],
+          "risk_level": "low"
         }
       },
       "description": "Ground handling team",
       "fields": {
-        "status": {
-          "description": "Team status",
+        "code": {
+          "description": "Team code",
           "field_type": "String",
-          "name": "status",
+          "name": "code",
+          "required": true
+        },
+        "current_status": {
+          "description": "on_duty|off_duty|break",
+          "field_type": "String",
+          "name": "current_status",
+          "required": true
+        },
+        "department_id": {
+          "description": "所属科室 (REQUIRED)",
+          "field_type": "String",
+          "name": "department_id",
+          "required": true
+        },
+        "is_active": {
+          "description": "Active status",
+          "field_type": "Boolean",
+          "name": "is_active",
+          "required": true
+        },
+        "leader_id": {
+          "description": "Team leader user_id",
+          "field_type": "String",
+          "name": "leader_id",
+          "required": false
+        },
+        "name": {
+          "description": "Team name",
+          "field_type": "String",
+          "name": "name",
           "required": true
         },
         "team_id": {
@@ -1818,33 +3612,25 @@
       "object_id_strategy": "team_id",
       "relations": {}
     },
-    "Todo": {
+    "TurnaroundLink": {
       "actions": {
-        "complete": {
+        "break": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
           "category": "write",
-          "compensation": {
-            "before_snapshot_required": false,
-            "followup_action_name": null,
-            "followup_args": null,
-            "inverse_action_name": "Todo.reopen",
-            "irreversible_fields": [],
-            "mode": "inverse_action",
-            "requires_approval": false
-          },
+          "compensation": null,
           "constraints": [],
-          "description": "Complete a todo item",
-          "execution_mapping": "DomainActionExecutor.Todo.complete",
+          "description": "Break the turnaround link",
+          "execution_mapping": null,
           "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "complete",
+          "name": "break",
           "parameters": {},
           "parameters_schema": {
             "required": [],
             "type": "object"
           },
           "required_permissions": [
-            "todo:write"
+            "ontology:turnaround.manage"
           ],
           "risk_level": "low"
         },
@@ -1854,98 +3640,297 @@
           "category": "write",
           "compensation": null,
           "constraints": [],
-          "description": "Create a todo item",
-          "execution_mapping": "DomainActionExecutor.Todo.create",
+          "description": "Create a turnaround link between two flights",
+          "execution_mapping": null,
           "idempotency_key_strategy": "job_id:object_id:action_name",
           "name": "create",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:turnaround.create"
+          ],
+          "risk_level": "low"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read turnaround link details.",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
           "parameters": {
-            "title": {
-              "description": "Todo title",
-              "name": "title",
+            "link_id": {
+              "description": "Link to inspect",
+              "name": "link_id",
               "param_type": "String",
               "required": true
             }
           },
           "parameters_schema": {
             "required": [
-              "title"
+              "link_id"
             ],
             "type": "object"
           },
           "required_permissions": [
-            "todo:write"
+            "ontology:read"
           ],
           "risk_level": "low"
         }
       },
-      "description": "User to-do item",
+      "description": "Turnaround chain connecting inbound/outbound flights (same aircraft, NOT passenger connection)",
       "fields": {
-        "todo_id": {
-          "description": "Todo ID",
+        "inbound_flight_id": {
+          "description": "Inbound flight ID",
           "field_type": "String",
-          "name": "todo_id",
+          "name": "inbound_flight_id",
+          "required": true
+        },
+        "link_id": {
+          "description": "Unique identifier",
+          "field_type": "String",
+          "name": "link_id",
+          "required": true
+        },
+        "outbound_flight_id": {
+          "description": "Outbound flight ID",
+          "field_type": "String",
+          "name": "outbound_flight_id",
           "required": true
         }
       },
-      "name": "Todo",
-      "object_id_strategy": "todo_id",
+      "name": "TurnaroundLink",
+      "object_id_strategy": "link_id",
       "relations": {}
     },
-    "Workflow": {
+    "terminal": {
       "actions": {
-        "start": {
+        "add_stand": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Add a stand to this terminal's member table",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "add_stand",
+          "parameters": {
+            "stand_id": {
+              "description": "Stand ID to add",
+              "name": "stand_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "stand_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "low"
+        },
+        "create": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Create a terminal definition",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "create",
+          "parameters": {
+            "code": {
+              "description": "Terminal code like T1",
+              "name": "code",
+              "param_type": "String",
+              "required": true
+            },
+            "name": {
+              "description": "Terminal display name",
+              "name": "name",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "code",
+              "name"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "low"
+        },
+        "deactivate": {
+          "approval_policy": "require_approval",
+          "approval_strategy": "require_approval",
+          "category": "write",
+          "compensation": null,
+          "constraints": [
+            {
+              "constraint_type": "Precondition",
+              "description": "No active stand/gate/carousel occupations",
+              "expression": "no_active_occupations()"
+            }
+          ],
+          "description": "Deactivate terminal; returns 409 if has active occupations with details",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "deactivate",
+          "parameters": {},
+          "parameters_schema": {
+            "required": [],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "medium"
+        },
+        "get_context": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "read",
+          "compensation": null,
+          "constraints": [],
+          "description": "Read the full context of a terminal including its member resources (stands, gates, carousels).",
+          "execution_mapping": null,
+          "idempotency_key_strategy": null,
+          "name": "get_context",
+          "parameters": {
+            "terminal_id": {
+              "description": "Terminal to inspect",
+              "name": "terminal_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "terminal_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:read"
+          ],
+          "risk_level": "low"
+        },
+        "remove_stand": {
           "approval_policy": "require_approval",
           "approval_strategy": "require_approval",
           "category": "write",
           "compensation": null,
           "constraints": [],
-          "description": "Start a Flowable process instance from a workflow template",
-          "execution_mapping": "DomainActionExecutor.Workflow.start",
+          "description": "Remove a stand from terminal; returns 409 if has active occupations",
+          "execution_mapping": null,
           "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "start",
+          "name": "remove_stand",
           "parameters": {
-            "context": {
-              "description": "Process variables passed to the workflow",
-              "name": "context",
-              "param_type": "Object",
-              "required": false
-            },
-            "flight_id": {
-              "description": "Related flight",
-              "name": "flight_id",
-              "param_type": "String",
-              "required": false
-            },
-            "workflow_template_id": {
-              "description": "Workflow template (process definition key)",
-              "name": "workflow_template_id",
+            "stand_id": {
+              "description": "Stand ID to remove",
+              "name": "stand_id",
               "param_type": "String",
               "required": true
             }
           },
           "parameters_schema": {
             "required": [
-              "workflow_template_id"
+              "stand_id"
             ],
             "type": "object"
           },
           "required_permissions": [
-            "workflow:start"
+            "ontology:manage"
           ],
-          "risk_level": "high"
+          "risk_level": "medium"
+        },
+        "update_profile": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "Update terminal profile fields (name, is_active)",
+          "execution_mapping": null,
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "update_profile",
+          "parameters": {
+            "is_active": {
+              "description": "New active status",
+              "name": "is_active",
+              "param_type": "String",
+              "required": false
+            },
+            "name": {
+              "description": "New name",
+              "name": "name",
+              "param_type": "String",
+              "required": false
+            },
+            "terminal_id": {
+              "description": "Terminal to update",
+              "name": "terminal_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "terminal_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:manage"
+          ],
+          "risk_level": "low"
         }
       },
-      "description": "Flowable business process instance",
+      "description": "Airport terminal building (航站楼)",
       "fields": {
-        "workflow_id": {
-          "description": "Process instance identifier",
+        "code": {
+          "description": "Terminal code (T1/T2/T3)",
           "field_type": "String",
-          "name": "workflow_id",
+          "name": "code",
+          "required": true
+        },
+        "is_active": {
+          "description": "Whether the terminal is active",
+          "field_type": "Boolean",
+          "name": "is_active",
+          "required": true
+        },
+        "name": {
+          "description": "Terminal name",
+          "field_type": "String",
+          "name": "name",
+          "required": true
+        },
+        "terminal_id": {
+          "description": "Unique identifier for the terminal",
+          "field_type": "String",
+          "name": "terminal_id",
           "required": true
         }
       },
-      "name": "Workflow",
-      "object_id_strategy": "workflow_id",
+      "name": "Terminal",
+      "object_id_strategy": "terminal_id",
       "relations": {}
     }
   },

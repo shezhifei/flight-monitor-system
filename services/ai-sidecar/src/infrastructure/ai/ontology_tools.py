@@ -114,19 +114,62 @@ ADVISORY_ACTIONS: frozenset[str] = frozenset(
         "flight.suggest_delay_action",
         "dispatch.suggest_replan",
         "anomaly.suggest_escalation",
-        "notification.suggest_broadcast",
+        # notification.suggest_broadcast removed - Notification object deleted in PR #本体两层改造
     }
 )
 
 #: Controlled write actions. These NEVER execute here: proposal path only.
-CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({"Flight.change_stand"})
+CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({
+    # 新的占用动作 - PR #本体两层改造
+    "stand_occupation.allocate",
+    "stand_occupation.adjust",
+    "stand_occupation.release",
+    "gate_assignment.allocate",
+    "gate_assignment.release",
+    "carousel_assignment.allocate",
+    "carousel_assignment.release",
+    "team.update_status",
+    "team.change_location",
+    "team.add_member",
+    "team.remove_member",
+    "dispatch_order.assign_slot",
+    "dispatch_order.unassign_slot",
+    "dispatch_order.add_slot",
+    "dispatch_order.remove_slot",
+    "aircraft.reassign",
+    "turnaround_link.create",
+    "turnaround_link.break",
+    "department.create",
+    "department.update_profile",
+    "personnel.update_status",
+    "equipment_type.create",
+    "task_type.get_context",
+    # 旧动作已废止：Flight.change_stand removed in PR #本体两层改造
+})
 
 #: entity_id prefix → registered read action + object id argument name.
 _ENTITY_PREFIX_MAP: dict[str, tuple[str, str]] = {
     "flight": ("flight.get_context", "flight_id"),
-    "stand": ("stand.check_availability", "stand_id"),
+    "flight_leg": ("flight_leg.get_context", "leg_id"),  # FlightLeg 不再使用但仍保留查询接口
+    "stand": ("stand.get_context", "stand_id"),
+    "stand_occupation": ("stand_occupation.get_context", "occupation_id"),
+    "gate": ("gate.get_context", "gate_id"),
+    "gate_assignment": ("gate_assignment.get_context", "assignment_id"),
+    "baggage_carousel": ("baggage_carousel.get_context", "carousel_id"),
+    "carousel_assignment": ("carousel_assignment.get_context", "assignment_id"),
+    "terminal": ("terminal.get_context", "terminal_id"),
     "dispatch": ("dispatch.get_status", "dispatch_order_id"),
-    "anomaly": ("anomaly.list_open", "flight_id"),
+    "dispatch_order": ("dispatch_order.get_status", "order_id"),
+    "anomaly": ("anomaly.list_open", "anomaly_id"),
+    "business_case": ("business_case.get_context", "case_id"),
+    "team": ("team.get_context", "team_id"),
+    "department": ("department.get_context", "department_id"),
+    "personnel": ("personnel.get_context", "user_id"),
+    "equipment": ("equipment.get_context", "equipment_id"),
+    "equipment_type": ("equipment_type.get_context", "equipment_type_id"),
+    "task_type": ("task_type.get_context", "task_type_id"),
+    "aircraft": ("aircraft.get_context", "registration"),
+    "turnaround_link": ("turnaround_link.get_context", "link_id"),
 }
 
 

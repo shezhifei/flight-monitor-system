@@ -522,25 +522,6 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     "status": new_status,
                 }))
             }
-            "DispatchOrder.reassign" => {
-                let assignee_id = required_string(arguments, &["assignee_id", "team_id", "user_id"], "assignee_id")?;
-                let assignee_type = optional_string(arguments, &["assignee_type"])
-                    .or_else(|| arguments.get("team_id").and_then(Value::as_str).map(|_| "team"))
-                    .or_else(|| arguments.get("user_id").and_then(Value::as_str).map(|_| "individual"));
-                let updated = self
-                    .dispatch_writer
-                    .reassign_order_in_tx(tx, object_id, assignee_id, assignee_type, executor_id, Some(arguments))
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
-
-                Ok(serde_json::json!({
-                    "success": true,
-                    "order_id": updated.id,
-                    "assignee_type": updated.assignee_type,
-                    "team_id": updated.team_id,
-                    "individual_user_id": updated.individual_user_id,
-                }))
-            }
             "DispatchOrder.publish" => {
                 let result = self
                     .dispatch_writer
@@ -767,6 +748,16 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     "process_instance_id": process_instance_id,
                 }))
             }
+            // ⏸️ TODO: stand_occupation.allocate/adjust/release (PR #本体两层改造)
+            // ⏸️ TODO: gate_assignment.allocate/release (subject: flight_id REQUIRED)
+            // ⏸️ TODO: carousel_assignment.allocate/release (NO constraints - unlimited allowed)
+            
+            // ⏸️ TODO: team.update_status/change_location/add_member/remove_member
+            // ⏸️ TODO: personnel.update_status/change_location (with department boundary enforcement)
+            // ⏸️ TODO: equipment.assign/release with slot integration
+            
+            // ⏸️ TODO: dispatch_order.assign_slot/unassign_slot/add_slot/remove_slot
+            //         Replace old reassign branch with slot-based assignment model
             _ => Err(DomainActionError::NotFound(format!("unknown action: {}", action_key))),
         }
     }

@@ -252,6 +252,7 @@ mod tests {
     }
 
     #[actix_web::test]
+    #[cfg(unix)]
     async fn pprof_returns_svg_for_loopback_when_enabled() {
         let _guard = ENV_LOCK.lock().expect("env lock");
         std::env::set_var("ENABLE_PROFILING", "true");

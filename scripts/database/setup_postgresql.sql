@@ -4344,45 +4344,48 @@ CREATE INDEX IF NOT EXISTS idx_aip_constraints_object ON aip_constraints(object_
 CREATE INDEX IF NOT EXISTS idx_aip_constraints_type ON aip_constraints(constraint_type);
 CREATE INDEX IF NOT EXISTS idx_aip_constraints_active ON aip_constraints(is_active);
 
-INSERT INTO aip_ontology_objects (id, name, plural_name, description, properties, relationships, actions, tags)
+-- [DEPRECATED - PR 本体两层改造] These INSERT statements are no longer used as active schema source.
+-- After migration 133, load_active_schema() falls back to code-based schema (build_flight_ops_v1_schema).
+-- Kept here for reference/rollback only. If needed in future, change is_active = FALSE to TRUE.
+INSERT INTO aip_ontology_objects (id, name, plural_name, description, properties, relationships, actions, tags, is_active)
 VALUES
-    ('obj_flight', 'Flight', 'Flights', '航班对象',
+    ('obj_flight', 'Flight', 'Flights', '航班对象 [历史种子 - 不再作为 schema 真相源]',
      '[{"name": "flight_number", "type": "string", "required": true}, {"name": "stand", "type": "string"}, {"name": "status", "type": "string"}]',
      '[{"name": "stand", "target_object": "Stand", "cardinality": "one"}, {"name": "team_assignments", "target_object": "Team", "cardinality": "many"}]',
      '["change_stand", "delay_flight", "assign_team", "update_status", "mark_arrived", "mark_departed"]',
-     '["core", "flight"]'),
-    ('obj_stand', 'Stand', 'Stands', '停机位对象',
+     '["core", "flight"]', FALSE),
+    ('obj_stand', 'Stand', 'Stands', '停机位对象 [历史种子 - 不再作为 schema 真相源]',
      '[{"name": "stand_id", "type": "string", "required": true}, {"name": "status", "type": "string"}]',
      '[{"name": "current_flight", "target_object": "Flight", "cardinality": "one"}]',
      '["occupy", "release", "reserve", "close", "update_status"]',
-     '["core", "resource"]'),
-    ('obj_team', 'Team', 'Teams', '班组对象',
+     '["core", "resource"]', FALSE),
+    ('obj_team', 'Team', 'Teams', '班组对象 [历史种子 - 不再作为 schema 真相源]',
      '[{"name": "team_id", "type": "string", "required": true}, {"name": "status", "type": "string"}]',
      '[{"name": "assigned_flights", "target_object": "Flight", "cardinality": "many"}]',
      '["assign_flight", "update_status", "change_location"]',
-     '["core", "resource"]'),
-    ('obj_anomaly', 'Anomaly', 'Anomalies', '异常对象',
+     '["core", "resource"]', FALSE),
+    ('obj_anomaly', 'Anomaly', 'Anomalies', '异常对象 [历史种子 - 不再作为 schema 真相源]',
      '[{"name": "anomaly_type", "type": "string", "required": true}, {"name": "severity", "type": "string"}]',
      '[{"name": "related_flight", "target_object": "Flight", "cardinality": "one"}]',
      '["acknowledge", "assign_team", "resolve", "escalate"]',
-     '["alert", "incident"]'),
-    ('obj_todo', 'Todo', 'Todos', '待办事项对象',
+     '["alert", "incident"]', FALSE),
+    ('obj_todo', 'Todo', 'Todos', '待办事项对象 [历史种子 - 不再作为 schema 真相源]',
      '[{"name": "title", "type": "string", "required": true}, {"name": "priority", "type": "string"}]',
      '[{"name": "assignee", "target_object": "Team", "cardinality": "one"}]',
      '["create", "complete", "assign", "update_status"]',
-     '["task", "workflow"]')
-ON CONFLICT (name) DO NOTHING;
+     '["task", "workflow"]', FALSE)
+ON CONFLICT (name) DO UPDATE SET is_active = FALSE;
 
-INSERT INTO aip_ontology_actions (id, name, object_type, description, parameters, requires_approval, risk_level)
+INSERT INTO aip_ontology_actions (id, name, object_type, description, parameters, requires_approval, risk_level, is_active)
 VALUES
-    ('act_change_stand', 'change_stand', 'Flight', '更改航班停机位', '[{"name": "stand_id", "type": "string", "required": true}]', true, 'MEDIUM'),
-    ('act_delay_flight', 'delay_flight', 'Flight', '延迟航班', '[{"name": "delay_minutes", "type": "integer", "required": true}]', false, 'LOW'),
-    ('act_assign_team', 'assign_team', 'Flight', '分配班组到航班', '[{"name": "team_id", "type": "string", "required": true}]', true, 'MEDIUM'),
-    ('act_occupy', 'occupy', 'Stand', '占用停机位', '[{"name": "flight_id", "type": "string", "required": true}]', false, 'LOW'),
-    ('act_release', 'release', 'Stand', '释放停机位', '[]', false, 'LOW'),
-    ('act_resolve', 'resolve', 'Anomaly', '解决异常', '[{"name": "resolution", "type": "string", "required": true}]', true, 'MEDIUM'),
-    ('act_create_todo', 'create', 'Todo', '创建待办', '[{"name": "title", "type": "string", "required": true}]', false, 'LOW')
-ON CONFLICT (object_type, name) DO NOTHING;
+    ('act_change_stand', 'change_stand', 'Flight', '更改航班停机位 [历史种子 - 不再作为 schema 真相源]', '[{"name": "stand_id", "type": "string", "required": true}]', true, 'MEDIUM', FALSE),
+    ('act_delay_flight', 'delay_flight', 'Flight', '延迟航班 [历史种子 - 不再作为 schema 真相源]', '[{"name": "delay_minutes", "type": "integer", "required": true}]', false, 'LOW', FALSE),
+    ('act_assign_team', 'assign_team', 'Flight', '分配班组到航班 [历史种子 - 不再作为 schema 真相源]', '[{"name": "team_id", "type": "string", "required": true}]', true, 'MEDIUM', FALSE),
+    ('act_occupy', 'occupy', 'Stand', '占用停机位 [历史种子 - 不再作为 schema 真相源]', '[{"name": "flight_id", "type": "string", "required": true}]', false, 'LOW', FALSE),
+    ('act_release', 'release', 'Stand', '释放停机位 [历史种子 - 不再作为 schema 真相源]', '[]', false, 'LOW', FALSE),
+    ('act_resolve', 'resolve', 'Anomaly', '解决异常 [历史种子 - 不再作为 schema 真相源]', '[{"name": "resolution", "type": "string", "required": true}]', true, 'MEDIUM', FALSE),
+    ('act_create_todo', 'create', 'Todo', '创建待办 [历史种子 - 不再作为 schema 真相源]', '[{"name": "title", "type": "string", "required": true}]', false, 'LOW', FALSE)
+ON CONFLICT (object_type, name) DO UPDATE SET is_active = FALSE;
 
 INSERT INTO aip_tool_mappings (id, tool_name, object_type, action_name, requires_approval, risk_level, migration_status)
 VALUES

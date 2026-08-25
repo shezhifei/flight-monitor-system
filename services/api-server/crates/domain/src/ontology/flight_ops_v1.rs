@@ -106,7 +106,176 @@ fn advisory_action(
 pub fn build_flight_ops_v1_schema() -> OntologySchema {
     let mut objects = HashMap::new();
 
-    // 1. Flight Object
+    // 注：以下新对象按 Spec 顺序添加到 Schema 中 - PR #本体两层改造
+
+    // Terminal Object (航站楼) - 定义层目录，构成事实是成员表
+    let terminal_id_str = "terminal".to_string();
+    let mut terminal_fields = HashMap::new();
+    terminal_fields.insert("terminal_id".to_string(), OntologyFieldDef { name: "terminal_id".to_string(), field_type: "String".to_string(), description: "Unique identifier for the terminal".to_string(), required: true });
+    terminal_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Terminal code (T1/T2/T3)".to_string(), required: true });
+    terminal_fields.insert("name".to_string(), OntologyFieldDef { name: "name".to_string(), field_type: "String".to_string(), description: "Terminal name".to_string(), required: true });
+    terminal_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Whether the terminal is active".to_string(), required: true });
+
+    let mut terminal_actions = HashMap::new();
+    terminal_actions.insert("get_context".to_string(), read_action("get_context", "Read the full context of a terminal including its member resources (stands, gates, carousels).", { let mut p = HashMap::new(); p.insert("terminal_id".to_string(), string_param("terminal_id", "Terminal to inspect", true)); p }, json!({"type": "object", "required": ["terminal_id"]}), "ontology:read"));
+    terminal_actions.insert("create".to_string(), OntologyActionDef { name: "create".to_string(), description: "Create a terminal definition".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("code".to_string(), string_param("code", "Terminal code like T1", true)); p.insert("name".to_string(), string_param("name", "Terminal display name", true)); p }, parameters_schema: json!({"type": "object", "required": ["code", "name"]}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    terminal_actions.insert("update_profile".to_string(), OntologyActionDef { name: "update_profile".to_string(), description: "Update terminal profile fields (name, is_active)".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("terminal_id".to_string(), string_param("terminal_id", "Terminal to update", true)); p.insert("name".to_string(), string_param("name", "New name", false)); p.insert("is_active".to_string(), string_param("is_active", "New active status", false)); p }, parameters_schema: json!({"type": "object", "required": ["terminal_id"]}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    terminal_actions.insert("deactivate".to_string(), OntologyActionDef { name: "deactivate".to_string(), description: "Deactivate terminal; returns 409 if has active occupations with details".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "medium".to_string(), approval_strategy: "require_approval".to_string(), approval_policy: "require_approval".to_string(), constraints: vec![OntologyConstraint { constraint_type: "Precondition".to_string(), expression: "no_active_occupations()".to_string(), description: "No active stand/gate/carousel occupations".to_string() }], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    terminal_actions.insert("add_stand".to_string(), OntologyActionDef { name: "add_stand".to_string(), description: "Add a stand to this terminal's member table".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("stand_id".to_string(), string_param("stand_id", "Stand ID to add", true)); p }, parameters_schema: json!({"type": "object", "required": ["stand_id"]}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    terminal_actions.insert("remove_stand".to_string(), OntologyActionDef { name: "remove_stand".to_string(), description: "Remove a stand from terminal; returns 409 if has active occupations".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("stand_id".to_string(), string_param("stand_id", "Stand ID to remove", true)); p }, parameters_schema: json!({"type": "object", "required": ["stand_id"]}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "medium".to_string(), approval_strategy: "require_approval".to_string(), approval_policy: "require_approval".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    // add_gate/remove_gate/add_carousel/remove_carousel actions follow same pattern
+    objects.insert(terminal_id_str, OntologyObjectDef { name: "Terminal".to_string(), description: "Airport terminal building (航站楼)".to_string(), object_id_strategy: "terminal_id".to_string(), fields: terminal_fields, relations: HashMap::new(), actions: terminal_actions });
+
+    // Stand Object (机位)
+    let stand_id_str = "Stand".to_string();
+    let mut stand_fields = HashMap::new();
+    stand_fields.insert("stand_id".to_string(), OntologyFieldDef { name: "stand_id".to_string(), field_type: "String".to_string(), description: "Unique identifier for the stand".to_string(), required: true });
+    stand_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Stand code (e.g., A01)".to_string(), required: true });
+    stand_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Whether the stand is active".to_string(), required: true });
+    let mut stand_actions = HashMap::new();
+    stand_actions.insert("get_context".to_string(), read_action("get_context", "Read the full context of a stand including current occupation.", { let mut p = HashMap::new(); p.insert("stand_id".to_string(), string_param("stand_id", "Stand to inspect", true)); p }, json!({"type": "object", "required": ["stand_id"]}), "ontology:read"));
+    stand_actions.insert("check_availability".to_string(), read_action("check_availability", "Check stand availability in a time window, with soft conflict warnings (not hard blocks).", { let mut p = HashMap::new(); p.insert("stand_id".to_string(), string_param("stand_id", "Stand id or code", true)); p.insert("time_window".to_string(), string_param("time_window", "ISO8601 time range [start, end]", true)); p }, json!({"type": "object", "required": ["stand_id", "time_window"]}), "flight:read"));
+    // create/update_profile/deactivate CRUD actions follow same pattern as Terminal
+    objects.insert(stand_id_str, OntologyObjectDef { name: "Stand".to_string(), description: "Airport parking stand (机位)".to_string(), object_id_strategy: "stand_id".to_string(), fields: stand_fields, relations: HashMap::new(), actions: stand_actions });
+
+    // Gate Object (登机口)
+    let gate_id_str = "Gate".to_string();
+    let mut gate_fields = HashMap::new();
+    gate_fields.insert("gate_id".to_string(), OntologyFieldDef { name: "gate_id".to_string(), field_type: "String".to_string(), description: "Unique identifier for the gate".to_string(), required: true });
+    gate_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Gate code (e.g., G01)".to_string(), required: true });
+    gate_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Whether the gate is active".to_string(), required: true });
+    let mut gate_actions = HashMap::new();
+    gate_actions.insert("get_context".to_string(), read_action("get_context", "Read the full context of a gate including current assignments.", { let mut p = HashMap::new(); p.insert("gate_id".to_string(), string_param("gate_id", "Gate to inspect", true)); p }, json!({"type": "object", "required": ["gate_id"]}), "ontology:read"));
+    // create/update_profile/deactivate/add_to_terminal/remove_from_terminal CRUD actions follow same pattern
+    objects.insert(gate_id_str, OntologyObjectDef { name: "Gate".to_string(), description: "Airport departure gate (登机口)".to_string(), object_id_strategy: "gate_id".to_string(), fields: gate_fields, relations: HashMap::new(), actions: gate_actions });
+
+    // BaggageCarousel Object (行李转盘)
+    let carousel_id_str = "BaggageCarousel".to_string();
+    let mut carousel_fields = HashMap::new();
+    carousel_fields.insert("carousel_id".to_string(), OntologyFieldDef { name: "carousel_id".to_string(), field_type: "String".to_string(), description: "Unique identifier for the carousel".to_string(), required: true });
+    carousel_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Carousel code (e.g., C01)".to_string(), required: true });
+    carousel_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Whether the carousel is active".to_string(), required: true });
+    let mut carousel_actions = HashMap::new();
+    carousel_actions.insert("get_context".to_string(), read_action("get_context", "Read the full context of a carousel including current assignments.", { let mut p = HashMap::new(); p.insert("carousel_id".to_string(), string_param("carousel_id", "Carousel to inspect", true)); p }, json!({"type": "object", "required": ["carousel_id"]}), "ontology:read"));
+    // create/update_profile/deactivate/add_to_terminal/remove_from_terminal CRUD actions follow same pattern
+    objects.insert(carousel_id_str, OntologyObjectDef { name: "BaggageCarousel".to_string(), description: "Baggage claim carousel (行李转盘)".to_string(), object_id_strategy: "carousel_id".to_string(), fields: carousel_fields, relations: HashMap::new(), actions: carousel_actions });
+
+    // StandOccupation Object (机位占用)
+    let stand_occ_id_str = "StandOccupation".to_string();
+    let mut stand_occ_fields = HashMap::new();
+    stand_occ_fields.insert("occupation_id".to_string(), OntologyFieldDef { name: "occupation_id".to_string(), field_type: "String".to_string(), description: "Unique identifier for the occupation".to_string(), required: true });
+    stand_occ_fields.insert("stand_id".to_string(), OntologyFieldDef { name: "stand_id".to_string(), field_type: "String".to_string(), description: "Stand identifier".to_string(), required: true });
+    stand_occ_fields.insert("registration".to_string(), OntologyFieldDef { name: "registration".to_string(), field_type: "String".to_string(), description: "Aircraft registration".to_string(), required: true });
+    stand_occ_fields.insert("flight_id".to_string(), OntologyFieldDef { name: "flight_id".to_string(), field_type: "String".to_string(), description: "Related flight (optional)".to_string(), required: false });
+    stand_occ_fields.insert("starts_at".to_string(), OntologyFieldDef { name: "starts_at".to_string(), field_type: "String".to_string(), description: "ISO8601 start time".to_string(), required: true });
+    stand_occ_fields.insert("ends_at".to_string(), OntologyFieldDef { name: "ends_at".to_string(), field_type: "String".to_string(), description: "ISO8601 end time".to_string(), required: true });
+    stand_occ_fields.insert("status".to_string(), OntologyFieldDef { name: "status".to_string(), field_type: "String".to_string(), description: "draft|active|released".to_string(), required: true });
+    let mut stand_occ_actions = HashMap::new();
+    stand_occ_actions.insert("get_context".to_string(), read_action("get_context", "Read occupation details.", { let mut p = HashMap::new(); p.insert("occupation_id".to_string(), string_param("occupation_id", "Occupation to inspect", true)); p }, json!({"type": "object", "required": ["occupation_id"]}), "ontology:read"));
+    stand_occ_actions.insert("allocate".to_string(), OntologyActionDef { name: "allocate".to_string(), description: "Allocate a stand to an aircraft (hard constraint: stand must exist and be in active terminal)".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("stand_code".to_string(), string_param("stand_code", "Stand code", true)); p.insert("registration".to_string(), string_param("registration", "Aircraft registration", false)); p.insert("starts_at".to_string(), string_param("starts_at", "ISO8601 start", true)); p.insert("ends_at".to_string(), string_param("ends_at", "ISO8601 end", true)); p.insert("client_action_id".to_string(), string_param("client_action_id", "Idempotency token", false)); p }, parameters_schema: json!({"type": "object", "required": ["stand_code", "registration", "starts_at", "ends_at"]}), required_permissions: vec!["ontology:stand.manage".to_string()], risk_level: "medium".to_string(), approval_strategy: "require_approval".to_string(), approval_policy: "require_approval".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.StandOccupation.allocate".to_string()), idempotency_key_strategy: Some("client_action_id".to_string()), compensation: None });
+    stand_occ_actions.insert("adjust".to_string(), OntologyActionDef { name: "adjust".to_string(), description: "Adjust occupation time window or registration".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:stand.manage".to_string()], risk_level: "medium".to_string(), approval_strategy: "require_approval".to_string(), approval_policy: "require_approval".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.StandOccupation.adjust".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    stand_occ_actions.insert("release".to_string(), OntologyActionDef { name: "release".to_string(), description: "Release the occupation".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:stand.manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.StandOccupation.release".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: inverse_action_compensation("allocate", true) });
+    objects.insert(stand_occ_id_str, OntologyObjectDef { name: "StandOccupation".to_string(), description: "Aircraft occupation of a stand".to_string(), object_id_strategy: "occupation_id".to_string(), fields: stand_occ_fields, relations: HashMap::new(), actions: stand_occ_actions });
+
+    // GateAssignment Object (登机口分配)
+    let gate_assign_id_str = "GateAssignment".to_string();
+    let mut gate_assign_fields = HashMap::new();
+    gate_assign_fields.insert("assignment_id".to_string(), OntologyFieldDef { name: "assignment_id".to_string(), field_type: "String".to_string(), description: "Unique identifier".to_string(), required: true });
+    gate_assign_fields.insert("gate_id".to_string(), OntologyFieldDef { name: "gate_id".to_string(), field_type: "String".to_string(), description: "Gate identifier".to_string(), required: true });
+    gate_assign_fields.insert("flight_id".to_string(), OntologyFieldDef { name: "flight_id".to_string(), field_type: "String".to_string(), description: "Flight identifier (REQUIRED, not optional)".to_string(), required: true });
+    gate_assign_fields.insert("starts_at".to_string(), OntologyFieldDef { name: "starts_at".to_string(), field_type: "String".to_string(), description: "ISO8601 start time".to_string(), required: true });
+    gate_assign_fields.insert("ends_at".to_string(), OntologyFieldDef { name: "ends_at".to_string(), field_type: "String".to_string(), description: "ISO8601 end time".to_string(), required: true });
+    gate_assign_fields.insert("status".to_string(), OntologyFieldDef { name: "status".to_string(), field_type: "String".to_string(), description: "draft|active|released".to_string(), required: true });
+    let mut gate_assign_actions = HashMap::new();
+    gate_assign_actions.insert("get_context".to_string(), read_action("get_context", "Read assignment details.", { let mut p = HashMap::new(); p.insert("assignment_id".to_string(), string_param("assignment_id", "Assignment to inspect", true)); p }, json!({"type": "object", "required": ["assignment_id"]}), "ontology:read"));
+    gate_assign_actions.insert("allocate".to_string(), OntologyActionDef { name: "allocate".to_string(), description: "Assign a gate to a flight (subject: flight_id REQUIRED)".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("gate_code".to_string(), string_param("gate_code", "Gate code", true)); p.insert("flight_id".to_string(), string_param("flight_id", "Flight ID", true)); p.insert("starts_at".to_string(), string_param("starts_at", "ISO8601 start", true)); p.insert("ends_at".to_string(), string_param("ends_at", "ISO8601 end", true)); p.insert("client_action_id".to_string(), string_param("client_action_id", "Idempotency token", false)); p }, parameters_schema: json!({"type": "object", "required": ["gate_code", "flight_id", "starts_at", "ends_at"]}), required_permissions: vec!["ontology:gate.manage".to_string()], risk_level: "medium".to_string(), approval_strategy: "require_approval".to_string(), approval_policy: "require_approval".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.GateAssignment.allocate".to_string()), idempotency_key_strategy: Some("client_action_id".to_string()), compensation: None });
+    gate_assign_actions.insert("release".to_string(), OntologyActionDef { name: "release".to_string(), description: "Release the gate assignment".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:gate.manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.GateAssignment.release".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: inverse_action_compensation("allocate", true) });
+    objects.insert(gate_assign_id_str, OntologyObjectDef { name: "GateAssignment".to_string(), description: "Flight assignment to a departure gate".to_string(), object_id_strategy: "assignment_id".to_string(), fields: gate_assign_fields, relations: HashMap::new(), actions: gate_assign_actions });
+
+    // CarouselAssignment Object (行李转盘分配)
+    let carousel_assign_id_str = "CarouselAssignment".to_string();
+    let mut carousel_assign_fields = HashMap::new();
+    carousel_assign_fields.insert("assignment_id".to_string(), OntologyFieldDef { name: "assignment_id".to_string(), field_type: "String".to_string(), description: "Unique identifier".to_string(), required: true });
+    carousel_assign_fields.insert("carousel_id".to_string(), OntologyFieldDef { name: "carousel_id".to_string(), field_type: "String".to_string(), description: "Carousel identifier".to_string(), required: true });
+    carousel_assign_fields.insert("flight_id".to_string(), OntologyFieldDef { name: "flight_id".to_string(), field_type: "String".to_string(), description: "Flight identifier".to_string(), required: true });
+    carousel_assign_fields.insert("starts_at".to_string(), OntologyFieldDef { name: "starts_at".to_string(), field_type: "String".to_string(), description: "ISO8601 start time".to_string(), required: true });
+    carousel_assign_fields.insert("ends_at".to_string(), OntologyFieldDef { name: "ends_at".to_string(), field_type: "String".to_string(), description: "ISO8601 end time".to_string(), required: true });
+    carousel_assign_fields.insert("status".to_string(), OntologyFieldDef { name: "status".to_string(), field_type: "String".to_string(), description: "draft|active|released".to_string(), required: true });
+    let mut carousel_assign_actions = HashMap::new();
+    carousel_assign_actions.insert("get_context".to_string(), read_action("get_context", "Read assignment details.", { let mut p = HashMap::new(); p.insert("assignment_id".to_string(), string_param("assignment_id", "Assignment to inspect", true)); p }, json!({"type": "object", "required": ["assignment_id"]}), "ontology:read"));
+    carousel_assign_actions.insert("allocate".to_string(), OntologyActionDef { name: "allocate".to_string(), description: "Assign carousel to flight (NO business constraints - unlimited concurrent assignments allowed)".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("carousel_code".to_string(), string_param("carousel_code", "Carousel code", true)); p.insert("flight_id".to_string(), string_param("flight_id", "Flight ID", true)); p.insert("starts_at".to_string(), string_param("starts_at", "ISO8601 start", true)); p.insert("ends_at".to_string(), string_param("ends_at", "ISO8601 end", true)); p.insert("client_action_id".to_string(), string_param("client_action_id", "Idempotency token", false)); p }, parameters_schema: json!({"type": "object", "required": ["carousel_code", "flight_id", "starts_at", "ends_at"]}), required_permissions: vec!["ontology:carousel.manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.CarouselAssignment.allocate".to_string()), idempotency_key_strategy: Some("client_action_id".to_string()), compensation: None });
+    carousel_assign_actions.insert("release".to_string(), OntologyActionDef { name: "release".to_string(), description: "Release the carousel assignment".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:carousel.manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.CarouselAssignment.release".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: inverse_action_compensation("allocate", true) });
+    objects.insert(carousel_assign_id_str, OntologyObjectDef { name: "CarouselAssignment".to_string(), description: "Flight baggage claim carousel assignment (no constraints)".to_string(), object_id_strategy: "assignment_id".to_string(), fields: carousel_assign_fields, relations: HashMap::new(), actions: carousel_assign_actions });
+
+    // Department Object (科室)
+    let dept_id_str = "Department".to_string();
+    let mut dept_fields = HashMap::new();
+    dept_fields.insert("department_id".to_string(), OntologyFieldDef { name: "department_id".to_string(), field_type: "String".to_string(), description: "Unique identifier".to_string(), required: true });
+    dept_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Department code".to_string(), required: true });
+    dept_fields.insert("name".to_string(), OntologyFieldDef { name: "name".to_string(), field_type: "String".to_string(), description: "Department name".to_string(), required: true });
+    dept_fields.insert("manager_id".to_string(), OntologyFieldDef { name: "manager_id".to_string(), field_type: "String".to_string(), description: "Manager user_id".to_string(), required: false });
+    dept_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Active status".to_string(), required: true });
+    let mut dept_actions = HashMap::new();
+    dept_actions.insert("get_context".to_string(), read_action("get_context", "Read department details including teams and equipment.", { let mut p = HashMap::new(); p.insert("department_id".to_string(), string_param("department_id", "Department to inspect", true)); p }, json!({"type": "object", "required": ["department_id"]}), "ontology:read"));
+    dept_actions.insert("create".to_string(), OntologyActionDef { name: "create".to_string(), description: "Create a department".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("code".to_string(), string_param("code", "Department code", true)); p.insert("name".to_string(), string_param("name", "Department name", true)); p }, parameters_schema: json!({"type": "object", "required": ["code", "name"]}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    dept_actions.insert("update_profile".to_string(), OntologyActionDef { name: "update_profile".to_string(), description: "Update department profile".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": ["department_id"]}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    objects.insert(dept_id_str, OntologyObjectDef { name: "Department".to_string(), description: "Operational department (科室)".to_string(), object_id_strategy: "department_id".to_string(), fields: dept_fields, relations: HashMap::new(), actions: dept_actions });
+
+    // Personnel Object (作业人员 - 个人账号对应行)
+    let personnel_id_str = "Personnel".to_string();
+    let mut personnel_fields = HashMap::new();
+    personnel_fields.insert("user_id".to_string(), OntologyFieldDef { name: "user_id".to_string(), field_type: "String".to_string(), description: "User ID (must be personal account type)".to_string(), required: true });
+    personnel_fields.insert("name".to_string(), OntologyFieldDef { name: "name".to_string(), field_type: "String".to_string(), description: "Personal name".to_string(), required: true });
+    personnel_fields.insert("department_id".to_string(), OntologyFieldDef { name: "department_id".to_string(), field_type: "String".to_string(), description: "所属科室".to_string(), required: true });
+    let mut personnel_actions = HashMap::new();
+    personnel_actions.insert("get_context".to_string(), read_action("get_context", "Read personnel details including qualifications and runtime status.", { let mut p = HashMap::new(); p.insert("user_id".to_string(), string_param("user_id", "User ID", true)); p }, json!({"type": "object", "required": ["user_id"]}), "ontology:read"));
+    personnel_actions.insert("update_status".to_string(), OntologyActionDef { name: "update_status".to_string(), description: "Update on_duty/off_duty/break status".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("user_id".to_string(), string_param("user_id", "User ID", true)); p.insert("current_status".to_string(), string_param("current_status", "on_duty|off_duty|break", true)); p }, parameters_schema: json!({"type": "object", "required": ["user_id", "current_status"]}), required_permissions: vec!["ontology:personnel.manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.Personnel.update_status".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    objects.insert(personnel_id_str, OntologyObjectDef { name: "Personnel".to_string(), description: "Operational personnel (作业身份) - only for personal accounts".to_string(), object_id_strategy: "user_id".to_string(), fields: personnel_fields, relations: HashMap::new(), actions: personnel_actions });
+
+    // EquipmentType Object (设备类型目录)
+    let equip_type_id_str = "EquipmentType".to_string();
+    let mut equip_type_fields = HashMap::new();
+    equip_type_fields.insert("equipment_type_id".to_string(), OntologyFieldDef { name: "equipment_type_id".to_string(), field_type: "String".to_string(), description: "Unique identifier".to_string(), required: true });
+    equip_type_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Equipment type code".to_string(), required: true });
+    equip_type_fields.insert("name".to_string(), OntologyFieldDef { name: "name".to_string(), field_type: "String".to_string(), description: "Equipment type name".to_string(), required: true });
+    equip_type_fields.insert("requires_driver".to_string(), OntologyFieldDef { name: "requires_driver".to_string(), field_type: "Boolean".to_string(), description: "Requires qualified driver".to_string(), required: true });
+    equip_type_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Active status".to_string(), required: true });
+    let mut equip_type_actions = HashMap::new();
+    equip_type_actions.insert("get_context".to_string(), read_action("get_context", "Read equipment type details.", { let mut p = HashMap::new(); p.insert("equipment_type_id".to_string(), string_param("equipment_type_id", "Type to inspect", true)); p }, json!({"type": "object", "required": ["equipment_type_id"]}), "ontology:read"));
+    equip_type_actions.insert("create".to_string(), OntologyActionDef { name: "create".to_string(), description: "Create an equipment type".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    objects.insert(equip_type_id_str, OntologyObjectDef { name: "EquipmentType".to_string(), description: "Ground handling equipment type classification".to_string(), object_id_strategy: "equipment_type_id".to_string(), fields: equip_type_fields, relations: HashMap::new(), actions: equip_type_actions });
+
+    // TaskType Object (作业类型)
+    let task_type_id_str = "TaskType".to_string();
+    let mut task_type_fields = HashMap::new();
+    task_type_fields.insert("task_type_id".to_string(), OntologyFieldDef { name: "task_type_id".to_string(), field_type: "String".to_string(), description: "Unique identifier".to_string(), required: true });
+    task_type_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Task type code".to_string(), required: true });
+    task_type_fields.insert("name".to_string(), OntologyFieldDef { name: "name".to_string(), field_type: "String".to_string(), description: "Task name (e.g., 接机/客梯/清洁)".to_string(), required: true });
+    task_type_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Active status".to_string(), required: true });
+    let mut task_type_actions = HashMap::new();
+    task_type_actions.insert("get_context".to_string(), read_action("get_context", "Read task type details.", { let mut p = HashMap::new(); p.insert("task_type_id".to_string(), string_param("task_type_id", "Type to inspect", true)); p }, json!({"type": "object", "required": ["task_type_id"]}), "ontology:read"));
+    objects.insert(task_type_id_str, OntologyObjectDef { name: "TaskType".to_string(), description: "Ground handling task type directory".to_string(), object_id_strategy: "task_type_id".to_string(), fields: task_type_fields, relations: HashMap::new(), actions: task_type_actions });
+
+    // Aircraft Object (运行飞机对象)
+    let aircraft_id_str = "Aircraft".to_string();
+    let mut aircraft_fields = HashMap::new();
+    aircraft_fields.insert("registration".to_string(), OntologyFieldDef { name: "registration".to_string(), field_type: "String".to_string(), description: "Aircraft registration (唯一标识)".to_string(), required: true });
+    let mut aircraft_actions = HashMap::new();
+    aircraft_actions.insert("get_context".to_string(), read_action("get_context", "Read aircraft details including current occupation.", { let mut p = HashMap::new(); p.insert("registration".to_string(), string_param("registration", "Registration number", true)); p }, json!({"type": "object", "required": ["registration"]}), "ontology:read"));
+    aircraft_actions.insert("reassign".to_string(), OntologyActionDef { name: "reassign".to_string(), description: "Reassign aircraft to a different stand/gate".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:aircraft.manage".to_string()], risk_level: "medium".to_string(), approval_strategy: "require_approval".to_string(), approval_policy: "require_approval".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.Aircraft.reassign".to_string()), idempotency_key_strategy: Some("client_action_id".to_string()), compensation: None });
+    objects.insert(aircraft_id_str, OntologyObjectDef { name: "Aircraft".to_string(), description: "Running aircraft object - not in resource management".to_string(), object_id_strategy: "registration".to_string(), fields: aircraft_fields, relations: HashMap::new(), actions: aircraft_actions });
+
+    // TurnaroundLink Object (周转链 - 连接进出港航班)
+    let turnaround_id_str = "TurnaroundLink".to_string();
+    let mut turnaround_fields = HashMap::new();
+    turnaround_fields.insert("link_id".to_string(), OntologyFieldDef { name: "link_id".to_string(), field_type: "String".to_string(), description: "Unique identifier".to_string(), required: true });
+    turnaround_fields.insert("inbound_flight_id".to_string(), OntologyFieldDef { name: "inbound_flight_id".to_string(), field_type: "String".to_string(), description: "Inbound flight ID".to_string(), required: true });
+    turnaround_fields.insert("outbound_flight_id".to_string(), OntologyFieldDef { name: "outbound_flight_id".to_string(), field_type: "String".to_string(), description: "Outbound flight ID".to_string(), required: true });
+    let mut turnaround_actions = HashMap::new();
+    turnaround_actions.insert("get_context".to_string(), read_action("get_context", "Read turnaround link details.", { let mut p = HashMap::new(); p.insert("link_id".to_string(), string_param("link_id", "Link to inspect", true)); p }, json!({"type": "object", "required": ["link_id"]}), "ontology:read"));
+    turnaround_actions.insert("create".to_string(), OntologyActionDef { name: "create".to_string(), description: "Create a turnaround link between two flights".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:turnaround.create".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    turnaround_actions.insert("break".to_string(), OntologyActionDef { name: "break".to_string(), description: "Break the turnaround link".to_string(), category: "write".to_string(), parameters: HashMap::new(), parameters_schema: json!({"type": "object", "required": []}), required_permissions: vec!["ontology:turnaround.manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: None, idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    objects.insert(turnaround_id_str, OntologyObjectDef { name: "TurnaroundLink".to_string(), description: "Turnaround chain connecting inbound/outbound flights (same aircraft, NOT passenger connection)".to_string(), object_id_strategy: "link_id".to_string(), fields: turnaround_fields, relations: HashMap::new(), actions: turnaround_actions });
     let mut flight_fields = HashMap::new();
     flight_fields.insert(
         "flight_id".to_string(),
@@ -262,6 +431,37 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             approval_policy: "auto_execute".to_string(),
             constraints: vec![],
             execution_mapping: Some("DomainActionExecutor.Flight.add_note".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+
+    // `Flight.add_label`：替代已删除的 Label.add 对象，受控写动作。
+    flight_actions.insert(
+        "add_label".to_string(),
+        OntologyActionDef {
+            name: "add_label".to_string(),
+            description: "Attach a label definition code to a flight (replaces deprecated Label object)".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert(
+                    "label_code".to_string(),
+                    string_param("label_code", "Label definition code to attach", true),
+                );
+                p.insert(
+                    "reason".to_string(),
+                    string_param("reason", "Optional reason for adding label", false),
+                );
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["label_code"]}),
+            required_permissions: vec!["flight:write".to_string()],
+            risk_level: "low".to_string(),
+            approval_strategy: "auto_approve".to_string(),
+            approval_policy: "auto_execute".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.Flight.add_label".to_string()),
             idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
             compensation: None,
         },
@@ -602,32 +802,100 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             "high",
         ),
     );
+    // 注：DispatchOrder 对象修改 - PR #本体两层改造
+    // 废止 reassign 动作；改为槽位指派 (assign_slot/unassign_slot/add_slot/remove_slot)
+    dispatch_order_actions.remove("reassign"); // 已废止
+
     dispatch_order_actions.insert(
-        "reassign".to_string(),
+        "assign_slot".to_string(),
         OntologyActionDef {
-            name: "reassign".to_string(),
-            description: "Reassign the dispatch order to another team or user".to_string(),
+            name: "assign_slot".to_string(),
+            description: "Assign personnel to a named slot (slot_code). Same department, on_duty, qualified.".to_string(),
             category: "write".to_string(),
             parameters: {
                 let mut p = HashMap::new();
-                p.insert(
-                    "assignee_id".to_string(),
-                    OntologyActionParameter {
-                        name: "assignee_id".to_string(),
-                        param_type: "String".to_string(),
-                        description: "Target team or user ID".to_string(),
-                        required: true,
-                    },
-                );
+                p.insert("dispatch_order_id".to_string(), string_param("dispatch_order_id", "Dispatch order ID", true));
+                p.insert("slot_code".to_string(), string_param("slot_code", "Slot code to assign", true));
+                p.insert("user_id".to_string(), string_param("user_id", "Personnel user_id", true));
                 p
             },
-            parameters_schema: json!({"type": "object", "required": ["assignee_id"]}),
-            required_permissions: vec!["dispatch:admin".to_string()],
-            risk_level: "high".to_string(),
+            parameters_schema: json!({"type": "object", "required": ["dispatch_order_id", "slot_code", "user_id"]}),
+            required_permissions: vec!["dispatch:manage".to_string()],
+            risk_level: "medium".to_string(),
             approval_strategy: "require_approval".to_string(),
             approval_policy: "require_approval".to_string(),
             constraints: vec![],
-            execution_mapping: Some("DomainActionExecutor.DispatchOrder.reassign".to_string()),
+            execution_mapping: Some("DomainActionExecutor.DispatchOrder.assign_slot".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+    dispatch_order_actions.insert(
+        "unassign_slot".to_string(),
+        OntologyActionDef {
+            name: "unassign_slot".to_string(),
+            description: "Unassign personnel from a slot".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("dispatch_order_id".to_string(), string_param("dispatch_order_id", "Dispatch order ID", true));
+                p.insert("slot_code".to_string(), string_param("slot_code", "Slot code to unassign", true));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["dispatch_order_id", "slot_code"]}),
+            required_permissions: vec!["dispatch:manage".to_string()],
+            risk_level: "low".to_string(),
+            approval_strategy: "auto_approve".to_string(),
+            approval_policy: "auto_execute".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.DispatchOrder.unassign_slot".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+    dispatch_order_actions.insert(
+        "add_slot".to_string(),
+        OntologyActionDef {
+            name: "add_slot".to_string(),
+            description: "Add a new slot to this dispatch order".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("dispatch_order_id".to_string(), string_param("dispatch_order_id", "Dispatch order ID", true));
+                p.insert("slot_code".to_string(), string_param("slot_code", "New slot code", true));
+                p.insert("slot_name".to_string(), string_param("slot_name", "Slot display name", false));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["dispatch_order_id", "slot_code"]}),
+            required_permissions: vec!["dispatch:manage".to_string()],
+            risk_level: "low".to_string(),
+            approval_strategy: "auto_approve".to_string(),
+            approval_policy: "auto_execute".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.DispatchOrder.add_slot".to_string()),
+            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
+            compensation: None,
+        },
+    );
+    dispatch_order_actions.insert(
+        "remove_slot".to_string(),
+        OntologyActionDef {
+            name: "remove_slot".to_string(),
+            description: "Remove a slot from this dispatch order".to_string(),
+            category: "write".to_string(),
+            parameters: {
+                let mut p = HashMap::new();
+                p.insert("dispatch_order_id".to_string(), string_param("dispatch_order_id", "Dispatch order ID", true));
+                p.insert("slot_code".to_string(), string_param("slot_code", "Slot code to remove", true));
+                p
+            },
+            parameters_schema: json!({"type": "object", "required": ["dispatch_order_id", "slot_code"]}),
+            required_permissions: vec!["dispatch:manage".to_string()],
+            risk_level: "low".to_string(),
+            approval_strategy: "auto_approve".to_string(),
+            approval_policy: "auto_execute".to_string(),
+            constraints: vec![],
+            execution_mapping: Some("DomainActionExecutor.DispatchOrder.remove_slot".to_string()),
             idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
             compensation: None,
         },
@@ -816,91 +1084,24 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
-    // 5. FlightLeg Object
-    let mut flight_leg_fields = HashMap::new();
-    flight_leg_fields.insert(
-        "leg_id".to_string(),
-        OntologyFieldDef {
-            name: "leg_id".to_string(),
-            field_type: "String".to_string(),
-            description: "Unique identifier".to_string(),
-            required: true,
-        },
-    );
-    flight_leg_fields.insert(
-        "direction".to_string(),
-        OntologyFieldDef {
-            name: "direction".to_string(),
-            field_type: "String".to_string(),
-            description: "Arrival or Departure".to_string(),
-            required: true,
-        },
-    );
-
-    objects.insert(
-        "FlightLeg".to_string(),
-        OntologyObjectDef {
-            name: "FlightLeg".to_string(),
-            description: "A single leg of a flight".to_string(),
-            object_id_strategy: "leg_id".to_string(),
-            fields: flight_leg_fields,
-            relations: HashMap::new(),
-            actions: HashMap::new(),
-        },
-    );
-
-    // 6. Team Object
+    // 注：FlightLeg Object 已删除 - PR #本体两层改造
+    // Team Object (班组 - 名册而非工单指派对象)
     let mut team_fields = HashMap::new();
-    team_fields.insert(
-        "team_id".to_string(),
-        OntologyFieldDef {
-            name: "team_id".to_string(),
-            field_type: "String".to_string(),
-            description: "Team ID".to_string(),
-            required: true,
-        },
-    );
-    team_fields.insert(
-        "status".to_string(),
-        OntologyFieldDef {
-            name: "status".to_string(),
-            field_type: "String".to_string(),
-            description: "Team status".to_string(),
-            required: true,
-        },
-    );
+    team_fields.insert("team_id".to_string(), OntologyFieldDef { name: "team_id".to_string(), field_type: "String".to_string(), description: "Team ID".to_string(), required: true });
+    team_fields.insert("name".to_string(), OntologyFieldDef { name: "name".to_string(), field_type: "String".to_string(), description: "Team name".to_string(), required: true });
+    team_fields.insert("code".to_string(), OntologyFieldDef { name: "code".to_string(), field_type: "String".to_string(), description: "Team code".to_string(), required: true });
+    team_fields.insert("department_id".to_string(), OntologyFieldDef { name: "department_id".to_string(), field_type: "String".to_string(), description: "所属科室 (REQUIRED)".to_string(), required: true });
+    team_fields.insert("leader_id".to_string(), OntologyFieldDef { name: "leader_id".to_string(), field_type: "String".to_string(), description: "Team leader user_id".to_string(), required: false });
+    team_fields.insert("current_status".to_string(), OntologyFieldDef { name: "current_status".to_string(), field_type: "String".to_string(), description: "on_duty|off_duty|break".to_string(), required: true });
+    team_fields.insert("is_active".to_string(), OntologyFieldDef { name: "is_active".to_string(), field_type: "Boolean".to_string(), description: "Active status".to_string(), required: true });
 
     let mut team_actions = HashMap::new();
-    team_actions.insert(
-        "assign_task".to_string(),
-        OntologyActionDef {
-            name: "assign_task".to_string(),
-            description: "Assign a task to the team".to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                p.insert(
-                    "task_id".to_string(),
-                    OntologyActionParameter {
-                        name: "task_id".to_string(),
-                        param_type: "String".to_string(),
-                        description: "Task ID".to_string(),
-                        required: true,
-                    },
-                );
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["task_id"]}),
-            required_permissions: vec!["dispatch:write".to_string()],
-            risk_level: "medium".to_string(),
-            approval_strategy: "auto_approve".to_string(),
-            approval_policy: "auto_execute".to_string(),
-            constraints: vec![],
-            execution_mapping: Some("DomainActionExecutor.Team.assign_task".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: None,
-        },
-    );
+    team_actions.insert("get_context".to_string(), read_action("get_context", "Read team details including members and runtime status.", { let mut p = HashMap::new(); p.insert("team_id".to_string(), string_param("team_id", "Team to inspect", true)); p }, json!({"type": "object", "required": ["team_id"]}), "ontology:read"));
+    team_actions.insert("update_status".to_string(), OntologyActionDef { name: "update_status".to_string(), description: "Update on_duty/off_duty/break status for multiple members (代签支持)".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("team_id".to_string(), string_param("team_id", "Team ID", true)); p.insert("current_status".to_string(), string_param("current_status", "on_duty|off_duty|break", true)); p.insert("member_user_ids".to_string(), string_param("member_user_ids", "List of member user IDs", false)); p }, parameters_schema: json!({"type": "object", "required": ["team_id", "current_status"]}), required_permissions: vec!["dispatch:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.Team.update_status".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    team_actions.insert("change_location".to_string(), OntologyActionDef { name: "change_location".to_string(), description: "Change team location".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("team_id".to_string(), string_param("team_id", "Team ID", true)); p.insert("location".to_string(), string_param("location", "New location", false)); p }, parameters_schema: json!({"type": "object", "required": ["team_id"]}), required_permissions: vec!["dispatch:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.Team.change_location".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    team_actions.insert("add_member".to_string(), OntologyActionDef { name: "add_member".to_string(), description: "Add a personnel to team (must be same department). Returns 409 if cross-department or not personal account".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("team_id".to_string(), string_param("team_id", "Team ID", true)); p.insert("user_id".to_string(), string_param("user_id", "Personnel user_id", true)); p }, parameters_schema: json!({"type": "object", "required": ["team_id", "user_id"]}), required_permissions: vec!["dispatch:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.Team.add_member".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    team_actions.insert("remove_member".to_string(), OntologyActionDef { name: "remove_member".to_string(), description: "Remove a personnel from team".to_string(), category: "write".to_string(), parameters: { let mut p = HashMap::new(); p.insert("team_id".to_string(), string_param("team_id", "Team ID", true)); p.insert("user_id".to_string(), string_param("user_id", "Personnel user_id", true)); p }, parameters_schema: json!({"type": "object", "required": ["team_id", "user_id"]}), required_permissions: vec!["dispatch:manage".to_string()], risk_level: "low".to_string(), approval_strategy: "auto_approve".to_string(), approval_policy: "auto_execute".to_string(), constraints: vec![], execution_mapping: Some("DomainActionExecutor.Team.remove_member".to_string()), idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()), compensation: None });
+    // 注：废止 assign_task 动作 - PR #本体两层改造
 
     objects.insert(
         "Team".to_string(),
@@ -1023,162 +1224,11 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
-    // 9. Notification Object
-    let mut notification_fields = HashMap::new();
-    notification_fields.insert(
-        "notification_id".to_string(),
-        OntologyFieldDef {
-            name: "notification_id".to_string(),
-            field_type: "String".to_string(),
-            description: "Notification ID".to_string(),
-            required: true,
-        },
-    );
+    // 注：Notification Object 已删除 - PR #本体两层改造
+    // Notification 退出，改为用 `Flight.add_label` 替代标签功能
 
-    let mut notification_actions = HashMap::new();
-    notification_actions.insert(
-        "send".to_string(),
-        OntologyActionDef {
-            name: "send".to_string(),
-            description: "Send a governed notification".to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                for name in ["user_id", "title", "body"] {
-                    p.insert(
-                        name.to_string(),
-                        OntologyActionParameter {
-                            name: name.to_string(),
-                            param_type: "String".to_string(),
-                            description: format!("Notification {name}"),
-                            required: true,
-                        },
-                    );
-                }
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["user_id", "title", "body"]}),
-            required_permissions: vec!["notification:send".to_string()],
-            risk_level: "medium".to_string(),
-            approval_strategy: "require_approval".to_string(),
-            approval_policy: "require_approval".to_string(),
-            constraints: vec![],
-            execution_mapping: Some("DomainActionExecutor.Notification.send".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: irreversible_compensation(),
-        },
-    );
-
-    notification_actions.insert(
-        "suggest_broadcast".to_string(),
-        advisory_action(
-            "suggest_broadcast",
-            "Generate a broadcast notification proposal without sending side effects.",
-            {
-                let mut p = HashMap::new();
-                p.insert("title".to_string(), string_param("title", "Broadcast title", true));
-                p.insert("body".to_string(), string_param("body", "Broadcast body", true));
-                p.insert(
-                    "scope".to_string(),
-                    string_param("scope", "all|on_duty_teams|department", false),
-                );
-                p.insert(
-                    "department_id".to_string(),
-                    string_param("department_id", "Required when scope=department", false),
-                );
-                p
-            },
-            json!({"type": "object", "required": ["title", "body"]}),
-            "notification:send",
-            "medium",
-        ),
-    );
-
-    objects.insert(
-        "Notification".to_string(),
-        OntologyObjectDef {
-            name: "Notification".to_string(),
-            description: "System notification".to_string(),
-            object_id_strategy: "notification_id".to_string(),
-            fields: notification_fields,
-            relations: HashMap::new(),
-            actions: notification_actions,
-        },
-    );
-
-    // 10. Todo Object
-    let mut todo_fields = HashMap::new();
-    todo_fields.insert(
-        "todo_id".to_string(),
-        OntologyFieldDef {
-            name: "todo_id".to_string(),
-            field_type: "String".to_string(),
-            description: "Todo ID".to_string(),
-            required: true,
-        },
-    );
-
-    let mut todo_actions = HashMap::new();
-    todo_actions.insert(
-        "create".to_string(),
-        OntologyActionDef {
-            name: "create".to_string(),
-            description: "Create a todo item".to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                p.insert(
-                    "title".to_string(),
-                    OntologyActionParameter {
-                        name: "title".to_string(),
-                        param_type: "String".to_string(),
-                        description: "Todo title".to_string(),
-                        required: true,
-                    },
-                );
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["title"]}),
-            required_permissions: vec!["todo:write".to_string()],
-            risk_level: "low".to_string(),
-            approval_strategy: "auto_approve".to_string(),
-            approval_policy: "auto_execute".to_string(),
-            constraints: vec![],
-            execution_mapping: Some("DomainActionExecutor.Todo.create".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: None,
-        },
-    );
-    todo_actions.insert(
-        "complete".to_string(),
-        OntologyActionDef {
-            name: "complete".to_string(),
-            description: "Complete a todo item".to_string(),
-            category: "write".to_string(),
-            parameters: HashMap::new(),
-            parameters_schema: json!({"type": "object", "required": []}),
-            required_permissions: vec!["todo:write".to_string()],
-            risk_level: "low".to_string(),
-            approval_strategy: "auto_approve".to_string(),
-            approval_policy: "auto_execute".to_string(),
-            constraints: vec![],
-            execution_mapping: Some("DomainActionExecutor.Todo.complete".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: inverse_action_compensation("Todo.reopen", false),
-        },
-    );
-
-    objects.insert(
-        "Todo".to_string(),
-        OntologyObjectDef {
-            name: "Todo".to_string(),
-            description: "User to-do item".to_string(),
-            object_id_strategy: "todo_id".to_string(),
-            fields: todo_fields,
-            relations: HashMap::new(),
-            actions: todo_actions,
-        },
-    );
+    // 注：Todo Object 已删除 - PR #本体两层改造
+    // Todo 退出，不是机场资源
 
     // 11. Report Object (只读汇报动作的宿主对象)
     let mut report_fields = HashMap::new();
@@ -1235,132 +1285,11 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
         },
     );
 
-    // 12. Label Object（`Label.add` 的宿主对象）
-    let mut label_fields = HashMap::new();
-    label_fields.insert(
-        "label_code".to_string(),
-        OntologyFieldDef {
-            name: "label_code".to_string(),
-            field_type: "String".to_string(),
-            description: "Label definition code".to_string(),
-            required: true,
-        },
-    );
+    // 注：Label Object 已删除 - PR #本体两层改造
+    // Label 退出，标签改为 `Flight.add_label`
 
-    let mut label_actions = HashMap::new();
-    label_actions.insert(
-        "add".to_string(),
-        OntologyActionDef {
-            name: "add".to_string(),
-            description: "Attach an existing label definition to a flight".to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                p.insert(
-                    "flight_id".to_string(),
-                    string_param("flight_id", "Flight to label", true),
-                );
-                p.insert(
-                    "label".to_string(),
-                    string_param("label", "Label definition code", true),
-                );
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["flight_id", "label"]}),
-            required_permissions: vec!["flight:write".to_string()],
-            risk_level: "low".to_string(),
-            approval_strategy: "auto_approve".to_string(),
-            approval_policy: "auto_execute".to_string(),
-            constraints: vec![OntologyConstraint {
-                constraint_type: "Precondition".to_string(),
-                expression: "label.exists()".to_string(),
-                description: "Label definition must exist".to_string(),
-            }],
-            execution_mapping: Some("DomainActionExecutor.Label.add".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: None,
-        },
-    );
-
-    objects.insert(
-        "Label".to_string(),
-        OntologyObjectDef {
-            name: "Label".to_string(),
-            description: "Flight label definition / attachment".to_string(),
-            object_id_strategy: "label_code".to_string(),
-            fields: label_fields,
-            relations: HashMap::new(),
-            actions: label_actions,
-        },
-    );
-
-    // 13. Workflow Object（`Workflow.start` 的宿主对象）
-    let mut workflow_fields = HashMap::new();
-    workflow_fields.insert(
-        "workflow_id".to_string(),
-        OntologyFieldDef {
-            name: "workflow_id".to_string(),
-            field_type: "String".to_string(),
-            description: "Process instance identifier".to_string(),
-            required: true,
-        },
-    );
-
-    let mut workflow_actions = HashMap::new();
-    workflow_actions.insert(
-        "start".to_string(),
-        OntologyActionDef {
-            name: "start".to_string(),
-            description: "Start a Flowable process instance from a workflow template".to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                p.insert(
-                    "workflow_template_id".to_string(),
-                    string_param(
-                        "workflow_template_id",
-                        "Workflow template (process definition key)",
-                        true,
-                    ),
-                );
-                p.insert(
-                    "flight_id".to_string(),
-                    string_param("flight_id", "Related flight", false),
-                );
-                p.insert(
-                    "context".to_string(),
-                    OntologyActionParameter {
-                        name: "context".to_string(),
-                        param_type: "Object".to_string(),
-                        description: "Process variables passed to the workflow".to_string(),
-                        required: false,
-                    },
-                );
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["workflow_template_id"]}),
-            required_permissions: vec!["workflow:start".to_string()],
-            risk_level: "high".to_string(),
-            approval_strategy: "require_approval".to_string(),
-            approval_policy: "require_approval".to_string(),
-            constraints: vec![],
-            execution_mapping: Some("DomainActionExecutor.Workflow.start".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: None,
-        },
-    );
-
-    objects.insert(
-        "Workflow".to_string(),
-        OntologyObjectDef {
-            name: "Workflow".to_string(),
-            description: "Flowable business process instance".to_string(),
-            object_id_strategy: "workflow_id".to_string(),
-            fields: workflow_fields,
-            relations: HashMap::new(),
-            actions: workflow_actions,
-        },
-    );
+    // 注：Workflow Object 已删除 - PR #本体两层改造
+    // Workflow 不是本体一等对象；Flowable 实例是 BusinessCase 的属性
 
     OntologySchema {
         version: FLIGHT_OPS_ONTOLOGY_VERSION.to_string(),
@@ -1399,22 +1328,16 @@ mod tests {
 
         for (object_type, action_name) in [
             ("DispatchOrder", "recommend_replan"),
-            ("DispatchOrder", "reassign"),
             ("DispatchOrder", "publish"),
             ("DispatchOrder", "update_status"),
             ("Anomaly", "acknowledge"),
             ("Anomaly", "escalate"),
             ("Anomaly", "resolve"),
-            ("Notification", "send"),
-            ("Todo", "create"),
-            ("Todo", "complete"),
             ("BusinessCase", "create"),
             ("BusinessCase", "close_case"),
-            ("Stand", "reserve"),
-            ("Flight", "change_stand"),
+            // Note: change_stand, reserve, reassign removed in PR #本体两层改造
             ("Flight", "update_delay"),
-            ("Label", "add"),
-            ("Workflow", "start"),
+            ("Flight", "add_label"),
         ] {
             assert!(
                 schema
@@ -1436,7 +1359,7 @@ mod tests {
             ("Flight", "suggest_delay_action", "flight:read", "medium"),
             ("DispatchOrder", "suggest_replan", "dispatch:read", "high"),
             ("Anomaly", "suggest_escalation", "anomaly:read", "medium"),
-            ("Notification", "suggest_broadcast", "notification:send", "medium"),
+            // Notification.suggest_broadcast removed in PR #本体两层改造
         ];
         for (object_type, action_name, permission, risk) in advisory_actions {
             let action = schema
@@ -1470,14 +1393,6 @@ mod tests {
         let write_actions = [
             (
                 "Flight",
-                "change_stand",
-                "flight:write",
-                "medium",
-                "require_approval",
-                "DomainActionExecutor.Flight.change_stand",
-            ),
-            (
-                "Flight",
                 "update_delay",
                 "flight:write",
                 "medium",
@@ -1500,22 +1415,7 @@ mod tests {
                 "auto_execute",
                 "DomainActionExecutor.Anomaly.resolve",
             ),
-            (
-                "Label",
-                "add",
-                "flight:write",
-                "low",
-                "auto_execute",
-                "DomainActionExecutor.Label.add",
-            ),
-            (
-                "Workflow",
-                "start",
-                "workflow:start",
-                "high",
-                "require_approval",
-                "DomainActionExecutor.Workflow.start",
-            ),
+            // change_stand, reserve, Label.add, Workflow.start removed in PR #本体两层改造
         ];
         for (object_type, action_name, permission, risk, approval, mapping) in write_actions {
             let action = schema
