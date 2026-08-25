@@ -14,6 +14,7 @@ import UiFloatPanel from '../../../components/ui/UiFloatPanel.vue';
 import UiMenu from '../../../components/ui/UiMenu.vue';
 import type { UserNotification } from '@/types/bindings';
 import type { BusinessCaseTypeDefinition } from '../../../types/backend';
+import type { ChatNotificationTarget } from '../../../composables/chatTargetFromNotification';
 
 const props = defineProps<{
   anomalyCount: number;
@@ -27,6 +28,7 @@ const props = defineProps<{
   dispatchChatOpen: boolean;
   flightInsightOpen: boolean;
   selectedFlightId: string | null;
+  chatGroupId?: string | null;
   selectedFlightNo: string | undefined;
   flightNoResolver?: (flightId: string) => string | null | undefined;
   businessCaseTypes: BusinessCaseTypeDefinition[];
@@ -40,6 +42,7 @@ const emit = defineEmits<{
   (e: 'close-update-panel'): void;
   (e: 'open-dispatch'): void;
   (e: 'open-chat'): void;
+  (e: 'open-chat-from-notification', target: ChatNotificationTarget): void;
   (e: 'open-insight'): void;
   (e: 'close-dispatch'): void;
   (e: 'close-chat'): void;
@@ -55,6 +58,7 @@ const emit = defineEmits<{
 const aiAssistantOpen = ref(false);
 const copilotOpen = ref(false);
 const aiUnread = ref(0);
+const chatUnread = ref(0);
 
 // 角浮：一页一颗主声悬钮，点开抬起临时工具箱
 const dockOpen = ref(false);
@@ -73,6 +77,7 @@ const fabSignal = computed(() => {
     } as const;
   }
   if (props.notificationCount > 0) return { count: props.notificationCount, tone: 'danger' } as const;
+  if (chatUnread.value > 0) return { count: chatUnread.value, tone: 'mute' } as const;
   if (aiUnread.value > 0) return { count: aiUnread.value, tone: 'mute' } as const;
   return null;
 });
@@ -168,7 +173,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointerDo
             aria-hidden="true"
           ><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /></svg>
         </UiDockButton>
-        <UiDockButton label="协同群聊" :count="null" @click="pick(() => emit('open-chat'))">
+        <UiDockButton
+          label="协同群聊"
+          :count="chatUnread > 0 ? chatUnread : null"
+          :tone="chatUnread > 0 ? 'act' : 'mute'"
+          @click="pick(() => emit('open-chat'))"
+        >
           <svg
             width="14"
             height="14"
@@ -255,7 +265,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointerDo
     </div>
   </UiFloatPanel>
 
-  <DispatchNotifyModal :is-open="dispatchNotifyOpen" :flight-no-resolver="flightNoResolver" @close="emit('close-dispatch')" />
+  <DispatchNotifyModal
+    :is-open="dispatchNotifyOpen"
+    :flight-no-resolver="flightNoResolver"
+    @close="emit('close-dispatch')"
+    @open-chat="emit('open-chat-from-notification', $event)"
+  />
   <CriticalNotifyModal
     :notification-queue="criticalNotificationQueue"
     :pop-notification="() => { const n = criticalNotificationQueue[0]; emit('shift-critical-notification'); return n; }"
@@ -289,10 +304,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointerDo
 
   <DispatchCollaborationChat
     :is-open="dispatchChatOpen"
-    :flight-id="selectedFlightId"
+    :flight-id="chatGroupId ? null : selectedFlightId"
+    :group-id="chatGroupId || undefined"
     @close="emit('close-chat')"
     @toast="emit('toast', $event)"
     @error="emit('error', $event)"
+    @unread="chatUnread = $event"
   />
 </template>
 

@@ -8,6 +8,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   time?: string;
+  mentioned?: boolean;
 }
 </script>
 
@@ -106,7 +107,7 @@ onMounted(() => { void scrollToEnd(); });
       class="chat-msg"
       :class="`is-${msg.role}`"
     >
-      <div class="chat-bubble">
+      <div class="chat-bubble" :data-mentioned="msg.mentioned ? 'true' : undefined">
         <slot name="body" :msg="msg" :index="index">
           <span class="chat-text">{{ msg.content }}</span>
         </slot>
@@ -154,6 +155,10 @@ onMounted(() => { void scrollToEnd(); });
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.chat-bubble[data-mentioned='true'] {
+  box-shadow: inset 3px 0 0 var(--act);
 }
 
 .is-user .chat-bubble {

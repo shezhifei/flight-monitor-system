@@ -40,6 +40,10 @@ struct SendMessageRequest {
     content: String,
     #[serde(default)]
     at_all: bool,
+    /// User ids to @. Server keeps only current group members (including
+    /// read-only), drops the sender and strangers, and caps at 50.
+    #[serde(default)]
+    mention_user_ids: Vec<String>,
     /// Client-generated idempotency key. When present, a retried POST resolves
     /// to the message already stored instead of inserting a duplicate.
     #[serde(default)]
@@ -140,6 +144,24 @@ async fn list_messages(
     Ok(HttpResponse::Ok().json(payload))
 }
 
+/// GET /api/v2/dispatch/collaboration/groups/{group_id}/members
+async fn list_group_members(
+    svc: web::Data<Arc<DispatchChatService>>,
+    path: web::Path<String>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    let user_id = claims
+        .0
+        .sub
+        .as_deref()
+        .ok_or_else(|| ApiError::Unauthorized("未认证".into()))?;
+    let payload = svc
+        .list_group_members(&path.into_inner(), user_id)
+        .await
+        .map_err(map_chat_error)?;
+    Ok(HttpResponse::Ok().json(payload))
+}
+
 /// POST /api/v2/dispatch/collaboration/groups/{group_id}/messages
 async fn send_message(
     svc: web::Data<Arc<DispatchChatService>>,
@@ -161,6 +183,7 @@ async fn send_message(
             &body.content,
             body.at_all,
             body.client_msg_id.as_deref(),
+            &body.mention_user_ids,
         )
         .await
         .map_err(map_chat_error)?;
@@ -252,6 +275,7 @@ pub(crate) fn configure_under_collaboration_scope(cfg: &mut web::ServiceConfig) 
         .route("/groups/by-flight/{flight_id}", web::get().to(get_group_by_flight))
         .route("/groups/{group_id}/messages", web::get().to(list_messages))
         .route("/groups/{group_id}/messages", web::post().to(send_message))
+        .route("/groups/{group_id}/members", web::get().to(list_group_members))
         .route("/groups/{group_id}/read", web::post().to(mark_read));
 }
 

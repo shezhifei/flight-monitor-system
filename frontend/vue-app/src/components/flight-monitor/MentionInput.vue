@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
+import { onBeforeUnmount, ref, useId, watch } from 'vue';
 import type { Stakeholder } from '../../composables/useMentionStakeholders';
+import { useMentionPicker } from '../../composables/useMentionPicker';
 import UiField from '../ui/UiField.vue';
 import UiMenu from '../ui/UiMenu.vue';
 import UiMenuItem from '../ui/UiMenuItem.vue';
@@ -32,30 +33,22 @@ const emit = defineEmits<{
 }>();
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
-const showDropdown = ref(false);
-const searchKeyword = ref('');
-const selectedIndex = ref(0);
-const mentionedIds = ref<Set<string>>(new Set());
-const mentionTriggerPos = ref(-1);
+
+const picker = useMentionPicker({
+  getValue: () => props.modelValue,
+  setValue: (v) => emit('update:modelValue', v),
+  getTextarea: () => textareaRef.value,
+  stakeholders: () => props.stakeholders,
+  includeAll: false,
+});
+
+const { isOpen, filtered, selectedIndex, onKeydown, selectAt, close, mentionIds } = picker;
 
 /** aria-activedescendant 要指得住，所以每一项都得有稳定且本实例唯一的 id */
 const listId = useId();
 function optionId(index: number): string {
   return `${listId}-opt-${index}`;
 }
-
-const filteredStakeholders = computed(() => {
-  const keyword = searchKeyword.value.toLowerCase();
-  if (!keyword) return props.stakeholders;
-  return props.stakeholders.filter(
-    (s) =>
-      s.username.toLowerCase().includes(keyword) ||
-      s.user_id.toLowerCase().includes(keyword),
-  );
-});
-
-/** 一个候选人都没有就没有可选的值，那一列不该开着 */
-const isOpen = computed(() => showDropdown.value && filteredStakeholders.value.length > 0);
 
 const MENU_MAX_H = 280;
 const MENU_MIN_H = 160;
@@ -95,94 +88,13 @@ onBeforeUnmount(() => {
 });
 
 function onInput(event: Event) {
-  const target = event.target as HTMLTextAreaElement;
-  const value = target.value;
-  emit('update:modelValue', value);
-
-  const cursorPos = target.selectionStart || 0;
-  const textBeforeCursor = value.substring(0, cursorPos);
-  const atIndex = textBeforeCursor.lastIndexOf('@');
-
-  if (atIndex >= 0) {
-    const charBeforeAt = atIndex > 0 ? textBeforeCursor[atIndex - 1] : ' ';
-    if (charBeforeAt === ' ' || charBeforeAt === '\n' || atIndex === 0) {
-      const query = textBeforeCursor.substring(atIndex + 1);
-      if (!query.includes(' ') && !query.includes('\n')) {
-        showDropdown.value = true;
-        searchKeyword.value = query;
-        mentionTriggerPos.value = atIndex;
-        selectedIndex.value = 0;
-        placeMenu();
-        return;
-      }
-    }
-  }
-
-  showDropdown.value = false;
-  searchKeyword.value = '';
-  mentionTriggerPos.value = -1;
+  picker.onInput(event);
+  if (isOpen.value) placeMenu();
 }
 
-function selectStakeholder(stakeholder: Stakeholder) {
-  if (!textareaRef.value || mentionTriggerPos.value < 0) return;
-
-  const textarea = textareaRef.value;
-  const value = props.modelValue;
-  const cursorPos = textarea.selectionStart || 0;
-
-  const beforeAt = value.substring(0, mentionTriggerPos.value);
-  const afterCursor = value.substring(cursorPos);
-  const mentionText = `@${stakeholder.username} `;
-  const newValue = beforeAt + mentionText + afterCursor;
-
-  emit('update:modelValue', newValue);
-  mentionedIds.value.add(stakeholder.user_id);
-  emit('update:mentionIds', Array.from(mentionedIds.value));
-
-  showDropdown.value = false;
-  searchKeyword.value = '';
-  mentionTriggerPos.value = -1;
-
-  nextTick(() => {
-    if (textarea) {
-      const newCursorPos = beforeAt.length + mentionText.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-      textarea.focus();
-    }
-  });
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (!isOpen.value) return;
-
-  if (event.key === 'ArrowDown') {
-    event.preventDefault();
-    selectedIndex.value = Math.min(selectedIndex.value + 1, filteredStakeholders.value.length - 1);
-  } else if (event.key === 'ArrowUp') {
-    event.preventDefault();
-    selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
-  } else if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    selectStakeholder(filteredStakeholders.value[selectedIndex.value]);
-  } else if (event.key === 'Escape') {
-    showDropdown.value = false;
-  }
-}
-
-function closeDropdown() {
-  showDropdown.value = false;
-}
-
-// Re-emit mention IDs whenever modelValue changes externally (clear scenario)
-watch(
-  () => props.modelValue,
-  (val) => {
-    if (!val) {
-      mentionedIds.value.clear();
-      emit('update:mentionIds', []);
-    }
-  },
-);
+watch(mentionIds, (ids) => {
+  emit('update:mentionIds', ids);
+});
 </script>
 
 <template>
@@ -198,7 +110,7 @@ watch(
         :aria-activedescendant="isOpen ? optionId(selectedIndex) : undefined"
         @input="onInput"
         @keydown="onKeydown"
-        @blur="closeDropdown"
+        @blur="close"
       />
     </UiField>
     <Teleport to="body">
@@ -219,12 +131,12 @@ watch(
           划过是 UiMenuItem 那一层淡墨，游标是 aria-selected 的行动衬。
         -->
         <UiMenuItem
-          v-for="(s, i) in filteredStakeholders"
+          v-for="(s, i) in filtered"
           :id="optionId(i)"
           :key="s.user_id"
           role="option"
           :selected="i === selectedIndex"
-          @mousedown.prevent="selectStakeholder(s)"
+          @mousedown.prevent="selectAt(s)"
         >
           <span class="mention__opt">
             <span class="mention__name">{{ s.username }}</span>

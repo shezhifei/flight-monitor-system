@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted, computed } from 'vue';
 import { useNotification, DispatchOnlineUserOption, NotificationResponse, SentReceiptGroupSummaryResponse } from '../../composables/useNotification';
+import { chatTargetFromNotification, type ChatNotificationTarget } from '../../composables/chatTargetFromNotification';
 import { useAuth } from '../../composables/useAuth';
 import { useToast } from '../../composables/useToast';
 import UiModal from '../ui/UiModal.vue';
@@ -25,6 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
+  (e: 'open-chat', target: ChatNotificationTarget): void;
 }>();
 
 const activeTab = ref('send');
@@ -216,6 +218,16 @@ async function markAsRead(id: string) {
   if (success) {
     loadInbox();
   }
+}
+
+function openMentionChat(item: NotificationResponse): void {
+  const target = chatTargetFromNotification(item);
+  if (!target) return;
+  emit('open-chat', target);
+  if (!item.is_read) {
+    void markAsRead(item.notification_id);
+  }
+  emit('close');
 }
 
 const ackNote = ref<{ [key: string]: string }>({});
@@ -470,6 +482,13 @@ onUnmounted(() => {
             </p>
             <div class="msg__foot">
               <span class="msg__from">发信人 {{ item.sender_username || '系统' }}</span>
+              <UiButton
+                v-if="chatTargetFromNotification(item)"
+                variant="tonal"
+                @click.stop="openMentionChat(item)"
+              >
+                打开群聊
+              </UiButton>
               <UiButton v-if="!item.is_read" variant="quiet" @click="markAsRead(item.notification_id)">
                 标记已读
               </UiButton>

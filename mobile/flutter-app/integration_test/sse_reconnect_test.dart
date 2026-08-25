@@ -114,6 +114,7 @@ void main() {
       groupId: group.groupId,
       content: 'p2-reconn $stamp',
       atAll: false,
+      mentionUserIds: const [],
     );
     debugPrint('SSE_RECONN_SENT seq=${sent.seqNo}');
 

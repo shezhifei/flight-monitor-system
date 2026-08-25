@@ -959,6 +959,12 @@ mod null_repository_impls {
         ) -> Result<Vec<dispatch_collaboration::DispatchChatMember>, crate::error::DomainError> {
             Ok(vec![])
         }
+        async fn find_group_members(
+            &self,
+            _: &str,
+        ) -> Result<Vec<dispatch_collaboration::DispatchChatMember>, crate::error::DomainError> {
+            Ok(vec![])
+        }
         async fn find_users_by_ids(
             &self,
             _: &[String],

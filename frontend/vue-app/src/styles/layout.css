@@ -128,7 +128,8 @@ html.workspace-embed .flight-monitor-container {
     position: sticky;
     top: 0;
     z-index: 15;
-    background: var(--bg-sidebar);
+    /* 与 .flight-detail-panel 同面（--face-page），避免 sticky 头出现异色带 */
+    background: var(--face-page);
     padding-bottom: 12px;
 }
 

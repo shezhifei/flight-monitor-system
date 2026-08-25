@@ -83,11 +83,16 @@ class ChatRoomNotifier extends AsyncNotifier<List<ChatMessage>> {
     return page.hasMore;
   }
 
-  Future<ChatMessage> send(String content, {bool atAll = false}) async {
+  Future<ChatMessage> send(
+    String content, {
+    bool atAll = false,
+    List<String> mentionUserIds = const [],
+  }) async {
     final msg = await sendChatMessage(
       groupId: groupId,
       content: content,
       atAll: atAll,
+      mentionUserIds: mentionUserIds,
     );
     upsert(msg);
     return msg;
@@ -119,6 +124,7 @@ class ChatRoomNotifier extends AsyncNotifier<List<ChatMessage>> {
         messageType: (raw['message_type'] ?? 'text').toString(),
         content: (raw['content'] ?? '').toString(),
         isAtAll: raw['is_at_all'] == true,
+        mentionUserIds: _asStringList(raw['mention_user_ids']),
         sentAt: (raw['sent_at'] ?? '').toString(),
       );
       if (msg.messageId.isEmpty) return;
@@ -139,3 +145,21 @@ int _asInt(Object? v) {
   if (v is num) return v.toInt();
   return int.tryParse(v?.toString() ?? '') ?? 0;
 }
+
+List<String> _asStringList(Object? v) {
+  if (v is! List) return const [];
+  return [
+    for (final e in v)
+      if (e is String && e.isNotEmpty) e,
+  ];
+}
+
+/// 群成员（含 inactive，可 @）。失败时空列表。
+final chatMembersProvider =
+    FutureProvider.family<List<ChatMember>, String>((ref, groupId) async {
+  try {
+    return (await chatGroupMembers(groupId: groupId)).items;
+  } catch (_) {
+    return const [];
+  }
+});

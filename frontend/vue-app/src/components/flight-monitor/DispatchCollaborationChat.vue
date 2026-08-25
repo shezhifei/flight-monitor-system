@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, unref, watch } from 'vue';
 import { useDispatchChat, type ChatGroup, type ChatMessage } from '@/composables/useDispatchChat';
 import { useAuth } from '@/composables/useAuth';
 import UiModal from '../ui/UiModal.vue';
 import UiPill from '../ui/UiPill.vue';
 import UiBanner from '../ui/UiBanner.vue';
-import UiCheckChip from '../ui/UiCheckChip.vue';
 import ChatMessageList from '../ui/ChatMessageList.vue';
 import ChatSender from '../ui/ChatSender.vue';
+import ChatMentionBody from '../ui/ChatMentionBody.vue';
 
 /**
  * 协同群聊：左边一列群，右边一间房。
@@ -26,6 +26,7 @@ const emit = defineEmits<{
   (e: 'error', msg: string): void;
   (e: 'toast', msg: string): void;
   (e: 'close'): void;
+  (e: 'unread', count: number): void;
 }>();
 
 const {
@@ -36,14 +37,17 @@ const {
   chatLoadingMessages,
   chatSending,
   chatMessagesHasMore,
+  chatUnreadTotal,
   activeGroup,
   loadChatGroups,
   selectChatGroup,
   sendChatMessage,
   initChatSession,
   destroyChatSession,
+  setChatPanelVisible,
   openGroupByFlightId,
   loadMoreMessages,
+  chatGroupMembers,
 } = useDispatchChat();
 
 const auth = useAuth();
@@ -53,7 +57,7 @@ function openGroup(groupId: string) {
 }
 
 const inputDraft = ref('');
-const atAll = ref(false);
+const senderRef = ref<{ mentionIds: string[]; atAll: boolean; resetMentions: () => void } | null>(null);
 
 const enabled = computed(() => props.enabled ?? true);
 const selectedGroup = computed<ChatGroup | null>(() => activeGroup.value);
@@ -97,6 +101,7 @@ interface StreamMessage {
   time?: string;
   sender: string;
   atAll: boolean;
+  mentioned: boolean;
 }
 
 /** 我的身份牌：服务端回填的发话人可能是 id、user_id 或 username 里的任一个。 */
@@ -139,13 +144,19 @@ const streamMessages = computed<StreamMessage[]>(() => {
   const me = currentIdentity();
   return chatMessages.value.map((msg) => {
     const mine = isMine(msg, me);
+    const atAll = Boolean(msg.is_at_all || msg.at_all);
+    const mentionHits = (msg.mention_user_ids ?? []).some((id) => {
+      const value = String(id ?? '').trim();
+      return value !== '' && me.has(value);
+    });
     return {
       id: messageKey(msg),
       role: msg.message_type === 'system' ? 'system' : (mine ? 'user' : 'assistant'),
       content: String(msg.content ?? ''),
       time: msg.sent_at ? formatDateTime(msg.sent_at) : undefined,
       sender: senderLabel(msg, mine),
-      atAll: Boolean(msg.is_at_all || msg.at_all),
+      atAll,
+      mentioned: !mine && (atAll || mentionHits),
     };
   });
 });
@@ -165,14 +176,16 @@ function onReachStart(): void {
 const showToast = (msg: string) => {
   emit('toast', msg);
 };
+function ensureBackgroundSession() {
+  if (!enabled.value) return;
+  initChatSession();
+  void loadChatGroups({ silent: true });
+}
+
 const initSession = async () => {
   if (!enabled.value) return;
   initChatSession();
-  const loaded = await loadChatGroups({ silent: chatGroups.value.length > 0 });
-  // Keep panel usable even when list is empty / first load fails — user may still open by flight.
-  if (!loaded && chatGroups.value.length === 0) {
-    // soft: still try flight-scoped open below
-  }
+  await loadChatGroups({ silent: chatGroups.value.length > 0 });
 
   if (props.flightId) {
     const result = await openGroupByFlightId(props.flightId);
@@ -182,25 +195,34 @@ const initSession = async () => {
       } else if (result.status !== 0) {
         showToast(`打开航班群聊失败 (${result.status})`);
       }
-      if (chatGroups.value.length > 0) {
-        await openGroup(chatGroups.value[0].group_id);
-      }
     } else {
-      // Keep sidebar in sync after force-join / first open
       void loadChatGroups({ silent: true });
     }
-  } else if (props.groupId) {
+    return;
+  }
+
+  if (props.groupId) {
     await openGroup(props.groupId);
+    return;
+  }
+
+  if (chatSelectedGroupId.value) {
+    await openGroup(chatSelectedGroupId.value);
   } else if (chatGroups.value.length > 0) {
     await openGroup(chatGroups.value[0].group_id);
   }
 };
 
+watch(chatUnreadTotal, (count) => {
+  emit('unread', count);
+}, { immediate: true });
+
 watch(() => props.isOpen, (open) => {
   if (open && enabled.value) {
+    setChatPanelVisible(true);
     void initSession();
-  } else if (!open) {
-    // keep stream when closed so unread can still update; only stop when disabled
+  } else {
+    setChatPanelVisible(false);
   }
 });
 
@@ -222,19 +244,28 @@ watch(() => props.groupId, (newGroupId) => {
 
 watch(() => props.enabled, (newEnabled) => {
   if (!newEnabled) {
+    setChatPanelVisible(false);
     destroyChatSession();
-  } else if (props.isOpen) {
-    void initSession();
+  } else {
+    ensureBackgroundSession();
+    if (props.isOpen) {
+      setChatPanelVisible(true);
+      void initSession();
+    }
   }
 });
 
 onMounted(() => {
-  if (props.isOpen && enabled.value) {
+  if (!enabled.value) return;
+  ensureBackgroundSession();
+  if (props.isOpen) {
+    setChatPanelVisible(true);
     void initSession();
   }
 });
 
 onBeforeUnmount(() => {
+  setChatPanelVisible(false);
   destroyChatSession();
 });
 
@@ -249,7 +280,12 @@ const sendMessage = async () => {
   const content = inputDraft.value.trim();
   if (!content) return;
 
-  const result = await sendChatMessage(content, Boolean(atAll.value));
+  const sender = senderRef.value;
+  const result = await sendChatMessage(
+    content,
+    Boolean(unref(sender?.atAll)),
+    [...(unref(sender?.mentionIds) ?? [])],
+  );
   if (!result.ok) {
     if (result.reason === 'archived') {
       showToast('群聊已归档，只读不可发送');
@@ -260,7 +296,7 @@ const sendMessage = async () => {
   }
 
   inputDraft.value = '';
-  atAll.value = false;
+  sender?.resetMentions();
 };
 </script>
 
@@ -333,7 +369,7 @@ const sendMessage = async () => {
               {{ msg.sender }}
               <UiPill v-if="msg.atAll" tone="warn">@全体</UiPill>
             </span>
-            <span class="collab__text">{{ msg.content }}</span>
+            <ChatMentionBody :content="msg.content" class="collab__text" />
           </template>
         </ChatMessageList>
 
@@ -342,21 +378,15 @@ const sendMessage = async () => {
             群聊已归档，只读不可发送
           </UiBanner>
           <ChatSender
+            ref="senderRef"
             v-model="inputDraft"
             :disabled="composerDisabled"
             :maxlength="2000"
+            :stakeholders="chatGroupMembers"
+            include-all-mention
             placeholder="输入消息，Enter 发送，Shift+Enter 换行"
             @send="sendMessage"
-          >
-            <template #tools>
-              <UiCheckChip
-                id="collabAtAll"
-                v-model:checked="atAll"
-                label="@全体"
-                :disabled="composerDisabled"
-              />
-            </template>
-          </ChatSender>
+          />
         </footer>
       </section>
     </div>

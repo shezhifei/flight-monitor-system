@@ -29,6 +29,8 @@ pub(crate) fn to_response(n: &Notification) -> NotificationResponse {
         ack_note: n.ack_note.clone(),
         related_entity_type: n.related_entity_type.clone(),
         related_entity_id: n.related_entity_id.clone(),
+        flight_id: n.flight_id.clone(),
+        group_id: n.group_id.clone(),
         sender_user_id: n.sender_user_id.clone(),
         sender_username: n.sender_username_snapshot.clone(),
         created_at: n.created_at,

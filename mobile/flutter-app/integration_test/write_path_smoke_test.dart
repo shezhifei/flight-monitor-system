@@ -66,6 +66,7 @@ void main() {
       groupId: group.groupId,
       content: 'write-smoke $stamp',
       atAll: false,
+      mentionUserIds: const [],
     );
     expect(sent.messageId, isNotEmpty);
     debugPrint('WRITE_CHAT_SENT id=${sent.messageId} seq=${sent.seqNo}');

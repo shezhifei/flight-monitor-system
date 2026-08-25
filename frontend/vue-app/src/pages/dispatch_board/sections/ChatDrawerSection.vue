@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, unref } from 'vue';
 import type { ChatGroup, ChatMessage } from '@/composables/useDispatchChat';
+import type { Stakeholder } from '@/composables/useMentionStakeholders';
+import { useAuth } from '@/composables/useAuth';
+import ChatSender from '@/components/ui/ChatSender.vue';
+import ChatMentionBody from '@/components/ui/ChatMentionBody.vue';
 
 const props = defineProps<{
   isChatDrawerVisible: boolean;
@@ -9,16 +13,64 @@ const props = defineProps<{
   chatMessageList: ChatMessage[];
   chatMessagesError: string;
   chatInput: string;
+  chatGroupMembers: Stakeholder[];
 }>();
 
 const visibleChatMessages = computed(() => (props.chatMessageList ?? []).slice(-200));
 
+const activeGroup = computed(() => {
+  const groupId = String(props.chatActiveGroup || '').trim();
+  return props.chatGroupList.find((group) => group.group_id === groupId) || null;
+});
+
+const isArchived = computed(() => {
+  const group = activeGroup.value;
+  if (!group) return false;
+  return Boolean(group.read_only) || String(group.status || '').toLowerCase() === 'archived';
+});
+
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'selectChatGroup', groupId: string): void;
-  (e: 'sendChatMessage'): void;
+  (e: 'sendChatMessage', payload: { mentionUserIds: string[]; atAll: boolean }): void;
   (e: 'update:chatInput', val: string): void;
 }>();
+
+const auth = useAuth();
+const senderRef = ref<{ mentionIds: string[]; atAll: boolean; resetMentions: () => void } | null>(null);
+
+function currentIdentity(): Set<string> {
+  const user = auth.getUser();
+  const ids = [user?.id, user?.sub, user?.user_id, user?.username]
+    .map((value) => String(value ?? '').trim())
+    .filter((value) => value !== '');
+  return new Set(ids);
+}
+
+function isMine(msg: ChatMessage, me: Set<string>): boolean {
+  return [msg.sender_user_id, msg.sender_id, msg.sender_username].some((value) => {
+    const id = String(value ?? '').trim();
+    return id !== '' && me.has(id);
+  });
+}
+
+function isMentioned(msg: ChatMessage): boolean {
+  const me = currentIdentity();
+  if (isMine(msg, me)) return false;
+  if (Boolean(msg.at_all || msg.is_at_all)) return true;
+  return (msg.mention_user_ids ?? []).some((id) => {
+    const value = String(id ?? '').trim();
+    return value !== '' && me.has(value);
+  });
+}
+
+function onSend() {
+  const sender = senderRef.value;
+  emit('sendChatMessage', {
+    mentionUserIds: [...(unref(sender?.mentionIds) ?? [])],
+    atAll: Boolean(unref(sender?.atAll)),
+  });
+}
 </script>
 
 <template>
@@ -37,14 +89,44 @@ const emit = defineEmits<{
           <div class="chat-message-head"><div><p class="chat-title">{{ chatActiveGroup ? '群聊' : '请选择群组' }}</p><p class="chat-subtitle">仅成员可见</p></div></div>
           <div id="chatMessageList" class="chat-message-list">
             <div v-if="chatMessagesError" class="chat-empty-state" role="alert">{{ chatMessagesError }}</div>
-            <div v-for="msg in visibleChatMessages" :key="msg.id || msg.seq_no" class="chat-message"><div class="msg-header"><span class="msg-user">{{ msg.sender_name || '未知' }}</span><span class="msg-time">{{ msg.sent_at ? new Date(msg.sent_at).toLocaleTimeString() : '' }}</span></div><div class="msg-body">{{ msg.content }}</div></div>
+            <div
+              v-for="msg in visibleChatMessages"
+              :key="msg.id || msg.seq_no"
+              class="chat-message"
+              :data-mentioned="isMentioned(msg) ? 'true' : undefined"
+            >
+              <div class="msg-header">
+                <span class="msg-user">{{ msg.sender_name || '未知' }}</span>
+                <span class="msg-time">{{ msg.sent_at ? new Date(msg.sent_at).toLocaleTimeString() : '' }}</span>
+              </div>
+              <div class="msg-body">
+                <ChatMentionBody :content="msg.content" />
+              </div>
+            </div>
             <div v-if="!chatMessagesError && chatMessageList.length === 0" class="chat-empty-state">暂无消息</div>
           </div>
           <div class="chat-composer">
-            <textarea id="chatInput" :value="chatInput" maxlength="2000" placeholder="输入消息，Enter 发送，Ctrl+Enter 换行" @input="emit('update:chatInput', ($event.target as HTMLTextAreaElement).value)" @keyup.ctrl.enter="() => { if(chatInput.trim() && chatActiveGroup) emit('sendChatMessage'); }" />
+            <p v-if="isArchived" class="chat-readonly-tip">群聊已归档，只读不可发送</p>
+            <ChatSender
+              ref="senderRef"
+              :model-value="chatInput"
+              :disabled="isArchived || !chatActiveGroup"
+              :maxlength="2000"
+              :stakeholders="chatGroupMembers"
+              include-all-mention
+              placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+              @update:model-value="emit('update:chatInput', $event)"
+              @send="onSend"
+            />
           </div>
         </section>
       </div>
     </div>
   </aside>
 </template>
+
+<style scoped>
+.chat-message[data-mentioned='true'] {
+  box-shadow: inset 3px 0 0 var(--act);
+}
+</style>

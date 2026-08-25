@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 /// `GET /api/v2/dispatch/collaboration/groups`.
 Future<ChatGroupList> chatGroups({
@@ -35,11 +35,17 @@ Future<ChatMessage> sendChatMessage({
   required String groupId,
   required String content,
   required bool atAll,
+  required List<String> mentionUserIds,
 }) => RustLib.instance.api.crateApiChatSendChatMessage(
   groupId: groupId,
   content: content,
   atAll: atAll,
+  mentionUserIds: mentionUserIds,
 );
+
+/// `GET .../groups/{group_id}/members`.
+Future<ChatMemberList> chatGroupMembers({required String groupId}) =>
+    RustLib.instance.api.crateApiChatChatGroupMembers(groupId: groupId);
 
 /// `POST .../groups/{group_id}/read`.
 Future<ChatReadResult> markChatRead({
@@ -146,6 +152,59 @@ class ChatGroupList {
           unreadTotal == other.unreadTotal;
 }
 
+/// Mirror of `ChatMember`.
+class ChatMember {
+  final String userId;
+  final String username;
+  final bool isAssignee;
+  final bool isDispatcher;
+  final bool isActive;
+
+  const ChatMember({
+    required this.userId,
+    required this.username,
+    required this.isAssignee,
+    required this.isDispatcher,
+    required this.isActive,
+  });
+
+  @override
+  int get hashCode =>
+      userId.hashCode ^
+      username.hashCode ^
+      isAssignee.hashCode ^
+      isDispatcher.hashCode ^
+      isActive.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChatMember &&
+          runtimeType == other.runtimeType &&
+          userId == other.userId &&
+          username == other.username &&
+          isAssignee == other.isAssignee &&
+          isDispatcher == other.isDispatcher &&
+          isActive == other.isActive;
+}
+
+/// Mirror of `ChatMemberList`.
+class ChatMemberList {
+  final List<ChatMember> items;
+
+  const ChatMemberList({required this.items});
+
+  @override
+  int get hashCode => items.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChatMemberList &&
+          runtimeType == other.runtimeType &&
+          items == other.items;
+}
+
 /// Mirror of `ChatMessage`.
 class ChatMessage {
   final String messageId;
@@ -156,6 +215,7 @@ class ChatMessage {
   final String messageType;
   final String content;
   final bool isAtAll;
+  final List<String> mentionUserIds;
   final String sentAt;
 
   const ChatMessage({
@@ -167,6 +227,7 @@ class ChatMessage {
     required this.messageType,
     required this.content,
     required this.isAtAll,
+    required this.mentionUserIds,
     required this.sentAt,
   });
 
@@ -180,6 +241,7 @@ class ChatMessage {
       messageType.hashCode ^
       content.hashCode ^
       isAtAll.hashCode ^
+      mentionUserIds.hashCode ^
       sentAt.hashCode;
 
   @override
@@ -195,6 +257,7 @@ class ChatMessage {
           messageType == other.messageType &&
           content == other.content &&
           isAtAll == other.isAtAll &&
+          mentionUserIds == other.mentionUserIds &&
           sentAt == other.sentAt;
 }
 

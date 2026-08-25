@@ -261,7 +261,6 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
             ) member_stat ON TRUE
             {unread_lateral}
             WHERE m.user_id = $1
-              AND m.is_active = TRUE
               {status_clause}
             ORDER BY COALESCE(last_msg.sent_at, g.updated_at, g.created_at) DESC
             LIMIT $2 OFFSET $3
@@ -273,7 +272,6 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
             FROM dispatch_chat_group_members m
             JOIN dispatch_chat_groups g ON g.group_id = m.group_id
             WHERE m.user_id = $1
-              AND m.is_active = TRUE
               {status_clause}
             "#
         );
@@ -585,7 +583,6 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
             {unread_lateral}
             WHERE m.group_id = $1
               AND m.user_id = $2
-              AND m.is_active = TRUE
             LIMIT 1
             "#
         ))
@@ -606,7 +603,6 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
             FROM dispatch_chat_group_members m
             {unread_lateral}
             WHERE m.user_id = $1
-              AND m.is_active = TRUE
             "#
         ))
         .bind(user_id)
@@ -639,10 +635,8 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 FROM dispatch_chat_group_members m2
                 {member_lateral}
                 WHERE m2.user_id = m.user_id
-                  AND m2.is_active = TRUE
             ) total_stat ON TRUE
             WHERE m.group_id = $1
-              AND m.is_active = TRUE
             ORDER BY m.joined_at ASC
             "#
         ))
@@ -671,6 +665,26 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
             LEFT JOIN users u ON u.id = m.user_id
             WHERE m.group_id = $1
               AND m.is_active = TRUE
+            ORDER BY m.joined_at ASC
+            "#,
+        )
+        .bind(group_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(internal_error)?;
+
+        Ok(rows.iter().map(row_to_member).collect())
+    }
+
+    async fn find_group_members(&self, group_id: &str) -> Result<Vec<DispatchChatMember>, DomainError> {
+        let rows = sqlx::query(
+            r#"
+            SELECT
+                m.*,
+                u.username
+            FROM dispatch_chat_group_members m
+            LEFT JOIN users u ON u.id = m.user_id
+            WHERE m.group_id = $1
             ORDER BY m.joined_at ASC
             "#,
         )
@@ -999,6 +1013,7 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 UPDATE dispatch_chat_groups g
                 SET deprecated_at = COALESCE(g.deprecated_at, CURRENT_TIMESTAMP),
                     deprecation_reason = $2,
+                    archive_at = COALESCE(g.archive_at, CURRENT_TIMESTAMP + INTERVAL '6 hours'),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE g.group_id = $1
                   AND g.status <> 'archived'
@@ -1381,11 +1396,19 @@ fn row_to_group_summary(row: &sqlx::postgres::PgRow) -> DispatchChatGroupSummary
             .ok()
             .flatten()
             .unwrap_or_else(|| "active".to_string()),
-        read_only: row
-            .try_get::<Option<bool>, _>("read_only")
-            .ok()
-            .flatten()
-            .unwrap_or(false),
+        read_only: {
+            let stored_read_only = row
+                .try_get::<Option<bool>, _>("read_only")
+                .ok()
+                .flatten()
+                .unwrap_or(false);
+            let member_is_active = row
+                .try_get::<Option<bool>, _>("member_is_active")
+                .ok()
+                .flatten()
+                .unwrap_or(true);
+            stored_read_only || !member_is_active
+        },
         deprecated: deprecated_at.is_some(),
         deprecated_at,
         deprecation_reason: row.try_get("deprecation_reason").ok().flatten(),
@@ -1469,6 +1492,9 @@ fn row_to_dispatcher_candidate(row: &sqlx::postgres::PgRow) -> DispatchChatDispa
 }
 
 fn row_to_message(row: &sqlx::postgres::PgRow) -> DispatchChatMessage {
+    let metadata = row
+        .try_get::<serde_json::Value, _>("metadata")
+        .unwrap_or_else(|_| serde_json::json!({}));
     DispatchChatMessage {
         message_id: row.get("message_id"),
         seq_no: row.try_get::<Option<i64>, _>("seq_no").ok().flatten().unwrap_or(0),
@@ -1490,9 +1516,8 @@ fn row_to_message(row: &sqlx::postgres::PgRow) -> DispatchChatMessage {
             .ok()
             .flatten()
             .unwrap_or(false),
-        metadata: row
-            .try_get::<serde_json::Value, _>("metadata")
-            .unwrap_or_else(|_| serde_json::json!({})),
+        mention_user_ids: DispatchChatMessage::mention_user_ids_from_metadata(&metadata),
+        metadata,
         sent_at: row.get("sent_at"),
         client_msg_id: row.try_get("client_msg_id").ok().flatten(),
         dispatch_order_id: row.try_get("dispatch_order_id").ok().flatten(),
