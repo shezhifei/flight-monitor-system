@@ -18,7 +18,7 @@ use fms_application::services::flight_service::FlightService;
 use fms_application::services::flight_writer::{FlightTransactionalWrites, FlightWriter, UowFlightWriter};
 use fms_application::services::label_service::LabelService;
 use fms_application::services::ontology_actions::OntologyActionServices;
-use fms_application::services::ontology_service::OntologyService;
+use fms_application::services::ontology_service::{OntologyService, OntologyTransactions, OntologyWriter};
 use fms_application::sqlx_transactional_repositories::{
     SqlxDomainEventOutboxTransactionalRepository, SqlxFlightTimelineTransactionalRepository,
     SqlxFlightTransactionalRepository, SqlxOntologyTransactionalRepository,
@@ -31,8 +31,8 @@ use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransact
 use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
-    TurnaroundLinkRepository,
+    AircraftRepository, GateAssignmentRepository, OntologyTransactionalRepository,
+    ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
 };
 use fms_infrastructure::repositories::pg_ontology_repository::{
     PgAircraftRepository, PgGateAssignmentRepository, PgResourceAdjustmentSuggestionRepository,
@@ -136,18 +136,28 @@ pub(crate) fn build_flight_services(
     let link_port: Arc<dyn TurnaroundLinkRepository + Send + Sync> = link_repo;
     let suggestion_port: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync> = suggestion_repo;
 
+    let ontology_writer: Arc<OntologyWriter<_>> = Arc::new(OntologyWriter::new(
+        flight_repo_port.clone(),
+        link_port.clone(),
+        ontology_tx.clone()
+            as Arc<dyn OntologyTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync>,
+        flight_tx_repo.clone()
+            as Arc<dyn FlightTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync>,
+        outbox_tx_repo.clone()
+            as Arc<
+                dyn DomainEventOutboxTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
+            >,
+        repos.unit_of_work.clone(),
+    ));
     let ontology_svc = Arc::new(
         OntologyService::new(
-            repos.pool.clone(),
             flight_repo_port.clone(),
-            flight_tx_repo,
             aircraft_port,
             occupation_port.clone(),
             assignment_port,
             link_port,
             suggestion_port,
-            ontology_tx,
-            outbox_tx_repo,
+            ontology_writer as Arc<dyn OntologyTransactions>,
         )
         .with_flight_service(flight_svc.clone()),
     );

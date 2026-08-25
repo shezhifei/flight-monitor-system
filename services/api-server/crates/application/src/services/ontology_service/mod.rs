@@ -4,9 +4,11 @@
 
 mod error;
 mod service;
+mod writer;
 
 #[cfg(test)]
 mod tests;
 
 pub use error::OntologyError;
 pub use service::OntologyService;
+pub use writer::{OntologyTransactions, OntologyWriter};
