@@ -9,6 +9,12 @@ const DEBT_PATTERNS: &[&str] = &[
     "PgPool",
     "Transaction<",
     "Postgres",
+    // `Sqlx*TransactionalRepository`（application/src/sqlx_transactional_repositories.rs 的
+    // 10 个别名 trait）存在的目的就是把 `Transaction<'tx, Postgres>` 从签名里藏起来，好让
+    // HRTB 变成 `dyn`-able。于是持有 `Arc<dyn SqlxFooTransactionalRepository>` 的文件在
+    // `Postgres` / `Transaction<` 上一个都不命中——这个变通做法正好绕过了守门测试本身。
+    // 在本仓库里 `Sqlx` 这个前缀只属于那 10 个别名 trait，所以它是一个精确模式。
+    "Sqlx",
 ];
 
 #[test]
@@ -40,6 +46,7 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
         "business_case_service/service.rs",
         "dispatch_chat_service.rs",
         "dispatch_service/helpers_validation.rs",
+        "dispatch_service/mod.rs",
         "dispatch_service/order_lifecycle.rs",
         "domain_action_executor/service.rs",
         "domain_action_executor/tests.rs",
