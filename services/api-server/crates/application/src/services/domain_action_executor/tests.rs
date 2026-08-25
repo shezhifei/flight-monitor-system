@@ -59,7 +59,7 @@ async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
     .expect("insert test flight");
 }
 
-async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
+async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastructure::db::transaction::PgUnitOfWork> {
     use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
     use crate::services::dispatch_service::writer::DispatchOrderWriter;
     use crate::services::flight_service::FlightService;
@@ -196,7 +196,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         outbox_repo,
         anomaly_repo,
         notification_tx_repo_port,
-        pool,
+        Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
     )
 }
 

@@ -65,7 +65,7 @@ pub struct AiActionProposalService {
     repository: Option<Arc<dyn AiProposalRepository + Send + Sync>>,
     ai_runtime_service: Option<Arc<AiRuntimeService>>,
     notification_service: Option<Arc<ConcreteNotificationService>>,
-    domain_action_executor: Option<Arc<crate::services::domain_action_executor::DomainActionExecutor>>,
+    domain_action_executor: Option<Arc<dyn crate::services::domain_action_executor::DomainActionExecution>>,
     object_policy_repository: Option<Arc<dyn AiObjectPolicyRepository + Send + Sync>>,
     ontology_repository: Option<Arc<dyn fms_domain::ports::ai_ontology_repository::AiOntologyRepository + Send + Sync>>,
     flight_repository: Option<Arc<dyn FlightRepository + Send + Sync>>,
@@ -111,7 +111,7 @@ impl AiActionProposalService {
 
     pub fn with_domain_action_executor(
         mut self,
-        executor: Arc<crate::services::domain_action_executor::DomainActionExecutor>,
+        executor: Arc<dyn crate::services::domain_action_executor::DomainActionExecution>,
     ) -> Self {
         self.domain_action_executor = Some(executor);
         self

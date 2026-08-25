@@ -398,7 +398,11 @@ mod tests {
 
     async fn build_smoke_executor(
         pool: sqlx::PgPool,
-    ) -> Arc<crate::services::domain_action_executor::DomainActionExecutor> {
+    ) -> Arc<
+        crate::services::domain_action_executor::DomainActionExecutor<
+            fms_infrastructure::db::transaction::PgUnitOfWork,
+        >,
+    > {
         use crate::services::business_case_service::{
             BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter,
         };
@@ -532,13 +536,17 @@ mod tests {
             outbox_repo,
             anomaly_repo,
             notif_tx_repo_port,
-            pool,
+            Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
         ))
     }
 
     fn build_smoke_proposal_service(
         pool: sqlx::PgPool,
-        executor: Arc<crate::services::domain_action_executor::DomainActionExecutor>,
+        executor: Arc<
+            crate::services::domain_action_executor::DomainActionExecutor<
+                fms_infrastructure::db::transaction::PgUnitOfWork,
+            >,
+        >,
         readiness: Arc<AiExecutionReadinessService>,
         audit: Arc<dyn AiProposalAuditEventRecorder>,
     ) -> AiActionProposalService {

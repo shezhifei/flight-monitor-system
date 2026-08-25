@@ -52,7 +52,7 @@ use fms_application::services::ai_runtime_service::AiRuntimeService;
 use fms_application::services::authorization_service::AuthorizationService;
 use fms_application::services::business_case_service::BusinessCaseWriter;
 use fms_application::services::dispatch_service::writer::DispatchOrderWriter;
-use fms_application::services::domain_action_executor::DomainActionExecutor;
+use fms_application::services::domain_action_executor::{DomainActionExecution, DomainActionExecutor};
 use fms_application::services::todo_service::TodoWriter;
 
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
@@ -182,7 +182,7 @@ pub(crate) fn build_ai_services(
             repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
             dispatch.dispatch_svc.clone(),
         ));
-    let domain_action_executor = Arc::new(DomainActionExecutor::new(
+    let domain_action_executor: Arc<DomainActionExecutor<_>> = Arc::new(DomainActionExecutor::new(
         flight.flight_svc.clone(),
         flight.flight_writer.clone(),
         dispatch.dispatch_svc.clone(),
@@ -195,7 +195,7 @@ pub(crate) fn build_ai_services(
         repos.domain_event_outbox_repo.clone(),
         repos.anomaly_repo.clone(),
         repos.notification_repo.clone(),
-        pool.clone(),
+        repos.unit_of_work.clone(),
     ));
 
     let ai_proposal_repo: Arc<dyn AiProposalRepository + Send + Sync> =
@@ -474,7 +474,7 @@ fn build_ai_execution_control_service(
 
 fn build_ai_rollback_service(
     proposal_service: Arc<AiActionProposalService>,
-    domain_executor: Arc<DomainActionExecutor>,
+    domain_executor: Arc<dyn DomainActionExecution>,
     control_service: Arc<AiExecutionControlService>,
     pool: sqlx::PgPool,
 ) -> RollbackService {

@@ -527,7 +527,9 @@ async fn test_execute_proposal_idempotency_conflict() {
 
 async fn build_test_executor(
     pool: sqlx::PgPool,
-) -> fms_application::services::domain_action_executor::DomainActionExecutor {
+) -> fms_application::services::domain_action_executor::DomainActionExecutor<
+    fms_infrastructure::db::transaction::PgUnitOfWork,
+> {
     use crate::types::{
         NoopBroadcaster, NoopBusinessCaseEventPublisher, NoopNotificationDeliveryPublisher,
         NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
@@ -666,7 +668,7 @@ async fn build_test_executor(
         outbox_repo,
         anomaly_repo,
         notification_tx_repo_port,
-        pool,
+        Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
     )
 }
 

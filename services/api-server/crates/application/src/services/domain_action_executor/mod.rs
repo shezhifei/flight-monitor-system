@@ -9,5 +9,5 @@ mod types;
 #[cfg(test)]
 mod tests;
 
-pub use service::DomainActionExecutor;
+pub use service::{DomainActionExecution, DomainActionExecutor};
 pub use types::{DomainActionError, DomainActionReceipt};

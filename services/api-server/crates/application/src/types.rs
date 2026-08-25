@@ -30,7 +30,6 @@ use crate::services::dispatch_analytics_service::DispatchAnalyticsService;
 use crate::services::dispatch_chat_service::DispatchChatEventPublisher;
 use crate::services::dispatch_chat_service::DispatchChatService;
 use crate::services::dispatch_query_service::DispatchQueryService;
-use crate::services::domain_action_executor::DomainActionExecutor;
 use crate::services::flight_service::FlightService;
 use crate::services::label_service::LabelService;
 use crate::services::mobile_device_service::MobileDeviceService;
@@ -236,8 +235,6 @@ pub type ConcreteDashboardWorkbenchService = DashboardWorkbenchService;
 pub type ConcreteSystemOpsService = SystemOpsService;
 
 pub type ConcreteNLQueryService = NLQueryService;
-
-pub type ConcreteDomainActionExecutor = DomainActionExecutor;
 
 pub type ConcreteAiActionProposalService = AiActionProposalService;
 

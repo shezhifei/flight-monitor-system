@@ -1,5 +1,4 @@
 use serde_json::Value;
-use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -12,51 +11,64 @@ use crate::services::flight_writer::FlightWriter;
 use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
 use crate::services::todo_service::TodoWriter;
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 use crate::types::{
     ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService, ConcreteNotificationService,
 };
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::notification_repository::NotificationTransactionalRepository;
+use fms_domain::ports::unit_of_work::UnitOfWork;
 
 use super::helpers::{optional_string, required_string};
 use super::types::{DomainActionError, DomainActionReceipt};
 
-pub struct DomainActionExecutor {
-    flight_service: Arc<ConcreteFlightService>,
-    flight_writer: Arc<FlightWriter<Transaction<'static, Postgres>>>,
-    dispatch_service: Arc<DispatchService>,
-    dispatch_writer: Arc<DispatchOrderWriter<Transaction<'static, Postgres>>>,
-    notification_service: Arc<ConcreteNotificationService>,
-    label_service: Arc<ConcreteLabelService>,
-    todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
-    business_case_service: Arc<ConcreteBusinessCaseService>,
-    business_case_writer: Arc<BusinessCaseWriter<Transaction<'static, Postgres>>>,
-    flowable_service: Option<FlowableService>,
-    pool: sqlx::PgPool,
-    outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-    anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
-    notification_tx_repo: Arc<dyn NotificationTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync>,
+/// 执行器的对象安全端口。`ai_action_proposal_service` 与 `rollback_service`
+/// 只消费这一个方法；`DomainActionExecutor<U>` 的泛型在装配点具体化后从这里消失。
+#[async_trait::async_trait]
+pub trait DomainActionExecution: Send + Sync {
+    async fn execute_approved_action(
+        &self,
+        object_type: &str,
+        object_id: &str,
+        action_name: &str,
+        arguments: &Value,
+        executor_id: &str,
+    ) -> Result<DomainActionReceipt, DomainActionError>;
 }
 
-impl DomainActionExecutor {
+pub struct DomainActionExecutor<U: UnitOfWork> {
+    flight_service: Arc<ConcreteFlightService>,
+    flight_writer: Arc<FlightWriter<U::Tx>>,
+    dispatch_service: Arc<DispatchService>,
+    dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
+    notification_service: Arc<ConcreteNotificationService>,
+    label_service: Arc<ConcreteLabelService>,
+    todo_writer: Arc<TodoWriter<U::Tx>>,
+    business_case_service: Arc<ConcreteBusinessCaseService>,
+    business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
+    flowable_service: Option<FlowableService>,
+    uow: Arc<U>,
+    outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
+    anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
+    notification_tx_repo: Arc<dyn NotificationTransactionalRepository<U::Tx> + Send + Sync>,
+}
+
+impl<U: UnitOfWork> DomainActionExecutor<U> {
     pub fn new(
         flight_service: Arc<ConcreteFlightService>,
-        flight_writer: Arc<FlightWriter<Transaction<'static, Postgres>>>,
+        flight_writer: Arc<FlightWriter<U::Tx>>,
         dispatch_service: Arc<DispatchService>,
-        dispatch_writer: Arc<DispatchOrderWriter<Transaction<'static, Postgres>>>,
+        dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
         notification_service: Arc<ConcreteNotificationService>,
         label_service: Arc<ConcreteLabelService>,
-        todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
+        todo_writer: Arc<TodoWriter<U::Tx>>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
-        business_case_writer: Arc<BusinessCaseWriter<Transaction<'static, Postgres>>>,
-        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-        anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
-        notification_tx_repo: Arc<
-            dyn NotificationTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync,
-        >,
-        pool: sqlx::PgPool,
+        business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
+        outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
+        anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
+        notification_tx_repo: Arc<dyn NotificationTransactionalRepository<U::Tx> + Send + Sync>,
+        uow: Arc<U>,
     ) -> Self {
         Self {
             flight_service,
@@ -72,7 +84,7 @@ impl DomainActionExecutor {
             outbox_repo,
             anomaly_tx_repo,
             notification_tx_repo,
-            pool,
+            uow,
         }
     }
 
@@ -94,7 +106,7 @@ impl DomainActionExecutor {
         let now = chrono::Utc::now();
 
         let mut tx = self
-            .pool
+            .uow
             .begin()
             .await
             .map_err(|e| DomainActionError::Internal(e.to_string()))?;
@@ -131,7 +143,8 @@ impl DomainActionExecutor {
         }
 
         if result.is_ok() {
-            tx.commit()
+            self.uow
+                .commit(tx)
                 .await
                 .map_err(|e| DomainActionError::Internal(e.to_string()))?;
 
@@ -186,7 +199,7 @@ impl DomainActionExecutor {
 
     async fn execute_in_tx(
         &self,
-        tx: &mut Transaction<'static, Postgres>,
+        tx: &mut U::Tx,
         action_key: &str,
         object_type: &str,
         object_id: &str,
@@ -756,5 +769,20 @@ impl DomainActionExecutor {
             }
             _ => Err(DomainActionError::NotFound(format!("unknown action: {}", action_key))),
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl<U: UnitOfWork> DomainActionExecution for DomainActionExecutor<U> {
+    async fn execute_approved_action(
+        &self,
+        object_type: &str,
+        object_id: &str,
+        action_name: &str,
+        arguments: &Value,
+        executor_id: &str,
+    ) -> Result<DomainActionReceipt, DomainActionError> {
+        DomainActionExecutor::execute_approved_action(self, object_type, object_id, action_name, arguments, executor_id)
+            .await
     }
 }

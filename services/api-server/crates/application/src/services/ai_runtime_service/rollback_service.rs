@@ -35,7 +35,7 @@ use fms_domain::ports::ai_execution_repository::{
 use crate::services::ai_action_proposal_service::AiActionProposalService;
 use crate::services::ai_runtime_service::ai_execution_control_service::AiExecutionControlService;
 use crate::services::ai_runtime_service::compensation_planner::{CompensationError, CompensationPlanner};
-use crate::services::domain_action_executor::DomainActionExecutor;
+use crate::services::domain_action_executor::DomainActionExecution;
 
 #[derive(Debug, Error)]
 pub enum RollbackError {
@@ -124,7 +124,7 @@ pub struct RollbackService {
     plan_repo: Arc<dyn AiCompensationPlanRepository>,
     checkpoint_repo: Option<Arc<dyn AiRunCheckpointRepository>>,
     control_service: Option<Arc<AiExecutionControlService>>,
-    domain_executor: Option<Arc<DomainActionExecutor>>,
+    domain_executor: Option<Arc<dyn DomainActionExecution>>,
     planner: Arc<CompensationPlanner>,
     max_retries: u32,
 }
@@ -166,7 +166,7 @@ impl RollbackService {
         self
     }
 
-    pub fn with_domain_executor(mut self, executor: Arc<DomainActionExecutor>) -> Self {
+    pub fn with_domain_executor(mut self, executor: Arc<dyn DomainActionExecution>) -> Self {
         self.domain_executor = Some(executor);
         self
     }
