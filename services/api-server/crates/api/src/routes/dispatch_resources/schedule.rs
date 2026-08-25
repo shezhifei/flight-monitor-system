@@ -13,11 +13,11 @@ use fms_application::services::dispatch_resource_service::{
     to_shift_instance_response, to_shift_template_response, ScheduleAvailabilityQuery, ScheduleExceptionsQuery,
     ScheduleInstancesQuery, ScheduleTemplatesQuery,
 };
-use fms_application::services::dispatch_schedule_service::DispatchScheduleService;
+use fms_application::types::ConcreteDispatchScheduleService;
 
 pub async fn list_schedule_templates(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     query: web::Query<ScheduleTemplatesQuery>,
 ) -> Result<HttpResponse, ApiError> {
@@ -36,7 +36,7 @@ pub async fn list_schedule_templates(
 
 pub async fn create_schedule_template(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     body: web::Json<ShiftTemplateCreate>,
 ) -> Result<HttpResponse, ApiError> {
@@ -47,7 +47,7 @@ pub async fn create_schedule_template(
 
 pub async fn list_schedule_instances(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     query: web::Query<ScheduleInstancesQuery>,
 ) -> Result<HttpResponse, ApiError> {
@@ -67,7 +67,7 @@ pub async fn list_schedule_instances(
 
 pub async fn create_schedule_instance(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     body: web::Json<ShiftInstanceCreate>,
 ) -> Result<HttpResponse, ApiError> {
@@ -81,7 +81,7 @@ pub async fn create_schedule_instance(
 
 pub async fn list_schedule_exceptions(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     query: web::Query<ScheduleExceptionsQuery>,
 ) -> Result<HttpResponse, ApiError> {
@@ -94,7 +94,7 @@ pub async fn list_schedule_exceptions(
 
 pub async fn create_schedule_exception(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     body: web::Json<ScheduleExceptionCreate>,
 ) -> Result<HttpResponse, ApiError> {
@@ -108,7 +108,7 @@ pub async fn create_schedule_exception(
 
 pub async fn get_schedule_availability(
     req: HttpRequest,
-    svc: web::Data<Arc<DispatchScheduleService>>,
+    svc: web::Data<Arc<ConcreteDispatchScheduleService>>,
     claims: JwtAuth,
     query: web::Query<ScheduleAvailabilityQuery>,
 ) -> Result<HttpResponse, ApiError> {

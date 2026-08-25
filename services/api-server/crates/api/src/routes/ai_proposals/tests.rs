@@ -1,5 +1,6 @@
 use super::*;
 use crate::middleware::jwt::JwtSecret;
+use fms_application::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
 use crate::test_support::{
     ai_run_event_types, cleanup_outbox_by_aggregate_id, cleanup_todo_by_id, ensure_test_user,
     insert_idempotent_conflict_proposal, outbox_count_by_aggregate_id, outbox_count_by_event_type,
@@ -562,8 +563,11 @@ async fn build_test_executor(
     );
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
-    let dispatch_service =
-        Arc::new(DispatchService::new(dispatch_order_repo.clone()).with_transactional_repos(dispatch_order_repo, None));
+    // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
+    let mut dispatch_deps = fms_application::test_support::stub_dispatch_dependencies();
+    dispatch_deps.order.order_repo = dispatch_order_repo.clone();
+    dispatch_deps.order.order_tx_repo = dispatch_order_repo;
+    let dispatch_service = Arc::new(DispatchService::new(dispatch_deps));
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -614,10 +618,12 @@ async fn build_test_executor(
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
     let business_case_service = Arc::new(
-        BusinessCaseService::new(business_case_repo)
-            .with_transactional_repository(business_case_tx_repo)
-            .with_event_publisher(Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>)
-            .with_dispatch_chat_repository(business_case_collaboration_repo),
+        BusinessCaseService::new(
+                business_case_repo,
+                Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
+                Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo)) as Arc<dyn BusinessCaseMentionAudience>,
+            )
+            .with_transactional_repository(business_case_tx_repo),
     );
 
     fms_application::services::domain_action_executor::DomainActionExecutor::new(

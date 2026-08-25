@@ -751,48 +751,6 @@ impl ResourceAvailabilityGateway for ResourceAvailabilityService {
     }
 }
 
-impl ResourceAvailabilityGateway for fms_domain::ports::NullRepository {
-    fn list_team_availability<'life0, 'life1>(
-        &'life0 self,
-        _teams: &'life1 [Team],
-        _planned_start_time: DateTime<Utc>,
-        _planned_end_time: DateTime<Utc>,
-        _terminal: Option<&'life1 str>,
-    ) -> Pin<Box<dyn std::future::Future<Output = Result<Vec<ResourceAvailability>, DomainError>> + Send + 'life0>>
-    where
-        'life1: 'life0,
-    {
-        Box::pin(async { Ok(vec![]) })
-    }
-
-    fn evaluate_equipment<'life0, 'life1>(
-        &'life0 self,
-        _equipment: &'life1 Equipment,
-        _planned_start_time: DateTime<Utc>,
-        _planned_end_time: DateTime<Utc>,
-        _terminal: Option<&'life1 str>,
-        _exclude_order_id: Option<&'life1 str>,
-    ) -> Pin<Box<dyn std::future::Future<Output = Result<ResourceAvailability, DomainError>> + Send + 'life0>>
-    where
-        'life1: 'life0,
-    {
-        Box::pin(async { Err(DomainError::Internal("NullRepository".into())) })
-    }
-
-    fn list_employee_availability<'life0, 'life1>(
-        &'life0 self,
-        _user_ids: &'life1 [String],
-        _planned_start_time: DateTime<Utc>,
-        _planned_end_time: DateTime<Utc>,
-        _terminal: Option<&'life1 str>,
-    ) -> Pin<Box<dyn std::future::Future<Output = Result<Vec<ResourceAvailability>, DomainError>> + Send + 'life0>>
-    where
-        'life1: 'life0,
-    {
-        Box::pin(async { Ok(vec![]) })
-    }
-}
-
 pub struct NullAvailabilityGateway;
 
 impl ResourceAvailabilityGateway for NullAvailabilityGateway {

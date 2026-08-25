@@ -20,10 +20,15 @@ use fms_application::services::dispatch_rule_service::DispatchRuleService;
 use fms_application::services::dispatch_scenario_service::DispatchScenarioService;
 use fms_application::services::dispatch_schedule_service::DispatchScheduleService;
 use fms_application::services::dispatch_service::dispatch_overrun_warning_service::DispatchOverrunWarningService;
-use fms_application::services::dispatch_service::DispatchService;
+use fms_application::services::dispatch_service::{
+    DispatchNotificationServiceDependencies, DispatchOrderServiceDependencies, DispatchResourceServiceDependencies,
+    DispatchRuleServiceDependencies, DispatchService, DispatchServiceDependencies,
+};
 use fms_application::services::event_rule_admin_service::EventRuleAdminService;
 use fms_application::services::llm_eval_service::LLMEvalService;
-use fms_application::services::resource_availability_service::ResourceAvailabilityService;
+use fms_application::services::resource_availability_service::{
+    ResourceAvailabilityGateway, ResourceAvailabilityService,
+};
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
 use fms_application::sqlx_transactional_repositories::{
@@ -33,8 +38,9 @@ use fms_application::sqlx_transactional_repositories::{
 use fms_domain::broadcaster::Broadcaster;
 
 use fms_domain::ports::dispatch_repository::{
-    DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository,
-    TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
+    DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository,
+    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository, StandRepository, TaskTypeRepository,
+    TeamMemberRepository, TeamRepository, TeamTypeRepository,
 };
 use fms_domain::ports::event_rule_repository::EventRuleRepository;
 use fms_domain::ports::user_repository::UserRepository;
@@ -115,37 +121,45 @@ pub(crate) fn build_dispatch_services(
             )
             .with_scan_interval(std::time::Duration::from_secs(scan_interval_secs)),
     );
-    let dispatch_svc = Arc::new(
-        DispatchService::new(
-            repos.dispatch_order_repo.clone(),
-            repos.dispatch_order_repo.clone() as Arc<dyn SqlxDispatchOrderTransactionalRepository>,
-            repos.dispatch_member_repo.clone(),
-            repos.dispatch_member_repo.clone() as Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
-            repos.todo_repo.clone(),
-            repos.department_repo.clone(),
-            repos.task_type_repo.clone(),
-            repos.task_type_requirement_repo.clone(),
-            repos.flight_repo.clone(),
-            repos.generation_rule_repo.clone(),
-            repos.adjustment_rule_repo.clone(),
-            repos.temporary_task_template_repo.clone(),
-            repos.team_repo.clone(),
-            repos.team_type_repo.clone(),
-            repos.stand_repo.clone(),
-            repos.qualification_repo.clone(),
-            repos.qualification_grant_repo.clone(),
-            repos.equipment_repo.clone(),
-            repos.team_member_repo.clone(),
-            repos.dispatch_travel_stats_repo.clone(),
-            repos.dispatch_checklist_repo.clone(),
-            resource_availability_svc.clone(),
-            repos.anomaly_repo.clone(),
-            repos.dispatch_collaboration_repo.clone(),
-            repos.dispatch_alert_repo.clone(),
-            shared.notification_svc.clone(),
-            dispatch_chat_svc.clone(),
-        )
-    );
+    let dispatch_svc = Arc::new(DispatchService::new(DispatchServiceDependencies {
+        order: DispatchOrderServiceDependencies {
+            order_repo: repos.dispatch_order_repo.clone(),
+            order_tx_repo: repos.dispatch_order_repo.clone() as Arc<dyn SqlxDispatchOrderTransactionalRepository>,
+            member_repo: repos.dispatch_member_repo.clone(),
+            member_tx_repo: repos.dispatch_member_repo.clone()
+                as Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
+            todo_repo: repos.todo_repo.clone(),
+        },
+        rules: DispatchRuleServiceDependencies {
+            department_repo: repos.department_repo.clone(),
+            task_type_repo: repos.task_type_repo.clone(),
+            task_type_requirement_repo: repos.task_type_requirement_repo.clone(),
+            flight_repo: repos.flight_repo.clone(),
+            generation_rule_repo: repos.generation_rule_repo.clone(),
+            adjustment_rule_repo: repos.adjustment_rule_repo.clone(),
+            temporary_task_template_repo: repos.temporary_task_template_repo.clone(),
+        },
+        resources: DispatchResourceServiceDependencies {
+            team_repo: repos.team_repo.clone(),
+            team_type_repo: repos.team_type_repo.clone(),
+            stand_repo: repos.stand_repo.clone(),
+            qualification_repo: repos.qualification_repo.clone(),
+            qualification_grant_repo: repos.qualification_grant_repo.clone(),
+            equipment_repo: repos.equipment_repo.clone(),
+            team_member_repo: repos.team_member_repo.clone(),
+            travel_stats_repo: repos.dispatch_travel_stats_repo.clone(),
+            checklist_repo: repos.dispatch_checklist_repo.clone(),
+            resource_availability_service: resource_availability_svc.clone(),
+        },
+        notifications: DispatchNotificationServiceDependencies {
+            anomaly_repo: repos.anomaly_repo.clone(),
+            collaboration_repo: repos.dispatch_collaboration_repo.clone(),
+            alert_repo: repos.dispatch_alert_repo.clone(),
+            notification_service: shared.notification_svc.clone(),
+            dispatch_chat_service: dispatch_chat_svc.clone(),
+        },
+        overrun_warning_service: dispatch_overrun_warning_svc.clone(),
+    }));
     let dispatch_frontend_replan_svc = Arc::new(
         DispatchFrontendReplanService::new(repos.dispatch_order_repo.clone(), repos.dispatch_member_repo.clone())
             .with_resource_repos(
@@ -194,14 +208,15 @@ pub(crate) fn build_dispatch_services(
         event_rule_repo.clone(),
         event_rule_dispatch_order_repo,
     ));
+    // 显式转成 trait object：API 处理器与 DI 必须落在同一个单态上。
     let dispatch_schedule_svc = Arc::new(DispatchScheduleService::new(
-        repos.shift_template_repo.clone(),
-        repos.shift_instance_repo.clone(),
-        repos.schedule_exception_repo.clone(),
-        repos.team_repo.clone(),
-        repos.team_member_repo.clone(),
-        repos.equipment_repo.clone(),
-        resource_availability_svc.clone(),
+        repos.shift_template_repo.clone() as Arc<dyn ShiftTemplateRepository + Send + Sync>,
+        repos.shift_instance_repo.clone() as Arc<dyn ShiftInstanceRepository + Send + Sync>,
+        repos.schedule_exception_repo.clone() as Arc<dyn ScheduleExceptionRepository + Send + Sync>,
+        repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+        repos.team_member_repo.clone() as Arc<dyn TeamMemberRepository + Send + Sync>,
+        repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
+        resource_availability_svc.clone() as Arc<dyn ResourceAvailabilityGateway + Send + Sync>,
     ));
     let dispatch_analytics_svc = Arc::new(DispatchAnalyticsService::new(
         repos.dispatch_order_repo.clone(),

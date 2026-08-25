@@ -243,7 +243,8 @@ impl DispatchService {
         order.dispatched_by = Some("system".to_string());
         order.dispatched_at = order.dispatched_at.or(Some(Utc::now()));
         self.order.order_repo.save(&order).await?;
-        if let Some(member_repo) = self.order.member_repo.as_ref() {
+        {
+            let member_repo = self.order.member_repo.as_ref();
             for member in &order.members {
                 member_repo.save(member).await?;
             }

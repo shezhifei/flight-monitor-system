@@ -88,7 +88,6 @@ impl DispatchChatOrderSyncer for DispatchChatService {
     }
 }
 
-
 /// 派工应用服务
 pub struct DispatchService {
     order: DispatchOrderServiceDependencies,
@@ -96,113 +95,57 @@ pub struct DispatchService {
     resources: DispatchResourceServiceDependencies,
     notifications: DispatchNotificationServiceDependencies,
     analytics: DispatchAnalyticsServiceDependencies,
+    /// 预排冲突预警。服务内部自带 feature flag，接线在 DI 层恒定完成。
+    overrun_warning_service: Arc<dispatch_overrun_warning_service::DispatchOverrunWarningService>,
 }
 
-struct DispatchOrderServiceDependencies {
-    order_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
-    order_tx_repo: Arc<dyn SqlxDispatchOrderTransactionalRepository>,
-    member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
-    member_tx_repo: Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
-    todo_repo: Arc<dyn TodoRepository + Send + Sync>,
+/// `DispatchService` 的全部外部依赖。字段全部必填：漏接一个依赖是编译错误，不是运行期 500。
+/// 具名字段同时消除了同类型参数被顺序调换而静默生效的风险。
+pub struct DispatchServiceDependencies {
+    pub order: DispatchOrderServiceDependencies,
+    pub rules: DispatchRuleServiceDependencies,
+    pub resources: DispatchResourceServiceDependencies,
+    pub notifications: DispatchNotificationServiceDependencies,
+    pub overrun_warning_service: Arc<dispatch_overrun_warning_service::DispatchOverrunWarningService>,
 }
 
-struct DispatchRuleServiceDependencies {
-    department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
-    task_type_repo: Arc<dyn TaskTypeRepository + Send + Sync>,
-    task_type_requirement_repo: Arc<dyn DepartmentTaskTypeRequirementRepository + Send + Sync>,
-    flight_repo: Arc<dyn FlightRepository + Send + Sync>,
-    generation_rule_repo: Arc<dyn FlightGenerationRuleRepository + Send + Sync>,
-    adjustment_rule_repo: Arc<dyn GenerationAdjustmentRuleRepository + Send + Sync>,
-    temporary_task_template_repo: Arc<dyn TemporaryTaskTemplateRepository + Send + Sync>,
+pub struct DispatchOrderServiceDependencies {
+    pub order_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
+    pub order_tx_repo: Arc<dyn SqlxDispatchOrderTransactionalRepository>,
+    pub member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
+    pub member_tx_repo: Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
+    pub todo_repo: Arc<dyn TodoRepository + Send + Sync>,
 }
 
-impl DispatchRuleServiceDependencies {
-    pub fn new(
-        department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
-        task_type_repo: Arc<dyn TaskTypeRepository + Send + Sync>,
-        task_type_requirement_repo: Arc<dyn DepartmentTaskTypeRequirementRepository + Send + Sync>,
-        flight_repo: Arc<dyn FlightRepository + Send + Sync>,
-        generation_rule_repo: Arc<dyn FlightGenerationRuleRepository + Send + Sync>,
-        adjustment_rule_repo: Arc<dyn GenerationAdjustmentRuleRepository + Send + Sync>,
-        temporary_task_template_repo: Arc<dyn TemporaryTaskTemplateRepository + Send + Sync>,
-    ) -> Self {
-        Self {
-            department_repo,
-            task_type_repo,
-            task_type_requirement_repo,
-            flight_repo,
-            generation_rule_repo,
-            adjustment_rule_repo,
-            temporary_task_template_repo,
-        }
-    }
+pub struct DispatchRuleServiceDependencies {
+    pub department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
+    pub task_type_repo: Arc<dyn TaskTypeRepository + Send + Sync>,
+    pub task_type_requirement_repo: Arc<dyn DepartmentTaskTypeRequirementRepository + Send + Sync>,
+    pub flight_repo: Arc<dyn FlightRepository + Send + Sync>,
+    pub generation_rule_repo: Arc<dyn FlightGenerationRuleRepository + Send + Sync>,
+    pub adjustment_rule_repo: Arc<dyn GenerationAdjustmentRuleRepository + Send + Sync>,
+    pub temporary_task_template_repo: Arc<dyn TemporaryTaskTemplateRepository + Send + Sync>,
 }
 
-struct DispatchResourceServiceDependencies {
-    team_repo: Arc<dyn TeamRepository + Send + Sync>,
-    team_type_repo: Arc<dyn TeamTypeRepository + Send + Sync>,
-    stand_repo: Arc<dyn StandRepository + Send + Sync>,
-    qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
-    qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
-    equipment_repo: Arc<dyn EquipmentRepository + Send + Sync>,
-    team_member_repo: Arc<dyn TeamMemberRepository + Send + Sync>,
-    travel_stats_repo: Arc<dyn DispatchTravelStatsRepository + Send + Sync>,
-    checklist_repo: Arc<dyn DispatchChecklistRepository + Send + Sync>,
-    resource_availability_service: Arc<dyn ResourceAvailabilityGateway + Send + Sync>,
+pub struct DispatchResourceServiceDependencies {
+    pub team_repo: Arc<dyn TeamRepository + Send + Sync>,
+    pub team_type_repo: Arc<dyn TeamTypeRepository + Send + Sync>,
+    pub stand_repo: Arc<dyn StandRepository + Send + Sync>,
+    pub qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
+    pub qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
+    pub equipment_repo: Arc<dyn EquipmentRepository + Send + Sync>,
+    pub team_member_repo: Arc<dyn TeamMemberRepository + Send + Sync>,
+    pub travel_stats_repo: Arc<dyn DispatchTravelStatsRepository + Send + Sync>,
+    pub checklist_repo: Arc<dyn DispatchChecklistRepository + Send + Sync>,
+    pub resource_availability_service: Arc<dyn ResourceAvailabilityGateway + Send + Sync>,
 }
 
-impl DispatchResourceServiceDependencies {
-    pub fn new(
-        team_repo: Arc<dyn TeamRepository + Send + Sync>,
-        team_type_repo: Arc<dyn TeamTypeRepository + Send + Sync>,
-        stand_repo: Arc<dyn StandRepository + Send + Sync>,
-        qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
-        qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
-        equipment_repo: Arc<dyn EquipmentRepository + Send + Sync>,
-        team_member_repo: Arc<dyn TeamMemberRepository + Send + Sync>,
-        travel_stats_repo: Arc<dyn DispatchTravelStatsRepository + Send + Sync>,
-        checklist_repo: Arc<dyn DispatchChecklistRepository + Send + Sync>,
-        resource_availability_service: Arc<dyn ResourceAvailabilityGateway + Send + Sync>,
-    ) -> Self {
-        Self {
-            team_repo,
-            team_type_repo,
-            stand_repo,
-            qualification_repo,
-            qualification_grant_repo,
-            equipment_repo,
-            team_member_repo,
-            travel_stats_repo,
-            checklist_repo,
-            resource_availability_service,
-        }
-    }
-}
-
-struct DispatchNotificationServiceDependencies {
-    anomaly_repo: Arc<dyn AnomalyRepository + Send + Sync>,
-    collaboration_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync>,
-    alert_repo: Arc<dyn DispatchAlertRepository + Send + Sync>,
-    notification_service: Arc<dyn DispatchNotificationSender + Send + Sync>,
-    dispatch_chat_service: Arc<dyn DispatchChatOrderSyncer + Send + Sync>,
-}
-
-impl DispatchNotificationServiceDependencies {
-    pub fn new(
-        anomaly_repo: Arc<dyn AnomalyRepository + Send + Sync>,
-        collaboration_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync>,
-        alert_repo: Arc<dyn DispatchAlertRepository + Send + Sync>,
-        notification_service: Arc<dyn DispatchNotificationSender + Send + Sync>,
-        dispatch_chat_service: Arc<dyn DispatchChatOrderSyncer + Send + Sync>,
-    ) -> Self {
-        Self {
-            anomaly_repo,
-            collaboration_repo,
-            alert_repo,
-            notification_service,
-            dispatch_chat_service,
-        }
-    }
+pub struct DispatchNotificationServiceDependencies {
+    pub anomaly_repo: Arc<dyn AnomalyRepository + Send + Sync>,
+    pub collaboration_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync>,
+    pub alert_repo: Arc<dyn DispatchAlertRepository + Send + Sync>,
+    pub notification_service: Arc<dyn DispatchNotificationSender + Send + Sync>,
+    pub dispatch_chat_service: Arc<dyn DispatchChatOrderSyncer + Send + Sync>,
 }
 
 struct DispatchAnalyticsServiceDependencies {
@@ -264,35 +207,7 @@ struct PreparedWindowOrder {
 }
 
 impl DispatchService {
-    pub fn new(
-        order_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
-        order_tx_repo: Arc<dyn SqlxDispatchOrderTransactionalRepository>,
-        member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
-        member_tx_repo: Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
-        todo_repo: Arc<dyn TodoRepository + Send + Sync>,
-        department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
-        task_type_repo: Arc<dyn TaskTypeRepository + Send + Sync>,
-        task_type_requirement_repo: Arc<dyn DepartmentTaskTypeRequirementRepository + Send + Sync>,
-        flight_repo: Arc<dyn FlightRepository + Send + Sync>,
-        generation_rule_repo: Arc<dyn FlightGenerationRuleRepository + Send + Sync>,
-        adjustment_rule_repo: Arc<dyn GenerationAdjustmentRuleRepository + Send + Sync>,
-        temporary_task_template_repo: Arc<dyn TemporaryTaskTemplateRepository + Send + Sync>,
-        team_repo: Arc<dyn TeamRepository + Send + Sync>,
-        team_type_repo: Arc<dyn TeamTypeRepository + Send + Sync>,
-        stand_repo: Arc<dyn StandRepository + Send + Sync>,
-        qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
-        qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
-        equipment_repo: Arc<dyn EquipmentRepository + Send + Sync>,
-        team_member_repo: Arc<dyn TeamMemberRepository + Send + Sync>,
-        travel_stats_repo: Arc<dyn DispatchTravelStatsRepository + Send + Sync>,
-        checklist_repo: Arc<dyn DispatchChecklistRepository + Send + Sync>,
-        resource_availability_service: Arc<dyn ResourceAvailabilityGateway + Send + Sync>,
-        anomaly_repo: Arc<dyn AnomalyRepository + Send + Sync>,
-        collaboration_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync>,
-        alert_repo: Arc<dyn DispatchAlertRepository + Send + Sync>,
-        notification_service: Arc<dyn DispatchNotificationSender + Send + Sync>,
-        dispatch_chat_service: Arc<dyn DispatchChatOrderSyncer + Send + Sync>,
-    ) -> Self {
+    pub fn new(deps: DispatchServiceDependencies) -> Self {
         let metrics = DashMap::new();
         metrics.insert("dispatch.order.complete.blocked".to_string(), 0);
         metrics.insert("dispatch.order.complete.soft".to_string(), 0);
@@ -302,46 +217,27 @@ impl DispatchService {
         metrics.insert("dispatch.issue_reported.voice".to_string(), 0);
 
         Self {
-            order: DispatchOrderServiceDependencies {
-                order_repo,
-                order_tx_repo,
-                member_repo,
-                member_tx_repo,
-                todo_repo,
-            },
-            rules: DispatchRuleServiceDependencies::new(
-                department_repo,
-                task_type_repo,
-                task_type_requirement_repo,
-                flight_repo,
-                generation_rule_repo,
-                adjustment_rule_repo,
-                temporary_task_template_repo,
-            ),
-            resources: DispatchResourceServiceDependencies::new(
-                team_repo,
-                team_type_repo,
-                stand_repo,
-                qualification_repo,
-                qualification_grant_repo,
-                equipment_repo,
-                team_member_repo,
-                travel_stats_repo,
-                checklist_repo,
-                resource_availability_service,
-            ),
-            notifications: DispatchNotificationServiceDependencies::new(
-                anomaly_repo,
-                collaboration_repo,
-                alert_repo,
-                notification_service,
-                dispatch_chat_service,
-            ),
+            order: deps.order,
+            rules: deps.rules,
+            resources: deps.resources,
+            notifications: deps.notifications,
             analytics: DispatchAnalyticsServiceDependencies {
                 metrics_counters: metrics,
             },
+            overrun_warning_service: deps.overrun_warning_service,
         }
     }
 
-
+    /// 订单生命周期变更后重新评估预排冲突预警。
+    /// best-effort：评估失败只告警，不影响生命周期主流程。
+    /// 是否启用由 DispatchOverrunWarningService 自身的 feature flag 决定。
+    pub(super) async fn evaluate_overrun_warning(&self, order_id: &str) {
+        if let Err(error) = self.overrun_warning_service.evaluate_order(order_id).await {
+            tracing::warn!(
+                order_id,
+                error = %error,
+                "dispatch overrun warning evaluation failed after order lifecycle change"
+            );
+        }
+    }
 }

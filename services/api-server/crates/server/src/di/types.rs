@@ -22,12 +22,4 @@ pub type ConcreteDispatchService = DispatchService;
 // Keep API handlers and DI on the same monomorphized type.
 pub use fms_application::types::ConcreteDispatchResourceService;
 
-pub type ConcreteDispatchScheduleService = DispatchScheduleService<
-    PgShiftTemplateRepository,
-    PgShiftInstanceRepository,
-    PgScheduleExceptionRepository,
-    PgTeamRepository,
-    PgTeamMemberRepository,
-    PgEquipmentRepository,
-    ResourceAvailabilityService,
->;
+pub use fms_application::types::ConcreteDispatchScheduleService;

@@ -63,11 +63,7 @@ impl DispatchService {
             let department_id = resolved_department_id.as_deref().ok_or_else(|| {
                 DomainError::ValidationError("temporary_task_template_code 提供时必须指定 department_id".to_string())
             })?;
-            let template_repo = self
-                .rules
-                .temporary_task_template_repo
-                .as_ref()
-                .ok_or_else(|| DomainError::Internal("临时任务模板仓储未配置".to_string()))?;
+            let template_repo = self.rules.temporary_task_template_repo.as_ref();
             let template = template_repo
                 .find_by_code(department_id, template_code)
                 .await?
@@ -111,9 +107,7 @@ impl DispatchService {
             let department_id = resolved_department_id.as_deref().ok_or_else(|| {
                 DomainError::ValidationError("必须指定 task_type 或 temporary_task_template_code".to_string())
             })?;
-            let requirement_repo = self.rules.task_type_requirement_repo.as_ref().ok_or_else(|| {
-                DomainError::Internal("派工规则服务未配置，无法按作业类型自动带出人员与设备需求".to_string())
-            })?;
+            let requirement_repo = self.rules.task_type_requirement_repo.as_ref();
             let requirement_version = requirement_repo
                 .find_published(department_id, &resolved_task_type)
                 .await?
@@ -315,9 +309,8 @@ impl DispatchService {
 
         let mut persisted_members = Vec::new();
         if assignee_type == AssigneeType::Team {
-            if let (Some(team_id), Some(team_member_repo)) =
-                (normalized_team_id.as_deref(), self.resources.team_member_repo.as_ref())
-            {
+            if let Some(team_id) = normalized_team_id.as_deref() {
+                let team_member_repo = self.resources.team_member_repo.as_ref();
                 let team_members = team_member_repo.find_by_team(team_id, false).await?;
                 for tm in &team_members {
                     persisted_members.push(DispatchOrderMember {
@@ -427,13 +420,12 @@ impl DispatchService {
             "team" => {
                 assignment["assignee_type"] = json!("team");
                 assignment["team_id"] = json!(assignee_id);
-                assignment["team_name"] = if let Some(team_repo) = self.resources.team_repo.as_ref() {
+                assignment["team_name"] = {
+                    let team_repo = self.resources.team_repo.as_ref();
                     match team_repo.find_by_id(assignee_id, false).await? {
                         Some(team) => json!(team.name),
                         None => Value::Null,
                     }
-                } else {
-                    Value::Null
                 };
                 assignment["individual_user_id"] = Value::Null;
                 assignment["individual_username"] = Value::Null;
@@ -487,7 +479,7 @@ impl DispatchService {
             )
             .await?;
         self.sync_dispatch_chat_for_order(&order.id).await;
-        self.maybe_evaluate_overrun_warning(&order.id).await;
+        self.evaluate_overrun_warning(&order.id).await;
 
         Ok(order_to_response(&order))
     }
@@ -523,13 +515,12 @@ impl DispatchService {
             "team" => {
                 assignment["assignee_type"] = json!("team");
                 assignment["team_id"] = json!(assignee_id);
-                assignment["team_name"] = if let Some(team_repo) = self.resources.team_repo.as_ref() {
+                assignment["team_name"] = {
+                    let team_repo = self.resources.team_repo.as_ref();
                     match team_repo.find_by_id(assignee_id, false).await? {
                         Some(team) => json!(team.name),
                         None => Value::Null,
                     }
-                } else {
-                    Value::Null
                 };
                 assignment["individual_user_id"] = Value::Null;
                 assignment["individual_username"] = Value::Null;
@@ -567,9 +558,7 @@ impl DispatchService {
         order.dispatched_at = order.dispatched_at.or_else(|| Some(Utc::now()));
         order.updated_at = Some(Utc::now());
 
-        let order_tx_repo = self.order.order_tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("DispatchService order transactional repository is not configured".to_string())
-        })?;
+        let order_tx_repo = self.order.order_tx_repo.as_ref();
         self.sync_assignment_members_in_tx(tx, &order, &assignment).await?;
         order_tx_repo.save_in_tx(tx, &order).await?;
         order_tx_repo
@@ -624,9 +613,7 @@ impl DispatchService {
         order.status = status;
         order.updated_at = Some(Utc::now());
 
-        let order_tx_repo = self.order.order_tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("DispatchService order transactional repository is not configured".to_string())
-        })?;
+        let order_tx_repo = self.order.order_tx_repo.as_ref();
         order_tx_repo.save_in_tx(tx, &order).await?;
         order_tx_repo
             .append_log_in_tx(
@@ -665,12 +652,7 @@ impl DispatchService {
             .map(str::trim)
             .filter(|value| !value.is_empty())
         {
-            let Some(stand_repo) = self.resources.stand_repo.as_ref() else {
-                return Ok(json!({
-                    "updated": false,
-                    "reason": format!("工单 {order_id} 缺少机位信息"),
-                }));
-            };
+            let stand_repo = self.resources.stand_repo.as_ref();
             let Some(stand) = stand_repo.find_by_id(stand_id).await? else {
                 return Ok(json!({
                     "updated": false,
@@ -863,7 +845,8 @@ impl DispatchService {
         }
 
         if persist_side_effects {
-            if let Some(member_repo) = self.order.member_repo.as_ref() {
+            {
+                let member_repo = self.order.member_repo.as_ref();
                 for member in &order.members {
                     member_repo.save(member).await?;
                 }
@@ -1038,11 +1021,7 @@ impl DispatchService {
         if Self::order_has_required_assignments(&order).is_err() {
             let prepared = self.prepare_order_for_publication(&mut order).await?;
             if prepared.get("updated").and_then(Value::as_bool).unwrap_or(false) {
-                let order_tx_repo = self.order.order_tx_repo.as_ref().ok_or_else(|| {
-                    DomainError::Internal(
-                        "DispatchService order transactional repository is not configured".to_string(),
-                    )
-                })?;
+                let order_tx_repo = self.order.order_tx_repo.as_ref();
                 order_tx_repo.save_in_tx(tx, &order).await?;
             }
             if let Err(updated_reason) = Self::order_has_required_assignments(&order) {
@@ -1066,9 +1045,7 @@ impl DispatchService {
         }
 
         order.publication_state = "published".to_string();
-        let order_tx_repo = self.order.order_tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("DispatchService order transactional repository is not configured".to_string())
-        })?;
+        let order_tx_repo = self.order.order_tx_repo.as_ref();
         order_tx_repo.save_in_tx(tx, &order).await?;
 
         published_orders.push(json!({

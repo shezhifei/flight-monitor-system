@@ -352,9 +352,7 @@ impl DispatchService {
         order: &DispatchOrder,
         assignment: &Value,
     ) -> Result<(), DomainError> {
-        let Some(member_repo) = self.order.member_repo.as_ref() else {
-            return Ok(());
-        };
+        let member_repo = self.order.member_repo.as_ref();
         let existing_members = member_repo.find_by_order(&order.id).await?;
         let desired_members = Self::build_dispatch_members_from_assignment(order, assignment);
         let desired_by_user = desired_members
@@ -397,12 +395,8 @@ impl DispatchService {
         order: &DispatchOrder,
         assignment: &Value,
     ) -> Result<(), DomainError> {
-        let Some(member_repo) = self.order.member_repo.as_ref() else {
-            return Ok(());
-        };
-        let member_tx_repo = self.order.member_tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("DispatchService member transactional repository is not configured".to_string())
-        })?;
+        let member_repo = self.order.member_repo.as_ref();
+        let member_tx_repo = self.order.member_tx_repo.as_ref();
         let existing_members = member_repo.find_by_order(&order.id).await?;
         let desired_members = Self::build_dispatch_members_from_assignment(order, assignment);
         let desired_by_user = desired_members
@@ -521,12 +515,8 @@ impl DispatchService {
             return Ok(None);
         }
 
-        let Some(team_type_repo) = self.resources.team_type_repo.as_ref() else {
-            return Ok(None);
-        };
-        let Some(team_repo) = self.resources.team_repo.as_ref() else {
-            return Ok(None);
-        };
+        let team_type_repo = self.resources.team_type_repo.as_ref();
+        let team_repo = self.resources.team_repo.as_ref();
 
         let team_types = team_type_repo.find_by_task_type(&current.task_type).await?;
         if team_types.is_empty() {
@@ -634,9 +624,7 @@ impl DispatchService {
     }
 
     pub(super) async fn is_active_order_member(&self, order_id: &str, actor_id: &str) -> Result<bool, DomainError> {
-        let Some(member_repo) = self.order.member_repo.as_ref() else {
-            return Ok(false);
-        };
+        let member_repo = self.order.member_repo.as_ref();
         Ok(member_repo
             .find_by_order_and_user(order_id, actor_id)
             .await?
@@ -945,9 +933,7 @@ impl DispatchService {
         {
             return Ok(Some(department_id.to_string()));
         }
-        let Some(task_type_repo) = self.rules.task_type_repo.as_ref() else {
-            return Ok(None);
-        };
+        let task_type_repo = self.rules.task_type_repo.as_ref();
         let Some(task_type) = task_type_repo.find_by_code(&order.task_type).await? else {
             return Ok(None);
         };
@@ -961,9 +947,7 @@ impl DispatchService {
             return Ok(task_type_department);
         }
 
-        let Some(team_type_repo) = self.resources.team_type_repo.as_ref() else {
-            return Ok(None);
-        };
+        let team_type_repo = self.resources.team_type_repo.as_ref();
         let department_ids = team_type_repo
             .find_by_task_type(&order.task_type)
             .await?
@@ -998,14 +982,11 @@ impl DispatchService {
             .filter(|value| !value.is_empty())
             .map(str::to_string);
 
-        if (crew_requirement_snapshot.is_empty() || equipment_requirement_snapshot.is_empty())
-            && self.rules.task_type_requirement_repo.is_some()
-        {
+        if crew_requirement_snapshot.is_empty() || equipment_requirement_snapshot.is_empty() {
             if let Some(requirement_version) = self
                 .rules
                 .task_type_requirement_repo
                 .as_ref()
-                .unwrap()
                 .find_published(department_id, &order.task_type)
                 .await?
             {

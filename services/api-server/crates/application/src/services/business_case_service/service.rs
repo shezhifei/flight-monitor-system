@@ -9,27 +9,25 @@ use fms_domain::models::business_case::{
     BusinessCaseAppendEntry, BusinessCaseTerminalMetadata, FlightBusinessCase, VisibilityScope,
 };
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
-use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjectionRepository;
-use fms_domain::ports::NullRepository;
 use tracing::warn;
 
 use crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository;
 
 use super::schemas::{
-    BusinessCaseAppendResult, BusinessCaseEventPublisher, BusinessCaseTerminalUpdatePayload, BusinessCaseUpdatePayload,
-    BUSINESS_CASE_ALLOWED_STATUSES,
+    BusinessCaseAppendResult, BusinessCaseEventPublisher, BusinessCaseMentionAudience,
+    BusinessCaseTerminalUpdatePayload, BusinessCaseUpdatePayload, BUSINESS_CASE_ALLOWED_STATUSES,
 };
 
 pub struct BusinessCaseService<
     BR: BusinessCaseRepository + ?Sized,
-    EP: BusinessCaseEventPublisher + ?Sized = NullRepository,
-    CR: DispatchCollaborationRepository + ?Sized = NullRepository,
+    EP: BusinessCaseEventPublisher + ?Sized,
+    MA: BusinessCaseMentionAudience + ?Sized,
 > {
     repo: Arc<BR>,
     tx_repo: Option<Arc<dyn SqlxBusinessCaseTransactionalRepository>>,
-    event_publisher: Option<Arc<EP>>,
-    dispatch_chat_repo: Option<Arc<CR>>,
+    event_publisher: Arc<EP>,
+    mention_audience: Arc<MA>,
     notification_svc: Option<Arc<ConcreteNotificationService>>,
     business_case_type_svc: Option<Arc<ConcreteBusinessCaseTypeService>>,
     flight_runtime_projection_repo: Option<Arc<dyn FlightRuntimeProjectionRepository>>,
@@ -97,11 +95,11 @@ pub trait BusinessCaseServiceOps: Send + Sync {
 }
 
 #[async_trait::async_trait]
-impl<BR, EP, CR> BusinessCaseServiceOps for BusinessCaseService<BR, EP, CR>
+impl<BR, EP, MA> BusinessCaseServiceOps for BusinessCaseService<BR, EP, MA>
 where
     BR: BusinessCaseRepository + ?Sized + Send + Sync,
     EP: BusinessCaseEventPublisher + ?Sized + Send + Sync,
-    CR: DispatchCollaborationRepository + ?Sized + Send + Sync,
+    MA: BusinessCaseMentionAudience + ?Sized + Send + Sync,
 {
     async fn get(&self, case_id: &str) -> Result<Option<FlightBusinessCase>, DomainError> {
         self.get(case_id).await
@@ -256,53 +254,36 @@ fn require_department_scope(
     Ok((department_id, department_name))
 }
 
-impl<BR: BusinessCaseRepository + ?Sized> BusinessCaseService<BR, NullRepository, NullRepository> {
-    pub fn new(repo: Arc<BR>) -> Self {
-        Self {
-            repo,
-            tx_repo: None,
-            event_publisher: None,
-            dispatch_chat_repo: None,
-            notification_svc: None,
-            business_case_type_svc: None,
-            flight_runtime_projection_repo: None,
-        }
-    }
-}
-
 impl<
         BR: BusinessCaseRepository + ?Sized,
         EP: BusinessCaseEventPublisher + ?Sized,
-        CR: DispatchCollaborationRepository + ?Sized,
-    > BusinessCaseService<BR, EP, CR>
+        MA: BusinessCaseMentionAudience + ?Sized,
+    > BusinessCaseService<BR, EP, MA>
 {
-    pub fn with_event_publisher<NEP: BusinessCaseEventPublisher + ?Sized>(
-        self,
-        event_publisher: Arc<NEP>,
-    ) -> BusinessCaseService<BR, NEP, CR> {
-        BusinessCaseService {
-            repo: self.repo,
-            tx_repo: self.tx_repo,
-            event_publisher: Some(event_publisher),
-            dispatch_chat_repo: self.dispatch_chat_repo,
-            notification_svc: self.notification_svc,
-            business_case_type_svc: self.business_case_type_svc,
-            flight_runtime_projection_repo: self.flight_runtime_projection_repo,
+    /// 把请求里的 @提及收敛到该航班允许被提及的人。空请求不查库。
+    async fn retain_mentionable(&self, flight_id: &str, requested: Vec<String>) -> Vec<String> {
+        if requested.is_empty() {
+            return Vec::new();
         }
+        let permitted: std::collections::HashSet<String> =
+            self.mention_audience.mentionable_user_ids(flight_id).await.into_iter().collect();
+        requested
+            .into_iter()
+            .filter(|uid| permitted.contains(uid.trim()))
+            .collect()
     }
 
-    pub fn with_dispatch_chat_repository<NCR: DispatchCollaborationRepository + ?Sized>(
-        self,
-        repo: Arc<NCR>,
-    ) -> BusinessCaseService<BR, EP, NCR> {
-        BusinessCaseService {
-            repo: self.repo,
-            tx_repo: self.tx_repo,
-            event_publisher: self.event_publisher,
-            dispatch_chat_repo: Some(repo),
-            notification_svc: self.notification_svc,
-            business_case_type_svc: self.business_case_type_svc,
-            flight_runtime_projection_repo: self.flight_runtime_projection_repo,
+    /// 事件发布与 @提及范围都是必填的：以前它们是 `Option` + 空实现桩默认值，
+    /// 于是「忘了接线」和「故意不接」在类型上无法区分，只能在运行时静默跳过。
+    pub fn new(repo: Arc<BR>, event_publisher: Arc<EP>, mention_audience: Arc<MA>) -> Self {
+        Self {
+            repo,
+            tx_repo: None,
+            event_publisher,
+            mention_audience,
+            notification_svc: None,
+            business_case_type_svc: None,
+            flight_runtime_projection_repo: None,
         }
     }
 
@@ -997,22 +978,9 @@ impl<
             return Ok(None);
         };
 
-        let mut validated_mention_ids = Vec::new();
-        if !mention_user_ids.is_empty() {
-            if let Some(chat_repo) = self.dispatch_chat_repo.as_ref() {
-                if let Ok(Some(group)) = chat_repo.get_group_by_flight(&target_case.flight_id).await {
-                    if let Ok(members) = chat_repo.find_active_members(&group.group_id).await {
-                        let member_ids: std::collections::HashSet<String> =
-                            members.into_iter().map(|m| m.user_id.trim().to_string()).collect();
-
-                        validated_mention_ids = mention_user_ids
-                            .into_iter()
-                            .filter(|uid| member_ids.contains(uid.trim()))
-                            .collect();
-                    }
-                }
-            }
-        }
+        let validated_mention_ids = self
+            .retain_mentionable(&target_case.flight_id, mention_user_ids)
+            .await;
 
         let mut metadata = serde_json::json!({});
         if !validated_mention_ids.is_empty() {
@@ -1036,11 +1004,9 @@ impl<
         let refreshed = self.repo.find_by_id(case_id).await?;
 
         if let Some(case) = refreshed.as_ref() {
-            if let Some(event_publisher) = self.event_publisher.as_ref() {
-                event_publisher
-                    .publish_appended(case, &append.append_id, operator)
-                    .await?;
-            }
+            self.event_publisher
+                .publish_appended(case, &append.append_id, operator)
+                .await?;
 
             if !validated_mention_ids.is_empty() {
                 if let Some(notif_svc) = self.notification_svc.as_ref() {
@@ -1098,22 +1064,9 @@ impl<
             return Ok(None);
         };
 
-        let mut validated_mention_ids = Vec::new();
-        if !mention_user_ids.is_empty() {
-            if let Some(chat_repo) = self.dispatch_chat_repo.as_ref() {
-                if let Ok(Some(group)) = chat_repo.get_group_by_flight(&target_case.flight_id).await {
-                    if let Ok(members) = chat_repo.find_active_members(&group.group_id).await {
-                        let member_ids: std::collections::HashSet<String> =
-                            members.into_iter().map(|m| m.user_id.trim().to_string()).collect();
-
-                        validated_mention_ids = mention_user_ids
-                            .into_iter()
-                            .filter(|uid| member_ids.contains(uid.trim()))
-                            .collect();
-                    }
-                }
-            }
-        }
+        let validated_mention_ids = self
+            .retain_mentionable(&target_case.flight_id, mention_user_ids)
+            .await;
 
         let mut metadata = serde_json::json!({});
         if !validated_mention_ids.is_empty() {
@@ -1144,11 +1097,9 @@ impl<
 
         if inserted {
             if let Some(case) = refreshed.as_ref() {
-                if let Some(event_publisher) = self.event_publisher.as_ref() {
-                    event_publisher
-                        .publish_appended(case, &append.append_id, operator)
-                        .await?;
-                }
+                self.event_publisher
+                    .publish_appended(case, &append.append_id, operator)
+                    .await?;
 
                 if !validated_mention_ids.is_empty() {
                     if let Some(notif_svc) = self.notification_svc.as_ref() {

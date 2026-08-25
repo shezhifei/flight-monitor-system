@@ -7,7 +7,7 @@ use crate::schemas::dispatch_schemas::{
     ScheduleAvailabilityResponse, ScheduleExceptionCreate, ScheduleExceptionResponse, ShiftInstanceCreate,
     ShiftTemplateCreate,
 };
-use crate::services::resource_availability_service::{NullAvailabilityGateway, ResourceAvailabilityGateway};
+use crate::services::resource_availability_service::ResourceAvailabilityGateway;
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
     DispatchLockLevel, DispatchLockRule, EquipmentDowntime, LeaveRecord, ShiftInstance, ShiftTemplate,
@@ -18,13 +18,13 @@ use fms_domain::ports::dispatch_repository::{
 };
 
 pub struct DispatchScheduleService<
-    STR: ShiftTemplateRepository = fms_domain::ports::NullRepository,
-    SIR: ShiftInstanceRepository = fms_domain::ports::NullRepository,
-    SER: ScheduleExceptionRepository = fms_domain::ports::NullRepository,
-    TR: TeamRepository = fms_domain::ports::NullRepository,
-    TMR: TeamMemberRepository = fms_domain::ports::NullRepository,
-    ER: EquipmentRepository = fms_domain::ports::NullRepository,
-    AG: ResourceAvailabilityGateway = NullAvailabilityGateway,
+    STR: ShiftTemplateRepository + ?Sized,
+    SIR: ShiftInstanceRepository + ?Sized,
+    SER: ScheduleExceptionRepository + ?Sized,
+    TR: TeamRepository + ?Sized,
+    TMR: TeamMemberRepository + ?Sized,
+    ER: EquipmentRepository + ?Sized,
+    AG: ResourceAvailabilityGateway + ?Sized,
 > {
     shift_template_repo: Arc<STR>,
     shift_instance_repo: Arc<SIR>,
@@ -36,13 +36,13 @@ pub struct DispatchScheduleService<
 }
 
 impl<
-        STR: ShiftTemplateRepository,
-        SIR: ShiftInstanceRepository,
-        SER: ScheduleExceptionRepository,
-        TR: TeamRepository,
-        TMR: TeamMemberRepository,
-        ER: EquipmentRepository,
-        AG: ResourceAvailabilityGateway,
+        STR: ShiftTemplateRepository + ?Sized,
+        SIR: ShiftInstanceRepository + ?Sized,
+        SER: ScheduleExceptionRepository + ?Sized,
+        TR: TeamRepository + ?Sized,
+        TMR: TeamMemberRepository + ?Sized,
+        ER: EquipmentRepository + ?Sized,
+        AG: ResourceAvailabilityGateway + ?Sized,
     > DispatchScheduleService<STR, SIR, SER, TR, TMR, ER, AG>
 {
     pub fn new(

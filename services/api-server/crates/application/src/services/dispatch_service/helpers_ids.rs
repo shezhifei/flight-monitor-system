@@ -283,7 +283,8 @@ impl DispatchService {
     }
 
     pub(super) async fn resolve_followup_owner(&self, order: &DispatchOrder) -> Result<Option<String>, DomainError> {
-        if let (Some(team_id), Some(team_repo)) = (order.team_id.as_deref(), self.resources.team_repo.as_ref()) {
+        if let Some(team_id) = order.team_id.as_deref() {
+            let team_repo = self.resources.team_repo.as_ref();
             if let Some(team) = team_repo.find_by_id(team_id, true).await? {
                 if let Some(leader_id) = team
                     .leader_id
@@ -296,9 +297,8 @@ impl DispatchService {
             }
         }
 
-        if let (Some(team_id), Some(team_member_repo)) =
-            (order.team_id.as_deref(), self.resources.team_member_repo.as_ref())
-        {
+        if let Some(team_id) = order.team_id.as_deref() {
+            let team_member_repo = self.resources.team_member_repo.as_ref();
             for member in team_member_repo.find_by_team(team_id, false).await? {
                 if member.is_active && matches!(member.role, MemberRole::Leader) {
                     let user_id = member.user_id.trim();
@@ -331,9 +331,7 @@ impl DispatchService {
         source_type: &str,
         source_id: &str,
     ) -> Result<Option<fms_domain::models::todo::Todo>, DomainError> {
-        let Some(todo_repo) = self.order.todo_repo.as_ref() else {
-            return Ok(None);
-        };
+        let todo_repo = self.order.todo_repo.as_ref();
         for todo in todo_repo.find_by_source(source_type, source_id).await? {
             if !todo.status.is_terminal() {
                 return Ok(Some(todo));
@@ -363,9 +361,7 @@ impl DispatchService {
         due_date: Option<DateTime<Utc>>,
         tags: Vec<String>,
     ) -> Result<Option<Value>, DomainError> {
-        let Some(todo_repo) = self.order.todo_repo.as_ref() else {
-            return Ok(None);
-        };
+        let todo_repo = self.order.todo_repo.as_ref();
 
         let owner_user_id = self.resolve_followup_owner(order).await?;
         let mut todo = if let Some(existing) = self.find_open_followup_todo(source_type, &order.id).await? {
@@ -434,9 +430,7 @@ impl DispatchService {
     }
 
     pub(super) async fn count_open_followups(&self, source_type: &str) -> Result<i64, DomainError> {
-        let Some(todo_repo) = self.order.todo_repo.as_ref() else {
-            return Ok(0);
-        };
+        let todo_repo = self.order.todo_repo.as_ref();
         Ok(todo_repo
             .find_all(None, None, None, None, Some(source_type), None, 10_000, 0)
             .await?

@@ -22,7 +22,7 @@ use fms_domain::ports::workflow_dispatch_repository::WorkflowDispatchRepository;
 use crate::services::ai_action_proposal_service::AiActionProposalService;
 use crate::services::anomaly_service::AnomalyService;
 use crate::services::auth_service::AuthService;
-use crate::services::business_case_service::BusinessCaseEventPublisher;
+use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseMentionAudience};
 use crate::services::business_case_service::BusinessCaseService;
 use crate::services::business_case_type_service::BusinessCaseTypeService;
 use crate::services::business_case_workflow_service::BusinessCaseWorkflowService;
@@ -126,7 +126,8 @@ impl DispatchRecommendationService for NoopDispatchRecommendationService {
     }
 }
 
-// No-op implementations for BusinessCaseService default type parameters
+// 显式 no-op 事件发布器：给不关心事件外发的测试与 DI 分支使用。
+// （以前它还兼任默认类型参数的填充物，默认参数已删除。）
 pub struct NoopBusinessCaseEventPublisher;
 
 impl BusinessCaseEventPublisher for NoopBusinessCaseEventPublisher {
@@ -201,7 +202,7 @@ pub type ConcreteLabelService = LabelService;
 pub type ConcreteBusinessCaseService = BusinessCaseService<
     dyn BusinessCaseRepository + Send + Sync,
     dyn BusinessCaseEventPublisher,
-    dyn DispatchCollaborationRepository + Send + Sync,
+    dyn BusinessCaseMentionAudience,
 >;
 
 pub type ConcreteBusinessCaseTypeService = BusinessCaseTypeService;
@@ -255,4 +256,23 @@ pub type ConcreteDispatchResourceService = DispatchResourceService<
     dyn EquipmentRepository + Send + Sync,
     dyn StandRepository + Send + Sync,
     dyn TaskTypeRepository + Send + Sync,
+>;
+
+use crate::services::dispatch_schedule_service::DispatchScheduleService;
+use crate::services::resource_availability_service::ResourceAvailabilityGateway;
+use fms_domain::ports::dispatch_repository::{
+    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository,
+};
+
+/// 排班服务的生产单态。API 处理器与 DI 必须引用同一个别名——
+/// 此前处理器写的是裸 `DispatchScheduleService`，默认类型参数把它解析成一组空实现桩，
+/// 与 DI 注册的类型不是同一个单态，`web::Data` 取不到，7 个排班端点全部 500。
+pub type ConcreteDispatchScheduleService = DispatchScheduleService<
+    dyn ShiftTemplateRepository + Send + Sync,
+    dyn ShiftInstanceRepository + Send + Sync,
+    dyn ScheduleExceptionRepository + Send + Sync,
+    dyn TeamRepository + Send + Sync,
+    dyn TeamMemberRepository + Send + Sync,
+    dyn EquipmentRepository + Send + Sync,
+    dyn ResourceAvailabilityGateway + Send + Sync,
 >;

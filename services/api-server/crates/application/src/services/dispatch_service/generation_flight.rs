@@ -399,10 +399,9 @@ impl DispatchService {
         let task_type_repo = &self.rules.task_type_repo;
         let task_type_requirement_repo = &self.rules.task_type_requirement_repo;
 
-        let flight = if let Some(flight_repo) = self.rules.flight_repo.as_ref() {
+        let flight = {
+            let flight_repo = self.rules.flight_repo.as_ref();
             flight_repo.find_by_id(flight_id).await?
-        } else {
-            None
         };
         let contexts = self.build_flight_leg_contexts(flight.as_ref(), flight_id, stand_id, eta, etd, terminal);
 
@@ -637,39 +636,9 @@ impl DispatchService {
         planned_end_time: DateTime<Utc>,
         crew_requirement_snapshot: &[Value],
     ) -> Result<(Vec<Value>, Vec<Value>, Option<String>, Option<String>, Option<String>), DomainError> {
-        let Some(team_member_repo) = self.resources.team_member_repo.as_ref() else {
-            return Ok((
-                Vec::new(),
-                vec![json!({
-                    "reason": "team_member_repo_unavailable",
-                })],
-                Some("当前无法补齐执行编组".to_string()),
-                None,
-                None,
-            ));
-        };
-        let Some(qualification_grant_repo) = self.resources.qualification_grant_repo.as_ref() else {
-            return Ok((
-                Vec::new(),
-                vec![json!({
-                    "reason": "qualification_grant_repo_unavailable",
-                })],
-                Some("当前无法补齐执行编组".to_string()),
-                None,
-                None,
-            ));
-        };
-        let Some(qualification_repo) = self.resources.qualification_repo.as_ref() else {
-            return Ok((
-                Vec::new(),
-                vec![json!({
-                    "reason": "qualification_repo_unavailable",
-                })],
-                Some("当前无法补齐执行编组".to_string()),
-                None,
-                None,
-            ));
-        };
+        let team_member_repo = self.resources.team_member_repo.as_ref();
+        let qualification_grant_repo = self.resources.qualification_grant_repo.as_ref();
+        let qualification_repo = self.resources.qualification_repo.as_ref();
 
         let active_user_ids = team_member_repo.list_active_users().await?;
         if active_user_ids.is_empty() {
@@ -815,9 +784,8 @@ impl DispatchService {
                             .unwrap_or(true)
                     })
                     .cloned();
-                let source_team_name = if let (Some(team_repo), Some(team_id)) =
-                    (self.resources.team_repo.as_ref(), source_team_id.as_deref())
-                {
+                let source_team_name = if let Some(team_id) = source_team_id.as_deref() {
+                    let team_repo = self.resources.team_repo.as_ref();
                     team_repo.find_by_id(team_id, false).await?.map(|team| team.name)
                 } else {
                     None
@@ -869,10 +837,9 @@ impl DispatchService {
                 .into_iter()
                 .max_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)))
             {
-                dominant_team_name = if let Some(team_repo) = self.resources.team_repo.as_ref() {
+                dominant_team_name = {
+                    let team_repo = self.resources.team_repo.as_ref();
                     team_repo.find_by_id(&team_id, false).await?.map(|team| team.name)
-                } else {
-                    None
                 };
                 dominant_team_id = Some(team_id);
             }
@@ -896,15 +863,7 @@ impl DispatchService {
         equipment_requirement_snapshot: &[Value],
         task_crew_members: &[Value],
     ) -> Result<(Vec<Value>, Vec<Value>), DomainError> {
-        let Some(equipment_repo) = self.resources.equipment_repo.as_ref() else {
-            if equipment_requirement_snapshot.is_empty() {
-                return Ok((Vec::new(), Vec::new()));
-            }
-            return Ok((
-                Vec::new(),
-                Self::build_equipment_gap_from_snapshot(equipment_requirement_snapshot, "equipment_repo_unavailable"),
-            ));
-        };
+        let equipment_repo = self.resources.equipment_repo.as_ref();
 
         let overlapping_orders = self
             .order
@@ -1029,31 +988,11 @@ impl DispatchService {
         terminal: Option<&str>,
         fallback_start: DateTime<Utc>,
     ) -> Result<PreparedWindowOrder, DomainError> {
-        let Some(stand_repo) = self.resources.stand_repo.as_ref() else {
-            return Err(DomainError::ValidationError(
-                "机位仓储未配置，无法执行窗口优化".to_string(),
-            ));
-        };
-        let Some(team_member_repo) = self.resources.team_member_repo.as_ref() else {
-            return Err(DomainError::ValidationError(
-                "班组成员仓储未配置，无法执行窗口优化".to_string(),
-            ));
-        };
-        let Some(qualification_grant_repo) = self.resources.qualification_grant_repo.as_ref() else {
-            return Err(DomainError::ValidationError(
-                "资质授权仓储未配置，无法执行窗口优化".to_string(),
-            ));
-        };
-        let Some(qualification_repo) = self.resources.qualification_repo.as_ref() else {
-            return Err(DomainError::ValidationError(
-                "资质等级仓储未配置，无法执行窗口优化".to_string(),
-            ));
-        };
-        let Some(resource_availability_service) = self.resources.resource_availability_service.as_ref() else {
-            return Err(DomainError::ValidationError(
-                "资源可用性服务未配置，无法执行窗口优化".to_string(),
-            ));
-        };
+        let stand_repo = self.resources.stand_repo.as_ref();
+        let team_member_repo = self.resources.team_member_repo.as_ref();
+        let qualification_grant_repo = self.resources.qualification_grant_repo.as_ref();
+        let qualification_repo = self.resources.qualification_repo.as_ref();
+        let resource_availability_service = self.resources.resource_availability_service.as_ref();
 
         let stand_id = order
             .stand_id
@@ -1178,9 +1117,8 @@ impl DispatchService {
                 .map(|member| member.team_id.trim())
                 .filter(|value| !value.is_empty())
                 .map(str::to_string);
-            let fallback_team_name = if let (Some(team_repo), Some(team_id)) =
-                (self.resources.team_repo.as_ref(), fallback_team_id.as_deref())
-            {
+            let fallback_team_name = if let Some(team_id) = fallback_team_id.as_deref() {
+                let team_repo = self.resources.team_repo.as_ref();
                 team_repo.find_by_id(team_id, false).await?.map(|team| team.name)
             } else {
                 None
@@ -1195,9 +1133,8 @@ impl DispatchService {
                     .filter(|value| !value.is_empty())
                     .map(str::to_string)
                     .or_else(|| fallback_team_id.clone());
-                let source_team_name = if let (Some(team_repo), Some(team_id)) =
-                    (self.resources.team_repo.as_ref(), source_team_id.as_deref())
-                {
+                let source_team_name = if let Some(team_id) = source_team_id.as_deref() {
+                    let team_repo = self.resources.team_repo.as_ref();
                     team_repo
                         .find_by_id(team_id, false)
                         .await?

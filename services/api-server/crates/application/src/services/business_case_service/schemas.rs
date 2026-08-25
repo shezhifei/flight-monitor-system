@@ -4,7 +4,6 @@ use std::pin::Pin;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::business_case::{BusinessCaseAppendEntry, FlightBusinessCase};
-use fms_domain::ports::NullRepository;
 
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct BusinessCaseStatusMetadata {
@@ -130,13 +129,15 @@ pub trait BusinessCaseEventPublisher: Send + Sync {
     }
 }
 
-impl BusinessCaseEventPublisher for NullRepository {
-    fn publish_appended<'a>(
-        &'a self,
-        _business_case: &'a FlightBusinessCase,
-        _append_entry_id: &'a str,
-        _operator: &'a str,
-    ) -> Pin<Box<dyn Future<Output = Result<(), DomainError>> + Send + 'a>> {
-        Box::pin(async { Ok(()) })
-    }
+/// 业务事项校验 @提及时，只需要知道「这条航班的协作群里有哪些人可以被提及」。
+///
+/// 此前这里直接依赖整个 `DispatchCollaborationRepository`（33 个方法），
+/// 只为了调用其中 2 个；代价是任何想构造 `BusinessCaseService` 的地方
+/// 都得提供 33 个方法的实现，于是只能靠可选依赖 + 空实现桩绕过去。
+/// 收窄成 1 个方法后，这个依赖可以是必填的。
+#[async_trait::async_trait]
+pub trait BusinessCaseMentionAudience: Send + Sync {
+    /// 返回该航班协作群中允许被 @ 的用户 ID；无群或查询失败时返回空集，
+    /// 调用方据此把所有 @提及过滤掉。
+    async fn mentionable_user_ids(&self, flight_id: &str) -> Vec<String>;
 }

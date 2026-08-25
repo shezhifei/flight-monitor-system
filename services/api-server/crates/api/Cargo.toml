@@ -67,6 +67,7 @@ path = "src/bin/sse_load_client.rs"
 required-features = ["sse-load-tools"]
 
 [dev-dependencies]
+fms-application = { path = "../application", features = ["test-support"] }
 serde_urlencoded = "0.7"
 fms-infrastructure = { path = "../infrastructure" }
 sqlx = { workspace = true }

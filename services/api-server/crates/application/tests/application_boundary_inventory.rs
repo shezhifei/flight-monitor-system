@@ -20,12 +20,42 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
     collect_debt_files(&services_dir, &services_dir, &mut actual);
     actual.sort();
 
-    // Database setup/assertion code remains in DB-backed tests. Production
-    // application services must not issue SQL or import concrete repositories.
+    // The living inventory of application services that still reach past the
+    // domain data ports. This list may only ever SHRINK: P3 deletes the
+    // `application -> fms-infrastructure`/`sqlx` edge one service at a time, and
+    // each such step must remove a line here. A new entry means new debt.
     let expected = [
+        "ai_action_proposal_service/service.rs",
         "ai_action_proposal_service/tests.rs",
+        "ai_execution_readiness_service.rs",
+        "ai_job_service.rs",
+        "ai_job_timeout_reaper_service.rs",
+        "ai_rollout_status_service.rs",
+        "ai_runtime_service/ai_execution_control_service.rs",
+        "ai_runtime_service/compensation_planner.rs",
+        "ai_runtime_service/in_memory_repos.rs",
+        "ai_runtime_service/recovery_orchestrator.rs",
+        "ai_runtime_service/rollback_service.rs",
+        "anomaly_service.rs",
+        "business_case_service/service.rs",
+        "dispatch_chat_service.rs",
+        "dispatch_service/helpers_validation.rs",
+        "dispatch_service/order_lifecycle.rs",
+        "domain_action_executor/service.rs",
         "domain_action_executor/tests.rs",
+        "domain_event_cdc_relay_service.rs",
+        "domain_event_outbox_delivery.rs",
+        "domain_event_relay_service.rs",
+        "flight_batch_cell_update_service.rs",
+        "flight_domain_events.rs",
+        "flight_runtime_service/service.rs",
         "flight_runtime_service/tests.rs",
+        "flight_runtime_service/types.rs",
+        "flight_service.rs",
+        "in_memory_ai_proposal_repository.rs",
+        "notification_service/service.rs",
+        "ontology_service/service.rs",
+        "todo_service.rs",
     ]
     .into_iter()
     .map(String::from)

@@ -1,5 +1,6 @@
 //! 业务事项应用服务。
 
+pub mod mention_audience;
 pub mod schemas;
 
 mod service;
@@ -7,8 +8,9 @@ mod service;
 #[cfg(test)]
 mod tests;
 
+pub use mention_audience::{CollaborationMentionAudience, NoMentionAudience};
 pub use schemas::{
-    BusinessCaseAppendResult, BusinessCaseEventPublisher, BusinessCaseStatusMetadata,
+    BusinessCaseAppendResult, BusinessCaseEventPublisher, BusinessCaseMentionAudience, BusinessCaseStatusMetadata,
     BusinessCaseTerminalUpdatePayload, BusinessCaseUpdatePayload, BUSINESS_CASE_ALLOWED_STATUSES,
     BUSINESS_CASE_STATUS_METADATA,
 };
