@@ -34,11 +34,11 @@ pub trait TodoSchedulerNotificationSender: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<(), DomainError>> + Send + 'a>>;
 }
 
-impl<NR, PR, CR, DP, MR, RS> TodoSchedulerNotificationSender for NotificationService<NR, PR, CR, DP, MR, RS>
+impl<NR, PR, CE, DP, MR, RS> TodoSchedulerNotificationSender for NotificationService<NR, PR, CE, DP, MR, RS>
 where
     NR: fms_domain::ports::notification_repository::NotificationRepository + Send + Sync + ?Sized,
     PR: fms_domain::ports::notification_repository::NotificationPreferenceRepository + Send + Sync + ?Sized,
-    CR: fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync + ?Sized,
+    CE: crate::services::notification_service::NotificationCollaborationEvents + Send + Sync + ?Sized,
     DP: crate::services::notification_service::NotificationDeliveryPublisher + Send + Sync + ?Sized,
     MR: crate::services::notification_service::NotificationMetricsRecorder + Send + Sync + ?Sized,
     RS: crate::services::notification_service::NotificationReceiptGroupSync + Send + Sync + ?Sized,
@@ -474,6 +474,8 @@ mod tests {
     use fms_domain::models::notification::{Notification, NotificationPreference};
     use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 
+    use crate::test_support::notification_service_without_side_channels;
+
     use super::*;
 
     #[derive(Default)]
@@ -840,7 +842,7 @@ mod tests {
         notification_repo: Arc<FakeNotificationRepo>,
         publisher: Arc<FakeTodoSchedulerPublisher>,
     ) -> TodoSchedulerService {
-        let notification_service = Arc::new(NotificationService::new(
+        let notification_service = Arc::new(notification_service_without_side_channels(
             notification_repo,
             Arc::new(FakePreferenceRepo),
         ));

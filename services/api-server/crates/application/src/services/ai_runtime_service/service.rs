@@ -93,11 +93,11 @@ pub trait AiRuntimeNotificationSender: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<(), DomainError>> + Send + 'a>>;
 }
 
-impl<NR, PR, CR, DP, MR, RS> AiRuntimeNotificationSender for NotificationService<NR, PR, CR, DP, MR, RS>
+impl<NR, PR, CE, DP, MR, RS> AiRuntimeNotificationSender for NotificationService<NR, PR, CE, DP, MR, RS>
 where
     NR: fms_domain::ports::notification_repository::NotificationRepository + Send + Sync + ?Sized,
     PR: fms_domain::ports::notification_repository::NotificationPreferenceRepository + Send + Sync + ?Sized,
-    CR: fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync + ?Sized,
+    CE: crate::services::notification_service::NotificationCollaborationEvents + Send + Sync + ?Sized,
     DP: crate::services::notification_service::NotificationDeliveryPublisher + Send + Sync + ?Sized,
     MR: crate::services::notification_service::NotificationMetricsRecorder + Send + Sync + ?Sized,
     RS: crate::services::notification_service::NotificationReceiptGroupSync + Send + Sync + ?Sized,

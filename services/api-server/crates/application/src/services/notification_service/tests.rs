@@ -10,6 +10,11 @@ use fms_domain::models::dispatch_collaboration::{
 use fms_domain::models::notification::{Notification, NotificationPreference};
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
+
+use crate::test_support::notification_service_without_side_channels;
+use crate::types::{
+    NoopNotificationDeliveryPublisher, NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
+};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
@@ -442,7 +447,7 @@ impl DispatchCollaborationRepository for FakeCollaborationRepo {
 #[tokio::test]
 async fn send_batch_preserves_non_critical_receipts_and_sender_metadata() {
     let repo = Arc::new(FakeNotificationRepo::new());
-    let service = NotificationService::new(repo.clone(), Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo));
 
     let result = service
         .send_batch(DispatchBatchNotificationCreate {
@@ -486,7 +491,7 @@ async fn send_batch_preserves_non_critical_receipts_and_sender_metadata() {
 #[tokio::test]
 async fn send_batch_with_idempotency_reuses_receipt_group_and_notification_ids() {
     let repo = Arc::new(FakeNotificationRepo::new());
-    let service = NotificationService::new(repo.clone(), Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo));
     let dto = DispatchBatchNotificationCreate {
         user_ids: vec![" user_001 ".to_string(), "user_002".to_string(), "user_001".to_string()],
         title: "流程提醒".to_string(),
@@ -595,7 +600,14 @@ async fn acknowledge_publishes_sender_receipt_update() {
     }));
     let delivery = Arc::new(FakeDeliveryPublisher::default());
     let service =
-        NotificationService::new(repo, Arc::new(FakePreferenceRepo)).with_delivery_publisher(delivery.clone());
+ NotificationService::new(
+        repo,
+        Arc::new(FakePreferenceRepo),
+        Arc::new(NoCollaborationEvents),
+        delivery.clone(),
+        Arc::new(NoopNotificationMetricsRecorder),
+        Arc::new(NoopNotificationReceiptGroupSync),
+    );
 
     let updated = service
         .acknowledge("notification_001", "user_001", "acknowledged", None, None)
@@ -666,7 +678,7 @@ async fn get_receipt_group_exposes_sender_and_overdue_fields() {
         created_at,
         read_at: None,
     });
-    let service = NotificationService::new(repo, Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo, Arc::new(FakePreferenceRepo));
 
     let payload = service
         .get_receipt_group("rg-1")
@@ -686,7 +698,7 @@ async fn get_receipt_group_exposes_sender_and_overdue_fields() {
 #[tokio::test]
 async fn send_notification_normalizes_non_workflow_origin_to_manual() {
     let repo = Arc::new(FakeNotificationRepo::new());
-    let service = NotificationService::new(repo.clone(), Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo));
 
     let response = service
         .send_notification(NotificationCreate {
@@ -719,7 +731,7 @@ async fn send_notification_normalizes_non_workflow_origin_to_manual() {
 #[tokio::test]
 async fn send_batch_preserves_workflow_origin_case_insensitively() {
     let repo = Arc::new(FakeNotificationRepo::new());
-    let service = NotificationService::new(repo.clone(), Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo));
 
     let result = service
         .send_batch(DispatchBatchNotificationCreate {
@@ -750,7 +762,7 @@ async fn send_batch_preserves_workflow_origin_case_insensitively() {
 #[tokio::test]
 async fn send_batch_returns_empty_payload_when_no_recipients() {
     let repo = Arc::new(FakeNotificationRepo::new());
-    let service = NotificationService::new(repo.clone(), Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo));
 
     let result = service
         .send_batch(DispatchBatchNotificationCreate {
@@ -819,7 +831,7 @@ async fn acknowledge_allows_pending_non_receipt_notifications() {
         is_read: true,
         ..notification.clone()
     });
-    let service = NotificationService::new(repo, Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo, Arc::new(FakePreferenceRepo));
 
     let updated = service
         .acknowledge("notification_non_receipt", "user_001", "acknowledged", None, None)
@@ -847,7 +859,7 @@ async fn get_receipt_group_normalizes_unknown_origin_type() {
         "rejected_count": 0,
         "latest_updated_at": created_at,
     }));
-    let service = NotificationService::new(repo, Arc::new(FakePreferenceRepo));
+    let service = notification_service_without_side_channels(repo, Arc::new(FakePreferenceRepo));
 
     let payload = service
         .get_receipt_group("rg-ai")
@@ -863,8 +875,14 @@ async fn get_receipt_group_normalizes_unknown_origin_type() {
 async fn created_collaboration_event_includes_sender_metadata() {
     let repo = Arc::new(FakeNotificationRepo::new());
     let collaboration_repo = Arc::new(FakeCollaborationRepo::default());
-    let service = NotificationService::new(repo, Arc::new(FakePreferenceRepo))
-        .with_collaboration_repo(collaboration_repo.clone());
+    let service = NotificationService::new(
+        repo,
+        Arc::new(FakePreferenceRepo),
+        Arc::new(CollaborationEventRecorder::new(collaboration_repo.clone())),
+        Arc::new(NoopNotificationDeliveryPublisher),
+        Arc::new(NoopNotificationMetricsRecorder),
+        Arc::new(NoopNotificationReceiptGroupSync),
+    );
 
     let _ = service
         .send_notification(NotificationCreate {
@@ -898,8 +916,14 @@ async fn created_collaboration_event_includes_sender_metadata() {
 async fn receipt_required_collaboration_event_includes_sender_user_id() {
     let repo = Arc::new(FakeNotificationRepo::new());
     let collaboration_repo = Arc::new(FakeCollaborationRepo::default());
-    let service = NotificationService::new(repo, Arc::new(FakePreferenceRepo))
-        .with_collaboration_repo(collaboration_repo.clone());
+    let service = NotificationService::new(
+        repo,
+        Arc::new(FakePreferenceRepo),
+        Arc::new(CollaborationEventRecorder::new(collaboration_repo.clone())),
+        Arc::new(NoopNotificationDeliveryPublisher),
+        Arc::new(NoopNotificationMetricsRecorder),
+        Arc::new(NoopNotificationReceiptGroupSync),
+    );
 
     let result = service
         .send_batch(DispatchBatchNotificationCreate {

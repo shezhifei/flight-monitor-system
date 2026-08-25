@@ -18,6 +18,7 @@ use chrono::{DateTime, Utc};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{Equipment, Team};
+use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 use fms_domain::ports::NullRepository;
 
 use crate::services::dispatch_service::dispatch_overrun_warning_service::DispatchOverrunWarningService;
@@ -26,8 +27,13 @@ use crate::services::dispatch_service::{
     DispatchOrderServiceDependencies, DispatchResourceServiceDependencies, DispatchRuleServiceDependencies,
     DispatchServiceDependencies,
 };
-use crate::services::notification_service::DispatchBatchNotificationCreate;
+use crate::services::notification_service::{
+    DispatchBatchNotificationCreate, NoCollaborationEvents, NotificationService,
+};
 use crate::services::resource_availability_service::{ResourceAvailability, ResourceAvailabilityGateway};
+use crate::types::{
+    NoopNotificationDeliveryPublisher, NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
+};
 
 fn unwired(port: &str) -> DomainError {
     DomainError::Internal(format!("test stub: {port} was not wired for this test"))
@@ -144,4 +150,40 @@ pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
             DispatchOverrunWarningService::new(null.clone(), null.clone()).with_feature_flags(false, false),
         ),
     }
+}
+
+/// 四个副作用端口都显式为「不做」的 `NotificationService`。
+///
+/// 这不是「默认值」：类型名里写着 `WithoutSideChannels`，读测试的人一眼能看出这个
+/// 服务不会投递、不打点、不落协作事件、不同步回执组。生产装配拿不到它——`di::shared`
+/// 必须点名传入真实现。
+pub type NotificationServiceWithoutSideChannels<NR, PR> = NotificationService<
+    NR,
+    PR,
+    NoCollaborationEvents,
+    NoopNotificationDeliveryPublisher,
+    NoopNotificationMetricsRecorder,
+    NoopNotificationReceiptGroupSync,
+>;
+
+/// 建一个只接两个必需仓储、副作用端口全部显式关掉的通知服务。
+///
+/// 给「只关心存取行为」的测试用。要断言投递/协作流的测试请直接调
+/// `NotificationService::new`，把真桩件放在对应位置上——哪个端口被测试到，从调用处可见。
+pub fn notification_service_without_side_channels<NR, PR>(
+    repo: Arc<NR>,
+    preference_repo: Arc<PR>,
+) -> NotificationServiceWithoutSideChannels<NR, PR>
+where
+    NR: NotificationRepository + ?Sized,
+    PR: NotificationPreferenceRepository + ?Sized,
+{
+    NotificationService::new(
+        repo,
+        preference_repo,
+        Arc::new(NoCollaborationEvents),
+        Arc::new(NoopNotificationDeliveryPublisher),
+        Arc::new(NoopNotificationMetricsRecorder),
+        Arc::new(NoopNotificationReceiptGroupSync),
+    )
 }

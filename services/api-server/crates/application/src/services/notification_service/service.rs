@@ -6,9 +6,7 @@ use tracing::{error, warn};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 use fms_domain::models::notification::{Notification, NotificationPreference};
-use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
-use fms_domain::ports::NullRepository;
 use sqlx::{Postgres, Transaction};
 
 use crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository;
@@ -21,115 +19,66 @@ use super::helpers::{
 use super::schemas::{
     DispatchBatchNotificationCreate, NotificationCreate, NotificationPreferenceUpdate, NotificationResponse,
 };
-use super::traits::{NotificationDeliveryPublisher, NotificationMetricsRecorder, NotificationReceiptGroupSync};
+use super::traits::{
+    NotificationCollaborationEvents, NotificationDeliveryPublisher, NotificationMetricsRecorder,
+    NotificationReceiptGroupSync,
+};
 
 /// 通知应用服务
 pub struct NotificationService<
     NR: NotificationRepository + ?Sized,
     PR: NotificationPreferenceRepository + ?Sized,
-    CR: DispatchCollaborationRepository + ?Sized = NullRepository,
-    DP: NotificationDeliveryPublisher + ?Sized = NullRepository,
-    MR: NotificationMetricsRecorder + ?Sized = NullRepository,
-    RS: NotificationReceiptGroupSync + ?Sized = NullRepository,
+    CE: NotificationCollaborationEvents + ?Sized,
+    DP: NotificationDeliveryPublisher + ?Sized,
+    MR: NotificationMetricsRecorder + ?Sized,
+    RS: NotificationReceiptGroupSync + ?Sized,
 > {
     pub(crate) repo: Arc<NR>,
     pub(crate) tx_repo: Option<Arc<dyn SqlxNotificationTransactionalRepository>>,
     pub(crate) preference_repo: Arc<PR>,
-    pub(crate) collaboration_repo: Option<Arc<CR>>,
-    pub(crate) delivery_publisher: Option<Arc<DP>>,
-    pub(crate) metrics_recorder: Option<Arc<MR>>,
-    pub(crate) receipt_group_sync: std::sync::RwLock<Option<Arc<RS>>>,
-}
-
-impl<NR: NotificationRepository + ?Sized, PR: NotificationPreferenceRepository + ?Sized>
-    NotificationService<NR, PR, NullRepository, NullRepository, NullRepository, NullRepository>
-{
-    pub fn new(repo: Arc<NR>, preference_repo: Arc<PR>) -> Self {
-        Self {
-            repo,
-            tx_repo: None,
-            preference_repo,
-            collaboration_repo: None,
-            delivery_publisher: None,
-            metrics_recorder: None,
-            receipt_group_sync: std::sync::RwLock::new(None),
-        }
-    }
+    pub(crate) collaboration_events: Arc<CE>,
+    pub(crate) delivery_publisher: Arc<DP>,
+    pub(crate) metrics_recorder: Arc<MR>,
+    /// 这里的 `RwLock` 是循环依赖的断点（notification ↔ business_case_workflow），
+    /// 不是可选性：里面永远有一个实现，只是可以被换掉。
+    pub(crate) receipt_group_sync: std::sync::RwLock<Arc<RS>>,
 }
 
 impl<
         NR: NotificationRepository + ?Sized,
         PR: NotificationPreferenceRepository + ?Sized,
-        CR: DispatchCollaborationRepository + ?Sized,
+        CE: NotificationCollaborationEvents + ?Sized,
         DP: NotificationDeliveryPublisher + ?Sized,
         MR: NotificationMetricsRecorder + ?Sized,
         RS: NotificationReceiptGroupSync + ?Sized,
-    > NotificationService<NR, PR, CR, DP, MR, RS>
+    > NotificationService<NR, PR, CE, DP, MR, RS>
 {
-    pub fn with_collaboration_repo<NCR: DispatchCollaborationRepository + ?Sized>(
-        self,
-        collaboration_repo: Arc<NCR>,
-    ) -> NotificationService<NR, PR, NCR, DP, MR, RS> {
-        NotificationService {
-            repo: self.repo,
-            tx_repo: self.tx_repo,
-            preference_repo: self.preference_repo,
-            collaboration_repo: Some(collaboration_repo),
-            delivery_publisher: self.delivery_publisher,
-            metrics_recorder: self.metrics_recorder,
-            receipt_group_sync: self.receipt_group_sync,
+    pub fn new(
+        repo: Arc<NR>,
+        preference_repo: Arc<PR>,
+        collaboration_events: Arc<CE>,
+        delivery_publisher: Arc<DP>,
+        metrics_recorder: Arc<MR>,
+        receipt_group_sync: Arc<RS>,
+    ) -> Self {
+        Self {
+            repo,
+            tx_repo: None,
+            preference_repo,
+            collaboration_events,
+            delivery_publisher,
+            metrics_recorder,
+            receipt_group_sync: std::sync::RwLock::new(receipt_group_sync),
         }
     }
 
-    pub fn with_delivery_publisher<NDP: NotificationDeliveryPublisher + ?Sized>(
-        self,
-        delivery_publisher: Arc<NDP>,
-    ) -> NotificationService<NR, PR, CR, NDP, MR, RS> {
-        NotificationService {
-            repo: self.repo,
-            tx_repo: self.tx_repo,
-            preference_repo: self.preference_repo,
-            collaboration_repo: self.collaboration_repo,
-            delivery_publisher: Some(delivery_publisher),
-            metrics_recorder: self.metrics_recorder,
-            receipt_group_sync: self.receipt_group_sync,
-        }
-    }
-
-    pub fn with_metrics_recorder<NMR: NotificationMetricsRecorder + ?Sized>(
-        self,
-        metrics_recorder: Arc<NMR>,
-    ) -> NotificationService<NR, PR, CR, DP, NMR, RS> {
-        NotificationService {
-            repo: self.repo,
-            tx_repo: self.tx_repo,
-            preference_repo: self.preference_repo,
-            collaboration_repo: self.collaboration_repo,
-            delivery_publisher: self.delivery_publisher,
-            metrics_recorder: Some(metrics_recorder),
-            receipt_group_sync: self.receipt_group_sync,
-        }
-    }
-
-    pub fn with_receipt_group_sync<NRS: NotificationReceiptGroupSync + ?Sized>(
-        self,
-        receipt_group_sync: Arc<NRS>,
-    ) -> NotificationService<NR, PR, CR, DP, MR, NRS> {
-        NotificationService {
-            repo: self.repo,
-            tx_repo: self.tx_repo,
-            preference_repo: self.preference_repo,
-            collaboration_repo: self.collaboration_repo,
-            delivery_publisher: self.delivery_publisher,
-            metrics_recorder: self.metrics_recorder,
-            receipt_group_sync: std::sync::RwLock::new(Some(receipt_group_sync)),
-        }
-    }
-
+    /// 打断 notification ↔ business_case_workflow 的构造环：先用一个占位实现建服务，
+    /// 等对面服务建好后换进来。换之前也不是「没接线」，只是还没接到真实现。
     pub fn set_receipt_group_sync(&self, receipt_group_sync: Arc<RS>) {
-        if let Ok(mut slot) = self.receipt_group_sync.write() {
-            *slot = Some(receipt_group_sync);
-        }
+        *self
+            .receipt_group_sync
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = receipt_group_sync;
     }
 
     pub fn with_transactional_repository(mut self, tx_repo: Arc<dyn SqlxNotificationTransactionalRepository>) -> Self {
@@ -350,9 +299,7 @@ impl<
                 DomainError::Internal("NotificationService transactional repository is not configured".to_string())
             })?;
             tx_repo.save_in_tx(tx, &notification).await?;
-            if let Some(metrics_recorder) = &self.metrics_recorder {
-                metrics_recorder.record_delivery_attempt("in_app", true);
-            }
+            self.metrics_recorder.record_delivery_attempt("in_app", true);
             self.record_created_collaboration_event(&notification).await;
             if notification.receipt_required {
                 self.record_receipt_required_collaboration_event(&notification).await;
@@ -515,9 +462,7 @@ impl<
         }
         if should_send_in_app {
             self.repo.save(&notification).await?;
-            if let Some(metrics_recorder) = &self.metrics_recorder {
-                metrics_recorder.record_delivery_attempt("in_app", true);
-            }
+            self.metrics_recorder.record_delivery_attempt("in_app", true);
             self.record_created_collaboration_event(&notification).await;
             if notification.receipt_required {
                 self.record_receipt_required_collaboration_event(&notification).await;
@@ -540,18 +485,13 @@ impl<
         notification: &mut Notification,
         unread_count: i64,
     ) -> Result<bool, DomainError> {
-        let Some(delivery_publisher) = self.delivery_publisher.as_ref() else {
-            return Ok(false);
-        };
-
         let response = to_response(notification);
-        let delivered = delivery_publisher
+        let delivered = self
+            .delivery_publisher
             .publish_user_notification(&response, unread_count)
             .await?;
         if delivered == 0 {
-            if let Some(metrics_recorder) = &self.metrics_recorder {
-                metrics_recorder.record_backfill_pending();
-            }
+            self.metrics_recorder.record_backfill_pending();
             return Ok(false);
         }
 
@@ -585,9 +525,6 @@ impl<
             .map(str::trim)
             .filter(|value| !value.is_empty())
         else {
-            return Ok(());
-        };
-        let Some(delivery_publisher) = self.delivery_publisher.as_ref() else {
             return Ok(());
         };
         let Some(summary) = self.repo.summarize_receipt_group(receipt_group_id).await? else {
@@ -640,7 +577,8 @@ impl<
                 "is_overdue": is_overdue(pending_count, remind_after_at.as_ref()),
             },
         });
-        if let Err(error) = delivery_publisher
+        if let Err(error) = self
+            .delivery_publisher
             .publish_sender_receipt_update(sender_user_id, payload)
             .await
         {
@@ -732,9 +670,6 @@ impl<
         payload: serde_json::Value,
         occurred_at: chrono::DateTime<chrono::Utc>,
     ) {
-        let Some(collaboration_repo) = self.collaboration_repo.as_ref() else {
-            return;
-        };
         let Some(flight_id) = notification.flight_id.as_ref() else {
             return;
         };
@@ -754,7 +689,7 @@ impl<
             source_record_id: Some(notification.notification_id.clone()),
         };
 
-        if let Err(error) = collaboration_repo.create_event(&event).await {
+        if let Err(error) = self.collaboration_events.create_event(&event).await {
             warn!(
                 notification_id = %notification.notification_id,
                 flight_id = %flight_id,
@@ -797,9 +732,11 @@ impl<
         let Some(receipt_group_id) = notification.receipt_group_id.as_deref() else {
             return;
         };
-        let Some(receipt_group_sync) = self.receipt_group_sync.read().ok().and_then(|slot| slot.clone()) else {
-            return;
-        };
+        let receipt_group_sync = self
+            .receipt_group_sync
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
 
         let mut last_error = None;
         for attempt in 0..2 {

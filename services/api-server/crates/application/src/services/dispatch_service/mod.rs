@@ -30,6 +30,7 @@ use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
+use crate::services::notification_service::NotificationCollaborationEvents;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DepartmentRepository, DepartmentTaskTypeRequirementRepository,
     DispatchAlertRepository, DispatchChecklistRepository, DispatchOrderMemberRepository, DispatchOrderRepository,
@@ -65,11 +66,11 @@ pub trait DispatchChatOrderSyncer: Send + Sync {
 impl<
         NR: fms_domain::ports::notification_repository::NotificationRepository + Send + Sync + ?Sized,
         PR: fms_domain::ports::notification_repository::NotificationPreferenceRepository + Send + Sync + ?Sized,
-        CR: DispatchCollaborationRepository + Send + Sync + ?Sized,
+        CE: NotificationCollaborationEvents + Send + Sync + ?Sized,
         DP: crate::services::notification_service::NotificationDeliveryPublisher + Send + Sync + ?Sized,
         MR: crate::services::notification_service::NotificationMetricsRecorder + Send + Sync + ?Sized,
         RS: crate::services::notification_service::NotificationReceiptGroupSync + Send + Sync + ?Sized,
-    > DispatchNotificationSender for NotificationService<NR, PR, CR, DP, MR, RS>
+    > DispatchNotificationSender for NotificationService<NR, PR, CE, DP, MR, RS>
 {
     async fn send_dispatch_batch(
         &self,

@@ -1,4 +1,6 @@
 use super::*;
+use fms_application::test_support::notification_service_without_side_channels;
+use fms_application::types::{NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync};
 use chrono::Utc;
 use fms_application::schemas::auth_schemas::TokenData;
 use fms_domain::error::DomainError;
@@ -222,7 +224,7 @@ async fn receipt_group_allows_sender_without_dispatch_permission() {
             "latest_updated_at": item.created_at,
         })),
     });
-    let svc = Arc::new(NotificationService::new(repo, Arc::new(FakePreferenceRepo)));
+    let svc = Arc::new(notification_service_without_side_channels(repo, Arc::new(FakePreferenceRepo)));
 
     let response = get_receipt_group_inner(
         svc.as_ref(),
@@ -243,7 +245,15 @@ async fn ack_returns_internal_when_service_returns_none_after_pending_check() {
         ack_result: None,
         summary: None,
     });
-    let svc = Arc::new(NotificationService::new(repo, Arc::new(FakePreferenceRepo)).with_delivery_publisher(publisher));
+    // 本测试断言投递行为：delivery_publisher 位置放真桩，其余端口显式为「不做」。
+    let svc = Arc::new(NotificationService::new(
+        repo,
+        Arc::new(FakePreferenceRepo),
+        Arc::new(NoCollaborationEvents),
+        publisher,
+        Arc::new(NoopNotificationMetricsRecorder),
+        Arc::new(NoopNotificationReceiptGroupSync),
+    ));
 
     let result = ack_notification_inner(
         svc.as_ref(),

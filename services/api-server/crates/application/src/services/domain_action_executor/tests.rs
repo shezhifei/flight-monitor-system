@@ -65,7 +65,8 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
     use crate::services::flight_service::FlightService;
     use crate::services::label_service::LabelService;
     use crate::services::notification_service::{
-        NotificationDeliveryPublisher, NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
+        CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
+        NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
     };
     use crate::services::todo_service::TodoService;
     use crate::types::{
@@ -111,16 +112,16 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         dyn crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
     > = notification_repo.clone();
     let notification_service: Arc<ConcreteNotificationService> = Arc::new(
-        NotificationService::new(notification_repo_port, notification_pref_repo_port)
-            .with_transactional_repository(notification_tx_repo_port)
-            .with_collaboration_repo(notification_collaboration_repo_port)
-            .with_metrics_recorder(Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>)
-            .with_delivery_publisher(
-                Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>
-            )
-            .with_receipt_group_sync(
-                Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>
-            ),
+        NotificationService::new(
+            notification_repo_port,
+            notification_pref_repo_port,
+            Arc::new(CollaborationEventRecorder::new(notification_collaboration_repo_port))
+                as Arc<dyn NotificationCollaborationEvents>,
+            Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
+            Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
+            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
+        )
+        .with_transactional_repository(notification_tx_repo_port),
     );
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));

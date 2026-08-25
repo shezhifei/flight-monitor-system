@@ -13,7 +13,6 @@ use async_trait::async_trait;
 
 use fms_domain::error::DomainError;
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
-use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::dispatch_repository::DispatchOrderRepository;
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 use fms_domain::ports::user_repository::UserRepository;
@@ -40,8 +39,8 @@ use crate::services::mobile_operations_service::MobileOperationsService;
 use crate::services::mobile_workbench_service::MobileWorkbenchService;
 use crate::services::nl_query_service::NLQueryService;
 use crate::services::notification_service::{
-    NotificationDeliveryPublisher, NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationResponse,
-    NotificationService,
+    NotificationCollaborationEvents, NotificationDeliveryPublisher, NotificationMetricsRecorder,
+    NotificationReceiptGroupSync, NotificationResponse, NotificationService,
 };
 use crate::services::resource_utilization_service::ResourceUtilizationService;
 use crate::services::shift_handover_service::ShiftHandoverService;
@@ -52,7 +51,8 @@ use crate::services::workflow_dispatch_service::{
     WorkflowDispatchSsePublisher,
 };
 
-// No-op implementations for NotificationService default type parameters
+// 显式的「此处不做这件事」实现。以前它们是默认类型参数的填充物（忘记接线和
+// 故意不接是同一个状态）；现在必须由构造点点名传入，二者在装配代码里可见地分开。
 pub struct NoopNotificationDeliveryPublisher;
 
 impl NotificationDeliveryPublisher for NoopNotificationDeliveryPublisher {
@@ -185,7 +185,7 @@ pub type ConcreteFlightService = FlightService;
 pub type ConcreteNotificationService = NotificationService<
     dyn NotificationRepository + Send + Sync,
     dyn NotificationPreferenceRepository + Send + Sync,
-    dyn DispatchCollaborationRepository + Send + Sync,
+    dyn NotificationCollaborationEvents,
     dyn NotificationDeliveryPublisher,
     dyn NotificationMetricsRecorder,
     dyn NotificationReceiptGroupSync,

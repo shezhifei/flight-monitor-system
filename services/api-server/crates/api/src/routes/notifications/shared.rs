@@ -21,7 +21,8 @@ pub(crate) use crate::sse::hub::{normalize_event_source_message, SseHub, SseMess
 pub(crate) use crate::types::ConcreteNotificationService;
 pub(crate) use fms_application::services::authorization_service::PermissionCatalog;
 pub(crate) use fms_application::services::notification_service::{
-    DispatchBatchNotificationCreate, NotificationDeliveryPublisher, NotificationMetricsRecorder,
+    CollaborationEventRecorder, DispatchBatchNotificationCreate, NoCollaborationEvents,
+    NotificationCollaborationEvents, NotificationDeliveryPublisher, NotificationMetricsRecorder,
     NotificationPreferenceUpdate, NotificationReceiptGroupSync, NotificationService,
 };
 pub(crate) use fms_application::services::online_status_service::OnlineStatusService;
@@ -69,8 +70,8 @@ pub(crate) struct DispatchManualNotificationRequest {
     pub(crate) receipt_required: Option<bool>,
 }
 
-pub(crate) async fn ack_notification_inner<NR, PR, CR, DP, MR, RS>(
-    svc: &NotificationService<NR, PR, CR, DP, MR, RS>,
+pub(crate) async fn ack_notification_inner<NR, PR, CE, DP, MR, RS>(
+    svc: &NotificationService<NR, PR, CE, DP, MR, RS>,
     path: web::Path<String>,
     body: web::Json<NotificationAckRequest>,
     claims: JwtAuth,
@@ -78,7 +79,7 @@ pub(crate) async fn ack_notification_inner<NR, PR, CR, DP, MR, RS>(
 where
     NR: fms_domain::ports::notification_repository::NotificationRepository + Send + Sync + ?Sized,
     PR: fms_domain::ports::notification_repository::NotificationPreferenceRepository + Send + Sync + ?Sized,
-    CR: fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync + ?Sized,
+    CE: fms_application::services::notification_service::NotificationCollaborationEvents + Send + Sync + ?Sized,
     DP: NotificationDeliveryPublisher + Send + Sync + ?Sized,
     MR: NotificationMetricsRecorder + Send + Sync + ?Sized,
     RS: NotificationReceiptGroupSync + Send + Sync + ?Sized,
@@ -119,15 +120,15 @@ where
     ))
 }
 
-pub(crate) async fn get_receipt_group_inner<NR, PR, CR, DP, MR, RS>(
-    svc: &NotificationService<NR, PR, CR, DP, MR, RS>,
+pub(crate) async fn get_receipt_group_inner<NR, PR, CE, DP, MR, RS>(
+    svc: &NotificationService<NR, PR, CE, DP, MR, RS>,
     path: web::Path<String>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError>
 where
     NR: fms_domain::ports::notification_repository::NotificationRepository + Send + Sync + ?Sized,
     PR: fms_domain::ports::notification_repository::NotificationPreferenceRepository + Send + Sync + ?Sized,
-    CR: fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync + ?Sized,
+    CE: fms_application::services::notification_service::NotificationCollaborationEvents + Send + Sync + ?Sized,
     DP: NotificationDeliveryPublisher + Send + Sync + ?Sized,
     MR: NotificationMetricsRecorder + Send + Sync + ?Sized,
     RS: NotificationReceiptGroupSync + Send + Sync + ?Sized,

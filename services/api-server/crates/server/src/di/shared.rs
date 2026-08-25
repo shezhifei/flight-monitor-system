@@ -13,6 +13,7 @@ use fms_api::sse::hub::SseHub;
 use fms_application::services::business_case_service::BusinessCaseEventPublisher;
 use fms_application::services::flowable_service::FlowableService;
 use fms_application::services::notification_service::{
+    CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
     NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
 };
 use fms_application::services::todo_scheduler_service::TodoSchedulerService;
@@ -20,8 +21,6 @@ use fms_application::services::todo_service::TodoService;
 use fms_application::sqlx_transactional_repositories::{
     SqlxNotificationTransactionalRepository, SqlxTodoTransactionalRepository,
 };
-
-use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 use fms_domain::ports::user_repository::{RoleRepository, UserRepository};
@@ -397,18 +396,19 @@ pub(crate) fn build_shared_services(repos: &SharedRepos, infra: &SharedInfra) ->
     let notification_tx_repo: Arc<dyn SqlxNotificationTransactionalRepository> = repos.notification_repo.clone();
     let notification_pref_repo_for_service: Arc<dyn NotificationPreferenceRepository + Send + Sync> =
         repos.notification_repo.clone();
-    let notification_collaboration_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync> =
-        repos.dispatch_collaboration_repo.clone();
+    let notification_collaboration_events: Arc<dyn NotificationCollaborationEvents> =
+        Arc::new(CollaborationEventRecorder::new(repos.dispatch_collaboration_repo.clone()));
     let notification_svc: Arc<ConcreteNotificationService> = Arc::new(
-        NotificationService::new(notification_repo_for_service, notification_pref_repo_for_service)
-            .with_transactional_repository(notification_tx_repo)
-            .with_collaboration_repo(notification_collaboration_repo)
-            .with_metrics_recorder(infra.notification_metrics_recorder.clone() as Arc<dyn NotificationMetricsRecorder>)
-            .with_delivery_publisher(infra.notification_delivery_publisher.clone()
-                as Arc<dyn fms_application::services::notification_service::NotificationDeliveryPublisher>)
-            .with_receipt_group_sync(
-                Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>
-            ),
+        NotificationService::new(
+            notification_repo_for_service,
+            notification_pref_repo_for_service,
+            notification_collaboration_events,
+            infra.notification_delivery_publisher.clone() as Arc<dyn NotificationDeliveryPublisher>,
+            infra.notification_metrics_recorder.clone() as Arc<dyn NotificationMetricsRecorder>,
+            // 真实实现由 di::business_case 在建好对面服务后 set 进来（构造环断点）。
+            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
+        )
+        .with_transactional_repository(notification_tx_repo),
     );
     let todo_scheduler_svc = Arc::new(
         TodoSchedulerService::new(repos.todo_repo.clone())

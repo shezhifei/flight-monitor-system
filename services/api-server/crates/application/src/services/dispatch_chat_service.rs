@@ -24,8 +24,8 @@ use fms_domain::ports::flight_repository::FlightRepository;
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 
 use crate::services::notification_service::{
-    DispatchBatchNotificationCreate, NotificationDeliveryPublisher, NotificationMetricsRecorder,
-    NotificationReceiptGroupSync, NotificationService,
+    DispatchBatchNotificationCreate, NotificationCollaborationEvents, NotificationDeliveryPublisher,
+    NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
 };
 
 const DEPRECATION_REASON_ARRIVAL_GUARANTEE_COMPLETED: &str = "arrival_guarantee_completed";
@@ -57,11 +57,11 @@ pub trait DispatchChatMentionNotifier: Send + Sync {
 }
 
 #[async_trait]
-impl<NR, PR, CR, DP, MR, RS> DispatchChatMentionNotifier for NotificationService<NR, PR, CR, DP, MR, RS>
+impl<NR, PR, CE, DP, MR, RS> DispatchChatMentionNotifier for NotificationService<NR, PR, CE, DP, MR, RS>
 where
     NR: NotificationRepository + Send + Sync + ?Sized,
     PR: NotificationPreferenceRepository + Send + Sync + ?Sized,
-    CR: DispatchCollaborationRepository + Send + Sync + ?Sized,
+    CE: NotificationCollaborationEvents + Send + Sync + ?Sized,
     DP: NotificationDeliveryPublisher + Send + Sync + ?Sized,
     MR: NotificationMetricsRecorder + Send + Sync + ?Sized,
     RS: NotificationReceiptGroupSync + Send + Sync + ?Sized,
