@@ -389,50 +389,6 @@ impl DispatchService {
         Ok(())
     }
 
-    pub(super) async fn sync_assignment_members_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        order: &DispatchOrder,
-        assignment: &Value,
-    ) -> Result<(), DomainError> {
-        let member_repo = self.order.member_repo.as_ref();
-        let member_tx_repo = self.order.member_tx_repo.as_ref();
-        let existing_members = member_repo.find_by_order(&order.id).await?;
-        let desired_members = Self::build_dispatch_members_from_assignment(order, assignment);
-        let desired_by_user = desired_members
-            .into_iter()
-            .map(|member| (member.user_id.clone(), member))
-            .collect::<HashMap<_, _>>();
-
-        for member in &existing_members {
-            if let Some(desired) = desired_by_user.get(&member.user_id) {
-                let mut updated = member.clone();
-                updated.role = desired.role;
-                updated.source_type = desired.source_type;
-                updated.source_team_id = desired.source_team_id.clone();
-                updated.slot_code = desired.slot_code.clone();
-                updated.qualification_code = desired.qualification_code.clone();
-                updated.qualification_level_code = desired.qualification_level_code.clone();
-                updated.username = desired.username.clone();
-                updated.is_active = true;
-                member_tx_repo.save_in_tx(tx, &updated).await?;
-            } else {
-                let mut deactivated = member.clone();
-                deactivated.is_active = false;
-                member_tx_repo.save_in_tx(tx, &deactivated).await?;
-            }
-        }
-
-        let existing_user_ids: HashSet<&str> = existing_members.iter().map(|m| m.user_id.as_str()).collect();
-        for (user_id, desired) in desired_by_user {
-            if !existing_user_ids.contains(user_id.as_str()) {
-                member_tx_repo.save_in_tx(tx, &desired).await?;
-            }
-        }
-
-        Ok(())
-    }
-
     pub(super) fn apply_assignment_json(order: &mut DispatchOrder, assignment: Option<&Value>) {
         let Some(assignment) = assignment else {
             return;

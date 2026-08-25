@@ -31,9 +31,6 @@ use fms_application::services::resource_availability_service::{
 };
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
-use fms_application::sqlx_transactional_repositories::{
-    SqlxDispatchOrderMemberTransactionalRepository, SqlxDispatchOrderTransactionalRepository,
-};
 use fms_domain::broadcaster::Broadcaster;
 
 use fms_domain::ports::dispatch_repository::{
@@ -123,10 +120,7 @@ pub(crate) fn build_dispatch_services(
     let dispatch_svc = Arc::new(DispatchService::new(DispatchServiceDependencies {
         order: DispatchOrderServiceDependencies {
             order_repo: repos.dispatch_order_repo.clone(),
-            order_tx_repo: repos.dispatch_order_repo.clone() as Arc<dyn SqlxDispatchOrderTransactionalRepository>,
             member_repo: repos.dispatch_member_repo.clone(),
-            member_tx_repo: repos.dispatch_member_repo.clone()
-                as Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
             todo_repo: repos.todo_repo.clone(),
         },
         rules: DispatchRuleServiceDependencies {

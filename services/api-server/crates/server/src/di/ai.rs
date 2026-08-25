@@ -51,6 +51,7 @@ use fms_application::services::ai_runtime_service::tool_authorization_service::{
 use fms_application::services::ai_runtime_service::AiRuntimeService;
 use fms_application::services::authorization_service::AuthorizationService;
 use fms_application::services::business_case_service::BusinessCaseWriter;
+use fms_application::services::dispatch_service::writer::DispatchOrderWriter;
 use fms_application::services::domain_action_executor::DomainActionExecutor;
 use fms_application::services::todo_service::TodoWriter;
 
@@ -66,7 +67,10 @@ use fms_domain::ports::ai_execution_repository::{
 use fms_domain::ports::ai_object_policy_repository::AiObjectPolicyRepository;
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
-use fms_domain::ports::dispatch_repository::StandRepository;
+use fms_domain::ports::dispatch_repository::{
+    DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository, DispatchOrderRepository,
+    DispatchOrderTransactionalRepository, StandRepository, TeamRepository,
+};
 
 use fms_domain::ports::ai_job_repository::AiJobRepository;
 use fms_domain::ports::ai_run_event_repository::AiRunEventRepository;
@@ -161,9 +165,27 @@ pub(crate) fn build_ai_services(
         BusinessCaseWriter::new(repos.business_case_repo.clone(), repos.business_case_repo.clone())
             .with_case_type_service(business_case.business_case_type_svc.clone()),
     );
+    let dispatch_writer: Arc<DispatchOrderWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(DispatchOrderWriter::new(
+            repos.dispatch_order_repo.clone() as Arc<dyn DispatchOrderRepository + Send + Sync>,
+            repos.dispatch_order_repo.clone()
+                as Arc<
+                    dyn DispatchOrderTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
+                >,
+            repos.dispatch_member_repo.clone() as Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
+            repos.dispatch_member_repo.clone()
+                as Arc<
+                    dyn DispatchOrderMemberTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>>
+                        + Send
+                        + Sync,
+                >,
+            repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+            dispatch.dispatch_svc.clone(),
+        ));
     let domain_action_executor = Arc::new(DomainActionExecutor::new(
         flight.flight_svc.clone(),
         dispatch.dispatch_svc.clone(),
+        dispatch_writer,
         shared.notification_svc.clone(),
         flight.label_svc.clone(),
         todo_writer,

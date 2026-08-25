@@ -402,6 +402,7 @@ mod tests {
         use crate::services::business_case_service::{
             BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter,
         };
+        use crate::services::dispatch_service::writer::DispatchOrderWriter;
         use crate::services::flight_service::FlightService;
         use crate::services::label_service::LabelService;
         use crate::services::notification_service::{
@@ -433,8 +434,31 @@ mod tests {
         // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
         let mut dispatch_deps = crate::test_support::stub_dispatch_dependencies();
         dispatch_deps.order.order_repo = dispatch_repo.clone();
-        dispatch_deps.order.order_tx_repo = dispatch_repo;
         let dispatch_svc = Arc::new(DispatchService::new(dispatch_deps));
+        let dispatch_writer: Arc<DispatchOrderWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+            Arc::new(DispatchOrderWriter::new(
+                dispatch_repo.clone()
+                    as Arc<dyn fms_domain::ports::dispatch_repository::DispatchOrderRepository + Send + Sync>,
+                dispatch_repo.clone()
+                    as Arc<
+                        dyn fms_domain::ports::dispatch_repository::DispatchOrderTransactionalRepository<
+                                sqlx::Transaction<'static, sqlx::Postgres>,
+                            > + Send
+                            + Sync,
+                    >,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::dispatch_repository::DispatchOrderMemberRepository + Send + Sync>,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<
+                        dyn fms_domain::ports::dispatch_repository::DispatchOrderMemberTransactionalRepository<
+                                sqlx::Transaction<'static, sqlx::Postgres>,
+                            > + Send
+                            + Sync,
+                    >,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+                dispatch_svc.clone(),
+            ));
         let notif_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
         let notif_repo_port: Arc<dyn fms_domain::ports::notification_repository::NotificationRepository + Send + Sync> =
@@ -484,6 +508,7 @@ mod tests {
         Arc::new(crate::services::domain_action_executor::DomainActionExecutor::new(
             flight_svc,
             dispatch_svc,
+            dispatch_writer,
             notif_svc,
             label_svc,
             todo_writer,

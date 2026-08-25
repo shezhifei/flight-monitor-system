@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use crate::schemas::todo_schemas::{TodoComplete, TodoCreateCommand};
 use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
+use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flowable_service::FlowableService;
@@ -24,6 +25,7 @@ use super::types::{DomainActionError, DomainActionReceipt};
 pub struct DomainActionExecutor {
     flight_service: Arc<ConcreteFlightService>,
     dispatch_service: Arc<DispatchService>,
+    dispatch_writer: Arc<DispatchOrderWriter<Transaction<'static, Postgres>>>,
     notification_service: Arc<ConcreteNotificationService>,
     label_service: Arc<ConcreteLabelService>,
     todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
@@ -40,6 +42,7 @@ impl DomainActionExecutor {
     pub fn new(
         flight_service: Arc<ConcreteFlightService>,
         dispatch_service: Arc<DispatchService>,
+        dispatch_writer: Arc<DispatchOrderWriter<Transaction<'static, Postgres>>>,
         notification_service: Arc<ConcreteNotificationService>,
         label_service: Arc<ConcreteLabelService>,
         todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
@@ -55,6 +58,7 @@ impl DomainActionExecutor {
         Self {
             flight_service,
             dispatch_service,
+            dispatch_writer,
             notification_service,
             label_service,
             todo_writer,
@@ -481,7 +485,7 @@ impl DomainActionExecutor {
                 let new_status = required_string(arguments, &["new_status", "status"], "new_status")?;
                 let notes = optional_string(arguments, &["notes"]);
                 let updated = self
-                    .dispatch_service
+                    .dispatch_writer
                     .update_order_status_in_tx(tx, object_id, new_status, executor_id, notes)
                     .await
                     .map_err(|e| match e {
@@ -503,7 +507,7 @@ impl DomainActionExecutor {
                     .or_else(|| arguments.get("team_id").and_then(Value::as_str).map(|_| "team"))
                     .or_else(|| arguments.get("user_id").and_then(Value::as_str).map(|_| "individual"));
                 let updated = self
-                    .dispatch_service
+                    .dispatch_writer
                     .reassign_order_in_tx(tx, object_id, assignee_id, assignee_type, executor_id, Some(arguments))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -518,7 +522,7 @@ impl DomainActionExecutor {
             }
             "DispatchOrder.publish" => {
                 let result = self
-                    .dispatch_service
+                    .dispatch_writer
                     .publish_order_in_tx(tx, object_id, executor_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;

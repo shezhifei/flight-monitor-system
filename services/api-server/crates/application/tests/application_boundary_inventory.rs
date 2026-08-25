@@ -41,15 +41,11 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
         "ai_runtime_service/recovery_orchestrator.rs",
         "ai_runtime_service/rollback_service.rs",
         "dispatch_chat_service.rs",
-        "dispatch_service/helpers_validation.rs",
-        "dispatch_service/mod.rs",
-        "dispatch_service/order_lifecycle.rs",
         "domain_action_executor/service.rs",
         "domain_action_executor/tests.rs",
         "flight_runtime_service/tests.rs",
         "flight_service.rs",
         "in_memory_ai_proposal_repository.rs",
-        "notification_service/service.rs",
         "ontology_service/service.rs",
     ]
     .into_iter()

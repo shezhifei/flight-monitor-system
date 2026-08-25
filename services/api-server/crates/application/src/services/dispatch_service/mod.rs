@@ -17,6 +17,7 @@ mod order_lifecycle;
 mod safety;
 #[cfg(test)]
 mod tests;
+pub mod writer;
 
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
@@ -47,9 +48,6 @@ use crate::services::dispatch_chat_service::DispatchChatService;
 use crate::services::dispatch_order_adjuster_handler::EventRuleOrderGateway;
 use crate::services::notification_service::{DispatchBatchNotificationCreate, NotificationService};
 use crate::services::resource_availability_service::ResourceAvailabilityGateway;
-use crate::sqlx_transactional_repositories::{
-    SqlxDispatchOrderMemberTransactionalRepository, SqlxDispatchOrderTransactionalRepository,
-};
 
 #[async_trait]
 pub trait DispatchNotificationSender: Send + Sync {
@@ -112,9 +110,7 @@ pub struct DispatchServiceDependencies {
 
 pub struct DispatchOrderServiceDependencies {
     pub order_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
-    pub order_tx_repo: Arc<dyn SqlxDispatchOrderTransactionalRepository>,
     pub member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
-    pub member_tx_repo: Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
     pub todo_repo: Arc<dyn TodoRepository + Send + Sync>,
 }
 

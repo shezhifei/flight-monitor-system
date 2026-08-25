@@ -536,6 +536,7 @@ async fn build_test_executor(
     };
     use fms_application::services::{
         business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter},
+        dispatch_service::writer::DispatchOrderWriter,
         dispatch_service::DispatchService,
         flight_service::FlightService,
         label_service::LabelService,
@@ -565,8 +566,31 @@ async fn build_test_executor(
     // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
     let mut dispatch_deps = fms_application::test_support::stub_dispatch_dependencies();
     dispatch_deps.order.order_repo = dispatch_order_repo.clone();
-    dispatch_deps.order.order_tx_repo = dispatch_order_repo;
     let dispatch_service = Arc::new(DispatchService::new(dispatch_deps));
+    let dispatch_writer: Arc<DispatchOrderWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(DispatchOrderWriter::new(
+            dispatch_order_repo.clone()
+                as Arc<dyn fms_domain::ports::dispatch_repository::DispatchOrderRepository + Send + Sync>,
+            dispatch_order_repo.clone()
+                as Arc<
+                    dyn fms_domain::ports::dispatch_repository::DispatchOrderTransactionalRepository<
+                            sqlx::Transaction<'static, sqlx::Postgres>,
+                        > + Send
+                        + Sync,
+                >,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::DispatchOrderMemberRepository + Send + Sync>,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<
+                    dyn fms_domain::ports::dispatch_repository::DispatchOrderMemberTransactionalRepository<
+                            sqlx::Transaction<'static, sqlx::Postgres>,
+                        > + Send
+                        + Sync,
+                >,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+            dispatch_service.clone(),
+        ));
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -620,6 +644,7 @@ async fn build_test_executor(
     fms_application::services::domain_action_executor::DomainActionExecutor::new(
         flight_service,
         dispatch_service,
+        dispatch_writer,
         notification_service,
         label_service,
         todo_writer,

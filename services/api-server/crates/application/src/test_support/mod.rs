@@ -117,9 +117,7 @@ pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
     DispatchServiceDependencies {
         order: DispatchOrderServiceDependencies {
             order_repo: unwired_repo.clone(),
-            order_tx_repo: unwired_repo.clone(),
             member_repo: unwired_repo.clone(),
-            member_tx_repo: unwired_repo.clone(),
             todo_repo: unwired_repo.clone(),
         },
         rules: DispatchRuleServiceDependencies {

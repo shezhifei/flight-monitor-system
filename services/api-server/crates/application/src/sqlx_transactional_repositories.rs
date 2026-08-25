@@ -7,9 +7,6 @@
 
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
 use fms_domain::ports::business_case_repository::BusinessCaseTransactionalRepository;
-use fms_domain::ports::dispatch_repository::{
-    DispatchOrderMemberTransactionalRepository, DispatchOrderTransactionalRepository,
-};
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::flight_repository::FlightTransactionalRepository;
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventTransactionalRepository;
@@ -65,26 +62,6 @@ pub trait SqlxBusinessCaseTransactionalRepository:
 
 impl<T> SqlxBusinessCaseTransactionalRepository for T where
     T: BusinessCaseTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
-{
-}
-
-pub trait SqlxDispatchOrderTransactionalRepository:
-    DispatchOrderTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
-{
-}
-
-impl<T> SqlxDispatchOrderTransactionalRepository for T where
-    T: DispatchOrderTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
-{
-}
-
-pub trait SqlxDispatchOrderMemberTransactionalRepository:
-    DispatchOrderMemberTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
-{
-}
-
-impl<T> SqlxDispatchOrderMemberTransactionalRepository for T where
-    T: DispatchOrderMemberTransactionalRepository<Transaction<'static, Postgres>> + Send + Sync
 {
 }
 
