@@ -543,7 +543,7 @@ async fn build_test_executor(
             CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
             NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
         },
-        todo_service::TodoService,
+        todo_service::TodoWriter,
     };
     use fms_infrastructure::repositories::{
         pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
@@ -601,9 +601,8 @@ async fn build_test_executor(
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
 
     let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-    let todo_tx_repo: Arc<dyn fms_application::sqlx_transactional_repositories::SqlxTodoTransactionalRepository> =
-        todo_repo.clone();
-    let todo_service = Arc::new(TodoService::new(todo_repo).with_transactional_repository(todo_tx_repo));
+    let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
 
     let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
     let business_case_tx_repo: Arc<
@@ -628,7 +627,7 @@ async fn build_test_executor(
         dispatch_service,
         notification_service,
         label_service,
-        todo_service,
+        todo_writer,
         business_case_service,
         outbox_repo,
         anomaly_repo,

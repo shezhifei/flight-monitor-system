@@ -406,7 +406,7 @@ mod tests {
             CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
             NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
         };
-        use crate::services::todo_service::TodoService;
+        use crate::services::todo_service::TodoWriter;
         use crate::types::{
             NoopBroadcaster, NoopBusinessCaseEventPublisher, NoopNotificationDeliveryPublisher,
             NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
@@ -465,9 +465,8 @@ mod tests {
             Arc::new(NoopBroadcaster),
         ));
         let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-        let todo_tx_repo: Arc<dyn crate::sqlx_transactional_repositories::SqlxTodoTransactionalRepository> =
-            todo_repo.clone();
-        let todo_svc = Arc::new(TodoService::new(todo_repo).with_transactional_repository(todo_tx_repo));
+        let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+            Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
         let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
         let business_case_tx_repo: Arc<
             dyn crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
@@ -492,7 +491,7 @@ mod tests {
             dispatch_svc,
             notif_svc,
             label_svc,
-            todo_svc,
+            todo_writer,
             bc_svc,
             outbox_repo,
             anomaly_repo,

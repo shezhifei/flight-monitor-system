@@ -51,6 +51,7 @@ use fms_application::services::ai_runtime_service::tool_authorization_service::{
 use fms_application::services::ai_runtime_service::AiRuntimeService;
 use fms_application::services::authorization_service::AuthorizationService;
 use fms_application::services::domain_action_executor::DomainActionExecutor;
+use fms_application::services::todo_service::TodoWriter;
 
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_domain::models::micro_model::MicroModelRegistry;
@@ -150,12 +151,17 @@ pub(crate) fn build_ai_services(
         .with_business_case_type_service(business_case.business_case_type_svc.clone()),
     );
 
+    // 写入方只在别人开好的事务里写待办；`TodoService` 本身仍是非泛型的查询/命令服务。
+    let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+        TodoWriter::new(repos.todo_repo.clone(), repos.todo_repo.clone())
+            .with_agent_context_repository(repos.todo_agent_context_repo.clone()),
+    );
     let domain_action_executor = Arc::new(DomainActionExecutor::new(
         flight.flight_svc.clone(),
         dispatch.dispatch_svc.clone(),
         shared.notification_svc.clone(),
         flight.label_svc.clone(),
-        shared.todo_svc.clone(),
+        todo_writer,
         business_case.business_case_svc.clone(),
         repos.domain_event_outbox_repo.clone(),
         repos.anomaly_repo.clone(),

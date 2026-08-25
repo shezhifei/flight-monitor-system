@@ -10,9 +10,10 @@ use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
 use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
+use crate::services::todo_service::TodoWriter;
 use crate::types::{
     ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService,
-    ConcreteNotificationService, ConcreteTodoService,
+    ConcreteNotificationService,
 };
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
@@ -25,7 +26,7 @@ pub struct DomainActionExecutor {
     dispatch_service: Arc<DispatchService>,
     notification_service: Arc<ConcreteNotificationService>,
     label_service: Arc<ConcreteLabelService>,
-    todo_service: Arc<ConcreteTodoService>,
+    todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
     business_case_service: Arc<ConcreteBusinessCaseService>,
     flowable_service: Option<FlowableService>,
     pool: sqlx::PgPool,
@@ -39,7 +40,7 @@ impl DomainActionExecutor {
         dispatch_service: Arc<DispatchService>,
         notification_service: Arc<ConcreteNotificationService>,
         label_service: Arc<ConcreteLabelService>,
-        todo_service: Arc<ConcreteTodoService>,
+        todo_writer: Arc<TodoWriter<Transaction<'static, Postgres>>>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
         outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<Transaction<'static, Postgres>>>,
@@ -50,7 +51,7 @@ impl DomainActionExecutor {
             dispatch_service,
             notification_service,
             label_service,
-            todo_service,
+            todo_writer,
             business_case_service,
             flowable_service: None,
             outbox_repo,
@@ -522,7 +523,7 @@ impl DomainActionExecutor {
             "Todo.create" => {
                 let title = required_string(arguments, &["title"], "title")?;
                 let todo = self
-                    .todo_service
+                    .todo_writer
                     .create_todo_in_tx(
                         tx,
                         TodoCreateCommand {
@@ -566,7 +567,7 @@ impl DomainActionExecutor {
                     .and_then(Value::as_i64)
                     .and_then(|value| i32::try_from(value).ok());
                 let todo = self
-                    .todo_service
+                    .todo_writer
                     .complete_todo_in_tx(
                         tx,
                         object_id,

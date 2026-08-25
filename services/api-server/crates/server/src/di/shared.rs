@@ -21,7 +21,7 @@ use fms_application::services::notification_service::{
 use fms_application::services::todo_scheduler_service::TodoSchedulerService;
 use fms_application::services::todo_service::TodoService;
 use fms_application::sqlx_transactional_repositories::{
-    SqlxNotificationTransactionalRepository, SqlxTodoTransactionalRepository,
+    SqlxNotificationTransactionalRepository,
 };
 
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
@@ -422,10 +422,8 @@ pub(crate) fn build_shared_services(repos: &SharedRepos, infra: &SharedInfra) ->
             .with_notification_service(notification_svc.clone())
             .with_sse_publisher(infra.todo_scheduler_sse_publisher.clone()),
     );
-    let todo_tx_repo: Arc<dyn SqlxTodoTransactionalRepository> = repos.todo_repo.clone();
     let todo_svc = Arc::new(
         TodoService::new(repos.todo_repo.clone())
-            .with_transactional_repository(todo_tx_repo)
             .with_agent_context_repository(repos.todo_agent_context_repo.clone()),
     );
 
