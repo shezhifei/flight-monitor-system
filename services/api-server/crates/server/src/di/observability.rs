@@ -20,7 +20,7 @@ use fms_application::services::dashboard_workbench_service::DashboardWorkbenchSe
 use fms_application::services::domain_event_cdc_relay_service::{
     DomainEventCdcConfig, DomainEventCdcRelayService, ReplicationDatabaseConfig,
 };
-use fms_application::services::domain_event_relay_service::DomainEventRelayService;
+use fms_application::services::domain_event_relay_service::{DomainEventRelay, DomainEventRelayService};
 use fms_application::services::domain_event_subscriber_service::DomainEventSubscriberService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
 use fms_application::services::flowable_draft_service::FlowableDraftService;
@@ -37,6 +37,7 @@ use fms_domain::ports::message_queue::{MessageHandler, PushConsumer};
 use fms_domain::ports::system_flags_repository::SystemFlagsRepository;
 
 use fms_infrastructure::cdc::PgCdcAdmin;
+use fms_infrastructure::db::transaction::PgUnitOfWork;
 use fms_infrastructure::messaging::RocketMqPushConsumer;
 use fms_infrastructure::repositories::pg_domain_event_subscription_state_repository::PgDomainEventSubscriptionStateRepository;
 use fms_infrastructure::repositories::pg_flight_sync_repository::PgFlightSyncRepository;
@@ -57,8 +58,8 @@ use crate::di::shared::{SharedInfra, SharedRepos, SharedServices};
 
 pub(crate) struct ObservabilityServices {
     pub scheduler_runtime_svc: Arc<SchedulerRuntimeService>,
-    pub domain_event_relay_svc: Arc<DomainEventRelayService>,
-    pub domain_event_cdc_svc: Arc<DomainEventCdcRelayService>,
+    pub domain_event_relay_svc: Arc<dyn DomainEventRelay>,
+    pub domain_event_cdc_svc: Arc<DomainEventCdcRelayService<PgUnitOfWork>>,
     pub domain_event_subscriber_svc: Arc<DomainEventSubscriberService>,
     pub cache_invalidation_subscriber_svc: Arc<CacheInvalidationSubscriberService>,
     pub cache_invalidation_svc: Arc<CacheInvalidationService>,
@@ -131,8 +132,12 @@ pub(crate) async fn build_observability_services(
         "EVENTS_OUTBOX_RETRY_RECOVERY_BATCH_SIZE",
         env_i64("EVENTS_OUTBOX_BATCH_SIZE", 200),
     );
+    // `PgUnitOfWork` 只在这一处（组合根）被点名：它是 `Transaction<'static, Postgres>`
+    // 唯一被具体化的地方，应用层与 api 层都只见到 `U::Tx` 或端口。
+    let unit_of_work = Arc::new(PgUnitOfWork::new(pool.clone()));
+
     let domain_event_relay_svc = Arc::new(DomainEventRelayService::new(
-        pool.clone(),
+        unit_of_work.clone(),
         Some(message_queue.clone()),
         events_outbox_enabled,
         domain_event_recovery_batch_size,
@@ -142,7 +147,7 @@ pub(crate) async fn build_observability_services(
     ));
 
     let domain_event_cdc_svc = Arc::new(DomainEventCdcRelayService::new(
-        pool.clone(),
+        unit_of_work.clone(),
         Some(message_queue.clone()),
         events_outbox_enabled,
         Some(domain_events_topic.clone()),

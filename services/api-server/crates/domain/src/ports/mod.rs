@@ -47,6 +47,7 @@ pub mod shift_handover_repository;
 pub mod system_flags_repository;
 pub mod todo_agent_context_repository;
 pub mod todo_repository;
+pub mod unit_of_work;
 pub mod user_repository;
 pub mod workflow_dispatch_repository;
 pub mod workflow_form_repository;

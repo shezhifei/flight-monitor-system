@@ -4,9 +4,7 @@ use chrono::Utc;
 use fms_domain::error::DomainError;
 use fms_domain::ports::message_queue::{MessageQueue, PublishMessage};
 use serde_json::{json, Value};
-use sqlx::{Postgres, Transaction};
-
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 
 pub use fms_domain::events::DomainEventOutboxRow;
 
@@ -20,18 +18,28 @@ const MAX_ERROR_LENGTH: usize = 1000;
 ///
 /// Holds a transactional outbox repo port for `mark_published` / `mark_failed`
 /// operations that require an open transaction.
-#[derive(Clone)]
-pub struct DomainEventOutboxDelivery {
+pub struct DomainEventOutboxDelivery<Tx> {
     topic: String,
     base_backoff_seconds: i64,
-    repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+    repo: Arc<dyn DomainEventOutboxTransactionalRepository<Tx> + Send + Sync>,
 }
 
-impl DomainEventOutboxDelivery {
+// 手写 `Clone`：`derive` 会要求 `Tx: Clone`，但被克隆的是 `Arc`，与 `Tx` 无关。
+impl<Tx> Clone for DomainEventOutboxDelivery<Tx> {
+    fn clone(&self) -> Self {
+        Self {
+            topic: self.topic.clone(),
+            base_backoff_seconds: self.base_backoff_seconds,
+            repo: self.repo.clone(),
+        }
+    }
+}
+
+impl<Tx> DomainEventOutboxDelivery<Tx> {
     pub fn new(
         base_backoff_seconds: i64,
         topic: Option<String>,
-        repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+        repo: Arc<dyn DomainEventOutboxTransactionalRepository<Tx> + Send + Sync>,
     ) -> Self {
         let resolved_topic = topic
             .map(|value| value.trim().to_string())
@@ -84,7 +92,7 @@ impl DomainEventOutboxDelivery {
 
     pub async fn claim_pending(
         &self,
-        tx: &mut Transaction<'static, Postgres>,
+        tx: &mut Tx,
         limit: i64,
     ) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
         self.repo.claim_pending_in_tx(tx, limit).await
@@ -92,7 +100,7 @@ impl DomainEventOutboxDelivery {
 
     pub async fn mark_published(
         &self,
-        tx: &mut Transaction<'static, Postgres>,
+        tx: &mut Tx,
         event_ids: &[String],
     ) -> Result<(), DomainError> {
         self.repo.mark_published_in_tx(tx, event_ids).await
@@ -100,7 +108,7 @@ impl DomainEventOutboxDelivery {
 
     pub async fn mark_failed(
         &self,
-        tx: &mut Transaction<'static, Postgres>,
+        tx: &mut Tx,
         row: &DomainEventOutboxRow,
         error: &str,
     ) -> Result<i64, DomainError> {

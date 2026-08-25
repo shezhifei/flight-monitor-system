@@ -5,10 +5,11 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use fms_domain::ports::cdc_admin_port::CdcAdminPort;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::message_queue::MessageQueue;
+use fms_domain::ports::unit_of_work::UnitOfWork;
 use pgwire_replication::{Lsn, ReplicationClient, ReplicationConfig, ReplicationEvent, SslMode, TlsConfig};
 use serde_json::Value;
-use sqlx::PgPool;
 use tokio::sync::{watch, Mutex};
 use tokio::task::JoinHandle;
 use tracing::{info, warn};
@@ -19,7 +20,6 @@ use fms_domain::pgoutput_decoder::{PgOutputDecoder, PgOutputInsert, PgOutputMess
 use crate::services::domain_event_outbox_delivery::{
     event_type_metric_label, DomainEventOutboxDelivery, DomainEventOutboxRow,
 };
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
 
 const OUTBOX_RELATION_NAME: &str = "public.domain_event_outbox";
 const PUBLISHED_TOTAL_METRIC: &str = "domain_event_relay_published_total";
@@ -88,31 +88,76 @@ struct DomainEventCdcLifecycle {
     stop_tx: Option<watch::Sender<bool>>,
 }
 
-pub struct DomainEventCdcRelayService {
-    pool: PgPool,
+// 纯解码函数，既不用 `self` 也不用 `U`。留在 `impl<U: UnitOfWork>` 里会让调用方
+// 无从推断 `U`（E0283），而它本来就不属于那个 impl。
+fn coerce_outbox_row(insert: &PgOutputInsert) -> Result<DomainEventOutboxRow, DomainError> {
+    let values = &insert.values;
+    let event_id = required_value(values, "event_id")?;
+    let aggregate_type = optional_value(values, "aggregate_type");
+    let aggregate_id = optional_value(values, "aggregate_id");
+    let event_type = optional_value(values, "event_type");
+    let payload = match required_value(values, "payload") {
+        Ok(raw) => Value::String(raw),
+        Err(error) => {
+            metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
+            return Err(error);
+        }
+    };
+    let occurred_at_raw = required_value(values, "occurred_at")?;
+    let occurred_at = parse_outbox_occurred_at(&occurred_at_raw)
+        .map_err(|error| {
+            metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
+            DomainError::Internal(format!(
+                "failed to decode outbox occurred_at '{occurred_at_raw}': {error}"
+            ))
+        })?;
+    let publish_attempts = values
+        .get("publish_attempts")
+        .and_then(|value| value.as_deref())
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| value.parse::<i32>())
+        .transpose()
+        .map_err(|error| DomainError::Internal(format!("failed to decode outbox publish_attempts: {error}")))?
+        .unwrap_or(0);
+    let source_change_id = optional_value(values, "source_change_id");
+
+    Ok(DomainEventOutboxRow {
+        event_id,
+        aggregate_type,
+        aggregate_id,
+        event_type,
+        payload,
+        occurred_at,
+        publish_attempts,
+        source_change_id,
+    })
+}
+
+pub struct DomainEventCdcRelayService<U: UnitOfWork> {
+    uow: Arc<U>,
     cdc_admin: Arc<dyn CdcAdminPort>,
     message_queue: Option<Arc<dyn MessageQueue + Send + Sync>>,
     enabled: bool,
-    delivery: DomainEventOutboxDelivery,
+    delivery: DomainEventOutboxDelivery<U::Tx>,
     config: DomainEventCdcConfig,
     replication_db_config: ReplicationDatabaseConfig,
     lifecycle: Mutex<DomainEventCdcLifecycle>,
 }
 
-impl DomainEventCdcRelayService {
+impl<U: UnitOfWork> DomainEventCdcRelayService<U> {
     pub fn new(
-        pool: PgPool,
+        uow: Arc<U>,
         message_queue: Option<Arc<dyn MessageQueue + Send + Sync>>,
         enabled: bool,
         topic: Option<String>,
         base_backoff_seconds: i64,
         config: DomainEventCdcConfig,
         replication_db_config: ReplicationDatabaseConfig,
-        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+        outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
         cdc_admin: Arc<dyn CdcAdminPort>,
     ) -> Self {
         Self {
-            pool,
+            uow,
             cdc_admin,
             message_queue,
             enabled,
@@ -252,7 +297,7 @@ impl DomainEventCdcRelayService {
 
         match decoded {
             Some(PgOutputMessage::Insert(insert)) if insert.relation.full_name() == OUTBOX_RELATION_NAME => {
-                let row = Self::coerce_outbox_row(&insert)?;
+                let row = coerce_outbox_row(&insert)?;
                 self.deliver_row(&row).await?;
             }
             _ => {}
@@ -269,11 +314,7 @@ impl DomainEventCdcRelayService {
             .as_ref()
             .ok_or_else(|| DomainError::Internal("message queue gateway unavailable".to_string()))?;
 
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|error| DomainError::Internal(format!("failed to start CDC delivery transaction: {error}")))?;
+        let mut tx = self.uow.begin().await?;
 
         match self.delivery.publish_row(message_queue.as_ref(), row).await {
             Ok(()) => {
@@ -296,55 +337,11 @@ impl DomainEventCdcRelayService {
             }
         }
 
-        tx.commit()
-            .await
-            .map_err(|error| DomainError::Internal(format!("failed to commit CDC delivery transaction: {error}")))?;
+        self.uow.commit(tx).await?;
 
         Ok(())
     }
 
-    fn coerce_outbox_row(insert: &PgOutputInsert) -> Result<DomainEventOutboxRow, DomainError> {
-        let values = &insert.values;
-        let event_id = required_value(values, "event_id")?;
-        let aggregate_type = optional_value(values, "aggregate_type");
-        let aggregate_id = optional_value(values, "aggregate_id");
-        let event_type = optional_value(values, "event_type");
-        let payload = match required_value(values, "payload") {
-            Ok(raw) => Value::String(raw),
-            Err(error) => {
-                metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
-                return Err(error);
-            }
-        };
-        let occurred_at_raw = required_value(values, "occurred_at")?;
-        let occurred_at = parse_outbox_occurred_at(&occurred_at_raw)
-            .map_err(|error| {
-                metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
-                DomainError::Internal(format!(
-                    "failed to decode outbox occurred_at '{occurred_at_raw}': {error}"
-                ))
-            })?;
-        let publish_attempts = values
-            .get("publish_attempts")
-            .and_then(|value| value.as_deref())
-            .filter(|value| !value.trim().is_empty())
-            .map(|value| value.parse::<i32>())
-            .transpose()
-            .map_err(|error| DomainError::Internal(format!("failed to decode outbox publish_attempts: {error}")))?
-            .unwrap_or(0);
-        let source_change_id = optional_value(values, "source_change_id");
-
-        Ok(DomainEventOutboxRow {
-            event_id,
-            aggregate_type,
-            aggregate_id,
-            event_type,
-            payload,
-            occurred_at,
-            publish_attempts,
-            source_change_id,
-        })
-    }
 
     async fn ensure_publication_exists(&self) -> Result<(), DomainError> {
         self.cdc_admin
@@ -445,7 +442,7 @@ mod tests {
     use chrono::{TimeZone, Utc};
     use pgwire_replication::SslMode;
 
-    use super::{build_tls_config, validate_identifier, DomainEventCdcRelayService, ReplicationDatabaseConfig};
+    use super::{build_tls_config, coerce_outbox_row, validate_identifier, ReplicationDatabaseConfig};
     use fms_domain::pgoutput_decoder::{PgOutputColumn, PgOutputInsert, PgOutputRelation};
 
     #[test]
@@ -510,7 +507,7 @@ mod tests {
             ]),
         };
 
-        let row = DomainEventCdcRelayService::coerce_outbox_row(&insert).unwrap();
+        let row = coerce_outbox_row(&insert).unwrap();
         assert_eq!(row.event_id, "evt-1");
         assert_eq!(row.publish_attempts, 3);
         assert_eq!(row.occurred_at, Utc.with_ymd_and_hms(2026, 3, 27, 12, 30, 0).unwrap());

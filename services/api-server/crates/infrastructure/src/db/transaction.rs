@@ -4,6 +4,9 @@
 //! Rust 端利用 sqlx 原生事务支持大幅简化实现。
 
 use sqlx::{Executor, PgPool};
+
+use fms_domain::error::DomainError;
+use fms_domain::ports::unit_of_work::UnitOfWork;
 use std::time::Duration;
 use tracing::{error, warn};
 
@@ -243,5 +246,37 @@ mod tests {
             true,
             "SET TRANSACTION/SET LOCAL errors must propagate via ?, not be discarded with .ok()"
         );
+    }
+}
+
+/// [`UnitOfWork`] 的 Postgres 适配器。
+///
+/// 这里是 `Transaction<'static, Postgres>` 唯一被具体化的地方。`'static` 不是放宽：
+/// `Pool::begin()` 返回的事务自己拥有 `PoolConnection`，所以它的真实类型就是 `'static`。
+pub struct PgUnitOfWork {
+    pool: PgPool,
+}
+
+impl PgUnitOfWork {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl UnitOfWork for PgUnitOfWork {
+    type Tx = sqlx::Transaction<'static, sqlx::Postgres>;
+
+    async fn begin(&self) -> Result<Self::Tx, DomainError> {
+        self.pool
+            .begin()
+            .await
+            .map_err(|error| DomainError::Internal(format!("failed to start transaction: {error}")))
+    }
+
+    async fn commit(&self, tx: Self::Tx) -> Result<(), DomainError> {
+        tx.commit()
+            .await
+            .map_err(|error| DomainError::Internal(format!("failed to commit transaction: {error}")))
     }
 }

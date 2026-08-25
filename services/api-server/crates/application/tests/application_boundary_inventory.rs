@@ -50,9 +50,6 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
         "dispatch_service/order_lifecycle.rs",
         "domain_action_executor/service.rs",
         "domain_action_executor/tests.rs",
-        "domain_event_cdc_relay_service.rs",
-        "domain_event_outbox_delivery.rs",
-        "domain_event_relay_service.rs",
         "flight_batch_cell_update_service.rs",
         "flight_domain_events.rs",
         "flight_runtime_service/service.rs",
@@ -72,7 +69,11 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
 }
 
 #[test]
-#[ignore = "P0: CI red by design until P1 resolves boundary violations"]
+// P1 与 P2 都已完成，这个断言**仍然是红的**——因为 P3（application 层不再持有数据库类型）
+// 还没做完。原来的 ignore 理由写的是「until P1 resolves boundary violations」，P1 早已落地
+// 而红灯依旧，那条理由已经变成假话；让守门说真话是 P0 的全部内容，所以这里改成真实的阻塞项。
+// 解除 ignore 的条件只有一个：下面的清单降到 0，而不是清单被改。
+#[ignore = "P3 未完成：application 层仍有 29 个文件持有 sqlx 类型；清单降到 0 时解除"]
 fn production_application_source_does_not_bypass_domain_data_ports() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let application_src = manifest_dir.join("src");
