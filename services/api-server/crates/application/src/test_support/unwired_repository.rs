@@ -1063,6 +1063,14 @@ impl todo_repository::TodoRepository for UnwiredRepository {
     async fn find_by_id(&self, _: &str) -> Result<Option<fms_domain::models::todo::Todo>, DomainError> {
         Err(unwired("TodoRepository::find_by_id"))
     }
+    async fn soft_delete_by_source_ids(
+        &self,
+        _: &str,
+        _: &[String],
+        _: chrono::DateTime<chrono::Utc>,
+    ) -> Result<u64, DomainError> {
+        Err(unwired("TodoRepository::soft_delete_by_source_ids"))
+    }
     async fn find_all(
         &self,
         _: Option<fms_domain::models::todo::TodoStatus>,

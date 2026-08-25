@@ -101,16 +101,13 @@ fn rollout_for(
     );
     let proposal_repo = Arc::new(PgAiProposalRepository::new(pool.clone()));
     let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-    let todo_tx_repo = Arc::new(PgTodoRepository::new(pool.clone()));
     let db_metadata = db_metadata_for(&pool);
     Arc::new(AiRolloutStatusService::new(
         readiness,
         metrics,
         proposal_repo,
         todo_repo,
-        todo_tx_repo,
         db_metadata,
-        pool,
         outbox,
         run_events,
     ))
@@ -155,16 +152,13 @@ fn build_test_app(
     );
     let proposal_repo = Arc::new(PgAiProposalRepository::new(pool.clone()));
     let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-    let todo_tx_repo = Arc::new(PgTodoRepository::new(pool.clone()));
     let db_metadata = db_metadata_for(&pool);
     let rollout = Arc::new(AiRolloutStatusService::new(
         readiness.clone(),
         metrics.clone(),
         proposal_repo,
         todo_repo,
-        todo_tx_repo,
         db_metadata,
-        pool,
         stub_outbox(),
         run_events,
     ));

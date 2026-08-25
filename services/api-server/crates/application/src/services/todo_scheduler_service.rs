@@ -633,6 +633,17 @@ mod tests {
         ) -> Result<i64, DomainError> {
             Ok(0)
         }
+
+        // 本文件的测试都不走冒烟清理。返回 `Ok(0)` 会让将来误用这个端口的测试静默通过，
+        // 所以这里响一声。
+        async fn soft_delete_by_source_ids(
+            &self,
+            _source_type: &str,
+            _source_ids: &[String],
+            _cutoff: chrono::DateTime<chrono::Utc>,
+        ) -> Result<u64, DomainError> {
+            unimplemented!("soft_delete_by_source_ids is not exercised by these tests")
+        }
     }
 
     #[derive(Default)]

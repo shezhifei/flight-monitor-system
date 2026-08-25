@@ -46,6 +46,16 @@ pub trait TodoRepository {
         source_ids: &[String],
         cutoff: DateTime<Utc>,
     ) -> Result<i64, DomainError>;
+
+    /// 单条 UPDATE。它原先挂在 `TodoTransactionalRepository` 上并要求调用方开事务，
+    /// 但事务里只有这一条语句——单语句在 Postgres 本来就是原子的，那个事务是纯仪式。
+    /// 它的兄弟方法 `count_by_source_ids` 一直就在这里。
+    async fn soft_delete_by_source_ids(
+        &self,
+        source_type: &str,
+        source_ids: &[String],
+        cutoff: DateTime<Utc>,
+    ) -> Result<u64, DomainError>;
 }
 
 #[async_trait]
@@ -54,12 +64,4 @@ pub trait TodoTransactionalRepository<Tx>: Send + Sync {
 
     async fn update_in_tx(&self, tx: &mut Tx, todo: &Todo) -> Result<bool, DomainError>;
 
-    // Batch smoke-cleanup operation
-    async fn soft_delete_by_source_ids(
-        &self,
-        tx: &mut Tx,
-        source_type: &str,
-        source_ids: &[String],
-        cutoff: DateTime<Utc>,
-    ) -> Result<u64, DomainError>;
 }

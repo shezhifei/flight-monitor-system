@@ -236,9 +236,7 @@ pub(crate) fn build_ai_services(
         ai_execution_metrics_svc.clone(),
         ai_proposal_repo.clone(),
         repos.todo_repo.clone(),
-        repos.todo_repo.clone(),
         db_metadata_port,
-        pool.clone(),
         domain_event_outbox_port,
         ai_run_event_repo.clone(),
     ));
