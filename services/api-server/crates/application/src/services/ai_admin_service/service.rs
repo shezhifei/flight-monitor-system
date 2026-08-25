@@ -22,9 +22,8 @@ use super::catalog::{
     tool_categories_map, validate_tool_names,
 };
 use super::config::{
-    canonicalize_entity_document, default_entity_config, has_api_key, mask_config, merge_objects,
-    merged_entity_config, metrics_to_value, provider_number, provider_string, remove_api_key,
-    routed_model, EntityRuntimeMetrics,
+    canonicalize_entity_document, default_entity_config, has_api_key, mask_config, merge_objects, merged_entity_config,
+    metrics_to_value, provider_number, provider_string, remove_api_key, routed_model, EntityRuntimeMetrics,
 };
 use super::schemas::{AiBatchRequestItem, AiBatchResultItem};
 
@@ -112,7 +111,9 @@ impl AiAdminService {
         let Some(record) = self.repo.find_by_id(entity_id).await? else {
             return Ok(None);
         };
-        Ok(Some(mask_config(serde_json::Value::Object(merged_entity_config(&record.config)))))
+        Ok(Some(mask_config(serde_json::Value::Object(merged_entity_config(
+            &record.config,
+        )))))
     }
 
     pub async fn get_entity_runtime_config(&self, entity_id: &str) -> Result<Option<serde_json::Value>, DomainError> {
@@ -552,9 +553,7 @@ impl AiAdminService {
                 .trim_end_matches('/')
                 .to_string(),
             api_key: provider_string(&config, "api_key").unwrap_or_default().to_string(),
-            default_model: routed_model(&config, "default")
-                .unwrap_or("gpt-3.5-turbo")
-                .to_string(),
+            default_model: routed_model(&config, "default").unwrap_or("gpt-3.5-turbo").to_string(),
             api_format: normalize_api_format(provider_string(&config, "api_format").unwrap_or("chat_completions"))
                 .to_string(),
             temperature: config.get("temperature").and_then(serde_json::Value::as_f64),

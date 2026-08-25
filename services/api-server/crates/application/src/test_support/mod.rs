@@ -151,7 +151,8 @@ pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
             dispatch_chat_service: Arc::new(UnwiredChatSyncer),
         },
         overrun_warning_service: Arc::new(
-            DispatchOverrunWarningService::new(unwired_repo.clone(), unwired_repo.clone()).with_feature_flags(false, false),
+            DispatchOverrunWarningService::new(unwired_repo.clone(), unwired_repo.clone())
+                .with_feature_flags(false, false),
         ),
     }
 }

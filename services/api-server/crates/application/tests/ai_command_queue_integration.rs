@@ -510,19 +510,20 @@ async fn cancel_job_enqueues_cancel_run_command_for_active_runs() {
     let (control, _tool_call_repo, command_repo, _checkpoint_repo) = build_control_service();
     let job_repo = Arc::new(InMemoryJobRepository::default());
     let run_repo = Arc::new(InMemoryRunRepository::default());
-    let job_service = AiJobService::new(
-        job_repo.clone(),
-        run_repo.clone(),
-        Arc::new(StubRunEventRepository),
-    )
-    .with_control_service(control);
+    let job_service = AiJobService::new(job_repo.clone(), run_repo.clone(), Arc::new(StubRunEventRepository))
+        .with_control_service(control);
 
     let job = job_service
         .create_job("chat", Some("user-1"), None, None, None)
         .await
         .unwrap();
     let run = job_service
-        .create_run(&job.job_id, "python-ai-runtime", None, Some(json!({"entity_id": "query_ops"})))
+        .create_run(
+            &job.job_id,
+            "python-ai-runtime",
+            None,
+            Some(json!({"entity_id": "query_ops"})),
+        )
         .await
         .unwrap();
 

@@ -26,11 +26,11 @@ use std::sync::Arc;
 
 static NULL_VALUE: serde_json::Value = serde_json::Value::Null;
 
+use crate::services::notification_service::NotificationCollaborationEvents;
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
-use crate::services::notification_service::NotificationCollaborationEvents;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DepartmentRepository, DepartmentTaskTypeRequirementRepository,
     DispatchAlertRepository, DispatchChecklistRepository, DispatchOrderMemberRepository, DispatchOrderRepository,

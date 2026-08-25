@@ -42,7 +42,6 @@ impl TodoService {
             agent_context_query_metrics: Mutex::new(AgentContextQueryMetrics::default()),
         }
     }
-
 }
 
 impl TodoService {

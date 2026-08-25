@@ -131,9 +131,7 @@ pub(crate) async fn replan_snapshot_internal(
     if !permissions_grant(&context.requester_permissions, REQUIRED_PERMISSION) {
         return Ok(HttpResponse::Forbidden().json(error_json(
             "TOOL_ACTOR_PERMISSION_DENIED",
-            &format!(
-                "requester lacks permission '{REQUIRED_PERMISSION}' for {SOLVER_CANDIDATE_TOOL_NAME}"
-            ),
+            &format!("requester lacks permission '{REQUIRED_PERMISSION}' for {SOLVER_CANDIDATE_TOOL_NAME}"),
             json!({ "required_permission": REQUIRED_PERMISSION }),
         )));
     }

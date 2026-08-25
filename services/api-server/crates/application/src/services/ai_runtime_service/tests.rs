@@ -427,8 +427,10 @@ async fn list_pending_actions_uses_python_page_total_semantics() {
 #[tokio::test]
 async fn approve_pending_action_notifies_requester() {
     let repo = Arc::new(FakeNotificationRepo::default());
-    let notification_service =
-        Arc::new(notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo)));
+    let notification_service = Arc::new(notification_service_without_side_channels(
+        repo.clone(),
+        Arc::new(FakePreferenceRepo),
+    ));
     let service = AiRuntimeService::new().with_notification_service(notification_service);
 
     let pending = service
@@ -1069,8 +1071,10 @@ async fn todo_graph_pilot_metrics_returns_hold_when_duplicate_attempts_blocked()
 #[tokio::test]
 async fn reject_pending_action_notifies_requester_with_reason() {
     let repo = Arc::new(FakeNotificationRepo::default());
-    let notification_service =
-        Arc::new(notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo)));
+    let notification_service = Arc::new(notification_service_without_side_channels(
+        repo.clone(),
+        Arc::new(FakePreferenceRepo),
+    ));
     let service = AiRuntimeService::new().with_notification_service(notification_service);
 
     let pending = service

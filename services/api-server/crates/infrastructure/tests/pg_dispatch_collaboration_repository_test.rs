@@ -155,10 +155,7 @@ async fn deactivated_members_remain_listed_as_read_only(pool: PgPool) {
     assert!(listed.read_only, "deactivated membership is exposed as read_only");
     assert_eq!(listed.unread_count, 1);
 
-    let fanout = repo
-        .count_unread_for_group_members("group-a")
-        .await
-        .unwrap();
+    let fanout = repo.count_unread_for_group_members("group-a").await.unwrap();
     assert!(
         fanout.iter().any(|entry| entry.user_id == "reader"),
         "read-only members still receive live unread fan-out"
@@ -260,7 +257,10 @@ async fn insert_message_deduplicates_by_client_msg_id(pool: PgPool) {
         .insert_message(&new_message("group-a", "alice", "只发一次", Some("key-1")))
         .await
         .unwrap();
-    assert_eq!(retry.message_id, first.message_id, "retry must resolve to the stored row");
+    assert_eq!(
+        retry.message_id, first.message_id,
+        "retry must resolve to the stored row"
+    );
     assert_eq!(retry.seq_no, first.seq_no);
     assert_eq!(retry.client_msg_id.as_deref(), Some("key-1"), "the key is echoed back");
 

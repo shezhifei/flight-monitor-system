@@ -2,12 +2,12 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::engine::query::Query;
 use flowable_engine::error::FlowableError;
 use flowable_engine::runtime::process_instance::ProcessInstance;
 use flowable_engine::task::Task;
+use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use serde_json::{json, Map, Value};
 
 use super::run_on_engine;
@@ -126,10 +126,7 @@ pub(super) async fn claim_task(
     .await
 }
 
-pub(super) async fn unclaim_task(
-    engine: &Arc<ProcessEngine>,
-    task_id: &str,
-) -> Result<bool, FlowableGatewayError> {
+pub(super) async fn unclaim_task(engine: &Arc<ProcessEngine>, task_id: &str) -> Result<bool, FlowableGatewayError> {
     let task_id = task_id.trim().to_string();
     run_on_engine(Arc::clone(engine), move |engine| {
         match engine.get_task_service().unclaim_task_by_id(task_id) {

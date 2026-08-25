@@ -4,7 +4,9 @@ use async_trait::async_trait;
 use chrono::Utc;
 use fms_domain::error::DomainError;
 use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjectionRepository;
-use fms_domain::ports::message_queue::{MessageHandler, MessageQueue, MessageQueueError, PublishMessage, SubscriberMessage};
+use fms_domain::ports::message_queue::{
+    MessageHandler, MessageQueue, MessageQueueError, PublishMessage, SubscriberMessage,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tracing::warn;

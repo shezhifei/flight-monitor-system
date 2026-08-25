@@ -486,7 +486,11 @@ fn is_case_visible(
 #[tokio::test]
 async fn create_uses_explicit_status_when_provided() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
-    let service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
 
     let case = service
         .create(
@@ -509,7 +513,11 @@ async fn create_uses_explicit_status_when_provided() {
 #[tokio::test]
 async fn create_falls_back_to_context_status_when_explicit_missing() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
-    let service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
     let context = HashMap::from([("status".to_string(), serde_json::json!("processing"))]);
 
     let case = service
@@ -523,7 +531,11 @@ async fn create_falls_back_to_context_status_when_explicit_missing() {
 #[tokio::test]
 async fn create_rejects_invalid_status() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
-    let service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
 
     let error = service
         .create(
@@ -608,7 +620,11 @@ async fn fake_repo_lists_copilot_batch_cases_in_stable_created_order() {
 #[tokio::test]
 async fn list_filtered_for_viewer_returns_all_business_cases() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
-    let service = BusinessCaseService::new(repo.clone(), Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo.clone(),
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
 
     repo.save(&FlightBusinessCase {
         visibility_scope: VisibilityScope::Common,
@@ -643,7 +659,11 @@ async fn list_filtered_for_viewer_returns_all_business_cases() {
 #[tokio::test]
 async fn get_accessible_returns_other_department_case() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
-    let service = BusinessCaseService::new(repo.clone(), Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo.clone(),
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
     repo.save(&FlightBusinessCase {
         department_id: Some("other-1".to_string()),
         department_name_snapshot: Some("other".to_string()),
@@ -668,7 +688,11 @@ async fn create_for_viewer_uses_visible_common_case_type_source() {
         .save(&build_case_type("common_type", VisibilityScope::Common, None, None))
         .await
         .expect("save common case type");
-    let mut service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let mut service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
     service.set_business_case_type_service(Arc::new(BusinessCaseTypeService::new(case_type_repo)));
 
     let case = service
@@ -705,7 +729,11 @@ async fn create_for_viewer_uses_visible_department_case_type_source() {
         ))
         .await
         .expect("save department case type");
-    let mut service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let mut service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
     service.set_business_case_type_service(Arc::new(BusinessCaseTypeService::new(case_type_repo)));
 
     let case = service
@@ -742,7 +770,11 @@ async fn create_for_viewer_rejects_other_department_case_type() {
         ))
         .await
         .expect("save other department case type");
-    let mut service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let mut service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
     service.set_business_case_type_service(Arc::new(BusinessCaseTypeService::new(case_type_repo)));
 
     let error = service
@@ -787,7 +819,11 @@ async fn list_filtered_enriches_case_type_name() {
         .await
         .expect("save case type");
 
-    let mut service = BusinessCaseService::new(repo.clone(), Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let mut service = BusinessCaseService::new(
+        repo.clone(),
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
     service.set_business_case_type_service(Arc::new(BusinessCaseTypeService::new(case_type_repo)));
 
     repo.save(&FlightBusinessCase {
@@ -810,7 +846,11 @@ async fn list_filtered_enriches_case_type_name() {
 async fn update_status_only_changes_status_and_updated_by() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
     repo.save(&build_case("case-1")).await.expect("seed case");
-    let service = BusinessCaseService::new(repo.clone(), Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo.clone(),
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
 
     let updated = service
         .update_status("case-1", "success", "editor")
@@ -836,7 +876,11 @@ async fn update_status_only_changes_status_and_updated_by() {
 async fn update_case_rejects_invalid_status() {
     let repo = Arc::new(FakeBusinessCaseRepo::default());
     repo.save(&build_case("case-2")).await.expect("seed case");
-    let service = BusinessCaseService::new(repo, Arc::new(NoopBusinessCaseEventPublisher), Arc::new(NoMentionAudience));
+    let service = BusinessCaseService::new(
+        repo,
+        Arc::new(NoopBusinessCaseEventPublisher),
+        Arc::new(NoMentionAudience),
+    );
 
     let error = service
         .update_case(

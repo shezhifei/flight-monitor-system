@@ -554,10 +554,7 @@ fn resolve_asr_model(config: &Value, requested: &str) -> String {
         requested,
         config,
         &[],
-        &[
-            &["media", "asr", "model"],
-            &["model_routing", "audio_transcription"],
-        ],
+        &[&["media", "asr", "model"], &["model_routing", "audio_transcription"]],
         &env_string("AI_MEDIA_ASR_DEFAULT_MODEL", "whisper-1"),
     )
 }

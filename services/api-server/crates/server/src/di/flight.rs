@@ -6,7 +6,9 @@ use std::sync::Arc;
 use crate::di::types::*;
 
 use fms_application::services::flight_archive_service::FlightArchiveService;
-use fms_application::services::flight_batch_cell_update_service::{FlightBatchCellUpdate, FlightBatchCellUpdateService};
+use fms_application::services::flight_batch_cell_update_service::{
+    FlightBatchCellUpdate, FlightBatchCellUpdateService,
+};
 use fms_application::services::flight_cache_service::FlightCacheService;
 use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::{

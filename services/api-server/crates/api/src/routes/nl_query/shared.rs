@@ -126,8 +126,7 @@ pub(crate) struct NLQueryRequest {
 /// Task types a client may pin on an nl-query run. Anything else is a 400:
 /// the envelope task type selects the sidecar policy template, so it must
 /// never be free-form client input.
-pub(crate) const ALLOWED_STREAM_TASK_TYPES: &[&str] =
-    &["nl_query", "query_ops", "anomaly_ops", "dispatch_ops"];
+pub(crate) const ALLOWED_STREAM_TASK_TYPES: &[&str] = &["nl_query", "query_ops", "anomaly_ops", "dispatch_ops"];
 
 /// Resolve the envelope task type for a stream request. Defaults to
 /// `nl_query`; unknown values fail closed with 400.
@@ -209,9 +208,18 @@ mod tests {
 
     #[test]
     fn resolve_stream_task_type_accepts_registered_templates() {
-        assert_eq!(resolve_stream_task_type(&request(Some("dispatch_ops"))).unwrap(), "dispatch_ops");
-        assert_eq!(resolve_stream_task_type(&request(Some(" query_ops "))).unwrap(), "query_ops");
-        assert_eq!(resolve_stream_task_type(&request(Some("anomaly_ops"))).unwrap(), "anomaly_ops");
+        assert_eq!(
+            resolve_stream_task_type(&request(Some("dispatch_ops"))).unwrap(),
+            "dispatch_ops"
+        );
+        assert_eq!(
+            resolve_stream_task_type(&request(Some(" query_ops "))).unwrap(),
+            "query_ops"
+        );
+        assert_eq!(
+            resolve_stream_task_type(&request(Some("anomaly_ops"))).unwrap(),
+            "anomaly_ops"
+        );
     }
 
     #[test]

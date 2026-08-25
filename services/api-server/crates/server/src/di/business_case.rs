@@ -48,11 +48,8 @@ pub(crate) async fn build_business_case_services(
     };
     let mention_audience: Arc<dyn BusinessCaseMentionAudience> =
         Arc::new(CollaborationMentionAudience::new(business_case_dispatch_chat_repo));
-    let mut business_case_svc_inner: ConcreteBusinessCaseService = BusinessCaseService::new(
-        business_case_repo_for_service,
-        event_publisher,
-        mention_audience,
-    );
+    let mut business_case_svc_inner: ConcreteBusinessCaseService =
+        BusinessCaseService::new(business_case_repo_for_service, event_publisher, mention_audience);
     business_case_svc_inner.set_notification_service(shared.notification_svc.clone());
     business_case_svc_inner.set_business_case_type_service(business_case_type_svc.clone());
     business_case_svc_inner.set_flight_runtime_projection_repository(repos.flight_runtime_projection_repo.clone());

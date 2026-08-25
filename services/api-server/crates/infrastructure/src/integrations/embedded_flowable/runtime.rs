@@ -5,11 +5,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::error::FlowableError;
 use flowable_engine::runtime::execution::Execution;
 use flowable_engine::runtime::process_instance::ProcessInstance;
+use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use serde_json::{json, Map, Value};
 
 use super::run_on_engine;
@@ -76,9 +76,7 @@ fn find_current_execution(
     let direct = store.find_execution(process_instance_id, &mut session);
     let _ = session.rollback();
     if let Some(execution) = direct {
-        if execution.process_instance_id.as_deref() == Some(process_instance_id)
-            && !execution.is_ended
-        {
+        if execution.process_instance_id.as_deref() == Some(process_instance_id) && !execution.is_ended {
             return Ok(Some(execution));
         }
     }
@@ -86,10 +84,9 @@ fn find_current_execution(
         .db_store()
         .find_all::<Execution>("executions")
         .map_err(|error| FlowableError::Internal(error.to_string()))?;
-    Ok(executions.into_iter().find(|execution| {
-        execution.process_instance_id.as_deref() == Some(process_instance_id)
-            && !execution.is_ended
-    }))
+    Ok(executions
+        .into_iter()
+        .find(|execution| execution.process_instance_id.as_deref() == Some(process_instance_id) && !execution.is_ended))
 }
 
 pub(super) async fn start_process_instance(
@@ -111,9 +108,7 @@ pub(super) async fn start_process_instance(
         .map(ToOwned::to_owned);
     run_on_engine(Arc::clone(engine), move |engine| {
         let runtime = engine.get_runtime_service();
-        let mut builder = runtime
-            .create_process_instance_builder()
-            .process_definition_key(key);
+        let mut builder = runtime.create_process_instance_builder().process_definition_key(key);
         for (name, value) in vars {
             builder = builder.variable(name, value);
         }
@@ -149,12 +144,13 @@ pub(super) async fn get_process_instances(
                 "processInstanceId" => instances.retain(|i| i.id == value),
                 "processDefinitionId" => instances.retain(|i| i.process_definition_id == value),
                 "processDefinitionKey" => instances.retain(|i| i.process_definition_key == value),
-                "businessKey" => {
-                    instances.retain(|i| i.business_key.as_deref() == Some(value))
-                }
+                "businessKey" => instances.retain(|i| i.business_key.as_deref() == Some(value)),
                 "tenantId" => instances.retain(|i| i.tenant_id.as_deref() == Some(value)),
                 unknown => {
-                    tracing::warn!(filter = unknown, "embedded flowable: ignoring unknown process instance filter");
+                    tracing::warn!(
+                        filter = unknown,
+                        "embedded flowable: ignoring unknown process instance filter"
+                    );
                 }
             }
         }
@@ -264,19 +260,11 @@ pub(super) async fn get_executions(
         for (key, value) in &filters {
             let value = value.trim();
             match key.as_str() {
-                "processInstanceId" => {
-                    executions.retain(|e| e.process_instance_id.as_deref() == Some(value))
-                }
-                "processDefinitionId" => {
-                    executions.retain(|e| e.process_definition_id.as_deref() == Some(value))
-                }
-                "processDefinitionKey" => {
-                    executions.retain(|e| e.process_definition_key.as_deref() == Some(value))
-                }
+                "processInstanceId" => executions.retain(|e| e.process_instance_id.as_deref() == Some(value)),
+                "processDefinitionId" => executions.retain(|e| e.process_definition_id.as_deref() == Some(value)),
+                "processDefinitionKey" => executions.retain(|e| e.process_definition_key.as_deref() == Some(value)),
                 "id" | "executionId" => executions.retain(|e| e.id == value),
-                "activityId" => {
-                    executions.retain(|e| e.activity_id.as_deref() == Some(value))
-                }
+                "activityId" => executions.retain(|e| e.activity_id.as_deref() == Some(value)),
                 "tenantId" => executions.retain(|e| e.tenant_id.as_deref() == Some(value)),
                 unknown => {
                     tracing::warn!(filter = unknown, "embedded flowable: ignoring unknown execution filter");

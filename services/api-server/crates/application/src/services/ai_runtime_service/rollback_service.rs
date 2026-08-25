@@ -530,18 +530,13 @@ impl RollbackService {
                 compensation_id: compensation_id.to_string(),
             });
         };
-        let receipt = self
-            .receipt_repo
-            .get(&plan.receipt_id)
-            .await?
-            .ok_or_else(|| {
-                RollbackError::Internal(format!(
-                    "receipt {} referenced by compensation {} not found",
-                    plan.receipt_id, compensation_id
-                ))
-            })?;
-        let proposal_matches =
-            plan.proposal_id == scope.proposal_id && receipt.proposal_id == scope.proposal_id;
+        let receipt = self.receipt_repo.get(&plan.receipt_id).await?.ok_or_else(|| {
+            RollbackError::Internal(format!(
+                "receipt {} referenced by compensation {} not found",
+                plan.receipt_id, compensation_id
+            ))
+        })?;
+        let proposal_matches = plan.proposal_id == scope.proposal_id && receipt.proposal_id == scope.proposal_id;
         let run_matches = scope
             .run_id
             .as_deref()

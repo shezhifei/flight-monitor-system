@@ -1,8 +1,8 @@
 use super::*;
-use fms_application::test_support::notification_service_without_side_channels;
-use fms_application::types::{NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync};
 use chrono::Utc;
 use fms_application::schemas::auth_schemas::TokenData;
+use fms_application::test_support::notification_service_without_side_channels;
+use fms_application::types::{NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync};
 use fms_domain::error::DomainError;
 use fms_domain::models::notification::{Notification, NotificationPreference};
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
@@ -224,7 +224,10 @@ async fn receipt_group_allows_sender_without_dispatch_permission() {
             "latest_updated_at": item.created_at,
         })),
     });
-    let svc = Arc::new(notification_service_without_side_channels(repo, Arc::new(FakePreferenceRepo)));
+    let svc = Arc::new(notification_service_without_side_channels(
+        repo,
+        Arc::new(FakePreferenceRepo),
+    ));
 
     let response = get_receipt_group_inner(
         svc.as_ref(),

@@ -54,7 +54,10 @@ impl AuthValidationCache {
 
     pub async fn get_cached_freshness(&self, user_id: &str, session_key: &str) -> Option<bool> {
         let cache_key = format!("{}:{}", user_id, session_key);
-        let cache = self.freshness_cache.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let cache = self
+            .freshness_cache
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         match cache.peek(&cache_key) {
             Some(entry) if entry.is_valid() => Some(entry.value),
             _ => None,
@@ -66,7 +69,10 @@ impl AuthValidationCache {
             return;
         }
         let cache_key = format!("{}:{}", user_id, session_key);
-        let mut cache = self.freshness_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut cache = self
+            .freshness_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         put_with_expiration_guard(
             &mut cache,
             cache_key,
@@ -78,7 +84,10 @@ impl AuthValidationCache {
     }
 
     pub async fn invalidate_freshness(&self, user_id: &str) {
-        let mut cache = self.freshness_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut cache = self
+            .freshness_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let prefix = format!("{}:", user_id);
         let keys: Vec<String> = cache
             .iter()
@@ -92,7 +101,10 @@ impl AuthValidationCache {
 
     pub async fn get_cached_permission(&self, user_id: &str, permission_version: i64) -> Option<bool> {
         let key = format!("{}:{}", user_id, permission_version);
-        let cache = self.permission_cache.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let cache = self
+            .permission_cache
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         match cache.peek(&key) {
             Some(entry) if entry.is_valid() => Some(entry.value),
             _ => None,
@@ -104,7 +116,10 @@ impl AuthValidationCache {
             return;
         }
         let key = format!("{}:{}", user_id, permission_version);
-        let mut cache = self.permission_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut cache = self
+            .permission_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         put_with_expiration_guard(
             &mut cache,
             key,
@@ -116,7 +131,10 @@ impl AuthValidationCache {
     }
 
     pub async fn invalidate_permission(&self, user_id: &str) {
-        let mut cache = self.permission_cache.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut cache = self
+            .permission_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let prefix = format!("{}:", user_id);
         let keys: Vec<String> = cache
             .iter()

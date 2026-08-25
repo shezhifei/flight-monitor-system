@@ -16,7 +16,9 @@ use fms_domain::error::DomainError;
 use fms_domain::models::flight::Flight;
 use fms_domain::models::value_objects::StandNumber;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
-use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField};
+use fms_domain::ports::flight_repository::{
+    FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
+};
 use fms_domain::ports::flight_runtime_projection_repository::FlightRuntimeProjectionRepository;
 use fms_domain::ports::flight_timeline_event_repository::{
     FlightTimelineEvent, FlightTimelineEventRepository, FlightTimelineEventTransactionalRepository,

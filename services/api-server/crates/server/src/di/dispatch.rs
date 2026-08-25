@@ -173,10 +173,8 @@ pub(crate) fn build_dispatch_services(
             .with_generation_rule_repo(repos.generation_rule_repo.clone())
             .with_qualification_repos(repos.qualification_repo.clone(), repos.qualification_grant_repo.clone()),
     );
-    let anomaly_svc = Arc::new(
-        AnomalyService::new(repos.anomaly_repo.clone())
-            .with_flight_repository(repos.flight_repo.clone()),
-    );
+    let anomaly_svc =
+        Arc::new(AnomalyService::new(repos.anomaly_repo.clone()).with_flight_repository(repos.flight_repo.clone()));
     let dispatch_resource_svc = Arc::new(DispatchResourceService::new(
         repos.department_repo.clone() as Arc<dyn DepartmentRepository + Send + Sync>,
         repos.team_type_repo.clone() as Arc<dyn TeamTypeRepository + Send + Sync>,

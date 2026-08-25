@@ -8,10 +8,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use fms_domain::ports::flowable_gateway::{FlowableGateway, FlowableGatewayError};
 use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::error::FlowableError;
 use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfiguration};
+use fms_domain::ports::flowable_gateway::{FlowableGateway, FlowableGatewayError};
 
 mod history;
 mod repository;
@@ -51,13 +51,9 @@ impl EmbeddedFlowableEngine {
             }
             Some(url) => {
                 let config = Self::postgres_config(&url);
-                ProcessEngine::try_new_with_config(ENGINE_NAME.to_string(), config).map_err(
-                    |error| {
-                        FlowableGatewayError::Upstream(format!(
-                            "embedded flowable engine init failed: {error}"
-                        ))
-                    },
-                )?
+                ProcessEngine::try_new_with_config(ENGINE_NAME.to_string(), config).map_err(|error| {
+                    FlowableGatewayError::Upstream(format!("embedded flowable engine init failed: {error}"))
+                })?
             }
         };
         Ok(Self {
@@ -83,19 +79,14 @@ impl EmbeddedFlowableEngine {
 /// 自由函数形式：`FlowableGateway` 的 impl 块必须整体位于
 /// `embedded_flowable.rs`（Rust 不允许一个 trait 的实现拆散到多个
 /// impl 块），各方法组实现为子模块里的自由函数并复用本辅助。
-pub(crate) async fn run_on_engine<T, F>(
-    engine: Arc<ProcessEngine>,
-    f: F,
-) -> Result<T, FlowableGatewayError>
+pub(crate) async fn run_on_engine<T, F>(engine: Arc<ProcessEngine>, f: F) -> Result<T, FlowableGatewayError>
 where
     T: Send + 'static,
     F: FnOnce(&ProcessEngine) -> Result<T, FlowableError> + Send + 'static,
 {
     tokio::task::spawn_blocking(move || f(&engine))
         .await
-        .map_err(|join_error| {
-            FlowableGatewayError::Upstream(format!("flowable engine task panicked: {join_error}"))
-        })?
+        .map_err(|join_error| FlowableGatewayError::Upstream(format!("flowable engine task panicked: {join_error}")))?
         .map_err(|error: FlowableError| FlowableGatewayError::Upstream(error.to_string()))
 }
 
@@ -138,15 +129,10 @@ impl FlowableGateway for EmbeddedFlowableEngine {
         category: Option<&str>,
         tenant_id: Option<&str>,
     ) -> Result<serde_json::Value, FlowableGatewayError> {
-        repository::deploy_process(&self.engine, bpmn_xml, deployment_name, category, tenant_id)
-            .await
+        repository::deploy_process(&self.engine, bpmn_xml, deployment_name, category, tenant_id).await
     }
 
-    async fn delete_deployment(
-        &self,
-        deployment_id: &str,
-        cascade: bool,
-    ) -> Result<bool, FlowableGatewayError> {
+    async fn delete_deployment(&self, deployment_id: &str, cascade: bool) -> Result<bool, FlowableGatewayError> {
         repository::delete_deployment(&self.engine, deployment_id, cascade).await
     }
 
@@ -157,8 +143,7 @@ impl FlowableGateway for EmbeddedFlowableEngine {
         business_key: Option<&str>,
         tenant_id: Option<&str>,
     ) -> Result<Option<String>, FlowableGatewayError> {
-        runtime::start_process_instance(&self.engine, process_key, variables, business_key, tenant_id)
-            .await
+        runtime::start_process_instance(&self.engine, process_key, variables, business_key, tenant_id).await
     }
 
     async fn get_process_instances(
@@ -183,17 +168,11 @@ impl FlowableGateway for EmbeddedFlowableEngine {
         runtime::delete_process_instance(&self.engine, process_instance_id, delete_reason).await
     }
 
-    async fn get_tasks(
-        &self,
-        filters: &[(&str, String)],
-    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+    async fn get_tasks(&self, filters: &[(&str, String)]) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
         tasks::get_tasks(&self.engine, filters).await
     }
 
-    async fn get_task(
-        &self,
-        task_id: &str,
-    ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+    async fn get_task(&self, task_id: &str) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
         tasks::get_task(&self.engine, task_id).await
     }
 
@@ -213,10 +192,7 @@ impl FlowableGateway for EmbeddedFlowableEngine {
         tasks::complete_task(&self.engine, task_id, variables).await
     }
 
-    async fn get_executions(
-        &self,
-        filters: &[(&str, String)],
-    ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+    async fn get_executions(&self, filters: &[(&str, String)]) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
         runtime::get_executions(&self.engine, filters).await
     }
 

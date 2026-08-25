@@ -342,10 +342,7 @@ impl AiJobService {
                     // enqueue failures are logged but never roll it back.
                     if let Some(control) = &self.control_service {
                         let requester = job.requester_user_id.as_deref().unwrap_or("system");
-                        if let Err(error) = control
-                            .enqueue_cancel_run(job_id, &run.run_id, requester)
-                            .await
-                        {
+                        if let Err(error) = control.enqueue_cancel_run(job_id, &run.run_id, requester).await {
                             tracing::warn!(
                                 target: "ai_job_service",
                                 job_id = %job_id,

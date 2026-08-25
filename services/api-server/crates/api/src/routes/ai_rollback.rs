@@ -27,9 +27,7 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 
-use fms_application::services::ai_runtime_service::rollback_service::{
-    RollbackError, RollbackScope, RollbackService,
-};
+use fms_application::services::ai_runtime_service::rollback_service::{RollbackError, RollbackScope, RollbackService};
 use fms_domain::models::ai_execution::AiCompensationStatus;
 
 #[derive(Debug, Deserialize)]

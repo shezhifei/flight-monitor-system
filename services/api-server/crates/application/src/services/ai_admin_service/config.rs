@@ -79,9 +79,7 @@ fn lift_connection(config: &mut serde_json::Map<String, serde_json::Value>) {
         .collect();
     let singular = config.get("provider").and_then(Value::as_object).cloned();
 
-    let providers = config
-        .entry("providers")
-        .or_insert_with(|| serde_json::json!({}));
+    let providers = config.entry("providers").or_insert_with(|| serde_json::json!({}));
     let Some(providers_obj) = providers.as_object_mut() else {
         return;
     };
@@ -90,9 +88,7 @@ fn lift_connection(config: &mut serde_json::Map<String, serde_json::Value>) {
             providers_obj.insert("default".to_string(), serde_json::Value::Object(single));
         }
     }
-    let default_provider = providers_obj
-        .entry("default")
-        .or_insert_with(default_provider_config);
+    let default_provider = providers_obj.entry("default").or_insert_with(default_provider_config);
     let Some(default_obj) = default_provider.as_object_mut() else {
         return;
     };
@@ -111,9 +107,7 @@ fn lift_model_routing(config: &mut serde_json::Map<String, serde_json::Value>) {
     let Some(default_model) = default_model else {
         return;
     };
-    let routing = config
-        .entry("model_routing")
-        .or_insert_with(|| serde_json::json!({}));
+    let routing = config.entry("model_routing").or_insert_with(|| serde_json::json!({}));
     if let Some(routing_obj) = routing.as_object_mut() {
         routing_obj.insert("default".to_string(), serde_json::Value::String(default_model));
     }
@@ -147,13 +141,9 @@ fn lift_media(config: &mut serde_json::Map<String, serde_json::Value>) {
     }
 
     if let Some(model) = asr_model.as_ref() {
-        ensure_nested_object(config, &["media", "asr"]).insert(
-            "model".to_string(),
-            serde_json::Value::String(model.clone()),
-        );
-        let routing = config
-            .entry("model_routing")
-            .or_insert_with(|| serde_json::json!({}));
+        ensure_nested_object(config, &["media", "asr"])
+            .insert("model".to_string(), serde_json::Value::String(model.clone()));
+        let routing = config.entry("model_routing").or_insert_with(|| serde_json::json!({}));
         if let Some(routing_obj) = routing.as_object_mut() {
             routing_obj.insert(
                 "audio_transcription".to_string(),
@@ -162,28 +152,20 @@ fn lift_media(config: &mut serde_json::Map<String, serde_json::Value>) {
         }
     }
     if let Some(model) = tts_model.as_ref() {
-        ensure_nested_object(config, &["media", "tts"]).insert(
-            "model".to_string(),
-            serde_json::Value::String(model.clone()),
-        );
-        let routing = config
-            .entry("model_routing")
-            .or_insert_with(|| serde_json::json!({}));
+        ensure_nested_object(config, &["media", "tts"])
+            .insert("model".to_string(), serde_json::Value::String(model.clone()));
+        let routing = config.entry("model_routing").or_insert_with(|| serde_json::json!({}));
         if let Some(routing_obj) = routing.as_object_mut() {
             routing_obj.insert("audio_speech".to_string(), serde_json::Value::String(model.clone()));
         }
     }
     if let Some(voice) = tts_voice.as_ref() {
-        ensure_nested_object(config, &["media", "tts"]).insert(
-            "voice".to_string(),
-            serde_json::Value::String(voice.clone()),
-        );
+        ensure_nested_object(config, &["media", "tts"])
+            .insert("voice".to_string(), serde_json::Value::String(voice.clone()));
     }
     if let Some(enabled) = realtime_enabled {
-        ensure_nested_object(config, &["media", "realtime"]).insert(
-            "enabled".to_string(),
-            serde_json::Value::Bool(enabled),
-        );
+        ensure_nested_object(config, &["media", "realtime"])
+            .insert("enabled".to_string(), serde_json::Value::Bool(enabled));
     }
 }
 
@@ -193,7 +175,9 @@ fn ensure_nested_object<'a>(
 ) -> &'a mut serde_json::Map<String, serde_json::Value> {
     let mut current = config;
     for key in path {
-        let entry = current.entry((*key).to_string()).or_insert_with(|| serde_json::json!({}));
+        let entry = current
+            .entry((*key).to_string())
+            .or_insert_with(|| serde_json::json!({}));
         if !entry.is_object() {
             *entry = serde_json::json!({});
         }
@@ -223,10 +207,7 @@ pub(super) fn provider_string<'a>(
         .filter(|value| !value.is_empty())
 }
 
-pub(super) fn provider_number(
-    config: &serde_json::Map<String, serde_json::Value>,
-    field: &str,
-) -> Option<f64> {
+pub(super) fn provider_number(config: &serde_json::Map<String, serde_json::Value>, field: &str) -> Option<f64> {
     let as_number = |value: &serde_json::Value| value.as_f64().or_else(|| value.as_i64().map(|n| n as f64));
     config
         .get("providers")
@@ -235,10 +216,7 @@ pub(super) fn provider_number(
         .and_then(as_number)
 }
 
-pub(super) fn routed_model<'a>(
-    config: &'a serde_json::Map<String, serde_json::Value>,
-    field: &str,
-) -> Option<&'a str> {
+pub(super) fn routed_model<'a>(config: &'a serde_json::Map<String, serde_json::Value>, field: &str) -> Option<&'a str> {
     config
         .get("model_routing")
         .and_then(|routing| routing.get(field))

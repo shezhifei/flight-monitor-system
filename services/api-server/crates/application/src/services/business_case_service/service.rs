@@ -262,8 +262,12 @@ impl<
         if requested.is_empty() {
             return Vec::new();
         }
-        let permitted: std::collections::HashSet<String> =
-            self.mention_audience.mentionable_user_ids(flight_id).await.into_iter().collect();
+        let permitted: std::collections::HashSet<String> = self
+            .mention_audience
+            .mentionable_user_ids(flight_id)
+            .await
+            .into_iter()
+            .collect();
         requested
             .into_iter()
             .filter(|uid| permitted.contains(uid.trim()))
@@ -836,9 +840,7 @@ impl<
             return Ok(None);
         };
 
-        let validated_mention_ids = self
-            .retain_mentionable(&target_case.flight_id, mention_user_ids)
-            .await;
+        let validated_mention_ids = self.retain_mentionable(&target_case.flight_id, mention_user_ids).await;
 
         let mut metadata = serde_json::json!({});
         if !validated_mention_ids.is_empty() {
@@ -922,9 +924,7 @@ impl<
             return Ok(None);
         };
 
-        let validated_mention_ids = self
-            .retain_mentionable(&target_case.flight_id, mention_user_ids)
-            .await;
+        let validated_mention_ids = self.retain_mentionable(&target_case.flight_id, mention_user_ids).await;
 
         let mut metadata = serde_json::json!({});
         if !validated_mention_ids.is_empty() {

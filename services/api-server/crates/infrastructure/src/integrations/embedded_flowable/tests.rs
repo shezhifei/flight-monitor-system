@@ -27,10 +27,7 @@ async fn deploy_then_list_definitions_roundtrip() {
         .await
         .unwrap();
     assert!(deployed.get("id").and_then(Value::as_str).is_some());
-    assert_eq!(
-        deployed.get("name").and_then(Value::as_str),
-        Some("minimal-user-task")
-    );
+    assert_eq!(deployed.get("name").and_then(Value::as_str), Some("minimal-user-task"));
 
     let defs = gateway.get_process_definitions(None, None).await.unwrap();
     let found = defs
@@ -49,17 +46,8 @@ async fn deploy_then_list_definitions_roundtrip() {
         .expect("xml present");
     assert!(xml.contains("<process"));
 
-    let deployment_id = deployed
-        .get("id")
-        .and_then(Value::as_str)
-        .unwrap()
-        .to_string();
-    assert!(
-        gateway
-            .delete_deployment(&deployment_id, true)
-            .await
-            .unwrap()
-    );
+    let deployment_id = deployed.get("id").and_then(Value::as_str).unwrap().to_string();
+    assert!(gateway.delete_deployment(&deployment_id, true).await.unwrap());
     let defs = gateway.get_process_definitions(None, None).await.unwrap();
     assert!(defs.is_empty());
 }
@@ -77,12 +65,7 @@ async fn runtime_instance_variables_and_executions_roundtrip() {
     variables.insert("initiator".to_string(), Value::from("tester"));
     variables.insert("count".to_string(), Value::from(3));
     let instance_id = gateway
-        .start_process_instance(
-            "minimalUserTask",
-            Some(&variables),
-            Some("biz-key-1"),
-            None,
-        )
+        .start_process_instance("minimalUserTask", Some(&variables), Some("biz-key-1"), None)
         .await
         .unwrap()
         .expect("instance started");
@@ -93,10 +76,7 @@ async fn runtime_instance_variables_and_executions_roundtrip() {
         .await
         .unwrap()
         .expect("instance found");
-    assert_eq!(
-        instance.get("businessKey").and_then(Value::as_str),
-        Some("biz-key-1")
-    );
+    assert_eq!(instance.get("businessKey").and_then(Value::as_str), Some("biz-key-1"));
     assert_eq!(
         instance.get("processDefinitionKey").and_then(Value::as_str),
         Some("minimalUserTask")
@@ -111,38 +91,26 @@ async fn runtime_instance_variables_and_executions_roundtrip() {
     assert_eq!(listed.len(), 1);
 
     // 变量往返
-    let vars = gateway
-        .get_process_instance_variables(&instance_id)
-        .await
-        .unwrap();
+    let vars = gateway.get_process_instance_variables(&instance_id).await.unwrap();
     let vars = vars.as_array().expect("variables array");
     let initiator = vars
         .iter()
         .find(|v| v.get("name").and_then(Value::as_str) == Some("initiator"))
         .expect("initiator variable");
-    assert_eq!(
-        initiator.get("value").and_then(Value::as_str),
-        Some("tester")
-    );
+    assert_eq!(initiator.get("value").and_then(Value::as_str), Some("tester"));
 
     let mut updates = serde_json::Map::new();
     updates.insert("reviewed".to_string(), Value::from(true));
-    assert!(
-        gateway
-            .set_process_instance_variables(&instance_id, &updates)
-            .await
-            .unwrap()
-    );
-    let vars = gateway
-        .get_process_instance_variables(&instance_id)
+    assert!(gateway
+        .set_process_instance_variables(&instance_id, &updates)
         .await
-        .unwrap();
-    assert!(
-        vars.as_array()
-            .unwrap()
-            .iter()
-            .any(|v| v.get("name").and_then(Value::as_str) == Some("reviewed"))
-    );
+        .unwrap());
+    let vars = gateway.get_process_instance_variables(&instance_id).await.unwrap();
+    assert!(vars
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|v| v.get("name").and_then(Value::as_str) == Some("reviewed")));
 
     // executions 过滤
     let executions = gateway
@@ -150,26 +118,16 @@ async fn runtime_instance_variables_and_executions_roundtrip() {
         .await
         .unwrap();
     assert!(!executions.is_empty());
-    assert!(
-        executions
-            .iter()
-            .all(|e| e.get("processInstanceId").and_then(Value::as_str) == Some(&instance_id))
-    );
+    assert!(executions
+        .iter()
+        .all(|e| e.get("processInstanceId").and_then(Value::as_str) == Some(&instance_id)));
 
     // 删除实例
-    assert!(
-        gateway
-            .delete_process_instance(&instance_id, Some("test cleanup"))
-            .await
-            .unwrap()
-    );
-    assert!(
-        gateway
-            .get_process_instance(&instance_id)
-            .await
-            .unwrap()
-            .is_none()
-    );
+    assert!(gateway
+        .delete_process_instance(&instance_id, Some("test cleanup"))
+        .await
+        .unwrap());
+    assert!(gateway.get_process_instance(&instance_id).await.unwrap().is_none());
 }
 
 #[tokio::test]
@@ -200,22 +158,14 @@ async fn task_lifecycle_claim_complete_roundtrip() {
 
     assert!(gateway.claim_task(&task_id, "kermit").await.unwrap());
     let claimed = gateway.get_task(&task_id).await.unwrap().expect("task");
-    assert_eq!(
-        claimed.get("assignee").and_then(Value::as_str),
-        Some("kermit")
-    );
+    assert_eq!(claimed.get("assignee").and_then(Value::as_str), Some("kermit"));
 
     assert!(gateway.unclaim_task(&task_id).await.unwrap());
     assert!(gateway.claim_task(&task_id, "kermit").await.unwrap());
 
     let mut variables = serde_json::Map::new();
     variables.insert("approved".to_string(), Value::from(true));
-    assert!(
-        gateway
-            .complete_task(&task_id, Some(&variables))
-            .await
-            .unwrap()
-    );
+    assert!(gateway.complete_task(&task_id, Some(&variables)).await.unwrap());
 
     let tasks = gateway
         .get_tasks(&[("processInstanceId", instance_id.clone())])
@@ -250,10 +200,7 @@ async fn history_records_after_completed_process() {
     gateway.complete_task(&task_id, None).await.unwrap();
 
     // 历史流程实例
-    let historic = gateway
-        .get_historic_process_instances(&[])
-        .await
-        .unwrap();
+    let historic = gateway.get_historic_process_instances(&[]).await.unwrap();
     let found = historic
         .iter()
         .find(|i| i.get("id").and_then(Value::as_str) == Some(&instance_id))
@@ -263,10 +210,7 @@ async fn history_records_after_completed_process() {
         found.get("processDefinitionKey").and_then(Value::as_str),
         Some("minimalUserTask")
     );
-    assert_eq!(
-        found.get("businessKey").and_then(Value::as_str),
-        Some("hist-biz-1")
-    );
+    assert_eq!(found.get("businessKey").and_then(Value::as_str), Some("hist-biz-1"));
 
     // 按 businessKey 过滤
     let filtered = gateway
@@ -289,22 +233,18 @@ async fn history_records_after_completed_process() {
         .await
         .unwrap();
     assert!(!historic_tasks.is_empty());
-    assert!(
-        historic_tasks
-            .iter()
-            .all(|t| t.get("endTime").is_some() && !t.get("endTime").unwrap().is_null())
-    );
+    assert!(historic_tasks
+        .iter()
+        .all(|t| t.get("endTime").is_some() && !t.get("endTime").unwrap().is_null()));
 
     // 历史变量
     let historic_vars = gateway
         .get_historic_variable_instances(&[("processInstanceId", instance_id.clone())])
         .await
         .unwrap();
-    assert!(
-        historic_vars
-            .iter()
-            .any(|v| v.get("name").and_then(Value::as_str) == Some("initiator"))
-    );
+    assert!(historic_vars
+        .iter()
+        .any(|v| v.get("name").and_then(Value::as_str) == Some("initiator")));
 }
 
 /// 端到端契约测试：单个测试串起 FlowableGateway 全部 22 个方法，
@@ -320,16 +260,10 @@ async fn full_gateway_contract_end_to_end() {
         .await
         .unwrap();
     let deployment_id = deployed.get("id").and_then(Value::as_str).unwrap().to_string();
-    assert_eq!(
-        deployed.get("category").and_then(Value::as_str),
-        Some("e2e")
-    );
+    assert_eq!(deployed.get("category").and_then(Value::as_str), Some("e2e"));
 
     // 2. list deployments
-    let deployments = gateway
-        .get_deployments(Some("e2e-deployment"), None)
-        .await
-        .unwrap();
+    let deployments = gateway.get_deployments(Some("e2e-deployment"), None).await.unwrap();
     assert_eq!(deployments.len(), 1);
     assert!(deployments[0].get("deploymentTime").is_some());
 
@@ -350,11 +284,7 @@ async fn full_gateway_contract_end_to_end() {
     assert_eq!(def.get("key").and_then(Value::as_str), Some("minimalUserTask"));
 
     // 5. definition xml
-    let xml = gateway
-        .get_process_definition_xml(&def_id)
-        .await
-        .unwrap()
-        .expect("xml");
+    let xml = gateway.get_process_definition_xml(&def_id).await.unwrap().expect("xml");
     assert!(xml.contains("minimalUserTask"));
 
     // 6. start instance（带变量 + businessKey）
@@ -392,24 +322,18 @@ async fn full_gateway_contract_end_to_end() {
     assert!(!executions.is_empty());
 
     // 10/11. variables get/set
-    let vars = gateway
-        .get_process_instance_variables(&instance_id)
-        .await
-        .unwrap();
-    assert!(
-        vars.as_array()
-            .unwrap()
-            .iter()
-            .any(|v| v.get("name").and_then(Value::as_str) == Some("requester"))
-    );
+    let vars = gateway.get_process_instance_variables(&instance_id).await.unwrap();
+    assert!(vars
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|v| v.get("name").and_then(Value::as_str) == Some("requester")));
     let mut set_vars = serde_json::Map::new();
     set_vars.insert("step".to_string(), Value::from(1));
-    assert!(
-        gateway
-            .set_process_instance_variables(&instance_id, &set_vars)
-            .await
-            .unwrap()
-    );
+    assert!(gateway
+        .set_process_instance_variables(&instance_id, &set_vars)
+        .await
+        .unwrap());
 
     // 12/13. task list + single
     let tasks = gateway
@@ -419,10 +343,7 @@ async fn full_gateway_contract_end_to_end() {
     assert_eq!(tasks.len(), 1);
     let task_id = tasks[0].get("id").and_then(Value::as_str).unwrap().to_string();
     let task = gateway.get_task(&task_id).await.unwrap().expect("task");
-    assert_eq!(
-        task.get("taskDefinitionKey").and_then(Value::as_str),
-        Some("theTask")
-    );
+    assert_eq!(task.get("taskDefinitionKey").and_then(Value::as_str), Some("theTask"));
 
     // 14/15/16. claim / unclaim / complete
     assert!(gateway.claim_task(&task_id, "e2e-user").await.unwrap());
@@ -430,12 +351,7 @@ async fn full_gateway_contract_end_to_end() {
     assert!(gateway.claim_task(&task_id, "e2e-user").await.unwrap());
     let mut done_vars = serde_json::Map::new();
     done_vars.insert("result".to_string(), Value::from("ok"));
-    assert!(
-        gateway
-            .complete_task(&task_id, Some(&done_vars))
-            .await
-            .unwrap()
-    );
+    assert!(gateway.complete_task(&task_id, Some(&done_vars)).await.unwrap());
 
     // 17-20. history
     let historic = gateway
@@ -469,29 +385,18 @@ async fn full_gateway_contract_end_to_end() {
         .get_historic_variable_instances(&[("processInstanceId", instance_id.clone())])
         .await
         .unwrap();
-    assert!(
-        historic_vars
-            .iter()
-            .any(|v| v.get("name").and_then(Value::as_str) == Some("requester"))
-    );
+    assert!(historic_vars
+        .iter()
+        .any(|v| v.get("name").and_then(Value::as_str) == Some("requester")));
 
     // 21. delete instance（已结束实例幂等语义：存在与否均不报错）
-    let _ = gateway
-        .delete_process_instance(&instance_id, Some("e2e done"))
-        .await;
+    let _ = gateway.delete_process_instance(&instance_id, Some("e2e done")).await;
 
     // 22. delete deployment
-    assert!(
-        gateway
-            .delete_deployment(&deployment_id, true)
-            .await
-            .unwrap()
-    );
-    assert!(
-        gateway
-            .get_process_definitions(Some("minimalUserTask"), None)
-            .await
-            .unwrap()
-            .is_empty()
-    );
+    assert!(gateway.delete_deployment(&deployment_id, true).await.unwrap());
+    assert!(gateway
+        .get_process_definitions(Some("minimalUserTask"), None)
+        .await
+        .unwrap()
+        .is_empty());
 }

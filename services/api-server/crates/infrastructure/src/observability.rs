@@ -7,10 +7,7 @@ use serde::Serialize;
 /// Parse a boolean-like environment flag (`1`/`true`/`yes`/`on`).
 pub fn env_flag(name: &str, default: bool) -> bool {
     match std::env::var(name) {
-        Ok(raw) => matches!(
-            raw.trim().to_ascii_lowercase().as_str(),
-            "1" | "true" | "yes" | "on"
-        ),
+        Ok(raw) => matches!(raw.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"),
         Err(_) => default,
     }
 }
@@ -49,12 +46,7 @@ pub fn serialize_json_pretty<T: Serialize>(value: &T) -> Result<String, serde_js
 pub fn record_shadow_comparison(query_type: &str, old_latency: Duration, new_latency: Duration) {
     let old_latency_ms = old_latency.as_millis() as i64;
     let new_latency_ms = new_latency.as_millis() as i64;
-    tracing::info!(
-        query_type,
-        old_latency_ms,
-        new_latency_ms,
-        "shadow mode comparison"
-    );
+    tracing::info!(query_type, old_latency_ms, new_latency_ms, "shadow mode comparison");
     metrics::counter!(
         "fms_shadow_comparisons_total",
         "query_type" => query_type.to_string()

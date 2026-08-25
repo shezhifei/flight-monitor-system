@@ -185,9 +185,16 @@ impl DomainEventOutboxRepository for PgDomainEventOutboxRepository {
         payload: Value,
         source_change_id: &str,
     ) -> Result<String, DomainError> {
-        Self::insert_event(&self.pool, aggregate_type, aggregate_id, event_type, payload, source_change_id)
-            .await
-            .map_err(|e| DomainError::Internal(format!("failed to insert domain event outbox row: {e}")))
+        Self::insert_event(
+            &self.pool,
+            aggregate_type,
+            aggregate_id,
+            event_type,
+            payload,
+            source_change_id,
+        )
+        .await
+        .map_err(|e| DomainError::Internal(format!("failed to insert domain event outbox row: {e}")))
     }
 
     async fn claim_pending_for_relay(&self, limit: i64) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
@@ -316,9 +323,16 @@ impl<'tx> DomainEventOutboxTransactionalRepository<Transaction<'tx, Postgres>> f
         payload: Value,
         source_change_id: &str,
     ) -> Result<String, DomainError> {
-        Self::insert_event(&mut **tx, aggregate_type, aggregate_id, event_type, payload, source_change_id)
-            .await
-            .map_err(|e| DomainError::Internal(format!("failed to insert domain event outbox row: {e}")))
+        Self::insert_event(
+            &mut **tx,
+            aggregate_type,
+            aggregate_id,
+            event_type,
+            payload,
+            source_change_id,
+        )
+        .await
+        .map_err(|e| DomainError::Internal(format!("failed to insert domain event outbox row: {e}")))
     }
 
     async fn mark_published_in_tx(

@@ -63,5 +63,4 @@ pub trait TodoTransactionalRepository<Tx>: Send + Sync {
     async fn save_in_tx(&self, tx: &mut Tx, todo: &Todo) -> Result<(), DomainError>;
 
     async fn update_in_tx(&self, tx: &mut Tx, todo: &Todo) -> Result<bool, DomainError>;
-
 }

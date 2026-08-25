@@ -90,7 +90,10 @@ async fn get_entity_status_does_not_leak_api_key() {
         config.get("api_key").is_none(),
         "api_key must not appear in status response"
     );
-    assert!(config.get("base_url").is_none(), "connection lives in providers.default");
+    assert!(
+        config.get("base_url").is_none(),
+        "connection lives in providers.default"
+    );
     assert_eq!(
         config.pointer("/providers/default/base_url"),
         Some(&serde_json::json!("https://api.example.com"))
@@ -311,10 +314,7 @@ fn canonicalize_lifts_flat_aliases_into_the_document() {
         document.pointer("/media/asr/model"),
         Some(&serde_json::json!("whisper-large-v3"))
     );
-    assert_eq!(
-        document.pointer("/media/tts/voice"),
-        Some(&serde_json::json!("verse"))
-    );
+    assert_eq!(document.pointer("/media/tts/voice"), Some(&serde_json::json!("verse")));
     for alias in [
         "base_url",
         "api_key",

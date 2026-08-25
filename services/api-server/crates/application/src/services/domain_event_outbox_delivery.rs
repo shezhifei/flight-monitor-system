@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use fms_domain::error::DomainError;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::message_queue::{MessageQueue, PublishMessage};
 use serde_json::{json, Value};
-use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 
 pub use fms_domain::events::DomainEventOutboxRow;
 
@@ -90,28 +90,15 @@ impl<Tx> DomainEventOutboxDelivery<Tx> {
         outcome
     }
 
-    pub async fn claim_pending(
-        &self,
-        tx: &mut Tx,
-        limit: i64,
-    ) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
+    pub async fn claim_pending(&self, tx: &mut Tx, limit: i64) -> Result<Vec<DomainEventOutboxRow>, DomainError> {
         self.repo.claim_pending_in_tx(tx, limit).await
     }
 
-    pub async fn mark_published(
-        &self,
-        tx: &mut Tx,
-        event_ids: &[String],
-    ) -> Result<(), DomainError> {
+    pub async fn mark_published(&self, tx: &mut Tx, event_ids: &[String]) -> Result<(), DomainError> {
         self.repo.mark_published_in_tx(tx, event_ids).await
     }
 
-    pub async fn mark_failed(
-        &self,
-        tx: &mut Tx,
-        row: &DomainEventOutboxRow,
-        error: &str,
-    ) -> Result<i64, DomainError> {
+    pub async fn mark_failed(&self, tx: &mut Tx, row: &DomainEventOutboxRow, error: &str) -> Result<i64, DomainError> {
         let next_attempt = row.publish_attempts.saturating_add(1);
         let backoff_seconds = self.compute_backoff_seconds(next_attempt);
 

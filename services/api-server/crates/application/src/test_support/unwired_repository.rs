@@ -36,12 +36,7 @@ impl dispatch_repository::DepartmentRepository for UnwiredRepository {
     async fn find_by_name(&self, _: &str) -> Result<Option<dispatch::Department>, DomainError> {
         Err(unwired("DepartmentRepository::find_by_name"))
     }
-    async fn find_all(
-        &self,
-        _: bool,
-        _: i64,
-        _: i64,
-    ) -> Result<Vec<dispatch::Department>, DomainError> {
+    async fn find_all(&self, _: bool, _: i64, _: i64) -> Result<Vec<dispatch::Department>, DomainError> {
         Err(unwired("DepartmentRepository::find_all"))
     }
     async fn has_dependencies(&self, _: &str) -> Result<bool, DomainError> {
@@ -60,12 +55,7 @@ impl dispatch_repository::TeamTypeRepository for UnwiredRepository {
     async fn find_by_id(&self, _: &str) -> Result<Option<dispatch::TeamType>, DomainError> {
         Err(unwired("TeamTypeRepository::find_by_id"))
     }
-    async fn find_all(
-        &self,
-        _: bool,
-        _: i64,
-        _: i64,
-    ) -> Result<Vec<dispatch::TeamType>, DomainError> {
+    async fn find_all(&self, _: bool, _: i64, _: i64) -> Result<Vec<dispatch::TeamType>, DomainError> {
         Err(unwired("TeamTypeRepository::find_all"))
     }
     async fn find_by_task_type(&self, _: &str) -> Result<Vec<dispatch::TeamType>, DomainError> {
@@ -104,13 +94,7 @@ impl dispatch_repository::TeamRepository for UnwiredRepository {
     ) -> Result<Vec<dispatch::Team>, DomainError> {
         Err(unwired("TeamRepository::find_all"))
     }
-    async fn update_position(
-        &self,
-        _: &str,
-        _: f64,
-        _: f64,
-        _: Option<&str>,
-    ) -> Result<bool, DomainError> {
+    async fn update_position(&self, _: &str, _: f64, _: f64, _: Option<&str>) -> Result<bool, DomainError> {
         Err(unwired("TeamRepository::update_position"))
     }
     async fn update_status(&self, _: &str, _: &str) -> Result<bool, DomainError> {
@@ -166,13 +150,7 @@ impl dispatch_repository::EquipmentRepository for UnwiredRepository {
     ) -> Result<Vec<dispatch::Equipment>, DomainError> {
         Err(unwired("EquipmentRepository::find_all"))
     }
-    async fn update_position(
-        &self,
-        _: &str,
-        _: f64,
-        _: f64,
-        _: Option<&str>,
-    ) -> Result<bool, DomainError> {
+    async fn update_position(&self, _: &str, _: f64, _: f64, _: Option<&str>) -> Result<bool, DomainError> {
         Err(unwired("EquipmentRepository::update_position"))
     }
     async fn update_status(&self, _: &str, _: &str) -> Result<bool, DomainError> {
@@ -191,13 +169,7 @@ impl dispatch_repository::StandRepository for UnwiredRepository {
     async fn find_by_code(&self, _: &str) -> Result<Option<dispatch::Stand>, DomainError> {
         Err(unwired("StandRepository::find_by_code"))
     }
-    async fn find_all(
-        &self,
-        _: Option<&str>,
-        _: bool,
-        _: i64,
-        _: i64,
-    ) -> Result<Vec<dispatch::Stand>, DomainError> {
+    async fn find_all(&self, _: Option<&str>, _: bool, _: i64, _: i64) -> Result<Vec<dispatch::Stand>, DomainError> {
         Err(unwired("StandRepository::find_all"))
     }
     async fn is_active(&self, id_or_code: &str) -> Result<bool, DomainError> {
@@ -213,12 +185,7 @@ impl dispatch_repository::TaskTypeRepository for UnwiredRepository {
     async fn find_by_code(&self, _: &str) -> Result<Option<dispatch::TaskType>, DomainError> {
         Err(unwired("TaskTypeRepository::find_by_code"))
     }
-    async fn find_all(
-        &self,
-        _: Option<&str>,
-        _: i64,
-        _: i64,
-    ) -> Result<Vec<dispatch::TaskType>, DomainError> {
+    async fn find_all(&self, _: Option<&str>, _: i64, _: i64) -> Result<Vec<dispatch::TaskType>, DomainError> {
         Err(unwired("TaskTypeRepository::find_all"))
     }
     async fn save(&self, _: &dispatch::TaskType) -> Result<dispatch::TaskType, DomainError> {
@@ -259,10 +226,7 @@ impl dispatch_repository::DepartmentQualificationRepository for UnwiredRepositor
 
 #[async_trait]
 impl dispatch_repository::QualificationGrantRepository for UnwiredRepository {
-    async fn save(
-        &self,
-        _: &dispatch::QualificationGrant,
-    ) -> Result<dispatch::QualificationGrant, DomainError> {
+    async fn save(&self, _: &dispatch::QualificationGrant) -> Result<dispatch::QualificationGrant, DomainError> {
         Err(unwired("QualificationGrantRepository::save"))
     }
     async fn find_by_department(
@@ -295,10 +259,7 @@ impl dispatch_repository::DepartmentTaskTypeRequirementRepository for UnwiredRep
     ) -> Result<Vec<dispatch::DepartmentTaskTypeRequirementVersion>, DomainError> {
         Err(unwired("DepartmentTaskTypeRequirementRepository::list_versions"))
     }
-    async fn find_by_id(
-        &self,
-        _: &str,
-    ) -> Result<Option<dispatch::DepartmentTaskTypeRequirementVersion>, DomainError> {
+    async fn find_by_id(&self, _: &str) -> Result<Option<dispatch::DepartmentTaskTypeRequirementVersion>, DomainError> {
         Err(unwired("DepartmentTaskTypeRequirementRepository::find_by_id"))
     }
     async fn find_latest_draft(
@@ -325,10 +286,7 @@ impl dispatch_repository::FlightGenerationRuleRepository for UnwiredRepository {
     async fn next_version_no(&self, _: &str, _: &str, _: &str) -> Result<i32, DomainError> {
         Err(unwired("FlightGenerationRuleRepository::next_version_no"))
     }
-    async fn save(
-        &self,
-        _: &dispatch::FlightGenerationRule,
-    ) -> Result<dispatch::FlightGenerationRule, DomainError> {
+    async fn save(&self, _: &dispatch::FlightGenerationRule) -> Result<dispatch::FlightGenerationRule, DomainError> {
         Err(unwired("FlightGenerationRuleRepository::save"))
     }
     async fn save_replacing_published(
@@ -338,17 +296,10 @@ impl dispatch_repository::FlightGenerationRuleRepository for UnwiredRepository {
     ) -> Result<dispatch::FlightGenerationRule, DomainError> {
         Err(unwired("FlightGenerationRuleRepository::save_replacing_published"))
     }
-    async fn find_by_id(
-        &self,
-        _: &str,
-    ) -> Result<Option<dispatch::FlightGenerationRule>, DomainError> {
+    async fn find_by_id(&self, _: &str) -> Result<Option<dispatch::FlightGenerationRule>, DomainError> {
         Err(unwired("FlightGenerationRuleRepository::find_by_id"))
     }
-    async fn list_rules(
-        &self,
-        _: &str,
-        _: Option<&str>,
-    ) -> Result<Vec<dispatch::FlightGenerationRule>, DomainError> {
+    async fn list_rules(&self, _: &str, _: Option<&str>) -> Result<Vec<dispatch::FlightGenerationRule>, DomainError> {
         Err(unwired("FlightGenerationRuleRepository::list_rules"))
     }
 }
@@ -371,10 +322,7 @@ impl dispatch_repository::GenerationAdjustmentRuleRepository for UnwiredReposito
     ) -> Result<dispatch::GenerationAdjustmentRule, DomainError> {
         Err(unwired("GenerationAdjustmentRuleRepository::save_replacing_published"))
     }
-    async fn find_by_id(
-        &self,
-        _: &str,
-    ) -> Result<Option<dispatch::GenerationAdjustmentRule>, DomainError> {
+    async fn find_by_id(&self, _: &str) -> Result<Option<dispatch::GenerationAdjustmentRule>, DomainError> {
         Err(unwired("GenerationAdjustmentRuleRepository::find_by_id"))
     }
     async fn list_rules(
@@ -388,24 +336,13 @@ impl dispatch_repository::GenerationAdjustmentRuleRepository for UnwiredReposito
 
 #[async_trait]
 impl dispatch_repository::TemporaryTaskTemplateRepository for UnwiredRepository {
-    async fn save(
-        &self,
-        _: &dispatch::TemporaryTaskTemplate,
-    ) -> Result<dispatch::TemporaryTaskTemplate, DomainError> {
+    async fn save(&self, _: &dispatch::TemporaryTaskTemplate) -> Result<dispatch::TemporaryTaskTemplate, DomainError> {
         Err(unwired("TemporaryTaskTemplateRepository::save"))
     }
-    async fn find_by_code(
-        &self,
-        _: &str,
-        _: &str,
-    ) -> Result<Option<dispatch::TemporaryTaskTemplate>, DomainError> {
+    async fn find_by_code(&self, _: &str, _: &str) -> Result<Option<dispatch::TemporaryTaskTemplate>, DomainError> {
         Err(unwired("TemporaryTaskTemplateRepository::find_by_code"))
     }
-    async fn list_templates(
-        &self,
-        _: &str,
-        _: bool,
-    ) -> Result<Vec<dispatch::TemporaryTaskTemplate>, DomainError> {
+    async fn list_templates(&self, _: &str, _: bool) -> Result<Vec<dispatch::TemporaryTaskTemplate>, DomainError> {
         Err(unwired("TemporaryTaskTemplateRepository::list_templates"))
     }
 }
@@ -415,10 +352,7 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     async fn save(&self, _: &dispatch::DispatchOrder) -> Result<(), DomainError> {
         Err(unwired("DispatchOrderRepository::save"))
     }
-    async fn create_order_atomic(
-        &self,
-        _: dispatch_repository::CreateDispatchOrderCommand,
-    ) -> Result<(), DomainError> {
+    async fn create_order_atomic(&self, _: dispatch_repository::CreateDispatchOrderCommand) -> Result<(), DomainError> {
         Err(unwired("DispatchOrderRepository::create_order_atomic"))
     }
     async fn save_orders_atomic(
@@ -469,11 +403,7 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
         Err(unwired("DispatchOrderRepository::find_by_team_filtered"))
     }
-    async fn find_by_user(
-        &self,
-        _: &str,
-        _: Option<&str>,
-    ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
+    async fn find_by_user(&self, _: &str, _: Option<&str>) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
         Err(unwired("DispatchOrderRepository::find_by_user"))
     }
     async fn find_all(
@@ -530,10 +460,7 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     async fn list_logs(&self, _: &str, _: i64) -> Result<Vec<serde_json::Value>, DomainError> {
         Err(unwired("DispatchOrderRepository::list_logs"))
     }
-    async fn find_pending_for_flight(
-        &self,
-        _: &str,
-    ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
+    async fn find_pending_for_flight(&self, _: &str) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
         Err(unwired("DispatchOrderRepository::find_pending_for_flight"))
     }
     async fn find_publishable_orders(
@@ -543,21 +470,10 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
         Err(unwired("DispatchOrderRepository::find_publishable_orders"))
     }
-    async fn update_status(
-        &self,
-        _: &str,
-        _: &str,
-        _: Option<&str>,
-        _: bool,
-    ) -> Result<bool, DomainError> {
+    async fn update_status(&self, _: &str, _: &str, _: Option<&str>, _: bool) -> Result<bool, DomainError> {
         Err(unwired("DispatchOrderRepository::update_status"))
     }
-    async fn start_order(
-        &self,
-        _: &str,
-        _: chrono::DateTime<chrono::Utc>,
-        _: &str,
-    ) -> Result<bool, DomainError> {
+    async fn start_order(&self, _: &str, _: chrono::DateTime<chrono::Utc>, _: &str) -> Result<bool, DomainError> {
         Err(unwired("DispatchOrderRepository::start_order"))
     }
     async fn complete_order(
@@ -587,13 +503,7 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     ) -> Result<bool, DomainError> {
         Err(unwired("DispatchOrderRepository::append_log_once"))
     }
-    async fn has_logged_action(
-        &self,
-        _: &str,
-        _: &str,
-        _: Option<&str>,
-        _: Option<&str>,
-    ) -> Result<bool, DomainError> {
+    async fn has_logged_action(&self, _: &str, _: &str, _: Option<&str>, _: Option<&str>) -> Result<bool, DomainError> {
         Err(unwired("DispatchOrderRepository::has_logged_action"))
     }
     async fn report_estimated_completion(
@@ -613,11 +523,7 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     ) -> Result<bool, DomainError> {
         Err(unwired("DispatchOrderRepository::update_planned_times"))
     }
-    async fn replace_order_equipment_assignments(
-        &self,
-        _: &str,
-        _: &[String],
-    ) -> Result<(), DomainError> {
+    async fn replace_order_equipment_assignments(&self, _: &str, _: &[String]) -> Result<(), DomainError> {
         Err(unwired("DispatchOrderRepository::replace_order_equipment_assignments"))
     }
 }
@@ -645,10 +551,7 @@ impl dispatch_repository::DispatchOrderMemberRepository for UnwiredRepository {
     async fn save(&self, _: &dispatch::DispatchOrderMember) -> Result<(), DomainError> {
         Err(unwired("DispatchOrderMemberRepository::save"))
     }
-    async fn find_by_order(
-        &self,
-        _: &str,
-    ) -> Result<Vec<dispatch::DispatchOrderMember>, DomainError> {
+    async fn find_by_order(&self, _: &str) -> Result<Vec<dispatch::DispatchOrderMember>, DomainError> {
         Err(unwired("DispatchOrderMemberRepository::find_by_order"))
     }
     async fn find_by_order_and_user(
@@ -669,11 +572,7 @@ impl dispatch_repository::DispatchOrderMemberRepository for UnwiredRepository {
 
 #[async_trait]
 impl<Tx: Send> dispatch_repository::DispatchOrderMemberTransactionalRepository<Tx> for UnwiredRepository {
-    async fn save_in_tx(
-        &self,
-        _: &mut Tx,
-        _: &dispatch::DispatchOrderMember,
-    ) -> Result<(), DomainError> {
+    async fn save_in_tx(&self, _: &mut Tx, _: &dispatch::DispatchOrderMember) -> Result<(), DomainError> {
         Err(unwired("DispatchOrderMemberTransactionalRepository::save_in_tx"))
     }
 }
@@ -774,7 +673,9 @@ impl dispatch_collaboration_repository::DispatchCollaborationRepository for Unwi
         &self,
         _: &str,
     ) -> Result<Vec<dispatch_collaboration::DispatchChatMemberUnread>, DomainError> {
-        Err(unwired("DispatchCollaborationRepository::count_unread_for_group_members"))
+        Err(unwired(
+            "DispatchCollaborationRepository::count_unread_for_group_members",
+        ))
     }
     async fn find_active_members(
         &self,
@@ -798,7 +699,9 @@ impl dispatch_collaboration_repository::DispatchCollaborationRepository for Unwi
         &self,
         _: &[String],
     ) -> Result<Vec<dispatch_collaboration::DispatchChatDispatcherCandidate>, DomainError> {
-        Err(unwired("DispatchCollaborationRepository::find_dispatchers_by_departments"))
+        Err(unwired(
+            "DispatchCollaborationRepository::find_dispatchers_by_departments",
+        ))
     }
     async fn upsert_group_for_flight(
         &self,
@@ -841,7 +744,9 @@ impl dispatch_collaboration_repository::DispatchCollaborationRepository for Unwi
         &self,
         _: i64,
     ) -> Result<Vec<dispatch_collaboration::DispatchChatGroupSummary>, DomainError> {
-        Err(unwired("DispatchCollaborationRepository::find_groups_pending_deprecation"))
+        Err(unwired(
+            "DispatchCollaborationRepository::find_groups_pending_deprecation",
+        ))
     }
     async fn find_due_archive_groups(
         &self,
@@ -882,20 +787,26 @@ impl dispatch_collaboration_repository::DispatchCollaborationRepository for Unwi
         _: &str,
         _: i64,
     ) -> Result<Vec<notification::Notification>, DomainError> {
-        Err(unwired("DispatchCollaborationRepository::find_recent_notifications_by_flight"))
+        Err(unwired(
+            "DispatchCollaborationRepository::find_recent_notifications_by_flight",
+        ))
     }
     async fn find_recent_notifications_by_order(
         &self,
         _: &str,
         _: i64,
     ) -> Result<Vec<notification::Notification>, DomainError> {
-        Err(unwired("DispatchCollaborationRepository::find_recent_notifications_by_order"))
+        Err(unwired(
+            "DispatchCollaborationRepository::find_recent_notifications_by_order",
+        ))
     }
     async fn summarize_receipts_for_flight(
         &self,
         _: &str,
     ) -> Result<dispatch_collaboration::NotificationReceiptSummary, DomainError> {
-        Err(unwired("DispatchCollaborationRepository::summarize_receipts_for_flight"))
+        Err(unwired(
+            "DispatchCollaborationRepository::summarize_receipts_for_flight",
+        ))
     }
     async fn summarize_receipts_for_order(
         &self,
@@ -907,16 +818,10 @@ impl dispatch_collaboration_repository::DispatchCollaborationRepository for Unwi
 
 #[async_trait]
 impl anomaly_repository::AnomalyRepository for UnwiredRepository {
-    async fn find_by_id(
-        &self,
-        _: &str,
-    ) -> Result<Option<fms_domain::models::anomaly::Anomaly>, DomainError> {
+    async fn find_by_id(&self, _: &str) -> Result<Option<fms_domain::models::anomaly::Anomaly>, DomainError> {
         Err(unwired("AnomalyRepository::find_by_id"))
     }
-    async fn find_by_flight(
-        &self,
-        _: &str,
-    ) -> Result<Vec<fms_domain::models::anomaly::Anomaly>, DomainError> {
+    async fn find_by_flight(&self, _: &str) -> Result<Vec<fms_domain::models::anomaly::Anomaly>, DomainError> {
         Err(unwired("AnomalyRepository::find_by_flight"))
     }
     async fn find_by_status(
@@ -925,16 +830,10 @@ impl anomaly_repository::AnomalyRepository for UnwiredRepository {
     ) -> Result<Vec<fms_domain::models::anomaly::Anomaly>, DomainError> {
         Err(unwired("AnomalyRepository::find_by_status"))
     }
-    async fn list_rules(
-        &self,
-        _: bool,
-    ) -> Result<Vec<fms_domain::models::anomaly::AnomalyRule>, DomainError> {
+    async fn list_rules(&self, _: bool) -> Result<Vec<fms_domain::models::anomaly::AnomalyRule>, DomainError> {
         Err(unwired("AnomalyRepository::list_rules"))
     }
-    async fn get_rule(
-        &self,
-        _: &str,
-    ) -> Result<Option<fms_domain::models::anomaly::AnomalyRule>, DomainError> {
+    async fn get_rule(&self, _: &str) -> Result<Option<fms_domain::models::anomaly::AnomalyRule>, DomainError> {
         Err(unwired("AnomalyRepository::get_rule"))
     }
     async fn upsert_rule(
@@ -968,10 +867,7 @@ impl dispatch_repository::DispatchAlertRepository for UnwiredRepository {
     async fn find_by_id(&self, _: &str) -> Result<Option<dispatch::DispatchAlert>, DomainError> {
         Err(unwired("DispatchAlertRepository::find_by_id"))
     }
-    async fn find_unresolved(
-        &self,
-        _: Option<&str>,
-    ) -> Result<Vec<dispatch::DispatchAlert>, DomainError> {
+    async fn find_unresolved(&self, _: Option<&str>) -> Result<Vec<dispatch::DispatchAlert>, DomainError> {
         Err(unwired("DispatchAlertRepository::find_unresolved"))
     }
     async fn resolve(&self, _: &str, _: &str, _: Option<&str>) -> Result<bool, DomainError> {
@@ -993,29 +889,16 @@ impl dispatch_repository::DispatchAlertRepository for UnwiredRepository {
 
 #[async_trait]
 impl flight_repository::FlightRepository for UnwiredRepository {
-    async fn find_by_id(
-        &self,
-        _: &str,
-    ) -> Result<Option<fms_domain::models::flight::Flight>, DomainError> {
+    async fn find_by_id(&self, _: &str) -> Result<Option<fms_domain::models::flight::Flight>, DomainError> {
         Err(unwired("FlightRepository::find_by_id"))
     }
-    async fn find_all(
-        &self,
-        _: i64,
-        _: i64,
-    ) -> Result<Vec<fms_domain::models::flight::Flight>, DomainError> {
+    async fn find_all(&self, _: i64, _: i64) -> Result<Vec<fms_domain::models::flight::Flight>, DomainError> {
         Err(unwired("FlightRepository::find_all"))
     }
-    async fn find_by_date(
-        &self,
-        _: chrono::NaiveDate,
-    ) -> Result<Vec<fms_domain::models::flight::Flight>, DomainError> {
+    async fn find_by_date(&self, _: chrono::NaiveDate) -> Result<Vec<fms_domain::models::flight::Flight>, DomainError> {
         Err(unwired("FlightRepository::find_by_date"))
     }
-    async fn find_by_flight_number(
-        &self,
-        _: &str,
-    ) -> Result<Vec<fms_domain::models::flight::Flight>, DomainError> {
+    async fn find_by_flight_number(&self, _: &str) -> Result<Vec<fms_domain::models::flight::Flight>, DomainError> {
         Err(unwired("FlightRepository::find_by_flight_number"))
     }
     async fn find_by_status(
@@ -1087,11 +970,7 @@ impl todo_repository::TodoRepository for UnwiredRepository {
     async fn find_by_ids(&self, _: &[String]) -> Result<Vec<fms_domain::models::todo::Todo>, DomainError> {
         Err(unwired("TodoRepository::find_by_ids"))
     }
-    async fn find_by_source(
-        &self,
-        _: &str,
-        _: &str,
-    ) -> Result<Vec<fms_domain::models::todo::Todo>, DomainError> {
+    async fn find_by_source(&self, _: &str, _: &str) -> Result<Vec<fms_domain::models::todo::Todo>, DomainError> {
         Err(unwired("TodoRepository::find_by_source"))
     }
     async fn find_overdue(&self) -> Result<Vec<fms_domain::models::todo::Todo>, DomainError> {
