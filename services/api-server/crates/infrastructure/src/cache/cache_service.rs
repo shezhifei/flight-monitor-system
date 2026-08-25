@@ -378,10 +378,7 @@ impl RedisCacheService {
                     return false;
                 }
             };
-            pipe.cmd("SETEX")
-                .arg(self.full_key(key))
-                .arg(ttl_secs)
-                .arg(json_value);
+            pipe.cmd("SETEX").arg(self.full_key(key)).arg(ttl_secs).arg(json_value);
         }
 
         let mut conn = match self.pool.get().await {

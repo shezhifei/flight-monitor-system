@@ -15,11 +15,11 @@ use crate::config::RedisConfig;
 use crate::error::InfraError;
 
 // 重新导出缓存服务
+pub use crate::observability::{serialize_json, serialize_json_pretty, shadow_mode_enabled};
 pub use cache_service::{
     assemble_batch_get_results, redis_pipeline_enabled, CacheService, LocalCacheService, MultiLevelCacheService,
     RedisCacheService,
 };
-pub use crate::observability::{shadow_mode_enabled, serialize_json, serialize_json_pretty};
 
 /// Redis 连接池类型别名
 pub type RedisPool = Pool<RedisConnectionManager>;

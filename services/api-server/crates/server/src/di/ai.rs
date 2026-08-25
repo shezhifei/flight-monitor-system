@@ -50,7 +50,10 @@ use fms_application::services::ai_runtime_service::tool_authorization_service::{
 };
 use fms_application::services::ai_runtime_service::AiRuntimeService;
 use fms_application::services::authorization_service::AuthorizationService;
-use fms_application::services::domain_action_executor::DomainActionExecutor;
+use fms_application::services::business_case_service::BusinessCaseWriter;
+use fms_application::services::dispatch_service::writer::DispatchOrderWriter;
+use fms_application::services::domain_action_executor::{DomainActionExecution, DomainActionExecutor};
+use fms_application::services::todo_service::TodoWriter;
 
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_domain::models::micro_model::MicroModelRegistry;
@@ -64,7 +67,10 @@ use fms_domain::ports::ai_execution_repository::{
 use fms_domain::ports::ai_object_policy_repository::AiObjectPolicyRepository;
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
-use fms_domain::ports::dispatch_repository::StandRepository;
+use fms_domain::ports::dispatch_repository::{
+    DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository, DispatchOrderRepository,
+    DispatchOrderTransactionalRepository, StandRepository, TeamRepository,
+};
 
 use fms_domain::ports::ai_job_repository::AiJobRepository;
 use fms_domain::ports::ai_run_event_repository::AiRunEventRepository;
@@ -150,16 +156,46 @@ pub(crate) fn build_ai_services(
         .with_business_case_type_service(business_case.business_case_type_svc.clone()),
     );
 
-    let domain_action_executor = Arc::new(DomainActionExecutor::new(
+    // 写入方只在别人开好的事务里写待办；`TodoService` 本身仍是非泛型的查询/命令服务。
+    let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+        TodoWriter::new(repos.todo_repo.clone(), repos.todo_repo.clone())
+            .with_agent_context_repository(repos.todo_agent_context_repo.clone()),
+    );
+    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+        BusinessCaseWriter::new(repos.business_case_repo.clone(), repos.business_case_repo.clone())
+            .with_case_type_service(business_case.business_case_type_svc.clone()),
+    );
+    let dispatch_writer: Arc<DispatchOrderWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(DispatchOrderWriter::new(
+            repos.dispatch_order_repo.clone() as Arc<dyn DispatchOrderRepository + Send + Sync>,
+            repos.dispatch_order_repo.clone()
+                as Arc<
+                    dyn DispatchOrderTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
+                >,
+            repos.dispatch_member_repo.clone() as Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
+            repos.dispatch_member_repo.clone()
+                as Arc<
+                    dyn DispatchOrderMemberTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>>
+                        + Send
+                        + Sync,
+                >,
+            repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+            dispatch.dispatch_svc.clone(),
+        ));
+    let domain_action_executor: Arc<DomainActionExecutor<_>> = Arc::new(DomainActionExecutor::new(
         flight.flight_svc.clone(),
+        flight.flight_writer.clone(),
         dispatch.dispatch_svc.clone(),
+        dispatch_writer,
         shared.notification_svc.clone(),
-        dispatch.anomaly_svc.clone(),
         flight.label_svc.clone(),
-        shared.todo_svc.clone(),
+        todo_writer,
         business_case.business_case_svc.clone(),
+        business_case_writer,
         repos.domain_event_outbox_repo.clone(),
-        pool.clone(),
+        repos.anomaly_repo.clone(),
+        repos.notification_repo.clone(),
+        repos.unit_of_work.clone(),
     ));
 
     let ai_proposal_repo: Arc<dyn AiProposalRepository + Send + Sync> =
@@ -199,7 +235,6 @@ pub(crate) fn build_ai_services(
             .with_domain_action_executor(domain_action_executor.clone())
             .with_object_policy_repository(ai_object_policy_repo.clone())
             .with_ontology_repository(ai_ontology_repo.clone())
-            .with_pool(pool.clone())
             .with_flight_repository(repos.flight_repo.clone())
             .with_anomaly_repository(repos.anomaly_repo.clone())
             .with_stand_repository(stand_repo)
@@ -236,10 +271,8 @@ pub(crate) fn build_ai_services(
         ai_execution_metrics_svc.clone(),
         ai_proposal_repo.clone(),
         repos.todo_repo.clone(),
-        repos.todo_repo.clone(),
         db_metadata_port,
-        pool.clone(),
-        domain_event_outbox_port,
+        domain_event_outbox_port.clone(),
         ai_run_event_repo.clone(),
     ));
 
@@ -260,11 +293,9 @@ pub(crate) fn build_ai_services(
     // the requester's permissions from Rust-persisted data. Used both by the
     // execution control service (tool authorization) and by the internal
     // ontology action endpoints (agent-loop read/advisory actions).
-    let ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync> =
-        Arc::new(PgRunAuthorizationContextLoader::new(
-            pool.clone(),
-            repos.ai_entity_config_repo.clone(),
-        ));
+    let ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync> = Arc::new(
+        PgRunAuthorizationContextLoader::new(pool.clone(), repos.ai_entity_config_repo.clone()),
+    );
 
     let ai_control_svc = Arc::new(build_ai_execution_control_service(
         pool.clone(),
@@ -279,16 +310,14 @@ pub(crate) fn build_ai_services(
     ));
     let ai_recovery_orchestrator = build_ai_recovery_orchestrator(ai_control_svc.clone(), ai_rollback_svc.clone());
     let ai_event_consumer = Arc::new(AiEventConsumer::new(ai_control_svc.clone()));
-    // Wire the transactional outbox into AiJobService so that terminal
-    // transitions (complete_run / fail_run / cancel_job / timeout_job)
-    // emit `ai_job.*` domain events for SSE fan-out (CDC → MQ → SSE).
-    let outbox_tx_repo: Arc<
-        dyn fms_application::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository,
-    > = repos.domain_event_outbox_repo.clone();
+    // Wire the outbox into AiJobService so that terminal transitions
+    // (complete_run / fail_run / cancel_job / timeout_job) emit `ai_job.*`
+    // domain events for SSE fan-out (CDC → MQ → SSE). One INSERT, no
+    // transaction — `domain_event_outbox_port` above is the same object.
     let ai_job_svc = Arc::new(
         AiJobService::new(ai_job_repo, ai_run_repo, ai_run_event_repo)
             .with_control_service(ai_control_svc.clone())
-            .with_outbox_repository(outbox_tx_repo, pool.clone()),
+            .with_outbox_repository(domain_event_outbox_port.clone()),
     );
     let ai_job_timeout_reaper = Arc::new(AiJobTimeoutReaperService::new(
         ai_job_svc.clone(),
@@ -445,7 +474,7 @@ fn build_ai_execution_control_service(
 
 fn build_ai_rollback_service(
     proposal_service: Arc<AiActionProposalService>,
-    domain_executor: Arc<DomainActionExecutor>,
+    domain_executor: Arc<dyn DomainActionExecution>,
     control_service: Arc<AiExecutionControlService>,
     pool: sqlx::PgPool,
 ) -> RollbackService {

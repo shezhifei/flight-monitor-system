@@ -189,10 +189,10 @@ impl FlightImportService {
             "expired" => {
                 return Err(FlightImportError::Conflict(
                     "导入预览已过期，请重新上传文件".to_string(),
-                ))
+                ));
             }
             "committed" | "failed" => {
-                return Err(FlightImportError::Conflict("该预览已提交，不能重复执行".to_string()))
+                return Err(FlightImportError::Conflict("该预览已提交，不能重复执行".to_string()));
             }
             _ => {}
         }

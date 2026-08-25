@@ -21,9 +21,9 @@
 //! - requester lacks required permission→ 403 `TOOL_ACTOR_PERMISSION_DENIED`
 //! - object not found                   → 404 (reuses `OntologyActionError::NotFound`)
 
-use crate::routes::ai_ontology::{dispatch_advisory_action, dispatch_read_action};
 use crate::error::ApiError;
 use crate::middleware::service_identity::ServiceIdentity;
+use crate::routes::ai_ontology::{dispatch_advisory_action, dispatch_read_action};
 use actix_web::{web, HttpResponse};
 use fms_application::services::ai_job_service::{AiJobService, AiJobServiceError};
 use fms_application::services::ontology_actions::{
@@ -76,9 +76,8 @@ async fn execute_internal_action(
 
     // 1. Whitelist the action name up front so unknown actions are rejected
     //    without touching storage (and independent of run state).
-    let required_permission = required_permission.ok_or_else(|| {
-        ApiError::BadRequest(format!("unknown {kind} action: {}", body.action_name))
-    })?;
+    let required_permission = required_permission
+        .ok_or_else(|| ApiError::BadRequest(format!("unknown {kind} action: {}", body.action_name)))?;
 
     // 2. Resolve the run. Missing run → 404 AI_RUN_NOT_FOUND.
     let run = match job_service.get_run(&body.run_id).await {

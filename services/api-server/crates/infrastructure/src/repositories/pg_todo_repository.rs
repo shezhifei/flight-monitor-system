@@ -282,6 +282,33 @@ impl TodoRepository for PgTodoRepository {
         .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(count.0)
     }
+
+    async fn soft_delete_by_source_ids(
+        &self,
+        source_type: &str,
+        source_ids: &[String],
+        cutoff: DateTime<Utc>,
+    ) -> Result<u64, DomainError> {
+        let result = sqlx::query(
+            r#"
+            UPDATE todos
+            SET is_deleted = TRUE,
+                deleted_at = NOW(),
+                updated_at = NOW()
+            WHERE source_type = $1
+              AND source_id = ANY($2)
+              AND created_at < $3
+              AND is_deleted = FALSE
+            "#,
+        )
+        .bind(source_type)
+        .bind(source_ids)
+        .bind(cutoff)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(result.rows_affected())
+    }
 }
 
 #[async_trait]
@@ -382,34 +409,6 @@ impl<'tx> TodoTransactionalRepository<Transaction<'tx, Postgres>> for PgTodoRepo
     async fn update_in_tx(&self, tx: &mut Transaction<'tx, Postgres>, todo: &Todo) -> Result<bool, DomainError> {
         self.save_in_tx(tx, todo).await?;
         Ok(true)
-    }
-
-    async fn soft_delete_by_source_ids(
-        &self,
-        tx: &mut Transaction<'tx, Postgres>,
-        source_type: &str,
-        source_ids: &[String],
-        cutoff: DateTime<Utc>,
-    ) -> Result<u64, DomainError> {
-        let result = sqlx::query(
-            r#"
-            UPDATE todos
-            SET is_deleted = TRUE,
-                deleted_at = NOW(),
-                updated_at = NOW()
-            WHERE source_type = $1
-              AND source_id = ANY($2)
-              AND created_at < $3
-              AND is_deleted = FALSE
-            "#,
-        )
-        .bind(source_type)
-        .bind(source_ids)
-        .bind(cutoff)
-        .execute(&mut **tx)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(result.rows_affected())
     }
 }
 

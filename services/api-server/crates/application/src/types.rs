@@ -4,8 +4,6 @@
 //! implementations used in production, allowing other services to reference
 //! them without repeating the full generic parameter lists.
 
-pub type PgPool = sqlx::PgPool;
-
 use std::future::Future;
 use std::pin::Pin;
 
@@ -21,8 +19,8 @@ use fms_domain::ports::workflow_dispatch_repository::WorkflowDispatchRepository;
 use crate::services::ai_action_proposal_service::AiActionProposalService;
 use crate::services::anomaly_service::AnomalyService;
 use crate::services::auth_service::AuthService;
-use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseMentionAudience};
 use crate::services::business_case_service::BusinessCaseService;
+use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseMentionAudience};
 use crate::services::business_case_type_service::BusinessCaseTypeService;
 use crate::services::business_case_workflow_service::BusinessCaseWorkflowService;
 use crate::services::dashboard_workbench_service::DashboardWorkbenchService;
@@ -30,7 +28,6 @@ use crate::services::dispatch_analytics_service::DispatchAnalyticsService;
 use crate::services::dispatch_chat_service::DispatchChatEventPublisher;
 use crate::services::dispatch_chat_service::DispatchChatService;
 use crate::services::dispatch_query_service::DispatchQueryService;
-use crate::services::domain_action_executor::DomainActionExecutor;
 use crate::services::flight_service::FlightService;
 use crate::services::label_service::LabelService;
 use crate::services::mobile_device_service::MobileDeviceService;
@@ -236,8 +233,6 @@ pub type ConcreteDashboardWorkbenchService = DashboardWorkbenchService;
 pub type ConcreteSystemOpsService = SystemOpsService;
 
 pub type ConcreteNLQueryService = NLQueryService;
-
-pub type ConcreteDomainActionExecutor = DomainActionExecutor;
 
 pub type ConcreteAiActionProposalService = AiActionProposalService;
 

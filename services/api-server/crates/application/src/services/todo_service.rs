@@ -11,14 +11,12 @@ use std::time::Instant;
 use fms_domain::error::DomainError;
 use fms_domain::models::todo::{Todo, TodoCategory, TodoPriority, TodoStatus};
 use fms_domain::ports::todo_agent_context_repository::TodoAgentContextRepository;
-use fms_domain::ports::todo_repository::TodoRepository;
-use sqlx::{Postgres, Transaction};
+use fms_domain::ports::todo_repository::{TodoRepository, TodoTransactionalRepository};
 
 use crate::schemas::todo_schemas::{
     TodoAssign, TodoCancel, TodoComplete, TodoCreateCommand, TodoListResponse, TodoProgress, TodoResponse,
     TodoStatsResponse, TodoUpdate,
 };
-use crate::sqlx_transactional_repositories::SqlxTodoTransactionalRepository;
 
 #[derive(Default)]
 struct AgentContextQueryMetrics {
@@ -32,7 +30,6 @@ struct AgentContextQueryMetrics {
 /// 待办事项应用服务
 pub struct TodoService {
     repo: Arc<dyn TodoRepository + Send + Sync>,
-    tx_repo: Option<Arc<dyn SqlxTodoTransactionalRepository>>,
     context_repo: Option<Arc<dyn TodoAgentContextRepository + Send + Sync>>,
     agent_context_query_metrics: Mutex<AgentContextQueryMetrics>,
 }
@@ -41,15 +38,9 @@ impl TodoService {
     pub fn new(repo: Arc<dyn TodoRepository + Send + Sync>) -> Self {
         Self {
             repo,
-            tx_repo: None,
             context_repo: None,
             agent_context_query_metrics: Mutex::new(AgentContextQueryMetrics::default()),
         }
-    }
-
-    pub fn with_transactional_repository(mut self, tx_repo: Arc<dyn SqlxTodoTransactionalRepository>) -> Self {
-        self.tx_repo = Some(tx_repo);
-        self
     }
 }
 
@@ -130,80 +121,6 @@ impl TodoService {
     }
 
     /// 创建待办事项（使用外部事务）
-    pub async fn create_todo_in_tx(
-        &self,
-        tx: &mut Transaction<'static, Postgres>,
-        dto: TodoCreateCommand,
-        actor: &str,
-    ) -> Result<TodoResponse, DomainError> {
-        let TodoCreateCommand {
-            title,
-            description,
-            priority,
-            category,
-            due_date,
-            estimated_duration,
-            tags,
-            agent_entity_id,
-            source_type,
-            source_id,
-            created_by,
-            assigned_to,
-        } = dto;
-        let now = Utc::now();
-        let todo_id = ulid::Ulid::new().to_string();
-        let created_by = created_by
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or(actor)
-            .to_string();
-        let normalized_source_type = normalize_source_type(source_type.as_deref());
-        let normalized_source_id = normalize_optional_string(source_id.as_deref());
-        let normalized_agent_entity_id = normalize_optional_string(agent_entity_id.as_deref());
-
-        let todo = Todo {
-            todo_id: todo_id.clone(),
-            title,
-            description,
-            priority: parse_priority(priority.as_deref().unwrap_or("中")),
-            status: TodoStatus::Pending,
-            category: category.as_deref().and_then(parse_category),
-            due_date,
-            assigned_to,
-            tags: tags.unwrap_or_default(),
-            estimated_duration,
-            actual_duration: None,
-            progress: 0,
-            is_recurring: false,
-            recurring_pattern: None,
-            parent_todo_id: None,
-            execution_order: 0,
-            depends_on: vec![],
-            source_type: normalized_source_type,
-            source_id: normalized_source_id,
-            is_deleted: false,
-            deleted_at: None,
-            created_at: now,
-            updated_at: now,
-            created_by: created_by.clone(),
-            updated_by: created_by.clone(),
-            version: 1,
-        };
-
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("TodoService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.save_in_tx(tx, &todo).await?;
-        if let (Some(context_repo), Some(agent_entity_id)) = (&self.context_repo, normalized_agent_entity_id.as_deref())
-        {
-            context_repo
-                .upsert_partial(&todo_id, Some(agent_entity_id), None, None, &created_by)
-                .await?;
-        }
-        Ok(todo_to_response(&todo))
-    }
-
     /// 查询单个待办
     pub async fn get_todo(&self, todo_id: &str) -> Result<Option<TodoResponse>, DomainError> {
         Ok(self.repo.find_by_id(todo_id).await?.map(|todo| todo_to_response(&todo)))
@@ -430,29 +347,6 @@ impl TodoService {
     }
 
     /// 完成待办（使用外部事务）
-    pub async fn complete_todo_in_tx(
-        &self,
-        tx: &mut Transaction<'static, Postgres>,
-        todo_id: &str,
-        mut dto: TodoComplete,
-        actor: &str,
-    ) -> Result<Option<TodoResponse>, DomainError> {
-        let mut todo = match self.repo.find_by_id(todo_id).await? {
-            Some(todo) => todo,
-            None => return Err(DomainError::Internal(format!("Todo not found: {todo_id}"))),
-        };
-        dto.completed_by = Some(actor.to_string());
-        todo.mark_completed(dto.completed_by.as_deref().unwrap_or(actor))?;
-        if let Some(actual_duration) = dto.actual_duration {
-            todo.actual_duration = Some(actual_duration);
-        }
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("TodoService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.update_in_tx(tx, &todo).await?;
-        Ok(Some(todo_to_response(&todo)))
-    }
-
     /// 取消待办
     pub async fn cancel_todo(
         &self,
@@ -879,6 +773,17 @@ mod tests {
         ) -> Result<i64, DomainError> {
             Ok(0)
         }
+
+        // 本文件的测试都不走冒烟清理。返回 `Ok(0)` 会让将来误用这个端口的测试静默通过，
+        // 所以这里响一声。
+        async fn soft_delete_by_source_ids(
+            &self,
+            _source_type: &str,
+            _source_ids: &[String],
+            _cutoff: chrono::DateTime<chrono::Utc>,
+        ) -> Result<u64, DomainError> {
+            unimplemented!("soft_delete_by_source_ids is not exercised by these tests")
+        }
     }
 
     #[derive(Default)]
@@ -1077,5 +982,134 @@ mod tests {
                 "creator".to_string(),
             )]
         );
+    }
+}
+
+/// 待办的两个「在别人已经开好的事务里写」的单元。
+///
+/// `TodoService` 有一大票 `web::Data` 注入、api 层要调它十来个方法，所以服务本身保持
+/// 非泛型；只有这两个持有事务句柄的方法搬到对 `Tx` 泛型的写入方上。它们的唯一调用方是
+/// `DomainActionExecutor`，api 层零调用，所以这里不需要接缝端口——也不需要 trait：
+/// 只有一个实现、一个调用方的 trait 正是上一步在 anomaly 那里删掉的那种转发层。
+///
+/// 这里的 `tx_repo` 不是 `Option`：写入方没有仓储就不该存在。原来那两处
+/// 「transactional repository is not configured」的运行期错误因此不必存在。
+pub struct TodoWriter<Tx> {
+    repo: Arc<dyn TodoRepository + Send + Sync>,
+    tx_repo: Arc<dyn TodoTransactionalRepository<Tx> + Send + Sync>,
+    context_repo: Option<Arc<dyn TodoAgentContextRepository + Send + Sync>>,
+}
+
+impl<Tx> TodoWriter<Tx> {
+    pub fn new(
+        repo: Arc<dyn TodoRepository + Send + Sync>,
+        tx_repo: Arc<dyn TodoTransactionalRepository<Tx> + Send + Sync>,
+    ) -> Self {
+        Self {
+            repo,
+            tx_repo,
+            context_repo: None,
+        }
+    }
+
+    pub fn with_agent_context_repository(
+        mut self,
+        context_repo: Arc<dyn TodoAgentContextRepository + Send + Sync>,
+    ) -> Self {
+        self.context_repo = Some(context_repo);
+        self
+    }
+}
+
+impl<Tx: Send> TodoWriter<Tx> {
+    pub async fn create_todo_in_tx(
+        &self,
+        tx: &mut Tx,
+        dto: TodoCreateCommand,
+        actor: &str,
+    ) -> Result<TodoResponse, DomainError> {
+        let TodoCreateCommand {
+            title,
+            description,
+            priority,
+            category,
+            due_date,
+            estimated_duration,
+            tags,
+            agent_entity_id,
+            source_type,
+            source_id,
+            created_by,
+            assigned_to,
+        } = dto;
+        let now = Utc::now();
+        let todo_id = ulid::Ulid::new().to_string();
+        let created_by = created_by
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or(actor)
+            .to_string();
+        let normalized_source_type = normalize_source_type(source_type.as_deref());
+        let normalized_source_id = normalize_optional_string(source_id.as_deref());
+        let normalized_agent_entity_id = normalize_optional_string(agent_entity_id.as_deref());
+
+        let todo = Todo {
+            todo_id: todo_id.clone(),
+            title,
+            description,
+            priority: parse_priority(priority.as_deref().unwrap_or("中")),
+            status: TodoStatus::Pending,
+            category: category.as_deref().and_then(parse_category),
+            due_date,
+            assigned_to,
+            tags: tags.unwrap_or_default(),
+            estimated_duration,
+            actual_duration: None,
+            progress: 0,
+            is_recurring: false,
+            recurring_pattern: None,
+            parent_todo_id: None,
+            execution_order: 0,
+            depends_on: vec![],
+            source_type: normalized_source_type,
+            source_id: normalized_source_id,
+            is_deleted: false,
+            deleted_at: None,
+            created_at: now,
+            updated_at: now,
+            created_by: created_by.clone(),
+            updated_by: created_by.clone(),
+            version: 1,
+        };
+
+        self.tx_repo.save_in_tx(tx, &todo).await?;
+        if let (Some(context_repo), Some(agent_entity_id)) = (&self.context_repo, normalized_agent_entity_id.as_deref())
+        {
+            context_repo
+                .upsert_partial(&todo_id, Some(agent_entity_id), None, None, &created_by)
+                .await?;
+        }
+        Ok(todo_to_response(&todo))
+    }
+
+    pub async fn complete_todo_in_tx(
+        &self,
+        tx: &mut Tx,
+        todo_id: &str,
+        mut dto: TodoComplete,
+        actor: &str,
+    ) -> Result<Option<TodoResponse>, DomainError> {
+        let mut todo = match self.repo.find_by_id(todo_id).await? {
+            Some(todo) => todo,
+            None => return Err(DomainError::Internal(format!("Todo not found: {todo_id}"))),
+        };
+        dto.completed_by = Some(actor.to_string());
+        todo.mark_completed(dto.completed_by.as_deref().unwrap_or(actor))?;
+        if let Some(actual_duration) = dto.actual_duration {
+            todo.actual_duration = Some(actual_duration);
+        }
+        self.tx_repo.update_in_tx(tx, &todo).await?;
+        Ok(Some(todo_to_response(&todo)))
     }
 }

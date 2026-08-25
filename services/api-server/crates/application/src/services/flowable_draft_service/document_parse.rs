@@ -51,7 +51,7 @@ pub(super) fn parse_process_document(
                     "不支持的文件类型: {}",
                     if extension.is_empty() { "(none)" } else { &extension }
                 ),
-            })
+            });
         }
     }
 
@@ -195,7 +195,7 @@ fn parse_docx_content(file_bytes: &[u8]) -> Result<(String, Vec<String>), Flowab
                     status_code: 422,
                     code: "DOCX_PARSE_FAILED".to_string(),
                     message: format!("DOCX 解析失败: {error}"),
-                })
+                });
             }
             _ => {}
         }

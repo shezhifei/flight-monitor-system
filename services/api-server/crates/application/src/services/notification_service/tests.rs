@@ -599,8 +599,7 @@ async fn acknowledge_publishes_sender_receipt_update() {
         "latest_updated_at": Utc::now(),
     }));
     let delivery = Arc::new(FakeDeliveryPublisher::default());
-    let service =
- NotificationService::new(
+    let service = NotificationService::new(
         repo,
         Arc::new(FakePreferenceRepo),
         Arc::new(NoCollaborationEvents),

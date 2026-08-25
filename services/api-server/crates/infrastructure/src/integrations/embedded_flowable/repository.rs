@@ -4,11 +4,11 @@
 //! process_definitions.rs:178-230（Java REST 形状）。
 use std::sync::Arc;
 
-use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::error::FlowableError;
 use flowable_engine::repository::deployment::Deployment;
 use flowable_engine::repository::process_definition::ProcessDefinition;
+use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use serde_json::{json, Value};
 
 use super::run_on_engine;
@@ -47,10 +47,7 @@ pub(super) async fn get_process_definitions(
     key: Option<&str>,
     tenant_id: Option<&str>,
 ) -> Result<Vec<Value>, FlowableGatewayError> {
-    let key = key
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(ToOwned::to_owned);
+    let key = key.map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
     let tenant_id = tenant_id
         .map(str::trim)
         .filter(|s| !s.is_empty())
@@ -100,8 +97,7 @@ pub(super) async fn get_process_definition_xml(
             Err(FlowableError::NotFound(_)) => return Ok(None),
             Err(error) => return Err(error),
         };
-        let (Some(deployment_id), Some(resource_name)) =
-            (def.deployment_id.as_deref(), def.resource_name.as_deref())
+        let (Some(deployment_id), Some(resource_name)) = (def.deployment_id.as_deref(), def.resource_name.as_deref())
         else {
             return Ok(None);
         };
@@ -110,9 +106,7 @@ pub(super) async fn get_process_definition_xml(
         match repo.get_deployment_resource(deployment_id, resource_name) {
             Ok(resource) => String::from_utf8(resource.bytes)
                 .map(Some)
-                .map_err(|error| {
-                    FlowableError::Internal(format!("deployment resource not utf-8: {error}"))
-                }),
+                .map_err(|error| FlowableError::Internal(format!("deployment resource not utf-8: {error}"))),
             Err(FlowableError::NotFound(_)) => Ok(None),
             Err(error) => Err(error),
         }
@@ -125,10 +119,7 @@ pub(super) async fn get_deployments(
     name: Option<&str>,
     tenant_id: Option<&str>,
 ) -> Result<Vec<Value>, FlowableGatewayError> {
-    let name = name
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(ToOwned::to_owned);
+    let name = name.map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
     let tenant_id = tenant_id
         .map(str::trim)
         .filter(|s| !s.is_empty())
@@ -163,14 +154,8 @@ pub(super) async fn deploy_process(
     tenant_id: Option<&str>,
 ) -> Result<Value, FlowableGatewayError> {
     let xml = bpmn_xml.to_string();
-    let name = deployment_name
-        .unwrap_or("process.bpmn20.xml")
-        .trim()
-        .to_string();
-    let category = category
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(ToOwned::to_owned);
+    let name = deployment_name.unwrap_or("process.bpmn20.xml").trim().to_string();
+    let category = category.map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
     let tenant_id = tenant_id
         .map(str::trim)
         .filter(|s| !s.is_empty())

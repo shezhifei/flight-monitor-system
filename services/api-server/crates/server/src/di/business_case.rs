@@ -14,7 +14,6 @@ use fms_application::services::business_case_service::{
 use fms_application::services::business_case_type_service::BusinessCaseTypeService;
 use fms_application::services::business_case_workflow_service::BusinessCaseWorkflowService;
 use fms_application::services::notification_service::NotificationReceiptGroupSync;
-use fms_application::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository;
 
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
@@ -37,7 +36,6 @@ pub(crate) async fn build_business_case_services(
     dispatch: &DispatchServices,
 ) -> BusinessCaseServices {
     let business_case_type_svc = Arc::new(BusinessCaseTypeService::new(repos.business_case_type_repo.clone()));
-    let business_case_tx_repo: Arc<dyn SqlxBusinessCaseTransactionalRepository> = repos.business_case_repo.clone();
     let business_case_repo_for_service: Arc<dyn BusinessCaseRepository + Send + Sync> =
         repos.business_case_repo.clone();
     let business_case_dispatch_chat_repo: Arc<dyn DispatchCollaborationRepository + Send + Sync> =
@@ -50,12 +48,8 @@ pub(crate) async fn build_business_case_services(
     };
     let mention_audience: Arc<dyn BusinessCaseMentionAudience> =
         Arc::new(CollaborationMentionAudience::new(business_case_dispatch_chat_repo));
-    let mut business_case_svc_inner: ConcreteBusinessCaseService = BusinessCaseService::new(
-        business_case_repo_for_service,
-        event_publisher,
-        mention_audience,
-    )
-    .with_transactional_repository(business_case_tx_repo);
+    let mut business_case_svc_inner: ConcreteBusinessCaseService =
+        BusinessCaseService::new(business_case_repo_for_service, event_publisher, mention_audience);
     business_case_svc_inner.set_notification_service(shared.notification_svc.clone());
     business_case_svc_inner.set_business_case_type_service(business_case_type_svc.clone());
     business_case_svc_inner.set_flight_runtime_projection_repository(repos.flight_runtime_projection_repo.clone());

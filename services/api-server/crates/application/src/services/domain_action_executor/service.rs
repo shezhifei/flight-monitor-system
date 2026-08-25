@@ -1,60 +1,90 @@
 use serde_json::Value;
-use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::schemas::todo_schemas::{TodoComplete, TodoCreateCommand};
-use crate::services::business_case_service::BusinessCaseTerminalUpdatePayload;
+use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
+use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
+use crate::services::flight_writer::FlightWriter;
 use crate::services::flowable_service::FlowableService;
 use crate::services::notification_service::NotificationCreate;
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
+use crate::services::todo_service::TodoWriter;
 use crate::types::{
-    ConcreteAnomalyService, ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService,
-    ConcreteNotificationService, ConcreteTodoService,
+    ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService, ConcreteNotificationService,
 };
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
+use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+use fms_domain::ports::notification_repository::NotificationTransactionalRepository;
+use fms_domain::ports::unit_of_work::UnitOfWork;
 
 use super::helpers::{optional_string, required_string};
 use super::types::{DomainActionError, DomainActionReceipt};
 
-pub struct DomainActionExecutor {
-    flight_service: Arc<ConcreteFlightService>,
-    dispatch_service: Arc<DispatchService>,
-    notification_service: Arc<ConcreteNotificationService>,
-    anomaly_service: Arc<ConcreteAnomalyService>,
-    label_service: Arc<ConcreteLabelService>,
-    todo_service: Arc<ConcreteTodoService>,
-    business_case_service: Arc<ConcreteBusinessCaseService>,
-    flowable_service: Option<FlowableService>,
-    pool: sqlx::PgPool,
-    outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
+/// 执行器的对象安全端口。`ai_action_proposal_service` 与 `rollback_service`
+/// 只消费这一个方法；`DomainActionExecutor<U>` 的泛型在装配点具体化后从这里消失。
+#[async_trait::async_trait]
+pub trait DomainActionExecution: Send + Sync {
+    async fn execute_approved_action(
+        &self,
+        object_type: &str,
+        object_id: &str,
+        action_name: &str,
+        arguments: &Value,
+        executor_id: &str,
+    ) -> Result<DomainActionReceipt, DomainActionError>;
 }
 
-impl DomainActionExecutor {
+pub struct DomainActionExecutor<U: UnitOfWork> {
+    flight_service: Arc<ConcreteFlightService>,
+    flight_writer: Arc<FlightWriter<U::Tx>>,
+    dispatch_service: Arc<DispatchService>,
+    dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
+    notification_service: Arc<ConcreteNotificationService>,
+    label_service: Arc<ConcreteLabelService>,
+    todo_writer: Arc<TodoWriter<U::Tx>>,
+    business_case_service: Arc<ConcreteBusinessCaseService>,
+    business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
+    flowable_service: Option<FlowableService>,
+    uow: Arc<U>,
+    outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
+    anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
+    notification_tx_repo: Arc<dyn NotificationTransactionalRepository<U::Tx> + Send + Sync>,
+}
+
+impl<U: UnitOfWork> DomainActionExecutor<U> {
     pub fn new(
         flight_service: Arc<ConcreteFlightService>,
+        flight_writer: Arc<FlightWriter<U::Tx>>,
         dispatch_service: Arc<DispatchService>,
+        dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
         notification_service: Arc<ConcreteNotificationService>,
-        anomaly_service: Arc<ConcreteAnomalyService>,
         label_service: Arc<ConcreteLabelService>,
-        todo_service: Arc<ConcreteTodoService>,
+        todo_writer: Arc<TodoWriter<U::Tx>>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
-        outbox_repo: Arc<dyn SqlxDomainEventOutboxTransactionalRepository>,
-        pool: sqlx::PgPool,
+        business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
+        outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
+        anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
+        notification_tx_repo: Arc<dyn NotificationTransactionalRepository<U::Tx> + Send + Sync>,
+        uow: Arc<U>,
     ) -> Self {
         Self {
             flight_service,
+            flight_writer,
             dispatch_service,
+            dispatch_writer,
             notification_service,
-            anomaly_service,
             label_service,
-            todo_service,
+            todo_writer,
             business_case_service,
+            business_case_writer,
             flowable_service: None,
             outbox_repo,
-            pool,
+            anomaly_tx_repo,
+            notification_tx_repo,
+            uow,
         }
     }
 
@@ -76,7 +106,7 @@ impl DomainActionExecutor {
         let now = chrono::Utc::now();
 
         let mut tx = self
-            .pool
+            .uow
             .begin()
             .await
             .map_err(|e| DomainActionError::Internal(e.to_string()))?;
@@ -113,7 +143,8 @@ impl DomainActionExecutor {
         }
 
         if result.is_ok() {
-            tx.commit()
+            self.uow
+                .commit(tx)
                 .await
                 .map_err(|e| DomainActionError::Internal(e.to_string()))?;
 
@@ -168,7 +199,7 @@ impl DomainActionExecutor {
 
     async fn execute_in_tx(
         &self,
-        tx: &mut Transaction<'static, Postgres>,
+        tx: &mut U::Tx,
         action_key: &str,
         object_type: &str,
         object_id: &str,
@@ -191,13 +222,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({ "success": true, "note": note }))
             }
             "Flight.update_status" => {
@@ -215,13 +247,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({ "success": true, "status": status }))
             }
             "Flight.change_stand" => {
@@ -244,13 +277,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 let mut result = serde_json::json!({
                     "success": true,
                     "stand": new_stand_id,
@@ -306,13 +340,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({
                     "success": true,
                     "estimated_departure": estimated_departure,
@@ -333,6 +368,7 @@ impl DomainActionExecutor {
                     .notification_service
                     .send_notification_in_tx(
                         tx,
+                        self.notification_tx_repo.as_ref(),
                         NotificationCreate {
                             user_id: user_id.to_string(),
                             title: title.to_string(),
@@ -368,7 +404,7 @@ impl DomainActionExecutor {
                 }))
             }
             "Anomaly.acknowledge" => {
-                self.anomaly_service
+                self.anomaly_tx_repo
                     .acknowledge_in_tx(tx, object_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -378,7 +414,7 @@ impl DomainActionExecutor {
             "Anomaly.resolve" => {
                 let resolution_note = optional_string(arguments, &["resolution_note", "note"]);
                 let resolved = self
-                    .anomaly_service
+                    .anomaly_tx_repo
                     .resolve_in_tx(tx, object_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -400,7 +436,7 @@ impl DomainActionExecutor {
                     .and_then(|v| v.as_str())
                     .unwrap_or("AI recommended escalation");
 
-                self.anomaly_service
+                self.anomaly_tx_repo
                     .escalate_in_tx(tx, object_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -470,7 +506,7 @@ impl DomainActionExecutor {
                 let new_status = required_string(arguments, &["new_status", "status"], "new_status")?;
                 let notes = optional_string(arguments, &["notes"]);
                 let updated = self
-                    .dispatch_service
+                    .dispatch_writer
                     .update_order_status_in_tx(tx, object_id, new_status, executor_id, notes)
                     .await
                     .map_err(|e| match e {
@@ -492,7 +528,7 @@ impl DomainActionExecutor {
                     .or_else(|| arguments.get("team_id").and_then(Value::as_str).map(|_| "team"))
                     .or_else(|| arguments.get("user_id").and_then(Value::as_str).map(|_| "individual"));
                 let updated = self
-                    .dispatch_service
+                    .dispatch_writer
                     .reassign_order_in_tx(tx, object_id, assignee_id, assignee_type, executor_id, Some(arguments))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -507,7 +543,7 @@ impl DomainActionExecutor {
             }
             "DispatchOrder.publish" => {
                 let result = self
-                    .dispatch_service
+                    .dispatch_writer
                     .publish_order_in_tx(tx, object_id, executor_id)
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
@@ -521,7 +557,7 @@ impl DomainActionExecutor {
             "Todo.create" => {
                 let title = required_string(arguments, &["title"], "title")?;
                 let todo = self
-                    .todo_service
+                    .todo_writer
                     .create_todo_in_tx(
                         tx,
                         TodoCreateCommand {
@@ -565,7 +601,7 @@ impl DomainActionExecutor {
                     .and_then(Value::as_i64)
                     .and_then(|value| i32::try_from(value).ok());
                 let todo = self
-                    .todo_service
+                    .todo_writer
                     .complete_todo_in_tx(
                         tx,
                         object_id,
@@ -591,13 +627,14 @@ impl DomainActionExecutor {
                     ..Default::default()
                 };
                 let res = self
-                    .flight_service
+                    .flight_writer
                     .update_flight_in_tx(tx, flight_id, dto, Some(executor_id.to_string()))
                     .await
                     .map_err(|e| DomainActionError::Execution(e.to_string()))?;
                 if res.is_none() {
                     return Err(DomainActionError::Execution(format!("Flight {} not found", flight_id)));
                 }
+                self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({
                     "success": true,
                     "stand_id": object_id,
@@ -628,7 +665,7 @@ impl DomainActionExecutor {
                 context.insert("aip_object_id".to_string(), serde_json::json!(object_id));
 
                 let created = self
-                    .business_case_service
+                    .business_case_writer
                     .create_in_tx(
                         tx,
                         case_type,
@@ -653,7 +690,7 @@ impl DomainActionExecutor {
                 let reason = optional_string(arguments, &["reason"]).map(str::to_string);
                 let target_status = optional_string(arguments, &["target_status", "status"]).unwrap_or("COMPLETED");
                 let updated = self
-                    .business_case_service
+                    .business_case_writer
                     .apply_workflow_terminal_action_in_tx(
                         tx,
                         object_id,
@@ -732,5 +769,20 @@ impl DomainActionExecutor {
             }
             _ => Err(DomainActionError::NotFound(format!("unknown action: {}", action_key))),
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl<U: UnitOfWork> DomainActionExecution for DomainActionExecutor<U> {
+    async fn execute_approved_action(
+        &self,
+        object_type: &str,
+        object_id: &str,
+        action_name: &str,
+        arguments: &Value,
+        executor_id: &str,
+    ) -> Result<DomainActionReceipt, DomainActionError> {
+        DomainActionExecutor::execute_approved_action(self, object_type, object_id, action_name, arguments, executor_id)
+            .await
     }
 }

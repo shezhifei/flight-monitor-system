@@ -59,9 +59,7 @@ pub fn collect_cpu_profile_blocking(duration: Duration) -> Result<Vec<u8>, Strin
         }
         let report = guard.report().build().map_err(|error| error.to_string())?;
         let mut body = Vec::new();
-        report
-            .flamegraph(&mut body)
-            .map_err(|error| error.to_string())?;
+        report.flamegraph(&mut body).map_err(|error| error.to_string())?;
         if body.is_empty() {
             body.extend_from_slice(empty_flamegraph_svg(duration).as_bytes());
         }
@@ -78,9 +76,7 @@ pub fn collect_cpu_profile_blocking(duration: Duration) -> Result<Vec<u8>, Strin
 }
 
 fn empty_flamegraph_svg(duration: Duration) -> String {
-    let threads = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(1);
+    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
     let mut svg = String::from(
         "<?xml version=\"1.0\" standalone=\"no\"?>\n\
          <svg version=\"1.1\" width=\"800\" height=\"40\" xmlns=\"http://www.w3.org/2000/svg\">\n\
@@ -115,9 +111,7 @@ pub async fn handle_profiling(req: HttpRequest) -> HttpResponse {
 
     let duration = profile_duration_from_query(&req);
     match tokio::task::spawn_blocking(move || collect_cpu_profile_blocking(duration)).await {
-        Ok(Ok(body)) => HttpResponse::Ok()
-            .content_type("image/svg+xml")
-            .body(body),
+        Ok(Ok(body)) => HttpResponse::Ok().content_type("image/svg+xml").body(body),
         Ok(Err(error)) => HttpResponse::InternalServerError()
             .content_type("text/plain")
             .body(format!("profiling failed: {error}")),

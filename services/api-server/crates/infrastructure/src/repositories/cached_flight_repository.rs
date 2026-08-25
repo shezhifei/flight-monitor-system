@@ -159,9 +159,7 @@ impl CachedFlightRepository {
 
         for flight_id in missing {
             if let Some(flight) = self.inner.find_by_id(&flight_id).await? {
-                let entry = FlightCacheEntry {
-                    flight: flight.clone(),
-                };
+                let entry = FlightCacheEntry { flight: flight.clone() };
                 self.set_cache(&Self::cache_key_by_id(&flight_id), &entry, CACHE_TTL_BY_ID)
                     .await;
                 flights.push(flight);

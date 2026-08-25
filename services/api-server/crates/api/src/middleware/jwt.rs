@@ -485,9 +485,7 @@ mod tests {
 
     #[test]
     fn request_token_rejects_sse_query_tokens_by_default() {
-        for uri in [
-            "/api/v2/flights/stream?sse_token=good",
-        ] {
+        for uri in ["/api/v2/flights/stream?sse_token=good"] {
             let request = TestRequest::with_uri(uri).to_http_request();
 
             assert!(
@@ -502,7 +500,8 @@ mod tests {
         let request = TestRequest::with_uri("/api/v2/flights/stream?sse_token=good")
             .app_data(web::Data::new(SseQueryTokenAuth(true)))
             .to_http_request();
-        let token = extract_request_token(&request).expect("sse_token query parameter should be accepted for stream paths");
+        let token =
+            extract_request_token(&request).expect("sse_token query parameter should be accepted for stream paths");
 
         assert_eq!(token.value, "good");
         assert!(matches!(token.kind, TokenKind::Sse));

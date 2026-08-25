@@ -31,10 +31,6 @@ use fms_application::services::resource_availability_service::{
 };
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
-use fms_application::sqlx_transactional_repositories::{
-    SqlxAnomalyTransactionalRepository, SqlxDispatchOrderMemberTransactionalRepository,
-    SqlxDispatchOrderTransactionalRepository,
-};
 use fms_domain::broadcaster::Broadcaster;
 
 use fms_domain::ports::dispatch_repository::{
@@ -124,10 +120,7 @@ pub(crate) fn build_dispatch_services(
     let dispatch_svc = Arc::new(DispatchService::new(DispatchServiceDependencies {
         order: DispatchOrderServiceDependencies {
             order_repo: repos.dispatch_order_repo.clone(),
-            order_tx_repo: repos.dispatch_order_repo.clone() as Arc<dyn SqlxDispatchOrderTransactionalRepository>,
             member_repo: repos.dispatch_member_repo.clone(),
-            member_tx_repo: repos.dispatch_member_repo.clone()
-                as Arc<dyn SqlxDispatchOrderMemberTransactionalRepository>,
             todo_repo: repos.todo_repo.clone(),
         },
         rules: DispatchRuleServiceDependencies {
@@ -174,12 +167,8 @@ pub(crate) fn build_dispatch_services(
             .with_generation_rule_repo(repos.generation_rule_repo.clone())
             .with_qualification_repos(repos.qualification_repo.clone(), repos.qualification_grant_repo.clone()),
     );
-    let anomaly_tx_repo: Arc<dyn SqlxAnomalyTransactionalRepository> = repos.anomaly_repo.clone();
-    let anomaly_svc = Arc::new(
-        AnomalyService::new(repos.anomaly_repo.clone())
-            .with_transactional_repository(anomaly_tx_repo)
-            .with_flight_repository(repos.flight_repo.clone()),
-    );
+    let anomaly_svc =
+        Arc::new(AnomalyService::new(repos.anomaly_repo.clone()).with_flight_repository(repos.flight_repo.clone()));
     let dispatch_resource_svc = Arc::new(DispatchResourceService::new(
         repos.department_repo.clone() as Arc<dyn DepartmentRepository + Send + Sync>,
         repos.team_type_repo.clone() as Arc<dyn TeamTypeRepository + Send + Sync>,

@@ -11,12 +11,9 @@ use fms_domain::models::anomaly::*;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::flight_repository::FlightRepository;
 
-use crate::sqlx_transactional_repositories::SqlxAnomalyTransactionalRepository;
-
 /// 异常告警服务
 pub struct AnomalyService {
     repo: Arc<dyn AnomalyRepository + Send + Sync>,
-    tx_repo: Option<Arc<dyn SqlxAnomalyTransactionalRepository>>,
     flight_repo: Option<Arc<dyn FlightRepository + Send + Sync>>,
 }
 
@@ -24,18 +21,12 @@ impl AnomalyService {
     pub fn new(repo: Arc<dyn AnomalyRepository + Send + Sync>) -> Self {
         Self {
             repo,
-            tx_repo: None,
             flight_repo: None,
         }
     }
 }
 
 impl AnomalyService {
-    pub fn with_transactional_repository(mut self, tx_repo: Arc<dyn SqlxAnomalyTransactionalRepository>) -> Self {
-        self.tx_repo = Some(tx_repo);
-        self
-    }
-
     pub fn with_flight_repository(mut self, flight_repo: Arc<dyn FlightRepository + Send + Sync>) -> Self {
         self.flight_repo = Some(flight_repo);
         self
@@ -80,45 +71,12 @@ impl AnomalyService {
         self.repo.acknowledge(anomaly_id).await
     }
 
-    pub async fn acknowledge_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        anomaly_id: &str,
-    ) -> Result<bool, DomainError> {
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("AnomalyService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.acknowledge_in_tx(tx, anomaly_id).await
-    }
-
     pub async fn escalate(&self, anomaly_id: &str) -> Result<bool, DomainError> {
         self.repo.escalate(anomaly_id).await
     }
 
-    pub async fn escalate_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        anomaly_id: &str,
-    ) -> Result<bool, DomainError> {
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("AnomalyService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.escalate_in_tx(tx, anomaly_id).await
-    }
-
     pub async fn resolve(&self, anomaly_id: &str) -> Result<bool, DomainError> {
         self.repo.resolve(anomaly_id).await
-    }
-
-    pub async fn resolve_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        anomaly_id: &str,
-    ) -> Result<bool, DomainError> {
-        let tx_repo = self.tx_repo.as_ref().ok_or_else(|| {
-            DomainError::Internal("AnomalyService transactional repository is not configured".to_string())
-        })?;
-        tx_repo.resolve_in_tx(tx, anomaly_id).await
     }
 
     /// 创建异常

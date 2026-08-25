@@ -59,16 +59,17 @@ async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
     .expect("insert test flight");
 }
 
-async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
-    use crate::services::anomaly_service::AnomalyService;
-    use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService};
+async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastructure::db::transaction::PgUnitOfWork> {
+    use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
+    use crate::services::dispatch_service::writer::DispatchOrderWriter;
     use crate::services::flight_service::FlightService;
+    use crate::services::flight_writer::FlightWriter;
     use crate::services::label_service::LabelService;
     use crate::services::notification_service::{
         CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
         NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
     };
-    use crate::services::todo_service::TodoService;
+    use crate::services::todo_service::TodoWriter;
     use crate::types::{
         NoopBroadcaster, NoopBusinessCaseEventPublisher, NoopNotificationDeliveryPublisher,
         NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
@@ -84,18 +85,54 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
     let outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
-    let flight_service = Arc::new(
-        FlightService::new(flight_repo.clone())
-            .with_transactional_repository(flight_repo)
-            .with_outbox_repository(outbox_repo.clone()),
-    );
+    let flight_service = Arc::new(FlightService::new(flight_repo.clone()));
+    let flight_writer: Arc<FlightWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(FlightWriter::new(
+        flight_repo.clone() as Arc<dyn fms_domain::ports::flight_repository::FlightRepository + Send + Sync>,
+        flight_repo.clone()
+            as Arc<
+                dyn fms_domain::ports::flight_repository::FlightTransactionalRepository<
+                        sqlx::Transaction<'static, sqlx::Postgres>,
+                    > + Send
+                    + Sync,
+            >,
+        outbox_repo.clone()
+            as Arc<
+                dyn fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository<
+                        sqlx::Transaction<'static, sqlx::Postgres>,
+                    > + Send
+                    + Sync,
+            >,
+    ));
 
     let dispatch_order_repo = Arc::new(PgDispatchOrderRepository::new(pool.clone()));
     // 本测试只接 order_repo 与其事务变体；其余端口是桩（与接线前的 None 行为一致）。
     let mut dispatch_deps = crate::test_support::stub_dispatch_dependencies();
     dispatch_deps.order.order_repo = dispatch_order_repo.clone();
-    dispatch_deps.order.order_tx_repo = dispatch_order_repo;
     let dispatch_service = Arc::new(DispatchService::new(dispatch_deps));
+    let dispatch_writer: Arc<DispatchOrderWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(DispatchOrderWriter::new(
+            dispatch_order_repo.clone()
+                as Arc<dyn fms_domain::ports::dispatch_repository::DispatchOrderRepository + Send + Sync>,
+            dispatch_order_repo.clone()
+                as Arc<
+                    dyn fms_domain::ports::dispatch_repository::DispatchOrderTransactionalRepository<
+                            sqlx::Transaction<'static, sqlx::Postgres>,
+                        > + Send
+                        + Sync,
+                >,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::DispatchOrderMemberRepository + Send + Sync>,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<
+                    dyn fms_domain::ports::dispatch_repository::DispatchOrderMemberTransactionalRepository<
+                            sqlx::Transaction<'static, sqlx::Postgres>,
+                        > + Send
+                        + Sync,
+                >,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+            dispatch_service.clone(),
+        ));
 
     let notification_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
     let collaboration_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -109,61 +146,60 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor {
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo.clone();
     let notification_tx_repo_port: Arc<
-        dyn crate::sqlx_transactional_repositories::SqlxNotificationTransactionalRepository,
+        dyn fms_domain::ports::notification_repository::NotificationTransactionalRepository<
+                sqlx::Transaction<'static, sqlx::Postgres>,
+            > + Send
+            + Sync,
     > = notification_repo.clone();
-    let notification_service: Arc<ConcreteNotificationService> = Arc::new(
-        NotificationService::new(
-            notification_repo_port,
-            notification_pref_repo_port,
-            Arc::new(CollaborationEventRecorder::new(notification_collaboration_repo_port))
-                as Arc<dyn NotificationCollaborationEvents>,
-            Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
-            Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
-            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
-        )
-        .with_transactional_repository(notification_tx_repo_port),
-    );
+    let notification_service: Arc<ConcreteNotificationService> = Arc::new(NotificationService::new(
+        notification_repo_port,
+        notification_pref_repo_port,
+        Arc::new(CollaborationEventRecorder::new(notification_collaboration_repo_port))
+            as Arc<dyn NotificationCollaborationEvents>,
+        Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
+        Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
+        Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
+    ));
 
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-    let anomaly_service =
-        Arc::new(AnomalyService::new(anomaly_repo.clone()).with_transactional_repository(anomaly_repo));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
     let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
 
     let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-    let todo_tx_repo: Arc<dyn crate::sqlx_transactional_repositories::SqlxTodoTransactionalRepository> =
-        todo_repo.clone();
-    let todo_service = Arc::new(TodoService::new(todo_repo).with_transactional_repository(todo_tx_repo));
+    let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+        Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
 
     let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
-    let business_case_tx_repo: Arc<
-        dyn crate::sqlx_transactional_repositories::SqlxBusinessCaseTransactionalRepository,
-    > = business_case_pg_repo.clone();
     let business_case_repo: Arc<dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync> =
-        business_case_pg_repo;
+        business_case_pg_repo.clone();
+    let business_case_writer: Arc<BusinessCaseWriter<sqlx::Transaction<'static, sqlx::Postgres>>> = Arc::new(
+        BusinessCaseWriter::new(business_case_pg_repo.clone(), business_case_pg_repo),
+    );
     let business_case_collaboration_repo: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo;
-    let business_case_service = Arc::new(
-        BusinessCaseService::new(
-                business_case_repo,
-                Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
-                Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo)) as Arc<dyn BusinessCaseMentionAudience>,
-            )
-            .with_transactional_repository(business_case_tx_repo),
-    );
+    let business_case_service = Arc::new(BusinessCaseService::new(
+        business_case_repo,
+        Arc::new(NoopBusinessCaseEventPublisher) as Arc<dyn BusinessCaseEventPublisher>,
+        Arc::new(CollaborationMentionAudience::new(business_case_collaboration_repo))
+            as Arc<dyn BusinessCaseMentionAudience>,
+    ));
 
     DomainActionExecutor::new(
         flight_service,
+        flight_writer,
         dispatch_service,
+        dispatch_writer,
         notification_service,
-        anomaly_service,
         label_service,
-        todo_service,
+        todo_writer,
         business_case_service,
+        business_case_writer,
         outbox_repo,
-        pool,
+        anomaly_repo,
+        notification_tx_repo_port,
+        Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
     )
 }
 

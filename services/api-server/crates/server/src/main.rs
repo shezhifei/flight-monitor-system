@@ -26,9 +26,9 @@ use crate::config::{
     build_request_size_error_response, env_optional_string, insert_standard_security_headers,
     install_rustls_crypto_provider, is_production_environment, is_redis_required_for_role, load_cors_allowed_origins,
     load_required_vault_rendered_env, load_rustls_server_config, max_request_size_bytes, redact_url_credentials,
-    request_uses_https, resolve_http_tls_binding_config, resolve_http_tls_performance_config, resolve_jwt_audiences, resolve_jwt_secret,
-    resolve_workflow_internal_token, runtime_environment, runtime_role, should_start_http_server_for_role,
-    DatabaseUrlDefaults,
+    request_uses_https, resolve_http_tls_binding_config, resolve_http_tls_performance_config, resolve_jwt_audiences,
+    resolve_jwt_secret, resolve_workflow_internal_token, runtime_environment, runtime_role,
+    should_start_http_server_for_role, DatabaseUrlDefaults,
 };
 
 #[actix_web::main]
@@ -377,10 +377,10 @@ async fn main() -> std::io::Result<()> {
     info!(actix_workers, "Actix-web worker threads configured");
 
     let bind_addr = format!("{host}:{port}");
-    
+
     // 加载 TLS 性能优化配置
     let tls_performance_config = resolve_http_tls_performance_config();
-    
+
     let server = if let Some(tls_binding_config) = tls_binding_config.as_ref() {
         info!(
             bind_addr = %bind_addr,
@@ -390,14 +390,17 @@ async fn main() -> std::io::Result<()> {
             enable_session_tickets = tls_performance_config.enable_session_tickets,
             "Starting HTTPS server with HTTP/2 and TLS session optimization enabled"
         );
-        
+
         // 配置 HTTP/2 window sizes for better performance
-        let mut server = server.bind_rustls_0_23(bind_addr.clone(), load_rustls_server_config(tls_binding_config, &tls_performance_config)?)?;
-        
+        let mut server = server.bind_rustls_0_23(
+            bind_addr.clone(),
+            load_rustls_server_config(tls_binding_config, &tls_performance_config)?,
+        )?;
+
         // Apply HTTP/2 window size configurations
         server = server.h2_initial_window_size(tls_performance_config.http2_initial_stream_window_size);
         server = server.h2_initial_connection_window_size(tls_performance_config.http2_initial_connection_window_size);
-        
+
         server
     } else {
         info!(bind_addr = %bind_addr, "Starting HTTP server");

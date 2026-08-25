@@ -117,9 +117,7 @@ pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
     DispatchServiceDependencies {
         order: DispatchOrderServiceDependencies {
             order_repo: unwired_repo.clone(),
-            order_tx_repo: unwired_repo.clone(),
             member_repo: unwired_repo.clone(),
-            member_tx_repo: unwired_repo.clone(),
             todo_repo: unwired_repo.clone(),
         },
         rules: DispatchRuleServiceDependencies {
@@ -151,7 +149,8 @@ pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
             dispatch_chat_service: Arc::new(UnwiredChatSyncer),
         },
         overrun_warning_service: Arc::new(
-            DispatchOverrunWarningService::new(unwired_repo.clone(), unwired_repo.clone()).with_feature_flags(false, false),
+            DispatchOverrunWarningService::new(unwired_repo.clone(), unwired_repo.clone())
+                .with_feature_flags(false, false),
         ),
     }
 }

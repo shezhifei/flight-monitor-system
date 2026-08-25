@@ -44,12 +44,7 @@ pub async fn tools_explain(
     let target = if req.query_string().trim().is_empty() {
         format!("{}{}", ai_sidecar_url(), internal_path)
     } else {
-        format!(
-            "{}{}?{}",
-            ai_sidecar_url(),
-            internal_path,
-            req.query_string()
-        )
+        format!("{}{}?{}", ai_sidecar_url(), internal_path, req.query_string())
     };
 
     Ok(forward_request(

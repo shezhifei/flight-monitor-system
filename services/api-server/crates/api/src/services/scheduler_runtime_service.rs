@@ -14,7 +14,6 @@ use fms_application::services::online_status_service::OnlineStatusService;
 use fms_application::services::runtime_redis_latency::measure_redis_latency_from_env;
 use fms_application::services::system_ops_service::SystemOpsService;
 use fms_application::services::todo_scheduler_service::TodoSchedulerService;
-use fms_application::types::PgPool;
 use fms_domain::ports::message_queue::{MessageHandler, PushConsumer};
 use fms_domain::ports::FlightSyncRepository;
 use serde::Serialize;
@@ -44,6 +43,15 @@ const AI_COPILOT_COMMIT_RECOVERY_INTERVAL_SECONDS_DEFAULT: i64 = 30;
 const AI_COPILOT_COMMIT_RECOVERY_BATCH_SIZE_DEFAULT: i64 = 50;
 const AI_COPILOT_COMMIT_RECOVERY_STALE_AFTER_SECONDS_DEFAULT: i64 = 120;
 const AI_COPILOT_COMMIT_RECOVERY_MAX_ATTEMPTS_DEFAULT: i32 = DEFAULT_COMMIT_RECOVERY_MAX_ATTEMPTS;
+
+/// 数据库连接池指标端口。
+///
+/// api 层不持有具体连接池类型（sqlx::PgPool 属于 infrastructure/server），
+/// 只需要周期性读取 size/idle 两个数字，由 DI 注入实现。
+pub trait DbPoolStatsSource: Send + Sync {
+    fn pool_size(&self) -> u32;
+    fn pool_num_idle(&self) -> u32;
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SchedulerTaskExecutionResult {
@@ -160,7 +168,7 @@ impl RegisteredTask {
 }
 
 pub struct SchedulerRuntimeService {
-    pool: PgPool,
+    pool_stats: Arc<dyn DbPoolStatsSource>,
     flight_sync_repo: Arc<dyn FlightSyncRepository>,
     sse_hub: Arc<SseHub>,
     error_monitor: Arc<RuntimeErrorMonitor>,
@@ -191,7 +199,7 @@ pub struct SchedulerRuntimeService {
 impl SchedulerRuntimeService {
     #[allow(clippy::too_many_arguments)]
     pub async fn new(
-        pool: PgPool,
+        pool_stats: Arc<dyn DbPoolStatsSource>,
         flight_sync_repo: Arc<dyn FlightSyncRepository>,
         sse_hub: Arc<SseHub>,
         error_monitor: Arc<RuntimeErrorMonitor>,
@@ -214,7 +222,7 @@ impl SchedulerRuntimeService {
         domain_event_retry_recovery_interval_seconds: i64,
     ) -> Arc<Self> {
         let service = Arc::new(Self {
-            pool,
+            pool_stats,
             flight_sync_repo,
             sse_hub,
             error_monitor,
@@ -366,7 +374,7 @@ impl SchedulerRuntimeService {
         let redis = measure_redis_latency_from_env().await;
 
         build_performance_metrics_payload(
-            current_db_pool_metrics(&self.pool),
+            current_db_pool_metrics(self.pool_stats.as_ref()),
             &sse_stats,
             redis.connected,
             redis.latency_ms,
@@ -633,7 +641,7 @@ impl SchedulerRuntimeService {
             .get_online_status_runtime_status()
             .await
             .map_err(|error| error.to_string())?;
-        let db_pool = current_db_pool_metrics(&self.pool);
+        let db_pool = current_db_pool_metrics(self.pool_stats.as_ref());
         let redis_available = auth_runtime
             .get("redis_available")
             .and_then(Value::as_bool)
@@ -1526,9 +1534,9 @@ pub fn derive_health_status(
     "healthy".to_string()
 }
 
-fn current_db_pool_metrics(pool: &PgPool) -> DbPoolMetrics {
-    let pool_size = pool.size() as usize;
-    let idle = pool.num_idle() as usize;
+fn current_db_pool_metrics(pool: &dyn DbPoolStatsSource) -> DbPoolMetrics {
+    let pool_size = pool.pool_size() as usize;
+    let idle = pool.pool_num_idle() as usize;
     let active = pool_size.saturating_sub(idle);
     let max = std::env::var("DB_POOL_MAX_CONNECTIONS")
         .ok()

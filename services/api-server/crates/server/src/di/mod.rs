@@ -41,9 +41,8 @@ use fms_application::services::dispatch_rule_service::DispatchRuleService;
 use fms_application::services::dispatch_scenario_service::DispatchScenarioService;
 use fms_application::services::dispatch_service::dispatch_overrun_warning_service::DispatchOverrunWarningService;
 use fms_application::services::domain_event_cdc_relay_service::DomainEventCdcRelayService;
-use fms_infrastructure::db::transaction::PgUnitOfWork;
 use fms_application::services::flight_archive_service::FlightArchiveService;
-use fms_application::services::flight_batch_cell_update_service::FlightBatchCellUpdateService;
+use fms_application::services::flight_batch_cell_update_service::FlightBatchCellUpdate;
 use fms_application::services::flight_cache_service::FlightCacheService;
 use fms_application::services::flight_import_service::FlightImportService;
 use fms_application::services::flight_runtime_service::FlightRuntimeService;
@@ -62,6 +61,7 @@ use fms_application::services::shift_handover_service::ShiftHandoverService;
 use fms_application::services::system_flags_service::SystemFlagsService;
 use fms_application::services::system_ops_service::SystemOpsService;
 use fms_application::services::workflow_form_service::WorkflowFormService;
+use fms_infrastructure::db::transaction::PgUnitOfWork;
 
 use fms_domain::ports::ai_auth_context_loader::RunAuthorizationContextLoader;
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
@@ -96,7 +96,7 @@ pub struct DiContainer {
     pub scheduler_runtime_svc: Arc<SchedulerRuntimeService>,
 
     pub flight_svc: Arc<ConcreteFlightService>,
-    pub flight_batch_cell_svc: Arc<FlightBatchCellUpdateService>,
+    pub flight_batch_cell_svc: Arc<dyn FlightBatchCellUpdate>,
     pub cache_invalidation_svc: Arc<CacheInvalidationService>,
     pub label_svc: Arc<ConcreteLabelService>,
     pub flight_import_svc: Arc<FlightImportService>,

@@ -10,7 +10,19 @@ use tracing::info;
 
 use crate::di::types::*;
 use fms_api::services::runtime_error_monitor::{set_global_runtime_error_monitor, RuntimeErrorMonitor};
-use fms_api::services::scheduler_runtime_service::SchedulerRuntimeService;
+use fms_api::services::scheduler_runtime_service::{DbPoolStatsSource, SchedulerRuntimeService};
+
+/// sqlx 连接池的指标适配器：把 pool.size()/num_idle() 桥接到 api 层端口。
+struct PgPoolStats(sqlx::PgPool);
+
+impl DbPoolStatsSource for PgPoolStats {
+    fn pool_size(&self) -> u32 {
+        self.0.size()
+    }
+    fn pool_num_idle(&self) -> u32 {
+        self.0.num_idle() as u32
+    }
+}
 
 use fms_application::services::alert_dispatch_service::AlertDispatchService;
 use fms_application::services::cache_invalidation_service::{
@@ -132,9 +144,10 @@ pub(crate) async fn build_observability_services(
         "EVENTS_OUTBOX_RETRY_RECOVERY_BATCH_SIZE",
         env_i64("EVENTS_OUTBOX_BATCH_SIZE", 200),
     );
-    // `PgUnitOfWork` 只在这一处（组合根）被点名：它是 `Transaction<'static, Postgres>`
-    // 唯一被具体化的地方，应用层与 api 层都只见到 `U::Tx` 或端口。
-    let unit_of_work = Arc::new(PgUnitOfWork::new(pool.clone()));
+    // `PgUnitOfWork` 在整个仓库里只被造一次，在 `di::shared`；它是
+    // `Transaction<'static, Postgres>` 唯一被具体化的地方，应用层与 api 层都
+    // 只见到 `U::Tx` 或端口。这里只是把它取过来。
+    let unit_of_work = repos.unit_of_work.clone();
 
     let domain_event_relay_svc = Arc::new(DomainEventRelayService::new(
         unit_of_work.clone(),
@@ -275,7 +288,7 @@ pub(crate) async fn build_observability_services(
     };
 
     let scheduler_runtime_svc = SchedulerRuntimeService::new(
-        pool.clone(),
+        Arc::new(PgPoolStats(pool.clone())) as Arc<dyn DbPoolStatsSource>,
         Arc::new(PgFlightSyncRepository::new(pool.clone())),
         infra.sse_hub.clone(),
         runtime_error_monitor.clone(),

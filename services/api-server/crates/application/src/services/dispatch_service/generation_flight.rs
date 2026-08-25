@@ -131,7 +131,7 @@ impl DispatchService {
             other => {
                 return Err(DomainError::BusinessRuleViolation(format!(
                     "未知预计完成时间模式: {other}"
-                )))
+                )));
             }
         };
 

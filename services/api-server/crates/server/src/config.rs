@@ -343,8 +343,8 @@ impl Default for HttpTlsPerformanceConfig {
     fn default() -> Self {
         Self {
             enable_session_tickets: true,
-            session_timeout: 3600, // 1 hour in seconds
-            http2_initial_stream_window_size: 1 << 20, // 1MB
+            session_timeout: 3600,                         // 1 hour in seconds
+            http2_initial_stream_window_size: 1 << 20,     // 1MB
             http2_initial_connection_window_size: 1 << 20, // 1MB
         }
     }
@@ -376,10 +376,7 @@ pub fn resolve_http_tls_binding_config(
 /// 解析 TLS 性能优化配置
 pub fn resolve_http_tls_performance_config() -> HttpTlsPerformanceConfig {
     HttpTlsPerformanceConfig {
-        enable_session_tickets: parse_bool_like(
-            env_optional_string(API_TLS_ENABLE_SESSION_TICKETS).as_deref(),
-            true,
-        ),
+        enable_session_tickets: parse_bool_like(env_optional_string(API_TLS_ENABLE_SESSION_TICKETS).as_deref(), true),
         session_timeout: env_optional_string(API_TLS_SESSION_TIMEOUT)
             .and_then(|v| v.parse().ok())
             .unwrap_or(3600), // Default: 1 hour
@@ -441,16 +438,15 @@ pub fn load_rustls_server_config(
     }
 
     let private_key = read_private_key(Path::new(&tls_binding_config.key_file))?;
-    
+
     let mut config = RustlsServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(cert_chain, private_key)
         .map_err(io_other)?;
 
     if performance_config.enable_session_tickets {
-        config.session_storage = rustls::server::ServerSessionMemoryCache::new(
-            performance_config.session_timeout.max(32) as usize,
-        );
+        config.session_storage =
+            rustls::server::ServerSessionMemoryCache::new(performance_config.session_timeout.max(32) as usize);
     }
 
     Ok(config)

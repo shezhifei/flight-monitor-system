@@ -18,7 +18,9 @@ use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_runtime::spawn_tracked::spawn_tracked;
 use futures_util::stream::StreamExt;
 
-use super::shared::{bind_conversation_id, current_user_id, resolve_stream_task_type, target_objects_from_request, NLQueryRequest};
+use super::shared::{
+    bind_conversation_id, current_user_id, resolve_stream_task_type, target_objects_from_request, NLQueryRequest,
+};
 
 pub(crate) async fn query_natural_language_stream(
     req: HttpRequest,

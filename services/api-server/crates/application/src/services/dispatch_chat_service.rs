@@ -14,8 +14,8 @@ use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{DispatchOrder, DispatchOrderStatus};
 use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 use fms_domain::models::dispatch_collaboration::{
-    DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember, DispatchChatMemberUpsert,
-    DispatchChatMessage, DispatchChatMessageCursor, DispatchChatUserProfile, NewDispatchChatMessage,
+    DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember, DispatchChatMemberUpsert, DispatchChatMessage,
+    DispatchChatMessageCursor, DispatchChatUserProfile, NewDispatchChatMessage,
 };
 use fms_domain::models::flight::Flight;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
@@ -663,9 +663,7 @@ impl DispatchChatService {
         let normalized_group_id = normalize(group_id);
         let normalized_user_id = normalize(user_id);
         let normalized_content = normalize(content);
-        let normalized_client_msg_id = client_msg_id
-            .map(normalize)
-            .filter(|value| !value.is_empty());
+        let normalized_client_msg_id = client_msg_id.map(normalize).filter(|value| !value.is_empty());
 
         if normalized_group_id.is_empty() || normalized_user_id.is_empty() {
             return Err(DispatchChatError::Forbidden("群聊访问被拒绝".into()));
@@ -675,7 +673,9 @@ impl DispatchChatService {
         }
         if let Some(client_msg_id) = normalized_client_msg_id.as_deref() {
             if client_msg_id.chars().count() > 64 {
-                return Err(DispatchChatError::Validation("client_msg_id 长度不应超过 64 字符".into()));
+                return Err(DispatchChatError::Validation(
+                    "client_msg_id 长度不应超过 64 字符".into(),
+                ));
             }
         }
 
@@ -715,10 +715,7 @@ impl DispatchChatService {
             return Err(DispatchChatError::Archived("群已归档，当前只读".into()));
         }
 
-        let members = self
-            .collaboration_repo
-            .find_group_members(&normalized_group_id)
-            .await?;
+        let members = self.collaboration_repo.find_group_members(&normalized_group_id).await?;
         let (is_at_all, mention_ids) = resolve_mentions(
             mention_user_ids,
             at_all,
@@ -2011,7 +2008,10 @@ mod tests {
             _user_id: &str,
             read_seq: i64,
         ) -> Result<Option<DispatchChatReadCursorUpdate>, DomainError> {
-            self.mark_read_calls.lock().expect("lock mark read calls").push(read_seq);
+            self.mark_read_calls
+                .lock()
+                .expect("lock mark read calls")
+                .push(read_seq);
             let mut cursor = self.last_read_seq.lock().expect("lock cursor");
             let previous_last_read_seq = *cursor;
             *cursor = (*cursor).max(read_seq);
@@ -2309,10 +2309,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(
-            outcome.message.metadata["mention_user_ids"],
-            json!(["user-2"])
-        );
+        assert_eq!(outcome.message.metadata["mention_user_ids"], json!(["user-2"]));
         assert_eq!(outcome.message.mention_user_ids, vec!["user-2".to_string()]);
         assert!(!outcome.message.is_at_all);
         assert_eq!(
@@ -2403,11 +2400,7 @@ mod tests {
         let batch = &batches[0];
         assert_eq!(
             batch.user_ids,
-            vec![
-                "user-2".to_string(),
-                "user-3".to_string(),
-                "user-readonly".to_string()
-            ]
+            vec!["user-2".to_string(), "user-3".to_string(), "user-readonly".to_string()]
         );
         assert_eq!(batch.category, "dispatch_chat_mention");
         assert_eq!(batch.severity, "warning");
@@ -2565,9 +2558,9 @@ mod tests {
             .expect("a member can list group members");
         let items = payload["items"].as_array().expect("items array");
         assert!(
-            items.iter().any(|item| {
-                item["user_id"] == USER_ID && item["is_active"] == true && item["username"] == USER_ID
-            }),
+            items
+                .iter()
+                .any(|item| { item["user_id"] == USER_ID && item["is_active"] == true && item["username"] == USER_ID }),
             "active caller should appear, got {items:?}"
         );
         assert!(
@@ -2630,10 +2623,7 @@ mod tests {
             resolve_archive_anchor(true, false, Some(departed), Some(arrived)),
             Some(arrived)
         );
-        assert_eq!(
-            resolve_archive_anchor(true, false, None, Some(arrived)),
-            Some(arrived)
-        );
+        assert_eq!(resolve_archive_anchor(true, false, None, Some(arrived)), Some(arrived));
         assert_eq!(
             resolve_archive_anchor(false, true, Some(departed), Some(arrived)),
             Some(departed)
@@ -2646,13 +2636,7 @@ mod tests {
 
     #[test]
     fn memberships_retain_existing_dispatchers() {
-        let memberships = build_group_memberships(
-            &[],
-            &[],
-            &["ops-admin".to_string()],
-            &HashMap::new(),
-            4,
-        );
+        let memberships = build_group_memberships(&[], &[], &["ops-admin".to_string()], &HashMap::new(), 4);
         let retained = memberships
             .iter()
             .find(|membership| membership.user_id == "ops-admin")

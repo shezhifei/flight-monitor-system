@@ -2,18 +2,16 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 
 use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
 use fms_domain::ports::ai_run_event_repository::AiRunEventRepository;
 use fms_domain::ports::database_metadata_port::DatabaseMetadataPort;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxRepository;
-use fms_domain::ports::todo_repository::{TodoRepository, TodoTransactionalRepository};
+use fms_domain::ports::todo_repository::TodoRepository;
 
 use crate::services::ai_execution_allowlist::ExecutionAllowlist;
 use crate::services::ai_execution_metrics_service::AiExecutionMetricsService;
 use crate::services::ai_execution_readiness_service::AiExecutionReadinessService;
-use crate::sqlx_transactional_repositories::SqlxTodoTransactionalRepository;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct RolloutStatusResponse {
@@ -62,9 +60,7 @@ pub struct AiRolloutStatusService {
     metrics_service: Arc<AiExecutionMetricsService>,
     proposal_repo: Arc<dyn AiProposalRepository + Send + Sync>,
     todo_repo: Arc<dyn TodoRepository + Send + Sync>,
-    todo_tx_repo: Arc<dyn SqlxTodoTransactionalRepository>,
     db_metadata_port: Arc<dyn DatabaseMetadataPort + Send + Sync>,
-    pool: PgPool,
     outbox_repo: Arc<dyn DomainEventOutboxRepository + Send + Sync>,
     run_event_repo: Arc<dyn AiRunEventRepository + Send + Sync>,
 }
@@ -75,9 +71,7 @@ impl AiRolloutStatusService {
         metrics_service: Arc<AiExecutionMetricsService>,
         proposal_repo: Arc<dyn AiProposalRepository + Send + Sync>,
         todo_repo: Arc<dyn TodoRepository + Send + Sync>,
-        todo_tx_repo: Arc<dyn SqlxTodoTransactionalRepository>,
         db_metadata_port: Arc<dyn DatabaseMetadataPort + Send + Sync>,
-        pool: PgPool,
         outbox_repo: Arc<dyn DomainEventOutboxRepository + Send + Sync>,
         run_event_repo: Arc<dyn AiRunEventRepository + Send + Sync>,
     ) -> Self {
@@ -86,9 +80,7 @@ impl AiRolloutStatusService {
             metrics_service,
             proposal_repo,
             todo_repo,
-            todo_tx_repo,
             db_metadata_port,
-            pool,
             outbox_repo,
             run_event_repo,
         }
@@ -269,20 +261,11 @@ impl AiRolloutStatusService {
             .await
             .map_err(|e| format!("failed to delete proposals: {e}"))? as i64;
 
-        // Execute remaining operations (todos) in a transaction
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| format!("failed to begin tx: {e}"))?;
-
         let todos_soft_deleted = self
-            .todo_tx_repo
-            .soft_delete_by_source_ids(&mut tx, "ai_action", &proposal_ids, cutoff_at)
+            .todo_repo
+            .soft_delete_by_source_ids("ai_action", &proposal_ids, cutoff_at)
             .await
             .map_err(|e| format!("failed to update todos: {e}"))? as i64;
-
-        tx.commit().await.map_err(|e| format!("failed to commit tx: {e}"))?;
 
         Ok(SmokeCleanupResult {
             dry_run: false,

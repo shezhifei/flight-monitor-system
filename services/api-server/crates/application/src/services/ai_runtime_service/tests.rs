@@ -221,6 +221,17 @@ impl TodoRepository for FakeTodoRepo {
     ) -> Result<i64, DomainError> {
         Ok(0)
     }
+
+    // 本文件的测试都不走冒烟清理。返回 `Ok(0)` 会让将来误用这个端口的测试静默通过，
+    // 所以这里响一声。
+    async fn soft_delete_by_source_ids(
+        &self,
+        _source_type: &str,
+        _source_ids: &[String],
+        _cutoff: chrono::DateTime<chrono::Utc>,
+    ) -> Result<u64, DomainError> {
+        unimplemented!("soft_delete_by_source_ids is not exercised by these tests")
+    }
 }
 
 struct FakeTodoAgentContextRepo {
@@ -416,8 +427,10 @@ async fn list_pending_actions_uses_python_page_total_semantics() {
 #[tokio::test]
 async fn approve_pending_action_notifies_requester() {
     let repo = Arc::new(FakeNotificationRepo::default());
-    let notification_service =
-        Arc::new(notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo)));
+    let notification_service = Arc::new(notification_service_without_side_channels(
+        repo.clone(),
+        Arc::new(FakePreferenceRepo),
+    ));
     let service = AiRuntimeService::new().with_notification_service(notification_service);
 
     let pending = service
@@ -1058,8 +1071,10 @@ async fn todo_graph_pilot_metrics_returns_hold_when_duplicate_attempts_blocked()
 #[tokio::test]
 async fn reject_pending_action_notifies_requester_with_reason() {
     let repo = Arc::new(FakeNotificationRepo::default());
-    let notification_service =
-        Arc::new(notification_service_without_side_channels(repo.clone(), Arc::new(FakePreferenceRepo)));
+    let notification_service = Arc::new(notification_service_without_side_channels(
+        repo.clone(),
+        Arc::new(FakePreferenceRepo),
+    ));
     let service = AiRuntimeService::new().with_notification_service(notification_service);
 
     let pending = service

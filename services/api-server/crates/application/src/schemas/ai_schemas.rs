@@ -197,11 +197,7 @@ mod tests {
             .and_then(|value| value.get("base_url"))
             .and_then(serde_json::Value::as_str);
         assert_eq!(default_url, Some("https://api.example.com/v1"));
-        assert!(update
-            .providers
-            .as_ref()
-            .and_then(|value| value.get("asr"))
-            .is_some());
+        assert!(update.providers.as_ref().and_then(|value| value.get("asr")).is_some());
     }
 
     #[test]

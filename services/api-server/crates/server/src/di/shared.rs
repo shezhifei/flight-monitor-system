@@ -6,6 +6,8 @@
 
 use std::sync::Arc;
 
+use fms_infrastructure::db::transaction::PgUnitOfWork;
+
 use crate::di::types::*;
 use fms_api::services::performance_metrics::PerformanceMetricsService;
 use fms_api::sse::hub::SseHub;
@@ -18,9 +20,6 @@ use fms_application::services::notification_service::{
 };
 use fms_application::services::todo_scheduler_service::TodoSchedulerService;
 use fms_application::services::todo_service::TodoService;
-use fms_application::sqlx_transactional_repositories::{
-    SqlxNotificationTransactionalRepository, SqlxTodoTransactionalRepository,
-};
 
 use fms_domain::ports::notification_repository::{NotificationPreferenceRepository, NotificationRepository};
 use fms_domain::ports::user_repository::{RoleRepository, UserRepository};
@@ -84,6 +83,9 @@ use crate::di::adapters::*;
 /// 所有 Postgres 仓库（+ 缓存型 user/role 仓库、session runtime 仓库）的集合。
 pub(crate) struct SharedRepos {
     pub pool: sqlx::PgPool,
+    /// 事务边界的唯一具体实现。放在这里而不是每个 di 模块各造一个，
+    /// 是为了让 `PgUnitOfWork` 在整个组合根里只被点名一次。
+    pub unit_of_work: Arc<PgUnitOfWork>,
     pub flight_repo: Arc<PgFlightRepository>,
     pub label_repo: Arc<PgLabelRepository>,
     pub flight_archive_repo: Arc<PgFlightArchiveRepository>,
@@ -227,9 +229,11 @@ pub(crate) fn build_shared_repos(
     let shift_instance_repo = Arc::new(PgShiftInstanceRepository::new(pool.clone()));
     let schedule_exception_repo = Arc::new(PgScheduleExceptionRepository::new(pool.clone()));
     let domain_event_outbox_repo = Arc::new(PgDomainEventOutboxRepository::new(pool.clone()));
+    let unit_of_work = Arc::new(PgUnitOfWork::new(pool.clone()));
 
     SharedRepos {
         pool,
+        unit_of_work,
         flight_repo,
         label_repo,
         flight_archive_repo,
@@ -319,34 +323,33 @@ pub(crate) fn build_shared_infra(repos: &SharedRepos) -> SharedInfra {
     let business_case_event_publisher =
         Some(Arc::new(OutboxBusinessCaseEventPublisher::new(pool.clone())) as Arc<dyn BusinessCaseEventPublisher>);
 
-    let flowable_client: Arc<dyn FlowableGateway> =
-        match std::env::var("FLOWABLE_ENGINE_MODE")
-            .unwrap_or_else(|_| "embedded".to_string())
-            .trim()
-            .to_ascii_lowercase()
-            .as_str()
-        {
-            // remote = 过渡回退路径（HTTP 调 tomcat flowable-rest），稳定后计划删除
-            "remote" => {
-                let flowable_admin_pass = std::env::var("FLOWABLE_ADMIN_PASSWORD")
-                    .or_else(|_| std::env::var("FLOWABLE_PASSWORD"))
-                    .unwrap_or_else(|_| "test".to_string());
-                Arc::new(
-                    FlowableClient::try_new(
-                        std::env::var("FLOWABLE_BASE_URL")
-                            .unwrap_or_else(|_| "http://localhost:8082/flowable-rest/service".to_string()),
-                        std::env::var("FLOWABLE_USERNAME").unwrap_or_else(|_| "rest-admin".to_string()),
-                        flowable_admin_pass,
-                    )
-                    .expect("FLOWABLE_BASE_URL must be a valid absolute URL with a host"),
+    let flowable_client: Arc<dyn FlowableGateway> = match std::env::var("FLOWABLE_ENGINE_MODE")
+        .unwrap_or_else(|_| "embedded".to_string())
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        // remote = 过渡回退路径（HTTP 调 tomcat flowable-rest），稳定后计划删除
+        "remote" => {
+            let flowable_admin_pass = std::env::var("FLOWABLE_ADMIN_PASSWORD")
+                .or_else(|_| std::env::var("FLOWABLE_PASSWORD"))
+                .unwrap_or_else(|_| "test".to_string());
+            Arc::new(
+                FlowableClient::try_new(
+                    std::env::var("FLOWABLE_BASE_URL")
+                        .unwrap_or_else(|_| "http://localhost:8082/flowable-rest/service".to_string()),
+                    std::env::var("FLOWABLE_USERNAME").unwrap_or_else(|_| "rest-admin".to_string()),
+                    flowable_admin_pass,
                 )
-            }
-            _ => {
-                let engine = EmbeddedFlowableEngine::try_new_from_env()
-                    .expect("FLOWABLE_ENGINE_MODE=embedded requires a bootable flowable engine");
-                Arc::new(engine)
-            }
-        };
+                .expect("FLOWABLE_BASE_URL must be a valid absolute URL with a host"),
+            )
+        }
+        _ => {
+            let engine = EmbeddedFlowableEngine::try_new_from_env()
+                .expect("FLOWABLE_ENGINE_MODE=embedded requires a bootable flowable engine");
+            Arc::new(engine)
+        }
+    };
     let flowable_svc = Arc::new(FlowableService::new(flowable_client.clone()));
 
     let performance_metrics = PerformanceMetricsService::new();
@@ -393,33 +396,27 @@ pub(crate) struct SharedServices {
 
 pub(crate) fn build_shared_services(repos: &SharedRepos, infra: &SharedInfra) -> SharedServices {
     let notification_repo_for_service: Arc<dyn NotificationRepository + Send + Sync> = repos.notification_repo.clone();
-    let notification_tx_repo: Arc<dyn SqlxNotificationTransactionalRepository> = repos.notification_repo.clone();
     let notification_pref_repo_for_service: Arc<dyn NotificationPreferenceRepository + Send + Sync> =
         repos.notification_repo.clone();
-    let notification_collaboration_events: Arc<dyn NotificationCollaborationEvents> =
-        Arc::new(CollaborationEventRecorder::new(repos.dispatch_collaboration_repo.clone()));
-    let notification_svc: Arc<ConcreteNotificationService> = Arc::new(
-        NotificationService::new(
-            notification_repo_for_service,
-            notification_pref_repo_for_service,
-            notification_collaboration_events,
-            infra.notification_delivery_publisher.clone() as Arc<dyn NotificationDeliveryPublisher>,
-            infra.notification_metrics_recorder.clone() as Arc<dyn NotificationMetricsRecorder>,
-            // 真实实现由 di::business_case 在建好对面服务后 set 进来（构造环断点）。
-            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
-        )
-        .with_transactional_repository(notification_tx_repo),
+    let notification_collaboration_events: Arc<dyn NotificationCollaborationEvents> = Arc::new(
+        CollaborationEventRecorder::new(repos.dispatch_collaboration_repo.clone()),
     );
+    let notification_svc: Arc<ConcreteNotificationService> = Arc::new(NotificationService::new(
+        notification_repo_for_service,
+        notification_pref_repo_for_service,
+        notification_collaboration_events,
+        infra.notification_delivery_publisher.clone() as Arc<dyn NotificationDeliveryPublisher>,
+        infra.notification_metrics_recorder.clone() as Arc<dyn NotificationMetricsRecorder>,
+        // 真实实现由 di::business_case 在建好对面服务后 set 进来（构造环断点）。
+        Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
+    ));
     let todo_scheduler_svc = Arc::new(
         TodoSchedulerService::new(repos.todo_repo.clone())
             .with_notification_service(notification_svc.clone())
             .with_sse_publisher(infra.todo_scheduler_sse_publisher.clone()),
     );
-    let todo_tx_repo: Arc<dyn SqlxTodoTransactionalRepository> = repos.todo_repo.clone();
     let todo_svc = Arc::new(
-        TodoService::new(repos.todo_repo.clone())
-            .with_transactional_repository(todo_tx_repo)
-            .with_agent_context_repository(repos.todo_agent_context_repo.clone()),
+        TodoService::new(repos.todo_repo.clone()).with_agent_context_repository(repos.todo_agent_context_repo.clone()),
     );
 
     SharedServices {

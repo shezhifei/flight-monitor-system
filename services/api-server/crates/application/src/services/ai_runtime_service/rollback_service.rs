@@ -35,7 +35,7 @@ use fms_domain::ports::ai_execution_repository::{
 use crate::services::ai_action_proposal_service::AiActionProposalService;
 use crate::services::ai_runtime_service::ai_execution_control_service::AiExecutionControlService;
 use crate::services::ai_runtime_service::compensation_planner::{CompensationError, CompensationPlanner};
-use crate::services::domain_action_executor::DomainActionExecutor;
+use crate::services::domain_action_executor::DomainActionExecution;
 
 #[derive(Debug, Error)]
 pub enum RollbackError {
@@ -124,9 +124,8 @@ pub struct RollbackService {
     plan_repo: Arc<dyn AiCompensationPlanRepository>,
     checkpoint_repo: Option<Arc<dyn AiRunCheckpointRepository>>,
     control_service: Option<Arc<AiExecutionControlService>>,
-    domain_executor: Option<Arc<DomainActionExecutor>>,
+    domain_executor: Option<Arc<dyn DomainActionExecution>>,
     planner: Arc<CompensationPlanner>,
-    pool: Option<sqlx::PgPool>,
     max_retries: u32,
 }
 
@@ -153,7 +152,6 @@ impl RollbackService {
             control_service: None,
             domain_executor: None,
             planner,
-            pool: None,
             max_retries: 3,
         }
     }
@@ -168,13 +166,8 @@ impl RollbackService {
         self
     }
 
-    pub fn with_domain_executor(mut self, executor: Arc<DomainActionExecutor>) -> Self {
+    pub fn with_domain_executor(mut self, executor: Arc<dyn DomainActionExecution>) -> Self {
         self.domain_executor = Some(executor);
-        self
-    }
-
-    pub fn with_pool(mut self, pool: sqlx::PgPool) -> Self {
-        self.pool = Some(pool);
         self
     }
 
@@ -530,18 +523,13 @@ impl RollbackService {
                 compensation_id: compensation_id.to_string(),
             });
         };
-        let receipt = self
-            .receipt_repo
-            .get(&plan.receipt_id)
-            .await?
-            .ok_or_else(|| {
-                RollbackError::Internal(format!(
-                    "receipt {} referenced by compensation {} not found",
-                    plan.receipt_id, compensation_id
-                ))
-            })?;
-        let proposal_matches =
-            plan.proposal_id == scope.proposal_id && receipt.proposal_id == scope.proposal_id;
+        let receipt = self.receipt_repo.get(&plan.receipt_id).await?.ok_or_else(|| {
+            RollbackError::Internal(format!(
+                "receipt {} referenced by compensation {} not found",
+                plan.receipt_id, compensation_id
+            ))
+        })?;
+        let proposal_matches = plan.proposal_id == scope.proposal_id && receipt.proposal_id == scope.proposal_id;
         let run_matches = scope
             .run_id
             .as_deref()

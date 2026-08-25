@@ -426,6 +426,9 @@ async fn read_action_with_granted_permission_dispatches_to_shared_surface() {
     );
     let body = read_body_json(resp).await;
     // The shared FlightSearchService surface returns the flight list envelope.
-    assert!(body.get("flights").is_some(), "expected flight.search envelope, got: {body}");
+    assert!(
+        body.get("flights").is_some(),
+        "expected flight.search envelope, got: {body}"
+    );
     assert!(body.get("evidence").is_some(), "expected evidence block, got: {body}");
 }

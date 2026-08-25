@@ -24,6 +24,7 @@ use fms_application::services::flight_batch_cell_update_service::{
 };
 use fms_domain::ports::flight_repository::FlightRepository;
 use fms_domain::ports::flight_timeline_event_repository::FlightTimelineEventRepository;
+use fms_infrastructure::db::transaction::PgUnitOfWork;
 use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomainEventOutboxRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_flight_runtime_projection_repository::PgFlightRuntimeProjectionRepository;
@@ -56,7 +57,7 @@ async fn connect_pool() -> Option<PgPool> {
     }
 }
 
-fn build_service(pool: PgPool) -> FlightBatchCellUpdateService {
+fn build_service(pool: PgPool) -> FlightBatchCellUpdateService<PgUnitOfWork> {
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
     let timeline_repo = Arc::new(PgFlightTimelineEventRepository::new(pool.clone()));
     let flight_repo_dyn: Arc<dyn FlightRepository + Send + Sync> = flight_repo.clone();
@@ -67,7 +68,7 @@ fn build_service(pool: PgPool) -> FlightBatchCellUpdateService {
         timeline_repo,
         timeline_read,
         Arc::new(PgDomainEventOutboxRepository::new(pool.clone())),
-        pool,
+        Arc::new(PgUnitOfWork::new(pool)),
     )
 }
 

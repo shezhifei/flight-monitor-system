@@ -104,13 +104,12 @@ fn coerce_outbox_row(insert: &PgOutputInsert) -> Result<DomainEventOutboxRow, Do
         }
     };
     let occurred_at_raw = required_value(values, "occurred_at")?;
-    let occurred_at = parse_outbox_occurred_at(&occurred_at_raw)
-        .map_err(|error| {
-            metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
-            DomainError::Internal(format!(
-                "failed to decode outbox occurred_at '{occurred_at_raw}': {error}"
-            ))
-        })?;
+    let occurred_at = parse_outbox_occurred_at(&occurred_at_raw).map_err(|error| {
+        metrics::counter!(CDC_DECODE_FAILED_TOTAL_METRIC).increment(1);
+        DomainError::Internal(format!(
+            "failed to decode outbox occurred_at '{occurred_at_raw}': {error}"
+        ))
+    })?;
     let publish_attempts = values
         .get("publish_attempts")
         .and_then(|value| value.as_deref())
@@ -342,7 +341,6 @@ impl<U: UnitOfWork> DomainEventCdcRelayService<U> {
         Ok(())
     }
 
-
     async fn ensure_publication_exists(&self) -> Result<(), DomainError> {
         self.cdc_admin
             .ensure_publication_exists(&self.config.publication_name)
@@ -418,7 +416,7 @@ fn build_tls_config(config: &ReplicationDatabaseConfig) -> Result<TlsConfig, Dom
         other => {
             return Err(DomainError::Internal(format!(
                 "unsupported replication ssl mode: {other}"
-            )))
+            )));
         }
     };
 

@@ -5,13 +5,13 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
-use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::engine::query::Query;
 use flowable_engine::error::FlowableError;
 use flowable_engine::history::historic_entities::{
     HistoricProcessInstance, HistoricTaskInstance, HistoricVariableInstance,
 };
+use fms_domain::ports::flowable_gateway::FlowableGatewayError;
 use serde_json::{json, Value};
 
 use super::run_on_engine;
@@ -82,9 +82,7 @@ fn parse_instant(value: &str) -> Option<DateTime<chrono::Utc>> {
 }
 
 /// process_definition_id → key 映射（历史实体上没有 definition key，需 join）
-fn definition_key_map(
-    engine: &ProcessEngine,
-) -> Result<std::collections::HashMap<String, String>, FlowableError> {
+fn definition_key_map(engine: &ProcessEngine) -> Result<std::collections::HashMap<String, String>, FlowableError> {
     Ok(engine
         .get_repository_service()
         .get_process_definitions()?
@@ -122,15 +120,9 @@ pub(super) async fn get_historic_process_instances(
         let key_map = definition_key_map(engine)?;
         for (key, value) in &memory_filters {
             match key.as_str() {
-                "businessKey" => {
-                    instances.retain(|i| i.business_key.as_deref() == Some(value.as_str()))
-                }
-                "processDefinitionKey" => instances.retain(|i| {
-                    key_map
-                        .get(&i.process_definition_id)
-                        .map(String::as_str)
-                        == Some(value.as_str())
-                }),
+                "businessKey" => instances.retain(|i| i.business_key.as_deref() == Some(value.as_str())),
+                "processDefinitionKey" => instances
+                    .retain(|i| key_map.get(&i.process_definition_id).map(String::as_str) == Some(value.as_str())),
                 "startedBefore" => {
                     if let Some(bound) = parse_instant(value) {
                         instances.retain(|i| i.start_time < bound);
@@ -151,15 +143,16 @@ pub(super) async fn get_historic_process_instances(
                         instances.retain(|i| i.end_time.map(|t| t > bound).unwrap_or(false));
                     }
                 }
-                "startedBy" => {
-                    instances.retain(|i| i.start_user_id.as_deref() == Some(value.as_str()))
-                }
+                "startedBy" => instances.retain(|i| i.start_user_id.as_deref() == Some(value.as_str())),
                 // 已知差异：HistoricProcessInstance 实体无 tenant_id，无法支撑
                 "tenantId" => {
                     tracing::warn!("embedded flowable: historic process instance tenantId filter unsupported, ignored");
                 }
                 unknown => {
-                    tracing::warn!(filter = unknown, "embedded flowable: ignoring unknown historic process instance filter");
+                    tracing::warn!(
+                        filter = unknown,
+                        "embedded flowable: ignoring unknown historic process instance filter"
+                    );
                 }
             }
         }
@@ -207,9 +200,7 @@ pub(super) async fn get_historic_tasks(
         .map(|(key, value)| (key.to_string(), value.clone()))
         .collect();
     run_on_engine(Arc::clone(engine), move |engine| {
-        let mut query = engine
-            .get_history_service()
-            .create_historic_task_instance_query();
+        let mut query = engine.get_history_service().create_historic_task_instance_query();
         let mut memory_filters: Vec<(String, String)> = Vec::new();
         for (key, value) in &filters {
             let value = value.trim().to_string();
@@ -248,7 +239,10 @@ pub(super) async fn get_historic_tasks(
                     }
                 }
                 unknown => {
-                    tracing::warn!(filter = unknown, "embedded flowable: ignoring unknown historic task filter");
+                    tracing::warn!(
+                        filter = unknown,
+                        "embedded flowable: ignoring unknown historic task filter"
+                    );
                 }
             }
         }
@@ -266,9 +260,7 @@ pub(super) async fn get_historic_variable_instances(
         .map(|(key, value)| (key.to_string(), value.clone()))
         .collect();
     run_on_engine(Arc::clone(engine), move |engine| {
-        let mut query = engine
-            .get_history_service()
-            .create_historic_variable_instance_query();
+        let mut query = engine.get_history_service().create_historic_variable_instance_query();
         for (key, value) in &filters {
             let value = value.trim().to_string();
             if value.is_empty() {
@@ -280,7 +272,10 @@ pub(super) async fn get_historic_variable_instances(
                 "taskId" => query = query.task_id(value),
                 "variableName" => query = query.variable_name(value),
                 unknown => {
-                    tracing::warn!(filter = unknown, "embedded flowable: ignoring unknown historic variable filter");
+                    tracing::warn!(
+                        filter = unknown,
+                        "embedded flowable: ignoring unknown historic variable filter"
+                    );
                 }
             }
         }

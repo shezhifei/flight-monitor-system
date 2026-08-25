@@ -9,11 +9,9 @@ const DEBT_PATTERNS: &[&str] = &[
     "PgPool",
     "Transaction<",
     "Postgres",
-    // `Sqlx*TransactionalRepository`（application/src/sqlx_transactional_repositories.rs 的
-    // 10 个别名 trait）存在的目的就是把 `Transaction<'tx, Postgres>` 从签名里藏起来，好让
-    // HRTB 变成 `dyn`-able。于是持有 `Arc<dyn SqlxFooTransactionalRepository>` 的文件在
-    // `Postgres` / `Transaction<` 上一个都不命中——这个变通做法正好绕过了守门测试本身。
-    // 在本仓库里 `Sqlx` 这个前缀只属于那 10 个别名 trait，所以它是一个精确模式。
+    // `Sqlx` 前缀曾是 10 个别名 trait（Sqlx*TransactionalRepository）的专属标记，那些
+    // trait 把 `Transaction<'tx, Postgres>` 从签名里藏起来，绕过 `Postgres` / `Transaction<`
+    // 的扫描。别名 trait 已随生产 sqlx 依赖一并删除；模式保留，防止同类变通回流。
     "Sqlx",
 ];
 
@@ -31,35 +29,18 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
     // `application -> fms-infrastructure`/`sqlx` edge one service at a time, and
     // each such step must remove a line here. A new entry means new debt.
     let expected = [
-        "ai_action_proposal_service/service.rs",
         "ai_action_proposal_service/tests.rs",
         "ai_execution_readiness_service.rs",
-        "ai_job_service.rs",
         "ai_job_timeout_reaper_service.rs",
-        "ai_rollout_status_service.rs",
         "ai_runtime_service/ai_execution_control_service.rs",
         "ai_runtime_service/compensation_planner.rs",
         "ai_runtime_service/in_memory_repos.rs",
         "ai_runtime_service/recovery_orchestrator.rs",
         "ai_runtime_service/rollback_service.rs",
-        "anomaly_service.rs",
-        "business_case_service/service.rs",
         "dispatch_chat_service.rs",
-        "dispatch_service/helpers_validation.rs",
-        "dispatch_service/mod.rs",
-        "dispatch_service/order_lifecycle.rs",
-        "domain_action_executor/service.rs",
         "domain_action_executor/tests.rs",
-        "flight_batch_cell_update_service.rs",
-        "flight_domain_events.rs",
-        "flight_runtime_service/service.rs",
         "flight_runtime_service/tests.rs",
-        "flight_runtime_service/types.rs",
-        "flight_service.rs",
         "in_memory_ai_proposal_repository.rs",
-        "notification_service/service.rs",
-        "ontology_service/service.rs",
-        "todo_service.rs",
     ]
     .into_iter()
     .map(String::from)
@@ -73,7 +54,7 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
 // 还没做完。原来的 ignore 理由写的是「until P1 resolves boundary violations」，P1 早已落地
 // 而红灯依旧，那条理由已经变成假话；让守门说真话是 P0 的全部内容，所以这里改成真实的阻塞项。
 // 解除 ignore 的条件只有一个：下面的清单降到 0，而不是清单被改。
-#[ignore = "P3 未完成：application 层仍有 29 个文件持有 sqlx 类型；清单降到 0 时解除"]
+#[ignore = "P3 未完成：application 层仍有 20 个文件持有 sqlx 类型；清单降到 0 时解除"]
 fn production_application_source_does_not_bypass_domain_data_ports() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let application_src = manifest_dir.join("src");

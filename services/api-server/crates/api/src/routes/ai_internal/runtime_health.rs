@@ -17,16 +17,13 @@ fn default_detailed() -> bool {
 }
 
 /// Health check endpoint for AI runtime service
-/// 
+///
 /// Checks if MQ publisher is connected and outbox writer is active
 /// Returns degraded status if components are missing
 /// P0-5-B: Terminal Event Durability - Health monitoring
-pub async fn runtime_health(
-    query: web::Query<RuntimeHealthQuery>,
-    claims: JwtAuth,
-) -> Result<HttpResponse, ApiError> {
+pub async fn runtime_health(query: web::Query<RuntimeHealthQuery>, claims: JwtAuth) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    
+
     // Try to resolve MQ publisher
     let mq_status = match get_mq_publisher_status() {
         Ok(Some(_)) => "connected".to_string(),
@@ -40,14 +37,14 @@ pub async fn runtime_health(
         Ok(None) => "inactive".to_string(),
         Err(e) => format!("error: {}", e),
     };
-    
+
     // Determine overall status
     let overall_status = if mq_status == "connected" && outbox_status == "active" {
         "healthy"
     } else {
         "degraded"
     };
-    
+
     let response = if query.detailed {
         json!({
             "status": overall_status,
@@ -70,7 +67,7 @@ pub async fn runtime_health(
             "outbox_active": outbox_status == "active"
         })
     };
-    
+
     Ok(HttpResponse::Ok().json(response))
 }
 
@@ -90,7 +87,7 @@ fn get_outbox_writer_status() -> Result<Option<String>, String> {
 mod tests {
     use super::*;
     use actix_web::test;
-    
+
     #[actix_web::test]
     async fn test_runtime_health_healthy() {
         // Test implementation would require full DI setup

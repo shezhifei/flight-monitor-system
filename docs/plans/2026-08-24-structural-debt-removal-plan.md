@@ -14,7 +14,7 @@
 | P0 让守门说真话 | ✅ | `f6f79b8` | 断言从 3 个文件改为真实的 31 个 |
 | P1 删 DispatchService 的 `Option` | ✅ | PR #4 `b188015` | 26 个 `Option<Arc<dyn …>>` → 0 |
 | P2 删 `NullRepository` | ✅ | PR #5 `38eb757`、`26b1144` | domain 公开 API 少 1687 行；净 −532 |
-| P3 删 `application → infrastructure` | 🔶 进行中 | `60b68b5`、`42e7ff5`、`e5f57bf` | 见下 |
+| P3 删 `application → infrastructure` | 🔶 进行中（**清单未归零，仍是红的**） | `60b68b5` … `01eeb1c`（PR #8） | 见下 |
 | P4 ts-rs 二择一 | ⬜ 未开始 | — | — |
 
 P3 已落地的三步：
@@ -26,8 +26,21 @@ P3 已落地的三步：
 3. `e5f57bf` **HRTB 已删除**——18 个 `for<'tx>` 归零，代价是 23 处事务签名钉成 `'static`。
 
 4. `ab40062` **打样成功**：`UnitOfWork` 端口成立，3 个文件已彻底无 sqlx，守门清单 32 → **29**。
+5. `d143802`、`4d5004e`、`2c84c83` **删掉只包了一条语句的「事务」**：单条语句的 `begin`/`commit`
+   不构成事务边界，失败路径上的 `rollback` 是空操作，删掉后语义不变。
+6. `486c05f` 第一个真正的 `UnitOfWork` 转换，连同它需要的接缝端口。
+7. `9e6cfe1` 运行时服务的两个事务提进窄协作者（`DispatchTimelineWriter`，端口只有两个方法）。
+   那个服务有 18 处 `web::Data` 注入，所以是服务保持非泛型、只把带事务的两个单元提出去。
+8. `01eeb1c` 删掉 `AnomalyService` 的事务转发层（见下面的测量）。清单 → **22**。
 
-P3 剩余：`sqlx` 生产依赖（`Cargo.toml:22`）、清单里剩下的 29 个文件、以及 8 个仍持有 `PgPool` 的事务拥有者。
+P3 剩余（**未完成**，下列每一项都还在）：
+
+- `sqlx` 仍是 `crates/application/Cargo.toml:22` 的生产依赖——这是 P3 的 DoD，尚未达成；
+- 守门清单仍有 **22** 个文件持有 sqlx 类型；
+- 13 个事务仍直接从 `PgPool` 开：`ontology_service`（8）、`flight_service`（4）、
+  `domain_action_executor`（1）。
+
+清单降到 0 **且**那行依赖被删掉之前，P3 不算做完；上面这 8 步都只是把范围缩小了。
 
 ### 打样结论（`ab40062`，供后续逐个推进时照抄）
 
@@ -40,6 +53,43 @@ P3 剩余：`sqlx` 生产依赖（`Cargo.toml:22`）、清单里剩下的 29 个
   副作用是好的：`fms-api` 从点名具体应用服务变成只认端口。
 - **别在 `impl<U: UnitOfWork>` 里留不用 `self` 也不用 `U` 的函数**，否则调用方推不出 `U`（E0283）。
 - 不要加 `rollback`：`sqlx::Transaction` drop 即回滚，加了就是死代码。
+
+### 测量：`*_in_tx` 这一面从不跨越 api 缝（2026-08-25）
+
+在动 dispatch 之前把剩余范围重新量了一遍。结论改变了后续几步的形状，所以记在这里，
+免得下一轮又按「每个服务都要配一个窄端口」去估工。
+
+- application 层每一个 `*_in_tx` 方法的调用方**只有** `domain_action_executor/service.rs`
+  一处（`dispatch_service` 内部的 `sync_assignment_members_in_tx` 是同服务自调，不跨界）。
+- **api 层零调用**：没有任何处理器调用过 `*_in_tx`。
+- 执行器自身有**零个 `web::Data` 注入点**，只被 `ai_action_proposal_service` 和
+  `ai_runtime_service/rollback_service` 两个应用服务持有。
+
+也就是说整个 `*_in_tx` 面是执行器与七个服务之间的私有协议，它从不跨越 crate 缝。
+因此这一面的改造**不需要缝端口，也不需要动 api**；只在执行器与那两个持有者之间放一个
+窄端口就够。
+
+第二个测量：这些方法体里**没有一处裸 SQL**，它们只是把 `tx` 转发给本来就对 `Tx` 泛型的
+仓储端口。真正把 `Tx` 钉成 `Transaction<'static, Postgres>` 的是方法体读到的**别名类型
+字段**（`Arc<dyn SqlxFooTransactionalRepository>`），不是 SQL。所以每一步的着力点是那个
+字段，不是方法签名——只改签名不动字段是编译不过的（字段无法对方法的泛型参数泛型）。
+
+据此分成两种形状，按方法体里有没有真实领域逻辑来选：
+
+- **纯转发 → 直接删。** `AnomalyService` 的三个方法就是这种：端口早已泛型，中间这层只是
+  把具体类型重新钉回去，删掉它**减少**别名引用，而不是把别名搬个地方。
+- **带领域逻辑 → 提进泛型协作者**（`FlightTimelineWriter` 那个形状）。`todo_service.rs`、
+  `notification_service/service.rs`、`business_case_service/service.rs` 的 sqlx 面完全一致，
+  而且**只有**这些：一行 `use sqlx::{Postgres, Transaction}`、一行别名 import、一个 `tx_repo`
+  字段、一个建造器、N 个 `_in_tx` 方法。把方法体提进同文件的泛型写入方，文件即彻底干净。
+- 单次收益最高的是 **dispatch**：4 个方法读的 `self.order.order_tx_repo` / `member_tx_repo`
+  声明在 `dispatch_service/mod.rs`，而那个文件的 sqlx 面恰好就是一行 import 加这两个字段。
+  一次提取同时清掉 `mod.rs`、`order_lifecycle.rs`、`helpers_validation.rs` 三个清单条目。
+- `domain_action_executor` **必须放最后**：`execute_in_tx` 把同一个句柄扇给 12 个 `*_in_tx`。
+
+扫描口径提醒：清单检测器是**朴素子串扫描**，匹配的是类型名而不是字段类型，也不处理注释。
+`flight_runtime_service/timeline.rs` 曾经持有两个事务却从未进过清单，因为它通过 `self.pool`
+拿池子。这是扫描的局限；**不要**为此扩充模式表——那就是新造一份清单，本计划明令禁止。
 
 ### 顺带发现：P1 删掉的模式在别处活得很好
 

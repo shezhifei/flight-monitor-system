@@ -8,7 +8,6 @@ pub mod http_client;
 pub mod repositories;
 pub mod schemas;
 pub mod services;
-pub mod sqlx_transactional_repositories;
 pub mod types;
 
 /// 测试专用桩件。生产构建不编译。

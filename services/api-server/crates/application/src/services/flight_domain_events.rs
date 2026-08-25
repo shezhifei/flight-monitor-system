@@ -3,15 +3,20 @@
 //! Centralizes the flight event-type names, the payload-builder helpers, and
 //! the thin outbox write helper so the various flight writers (flight_service,
 //! flight_runtime_service/timeline) no longer duplicate the raw outbox INSERT.
+//!
+//! The two writers are generic over the transaction handle `Tx` and name no
+//! database type at all. Every flight writer that owns a transaction routes its
+//! outbox rows through here, so while this module named a concrete sqlx handle,
+//! none of them could stop naming one either — that is why the type parameter
+//! belongs here and not only in the services.
 
 use serde_json::{json, Value};
-use sqlx::{Postgres, Transaction};
 use ulid::Ulid;
 
 use fms_domain::error::DomainError;
 use fms_domain::ports::flight_repository::FlightUpdatePatch;
 
-use crate::sqlx_transactional_repositories::SqlxDomainEventOutboxTransactionalRepository;
+use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 
 // ---------------------------------------------------------------------------
 // Event-type constants (single source of truth)
@@ -128,9 +133,9 @@ pub fn build_deleted_payload(flight_id: &str, actor_id: Option<&str>) -> Value {
 /// provided transaction. This is the canonical replacement for the previously
 /// duplicated `insert_domain_event_outbox` functions in flight_service.rs and
 /// flight_runtime_service/timeline.rs. The SQL and error mapping are unchanged.
-pub async fn write_flight_outbox_event(
-    outbox_repo: &dyn SqlxDomainEventOutboxTransactionalRepository,
-    tx: &mut Transaction<'static, Postgres>,
+pub async fn write_flight_outbox_event<Tx>(
+    outbox_repo: &dyn DomainEventOutboxTransactionalRepository<Tx>,
+    tx: &mut Tx,
     aggregate_type: &str,
     aggregate_id: &str,
     event_type: &str,
@@ -145,9 +150,9 @@ pub async fn write_flight_outbox_event(
 }
 
 /// Emit one outbox row per touched field on a flight update patch.
-pub async fn write_flight_update_outbox_events(
-    outbox_repo: &dyn SqlxDomainEventOutboxTransactionalRepository,
-    tx: &mut Transaction<'static, Postgres>,
+pub async fn write_flight_update_outbox_events<Tx>(
+    outbox_repo: &dyn DomainEventOutboxTransactionalRepository<Tx>,
+    tx: &mut Tx,
     flight_id: &str,
     patch: &FlightUpdatePatch,
     actor_id: Option<&str>,

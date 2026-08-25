@@ -5,9 +5,7 @@ use fms_domain::ports::unit_of_work::UnitOfWork;
 
 use fms_domain::error::DomainError;
 
-use crate::services::domain_event_outbox_delivery::{
-    event_type_metric_label, DomainEventOutboxDelivery,
-};
+use crate::services::domain_event_outbox_delivery::{event_type_metric_label, DomainEventOutboxDelivery};
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 
 /// 调度器需要的中继契约。
@@ -107,7 +105,6 @@ impl<U: UnitOfWork> DomainEventRelayService<U> {
 
         Ok(successful_event_ids.len() as i64)
     }
-
 }
 
 #[async_trait::async_trait]
