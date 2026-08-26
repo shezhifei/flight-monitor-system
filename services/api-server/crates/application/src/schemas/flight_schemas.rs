@@ -492,9 +492,7 @@ pub struct DispatchTimelineListResponse {
 pub enum FlightBatchEditableField {
     ScheduledDeparture,
     ScheduledArrival,
-    Stand,
     CobtTime,
-    BaggageCarousel,
     FlightRemarks,
     BoardingAllowedTime,
     StartBoardingTime,
@@ -508,9 +506,7 @@ impl FlightBatchEditableField {
         match self {
             Self::ScheduledDeparture => "scheduled_departure",
             Self::ScheduledArrival => "scheduled_arrival",
-            Self::Stand => "stand",
             Self::CobtTime => "cobt_time",
-            Self::BaggageCarousel => "baggage_carousel",
             Self::FlightRemarks => "flight_remarks",
             Self::BoardingAllowedTime => "boarding_allowed_time",
             Self::StartBoardingTime => "start_boarding_time",
@@ -523,12 +519,7 @@ impl FlightBatchEditableField {
     pub fn is_snapshot(self) -> bool {
         matches!(
             self,
-            Self::ScheduledDeparture
-                | Self::ScheduledArrival
-                | Self::Stand
-                | Self::CobtTime
-                | Self::BaggageCarousel
-                | Self::FlightRemarks
+            Self::ScheduledDeparture | Self::ScheduledArrival | Self::CobtTime | Self::FlightRemarks
         )
     }
 
@@ -540,7 +531,7 @@ impl FlightBatchEditableField {
     pub fn is_sync_locked(self) -> bool {
         matches!(
             self,
-            Self::ScheduledDeparture | Self::ScheduledArrival | Self::Stand | Self::CobtTime | Self::BaggageCarousel
+            Self::ScheduledDeparture | Self::ScheduledArrival | Self::CobtTime
         )
     }
 
@@ -617,19 +608,19 @@ mod batch_cells_schema_tests {
     #[test]
     fn batch_request_accepts_targets_contract() {
         let req: FlightBatchCellUpdateRequest = serde_json::from_value(json!({
-            "field": "stand",
-            "value": "A128",
+            "field": "flight_remarks",
+            "value": "备注A",
             "client_action_id": "BATCH01",
             "targets": [
                 {
                     "flight_id": "f1",
                     "expected_version": 3,
-                    "expected_value": "A1"
+                    "expected_value": "旧备注"
                 }
             ]
         }))
         .unwrap();
-        assert_eq!(req.field, FlightBatchEditableField::Stand);
+        assert_eq!(req.field, FlightBatchEditableField::FlightRemarks);
         assert_eq!(req.targets.len(), 1);
         assert_eq!(req.targets[0].expected_version, Some(3));
         assert_eq!(req.client_action_id.as_deref(), Some("BATCH01"));

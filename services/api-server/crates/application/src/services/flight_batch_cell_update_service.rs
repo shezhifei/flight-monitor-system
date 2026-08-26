@@ -14,7 +14,6 @@ use ulid::Ulid;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::flight::Flight;
-use fms_domain::models::value_objects::StandNumber;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::flight_repository::{
     FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
@@ -618,14 +617,10 @@ pub(crate) fn validate_request(
     })
 }
 
-const MAX_STAND_LEN: usize = 32;
-const MAX_BAGGAGE_CAROUSEL_LEN: usize = 32;
 const MAX_FLIGHT_REMARKS_LEN: usize = 500;
 
 fn text_max_len(field: FlightBatchEditableField) -> Option<usize> {
     match field {
-        FlightBatchEditableField::Stand => Some(MAX_STAND_LEN),
-        FlightBatchEditableField::BaggageCarousel => Some(MAX_BAGGAGE_CAROUSEL_LEN),
         FlightBatchEditableField::FlightRemarks => Some(MAX_FLIGHT_REMARKS_LEN),
         _ => None,
     }
@@ -643,9 +638,7 @@ fn parse_batch_value(field: FlightBatchEditableField, value: &Value) -> Result<P
     }
 
     match field {
-        FlightBatchEditableField::Stand
-        | FlightBatchEditableField::BaggageCarousel
-        | FlightBatchEditableField::FlightRemarks => {
+        FlightBatchEditableField::FlightRemarks => {
             let text = value
                 .as_str()
                 .map(str::trim)
@@ -705,24 +698,6 @@ fn build_snapshot_patch(
     };
 
     match field {
-        FlightBatchEditableField::Stand => {
-            patch.stand = match value {
-                ParsedBatchValue::Clear => PatchField::Clear,
-                ParsedBatchValue::Text(text) => PatchField::Set(StandNumber(text.clone())),
-                ParsedBatchValue::DateTime(_) => {
-                    return Err(ApplyError::Validation("stand 需要字符串或 null".into()));
-                }
-            };
-        }
-        FlightBatchEditableField::BaggageCarousel => {
-            patch.baggage_carousel = match value {
-                ParsedBatchValue::Clear => PatchField::Clear,
-                ParsedBatchValue::Text(text) => PatchField::Set(text.clone()),
-                ParsedBatchValue::DateTime(_) => {
-                    return Err(ApplyError::Validation("baggage_carousel 需要字符串或 null".into()));
-                }
-            };
-        }
         FlightBatchEditableField::FlightRemarks => {
             patch.flight_remarks = match value {
                 ParsedBatchValue::Clear => PatchField::Clear,
@@ -766,9 +741,7 @@ fn snapshot_current_value(field: FlightBatchEditableField, flight: &Flight) -> V
     match field {
         FlightBatchEditableField::ScheduledDeparture => json!(flight.scheduled_departure),
         FlightBatchEditableField::ScheduledArrival => json!(flight.scheduled_arrival),
-        FlightBatchEditableField::Stand => json!(flight.stand.as_ref().map(|s| &s.0)),
         FlightBatchEditableField::CobtTime => json!(flight.cobt_time),
-        FlightBatchEditableField::BaggageCarousel => json!(flight.baggage_carousel),
         FlightBatchEditableField::FlightRemarks => json!(flight.flight_remarks),
         FlightBatchEditableField::BoardingAllowedTime
         | FlightBatchEditableField::StartBoardingTime
@@ -817,9 +790,7 @@ fn values_equal_for_field(field: FlightBatchEditableField, expected: &Value, cur
                 _ => false,
             }
         }
-        FlightBatchEditableField::Stand
-        | FlightBatchEditableField::BaggageCarousel
-        | FlightBatchEditableField::FlightRemarks => {
+        FlightBatchEditableField::FlightRemarks => {
             let expected_s = expected.as_str().map(str::trim).filter(|s| !s.is_empty());
             let current_s = current.as_str().map(str::trim).filter(|s| !s.is_empty());
             match (expected_s, current_s) {
@@ -857,7 +828,6 @@ mod tests {
 
     #[test]
     fn field_enum_classifies_snapshot_and_timeline() {
-        assert!(FlightBatchEditableField::Stand.is_snapshot());
         assert!(FlightBatchEditableField::CobtTime.is_snapshot());
         assert!(FlightBatchEditableField::FlightRemarks.is_snapshot());
         assert!(!FlightBatchEditableField::FlightRemarks.is_sync_locked());
@@ -919,7 +889,7 @@ mod tests {
     #[test]
     fn validate_requires_expected_version_for_snapshot() {
         let req = sample_request(
-            FlightBatchEditableField::Stand,
+            FlightBatchEditableField::FlightRemarks,
             json!("A12"),
             vec![FlightBatchCellTarget {
                 flight_id: "F1".into(),
@@ -968,16 +938,12 @@ mod tests {
 
     #[test]
     fn parse_enforces_text_length_limits() {
-        let long_stand = "A".repeat(33);
-        let err = parse_batch_value(FlightBatchEditableField::Stand, &json!(long_stand)).unwrap_err();
-        assert!(matches!(err, FlightBatchCellError::Validation(m) if m.contains("32")));
-
         let long_remarks = "备".repeat(501);
         let err = parse_batch_value(FlightBatchEditableField::FlightRemarks, &json!(long_remarks)).unwrap_err();
         assert!(matches!(err, FlightBatchCellError::Validation(m) if m.contains("500")));
 
-        let ok_stand = parse_batch_value(FlightBatchEditableField::Stand, &json!("A".repeat(32))).unwrap();
-        assert!(matches!(ok_stand, ParsedBatchValue::Text(t) if t.chars().count() == 32));
+        let ok_remarks = parse_batch_value(FlightBatchEditableField::FlightRemarks, &json!("备".repeat(500))).unwrap();
+        assert!(matches!(ok_remarks, ParsedBatchValue::Text(t) if t.chars().count() == 500));
     }
 
     #[test]

@@ -259,20 +259,20 @@ async fn batch_version_conflict_writes_nothing() {
 
     let service = build_service(pool.clone());
     let request = FlightBatchCellUpdateRequest {
-        field: FlightBatchEditableField::Stand,
-        value: json!("Z999"),
+        field: FlightBatchEditableField::FlightRemarks,
+        value: json!("new-remarks"),
         client_action_id: Some(format!("conflict-{}", unique_suffix())),
         targets: vec![
             FlightBatchCellTarget {
                 flight_id: f1.clone(),
                 expected_version: Some(7),
-                expected_value: json!("B201"),
+                expected_value: json!("keep-1"),
             },
             // Stale version on second flight → whole batch must fail closed.
             FlightBatchCellTarget {
                 flight_id: f2.clone(),
                 expected_version: Some(1),
-                expected_value: json!("B202"),
+                expected_value: json!("keep-2"),
             },
         ],
     };
