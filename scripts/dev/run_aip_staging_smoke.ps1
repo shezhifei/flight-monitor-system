@@ -181,7 +181,7 @@ try {
 
     if ($SkipDisableDrill) {
         Write-Host "  Running happy-path only (-SkipDisableDrill)..." -ForegroundColor Yellow
-        cargo test -p fms-application staging_smoke_todo_create_executes_end_to_end -- --ignored --nocapture --test-threads=1
+        cargo test -p fms-application staging_smoke_add_note_executes_end_to_end -- --ignored --nocapture --test-threads=1
     } else {
         cargo test -p fms-application $testFilter -- --ignored --nocapture --test-threads=1
     }
@@ -202,8 +202,8 @@ if ($exitCode -ne 0) {
     Write-Host ""
     Write-Host "Troubleshooting:" -ForegroundColor Red
     Write-Host "  - 'execution must be blocked when flag is off' → env var not cleaned; check test-threads=1"
-    Write-Host "  - 'todo row should exist' → DomainActionExecutor not wired or TodoService missing"
-    Write-Host "  - 'outbox should contain Todo.create' → transaction not committed"
+    Write-Host "  - 'flight_remarks should be written' → DomainActionExecutor not wired or Flight.add_note missing"
+    Write-Host "  - 'outbox should contain flight.remarks_updated_v2' → transaction not committed"
     Write-Host "  - 'should record readiness block audit' → readiness service has pool; use new(None)"
     Write-Host "  - 'proposal should remain Approved' → proposal already executed by prior run; ULID ids should prevent this"
     exit $exitCode
@@ -213,9 +213,9 @@ Write-Host ""
 Write-Host "=== ALL STAGING SMOKE TESTS PASSED ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Verification summary:" -ForegroundColor Cyan
-Write-Host "  [PASS] Todo.create proposal executed end-to-end"
-Write-Host "  [PASS] Business row created in todos table"
-Write-Host "  [PASS] Domain event outbox entry written"
+Write-Host "  [PASS] Flight.add_note proposal executed end-to-end"
+Write-Host "  [PASS] Business row updated (flight_remarks written)"
+Write-Host "  [PASS] Domain event outbox entry written (flight.remarks_updated_v2)"
 Write-Host "  [PASS] Audit events: execution_requested, execution_started, execution_succeeded"
 if (-not $SkipDisableDrill) {
     Write-Host "  [PASS] Execution-disabled: proposal blocked, no side effects"

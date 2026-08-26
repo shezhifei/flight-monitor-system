@@ -9,7 +9,6 @@ mod tests {
     use crate::services::ai_proposal_audit_recorder::AiProposalAuditEventRecorder;
     use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
     use crate::services::dispatch_service::DispatchService;
-    use crate::types::ConcreteNotificationService;
     use fms_domain::models::ai_proposal::{ActionProposalStatus, ApprovalPolicy, RiskLevel};
     use fms_domain::ports::ai_object_policy_repository::{
         AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicyRepositoryError,
@@ -409,23 +408,12 @@ mod tests {
         use crate::services::dispatch_service::writer::DispatchOrderWriter;
         use crate::services::flight_service::FlightService;
         use crate::services::flight_writer::FlightWriter;
-        use crate::services::label_service::LabelService;
-        use crate::services::notification_service::{
-            CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
-            NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
-        };
-        use crate::services::todo_service::TodoWriter;
-        use crate::types::{
-            NoopBroadcaster, NoopBusinessCaseEventPublisher, NoopNotificationDeliveryPublisher,
-            NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync,
-        };
+        use crate::types::NoopBusinessCaseEventPublisher;
         use fms_infrastructure::repositories::{
             pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
             pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
             pg_dispatch_order_repository::PgDispatchOrderRepository,
             pg_domain_event_outbox_repository::PgDomainEventOutboxRepository, pg_flight_repository::PgFlightRepository,
-            pg_label_repository::PgLabelRepository, pg_notification_repository::PgNotificationRepository,
-            pg_todo_repository::PgTodoRepository,
         };
 
         let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
@@ -477,38 +465,10 @@ mod tests {
                     as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
                 dispatch_svc.clone(),
             ));
-        let notif_repo = Arc::new(PgNotificationRepository::new(pool.clone()));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
-        let notif_repo_port: Arc<dyn fms_domain::ports::notification_repository::NotificationRepository + Send + Sync> =
-            notif_repo.clone();
-        let notif_pref_repo_port: Arc<
-            dyn fms_domain::ports::notification_repository::NotificationPreferenceRepository + Send + Sync,
-        > = notif_repo.clone();
-        let collab_repo_port: Arc<
-            dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
-        > = collab_repo.clone();
-        let notif_tx_repo_port: Arc<
-            dyn fms_domain::ports::notification_repository::NotificationTransactionalRepository<
-                    sqlx::Transaction<'static, sqlx::Postgres>,
-                > + Send
-                + Sync,
-        > = notif_repo.clone();
-        let notif_svc: Arc<ConcreteNotificationService> = Arc::new(NotificationService::new(
-            notif_repo_port,
-            notif_pref_repo_port,
-            Arc::new(CollaborationEventRecorder::new(collab_repo_port)) as Arc<dyn NotificationCollaborationEvents>,
-            Arc::new(NoopNotificationDeliveryPublisher) as Arc<dyn NotificationDeliveryPublisher>,
-            Arc::new(NoopNotificationMetricsRecorder) as Arc<dyn NotificationMetricsRecorder>,
-            Arc::new(NoopNotificationReceiptGroupSync) as Arc<dyn NotificationReceiptGroupSync>,
-        ));
+
         let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
-        let label_svc = Arc::new(LabelService::new(
-            Arc::new(PgLabelRepository::new(pool.clone())),
-            Arc::new(NoopBroadcaster),
-        ));
-        let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-        let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
-            Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
+
         let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
         let business_case_repo_port: Arc<
             dyn fms_domain::ports::business_case_repository::BusinessCaseRepository + Send + Sync,
@@ -563,27 +523,28 @@ mod tests {
             .with_audit_recorder(audit)
     }
 
-    fn smoke_todo_create_proposal(
+    fn smoke_add_note_proposal(
         proposal_id: &str,
         correlation_id: &str,
+        flight_id: &str,
     ) -> fms_domain::models::ai_proposal::AiActionProposal {
         fms_domain::models::ai_proposal::AiActionProposal {
             proposal_id: proposal_id.to_string(),
             job_id: format!("smoke_job_{proposal_id}"),
             run_id: format!("smoke_run_{proposal_id}"),
             ontology_version: "flight-ops.v1".to_string(),
-            object_type: "Todo".to_string(),
-            object_id: proposal_id.to_string(),
-            action_name: "create".to_string(),
-            arguments: json!({ "title": format!("Smoke test todo {correlation_id}") }),
+            object_type: "Flight".to_string(),
+            object_id: flight_id.to_string(),
+            action_name: "add_note".to_string(),
+            arguments: json!({ "note_content": format!("Smoke test note {correlation_id}") }),
             risk_level: RiskLevel::Low,
-            required_permissions: vec!["todo:write".to_string()],
+            required_permissions: vec!["flight:write".to_string()],
             approval_policy: ApprovalPolicy::AutoExecute,
             before_snapshot: None,
             after_preview: None,
             constraint_results: vec![],
             confidence: 0.95,
-            reasoning: "staging smoke Todo.create".to_string(),
+            reasoning: "staging smoke Flight.add_note".to_string(),
             status: ActionProposalStatus::Approved,
             pending_action_id: None,
             approved_by: Some("smoke_approver".to_string()),
@@ -601,6 +562,45 @@ mod tests {
             correlation_id: Some(correlation_id.to_string()),
             metadata: json!({ "smoke": true }),
         }
+    }
+
+    async fn seed_smoke_flight(pool: &sqlx::PgPool, flight_id: &str) {
+        sqlx::query(
+            r#"INSERT INTO flights (
+                flight_id, airline_code, flight_number, registration,
+                aircraft_type_detail, status,
+                scheduled_departure, scheduled_arrival,
+                estimated_departure, estimated_arrival,
+                actual_departure, actual_arrival,
+                cobt_time, codt,
+                gate, stand, terminal, position, baggage_carousel,
+                has_boarding_restriction, is_quick_turnaround, is_commercial_signed,
+                created_at, updated_at, version,
+                flight_remarks, load_planning_remarks,
+                aircraft_maintenance_remarks, aircraft_check_remarks
+            ) VALUES (
+                $1, 'CA', $2, NULL,
+                NULL, 0,
+                NOW(), NOW() + INTERVAL '2 hours',
+                NULL, NULL,
+                NULL, NULL,
+                NULL, NULL,
+                'A12', 'S1', 'T1', NULL, NULL,
+                FALSE, FALSE, TRUE,
+                NOW(), NOW(), 1,
+                NULL, NULL, NULL, NULL
+            ) ON CONFLICT (flight_id) DO NOTHING"#,
+        )
+        .bind(flight_id)
+        .bind(format!("CA{}", &flight_id[..flight_id.len().min(4)]))
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    /// 烟测用唯一航班 id（满足 seed_smoke_flight 的 flight_number 切片 ≥4 位）。
+    fn smoke_flight_id(correlation_id: &str) -> String {
+        format!("SMK{}", &correlation_id[correlation_id.len() - 8..])
     }
 
     async fn smoke_audit_event_types(
@@ -627,7 +627,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires TEST_DATABASE_URL — run via scripts/dev/run_aip_staging_smoke.ps1"]
-    async fn staging_smoke_todo_create_executes_end_to_end() {
+    async fn staging_smoke_add_note_executes_end_to_end() {
         use crate::services::ai_proposal_audit_recorder::PgAiProposalAuditEventRecorder;
 
         let pool = smoke_pool().await;
@@ -646,7 +646,9 @@ mod tests {
 
         let correlation_id = ulid::Ulid::new().to_string();
         let proposal_id = ulid::Ulid::new().to_string();
-        let proposal = smoke_todo_create_proposal(&proposal_id, &correlation_id);
+        let flight_id = smoke_flight_id(&correlation_id);
+        seed_smoke_flight(&pool, &flight_id).await;
+        let proposal = smoke_add_note_proposal(&proposal_id, &correlation_id, &flight_id);
 
         // Persist the approved proposal to DB
         service.test_repository().unwrap().save(&proposal).await.unwrap();
@@ -660,7 +662,7 @@ mod tests {
             .execute_proposal(ExecuteProposalRequest {
                 proposal_id: proposal_id.clone(),
                 executor_id: "smoke_executor".to_string(),
-                executor_permissions: vec!["todo:write".to_string()],
+                executor_permissions: vec!["flight:write".to_string()],
                 executor_department_id: None,
             })
             .await;
@@ -675,24 +677,31 @@ mod tests {
         assert_eq!(executed.status, ActionProposalStatus::Executed);
         assert!(executed.execution_result.is_some());
 
-        // 2. Todo business row exists
-        let todo_row: Option<(String,)> =
-            sqlx::query_as("SELECT todo_id FROM todos WHERE source_type = 'ai_action' AND source_id = $1 LIMIT 1")
-                .bind(&proposal_id)
-                .fetch_optional(&pool)
+        // 2. Flight business row reflects the note (Flight.add_note 写回 flight_remarks)
+        let remarks: Option<String> =
+            sqlx::query_scalar("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+                .bind(&flight_id)
+                .fetch_one(&pool)
                 .await
                 .unwrap();
-        assert!(todo_row.is_some(), "todo row should exist after smoke execution");
+        assert_eq!(
+            remarks.as_deref(),
+            Some(format!("Smoke test note {correlation_id}").as_str()),
+            "flight_remarks should be written by Flight.add_note smoke execution"
+        );
 
-        // 3. Domain event outbox has a Todo.create event
+        // 3. Domain event outbox has a flight.remarks_updated_v2 event for the flight
         let outbox_count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'Todo.create' AND aggregate_id = $1 AND payload->>'executor_id' = 'smoke_executor'",
+            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'flight.remarks_updated_v2' AND aggregate_id = $1",
         )
-        .bind(&proposal_id)
+        .bind(&flight_id)
         .fetch_one(&pool)
         .await
         .unwrap();
-        assert!(outbox_count.0 >= 1, "outbox should contain Todo.create event");
+        assert!(
+            outbox_count.0 >= 1,
+            "outbox should contain flight.remarks_updated_v2 event"
+        );
 
         // 4. Audit events recorded
         let event_types = smoke_audit_event_types(&pool, &proposal).await;
@@ -724,19 +733,21 @@ mod tests {
 
         let correlation_id = ulid::Ulid::new().to_string();
         let proposal_id = ulid::Ulid::new().to_string();
-        let proposal = smoke_todo_create_proposal(&proposal_id, &correlation_id);
+        let flight_id = smoke_flight_id(&correlation_id);
+        seed_smoke_flight(&pool, &flight_id).await;
+        let proposal = smoke_add_note_proposal(&proposal_id, &correlation_id, &flight_id);
         service.test_repository().unwrap().save(&proposal).await.unwrap();
 
-        let todo_count_before: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM todos WHERE source_type = 'ai_action' AND source_id = $1")
-                .bind(&proposal_id)
+        let remarks_before: Option<String> =
+            sqlx::query_scalar("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+                .bind(&flight_id)
                 .fetch_one(&pool)
                 .await
                 .unwrap();
         let outbox_count_before: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'Todo.create' AND aggregate_id = $1",
+            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'flight.remarks_updated_v2' AND aggregate_id = $1",
         )
-        .bind(&proposal_id)
+        .bind(&flight_id)
         .fetch_one(&pool)
         .await
         .unwrap();
@@ -750,7 +761,7 @@ mod tests {
             .execute_proposal(ExecuteProposalRequest {
                 proposal_id: proposal_id.clone(),
                 executor_id: "smoke_executor".to_string(),
-                executor_permissions: vec!["todo:write".to_string()],
+                executor_permissions: vec!["flight:write".to_string()],
                 executor_department_id: None,
             })
             .await;
@@ -779,22 +790,22 @@ mod tests {
             "proposal should remain Approved"
         );
 
-        let todo_count_after: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM todos WHERE source_type = 'ai_action' AND source_id = $1")
-                .bind(&proposal_id)
+        let remarks_after: Option<String> =
+            sqlx::query_scalar("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+                .bind(&flight_id)
                 .fetch_one(&pool)
                 .await
                 .unwrap();
         let outbox_count_after: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'Todo.create' AND aggregate_id = $1",
+            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'flight.remarks_updated_v2' AND aggregate_id = $1",
         )
-        .bind(&proposal_id)
+        .bind(&flight_id)
         .fetch_one(&pool)
         .await
         .unwrap();
         assert_eq!(
-            todo_count_after.0, todo_count_before.0,
-            "execution-disabled smoke must not create todo rows"
+            remarks_after, remarks_before,
+            "execution-disabled smoke must not modify flight remarks"
         );
         assert_eq!(
             outbox_count_after.0, outbox_count_before.0,
@@ -825,19 +836,21 @@ mod tests {
 
         let correlation_id = ulid::Ulid::new().to_string();
         let proposal_id = ulid::Ulid::new().to_string();
-        let proposal = smoke_todo_create_proposal(&proposal_id, &correlation_id);
+        let flight_id = smoke_flight_id(&correlation_id);
+        seed_smoke_flight(&pool, &flight_id).await;
+        let proposal = smoke_add_note_proposal(&proposal_id, &correlation_id, &flight_id);
         service.test_repository().unwrap().save(&proposal).await.unwrap();
 
-        let todo_count_before: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM todos WHERE source_type = 'ai_action' AND source_id = $1")
-                .bind(&proposal_id)
+        let remarks_before: Option<String> =
+            sqlx::query_scalar("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+                .bind(&flight_id)
                 .fetch_one(&pool)
                 .await
                 .unwrap();
         let outbox_count_before: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'Todo.create' AND aggregate_id = $1",
+            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'flight.remarks_updated_v2' AND aggregate_id = $1",
         )
-        .bind(&proposal_id)
+        .bind(&flight_id)
         .fetch_one(&pool)
         .await
         .unwrap();
@@ -851,7 +864,7 @@ mod tests {
             .execute_proposal(ExecuteProposalRequest {
                 proposal_id: proposal_id.clone(),
                 executor_id: "smoke_executor".to_string(),
-                executor_permissions: vec!["todo:write".to_string()],
+                executor_permissions: vec!["flight:write".to_string()],
                 executor_department_id: None,
             })
             .await;
@@ -882,22 +895,22 @@ mod tests {
             .unwrap();
         assert_eq!(reloaded.status, ActionProposalStatus::Approved);
 
-        let todo_count_after: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM todos WHERE source_type = 'ai_action' AND source_id = $1")
-                .bind(&proposal_id)
+        let remarks_after: Option<String> =
+            sqlx::query_scalar("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+                .bind(&flight_id)
                 .fetch_one(&pool)
                 .await
                 .unwrap();
         let outbox_count_after: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'Todo.create' AND aggregate_id = $1",
+            "SELECT COUNT(*) FROM domain_event_outbox WHERE event_type = 'flight.remarks_updated_v2' AND aggregate_id = $1",
         )
-        .bind(&proposal_id)
+        .bind(&flight_id)
         .fetch_one(&pool)
         .await
         .unwrap();
         assert_eq!(
-            todo_count_after.0, todo_count_before.0,
-            "readiness-not-ready smoke must not create todo rows"
+            remarks_after, remarks_before,
+            "readiness-not-ready smoke must not modify flight remarks"
         );
         assert_eq!(
             outbox_count_after.0, outbox_count_before.0,
