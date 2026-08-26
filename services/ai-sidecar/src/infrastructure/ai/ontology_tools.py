@@ -10,12 +10,13 @@ adapter only:
 * passes Rust results through unchanged (with an evidence block),
 * refuses anything not registered (fail-closed, no invented rules).
 
-Controlled writes (e.g. ``Flight.change_stand``) are never executed by
+Controlled writes (e.g. ``StandOccupation.allocate``) are never executed by
 this adapter: they are simulated first (constraint check + before-state
 snapshot through registered read actions) and then return
 ``execution_mode="proposal_only"`` with a ``simulate`` block, or
 ``execution_mode="rejected"`` when a hard constraint is violated — in
-which case no proposal is created.
+which case no proposal is created. Stand/gate overlaps are soft warnings,
+never hard; carousel occupancy has no constraints at all.
 """
 
 from __future__ import annotations
@@ -119,10 +120,25 @@ ADVISORY_ACTIONS: frozenset[str] = frozenset(
 )
 
 #: Controlled write actions. These NEVER execute here: proposal path only.
-#: PR #本体两层改造：受控写动作尚未接线（PR3 前一律不登记），空名单 → 只留建议。
-#: 新写动作（StandOccupation.allocate 等）接入执行器后再逐个加入。
+#: PR #本体两层改造（PR3 占用收口）：名单换成占用三对象。机位/口重叠是 soft
+#: （告警不硬拦，见 `_simulate_controlled_write`）；转盘显式零约束。
+#: 废止的 `Flight.change_stand` / `Stand.reserve` 不在此名单 → propose_action
+#: 直接 `UnregisteredActionError`（fail-closed，不留兼容分支）。
 CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({
-    # 空名单：动作未接线前 propose_action 直接 UnregisteredActionError。
+    "StandOccupation.allocate",
+    "StandOccupation.adjust",
+    "StandOccupation.release",
+    "GateAssignment.allocate",
+    "GateAssignment.release",
+    "CarouselAssignment.allocate",
+    "CarouselAssignment.release",
+})
+
+#: 仅机位占用走可用性模拟（`stand.check_availability`，重叠 soft）。
+#: 口/转盘占用与全部 release 不模拟冲突（转盘显式零约束）。
+_OCCUPATION_STAND_SIM_ACTIONS: frozenset[str] = frozenset({
+    "StandOccupation.allocate",
+    "StandOccupation.adjust",
 })
 
 #: entity_id prefix → registered read action + object id argument name.
@@ -170,6 +186,31 @@ def _arguments_object_id(arguments: dict[str, Any]) -> str | None:
         value = arguments.get(key)
         if isinstance(value, str) and value:
             return value
+    return None
+
+
+def _occupation_resource_spec(
+    action_name: str, parameters: dict[str, Any]
+) -> tuple[str | None, str | None]:
+    """Return ``(display_column, code)`` for an occupation action's target resource."""
+    if action_name.startswith("StandOccupation"):
+        return "stand", str(parameters.get("stand_code") or "").strip() or None
+    if action_name.startswith("GateAssignment"):
+        return "gate", str(parameters.get("gate_code") or "").strip() or None
+    if action_name.startswith("CarouselAssignment"):
+        return "carousel", str(parameters.get("carousel_code") or "").strip() or None
+    return None, None
+
+
+def _occupation_time_window(parameters: dict[str, Any]) -> dict[str, Any] | None:
+    """Derive a check window from occupation args (``starts_at``/``ends_at`` or ``time_window``)."""
+    start = parameters.get("starts_at")
+    end = parameters.get("ends_at")
+    if start and end:
+        return {"start": str(start), "end": str(end)}
+    tw = parameters.get("time_window")
+    if isinstance(tw, dict) and tw.get("start") and tw.get("end"):
+        return {"start": str(tw["start"]), "end": str(tw["end"])}
     return None
 
 
@@ -226,14 +267,27 @@ class OntologyTools:
         Mappings (only these are understood; anything else is a hard
         violation — rules are never invented on the client side):
 
-        * stand change   → ``stand.check_availability`` (requires
-          ``time_window``; conflicts are hard violations)
+        * stand occupation / gate assignment → ``stand.check_availability``
+          (requires a time window; overlaps are SOFT warnings, never hard)
         * flight context → ``flight.get_context`` (pass-through evidence)
         """
         change = dict(proposed_change or {})
         action = str(change.get("action", "")).strip()
 
-        if change.get("new_stand_id") or action in {"change_stand", "reassign_gate"}:
+        if (
+            change.get("new_stand_id")
+            or change.get("stand_code")
+            or change.get("target_gate")
+            or change.get("gate_code")
+            or action
+            in {
+                "change_stand",
+                "reassign_gate",
+                "StandOccupation.allocate",
+                "StandOccupation.adjust",
+                "GateAssignment.allocate",
+            }
+        ):
             return await self._explain_stand_change(run_id=run_id, entity_type=entity_type, change=change)
 
         if change.get("flight_id"):
@@ -271,15 +325,21 @@ class OntologyTools:
         entity_type: str,
         change: dict[str, Any],
     ) -> dict[str, Any]:
-        new_stand_id = str(change.get("new_stand_id") or change.get("target_gate") or "").strip()
-        time_window = change.get("time_window")
-        if not new_stand_id or not isinstance(time_window, dict):
+        new_stand_id = str(
+            change.get("new_stand_id")
+            or change.get("stand_code")
+            or change.get("target_gate")
+            or change.get("gate_code")
+            or ""
+        ).strip()
+        time_window = _occupation_time_window(change)
+        if not new_stand_id or time_window is None:
             return {
                 "violations": [
                     {
                         "severity": ConstraintSeverity.HARD.value,
                         "rule_id": "missing_constraint_inputs",
-                        "reason": "stand change requires `new_stand_id` and `time_window` to evaluate constraints",
+                        "reason": "stand/gate occupation requires a resource code and a time window to evaluate constraints",
                         "entity_type": entity_type,
                         "recommended_fix": None,
                     }
@@ -295,7 +355,8 @@ class OntologyTools:
         conflicts = raw.get("conflicts") if isinstance(raw.get("conflicts"), list) else []
         violations = [
             {
-                "severity": ConstraintSeverity.HARD.value,
+                # 机位/口重叠是告警（soft），不硬拦（与占用台一致）。
+                "severity": ConstraintSeverity.SOFT.value,
                 "rule_id": "stand_occupation_conflict",
                 "reason": str(conflict.get("reason", "stand occupied in requested window")),
                 "entity_type": entity_type,
@@ -349,27 +410,52 @@ class OntologyTools:
         action_name: str,
         parameters: dict[str, Any],
     ) -> dict[str, Any]:
-        """Simulate a controlled write before any proposal is created.
+        """Simulate a controlled occupation write before any proposal is created.
 
-        Reuses the registered constraint surface (``stand.check_availability``)
-        and a before-state snapshot (``flight.get_context``). Hard constraint
-        violations reject the write outright — no proposal is built. Client
-        errors propagate (fail-closed; nothing is fabricated).
+        Per flight-ops.v1:
+        * stand occupations (allocate/adjust) → ``stand.check_availability``;
+          overlap is a SOFT warning, never a hard rejection.
+        * gate / carousel occupations and all ``release`` actions → no
+          constraint simulation (carousel is explicitly zero-constraint).
+
+        The ``after`` block snapshots the occupation's target resource — it is
+        NOT a flight "planned field" write (those columns are read-only here).
+        Client errors propagate (fail-closed; nothing is fabricated).
         """
-        flight_id = str(parameters.get("flight_id") or "").strip()
-        new_stand_id = str(parameters.get("new_stand_id") or "").strip()
-        explained = await self._explain_stand_change(
-            run_id=run_id,
-            entity_type="Flight",
-            change={
-                "action": "change_stand",
-                "new_stand_id": new_stand_id,
-                "time_window": parameters.get("time_window"),
-            },
-        )
-        violations = [v for v in explained.get("violations", []) if isinstance(v, dict)]
+        violations: list[dict[str, Any]] = []
+        availability: dict[str, Any] = {}
+        resource_field, resource_code = _occupation_resource_spec(action_name, parameters)
+
+        if action_name in _OCCUPATION_STAND_SIM_ACTIONS and resource_code:
+            time_window = _occupation_time_window(parameters)
+            if time_window is not None:
+                explained = await self._explain_stand_change(
+                    run_id=run_id,
+                    entity_type="StandOccupation",
+                    change={
+                        "action": action_name,
+                        "stand_code": resource_code,
+                        "time_window": time_window,
+                    },
+                )
+                violations = [v for v in explained.get("violations", []) if isinstance(v, dict)]
+                availability = {
+                    k: v for k, v in explained.items() if k not in {"violations", "evidence"}
+                }
+
+        # 机位重叠现在是 soft → 本名单没有会触发 hard 拒绝的动作。
         hard_violations = [v for v in violations if v.get("severity") == ConstraintSeverity.HARD.value]
-        availability = {k: v for k, v in explained.items() if k not in {"violations", "evidence"}}
+
+        flight_id = str(parameters.get("flight_id") or "").strip()
+        registration = str(parameters.get("registration") or "").strip()
+
+        after: dict[str, Any] = {}
+        if resource_code:
+            after[resource_field] = resource_code
+        if flight_id:
+            after["flight_id"] = flight_id
+        if registration:
+            after["registration"] = registration
 
         if hard_violations:
             logger.warning(
@@ -385,15 +471,14 @@ class OntologyTools:
                 "hard_constraint_violations": hard_violations,
                 "simulate": {
                     "action_name": action_name,
-                    "flight_id": flight_id,
                     "before": None,
-                    "after": {"stand": new_stand_id},
+                    "after": after,
                     "violations": violations,
                     "availability": availability,
                 },
             }
 
-        before: dict[str, Any] = {"flight_id": flight_id, "stand": None}
+        before: dict[str, Any] = {"action": action_name}
         if flight_id:
             raw = await self._client.read(
                 run_id=run_id,
@@ -401,7 +486,12 @@ class OntologyTools:
                 arguments={"flight_id": flight_id},
             )
             flight = raw.get("flight") if isinstance(raw.get("flight"), dict) else {}
-            before = {"flight_id": flight_id, "stand": flight.get("stand")}
+            before = {
+                "flight_id": flight_id,
+                "stand": flight.get("stand"),
+                "gate": flight.get("gate"),
+                "baggage_carousel": flight.get("baggage_carousel"),
+            }
 
         return {
             "execution_mode": "proposal_only",
@@ -409,9 +499,8 @@ class OntologyTools:
             "parameters": parameters,
             "simulate": {
                 "action_name": action_name,
-                "flight_id": flight_id,
                 "before": before,
-                "after": {"stand": new_stand_id},
+                "after": after,
                 "violations": violations,
                 "availability": availability,
             },

@@ -96,8 +96,8 @@ async def test_propose_unregistered_action_fails_closed() -> None:
 
 @pytest.mark.asyncio
 async def test_propose_deprecated_change_stand_fails_closed() -> None:
-    # Flight.change_stand 已废止（PR #本体两层改造）移出 CONTROLLED_WRITE_ACTIONS。
-    # 受控写名单当前为空 → propose 直接 UnregisteredActionError，不进 simulate、不落提案。
+    # Flight.change_stand 已废止（PR #本体两层改造）并移出 CONTROLLED_WRITE_ACTIONS。
+    # 受控写名单现在是占用三对象 → 该动作 propose 直接 UnregisteredActionError，不进 simulate、不落提案。
     client = RecordingClient()
     tools = OntologyTools(client=client)
     with pytest.raises(UnregisteredActionError):
@@ -176,7 +176,8 @@ async def test_explain_stand_change_uses_rust_availability() -> None:
         }
     ]
     assert len(result["violations"]) == 1
-    assert result["violations"][0]["severity"] == "hard"
+    assert result["violations"][0]["severity"] == "soft"
+    assert result["violations"][0]["rule_id"] == "stand_occupation_conflict"
 
 
 @pytest.mark.asyncio
@@ -191,3 +192,67 @@ async def test_explain_stand_change_without_time_window_fails_closed() -> None:
     assert len(result["violations"]) == 1
     assert result["violations"][0]["severity"] == "hard"
     assert client.read_calls == []
+
+
+@pytest.mark.asyncio
+async def test_propose_stand_allocate_simulates_soft_overlap() -> None:
+    # 机位占用重叠是 soft（告警不硬拦）：有冲突仍 proposal_only，不 reject。
+    client = RecordingClient(
+        read_result={
+            "is_available": False,
+            "conflicts": [{"flight_id": "F9", "reason": "stand occupation overlaps requested window"}],
+        }
+    )
+    tools = OntologyTools(client=client)
+    result = await tools.propose_action(
+        run_id="run_1",
+        action_name="StandOccupation.allocate",
+        parameters={
+            "stand_code": "A12",
+            "registration": "B-1234",
+            "starts_at": "2026-08-18T10:00:00Z",
+            "ends_at": "2026-08-18T12:00:00Z",
+        },
+        allowed_actions=["StandOccupation.allocate"],
+    )
+    assert result["execution_mode"] == "proposal_only"
+    assert client.read_calls == [
+        {
+            "run_id": "run_1",
+            "action_name": "stand.check_availability",
+            "arguments": {
+                "stand_id": "A12",
+                "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"},
+            },
+        }
+    ]
+    simulate = result["simulate"]
+    assert simulate["after"]["stand"] == "A12"
+    assert simulate["after"]["registration"] == "B-1234"
+    assert len(simulate["violations"]) == 1
+    assert simulate["violations"][0]["severity"] == "soft"
+
+
+@pytest.mark.asyncio
+async def test_propose_carousel_allocate_zero_constraint() -> None:
+    # 转盘占用显式零约束：不触发任何冲突检查，violations 恒空。
+    client = RecordingClient()
+    tools = OntologyTools(client=client)
+    result = await tools.propose_action(
+        run_id="run_1",
+        action_name="CarouselAssignment.allocate",
+        parameters={
+            "carousel_code": "C1",
+            "flight_id": "FL1",
+            "starts_at": "2026-08-18T10:00:00Z",
+            "ends_at": "2026-08-18T12:00:00Z",
+        },
+        allowed_actions=["CarouselAssignment.allocate"],
+    )
+    assert result["execution_mode"] == "proposal_only"
+    # 只读一次 before 快照（flight.get_context），无 check_availability / 冲突模拟。
+    assert [c["action_name"] for c in client.read_calls] == ["flight.get_context"]
+    simulate = result["simulate"]
+    assert simulate["after"]["carousel"] == "C1"
+    assert simulate["after"]["flight_id"] == "FL1"
+    assert simulate["violations"] == []
