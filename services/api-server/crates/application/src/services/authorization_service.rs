@@ -266,6 +266,19 @@ const AI_ACTION_PERMISSION_MAP: &[(&str, &[&str])] = &[
     ("GateAssignment.release", &["ontology.gate.manage"]),
     ("CarouselAssignment.allocate", &["ontology.carousel.manage"]),
     ("CarouselAssignment.release", &["ontology.carousel.manage"]),
+    // PR4 组织执行器（与 schema/执行器分支一一对应，fail-closed）。科室边界由执行器/领域服务再验（manager_id + admin 旁路）。
+    ("Team.update_status", &["ontology.team.manage"]),
+    ("Team.change_location", &["ontology.team.manage"]),
+    ("Team.add_member", &["ontology.team.manage"]),
+    ("Team.remove_member", &["ontology.team.manage"]),
+    ("Personnel.update_status", &["ontology.personnel.manage"]),
+    ("Personnel.change_location", &["ontology.personnel.manage"]),
+    ("Personnel.assign_to_team", &["ontology.personnel.manage"]),
+    ("Personnel.leave_team", &["ontology.personnel.manage"]),
+    ("Equipment.update_status", &["ontology.equipment.manage"]),
+    ("Equipment.change_location", &["ontology.equipment.manage"]),
+    ("Equipment.assign", &["ontology.equipment.manage"]),
+    ("Equipment.release", &["ontology.equipment.manage"]),
 ];
 
 fn has_any_ai_permission(user_permissions: &[String], required_permissions: &[&str]) -> bool {
