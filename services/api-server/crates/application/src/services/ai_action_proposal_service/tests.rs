@@ -405,12 +405,18 @@ mod tests {
         use crate::services::business_case_service::{
             BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter,
         };
+        use crate::services::dispatch_resource_service::DispatchResourceService;
         use crate::services::dispatch_service::writer::DispatchOrderWriter;
+        use crate::types::ConcreteDispatchResourceService;
         use crate::services::flight_service::FlightService;
         use crate::services::flight_writer::FlightWriter;
         use crate::services::ontology_service::{OntologyService, OntologyTransactions, OntologyWriter};
         use crate::types::NoopBusinessCaseEventPublisher;
         use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+        use fms_domain::ports::dispatch_repository::{
+            DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository, TaskTypeRepository,
+            TeamMemberRepository, TeamRepository, TeamTypeRepository,
+        };
         use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
         use fms_domain::ports::ontology_repository::{
             AircraftRepository, CarouselAssignmentRepository, GateAssignmentRepository, OntologyTransactionalRepository,
@@ -422,10 +428,15 @@ mod tests {
         };
         use fms_infrastructure::repositories::{
             pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
+            pg_department_repository::PgDepartmentRepository,
             pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
             pg_dispatch_order_repository::PgDispatchOrderRepository,
-            pg_domain_event_outbox_repository::PgDomainEventOutboxRepository, pg_flight_repository::PgFlightRepository,
-            pg_terminal_repository::PgTerminalRepository,
+            pg_domain_event_outbox_repository::PgDomainEventOutboxRepository,
+            pg_equipment_repository::PgEquipmentRepository,
+            pg_equipment_type_repository::PgEquipmentTypeRepository, pg_flight_repository::PgFlightRepository,
+            pg_stand_repository::PgStandRepository, pg_task_type_repository::PgTaskTypeRepository,
+            pg_team_member_repository::PgTeamMemberRepository, pg_team_repository::PgTeamRepository,
+            pg_team_type_repository::PgTeamTypeRepository, pg_terminal_repository::PgTerminalRepository,
         };
 
         let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
@@ -542,6 +553,16 @@ mod tests {
             bc_svc,
             business_case_writer,
             ontology_svc,
+            Arc::new(DispatchResourceService::new(
+                Arc::new(PgDepartmentRepository::new(pool.clone())) as Arc<dyn DepartmentRepository + Send + Sync>,
+                Arc::new(PgTeamTypeRepository::new(pool.clone())) as Arc<dyn TeamTypeRepository + Send + Sync>,
+                Arc::new(PgTeamRepository::new(pool.clone())) as Arc<dyn TeamRepository + Send + Sync>,
+                Arc::new(PgTeamMemberRepository::new(pool.clone())) as Arc<dyn TeamMemberRepository + Send + Sync>,
+                Arc::new(PgEquipmentTypeRepository::new(pool.clone())) as Arc<dyn EquipmentTypeRepository + Send + Sync>,
+                Arc::new(PgEquipmentRepository::new(pool.clone())) as Arc<dyn EquipmentRepository + Send + Sync>,
+                Arc::new(PgStandRepository::new(pool.clone())) as Arc<dyn StandRepository + Send + Sync>,
+                Arc::new(PgTaskTypeRepository::new(pool.clone())) as Arc<dyn TaskTypeRepository + Send + Sync>,
+            )) as Arc<ConcreteDispatchResourceService>,
             outbox_repo,
             anomaly_repo,
             Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),

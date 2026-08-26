@@ -185,6 +185,7 @@ pub(crate) fn build_ai_services(
         business_case.business_case_svc.clone(),
         business_case_writer,
         flight.ontology_svc.clone(),
+        dispatch.dispatch_resource_svc.clone(),
         repos.domain_event_outbox_repo.clone(),
         repos.anomaly_repo.clone(),
         repos.unit_of_work.clone(),

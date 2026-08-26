@@ -2,17 +2,19 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::schemas::dispatch_schemas::{PositionUpdate, TeamMemberAdd};
 use crate::schemas::ontology_schemas::{
     AdjustGateRequest, AdjustStandRequest, AllocateCarouselRequest, AllocateGateRequest, AllocateStandRequest,
     ReleaseResourceRequest,
 };
 use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
+use crate::services::dispatch_resource_service::DispatchResourceService;
 use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flight_writer::FlightWriter;
 use crate::services::ontology_service::{OntologyError, OntologyService};
-use crate::types::{ConcreteBusinessCaseService, ConcreteFlightService};
+use crate::types::{ConcreteBusinessCaseService, ConcreteDispatchResourceService, ConcreteFlightService};
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
@@ -43,6 +45,7 @@ pub struct DomainActionExecutor<U: UnitOfWork> {
     business_case_service: Arc<ConcreteBusinessCaseService>,
     business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
     ontology_svc: Arc<OntologyService>,
+    dispatch_resource_svc: Arc<ConcreteDispatchResourceService>,
     uow: Arc<U>,
     outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
     anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
@@ -57,6 +60,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
         business_case_service: Arc<ConcreteBusinessCaseService>,
         business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
         ontology_svc: Arc<OntologyService>,
+        dispatch_resource_svc: Arc<ConcreteDispatchResourceService>,
         outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
         uow: Arc<U>,
@@ -69,9 +73,10 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             business_case_service,
             business_case_writer,
             ontology_svc,
+            dispatch_resource_svc,
+            uow,
             outbox_repo,
             anomaly_tx_repo,
-            uow,
         }
     }
 
@@ -518,13 +523,95 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             // ⏸️ TODO: gate_assignment.allocate/release 已接线（见下方占用动作分支）。
             // ⏸️ TODO: carousel_assignment.allocate/release 已接线（见下方占用动作分支）。
 
-            // ⏸️ TODO: team.update_status/change_location/add_member/remove_member
-            // ⏸️ TODO: personnel.update_status/change_location (with department boundary enforcement)
-            // ⏸️ TODO: equipment.assign/release with slot integration
+            // ⏸️ TODO: personnel.update_status/change_location (runtime 尚未接线，预留)
+            // ⏸️ TODO: equipment.assign/release（工单设备槽，PR5 接线；当前 fail-closed）
 
-            // 占用三对象已接线（PR #本体两层改造）：执行器只做参数映射 + 调 OntologyService，
-            // 禁止第二套 SQL。权限（ontology.stand.manage / gate.manage / carousel.manage）由
-            // AI 提案主管线在审批/执行前验过，这里按动作声明传入对应权限码即可。
+            // PR4 组织写动作：执行器只做参数映射 + 调 DispatchResourceService（禁止第二套 SQL）。
+            // 权限由 AI 提案主管线在审批/执行前验过（ontology.team.manage / equipment.manage）。
+            "Team.update_status" => {
+                let team_id = required_string(arguments, &["team_id"], "team_id")?;
+                let current_status = required_string(arguments, &["current_status"], "current_status")?;
+                let member_user_ids = parse_optional_string_array(arguments, "member_user_ids")?;
+                // 代签：可附全量名册，同步增删（同一服务，派生自现有 add/remove 领域方法）。
+                if let Some(desired) = member_user_ids.as_deref() {
+                    let team = self
+                        .dispatch_resource_svc
+                        .get_team(team_id, true)
+                        .await
+                        .map_err(map_service_error)?
+                        .ok_or_else(|| DomainActionError::NotFound(format!("Team {team_id} not found")))?;
+                    let current: Vec<String> = team
+                        .members
+                        .iter()
+                        .filter(|m| m.is_active)
+                        .map(|m| m.user_id.clone())
+                        .collect();
+                    for uid in desired.iter().filter(|uid| !current.contains(*uid)) {
+                        self.dispatch_resource_svc
+                            .add_team_member(team_id, TeamMemberAdd { user_id: (*uid).clone(), role: "member".into(), can_drive: false })
+                            .await
+                            .map_err(map_service_error)?;
+                    }
+                    for uid in current.iter().filter(|uid| !desired.contains(uid)) {
+                        self.dispatch_resource_svc
+                            .remove_team_member(team_id, uid.as_str())
+                            .await
+                            .map_err(map_service_error)?;
+                    }
+                } else {
+                    self.dispatch_resource_svc
+                        .update_team_status(team_id, current_status)
+                        .await
+                        .map_err(map_service_error)?;
+                }
+                Ok(serde_json::json!({ "success": true, "team_id": team_id, "current_status": current_status }))
+            }
+            "Team.change_location" => {
+                let team_id = required_string(arguments, &["team_id"], "team_id")?;
+                let (lat, lng) = parse_lat_lng(arguments)?;
+                self.dispatch_resource_svc
+                    .update_team_position(team_id, PositionUpdate { lat, lng, stand_id: None })
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "team_id": team_id }))
+            }
+            "Team.add_member" => {
+                let team_id = required_string(arguments, &["team_id"], "team_id")?;
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                let member = self
+                    .dispatch_resource_svc
+                    .add_team_member(team_id, TeamMemberAdd { user_id: user_id.to_string(), role: "member".into(), can_drive: false })
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "team_id": team_id, "member_user_id": member.user_id }))
+            }
+            "Team.remove_member" => {
+                let team_id = required_string(arguments, &["team_id"], "team_id")?;
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                self.dispatch_resource_svc
+                    .remove_team_member(team_id, user_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "team_id": team_id, "member_user_id": user_id }))
+            }
+            "Equipment.update_status" => {
+                let equipment_id = required_string(arguments, &["equipment_id"], "equipment_id")?;
+                let status = required_string(arguments, &["status"], "status")?;
+                self.dispatch_resource_svc
+                    .update_equipment_status(equipment_id, status)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "equipment_id": equipment_id, "status": status }))
+            }
+            "Equipment.change_location" => {
+                let equipment_id = required_string(arguments, &["equipment_id"], "equipment_id")?;
+                let (lat, lng) = parse_lat_lng(arguments)?;
+                self.dispatch_resource_svc
+                    .update_equipment_position(equipment_id, PositionUpdate { lat, lng, stand_id: None })
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "equipment_id": equipment_id }))
+            }
             "StandOccupation.allocate" => {
                 let stand_code = required_string(arguments, &["stand_code"], "stand_code")?;
                 let registration = required_string(arguments, &["registration"], "registration")?;
@@ -687,6 +774,57 @@ fn map_ontology_error(error: OntologyError) -> DomainActionError {
         OntologyError::NotFound(msg) => DomainActionError::NotFound(msg),
         OntologyError::Conflict(msg) => DomainActionError::Execution(format!("conflict: {msg}")),
         OntologyError::Internal(msg) => DomainActionError::Execution(msg),
+    }
+}
+
+/// 把 `DispatchResourceService`（领域服务）的错误映射为执行器错误。科室边界等
+/// 领域再验会让它返回 `PermissionDenied`/`Conflict`，这里统一映射成校验/执行错误。
+fn map_service_error(error: fms_domain::error::DomainError) -> DomainActionError {
+    match error {
+        fms_domain::error::DomainError::NotFound { entity_type, id } => {
+            DomainActionError::NotFound(format!("{entity_type} {id} not found"))
+        }
+        fms_domain::error::DomainError::ValidationError(msg)
+        | fms_domain::error::DomainError::PermissionDenied(msg) => DomainActionError::Validation(msg),
+        fms_domain::error::DomainError::Conflict(msg) => DomainActionError::Execution(format!("conflict: {msg}")),
+        other => DomainActionError::Execution(other.to_string()),
+    }
+}
+
+/// 解析 `arguments` 里的 `lat`/`lng`（数字或数字字符串），两者都必须存在。
+fn parse_lat_lng(arguments: &Value) -> Result<(f64, f64), DomainActionError> {
+    let lat = parse_f64_arg(arguments, "lat").ok_or_else(|| DomainActionError::Validation("lat is required".into()))?;
+    let lng = parse_f64_arg(arguments, "lng").ok_or_else(|| DomainActionError::Validation("lng is required".into()))?;
+    Ok((lat, lng))
+}
+
+fn parse_f64_arg(arguments: &Value, key: &str) -> Option<f64> {
+    match arguments.get(key) {
+        Some(Value::Number(n)) => n.as_f64(),
+        Some(Value::String(s)) => s.trim().parse::<f64>().ok(),
+        _ => None,
+    }
+}
+
+/// 解析可选的字符串数组字段（如 `member_user_ids`）；缺省或 null 时为 `None`。
+fn parse_optional_string_array(arguments: &Value, key: &str) -> Result<Option<Vec<String>>, DomainActionError> {
+    match arguments.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Array(items)) => {
+            let mut out = Vec::with_capacity(items.len());
+            for item in items {
+                match item {
+                    Value::String(s) => out.push(s.clone()),
+                    _ => {
+                        return Err(DomainActionError::Validation(format!(
+                            "`{key}` must be an array of strings"
+                        )))
+                    }
+                }
+            }
+            Ok(Some(out))
+        }
+        Some(_) => Err(DomainActionError::Validation(format!("`{key}` must be an array of strings"))),
     }
 }
 
