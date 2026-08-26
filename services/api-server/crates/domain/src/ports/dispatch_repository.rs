@@ -446,6 +446,29 @@ pub trait EquipmentRepository {
     async fn update_status(&self, id: &str, status: &str) -> Result<bool, DomainError>;
 }
 
+/// 人员在岗运行时仓储接口（personnel_runtime）。
+///
+/// 无行视为 `off_duty`：`update_status` / `update_position` 返回 `false` 表示目标
+/// 行不存在，调用方按需 upsert。`save` 负责写入/更新整行（含首次建行）。
+#[async_trait]
+pub trait PersonnelRuntimeRepository {
+    async fn save(&self, runtime: &PersonnelRuntime) -> Result<PersonnelRuntime, DomainError>;
+    async fn find_by_user(&self, user_id: &str) -> Result<Option<PersonnelRuntime>, DomainError>;
+    async fn update_status(
+        &self,
+        user_id: &str,
+        status: &str,
+        updated_by: Option<&str>,
+    ) -> Result<bool, DomainError>;
+    async fn update_position(
+        &self,
+        user_id: &str,
+        lat: f64,
+        lng: f64,
+        stand_id: Option<&str>,
+    ) -> Result<bool, DomainError>;
+}
+
 /// 目录设施 allocate 前校验的落点（PR3「allocate 校验楼成员」）。
 ///
 /// 依据「code 在目录、is_active、且成员表挂在启用的楼上」三条件：

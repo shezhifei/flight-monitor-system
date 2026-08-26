@@ -59,6 +59,7 @@ pub mod pg_task_type_repository;
 pub mod pg_team_member_repository;
 pub mod pg_team_repository;
 pub mod pg_team_type_repository;
+pub mod pg_personnel_runtime_repository;
 pub mod pg_terminal_repository;
 pub mod pg_todo_agent_context_repository;
 pub mod pg_todo_repository;

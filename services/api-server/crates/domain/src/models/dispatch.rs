@@ -28,6 +28,27 @@ pub enum EquipmentStatus {
     Retired,
 }
 
+/// 人员在岗运行时状态（personnel_runtime）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PersonnelStatus {
+    OnDuty,
+    OffDuty,
+    Break,
+    OnLeave,
+}
+
+impl AsRef<str> for PersonnelStatus {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::OnDuty => "on_duty",
+            Self::OffDuty => "off_duty",
+            Self::Break => "break",
+            Self::OnLeave => "on_leave",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DispatchOrderStatus {
@@ -871,6 +892,28 @@ impl Equipment {
         self.current_dispatch_id = None;
         self.is_active = false;
     }
+}
+
+/// 人员在岗运行时（personnel_runtime）。
+///
+/// `user_id` = 个人账号 `users.id`；无行视为 `off_duty`。位置为可选的当前坐标/
+/// 机位，位置更新只对该行生效（班组位置不由此传播）。表的 status CHECK 允许
+/// `on_duty | off_duty | break | on_leave`（与 `TeamStatus` 不同——人员还有 `on_leave`）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonnelRuntime {
+    pub user_id: String,
+    #[serde(default = "default_personnel_off_duty")]
+    pub current_status: PersonnelStatus,
+    pub current_stand_id: Option<String>,
+    pub current_position_lat: Option<f64>,
+    pub current_position_lng: Option<f64>,
+    pub last_position_update: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_by: Option<String>,
+}
+
+fn default_personnel_off_duty() -> PersonnelStatus {
+    PersonnelStatus::OffDuty
 }
 
 /// 派工单
