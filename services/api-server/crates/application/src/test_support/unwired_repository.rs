@@ -17,6 +17,7 @@ use fms_domain::error::DomainError;
 use fms_domain::models::{dispatch, dispatch_collaboration, notification};
 use fms_domain::ports::{
     anomaly_repository, dispatch_collaboration_repository, dispatch_repository, flight_repository, todo_repository,
+    user_repository,
 };
 
 use super::unwired;
@@ -237,6 +238,73 @@ impl dispatch_repository::QualificationGrantRepository for UnwiredRepository {
         _: bool,
     ) -> Result<Vec<dispatch::QualificationGrant>, DomainError> {
         Err(unwired("QualificationGrantRepository::find_by_department"))
+    }
+}
+
+#[async_trait]
+impl dispatch_repository::PersonnelRuntimeRepository for UnwiredRepository {
+    async fn save(&self, _: &dispatch::PersonnelRuntime) -> Result<dispatch::PersonnelRuntime, DomainError> {
+        Err(unwired("PersonnelRuntimeRepository::save"))
+    }
+    async fn find_by_user(&self, _: &str) -> Result<Option<dispatch::PersonnelRuntime>, DomainError> {
+        Err(unwired("PersonnelRuntimeRepository::find_by_user"))
+    }
+    async fn update_status(
+        &self,
+        _: &str,
+        _: &str,
+        _: Option<&str>,
+    ) -> Result<bool, DomainError> {
+        Err(unwired("PersonnelRuntimeRepository::update_status"))
+    }
+    async fn update_position(
+        &self,
+        _: &str,
+        _: f64,
+        _: f64,
+        _: Option<&str>,
+    ) -> Result<bool, DomainError> {
+        Err(unwired("PersonnelRuntimeRepository::update_position"))
+    }
+}
+
+#[async_trait]
+impl user_repository::UserRepository for UnwiredRepository {
+    async fn find_by_id(&self, _: &str) -> Result<Option<fms_domain::models::user::User>, DomainError> {
+        Err(unwired("UserRepository::find_by_id"))
+    }
+    async fn find_permission_version_by_id(&self, _: &str) -> Result<Option<i32>, DomainError> {
+        Err(unwired("UserRepository::find_permission_version_by_id"))
+    }
+    async fn find_by_username(&self, _: &str) -> Result<Option<fms_domain::models::user::User>, DomainError> {
+        Err(unwired("UserRepository::find_by_username"))
+    }
+    async fn find_by_email(&self, _: &str) -> Result<Option<fms_domain::models::user::User>, DomainError> {
+        Err(unwired("UserRepository::find_by_email"))
+    }
+    async fn find_all(&self, _: i64, _: i64) -> Result<Vec<fms_domain::models::user::User>, DomainError> {
+        Err(unwired("UserRepository::find_all"))
+    }
+    async fn list_distinct_departments_in_use(&self) -> Result<Vec<String>, DomainError> {
+        Err(unwired("UserRepository::list_distinct_departments_in_use"))
+    }
+    async fn has_any_user_with_department_id(&self, _: &str) -> Result<bool, DomainError> {
+        Err(unwired("UserRepository::has_any_user_with_department_id"))
+    }
+    async fn save(&self, _: &fms_domain::models::user::User) -> Result<(), DomainError> {
+        Err(unwired("UserRepository::save"))
+    }
+    async fn update(&self, _: &fms_domain::models::user::User) -> Result<bool, DomainError> {
+        Err(unwired("UserRepository::update"))
+    }
+    async fn delete(&self, _: &str) -> Result<bool, DomainError> {
+        Err(unwired("UserRepository::delete"))
+    }
+    async fn update_password(&self, _: &str, _: &str) -> Result<bool, DomainError> {
+        Err(unwired("UserRepository::update_password"))
+    }
+    async fn update_last_login(&self, _: &str) -> Result<bool, DomainError> {
+        Err(unwired("UserRepository::update_last_login"))
     }
 }
 

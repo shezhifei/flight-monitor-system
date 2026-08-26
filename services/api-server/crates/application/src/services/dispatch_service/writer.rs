@@ -6,6 +6,7 @@
 //! 重型领域逻辑（`prepare_order_for_publication` 等）仍在 `DispatchService` 上，
 //! 写入方通过持有的 `Arc<DispatchService>` 复用它，不复制第二份。
 
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -14,9 +15,11 @@ use serde_json::{json, Value};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
 use fms_domain::ports::dispatch_repository::{
-    DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository, DispatchOrderRepository,
-    DispatchOrderTransactionalRepository, TeamRepository,
+    DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository,
+    DispatchOrderRepository, DispatchOrderTransactionalRepository, PersonnelRuntimeRepository,
+    QualificationGrantRepository, TeamRepository,
 };
+use fms_domain::ports::user_repository::UserRepository;
 
 use crate::schemas::dispatch_schemas::*;
 
@@ -29,6 +32,10 @@ pub struct DispatchOrderWriter<Tx> {
     member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
     member_tx_repo: Arc<dyn DispatchOrderMemberTransactionalRepository<Tx> + Send + Sync>,
     team_repo: Arc<dyn TeamRepository + Send + Sync>,
+    qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
+    qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
+    personnel_runtime_repo: Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
+    user_repo: Arc<dyn UserRepository + Send + Sync>,
     dispatch_service: Arc<DispatchService>,
 }
 
@@ -39,6 +46,10 @@ impl<Tx> DispatchOrderWriter<Tx> {
         member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
         member_tx_repo: Arc<dyn DispatchOrderMemberTransactionalRepository<Tx> + Send + Sync>,
         team_repo: Arc<dyn TeamRepository + Send + Sync>,
+        qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
+        qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
+        personnel_runtime_repo: Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
+        user_repo: Arc<dyn UserRepository + Send + Sync>,
         dispatch_service: Arc<DispatchService>,
     ) -> Self {
         Self {
@@ -47,6 +58,10 @@ impl<Tx> DispatchOrderWriter<Tx> {
             member_repo,
             member_tx_repo,
             team_repo,
+            qualification_grant_repo,
+            qualification_repo,
+            personnel_runtime_repo,
+            user_repo,
             dispatch_service,
         }
     }
@@ -308,5 +323,426 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
         }
 
         Ok(())
+    }
+
+    /// `DispatchOrder.assign_slot`：把一名人员指派到工单命名槽（一槽一人）。
+    ///
+    /// PR5 命名槽指派。校验「同科室 / 在岗 / 具备该槽资质」，与预排生成共用资质口径
+    /// （`QualificationGrantRepository` + `DepartmentQualificationRepository` 等级覆盖）。
+    /// 写：先将该槽现有成员置为不活跃，再将 user 的成员行写入该槽（不存在则新增）。
+    pub async fn assign_slot_in_tx(
+        &self,
+        tx: &mut Tx,
+        order_id: &str,
+        slot_code: &str,
+        user_id: &str,
+        actor_id: &str,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        DispatchService::ensure_actor(actor_id)?;
+        let slot_code = slot_code.trim();
+        let user_id = user_id.trim();
+        if slot_code.is_empty() {
+            return Err(DomainError::ValidationError("slot_code is required".into()));
+        }
+        if user_id.is_empty() {
+            return Err(DomainError::ValidationError("user_id is required".into()));
+        }
+
+        let Some(mut order) = self.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+        self.assert_order_assignable(&order)?;
+
+        let requirement = order
+            .crew_requirement_snapshot
+            .iter()
+            .find(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code))
+            .cloned()
+            .ok_or_else(|| DomainError::ValidationError(format!("工单 {order_id} 不存在槽位 {slot_code}")))?;
+        self.validate_slot_personnel(&order, slot_code, &requirement, user_id).await?;
+
+        let now = Utc::now();
+        let existing_members = self.member_repo.find_by_order(&order.id).await?;
+        for member in existing_members
+            .iter()
+            .filter(|m| m.is_active && m.slot_code.as_deref() == Some(slot_code))
+        {
+            let mut deactivated = member.clone();
+            deactivated.is_active = false;
+            deactivated.check_out_time = Some(now);
+            self.member_tx_repo.save_in_tx(tx, &deactivated).await?;
+        }
+
+        let qualification_code = requirement
+            .get("qualification_code")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        let qualification_level_code = requirement
+            .get("min_level_code")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        let username = self
+            .user_repo
+            .find_by_id(user_id)
+            .await?
+            .map(|user| user.username)
+            .or_else(|| Some(user_id.to_string()));
+
+        if let Some(existing) = existing_members.iter().find(|m| m.user_id == user_id) {
+            let mut updated = existing.clone();
+            updated.role = Self::member_role_from_slot(Some(slot_code));
+            updated.source_type = AssigneeType::Individual;
+            updated.source_team_id = None;
+            updated.slot_code = Some(slot_code.to_string());
+            updated.qualification_code = qualification_code.clone();
+            updated.qualification_level_code = qualification_level_code.clone();
+            updated.username = username.clone();
+            updated.assigned_at = Some(now);
+            updated.check_in_time = None;
+            updated.check_out_time = None;
+            updated.is_active = true;
+            self.member_tx_repo.save_in_tx(tx, &updated).await?;
+        } else {
+            let new_member = DispatchOrderMember {
+                id: ulid::Ulid::new().to_string(),
+                dispatch_order_id: order.id.clone(),
+                user_id: user_id.to_string(),
+                role: Self::member_role_from_slot(Some(slot_code)),
+                source_type: AssigneeType::Individual,
+                source_team_id: None,
+                slot_code: Some(slot_code.to_string()),
+                qualification_code,
+                qualification_level_code,
+                assigned_at: Some(now),
+                check_in_time: None,
+                check_out_time: None,
+                is_active: true,
+                username,
+            };
+            self.member_tx_repo.save_in_tx(tx, &new_member).await?;
+        }
+
+        if order.status == DispatchOrderStatus::Pending {
+            order.status = DispatchOrderStatus::Assigned;
+        }
+        order.dispatched_by = Some(actor_id.to_string());
+        order.dispatched_at = order.dispatched_at.or(Some(now));
+        order.updated_at = Some(now);
+        self.order_tx_repo.save_in_tx(tx, &order).await?;
+        self.order_tx_repo
+            .append_log_in_tx(
+                tx,
+                &order.id,
+                "assign_slot",
+                Some(actor_id),
+                Some(json!({ "slot_code": slot_code, "user_id": user_id })),
+            )
+            .await?;
+
+        Ok(order_to_response(&order))
+    }
+
+    /// `DispatchOrder.unassign_slot`：把命名槽里的人员清掉（不删槽，只清人）。
+    pub async fn unassign_slot_in_tx(
+        &self,
+        tx: &mut Tx,
+        order_id: &str,
+        slot_code: &str,
+        actor_id: &str,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        DispatchService::ensure_actor(actor_id)?;
+        let slot_code = slot_code.trim();
+        if slot_code.is_empty() {
+            return Err(DomainError::ValidationError("slot_code is required".into()));
+        }
+
+        let Some(mut order) = self.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+        self.assert_order_assignable(&order)?;
+        if !order
+            .crew_requirement_snapshot
+            .iter()
+            .any(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code))
+        {
+            return Err(DomainError::ValidationError(format!("工单 {order_id} 不存在槽位 {slot_code}")));
+        }
+
+        let now = Utc::now();
+        let existing_members = self.member_repo.find_by_order(&order.id).await?;
+        for member in existing_members
+            .iter()
+            .filter(|m| m.is_active && m.slot_code.as_deref() == Some(slot_code))
+        {
+            let mut deactivated = member.clone();
+            deactivated.is_active = false;
+            deactivated.check_out_time = Some(now);
+            self.member_tx_repo.save_in_tx(tx, &deactivated).await?;
+        }
+
+        order.updated_at = Some(now);
+        self.order_tx_repo.save_in_tx(tx, &order).await?;
+        self.order_tx_repo
+            .append_log_in_tx(
+                tx,
+                &order.id,
+                "unassign_slot",
+                Some(actor_id),
+                Some(json!({ "slot_code": slot_code })),
+            )
+            .await?;
+
+        Ok(order_to_response(&order))
+    }
+
+    /// `DispatchOrder.add_slot`：给这张单的槽快照加一个命名槽（幂等：已存在则原样返回）。
+    pub async fn add_slot_in_tx(
+        &self,
+        tx: &mut Tx,
+        order_id: &str,
+        slot_code: &str,
+        slot_name: Option<&str>,
+        actor_id: &str,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        DispatchService::ensure_actor(actor_id)?;
+        let slot_code = slot_code.trim();
+        if slot_code.is_empty() {
+            return Err(DomainError::ValidationError("slot_code is required".into()));
+        }
+
+        let Some(mut order) = self.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+        self.assert_order_assignable(&order)?;
+
+        let already_exists = order
+            .crew_requirement_snapshot
+            .iter()
+            .any(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code));
+        let mut changed = false;
+        if already_exists {
+            // 幂等：槽已存在时仅更新展示名（若提供）。
+            if let Some(name) = slot_name.map(str::trim).filter(|value| !value.is_empty()) {
+                if let Some(item) = order
+                    .crew_requirement_snapshot
+                    .iter_mut()
+                    .find(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code))
+                {
+                    if item.get("slot_name").and_then(Value::as_str) != Some(name) {
+                        item["slot_name"] = json!(name);
+                        changed = true;
+                    }
+                }
+            }
+        } else {
+            order.crew_requirement_snapshot.push(json!({
+                "slot_code": slot_code,
+                "slot_name": slot_name.map(str::trim).filter(|value| !value.is_empty()).unwrap_or(slot_code),
+                "qualification_code": Value::Null,
+                "required_count": 1,
+            }));
+            changed = true;
+        }
+
+        if changed {
+            order.updated_at = Some(Utc::now());
+            self.order_tx_repo.save_in_tx(tx, &order).await?;
+            self.order_tx_repo
+                .append_log_in_tx(
+                    tx,
+                    &order.id,
+                    "add_slot",
+                    Some(actor_id),
+                    Some(json!({ "slot_code": slot_code })),
+                )
+                .await?;
+        }
+
+        Ok(order_to_response(&order))
+    }
+
+    /// `DispatchOrder.remove_slot`：从槽快照删掉一个命名槽，并清掉该槽上所有成员。
+    pub async fn remove_slot_in_tx(
+        &self,
+        tx: &mut Tx,
+        order_id: &str,
+        slot_code: &str,
+        actor_id: &str,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        DispatchService::ensure_actor(actor_id)?;
+        let slot_code = slot_code.trim();
+        if slot_code.is_empty() {
+            return Err(DomainError::ValidationError("slot_code is required".into()));
+        }
+
+        let Some(mut order) = self.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+        self.assert_order_assignable(&order)?;
+
+        let before = order.crew_requirement_snapshot.len();
+        order.crew_requirement_snapshot.retain(|item| {
+            item.get("slot_code").and_then(Value::as_str) != Some(slot_code)
+        });
+        if order.crew_requirement_snapshot.len() == before {
+            return Err(DomainError::ValidationError(format!("工单 {order_id} 不存在槽位 {slot_code}")));
+        }
+
+        let now = Utc::now();
+        let existing_members = self.member_repo.find_by_order(&order.id).await?;
+        for member in existing_members
+            .iter()
+            .filter(|m| m.is_active && m.slot_code.as_deref() == Some(slot_code))
+        {
+            let mut deactivated = member.clone();
+            deactivated.is_active = false;
+            deactivated.check_out_time = Some(now);
+            self.member_tx_repo.save_in_tx(tx, &deactivated).await?;
+        }
+
+        order.updated_at = Some(now);
+        self.order_tx_repo.save_in_tx(tx, &order).await?;
+        self.order_tx_repo
+            .append_log_in_tx(
+                tx,
+                &order.id,
+                "remove_slot",
+                Some(actor_id),
+                Some(json!({ "slot_code": slot_code })),
+            )
+            .await?;
+
+        Ok(order_to_response(&order))
+    }
+
+    /// 已完结（completed/cancelled）的工单不允许改槽。
+    fn assert_order_assignable(&self, order: &DispatchOrder) -> Result<(), DomainError> {
+        if matches!(order.status, DispatchOrderStatus::Completed | DispatchOrderStatus::Cancelled) {
+            return Err(DomainError::BusinessRuleViolation(format!(
+                "工单 {} 已{}，不允许修改槽位",
+                order.id,
+                order.status.as_ref()
+            )));
+        }
+        Ok(())
+    }
+
+    /// 校验「同科室 / 在岗 / 具备该槽资质」。
+    async fn validate_slot_personnel(
+        &self,
+        order: &DispatchOrder,
+        slot_code: &str,
+        requirement: &Value,
+        user_id: &str,
+    ) -> Result<(), DomainError> {
+        let user = self
+            .user_repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| DomainError::ValidationError(format!("人员 {user_id} 不存在")))?;
+
+        // 同科室：个人账号 department_id 必须等于工单科室。
+        if let (Some(order_dept), Some(user_dept)) = (&order.department_id, &user.department_id) {
+            if order_dept != user_dept {
+                return Err(DomainError::BusinessRuleViolation(format!(
+                    "人员 {user_id} 与工单科室不一致（cannot assign cross-department）"
+                )));
+            }
+        }
+
+        // 在岗：personnel_runtime 无行视为 off_duty → 拒绝。
+        let runtime = self.personnel_runtime_repo.find_by_user(user_id).await?;
+        if runtime.as_ref().is_none_or(|r| r.current_status != PersonnelStatus::OnDuty) {
+            return Err(DomainError::BusinessRuleViolation(format!(
+                "人员 {user_id} 不在岗（off duty），不能指派到槽位 {slot_code}"
+            )));
+        }
+
+        // 该槽无资质要求 → 通过。
+        let qualification_code = match requirement.get("qualification_code").and_then(Value::as_str) {
+            Some(code) if !code.is_empty() => code,
+            _ => return Ok(()),
+        };
+        let min_level_code = requirement.get("min_level_code").and_then(Value::as_str);
+        let department_id = order
+            .department_id
+            .as_deref()
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| DomainError::ValidationError("工单缺少部门上下文".to_string()))?;
+        let at_time = order.planned_end_time.unwrap_or_else(Utc::now);
+
+        let grants = self
+            .qualification_grant_repo
+            .find_by_department(department_id, Some(at_time), &[user_id.to_string()], false)
+            .await?;
+        if !grants.iter().any(|grant| {
+            grant.qualification_code == qualification_code
+                && grant.valid_to.is_none_or(|valid_to| valid_to >= at_time)
+                && grant.valid_from.is_none_or(|valid_from| valid_from <= at_time)
+        }) {
+            return Err(DomainError::BusinessRuleViolation(format!(
+                "人员 {user_id} 不满足槽位 {slot_code} 的资质要求 {qualification_code}"
+            )));
+        }
+
+        // 级别覆盖：仅当要求了 min_level_code 时才校验级别层级。
+        if let Some(min_level_code) = min_level_code {
+            let levels = self
+                .qualification_repo
+                .list_levels(department_id, Some(qualification_code), false)
+                .await?;
+            let level_index = levels
+                .into_iter()
+                .map(|level| {
+                    let mut covered = level.covered_level_codes.into_iter().collect::<HashSet<_>>();
+                    covered.insert(level.level_code.clone());
+                    (level.level_code, covered)
+                })
+                .collect::<HashMap<_, _>>();
+            let qualified = grants.iter().any(|grant| {
+                grant.qualification_code == qualification_code
+                    && Self::level_covers_requirement(&level_index, &grant.level_code, Some(min_level_code))
+            });
+            if !qualified {
+                return Err(DomainError::BusinessRuleViolation(format!(
+                    "人员 {user_id} 不满足槽位 {slot_code} 的资质级别要求 {qualification_code}:{min_level_code}"
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn member_role_from_slot(slot_code: Option<&str>) -> MemberRole {
+        match slot_code.map(str::trim).filter(|value| !value.is_empty()) {
+            Some("lead") => MemberRole::Leader,
+            Some("driver") => MemberRole::Driver,
+            _ => MemberRole::Member,
+        }
+    }
+
+    fn level_covers_requirement(
+        level_index: &HashMap<String, HashSet<String>>,
+        grant_level_code: &str,
+        min_level_code: Option<&str>,
+    ) -> bool {
+        match min_level_code {
+            Some(min) => level_index
+                .get(grant_level_code)
+                .is_some_and(|covered| covered.contains(min)),
+            None => true,
+        }
     }
 }

@@ -618,6 +618,14 @@ async fn build_test_executor(
                 >,
             Arc::new(fms_application::test_support::UnwiredRepository)
                 as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::QualificationGrantRepository + Send + Sync>,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentQualificationRepository + Send + Sync>,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
+            Arc::new(fms_application::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
             dispatch_service.clone(),
         ));
 

@@ -256,3 +256,24 @@ async def test_propose_carousel_allocate_zero_constraint() -> None:
     assert simulate["after"]["carousel"] == "C1"
     assert simulate["after"]["flight_id"] == "FL1"
     assert simulate["violations"] == []
+
+
+@pytest.mark.asyncio
+async def test_propose_dispatch_order_slot_actions_proposal_only() -> None:
+    # PR5 派工槽位：assign/unassign/add/remove_slot 与规则同一领域函数。
+    # 无资源可占 → proposal 走 `_simulate_controlled_write` proposal_only 分支，
+    # 不触发 check_availability，不产生冲突模拟。
+    for action_name in ("assign_slot", "unassign_slot", "add_slot", "remove_slot"):
+        client = RecordingClient()
+        tools = OntologyTools(client=client)
+        result = await tools.propose_action(
+            run_id="run_1",
+            action_name=f"DispatchOrder.{action_name}",
+            parameters={"order_id": "DP9", "slot_code": "S1", "user_id": "U1"},
+            allowed_actions=[f"DispatchOrder.{action_name}"],
+        )
+        assert result["execution_mode"] == "proposal_only"
+        assert result["action_name"] == f"DispatchOrder.{action_name}"
+        # 无 flight_id → 不发起任何读取；仅 proposal 信封返回。
+        assert client.read_calls == []
+        assert client.advisory_calls == []

@@ -286,7 +286,10 @@ impl MicroModelRegistry {
             .with_proposal_capable(true)
             .with_allowed_actions(vec![
                 "DispatchOrder.recommend_replan".to_string(),
-                "DispatchOrder.reassign".to_string(),
+                "DispatchOrder.assign_slot".to_string(),
+                "DispatchOrder.unassign_slot".to_string(),
+                "DispatchOrder.add_slot".to_string(),
+                "DispatchOrder.remove_slot".to_string(),
             ])
             .with_timeout_ms(10_000)
             .with_version("1.0.0")

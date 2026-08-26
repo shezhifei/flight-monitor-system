@@ -489,6 +489,14 @@ mod tests {
                     >,
                 Arc::new(crate::test_support::UnwiredRepository)
                     as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::dispatch_repository::QualificationGrantRepository + Send + Sync>,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentQualificationRepository + Send + Sync>,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
                 dispatch_svc.clone(),
             ));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));

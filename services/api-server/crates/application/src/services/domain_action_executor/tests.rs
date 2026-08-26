@@ -144,6 +144,14 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastr
                 >,
             Arc::new(crate::test_support::UnwiredRepository)
                 as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::QualificationGrantRepository + Send + Sync>,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentQualificationRepository + Send + Sync>,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
+            Arc::new(crate::test_support::UnwiredRepository)
+                as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
             dispatch_service.clone(),
         ));
 
@@ -454,6 +462,78 @@ async fn test_dispatch_order_reassign_not_found() {
         .await;
     // reassign 已废止 -> 执行器 fail-closed（unknown action）
     assert!(matches!(res, Err(DomainActionError::NotFound(_))));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL"]
+async fn test_dispatch_order_assign_slot_validation() {
+    if !has_pool() {
+        return;
+    }
+    let executor = build_executor(create_pool().await).await;
+    // 缺 slot_code / user_id，在触碰 DB 前即被参数校验拦截（PR5 槽位分支）。
+    let res = executor
+        .execute_approved_action("DispatchOrder", "DP123", "assign_slot", &json!({}), "tester")
+        .await;
+    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL"]
+async fn test_dispatch_order_assign_slot_not_found() {
+    if !has_pool() {
+        return;
+    }
+    let executor = build_executor(create_pool().await).await;
+    let res = executor
+        .execute_approved_action(
+            "DispatchOrder",
+            "DP_NONEXISTENT",
+            "assign_slot",
+            &json!({"slot_code": "lead", "user_id": "user_1"}),
+            "tester",
+        )
+        .await;
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL"]
+async fn test_dispatch_order_unassign_slot_validation() {
+    if !has_pool() {
+        return;
+    }
+    let executor = build_executor(create_pool().await).await;
+    let res = executor
+        .execute_approved_action("DispatchOrder", "DP123", "unassign_slot", &json!({}), "tester")
+        .await;
+    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL"]
+async fn test_dispatch_order_add_slot_validation() {
+    if !has_pool() {
+        return;
+    }
+    let executor = build_executor(create_pool().await).await;
+    let res = executor
+        .execute_approved_action("DispatchOrder", "DP123", "add_slot", &json!({}), "tester")
+        .await;
+    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL"]
+async fn test_dispatch_order_remove_slot_validation() {
+    if !has_pool() {
+        return;
+    }
+    let executor = build_executor(create_pool().await).await;
+    let res = executor
+        .execute_approved_action("DispatchOrder", "DP123", "remove_slot", &json!({}), "tester")
+        .await;
+    assert!(matches!(res, Err(DomainActionError::Validation(_))));
 }
 
 #[tokio::test]

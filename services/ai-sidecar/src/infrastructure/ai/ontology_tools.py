@@ -124,6 +124,9 @@ ADVISORY_ACTIONS: frozenset[str] = frozenset(
 #: （告警不硬拦，见 `_simulate_controlled_write`）；转盘显式零约束。
 #: 废止的 `Flight.change_stand` / `Stand.reserve` 不在此名单 → propose_action
 #: 直接 `UnregisteredActionError`（fail-closed，不留兼容分支）。
+#: PR5 派工槽位：`DispatchOrder.assign_slot` / `unassign_slot` / `add_slot` /
+#: `remove_slot` 与规则同一领域函数，proposal 路径模拟（不执行），无资源可占
+#: → 走 `_simulate_controlled_write` 的 proposal_only 分支。
 CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({
     "StandOccupation.allocate",
     "StandOccupation.adjust",
@@ -132,6 +135,10 @@ CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({
     "GateAssignment.release",
     "CarouselAssignment.allocate",
     "CarouselAssignment.release",
+    "DispatchOrder.assign_slot",
+    "DispatchOrder.unassign_slot",
+    "DispatchOrder.add_slot",
+    "DispatchOrder.remove_slot",
 })
 
 #: 仅机位占用走可用性模拟（`stand.check_availability`，重叠 soft）。

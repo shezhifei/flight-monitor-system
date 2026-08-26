@@ -143,7 +143,8 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                             self.dispatch_service.send_publication_notifications(&order).await;
                         }
                     }
-                    "DispatchOrder.reassign" => {
+                    "DispatchOrder.assign_slot" | "DispatchOrder.unassign_slot" | "DispatchOrder.add_slot"
+                    | "DispatchOrder.remove_slot" => {
                         self.dispatch_service.sync_dispatch_chat_for_order(object_id).await;
                     }
                     "BusinessCase.create" => {
@@ -781,6 +782,45 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 Ok(serde_json::json!({ "success": true, "assignment": assignment }))
             }
             // `DispatchOrder.assign_slot` / `unassign_slot` / `add_slot` / `remove_slot`（PR5）
+            // 命名槽派工：与预排共用「同科室 / 在岗 / 资质」校验口径，槽写入在调用方事务内。
+            "DispatchOrder.assign_slot" => {
+                let slot_code = required_string(arguments, &["slot_code"], "slot_code")?;
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                let order = self
+                    .dispatch_writer
+                    .assign_slot_in_tx(tx, object_id, slot_code, user_id, executor_id)
+                    .await
+                    .map_err(map_dispatch_writer_error)?;
+                Ok(serde_json::json!({ "success": true, "order_id": order.id, "slot_code": slot_code, "user_id": user_id }))
+            }
+            "DispatchOrder.unassign_slot" => {
+                let slot_code = required_string(arguments, &["slot_code"], "slot_code")?;
+                let order = self
+                    .dispatch_writer
+                    .unassign_slot_in_tx(tx, object_id, slot_code, executor_id)
+                    .await
+                    .map_err(map_dispatch_writer_error)?;
+                Ok(serde_json::json!({ "success": true, "order_id": order.id, "slot_code": slot_code }))
+            }
+            "DispatchOrder.add_slot" => {
+                let slot_code = required_string(arguments, &["slot_code"], "slot_code")?;
+                let slot_name = optional_string(arguments, &["slot_name"]);
+                let order = self
+                    .dispatch_writer
+                    .add_slot_in_tx(tx, object_id, slot_code, slot_name, executor_id)
+                    .await
+                    .map_err(map_dispatch_writer_error)?;
+                Ok(serde_json::json!({ "success": true, "order_id": order.id, "slot_code": slot_code }))
+            }
+            "DispatchOrder.remove_slot" => {
+                let slot_code = required_string(arguments, &["slot_code"], "slot_code")?;
+                let order = self
+                    .dispatch_writer
+                    .remove_slot_in_tx(tx, object_id, slot_code, executor_id)
+                    .await
+                    .map_err(map_dispatch_writer_error)?;
+                Ok(serde_json::json!({ "success": true, "order_id": order.id, "slot_code": slot_code }))
+            }
             _ => Err(DomainActionError::NotFound(format!("unknown action: {}", action_key))),
         }
     }
@@ -831,6 +871,20 @@ fn map_service_error(error: fms_domain::error::DomainError) -> DomainActionError
         fms_domain::error::DomainError::ValidationError(msg)
         | fms_domain::error::DomainError::PermissionDenied(msg) => DomainActionError::Validation(msg),
         fms_domain::error::DomainError::Conflict(msg) => DomainActionError::Execution(format!("conflict: {msg}")),
+        other => DomainActionError::Execution(other.to_string()),
+    }
+}
+
+/// 把派工单写入方（`DispatchOrderWriter`）的领域错误映射为执行器错误。
+/// 槽位校验失败的 `BusinessRuleViolation`（跨科室 / 不在岗 / 资质不足）与 `ValidationError`
+/// 一律视为对注入参数的拒绝，向提案管线暴露成 Validation，而非服务端失败。
+fn map_dispatch_writer_error(error: fms_domain::error::DomainError) -> DomainActionError {
+    match error {
+        fms_domain::error::DomainError::NotFound { entity_type, id } => {
+            DomainActionError::NotFound(format!("{entity_type} {id} not found"))
+        }
+        fms_domain::error::DomainError::ValidationError(msg)
+        | fms_domain::error::DomainError::BusinessRuleViolation(msg) => DomainActionError::Validation(msg),
         other => DomainActionError::Execution(other.to_string()),
     }
 }

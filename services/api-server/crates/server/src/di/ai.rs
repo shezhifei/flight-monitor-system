@@ -67,9 +67,11 @@ use fms_domain::ports::ai_object_policy_repository::AiObjectPolicyRepository;
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
 use fms_domain::ports::dispatch_repository::{
-    DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository, DispatchOrderRepository,
-    DispatchOrderTransactionalRepository, StandRepository, TeamRepository,
+    DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository,
+    DispatchOrderRepository, DispatchOrderTransactionalRepository, PersonnelRuntimeRepository,
+    QualificationGrantRepository, StandRepository, TeamRepository,
 };
+use fms_domain::ports::user_repository::UserRepository;
 
 use fms_domain::ports::ai_job_repository::AiJobRepository;
 use fms_domain::ports::ai_run_event_repository::AiRunEventRepository;
@@ -175,6 +177,10 @@ pub(crate) fn build_ai_services(
                         + Sync,
                 >,
             repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+            repos.qualification_grant_repo.clone() as Arc<dyn QualificationGrantRepository + Send + Sync>,
+            repos.qualification_repo.clone() as Arc<dyn DepartmentQualificationRepository + Send + Sync>,
+            repos.personnel_runtime_repo.clone() as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
+            repos.user_repo.clone() as Arc<dyn UserRepository + Send + Sync>,
             dispatch.dispatch_svc.clone(),
         ));
     let domain_action_executor: Arc<DomainActionExecutor<_>> = Arc::new(DomainActionExecutor::new(
