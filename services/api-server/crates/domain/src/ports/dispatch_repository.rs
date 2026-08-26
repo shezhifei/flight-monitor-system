@@ -446,6 +446,21 @@ pub trait EquipmentRepository {
     async fn update_status(&self, id: &str, status: &str) -> Result<bool, DomainError>;
 }
 
+/// 目录设施 allocate 前校验的落点（PR3「allocate 校验楼成员」）。
+///
+/// 依据「code 在目录、is_active、且成员表挂在启用的楼上」三条件：
+/// - `Unknown`：code 不在目录中；
+/// - `Inactive`：目录行存在但未启用；
+/// - `NoTerminal`：目录行存在且启用，但未挂在任何楼上；
+/// - `Terminal { code, active }`：挂在楼上，`active` 为该楼是否启用。
+#[derive(Debug, Clone)]
+pub enum FacilityLocale {
+    Unknown,
+    Inactive,
+    NoTerminal,
+    Terminal { code: String, active: bool },
+}
+
 /// 航站楼目录仓储接口。
 ///
 /// 目录行（terminal/gate/carousel）与楼成员表（terminal_stands/gates/carousels）
@@ -500,6 +515,14 @@ pub trait TerminalRepository {
     // -- 只读上下文 --
     /// 返回楼 + 三类成员目录行；楼不存在返回 Ok(None)。
     async fn terminal_directory(&self, terminal_id: &str) -> Result<Option<TerminalDirectory>, DomainError>;
+
+    // -- allocate 前校验楼成员（PR3）--
+    /// 按机位 code 解析落点：目录存在且启用、且挂在某座楼上（楼启用与否见 `Terminal.active`）。
+    async fn stand_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError>;
+    /// 按登机口 code 解析落点（同上）。
+    async fn gate_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError>;
+    /// 按转盘 code 解析落点（同上）。
+    async fn carousel_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError>;
 }
 
 /// 机位仓储接口

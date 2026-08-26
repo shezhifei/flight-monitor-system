@@ -145,6 +145,7 @@ pub(crate) fn build_flight_services(
             link_port,
             suggestion_port,
             carousel_port,
+            repos.terminal_repo.clone(),
             ontology_writer as Arc<dyn OntologyTransactions>,
         )
         .with_flight_service(flight_svc.clone()),

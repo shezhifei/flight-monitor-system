@@ -700,6 +700,9 @@ async fn build_test_executor(
         link_repo,
         suggestion_repo,
         carousel_repo,
+        Arc::new(fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository::new(
+            pool.clone(),
+        )),
         ontology_writer,
     ));
 

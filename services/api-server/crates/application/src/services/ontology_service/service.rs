@@ -13,6 +13,7 @@ use fms_domain::models::ontology_v1::{
 };
 use fms_domain::models::ontology_v1_rules::{accept_permission_for, draft_can_be_occupied, enforce_link_health};
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
+use fms_domain::ports::dispatch_repository::{FacilityLocale, TerminalRepository};
 use fms_domain::ports::flight_repository::{FlightRepository, FlightUpdatePatch, PatchField};
 use fms_domain::ports::ontology_repository::{
     AircraftRepository, CarouselAssignmentRepository, CarouselCreateOutcome, GateAssignmentRepository,
@@ -45,6 +46,8 @@ pub struct OntologyService {
     link_repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
     suggestion_repo: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync>,
     carousel_repo: Arc<dyn CarouselAssignmentRepository + Send + Sync>,
+    /// 楼成员目录；allocate 前校验 code 在目录、启用、且挂启用的楼。
+    terminal_repo: Arc<dyn TerminalRepository + Send + Sync>,
     /// 受控事务写入端口；泛型在 writer 侧止步。
     tx_ops: Arc<dyn OntologyTransactions>,
     /// 可选：复用 FlightService 的 draft 确认语义。
@@ -66,6 +69,7 @@ impl OntologyService {
         link_repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
         suggestion_repo: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync>,
         carousel_repo: Arc<dyn CarouselAssignmentRepository + Send + Sync>,
+        terminal_repo: Arc<dyn TerminalRepository + Send + Sync>,
         tx_ops: Arc<dyn OntologyTransactions>,
     ) -> Self {
         Self {
@@ -76,6 +80,7 @@ impl OntologyService {
             link_repo,
             suggestion_repo,
             carousel_repo,
+            terminal_repo,
             tx_ops,
             flight_service: None,
             autolink_scanner_running: AtomicBool::new(false),
@@ -508,6 +513,10 @@ impl OntologyService {
             ));
         }
 
+        // PR3「allocate 校验楼成员」：机位 code 在目录、启用、且挂在启用的楼上。
+        let locale = self.terminal_repo.stand_locale_by_code(stand_code).await?;
+        Self::ensure_facility_locale(locale, "Stand")?;
+
         if let Some(flight_id) = request.flight_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
             let flight = self
                 .flight_repo
@@ -683,6 +692,10 @@ impl OntologyService {
         }
         Self::ensure_time_window(request.starts_at, request.ends_at)?;
 
+        // PR3「allocate 校验楼成员」：登机口 code 在目录、启用、且挂在启用的楼上。
+        let locale = self.terminal_repo.gate_locale_by_code(gate_code).await?;
+        Self::ensure_facility_locale(locale, "Gate")?;
+
         // 查找航班（主体必须存在）
         let _flight = self
             .flight_repo
@@ -816,6 +829,11 @@ impl OntologyService {
             ));
         }
         Self::ensure_time_window(request.starts_at, request.ends_at)?;
+
+        // PR3「allocate 校验楼成员」：转盘 code 在目录、启用、且挂在启用的楼上。
+        let locale = self.terminal_repo.carousel_locale_by_code(carousel_code).await?;
+        Self::ensure_facility_locale(locale, "BaggageCarousel")?;
+
         self.flight_repo
             .find_by_id(flight_id)
             .await?
@@ -1255,6 +1273,26 @@ impl OntologyService {
             return Err(OntologyError::validation("ends_at must be greater than starts_at"));
         }
         Ok(())
+    }
+
+    /// PR3「allocate 校验楼成员」：code 在目录、启用、且成员表挂在启用的楼上。
+    /// 通过时返回该设施所属 `Terminal.code`（供展示列推导楼）。
+    fn ensure_facility_locale(locale: FacilityLocale, facility: &str) -> Result<String, OntologyError> {
+        match locale {
+            FacilityLocale::Unknown => Err(OntologyError::validation(format!(
+                "{facility} code not in directory"
+            ))),
+            FacilityLocale::Inactive => {
+                Err(OntologyError::validation(format!("{facility} is not active")))
+            }
+            FacilityLocale::NoTerminal => Err(OntologyError::validation(format!(
+                "{facility} not attached to any terminal"
+            ))),
+            FacilityLocale::Terminal { code, active: false } => Err(OntologyError::validation(format!(
+                "{facility} terminal {code} is not active"
+            ))),
+            FacilityLocale::Terminal { code, active: true } => Ok(code),
+        }
     }
 
     fn parse_occupation_kind(raw: &str) -> Result<OccupationKind, OntologyError> {

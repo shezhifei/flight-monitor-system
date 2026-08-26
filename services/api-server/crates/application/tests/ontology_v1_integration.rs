@@ -32,6 +32,7 @@ use fms_infrastructure::repositories::pg_ontology_repository::{
     PgAircraftRepository, PgCarouselAssignmentRepository, PgGateAssignmentRepository,
     PgResourceAdjustmentSuggestionRepository, PgStandOccupationRepository, PgTurnaroundLinkRepository,
 };
+use fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository;
 use sqlx::PgPool;
 
 fn unique_suffix() -> String {
@@ -111,8 +112,89 @@ fn build_service(pool: PgPool) -> OntologyService {
         link_port,
         suggestion_port,
         carousel_port,
+        Arc::new(PgTerminalRepository::new(pool.clone())),
         writer as Arc<dyn OntologyTransactions>,
     )
+}
+
+/// 为 PR3「allocate 校验楼成员」补齐目录 + 成员落点：把 `codes` 中的设施目录行
+/// 挂到一个启用 Terminal 的成员表上（id 用 code 本身）。`kind` ∈ stand|gate|carousel。
+async fn seed_facility_locale<S: AsRef<str>>(pool: &PgPool, terminal_code: &str, kind: &str, codes: &[S]) {
+    sqlx::query(
+        "INSERT INTO terminals (terminal_id, code, name, is_active) VALUES ($1, $2, $3, TRUE) \
+         ON CONFLICT (terminal_id) DO UPDATE SET is_active = TRUE",
+    )
+    .bind(terminal_code)
+    .bind(terminal_code)
+    .bind(format!("Terminal {terminal_code}"))
+    .execute(pool)
+    .await
+    .expect("seed terminal (PR3 locale)");
+
+    for code in codes {
+        let code = code.as_ref();
+        match kind {
+            "stand" => {
+                sqlx::query(
+                    "INSERT INTO stands (id, code, position_lat, position_lng, is_active) \
+                     VALUES ($1, $2, 0, 0, TRUE) ON CONFLICT (code) DO UPDATE SET is_active = TRUE",
+                )
+                .bind(code)
+                .bind(code)
+                .execute(pool)
+                .await
+                .expect("seed stand (PR3 locale)");
+                sqlx::query(
+                    "INSERT INTO terminal_stands (terminal_id, stand_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                )
+                .bind(terminal_code)
+                .bind(code)
+                .execute(pool)
+                .await
+                .expect("seed terminal_stands (PR3 locale)");
+            }
+            "gate" => {
+                sqlx::query(
+                    "INSERT INTO gates (gate_id, code, is_active) VALUES ($1, $2, TRUE) \
+                     ON CONFLICT (code) DO UPDATE SET is_active = TRUE",
+                )
+                .bind(code)
+                .bind(code)
+                .execute(pool)
+                .await
+                .expect("seed gate (PR3 locale)");
+                sqlx::query(
+                    "INSERT INTO terminal_gates (terminal_id, gate_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                )
+                .bind(terminal_code)
+                .bind(code)
+                .execute(pool)
+                .await
+                .expect("seed terminal_gates (PR3 locale)");
+            }
+            "carousel" => {
+                sqlx::query(
+                    "INSERT INTO baggage_carousels (carousel_id, code, is_active) VALUES ($1, $2, TRUE) \
+                     ON CONFLICT (code) DO UPDATE SET is_active = TRUE",
+                )
+                .bind(code)
+                .bind(code)
+                .execute(pool)
+                .await
+                .expect("seed carousel (PR3 locale)");
+                sqlx::query(
+                    "INSERT INTO terminal_carousels (terminal_id, carousel_id) VALUES ($1, $2) \
+                     ON CONFLICT DO NOTHING",
+                )
+                .bind(terminal_code)
+                .bind(code)
+                .execute(pool)
+                .await
+                .expect("seed terminal_carousels (PR3 locale)");
+            }
+            _ => panic!("unknown kind: {kind}"),
+        }
+    }
 }
 
 async fn seed_flight(pool: &PgPool, flight_id: &str, registration: Option<&str>, with_outbound: bool, is_draft: bool) {
@@ -315,6 +397,8 @@ async fn allocate_stand_and_accept_suggestion() {
     let reg = format!("B-S{suffix}");
     cleanup(&pool, &[&flight_id], &[&reg]).await;
     seed_flight(&pool, &flight_id, Some(&reg), true, false).await;
+    // PR3「allocate 校验楼成员」：机位 201/202 须在目录并挂到启用的楼上
+    seed_facility_locale(&pool, "T1", "stand", &["201", "202"]).await;
 
     let svc = build_service(pool.clone());
     let now = Utc::now();
@@ -464,6 +548,9 @@ async fn stand_and_gate_adjust_and_release() {
     let reg = format!("B-A{suffix}");
     cleanup(&pool, &[&flight_id], &[&reg]).await;
     seed_flight(&pool, &flight_id, Some(&reg), true, false).await;
+    // PR3「allocate 校验楼成员」：机位 301/302 与登机口 G1/G2 须在目录并挂在启用的楼上
+    seed_facility_locale(&pool, "T1", "stand", &["301", "302"]).await;
+    seed_facility_locale(&pool, "T1", "gate", &["G1", "G2"]).await;
 
     let svc = build_service(pool.clone());
     let now = Utc::now();

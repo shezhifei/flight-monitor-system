@@ -11,7 +11,7 @@ use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
     BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory,
 };
-use fms_domain::ports::dispatch_repository::TerminalRepository;
+use fms_domain::ports::dispatch_repository::{FacilityLocale, TerminalRepository};
 
 pub struct PgTerminalRepository {
     pool: PgPool,
@@ -443,7 +443,7 @@ impl TerminalRepository for PgTerminalRepository {
             .collect())
     }
 
-    // ------------------------------------------------------------ context --
+    // ------------------------------------------------------ context --
     async fn terminal_directory(&self, terminal_id: &str) -> Result<Option<TerminalDirectory>, DomainError> {
         let Some(terminal) = self.find_terminal_by_id(terminal_id).await? else {
             return Ok(None);
@@ -503,6 +503,87 @@ impl TerminalRepository for PgTerminalRepository {
             gates,
             carousels,
         }))
+    }
+
+    // ----------------------------------------- allocate 前校验落点（PR3）--
+
+    async fn stand_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError> {
+        self.locale_by_code(
+            "stands",
+            "id",
+            "is_active",
+            "terminal_stands",
+            "stand_id",
+            code,
+        )
+        .await
+    }
+
+    async fn gate_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError> {
+        self.locale_by_code(
+            "gates",
+            "gate_id",
+            "is_active",
+            "terminal_gates",
+            "gate_id",
+            code,
+        )
+        .await
+    }
+
+    async fn carousel_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError> {
+        self.locale_by_code(
+            "baggage_carousels",
+            "carousel_id",
+            "is_active",
+            "terminal_carousels",
+            "carousel_id",
+            code,
+        )
+        .await
+    }
+}
+
+impl PgTerminalRepository {
+    /// 通用落点：`dir_table` 目录表，`dir_pk` 目录主键列，`dir_active` 目录启用列，
+    /// `member_table` 成员表，`member_fk` 成员表引用目录主键的列。
+    async fn locale_by_code(
+        &self,
+        dir_table: &str,
+        dir_pk: &str,
+        dir_active: &str,
+        member_table: &str,
+        member_fk: &str,
+        code: &str,
+    ) -> Result<FacilityLocale, DomainError> {
+        let row = sqlx::query(&format!(
+            "SELECT d.{active_col} AS active, t_active.code AS terminal_code, t_active.is_active AS terminal_active \
+             FROM {dir_table} d \
+             LEFT JOIN {member_table} m ON m.{member_fk} = d.{dir_pk} \
+             LEFT JOIN terminals t_active ON t_active.terminal_id = m.terminal_id \
+             WHERE d.code = $1",
+            active_col = dir_active,
+        ))
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        match row {
+            None => Ok(FacilityLocale::Unknown),
+            Some(r) => {
+                let active: bool = r.get("active");
+                if !active {
+                    return Ok(FacilityLocale::Inactive);
+                }
+                match r.get::<Option<String>, _>("terminal_code") {
+                    Some(code) => Ok(FacilityLocale::Terminal {
+                        code,
+                        active: r.get::<Option<bool>, _>("terminal_active").unwrap_or(true),
+                    }),
+                    None => Ok(FacilityLocale::NoTerminal),
+                }
+            }
+        }
     }
 }
 

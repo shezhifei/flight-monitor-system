@@ -425,6 +425,7 @@ mod tests {
             pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
             pg_dispatch_order_repository::PgDispatchOrderRepository,
             pg_domain_event_outbox_repository::PgDomainEventOutboxRepository, pg_flight_repository::PgFlightRepository,
+            pg_terminal_repository::PgTerminalRepository,
         };
 
         let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
@@ -529,6 +530,7 @@ mod tests {
             link_repo,
             suggestion_repo,
             carousel_repo,
+            Arc::new(PgTerminalRepository::new(pool.clone())),
             ontology_writer,
         ));
 
