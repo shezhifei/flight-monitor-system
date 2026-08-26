@@ -8,13 +8,15 @@ use sqlx::{PgPool, Postgres, Row, Transaction};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::ontology_v1::{
-    Aircraft, AssignmentStatus, GateAssignment, OccupationKind, OccupationStatus, ResourceAdjustmentSuggestion,
-    StandOccupation, SuggestionKind, SuggestionStatus, TurnaroundLink, TurnaroundLinkSource, TurnaroundLinkStatus,
+    Aircraft, AssignmentStatus, CarouselAssignment, GateAssignment, OccupationKind, OccupationStatus,
+    ResourceAdjustmentSuggestion, StandOccupation, SuggestionKind, SuggestionStatus, TurnaroundLink,
+    TurnaroundLinkSource, TurnaroundLinkStatus,
 };
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, OntologyTransactionalRepository,
-    ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
+    AircraftRepository, CarouselAssignmentRepository, CarouselCreateOutcome, GateAssignmentRepository,
+    OntologyTransactionalRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
+    TurnaroundLinkRepository,
 };
 
 // ---------------------------------------------------------------------------
@@ -179,6 +181,92 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(row.map(|r| row_to_assignment(&r)))
+    }
+
+    async fn create_carousel_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        assignment: &CarouselAssignment,
+    ) -> Result<CarouselCreateOutcome, DomainError> {
+        let inserted = sqlx::query(&format!(
+            "INSERT INTO carousel_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) \
+             ON CONFLICT (client_action_id) WHERE client_action_id IS NOT NULL DO NOTHING RETURNING *",
+            CAROUSEL_COLUMNS
+        ))
+        .bind(&assignment.id)
+        .bind(&assignment.carousel_code)
+        .bind(&assignment.registration)
+        .bind(assignment.flight_id.as_ref().map(|f| &f.0))
+        .bind(assignment.starts_at)
+        .bind(assignment.ends_at)
+        .bind(assignment_status_str(assignment.status))
+        .bind(&assignment.client_action_id)
+        .bind(&assignment.created_by)
+        .bind(assignment.created_at)
+        .bind(assignment.updated_at)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if inserted.is_some() {
+            return Ok(CarouselCreateOutcome::Inserted);
+        }
+        // 冲突 → 幂等去重：返回既有行
+        let existing = sqlx::query("SELECT * FROM carousel_assignments WHERE client_action_id=$1")
+            .bind(&assignment.client_action_id)
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?
+            .map(|r| row_to_carousel(&r));
+        match existing {
+            Some(a) => Ok(CarouselCreateOutcome::Deduplicated(a)),
+            None => Err(DomainError::Internal(
+                "carousel client_action_id conflict but row not found".into(),
+            )),
+        }
+    }
+
+    async fn update_carousel_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        assignment: &CarouselAssignment,
+    ) -> Result<(), DomainError> {
+        let result = sqlx::query(
+            "UPDATE carousel_assignments SET carousel_code=$2, starts_at=$3, ends_at=$4, status=$5, \
+             updated_at=NOW() WHERE id=$1 AND status='active'",
+        )
+        .bind(&assignment.id)
+        .bind(&assignment.carousel_code)
+        .bind(assignment.starts_at)
+        .bind(assignment.ends_at)
+        .bind(assignment_status_str(assignment.status))
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        if result.rows_affected() != 1 {
+            return Err(DomainError::ConcurrencyConflict(format!(
+                "active carousel assignment {} changed concurrently",
+                assignment.id
+            )));
+        }
+        Ok(())
+    }
+
+    async fn release_carousel_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        id: &str,
+        released_by: &str,
+    ) -> Result<Option<CarouselAssignment>, DomainError> {
+        let row = sqlx::query(
+            "UPDATE carousel_assignments SET status='released', updated_at=NOW(), created_by=COALESCE(created_by,$2) \
+             WHERE id=$1 AND status='active' RETURNING *",
+        )
+        .bind(id)
+        .bind(released_by)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(row.map(|r| row_to_carousel(&r)))
     }
 
     async fn create_link_in_tx(
@@ -692,6 +780,81 @@ impl GateAssignmentRepository for PgGateAssignmentRepository {
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(rows.iter().map(row_to_assignment).collect())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// CarouselAssignment
+// ---------------------------------------------------------------------------
+
+pub struct PgCarouselAssignmentRepository {
+    pool: PgPool,
+}
+
+impl PgCarouselAssignmentRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+fn row_to_carousel(r: &sqlx::postgres::PgRow) -> CarouselAssignment {
+    CarouselAssignment {
+        id: r.get("id"),
+        carousel_code: r.get("carousel_code"),
+        registration: r.try_get("registration").unwrap_or(None),
+        flight_id: r
+            .try_get::<Option<String>, _>("flight_id")
+            .unwrap_or(None)
+            .map(FlightId),
+        starts_at: r.get("starts_at"),
+        ends_at: r.get("ends_at"),
+        status: match r.get::<String, _>("status").as_str() {
+            "released" => AssignmentStatus::Released,
+            "expired" => AssignmentStatus::Expired,
+            _ => AssignmentStatus::Active,
+        },
+        client_action_id: r.try_get("client_action_id").unwrap_or(None),
+        created_by: r.try_get("created_by").unwrap_or(None),
+        created_at: r.get("created_at"),
+        updated_at: r.get("updated_at"),
+    }
+}
+
+const CAROUSEL_COLUMNS: &str =
+    "id, carousel_code, registration, flight_id, starts_at, ends_at, status, client_action_id, created_by, created_at, updated_at";
+
+#[async_trait]
+impl CarouselAssignmentRepository for PgCarouselAssignmentRepository {
+    async fn find_by_id(&self, id: &str) -> Result<Option<CarouselAssignment>, DomainError> {
+        let row = sqlx::query("SELECT * FROM carousel_assignments WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(row.map(|r| row_to_carousel(&r)))
+    }
+
+    async fn find_active_by_flight(&self, flight_id: &str) -> Result<Vec<CarouselAssignment>, DomainError> {
+        let rows = sqlx::query(
+            "SELECT * FROM carousel_assignments WHERE flight_id=$1 AND status='active' ORDER BY starts_at DESC",
+        )
+        .bind(flight_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(rows.iter().map(row_to_carousel).collect())
+    }
+
+    async fn list_by_flight(&self, flight_id: &str, limit: i64) -> Result<Vec<CarouselAssignment>, DomainError> {
+        let rows = sqlx::query(
+            "SELECT * FROM carousel_assignments WHERE flight_id=$1 ORDER BY starts_at DESC LIMIT $2",
+        )
+        .bind(flight_id)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(rows.iter().map(row_to_carousel).collect())
     }
 }
 
