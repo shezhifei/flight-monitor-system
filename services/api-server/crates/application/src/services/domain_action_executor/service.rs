@@ -2,11 +2,16 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::schemas::ontology_schemas::{
+    AdjustGateRequest, AdjustStandRequest, AllocateCarouselRequest, AllocateGateRequest, AllocateStandRequest,
+    ReleaseResourceRequest,
+};
 use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
 use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flight_writer::FlightWriter;
+use crate::services::ontology_service::{OntologyError, OntologyService};
 use crate::types::{ConcreteBusinessCaseService, ConcreteFlightService};
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
@@ -37,6 +42,7 @@ pub struct DomainActionExecutor<U: UnitOfWork> {
     dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
     business_case_service: Arc<ConcreteBusinessCaseService>,
     business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
+    ontology_svc: Arc<OntologyService>,
     uow: Arc<U>,
     outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
     anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
@@ -50,6 +56,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
         dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
         business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
+        ontology_svc: Arc<OntologyService>,
         outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
         uow: Arc<U>,
@@ -61,6 +68,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             dispatch_writer,
             business_case_service,
             business_case_writer,
+            ontology_svc,
             outbox_repo,
             anomaly_tx_repo,
             uow,
@@ -506,18 +514,178 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             }
             // `Label.add` 已废止（PR #本体两层改造）——标签写入口迁至 `Flight.add_label`，接线延后，执行器 fail-closed。
             // `Workflow.start` 已废止（PR #本体两层改造）——起流程是事项（BusinessCase）属性，执行器 fail-closed。
-            // ⏸️ TODO: stand_occupation.allocate/adjust/release (PR #本体两层改造)
-            // ⏸️ TODO: gate_assignment.allocate/release (subject: flight_id REQUIRED)
-            // ⏸️ TODO: carousel_assignment.allocate/release (NO constraints - unlimited allowed)
-            
+            // ⏸️ TODO: stand_occupation.allocate/adjust/release 已接线（见下方占用动作分支）。
+            // ⏸️ TODO: gate_assignment.allocate/release 已接线（见下方占用动作分支）。
+            // ⏸️ TODO: carousel_assignment.allocate/release 已接线（见下方占用动作分支）。
+
             // ⏸️ TODO: team.update_status/change_location/add_member/remove_member
             // ⏸️ TODO: personnel.update_status/change_location (with department boundary enforcement)
             // ⏸️ TODO: equipment.assign/release with slot integration
-            
-            // ⏸️ TODO: dispatch_order.assign_slot/unassign_slot/add_slot/remove_slot
-            //         Replace old reassign branch with slot-based assignment model
+
+            // 占用三对象已接线（PR #本体两层改造）：执行器只做参数映射 + 调 OntologyService，
+            // 禁止第二套 SQL。权限（ontology.stand.manage / gate.manage / carousel.manage）由
+            // AI 提案主管线在审批/执行前验过，这里按动作声明传入对应权限码即可。
+            "StandOccupation.allocate" => {
+                let stand_code = required_string(arguments, &["stand_code"], "stand_code")?;
+                let registration = required_string(arguments, &["registration"], "registration")?;
+                let request = AllocateStandRequest {
+                    registration: registration.to_string(),
+                    stand_code: stand_code.to_string(),
+                    starts_at: parse_dt_arg(arguments, "starts_at")?,
+                    ends_at: parse_dt_arg(arguments, "ends_at")?,
+                    kind: optional_string(arguments, &["kind"]).unwrap_or("normal").to_string(),
+                    moving_to_stand: optional_string(arguments, &["moving_to_stand"]).map(str::to_string),
+                    flight_id: optional_string(arguments, &["flight_id"]).map(str::to_string),
+                    sync_flight_plan: true,
+                };
+                let perms = vec!["ontology:stand.manage".to_string()];
+                let result = self
+                    .ontology_svc
+                    .allocate_stand(request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "occupation": result.occupation,
+                    "overlap_warnings": result.overlap_warnings,
+                }))
+            }
+            "StandOccupation.adjust" => {
+                let request = AdjustStandRequest {
+                    stand_code: optional_string(arguments, &["stand_code"]).map(str::to_string),
+                    starts_at: parse_dt_arg_opt(arguments, "starts_at")?,
+                    ends_at: parse_dt_arg_opt(arguments, "ends_at")?,
+                    kind: optional_string(arguments, &["kind"]).map(str::to_string),
+                    moving_to_stand: optional_string(arguments, &["moving_to_stand"]).map(str::to_string),
+                    sync_flight_plan: true,
+                };
+                let perms = vec!["ontology:stand.manage".to_string()];
+                let result = self
+                    .ontology_svc
+                    .adjust_stand(object_id, request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "occupation": result.occupation,
+                    "overlap_warnings": result.overlap_warnings,
+                }))
+            }
+            "StandOccupation.release" => {
+                let request = ReleaseResourceRequest { released_by: Some(executor_id.to_string()) };
+                let perms = vec!["ontology:stand.manage".to_string()];
+                let occupation = self
+                    .ontology_svc
+                    .release_stand(object_id, request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({ "success": true, "occupation": occupation }))
+            }
+            "GateAssignment.allocate" => {
+                let gate_code = required_string(arguments, &["gate_code"], "gate_code")?;
+                let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
+                let request = AllocateGateRequest {
+                    registration: optional_string(arguments, &["registration"]).unwrap_or("")
+                        .to_string(),
+                    gate_code: gate_code.to_string(),
+                    starts_at: parse_dt_arg(arguments, "starts_at")?,
+                    ends_at: parse_dt_arg(arguments, "ends_at")?,
+                    flight_id: Some(flight_id.to_string()),
+                    sync_flight_plan: true,
+                };
+                let perms = vec!["ontology:gate.manage".to_string()];
+                let result = self
+                    .ontology_svc
+                    .allocate_gate(request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "assignment": result.assignment,
+                    "consistency_warnings": result.consistency_warnings,
+                }))
+            }
+            "GateAssignment.release" => {
+                let request = ReleaseResourceRequest { released_by: Some(executor_id.to_string()) };
+                let perms = vec!["ontology:gate.manage".to_string()];
+                let assignment = self
+                    .ontology_svc
+                    .release_gate(object_id, request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({ "success": true, "assignment": assignment }))
+            }
+            "CarouselAssignment.allocate" => {
+                let carousel_code = required_string(arguments, &["carousel_code"], "carousel_code")?;
+                let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
+                let request = AllocateCarouselRequest {
+                    carousel_code: carousel_code.to_string(),
+                    flight_id: flight_id.to_string(),
+                    registration: optional_string(arguments, &["registration"]).map(str::to_string),
+                    starts_at: parse_dt_arg(arguments, "starts_at")?,
+                    ends_at: parse_dt_arg(arguments, "ends_at")?,
+                    client_action_id: optional_string(arguments, &["client_action_id"]).map(str::to_string),
+                };
+                let perms = vec!["ontology:carousel.manage".to_string()];
+                let result = self
+                    .ontology_svc
+                    .allocate_carousel(request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "inserted": result.inserted,
+                    "assignment": result.assignment,
+                }))
+            }
+            "CarouselAssignment.release" => {
+                let request = ReleaseResourceRequest { released_by: Some(executor_id.to_string()) };
+                let perms = vec!["ontology:carousel.manage".to_string()];
+                let assignment = self
+                    .ontology_svc
+                    .release_carousel(object_id, request, executor_id, &perms, false)
+                    .await
+                    .map_err(map_ontology_error)?;
+                Ok(serde_json::json!({ "success": true, "assignment": assignment }))
+            }
+            // `DispatchOrder.assign_slot` / `unassign_slot` / `add_slot` / `remove_slot`（PR5）
             _ => Err(DomainActionError::NotFound(format!("unknown action: {}", action_key))),
         }
+    }
+}
+
+/// 把 `arguments` 里的 RFC3339 字符串字段解析成 `DateTime<Utc>`（必填）。
+fn parse_dt_arg(arguments: &Value, key: &str) -> Result<chrono::DateTime<chrono::Utc>, DomainActionError> {
+    match arguments.get(key) {
+        Some(Value::String(raw)) => raw
+            .parse::<chrono::DateTime<chrono::Utc>>()
+            .map_err(|_| DomainActionError::Validation(format!("`{key}` is not an RFC3339 datetime"))),
+        _ => Err(DomainActionError::Validation(format!("`{key}` is required as an RFC3339 datetime"))),
+    }
+}
+
+/// 把 `arguments` 里的 RFC3339 字符串字段解析成 `Option<DateTime<Utc>>`（可空）。
+fn parse_dt_arg_opt(arguments: &Value, key: &str) -> Result<Option<chrono::DateTime<chrono::Utc>>, DomainActionError> {
+    match arguments.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(raw)) => raw
+            .parse::<chrono::DateTime<chrono::Utc>>()
+            .map(Some)
+            .map_err(|_| DomainActionError::Validation(format!("`{key}` is not an RFC3339 datetime"))),
+        Some(_) => Err(DomainActionError::Validation(format!(
+            "`{key}` must be an RFC3339 datetime string"
+        ))),
+    }
+}
+
+/// 把 `OntologyService` 的错误映射为执行器错误（AI 提案主管线已做权限与参数校验，
+/// 这里主要关心 NotFound / Validation，其余归 Execution）。
+fn map_ontology_error(error: OntologyError) -> DomainActionError {
+    match error {
+        OntologyError::Validation(msg) | OntologyError::Forbidden(msg) => DomainActionError::Validation(msg),
+        OntologyError::NotFound(msg) => DomainActionError::NotFound(msg),
+        OntologyError::Conflict(msg) => DomainActionError::Execution(format!("conflict: {msg}")),
+        OntologyError::Internal(msg) => DomainActionError::Execution(msg),
     }
 }
 
