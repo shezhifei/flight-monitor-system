@@ -700,6 +700,45 @@
       ],
       "risk_level": "low"
     },
+    "Personnel.assign_to_team": {
+      "action_name": "assign_to_team",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "user_id",
+          "team_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Personnel.assign_to_team",
+      "object_type": "Personnel",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:personnel.manage"
+      ],
+      "risk_level": "low"
+    },
+    "Personnel.change_location": {
+      "action_name": "change_location",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "user_id",
+          "lat",
+          "lng"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Personnel.change_location",
+      "object_type": "Personnel",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:personnel.manage"
+      ],
+      "risk_level": "low"
+    },
     "Personnel.get_context": {
       "action_name": "get_context",
       "approval_policy": "auto_execute",
@@ -715,6 +754,24 @@
       "ontology_version": "flight-ops.v1",
       "required_permissions": [
         "ontology:read"
+      ],
+      "risk_level": "low"
+    },
+    "Personnel.leave_team": {
+      "action_name": "leave_team",
+      "approval_policy": "auto_execute",
+      "arguments_schema": {
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "category": "write",
+      "execution_mapping": "DomainActionExecutor.Personnel.leave_team",
+      "object_type": "Personnel",
+      "ontology_version": "flight-ops.v1",
+      "required_permissions": [
+        "ontology:personnel.manage"
       ],
       "risk_level": "low"
     },
@@ -2792,6 +2849,85 @@
     },
     "Personnel": {
       "actions": {
+        "assign_to_team": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "把个人加入某班组名册（入组校验同 Team.add_member）。",
+          "execution_mapping": "DomainActionExecutor.Personnel.assign_to_team",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "assign_to_team",
+          "parameters": {
+            "team_id": {
+              "description": "Team ID",
+              "name": "team_id",
+              "param_type": "String",
+              "required": true
+            },
+            "user_id": {
+              "description": "User ID",
+              "name": "user_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "user_id",
+              "team_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:personnel.manage"
+          ],
+          "risk_level": "low"
+        },
+        "change_location": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "更新该人位置（只本人；改别人须科室经理或 admin）。",
+          "execution_mapping": "DomainActionExecutor.Personnel.change_location",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "change_location",
+          "parameters": {
+            "lat": {
+              "description": "Latitude",
+              "name": "lat",
+              "param_type": "String",
+              "required": true
+            },
+            "lng": {
+              "description": "Longitude",
+              "name": "lng",
+              "param_type": "String",
+              "required": true
+            },
+            "user_id": {
+              "description": "User ID",
+              "name": "user_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "user_id",
+              "lat",
+              "lng"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:personnel.manage"
+          ],
+          "risk_level": "low"
+        },
         "get_context": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
@@ -2821,19 +2957,48 @@
           ],
           "risk_level": "low"
         },
+        "leave_team": {
+          "approval_policy": "auto_execute",
+          "approval_strategy": "auto_approve",
+          "category": "write",
+          "compensation": null,
+          "constraints": [],
+          "description": "把个人移出班组名册。",
+          "execution_mapping": "DomainActionExecutor.Personnel.leave_team",
+          "idempotency_key_strategy": "job_id:object_id:action_name",
+          "name": "leave_team",
+          "parameters": {
+            "user_id": {
+              "description": "User ID",
+              "name": "user_id",
+              "param_type": "String",
+              "required": true
+            }
+          },
+          "parameters_schema": {
+            "required": [
+              "user_id"
+            ],
+            "type": "object"
+          },
+          "required_permissions": [
+            "ontology:personnel.manage"
+          ],
+          "risk_level": "low"
+        },
         "update_status": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
           "category": "write",
           "compensation": null,
           "constraints": [],
-          "description": "Update on_duty/off_duty/break status",
+          "description": "更新该人 on_duty/off_duty/break/on_leave。本人可改；改别人须科室经理或 admin。",
           "execution_mapping": "DomainActionExecutor.Personnel.update_status",
           "idempotency_key_strategy": "job_id:object_id:action_name",
           "name": "update_status",
           "parameters": {
             "current_status": {
-              "description": "on_duty|off_duty|break",
+              "description": "on_duty|off_duty|break|on_leave",
               "name": "current_status",
               "param_type": "String",
               "required": true
