@@ -414,14 +414,15 @@ mod tests {
         use crate::types::NoopBusinessCaseEventPublisher;
         use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
         use fms_domain::ports::dispatch_repository::{
-            DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository, TaskTypeRepository,
-            TeamMemberRepository, TeamRepository, TeamTypeRepository,
+            DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, PersonnelRuntimeRepository,
+            StandRepository, TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
         };
         use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
         use fms_domain::ports::ontology_repository::{
             AircraftRepository, CarouselAssignmentRepository, GateAssignmentRepository, OntologyTransactionalRepository,
             ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
         };
+        use fms_domain::ports::user_repository::UserRepository;
         use fms_infrastructure::repositories::pg_ontology_repository::{
             PgAircraftRepository, PgCarouselAssignmentRepository, PgGateAssignmentRepository,
             PgResourceAdjustmentSuggestionRepository, PgStandOccupationRepository, PgTurnaroundLinkRepository,
@@ -434,9 +435,11 @@ mod tests {
             pg_domain_event_outbox_repository::PgDomainEventOutboxRepository,
             pg_equipment_repository::PgEquipmentRepository,
             pg_equipment_type_repository::PgEquipmentTypeRepository, pg_flight_repository::PgFlightRepository,
+            pg_personnel_runtime_repository::PgPersonnelRuntimeRepository,
             pg_stand_repository::PgStandRepository, pg_task_type_repository::PgTaskTypeRepository,
             pg_team_member_repository::PgTeamMemberRepository, pg_team_repository::PgTeamRepository,
             pg_team_type_repository::PgTeamTypeRepository, pg_terminal_repository::PgTerminalRepository,
+            pg_user_repository::PgUserRepository,
         };
 
         let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
@@ -562,6 +565,9 @@ mod tests {
                 Arc::new(PgEquipmentRepository::new(pool.clone())) as Arc<dyn EquipmentRepository + Send + Sync>,
                 Arc::new(PgStandRepository::new(pool.clone())) as Arc<dyn StandRepository + Send + Sync>,
                 Arc::new(PgTaskTypeRepository::new(pool.clone())) as Arc<dyn TaskTypeRepository + Send + Sync>,
+                Arc::new(PgPersonnelRuntimeRepository::new(pool.clone()))
+                    as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
+                Arc::new(PgUserRepository::new(pool.clone())) as Arc<dyn UserRepository + Send + Sync>,
             )) as Arc<ConcreteDispatchResourceService>,
             outbox_repo,
             anomaly_repo,

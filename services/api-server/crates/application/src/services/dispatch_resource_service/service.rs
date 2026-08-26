@@ -6,15 +6,17 @@ use crate::schemas::dispatch_schemas::{
 };
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
-    Department, Equipment, EquipmentStatus, EquipmentType, MemberRole, Stand, TaskType, Team, TeamMember, TeamStatus,
-    TeamType,
+    Department, Equipment, EquipmentStatus, EquipmentType, MemberRole, PersonnelRuntime, PersonnelStatus, Stand,
+    TaskType, Team, TeamMember, TeamStatus, TeamType,
 };
+use fms_domain::models::user::User;
 use fms_domain::ports::dispatch_repository::{
-    DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository, TaskTypeRepository,
-    TeamMemberRepository, TeamRepository, TeamTypeRepository,
+    DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, PersonnelRuntimeRepository, StandRepository,
+    TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
 };
+use fms_domain::ports::user_repository::UserRepository;
 
-use super::mappers::equipment_status_value;
+use super::mappers::{equipment_status_value, parse_personnel_status};
 
 pub struct DispatchResourceService<
     DR: DepartmentRepository + ?Sized,
@@ -25,6 +27,8 @@ pub struct DispatchResourceService<
     ER: EquipmentRepository + ?Sized,
     SR: StandRepository + ?Sized,
     TTR2: TaskTypeRepository + ?Sized,
+    PRR: PersonnelRuntimeRepository + ?Sized,
+    UR: UserRepository + ?Sized,
 > {
     department_repo: Arc<DR>,
     team_type_repo: Arc<TTR>,
@@ -34,6 +38,8 @@ pub struct DispatchResourceService<
     equipment_repo: Arc<ER>,
     stand_repo: Arc<SR>,
     task_type_repo: Arc<TTR2>,
+    personnel_runtime_repo: Arc<PRR>,
+    user_repo: Arc<UR>,
 }
 
 impl<
@@ -45,7 +51,9 @@ impl<
         ER: EquipmentRepository + ?Sized,
         SR: StandRepository + ?Sized,
         TTR2: TaskTypeRepository + ?Sized,
-    > DispatchResourceService<DR, TTR, TR, TMR, ETR, ER, SR, TTR2>
+        PRR: PersonnelRuntimeRepository + ?Sized,
+        UR: UserRepository + ?Sized,
+    > DispatchResourceService<DR, TTR, TR, TMR, ETR, ER, SR, TTR2, PRR, UR>
 {
     pub fn new(
         department_repo: Arc<DR>,
@@ -56,6 +64,8 @@ impl<
         equipment_repo: Arc<ER>,
         stand_repo: Arc<SR>,
         task_type_repo: Arc<TTR2>,
+        personnel_runtime_repo: Arc<PRR>,
+        user_repo: Arc<UR>,
     ) -> Self {
         Self {
             department_repo,
@@ -66,6 +76,8 @@ impl<
             equipment_repo,
             stand_repo,
             task_type_repo,
+            personnel_runtime_repo,
+            user_repo,
         }
     }
 
@@ -654,6 +666,175 @@ impl<
         task_type.is_active = false;
         self.task_type_repo.save(&task_type).await?;
         Ok(())
+    }
+
+    /// `Personnel.update_status`：更新个人在岗 runtime。本人可直接更新（本人改自己在岗
+    /// 不要求经理）；改别人必须是该人科室经理或 admin（科室边界在领域层再验）。
+    pub async fn update_personnel_status(
+        &self,
+        user_id: &str,
+        status: &str,
+        actor_id: &str,
+    ) -> Result<PersonnelRuntime, DomainError> {
+        let parsed = parse_personnel_status(status)?;
+        self.assert_self_or_department_manager(actor_id, user_id).await?;
+        let mut runtime = self.get_runtime_or_default(user_id).await?;
+        runtime.current_status = parsed;
+        runtime.updated_by = Some(actor_id.to_string());
+        // 无行时建行（无行视为 off_duty），有行则整体 upsert。
+        self.personnel_runtime_repo.save(&runtime).await
+    }
+
+    /// `Personnel.change_location`：更新个人位置。边界同上：本人可直接改，改别人须经理/admin。
+    pub async fn update_personnel_position(
+        &self,
+        user_id: &str,
+        lat: f64,
+        lng: f64,
+        stand_id: Option<&str>,
+        actor_id: &str,
+    ) -> Result<PersonnelRuntime, DomainError> {
+        validate_position(lat, lng)?;
+        self.assert_self_or_department_manager(actor_id, user_id).await?;
+        let mut runtime = self.get_runtime_or_default(user_id).await?;
+        runtime.current_position_lat = Some(lat);
+        runtime.current_position_lng = Some(lng);
+        runtime.current_stand_id = normalize_optional_string(stand_id.map(str::to_string));
+        runtime.last_position_update = Some(chrono::Utc::now());
+        runtime.updated_by = Some(actor_id.to_string());
+        self.personnel_runtime_repo.save(&runtime).await
+    }
+
+    /// `Personnel.assign_to_team`（入组）：必须是个人账号（岗位账号 PR7 后 409）、
+    /// 科室等于班组科室、一人一条活跃 `team_members`。边界：该人科室经理或 admin。
+    pub async fn assign_person_to_team(
+        &self,
+        person_user_id: &str,
+        team_id: &str,
+        actor_id: &str,
+    ) -> Result<(), DomainError> {
+        self.assert_department_manager(actor_id, person_user_id).await?;
+        let person = self
+            .user_repo
+            .find_by_id(person_user_id)
+            .await?
+            .ok_or_else(|| not_found("person", person_user_id))?;
+        let team = self
+            .team_repo
+            .find_by_id(team_id, false)
+            .await?
+            .ok_or_else(|| not_found("team", team_id))?;
+        // 班组科室 = 班组类型（team_type）的 department_id；科室须等于班组科室，否则 409。
+        let team_department_id = match team.team_type_id.as_deref() {
+            Some(team_type_id) => self
+                .team_type_repo
+                .find_by_id(team_type_id)
+                .await?
+                .and_then(|team_type| team_type.department_id),
+            None => None,
+        };
+        if !person.department_id.eq(&team_department_id) {
+            return Err(DomainError::Conflict(format!(
+                "person {person_user_id} department does not match team {team_id} department"
+            )));
+        }
+        // 一人一条活跃 team_members：已有活跃入组则冲突。
+        let existing = self
+            .team_member_repo
+            .find_by_user(person_user_id)
+            .await?
+            .into_iter()
+            .filter(|m| m.is_active)
+            .count();
+        if existing > 0 {
+            return Err(DomainError::Conflict(format!(
+                "person {person_user_id} already has an active team membership"
+            )));
+        }
+        let member = TeamMember {
+            id: ulid::Ulid::new().to_string(),
+            team_id: team_id.to_string(),
+            user_id: person_user_id.to_string(),
+            role: MemberRole::Member,
+            can_drive: false,
+            joined_at: None,
+            left_at: None,
+            is_active: true,
+            username: None,
+            user_display_name: None,
+        };
+        self.team_member_repo.save(&member).await?;
+        Ok(())
+    }
+
+    /// `Personnel.leave_team`（出组）：从班组移除个人。边界：该人科室经理或 admin。
+    pub async fn remove_person_from_team(
+        &self,
+        person_user_id: &str,
+        team_id: &str,
+        actor_id: &str,
+    ) -> Result<(), DomainError> {
+        self.assert_department_manager(actor_id, person_user_id).await?;
+        let removed = self
+            .team_member_repo
+            .remove_from_team(team_id, person_user_id)
+            .await?;
+        if !removed {
+            return Err(not_found("team_member", person_user_id));
+        }
+        Ok(())
+    }
+
+    async fn get_runtime_or_default(&self, user_id: &str) -> Result<PersonnelRuntime, DomainError> {
+        Ok(self.personnel_runtime_repo.find_by_user(user_id).await?.unwrap_or(
+            PersonnelRuntime {
+                user_id: user_id.to_string(),
+                current_status: PersonnelStatus::OffDuty,
+                current_stand_id: None,
+                current_position_lat: None,
+                current_position_lng: None,
+                last_position_update: None,
+                updated_at: None,
+                updated_by: None,
+            },
+        ))
+    }
+
+    /// 本人或目标用户科室经理 / admin 才能改目标在岗（runtime）。admin 旁路。
+    async fn assert_self_or_department_manager(&self, actor_id: &str, target_user_id: &str) -> Result<(), DomainError> {
+        if actor_id == target_user_id {
+            return Ok(());
+        }
+        self.assert_department_manager(actor_id, target_user_id).await
+    }
+
+    /// 目标用户科室经理或 admin 才能改目标。admin 旁路；非经理（含同科室普通成员）403。
+    async fn assert_department_manager(&self, actor_id: &str, target_user_id: &str) -> Result<(), DomainError> {
+        let actor = self
+            .user_repo
+            .find_by_id(actor_id)
+            .await?
+            .ok_or_else(|| not_found("actor", actor_id))?;
+        if actor.is_admin {
+            return Ok(());
+        }
+        let target = self
+            .user_repo
+            .find_by_id(target_user_id)
+            .await?
+            .ok_or_else(|| not_found("person", target_user_id))?;
+        if let (Some(actor_dept), Some(target_dept)) = (&actor.department_id, &target.department_id) {
+            if actor_dept == target_dept {
+                if let Some(dept) = self.department_repo.find_by_id(actor_dept).await? {
+                    if dept.manager_id.as_deref() == Some(actor_id) {
+                        return Ok(());
+                    }
+                }
+            }
+        }
+        Err(DomainError::PermissionDenied(
+            "only the department manager or a system admin may modify another person".to_string(),
+        ))
     }
 }
 

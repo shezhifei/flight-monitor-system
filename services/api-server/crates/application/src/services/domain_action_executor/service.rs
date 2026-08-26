@@ -523,8 +523,52 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             // ⏸️ TODO: gate_assignment.allocate/release 已接线（见下方占用动作分支）。
             // ⏸️ TODO: carousel_assignment.allocate/release 已接线（见下方占用动作分支）。
 
-            // ⏸️ TODO: personnel.update_status/change_location (runtime 尚未接线，预留)
             // ⏸️ TODO: equipment.assign/release（工单设备槽，PR5 接线；当前 fail-closed）
+
+            // PR4 人员 runtime / 入组出组：本人可直接改在岗；改别人或入组/出组须经理或 admin
+            // （科室边界在 DispatchResourceService 领域层再验，执行器不拼 SQL）。
+            "Personnel.update_status" => {
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                let status = required_string(arguments, &["status"], "status")?;
+                let runtime = self
+                    .dispatch_resource_svc
+                    .update_personnel_status(user_id, status, executor_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "user_id": user_id,
+                    "current_status": runtime.current_status,
+                }))
+            }
+            "Personnel.change_location" => {
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                let (lat, lng) = parse_lat_lng(arguments)?;
+                let stand_id = optional_string(arguments, &["stand_id"]).map(str::to_string);
+                self.dispatch_resource_svc
+                    .update_personnel_position(user_id, lat, lng, stand_id.as_deref(), executor_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "user_id": user_id }))
+            }
+            "Personnel.assign_to_team" => {
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                let team_id = required_string(arguments, &["team_id"], "team_id")?;
+                self.dispatch_resource_svc
+                    .assign_person_to_team(user_id, team_id, executor_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "user_id": user_id, "team_id": team_id }))
+            }
+            "Personnel.leave_team" => {
+                let user_id = required_string(arguments, &["user_id"], "user_id")?;
+                let team_id = required_string(arguments, &["team_id"], "team_id")?;
+                self.dispatch_resource_svc
+                    .remove_person_from_team(user_id, team_id, executor_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "user_id": user_id, "team_id": team_id }))
+            }
 
             // PR4 组织写动作：执行器只做参数映射 + 调 DispatchResourceService（禁止第二套 SQL）。
             // 权限由 AI 提案主管线在审批/执行前验过（ontology.team.manage / equipment.manage）。

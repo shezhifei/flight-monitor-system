@@ -4,7 +4,7 @@ use fms_domain::models::dispatch::{
     FlightGenerationRule, GenerationAdjustmentRule, LegScope, MemberRole, PublishTriggerMode, QualificationGrant,
     QualificationGrantStatus, ShiftInstance, ShiftTemplate, Stand, TaskType, TaskTypeCrewSlotRequirement,
     TaskTypeEquipmentRequirement, Team, TeamMember, TeamStatus, TeamType, TemporaryTaskTemplate,
-    TurnaroundConstraintMode, TurnaroundContinuityRule,
+    PersonnelStatus, TurnaroundConstraintMode, TurnaroundContinuityRule,
 };
 use serde_json::Value;
 
@@ -475,6 +475,27 @@ pub fn equipment_status_value(status: EquipmentStatus) -> &'static str {
         EquipmentStatus::InUse => "in_use",
         EquipmentStatus::Maintenance => "maintenance",
         EquipmentStatus::Retired => "retired",
+    }
+}
+
+pub fn personnel_status_value(status: PersonnelStatus) -> &'static str {
+    match status {
+        PersonnelStatus::OnDuty => "on_duty",
+        PersonnelStatus::OffDuty => "off_duty",
+        PersonnelStatus::Break => "break",
+        PersonnelStatus::OnLeave => "on_leave",
+    }
+}
+
+pub fn parse_personnel_status(value: &str) -> Result<PersonnelStatus, fms_domain::error::DomainError> {
+    match value.trim() {
+        "on_duty" => Ok(PersonnelStatus::OnDuty),
+        "off_duty" => Ok(PersonnelStatus::OffDuty),
+        "break" => Ok(PersonnelStatus::Break),
+        "on_leave" => Ok(PersonnelStatus::OnLeave),
+        _ => Err(fms_domain::error::DomainError::ValidationError(
+            "status must be one of: on_duty, off_duty, break, on_leave".into(),
+        )),
     }
 }
 

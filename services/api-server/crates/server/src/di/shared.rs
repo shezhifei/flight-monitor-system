@@ -63,6 +63,7 @@ use fms_infrastructure::repositories::pg_online_history_repository::PgOnlineHist
 use fms_infrastructure::repositories::pg_operator_identity_repository::PgOperatorIdentityRepository;
 use fms_infrastructure::repositories::pg_permission_repository::PgPermissionRepository;
 use fms_infrastructure::repositories::pg_permission_template_repository::PgPermissionTemplateRepository;
+use fms_infrastructure::repositories::pg_personnel_runtime_repository::PgPersonnelRuntimeRepository;
 use fms_infrastructure::repositories::pg_role_repository::PgRoleRepository;
 use fms_infrastructure::repositories::pg_shift_handover_repository::PgShiftHandoverRepository;
 use fms_infrastructure::repositories::pg_stand_repository::PgStandRepository;
@@ -120,6 +121,7 @@ pub(crate) struct SharedRepos {
     pub stand_repo: Arc<PgStandRepository>,
     pub terminal_repo: Arc<PgTerminalRepository>,
     pub task_type_repo: Arc<PgTaskTypeRepository>,
+    pub personnel_runtime_repo: Arc<PgPersonnelRuntimeRepository>,
     pub business_case_repo: Arc<PgBusinessCaseRepository>,
     pub flight_runtime_projection_repo: Arc<PgFlightRuntimeProjectionRepository>,
     pub business_case_type_repo: Arc<PgBusinessCaseTypeRepository>,
@@ -213,6 +215,7 @@ pub(crate) fn build_shared_repos(
     let stand_repo = Arc::new(PgStandRepository::new(pool.clone()));
     let terminal_repo = Arc::new(PgTerminalRepository::new(pool.clone()));
     let task_type_repo = Arc::new(PgTaskTypeRepository::new(pool.clone()));
+    let personnel_runtime_repo = Arc::new(PgPersonnelRuntimeRepository::new(pool.clone()));
     let business_case_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
     let flight_runtime_projection_repo = Arc::new(PgFlightRuntimeProjectionRepository::new(pool.clone()));
     let business_case_type_repo = Arc::new(PgBusinessCaseTypeRepository::new(pool.clone()));
@@ -270,6 +273,7 @@ pub(crate) fn build_shared_repos(
         stand_repo,
         terminal_repo,
         task_type_repo,
+        personnel_runtime_repo,
         business_case_repo,
         flight_runtime_projection_repo,
         business_case_type_repo,

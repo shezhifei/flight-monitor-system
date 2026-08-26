@@ -239,8 +239,8 @@ pub type ConcreteAiActionProposalService = AiActionProposalService;
 
 use crate::services::dispatch_resource_service::DispatchResourceService;
 use fms_domain::ports::dispatch_repository::{
-    DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, StandRepository, TaskTypeRepository,
-    TeamMemberRepository, TeamRepository, TeamTypeRepository,
+    DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, PersonnelRuntimeRepository, StandRepository,
+    TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
 };
 
 pub type ConcreteDispatchResourceService = DispatchResourceService<
@@ -252,6 +252,8 @@ pub type ConcreteDispatchResourceService = DispatchResourceService<
     dyn EquipmentRepository + Send + Sync,
     dyn StandRepository + Send + Sync,
     dyn TaskTypeRepository + Send + Sync,
+    dyn PersonnelRuntimeRepository + Send + Sync,
+    dyn UserRepository + Send + Sync,
 >;
 
 /// 空间目录资源服务，绑定 Postgres 仓储。

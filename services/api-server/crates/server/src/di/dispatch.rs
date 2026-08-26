@@ -36,8 +36,8 @@ use fms_domain::broadcaster::Broadcaster;
 
 use fms_domain::ports::dispatch_repository::{
     DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository,
-    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository, StandRepository, TaskTypeRepository,
-    TeamMemberRepository, TeamRepository, TeamTypeRepository, TerminalRepository,
+    PersonnelRuntimeRepository, ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository,
+    StandRepository, TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository, TerminalRepository,
 };
 use fms_domain::ports::event_rule_repository::EventRuleRepository;
 use fms_domain::ports::user_repository::UserRepository;
@@ -180,6 +180,8 @@ pub(crate) fn build_dispatch_services(
         repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
         repos.stand_repo.clone() as Arc<dyn StandRepository + Send + Sync>,
         repos.task_type_repo.clone() as Arc<dyn TaskTypeRepository + Send + Sync>,
+        repos.personnel_runtime_repo.clone() as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
+        repos.user_repo.clone() as Arc<dyn UserRepository + Send + Sync>,
     ));
     let terminal_resource_svc: Arc<ConcreteTerminalResourceService> = Arc::new(TerminalResourceService::new(
         repos.terminal_repo.clone() as Arc<dyn TerminalRepository + Send + Sync>,
