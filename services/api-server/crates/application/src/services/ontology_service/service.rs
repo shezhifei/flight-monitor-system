@@ -667,28 +667,36 @@ impl OntologyService {
         actor_is_admin: bool,
     ) -> Result<GateAssignmentResult, OntologyError> {
         Self::ensure_has_permission(actor_permissions, actor_is_admin, "ontology.gate.manage")?;
-        let registration = request.registration.trim();
         let gate_code = request.gate_code.trim();
-        if registration.is_empty() || gate_code.is_empty() {
+        let flight_id = request.flight_id.trim();
+        if gate_code.is_empty() || flight_id.is_empty() {
             return Err(OntologyError::validation(
-                "registration and gate_code must not be empty",
+                "gate_code and flight_id must not be empty",
             ));
         }
         Self::ensure_time_window(request.starts_at, request.ends_at)?;
 
+        // 查找航班（主体必须存在）
+        let _flight = self
+            .flight_repo
+            .find_by_id(flight_id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
+
+        // 从航班获取registration，或直接使用客户端给出的投影值
+        let registration = request
+            .registration
+            .clone()
+            .unwrap_or_else(|| _flight.registration.clone().unwrap_or_default());
+
         let now = Utc::now();
         let assignment = GateAssignment {
             id: Ulid::new().to_string(),
-            registration: registration.to_string(),
+            registration,
             gate_code: GateNumber(gate_code.to_string()),
             starts_at: request.starts_at,
             ends_at: request.ends_at,
-            flight_id: request
-                .flight_id
-                .as_ref()
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .map(|s| FlightId(s.to_string())),
+            flight_id: Some(FlightId(flight_id.to_string())),
             status: AssignmentStatus::Active,
             created_by: Some(actor_id.to_string()),
             created_at: now,
@@ -696,11 +704,11 @@ impl OntologyService {
         };
 
         let consistency_warnings = self
-            .build_gate_consistency_warnings(registration, gate_code, now)
+            .build_gate_consistency_warnings(&assignment.registration, &gate_code, now)
             .await?;
 
         self.tx_ops
-            .allocate_gate_tx(registration, &assignment, request.sync_flight_plan, gate_code, actor_id)
+            .allocate_gate_tx(&assignment.registration, &assignment, request.sync_flight_plan, gate_code, actor_id)
             .await?;
 
         Ok(GateAssignmentResult {

@@ -328,6 +328,7 @@ async fn allocate_stand_and_accept_suggestion() {
                 kind: "normal".into(),
                 moving_to_stand: None,
                 flight_id: Some(flight_id.clone()),
+                client_action_id: None,
                 sync_flight_plan: true,
             },
             "aoc_user",
@@ -479,6 +480,7 @@ async fn stand_and_gate_adjust_and_release() {
                 kind: "normal".into(),
                 moving_to_stand: None,
                 flight_id: Some(flight_id.clone()),
+                client_action_id: None,
                 sync_flight_plan: true,
             },
             "aoc",
@@ -553,11 +555,12 @@ async fn stand_and_gate_adjust_and_release() {
     let gate = svc
         .allocate_gate(
             AllocateGateRequest {
-                registration: reg.clone(),
+                registration: Some(reg.clone()),
                 gate_code: "G1".into(),
                 starts_at: now,
                 ends_at: now + Duration::hours(2),
-                flight_id: Some(flight_id.clone()),
+                flight_id: flight_id.clone(),
+                client_action_id: None,
                 sync_flight_plan: true,
             },
             "toc",

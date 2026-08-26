@@ -99,6 +99,8 @@ pub struct AllocateStandRequest {
     pub moving_to_stand: Option<String>,
     /// 可选原因航段
     pub flight_id: Option<String>,
+    /// 客户端幂等 token；重复 token 返回既有行而非新建
+    pub client_action_id: Option<String>,
     /// 是否同步回写 Flight.stand 计划字段
     #[serde(default = "default_true")]
     pub sync_flight_plan: bool,
@@ -145,11 +147,14 @@ pub struct StandOccupationResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AllocateGateRequest {
-    pub registration: String,
+    pub registration: Option<String>,
     pub gate_code: String,
     pub starts_at: chrono::DateTime<chrono::Utc>,
     pub ends_at: chrono::DateTime<chrono::Utc>,
-    pub flight_id: Option<String>,
+    /// 主体：航班（PR3 改为必填）
+    pub flight_id: String,
+    /// 客户端幂等 token；重复 token 返回既有行而非新建
+    pub client_action_id: Option<String>,
     #[serde(default = "default_true")]
     pub sync_flight_plan: bool,
 }

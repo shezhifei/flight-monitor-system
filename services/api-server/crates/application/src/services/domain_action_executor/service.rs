@@ -536,6 +536,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     kind: optional_string(arguments, &["kind"]).unwrap_or("normal").to_string(),
                     moving_to_stand: optional_string(arguments, &["moving_to_stand"]).map(str::to_string),
                     flight_id: optional_string(arguments, &["flight_id"]).map(str::to_string),
+                    client_action_id: optional_string(arguments, &["client_action_id"]).map(str::to_string),
                     sync_flight_plan: true,
                 };
                 let perms = vec!["ontology:stand.manage".to_string()];
@@ -585,12 +586,12 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 let gate_code = required_string(arguments, &["gate_code"], "gate_code")?;
                 let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
                 let request = AllocateGateRequest {
-                    registration: optional_string(arguments, &["registration"]).unwrap_or("")
-                        .to_string(),
+                    registration: optional_string(arguments, &["registration"]).map(str::to_string),
                     gate_code: gate_code.to_string(),
                     starts_at: parse_dt_arg(arguments, "starts_at")?,
                     ends_at: parse_dt_arg(arguments, "ends_at")?,
-                    flight_id: Some(flight_id.to_string()),
+                    flight_id: flight_id.to_string(),
+                    client_action_id: optional_string(arguments, &["client_action_id"]).map(str::to_string),
                     sync_flight_plan: true,
                 };
                 let perms = vec!["ontology:gate.manage".to_string()];
