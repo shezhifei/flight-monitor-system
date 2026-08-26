@@ -42,6 +42,7 @@ pub mod ping;
 pub mod reference;
 pub mod resource_utilization;
 pub mod scheduler;
+pub mod seats;
 pub mod shift_handovers;
 pub mod static_files;
 pub mod system;

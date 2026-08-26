@@ -16,6 +16,23 @@ pub struct UserLogin {
     pub password: String,
 }
 
+/// 占席请求。`proof.kind` 本期仅实现 `password`；`face` / `ext` 预留 501，其它 400。
+#[derive(Debug, Clone, Deserialize)]
+pub struct SeatOccupyRequest {
+    /// 空席第一次上岗 / 换人都走这条路：输入要占用该席的个人用户名。
+    pub personal_username: String,
+    pub proof: SeatProof,
+}
+
+/// 厂商无关的占席证明。密码不入审计。
+#[derive(Debug, Clone, Deserialize)]
+pub struct SeatProof {
+    pub kind: String,
+    /// 仅 `kind == "password"` 时使用；其余 kind 忽略此字段。
+    #[serde(default)]
+    pub password: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct UserCreate {
     pub username: String,

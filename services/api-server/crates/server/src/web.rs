@@ -151,6 +151,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .configure(fms_api::routes::kpi::configure)
         .configure(fms_api::routes::shift_handovers::configure)
         .configure(fms_api::routes::scheduler::configure)
+        .configure(fms_api::routes::seats::configure)
         .configure(fms_api::routes::system::configure)
         .configure(fms_api::routes::archive::configure)
         .configure(fms_api::routes::mobile::configure)

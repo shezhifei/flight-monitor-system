@@ -233,6 +233,105 @@ impl AuthService {
         Ok(token)
     }
 
+    /// 占席（OccupySeat，本期支持 password 证明）。
+    ///
+    /// 第一性原理：键盘前的人就是写入的人。运行台「换人」+ 个人密码 → 把岗位
+    /// `current_occupant_user_id` 切到该个人。签发的 token 只承载个人 `sub`（JWT sub
+    /// 永远个人）；运行写权限由中间件每次现查「该岗位当前占用人 == 本人」，token 不携席权限。
+    pub async fn occupy_seat(
+        &self,
+        position_user_id: &str,
+        personal_username: &str,
+        password: &str,
+        client_ip: Option<&str>,
+        user_agent_hash: Option<&str>,
+        ip_subnet_hash: Option<&str>,
+    ) -> Result<Token, DomainError> {
+        let position = self
+            .user_repo
+            .find_by_id(position_user_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "position_user",
+                id: position_user_id.to_string(),
+            })?;
+        if !position.is_position() {
+            return Err(DomainError::ValidationError("该账号不是岗位账号".into()));
+        }
+        if !position.is_active {
+            return Err(DomainError::ValidationError("岗位已停用".into()));
+        }
+
+        let personal = self
+            .user_repo
+            .find_by_username(personal_username.trim())
+            .await?
+            .ok_or_else(|| DomainError::Unauthorized("用户名或密码错误".into()))?;
+        if personal.is_position() || !personal.login_enabled {
+            return Err(DomainError::Unauthorized("该账号不可登录".into()));
+        }
+        if !personal.is_active {
+            return Err(DomainError::Unauthorized("账号已停用".into()));
+        }
+
+        let pwd = password.to_string();
+        let hash = personal.password_hash.clone();
+        let valid = tokio::task::spawn_blocking(move || bcrypt::verify(&pwd, &hash))
+            .await
+            .map_err(|_| DomainError::Internal("bcrypt task panicked".into()))?
+            .map_err(|_| DomainError::Unauthorized("用户名或密码错误".into()))?;
+        if !valid {
+            return Err(DomainError::Unauthorized("用户名或密码错误".into()));
+        }
+
+        // 密码不入审计。切占用：一岗一人，一人一岗。
+        let mut position = position;
+        position.current_occupant_user_id = Some(personal.id.clone());
+        self.user_repo.update(&position).await?;
+
+        let token = self
+            .generate_token_bundle(&personal, true, user_agent_hash, ip_subnet_hash)
+            .await?;
+        if let Some(refresh_token) = token.refresh_token.as_deref() {
+            let session = self
+                .session_runtime
+                .establish_session(&personal.id, client_ip, Some(refresh_token))
+                .await?;
+            if session.created {
+                if let Some(session_id) = session.session.session_id.as_deref() {
+                    self.online_history_repo
+                        .record_login(&personal.id, session_id, client_ip, None)
+                        .await?;
+                }
+            }
+        }
+        Ok(token)
+    }
+
+    /// 运行写中间件「现查」：键盘前的人 == 该席当前占用人。
+    ///
+    /// 输入 `position_user_id`（岗位账号）与 `personal_user_id`（JWT `sub`，永远个人），
+    /// 从库现读 `current_occupant_user_id`，仅当二者一致且该岗激活才返回 `true`。
+    /// 岗位不存在 / 不是岗位账号 / 未占用 / `personal_user_id` 为空 → `false`（fail-closed）。
+    ///
+    /// token 不携席权限；缺少占席写权限的运行写请求由路由 handler 调用此方法现查拦截。
+    pub async fn is_current_seat_occupant(
+        &self,
+        position_user_id: &str,
+        personal_user_id: &str,
+    ) -> Result<bool, DomainError> {
+        if personal_user_id.trim().is_empty() {
+            return Ok(false);
+        }
+        let Some(position) = self.user_repo.find_by_id(position_user_id).await? else {
+            return Ok(false);
+        };
+        if !position.is_position() || !position.is_active {
+            return Ok(false);
+        }
+        Ok(position.current_occupant_user_id.as_deref() == Some(personal_user_id))
+    }
+
     /// 注册
     pub async fn register(&self, mut dto: UserCreate) -> Result<UserResponse, DomainError> {
         if dto
@@ -1726,5 +1825,280 @@ mod tests {
         assert_eq!(updated.username, "alice");
         assert!(revoke_calls.load(Ordering::SeqCst) >= 1);
         assert!(update_calls.load(Ordering::SeqCst) >= 1);
+    }
+
+    /// 多用户内存仓储，用于占席 OccupySeat 测试。
+    struct SeatUserRepo {
+        users: std::sync::Mutex<Vec<User>>,
+        update_calls: Arc<AtomicUsize>,
+    }
+
+    impl SeatUserRepo {
+        fn find(&self, id: Option<&str>, username: Option<&str>) -> Option<User> {
+            let users = self.users.lock().expect("lock");
+            users.iter().cloned().find(|u| {
+                id.is_some_and(|i| u.id == i) || username.is_some_and(|name| u.username == name)
+            })
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl UserRepository for SeatUserRepo {
+        async fn find_by_id(&self, id: &str) -> Result<Option<User>, DomainError> {
+            Ok(self.find(Some(id), None))
+        }
+        async fn find_permission_version_by_id(&self, id: &str) -> Result<Option<i32>, DomainError> {
+            Ok(self.find_by_id(id).await?.map(|u| u.permission_version))
+        }
+        async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
+            Ok(self.find(None, Some(username)))
+        }
+        async fn find_by_email(&self, _email: &str) -> Result<Option<User>, DomainError> {
+            Ok(None)
+        }
+        async fn find_all(&self, _limit: i64, _offset: i64) -> Result<Vec<User>, DomainError> {
+            Ok(vec![])
+        }
+        async fn list_distinct_departments_in_use(&self) -> Result<Vec<String>, DomainError> {
+            Ok(vec![])
+        }
+        async fn has_any_user_with_department_id(&self, _department_id: &str) -> Result<bool, DomainError> {
+            Ok(false)
+        }
+        async fn save(&self, _user: &User) -> Result<(), DomainError> {
+            Ok(())
+        }
+        async fn update(&self, user: &User) -> Result<bool, DomainError> {
+            self.update_calls.fetch_add(1, Ordering::SeqCst);
+            let mut users = self.users.lock().expect("lock");
+            let idx = users
+                .iter()
+                .position(|u| u.id == user.id)
+                .ok_or_else(|| DomainError::NotFound {
+                    entity_type: "user".into(),
+                    id: user.id.clone(),
+                })?;
+            users[idx] = user.clone();
+            Ok(true)
+        }
+        async fn delete(&self, _id: &str) -> Result<bool, DomainError> {
+            Ok(true)
+        }
+        async fn update_password(&self, _id: &str, _password_hash: &str) -> Result<bool, DomainError> {
+            Ok(true)
+        }
+        async fn update_last_login(&self, _id: &str) -> Result<bool, DomainError> {
+            Ok(true)
+        }
+    }
+
+    fn seat_account(id: &str, username: &str, is_active: bool) -> User {
+        User {
+            id: id.into(),
+            email: format!("{username}@seat.test"),
+            password_hash: "position-placeholder".into(),
+            username: username.into(),
+            display_name: Some("席位".into()),
+            roles: Vec::new(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            last_login_at: None,
+            is_active,
+            is_verified: true,
+            is_admin: false,
+            verification_token: None,
+            verification_token_expires: None,
+            verified_at: None,
+            password_reset_token: None,
+            password_reset_token_expires: None,
+            password_changed_at: None,
+            department: Some("派工".into()),
+            department_id: Some("dept-1".into()),
+            job_level: Some(1),
+            job_title: Some("值班席".into()),
+            permission_version: 1,
+            account_type: ACCOUNT_TYPE_POSITION.into(),
+            login_enabled: false,
+            current_occupant_user_id: None,
+        }
+    }
+
+    fn personal_account(id: &str, username: &str, password_plain: &str) -> User {
+        let hash = bcrypt::hash(password_plain, 4).expect("hash");
+        User {
+            id: id.into(),
+            email: format!("{username}@person.test"),
+            password_hash: hash,
+            username: username.into(),
+            display_name: Some("个人".into()),
+            roles: Vec::new(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            last_login_at: None,
+            is_active: true,
+            is_verified: true,
+            is_admin: false,
+            verification_token: None,
+            verification_token_expires: None,
+            verified_at: None,
+            password_reset_token: None,
+            password_reset_token_expires: None,
+            password_changed_at: None,
+            department: Some("派工".into()),
+            department_id: Some("dept-1".into()),
+            job_level: Some(1),
+            job_title: Some("调度员".into()),
+            permission_version: 1,
+            account_type: ACCOUNT_TYPE_PERSONAL.into(),
+            login_enabled: true,
+            current_occupant_user_id: None,
+        }
+    }
+
+    fn build_seat_service(users: Vec<User>) -> (AuthService, Arc<SeatUserRepo>) {
+        let repo = Arc::new(SeatUserRepo {
+            users: std::sync::Mutex::new(users),
+            update_calls: Arc::new(AtomicUsize::new(0)),
+        });
+        let repo_cloned: Arc<SeatUserRepo> = Arc::clone(&repo);
+        let repo_dyn: Arc<dyn UserRepository + Send + Sync> = repo_cloned;
+        let service = AuthService::new(
+            repo_dyn,
+            Arc::new(MockRoleRepository),
+            Arc::new(MockPermissionRepository),
+            Arc::new(MockDepartmentRepository),
+            Arc::new(TrackingSessionRuntime {
+                revoke_calls: Arc::new(AtomicUsize::new(0)),
+                fail_revoke: false,
+            }),
+            Arc::new(MockOnlineHistoryRepository),
+            JwtConfig::default(),
+        );
+        (service, repo)
+    }
+
+    #[tokio::test]
+    async fn occupy_seat_verifies_password_and_switches_occupant() {
+        let seat = seat_account("seat-1", "gate-01", true);
+        let person = personal_account("user-1", "alice", "SecPass1");
+        let (service, repo) = build_seat_service(vec![seat, person]);
+
+        let token = service
+            .occupy_seat("seat-1", "alice", "SecPass1", None, None, None)
+            .await
+            .expect("occupy must succeed");
+        assert!(!token.access_token.is_empty());
+
+        let updated = repo
+            .find(Some("seat-1"), None)
+            .expect("seat must exist after update");
+        assert_eq!(updated.current_occupant_user_id.as_deref(), Some("user-1"));
+        assert!(repo.update_calls.load(Ordering::SeqCst) >= 1);
+    }
+
+    #[tokio::test]
+    async fn occupy_seat_rejects_wrong_password() {
+        let seat = seat_account("seat-1", "gate-01", true);
+        let person = personal_account("user-1", "alice", "SecPass1");
+        let (service, repo) = build_seat_service(vec![seat, person]);
+
+        let err = service
+            .occupy_seat("seat-1", "alice", "WrongPass99", None, None, None)
+            .await
+            .expect_err("wrong password must fail");
+        assert!(matches!(err, DomainError::Unauthorized(_)));
+        assert_eq!(
+            repo.find(Some("seat-1"), None).unwrap().current_occupant_user_id,
+            None
+        );
+        assert_eq!(repo.update_calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn occupy_seat_rejects_non_position_seat() {
+        let person_a = personal_account("user-1", "alice", "SecPass1");
+        let person_b = personal_account("user-2", "bob", "SecPass2");
+        let (service, _repo) = build_seat_service(vec![person_a, person_b]);
+
+        let err = service
+            .occupy_seat("user-1", "bob", "SecPass2", None, None, None)
+            .await
+            .expect_err("personal account cannot be a seat");
+        assert!(matches!(err, DomainError::ValidationError(msg) if msg.starts_with("该账号不是岗位账号")));
+    }
+
+    #[tokio::test]
+    async fn occupy_seat_rejects_inactive_seat() {
+        let seat = seat_account("seat-1", "gate-01", false);
+        let person = personal_account("user-1", "alice", "SecPass1");
+        let (service, _repo) = build_seat_service(vec![seat, person]);
+
+        let err = service
+            .occupy_seat("seat-1", "alice", "SecPass1", None, None, None)
+            .await
+            .expect_err("inactive seat must fail");
+        assert!(matches!(err, DomainError::ValidationError(_)));
+    }
+
+    #[tokio::test]
+    async fn occupy_seat_rejects_non_loginable_personal() {
+        let mut seat = seat_account("seat-1", "gate-01", true);
+        seat.current_occupant_user_id = Some("user-1".into());
+        // 前端应请求个人；若传入的是岗位 username，应被拒。
+        let other_seat = seat_account("seat-2", "gate-02", true);
+        let (service, _repo) = build_seat_service(vec![seat, other_seat, personal_account("user-1", "alice", "SecPass1")]);
+
+        // username=gate-02 是岗位账号，login_enabled=false → 拒。
+        let err = service
+            .occupy_seat("seat-1", "gate-02", "SecPass1", None, None, None)
+            .await
+            .expect_err("position username must be rejected as occupant");
+        assert!(matches!(err, DomainError::Unauthorized(_)));
+    }
+
+    #[tokio::test]
+    async fn occupy_seat_rejects_unknown_position() {
+        let person = personal_account("user-1", "alice", "SecPass1");
+        let (service, _repo) = build_seat_service(vec![person]);
+
+        let err = service
+            .occupy_seat("missing-seat", "alice", "SecPass1", None, None, None)
+            .await
+            .expect_err("unknown seat must fail");
+        assert!(matches!(err, DomainError::NotFound { .. }));
+    }
+
+    #[tokio::test]
+    async fn is_current_seat_occupant_reads_live_occupant() {
+        let mut seat = seat_account("seat-1", "gate-01", true);
+        seat.current_occupant_user_id = Some("user-1".into());
+        let (service, repo) = build_seat_service(vec![seat, personal_account("user-1", "alice", "SecPass1")]);
+
+        // 现占用人 == JWT sub → true。
+        assert!(service.is_current_seat_occupant("seat-1", "user-1").await.unwrap());
+        // 非占用人 → false。
+        assert!(!service.is_current_seat_occupant("seat-1", "other-person").await.unwrap());
+
+        // 换人到 user-2（另一人已经接管该席），user-1 现查变 false。
+        let mut new_occupant = seat_account("seat-1", "gate-01", true);
+        new_occupant.current_occupant_user_id = Some("user-2".into());
+        repo.update(&new_occupant).await.unwrap();
+        assert!(!service.is_current_seat_occupant("seat-1", "user-1").await.unwrap());
+        assert!(service.is_current_seat_occupant("seat-1", "user-2").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn is_current_seat_occupant_is_fail_closed() {
+        let unoccupied = seat_account("seat-1", "gate-01", true);
+        let inactive = seat_account("seat-2", "gate-02", false);
+        let person_account = personal_account("user-1", "alice", "SecPass1");
+        let (service, _repo) = build_seat_service(vec![unoccupied, inactive, person_account]);
+
+        // 空席、停用席、非岗位账号、不存在的席、空 sub → 一律 false。
+        assert!(!service.is_current_seat_occupant("seat-1", "user-1").await.unwrap());
+        assert!(!service.is_current_seat_occupant("seat-2", "user-1").await.unwrap());
+        assert!(!service.is_current_seat_occupant("user-1", "user-1").await.unwrap());
+        assert!(!service.is_current_seat_occupant("missing-seat", "user-1").await.unwrap());
+        assert!(!service.is_current_seat_occupant("seat-1", "  ").await.unwrap());
     }
 }

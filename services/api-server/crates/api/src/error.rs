@@ -92,6 +92,8 @@ pub enum ApiError {
     Internal(String),
     /// 503 Service Unavailable
     ServiceUnavailable(String),
+    /// 501 Not Implemented（预留能力，如人脸占席）
+    NotImplemented(String),
     /// 基础设施错误：响应体只暴露 typed kind，原始 message 仅写日志。
     Infra { kind: ErrorKind, message: String },
 }
@@ -111,6 +113,7 @@ impl fmt::Display for ApiError {
             }
             Self::Internal(msg) => write!(f, "Internal Error: {msg}"),
             Self::ServiceUnavailable(msg) => write!(f, "Service Unavailable: {msg}"),
+            Self::NotImplemented(msg) => write!(f, "Not Implemented: {msg}"),
             Self::Infra { kind, message } => write!(f, "Infra Error [{}]: {message}", kind.as_str()),
         }
     }
@@ -151,6 +154,7 @@ impl ResponseError for ApiError {
                 )
             }
             Self::ServiceUnavailable(msg) => (actix_web::http::StatusCode::SERVICE_UNAVAILABLE, msg.clone()),
+            Self::NotImplemented(msg) => (actix_web::http::StatusCode::NOT_IMPLEMENTED, msg.clone()),
             Self::Infra { kind, message } => {
                 // 原始基础设施错误文本仅写日志；响应体只暴露 typed kind + 泛化文案。
                 tracing::error!(error = %message, kind = kind.as_str(), "基础设施错误");
