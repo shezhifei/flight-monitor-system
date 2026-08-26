@@ -42,6 +42,7 @@ use crate::services::notification_service::{
 use crate::services::resource_utilization_service::ResourceUtilizationService;
 use crate::services::shift_handover_service::ShiftHandoverService;
 use crate::services::system_ops_service::SystemOpsService;
+use crate::services::terminal_resource_service::TerminalResourceService;
 use crate::services::todo_service::TodoService;
 use crate::services::workflow_dispatch_service::{
     DispatchRecommendationService, StructuredRecommendationCandidate, WorkflowDispatchService,
@@ -253,10 +254,13 @@ pub type ConcreteDispatchResourceService = DispatchResourceService<
     dyn TaskTypeRepository + Send + Sync,
 >;
 
+/// 空间目录资源服务，绑定 Postgres 仓储。
+pub type ConcreteTerminalResourceService = TerminalResourceService<dyn TerminalRepository + Send + Sync>;
+
 use crate::services::dispatch_schedule_service::DispatchScheduleService;
 use crate::services::resource_availability_service::ResourceAvailabilityGateway;
 use fms_domain::ports::dispatch_repository::{
-    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository,
+    ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository, TerminalRepository,
 };
 
 /// 排班服务的生产单态。API 处理器与 DI 必须引用同一个别名——

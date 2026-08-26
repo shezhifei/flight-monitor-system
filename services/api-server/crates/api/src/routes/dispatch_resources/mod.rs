@@ -20,6 +20,7 @@ pub mod stands;
 pub mod task_types;
 pub mod team_types;
 pub mod teams;
+pub mod terminal_directory;
 
 #[derive(Debug, serde::Serialize)]
 pub struct MessageResponse {
@@ -237,6 +238,75 @@ pub fn configure_dispatch_direct_routes(cfg: &mut web::ServiceConfig) {
         .route(
             "/api/v2/dispatch/equipment/{equipment_id}/status",
             web::put().to(equipment::update_equipment_status),
+        );
+}
+
+pub fn configure_terminal_directory_routes(cfg: &mut web::ServiceConfig) {
+    cfg.route("/api/v2/dispatch/terminals", web::get().to(terminal_directory::list_terminals))
+        .route(
+            "/api/v2/dispatch/terminals",
+            web::post().to(terminal_directory::create_terminal),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}",
+            web::get().to(terminal_directory::get_terminal),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}",
+            web::patch().to(terminal_directory::update_terminal),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}/deactivate",
+            web::post().to(terminal_directory::deactivate_terminal),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}/context",
+            web::get().to(terminal_directory::get_context),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}/stands/{stand_id}",
+            web::post().to(terminal_directory::add_stand_member),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/stands/{stand_id}",
+            web::delete().to(terminal_directory::remove_stand_member),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}/gates/{gate_id}",
+            web::post().to(terminal_directory::add_gate_member),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/gates/{gate_id}",
+            web::delete().to(terminal_directory::remove_gate_member),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/{terminal_id}/carousels/{carousel_id}",
+            web::post().to(terminal_directory::add_carousel_member),
+        )
+        .route(
+            "/api/v2/dispatch/terminals/carousels/{carousel_id}",
+            web::delete().to(terminal_directory::remove_carousel_member),
+        )
+        .route("/api/v2/dispatch/gates", web::post().to(terminal_directory::create_gate))
+        .route(
+            "/api/v2/dispatch/gates/{gate_id}",
+            web::patch().to(terminal_directory::update_gate),
+        )
+        .route(
+            "/api/v2/dispatch/gates/{gate_id}/deactivate",
+            web::post().to(terminal_directory::deactivate_gate),
+        )
+        .route(
+            "/api/v2/dispatch/carousels",
+            web::post().to(terminal_directory::create_carousel),
+        )
+        .route(
+            "/api/v2/dispatch/carousels/{carousel_id}",
+            web::patch().to(terminal_directory::update_carousel),
+        )
+        .route(
+            "/api/v2/dispatch/carousels/{carousel_id}/deactivate",
+            web::post().to(terminal_directory::deactivate_carousel),
         );
 }
 

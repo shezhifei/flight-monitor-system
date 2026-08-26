@@ -30,13 +30,14 @@ use fms_application::services::resource_availability_service::{
     ResourceAvailabilityGateway, ResourceAvailabilityService,
 };
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
+use fms_application::services::terminal_resource_service::TerminalResourceService;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
 use fms_domain::broadcaster::Broadcaster;
 
 use fms_domain::ports::dispatch_repository::{
     DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository,
     ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository, StandRepository, TaskTypeRepository,
-    TeamMemberRepository, TeamRepository, TeamTypeRepository,
+    TeamMemberRepository, TeamRepository, TeamTypeRepository, TerminalRepository,
 };
 use fms_domain::ports::event_rule_repository::EventRuleRepository;
 use fms_domain::ports::user_repository::UserRepository;
@@ -62,6 +63,7 @@ pub(crate) struct DispatchServices {
     pub dispatch_analytics_svc: Arc<DispatchAnalyticsService>,
     pub dispatch_scenario_svc: Arc<DispatchScenarioService>,
     pub dispatch_resource_svc: Arc<ConcreteDispatchResourceService>,
+    pub terminal_resource_svc: Arc<ConcreteTerminalResourceService>,
     pub resource_utilization_svc: Arc<ResourceUtilizationService>,
     pub resource_availability_svc: Arc<ResourceAvailabilityService>,
     pub workflow_dispatch_svc: Arc<ConcreteWorkflowDispatchService>,
@@ -179,6 +181,9 @@ pub(crate) fn build_dispatch_services(
         repos.stand_repo.clone() as Arc<dyn StandRepository + Send + Sync>,
         repos.task_type_repo.clone() as Arc<dyn TaskTypeRepository + Send + Sync>,
     ));
+    let terminal_resource_svc: Arc<ConcreteTerminalResourceService> = Arc::new(TerminalResourceService::new(
+        repos.terminal_repo.clone() as Arc<dyn TerminalRepository + Send + Sync>,
+    ));
     let resource_utilization_svc = Arc::new(ResourceUtilizationService::new(repos.dispatch_order_repo.clone()));
     let dispatch_rule_svc = Arc::new(DispatchRuleService::new(
         repos.department_repo.clone(),
@@ -248,6 +253,7 @@ pub(crate) fn build_dispatch_services(
         dispatch_analytics_svc,
         dispatch_scenario_svc,
         dispatch_resource_svc,
+        terminal_resource_svc,
         resource_utilization_svc,
         resource_availability_svc,
         workflow_dispatch_svc,

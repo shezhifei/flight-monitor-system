@@ -67,6 +67,7 @@ use fms_infrastructure::repositories::pg_role_repository::PgRoleRepository;
 use fms_infrastructure::repositories::pg_shift_handover_repository::PgShiftHandoverRepository;
 use fms_infrastructure::repositories::pg_stand_repository::PgStandRepository;
 use fms_infrastructure::repositories::pg_task_type_repository::PgTaskTypeRepository;
+use fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository;
 use fms_infrastructure::repositories::pg_team_member_repository::PgTeamMemberRepository;
 use fms_infrastructure::repositories::pg_team_repository::PgTeamRepository;
 use fms_infrastructure::repositories::pg_team_type_repository::PgTeamTypeRepository;
@@ -117,6 +118,7 @@ pub(crate) struct SharedRepos {
     pub equipment_type_repo: Arc<PgEquipmentTypeRepository>,
     pub equipment_repo: Arc<PgEquipmentRepository>,
     pub stand_repo: Arc<PgStandRepository>,
+    pub terminal_repo: Arc<PgTerminalRepository>,
     pub task_type_repo: Arc<PgTaskTypeRepository>,
     pub business_case_repo: Arc<PgBusinessCaseRepository>,
     pub flight_runtime_projection_repo: Arc<PgFlightRuntimeProjectionRepository>,
@@ -209,6 +211,7 @@ pub(crate) fn build_shared_repos(
     let equipment_type_repo = Arc::new(PgEquipmentTypeRepository::new(pool.clone()));
     let equipment_repo = Arc::new(PgEquipmentRepository::new(pool.clone()));
     let stand_repo = Arc::new(PgStandRepository::new(pool.clone()));
+    let terminal_repo = Arc::new(PgTerminalRepository::new(pool.clone()));
     let task_type_repo = Arc::new(PgTaskTypeRepository::new(pool.clone()));
     let business_case_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
     let flight_runtime_projection_repo = Arc::new(PgFlightRuntimeProjectionRepository::new(pool.clone()));
@@ -265,6 +268,7 @@ pub(crate) fn build_shared_repos(
         equipment_type_repo,
         equipment_repo,
         stand_repo,
+        terminal_repo,
         task_type_repo,
         business_case_repo,
         flight_runtime_projection_repo,

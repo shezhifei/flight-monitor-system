@@ -446,6 +446,62 @@ pub trait EquipmentRepository {
     async fn update_status(&self, id: &str, status: &str) -> Result<bool, DomainError>;
 }
 
+/// 航站楼目录仓储接口。
+///
+/// 目录行（terminal/gate/carousel）与楼成员表（terminal_stands/gates/carousels）
+/// 由同一仓储维护。成员关系是构成事实：新建口/转盘的目录行必须由楼 `add_*`
+/// 原子带上（create + add 同事务）。无数据库外键，参照完整性在应用层保证。
+#[async_trait]
+pub trait TerminalRepository {
+    // -- Terminal 目录 --
+    async fn save_terminal(&self, terminal: &Terminal) -> Result<Terminal, DomainError>;
+    async fn find_terminal_by_id(&self, terminal_id: &str) -> Result<Option<Terminal>, DomainError>;
+    async fn find_terminal_by_code(&self, code: &str) -> Result<Option<Terminal>, DomainError>;
+    async fn find_terminals(&self, include_inactive: bool) -> Result<Vec<Terminal>, DomainError>;
+    /// 软启停楼（is_active）。返回更新后的实体，找不到返回 None。
+    async fn set_terminal_active(&self, terminal_id: &str, is_active: bool) -> Result<Option<Terminal>, DomainError>;
+
+    // -- Gate 目录 --
+    async fn save_gate(&self, gate: &Gate) -> Result<Gate, DomainError>;
+    async fn find_gate_by_id(&self, gate_id: &str) -> Result<Option<Gate>, DomainError>;
+    async fn find_gate_by_code(&self, code: &str) -> Result<Option<Gate>, DomainError>;
+    /// 软启停登机口（is_active）。返回更新后的实体，找不到返回 None。
+    async fn set_gate_active(&self, gate_id: &str, is_active: bool) -> Result<Option<Gate>, DomainError>;
+
+    // -- BaggageCarousel 目录 --
+    async fn save_carousel(&self, carousel: &BaggageCarousel) -> Result<BaggageCarousel, DomainError>;
+    async fn find_carousel_by_id(&self, carousel_id: &str) -> Result<Option<BaggageCarousel>, DomainError>;
+    async fn find_carousel_by_code(&self, code: &str) -> Result<Option<BaggageCarousel>, DomainError>;
+    /// 软启停行李转盘（is_active）。返回更新后的实体，找不到返回 None。
+    async fn set_carousel_active(
+        &self,
+        carousel_id: &str,
+        is_active: bool,
+    ) -> Result<Option<BaggageCarousel>, DomainError>;
+
+    // -- Terminal 成员关系（构成事实）--
+    /// 按 id 取机位目录行（用于把 stand_id 映射到 code 以做占用守卫）。
+    async fn find_stand_by_id(&self, stand_id: &str) -> Result<Option<Stand>, DomainError>;
+    async fn add_stand(&self, terminal_id: &str, stand_id: &str) -> Result<(), DomainError>;
+    async fn remove_stand(&self, stand_id: &str) -> Result<(), DomainError>;
+    async fn add_gate(&self, terminal_id: &str, gate_id: &str) -> Result<(), DomainError>;
+    async fn remove_gate(&self, gate_id: &str) -> Result<(), DomainError>;
+    async fn add_carousel(&self, terminal_id: &str, carousel_id: &str) -> Result<(), DomainError>;
+    async fn remove_carousel(&self, carousel_id: &str) -> Result<(), DomainError>;
+
+    // -- 占用守卫（移出成员/停用楼时校验“未结束占用”）--
+    /// 返回指定机位 code 的未结束（status='active' 且 ends_at > now）占用明细。
+    async fn active_stand_occupations(&self, stand_code: &str) -> Result<Vec<serde_json::Value>, DomainError>;
+    /// 返回指定登机口 code 的未结束分配明细。
+    async fn active_gate_assignments(&self, gate_code: &str) -> Result<Vec<serde_json::Value>, DomainError>;
+    /// 返回指定转盘 code 的未结束分配明细。
+    async fn active_carousel_assignments(&self, carousel_code: &str) -> Result<Vec<serde_json::Value>, DomainError>;
+
+    // -- 只读上下文 --
+    /// 返回楼 + 三类成员目录行；楼不存在返回 Ok(None)。
+    async fn terminal_directory(&self, terminal_id: &str) -> Result<Option<TerminalDirectory>, DomainError>;
+}
+
 /// 机位仓储接口
 #[async_trait]
 pub trait StandRepository {

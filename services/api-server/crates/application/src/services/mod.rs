@@ -91,6 +91,7 @@ pub mod runtime_redis_latency;
 pub mod shift_handover_service;
 pub mod system_flags_service;
 pub mod system_ops_service;
+pub mod terminal_resource_service;
 pub mod todo_scheduler_service;
 pub mod todo_service;
 pub mod workflow_dispatch_service;

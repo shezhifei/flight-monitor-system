@@ -683,6 +683,56 @@ fn default_member_role() -> MemberRole {
     MemberRole::Member
 }
 
+/// 航站楼目录。构成事实是成员表（terminal_stands/gates/carousels），
+/// 不是反查 `terminal` 列。一口/一机位/一转盘同时只属于一座楼。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Terminal {
+    pub terminal_id: String,
+    pub code: String,
+    pub name: String,
+    #[serde(default = "default_true")]
+    pub is_active: bool,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// 登机口目录。必须挂楼；成员关系在 `terminal_gates`。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Gate {
+    pub gate_id: String,
+    pub code: String,
+    pub name: Option<String>,
+    #[serde(default = "default_true")]
+    pub is_active: bool,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// 行李转盘目录。必须挂楼；成员关系在 `terminal_carousels`。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BaggageCarousel {
+    pub carousel_id: String,
+    pub code: String,
+    pub name: Option<String>,
+    #[serde(default = "default_true")]
+    pub is_active: bool,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// 一个航站楼的只读上下文：楼 + 三类成员列表（目录行）。
+/// 供 `Terminal.get_context` 等只读动作与资源管理页使用。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminalDirectory {
+    pub terminal: Terminal,
+    #[serde(default)]
+    pub stands: Vec<Stand>,
+    #[serde(default)]
+    pub gates: Vec<Gate>,
+    #[serde(default)]
+    pub carousels: Vec<BaggageCarousel>,
+}
+
 /// 机位/停机位
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Stand {

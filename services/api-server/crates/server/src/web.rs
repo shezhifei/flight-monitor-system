@@ -121,6 +121,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
         .app_data(web::Data::new(di.business_case_svc.clone()))
         .app_data(web::Data::new(di.business_case_workflow_svc.clone()))
         .app_data(web::Data::new(di.dispatch_resource_svc.clone()))
+        .app_data(web::Data::new(di.terminal_resource_svc.clone()))
         .app_data(web::Data::new(di.resource_utilization_svc.clone()))
         .app_data(web::Data::new(di.sse_hub.clone()))
         .app_data(web::Data::new(di.performance_metrics.clone()))
