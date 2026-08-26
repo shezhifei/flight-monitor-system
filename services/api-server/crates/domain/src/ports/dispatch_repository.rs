@@ -622,6 +622,19 @@ pub trait DispatchOrderMemberRepository {
         user_id: &str,
         before: DateTime<Utc>,
     ) -> Result<Option<serde_json::Value>, DomainError>;
+
+    /// 批量查询一批个人用户在已发布且进行中的工单上的活跃槽位。
+    ///
+    /// 供调度网关在线列表使用：一次查出多个在线用户的所有活跃工单槽，再按人聚合，
+    /// 避免对每人单独 `find_by_user`。每条返回
+    /// `user_id / order_id / flight_id / flight_no / task_type / task_type_name /
+    /// slot_code / slot_name / status / planned_start_time`。默认空实现供测试替身。
+    async fn find_active_slots_for_users(
+        &self,
+        _user_ids: &[String],
+    ) -> Result<Vec<serde_json::Value>, DomainError> {
+        Ok(Vec::new())
+    }
 }
 
 #[async_trait]

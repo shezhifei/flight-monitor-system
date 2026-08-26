@@ -141,6 +141,7 @@ pub(crate) async fn list_dispatch_online_users(
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     ensure_dispatch_view_permission(&claims)?;
+    let caller_user_id = claims.0.sub.as_deref().unwrap_or_default();
     let keyword = query.keyword.as_deref().unwrap_or("").trim().to_lowercase();
     let payload = svc
         .search_online_users(
@@ -148,6 +149,7 @@ pub(crate) async fn list_dispatch_online_users(
             query.job_title.as_deref(),
             Some("online"),
             query.limit.unwrap_or(120),
+            caller_user_id,
         )
         .await?;
     let raw_items = payload
@@ -155,6 +157,7 @@ pub(crate) async fn list_dispatch_online_users(
         .and_then(|value| value.as_array())
         .cloned()
         .unwrap_or_default();
+
     let mut items = Vec::new();
     for item in raw_items {
         let Some(item_obj) = item.as_object() else {
@@ -169,53 +172,69 @@ pub(crate) async fn list_dispatch_online_users(
         if user_id.is_empty() {
             continue;
         }
-        let status = item_obj
-            .get("status")
+        let account_type = item_obj
+            .get("account_type")
             .and_then(|value| value.as_str())
-            .unwrap_or("online")
-            .trim()
-            .to_ascii_lowercase();
-        if status == "offline" {
-            continue;
-        }
-        let username = item_obj
-            .get("username")
+            .unwrap_or("personal");
+        let display_name = item_obj
+            .get("display_name")
             .and_then(|value| value.as_str())
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .unwrap_or(&user_id)
             .to_string();
-        let job_title = item_obj
-            .get("job_title")
-            .and_then(|value| value.as_str())
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string);
         let department = item_obj
             .get("department")
             .and_then(|value| value.as_str())
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string);
-        let haystack = format!(
-            "{} {} {} {}",
-            user_id,
-            username,
-            job_title.as_deref().unwrap_or_default(),
-            department.as_deref().unwrap_or_default(),
-        )
-        .to_lowercase();
-        if keyword.is_empty() || haystack.contains(&keyword) {
-            items.push(json!({
-                "user_id": user_id,
-                "username": username,
-                "job_title": job_title,
-                "department": department,
-                "status": status,
-                "login_time": item_obj.get("login_time").unwrap_or(&NULL_VALUE),
-                "last_heartbeat": item_obj.get("last_heartbeat").unwrap_or(&NULL_VALUE),
-            }));
+
+        // 搜索 haystack：岗名、岗位 username、在岗人名、科室、航班号、任务名、槽位。
+        let mut haystack = format!("{} {}", user_id, display_name);
+        if let Some(department) = department.as_deref() {
+            haystack.push(' ');
+            haystack.push_str(department);
         }
+        if account_type == "position" {
+            if let Some(occupant_name) = item_obj
+                .get("occupant_display_name")
+                .and_then(|value| value.as_str())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                haystack.push(' ');
+                haystack.push_str(occupant_name);
+            }
+        } else if let Some(assignments) = item_obj.get("assignments").and_then(|value| value.as_array()) {
+            for assignment in assignments {
+                for key in ["flight_no", "task_type", "task_type_name", "slot_code", "slot_name"] {
+                    if let Some(text) = assignment.get(key).and_then(|value| value.as_str()) {
+                        haystack.push(' ');
+                        haystack.push_str(text.trim());
+                    }
+                }
+            }
+        }
+        let haystack = haystack.to_lowercase();
+        if !(keyword.is_empty() || haystack.contains(&keyword)) {
+            continue;
+        }
+
+        items.push(json!({
+            "user_id": user_id,
+            "account_type": account_type,
+            "display_name": display_name,
+            "occupant_user_id": item_obj.get("occupant_user_id").unwrap_or(&NULL_VALUE),
+            "occupant_display_name": item_obj.get("occupant_display_name").unwrap_or(&NULL_VALUE),
+            "assignments": item_obj.get("assignments").unwrap_or(&NULL_VALUE),
+            "label": item_obj.get("label").unwrap_or(&NULL_VALUE),
+            "meta": item_obj.get("meta").unwrap_or(&NULL_VALUE),
+            "department": department,
+            "status": item_obj.get("status").unwrap_or(&NULL_VALUE),
+            "login_time": item_obj.get("login_time").unwrap_or(&NULL_VALUE),
+            "last_heartbeat": item_obj.get("last_heartbeat").unwrap_or(&NULL_VALUE),
+        }));
     }
     Ok(ok_resp(
         "dispatch online users loaded",

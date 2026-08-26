@@ -49,6 +49,7 @@ pub(crate) fn build_auth_services(repos: &SharedRepos, infra: &SharedInfra, jwt_
         repos.auth_user_repo.clone(),
         repos.session_runtime_repo.clone(),
         repos.online_history_repo.clone(),
+        repos.dispatch_member_repo.clone(),
     ));
     let operator_identity_svc = Arc::new(OperatorIdentityService::new(repos.operator_identity_repo.clone()));
 

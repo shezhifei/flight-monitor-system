@@ -7,6 +7,7 @@ use chrono::Utc;
 use serde_json::json;
 
 use fms_domain::error::DomainError;
+use fms_domain::ports::dispatch_repository::DispatchOrderMemberRepository;
 use fms_domain::ports::online_history_repository::OnlineHistoryRepository;
 use fms_domain::ports::session_runtime_repository::SessionRuntimeRepository;
 use fms_domain::ports::user_repository::UserRepository;
@@ -15,6 +16,7 @@ pub struct OnlineStatusService {
     user_repo: Arc<dyn UserRepository + Send + Sync>,
     session_runtime: Arc<dyn SessionRuntimeRepository + Send + Sync>,
     online_history_repo: Arc<dyn OnlineHistoryRepository + Send + Sync>,
+    dispatch_member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
 }
 
 fn normalize_query_value(value: Option<&str>) -> Option<&str> {
@@ -35,11 +37,13 @@ impl OnlineStatusService {
         user_repo: Arc<dyn UserRepository + Send + Sync>,
         session_runtime: Arc<dyn SessionRuntimeRepository + Send + Sync>,
         online_history_repo: Arc<dyn OnlineHistoryRepository + Send + Sync>,
+        dispatch_member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
     ) -> Self {
         Self {
             user_repo,
             session_runtime,
             online_history_repo,
+            dispatch_member_repo,
         }
     }
 
@@ -133,6 +137,7 @@ impl OnlineStatusService {
         job_title: Option<&str>,
         status: Option<&str>,
         limit: i64,
+        current_user_id: &str,
     ) -> Result<serde_json::Value, DomainError> {
         let (statuses, all_users) = tokio::try_join!(
             self.session_runtime.get_all_online_status(),
@@ -148,18 +153,16 @@ impl OnlineStatusService {
             user_map.insert(user.id.clone(), user);
         }
 
-        let mut matched_sessions = Vec::new();
+        // 收集活会话的个人用户，并按 user_id 建立会话索引。
+        let mut online_personal_ids: Vec<String> = Vec::new();
+        let mut session_by_user: BTreeMap<String, fms_domain::models::session_runtime::OnlineSessionStatus> =
+            BTreeMap::new();
         for session in statuses {
             let Some(user) = user_map.get(&session.user_id) else {
                 continue;
             };
-            if !user.is_active {
+            if !user.is_active || session.status.trim().eq_ignore_ascii_case("offline") {
                 continue;
-            }
-            if let Some(required_department) = normalized_department {
-                if user.department.as_deref() != Some(required_department) {
-                    continue;
-                }
             }
             if let Some(required_job_title) = normalized_job_title {
                 if user.job_title.as_deref() != Some(required_job_title) {
@@ -169,30 +172,227 @@ impl OnlineStatusService {
             if !matches_status_filter(&session.status, normalized_status) {
                 continue;
             }
-
-            matched_sessions.push((user, session));
+            online_personal_ids.push(session.user_id.clone());
+            session_by_user.insert(session.user_id.clone(), session);
         }
 
-        matched_sessions.sort_by(|left, right| right.1.login_time.cmp(&left.1.login_time));
+        // 当前用户自己占用的席（排除自己，不要按人名排）。
+        let self_position_id = user_map.values().find(|user| {
+            user.is_position() && user.current_occupant_user_id.as_deref() == Some(current_user_id)
+        });
 
-        let mut items = Vec::new();
-        for (user, session) in matched_sessions.into_iter().take(limit.clamp(1, 300) as usize) {
-            items.push(json!({
+        // 一次查出在线个人用户的所有活跃工单槽，再按人聚合。
+        let slots = self.dispatch_member_repo.find_active_slots_for_users(&online_personal_ids).await?;
+        let mut slots_by_user: BTreeMap<String, Vec<serde_json::Value>> = BTreeMap::new();
+        for slot in slots {
+            let uid = slot.get("user_id").and_then(|value| value.as_str()).unwrap_or_default().to_string();
+            slots_by_user.entry(uid).or_default().push(slot);
+        }
+
+        let online_personal_set: std::collections::HashSet<&str> =
+            online_personal_ids.iter().map(|value| value.as_str()).collect();
+
+        let mut seat_rows: Vec<serde_json::Value> = Vec::new();
+        let mut frontline_with_work: Vec<serde_json::Value> = Vec::new();
+        let mut frontline_no_work: Vec<serde_json::Value> = Vec::new();
+
+        for user in user_map.values() {
+            if !user.is_active {
+                continue;
+            }
+            let display_name = display_name_of(user);
+            if user.is_position() {
+                // 席：有占用、占用人会话活着，且不是本席。
+                if self_position_id.is_some_and(|position| position.id == user.id) {
+                    continue;
+                }
+                let Some(occupant_id) = user.current_occupant_user_id.as_deref() else {
+                    continue;
+                };
+                if !online_personal_set.contains(occupant_id) {
+                    continue;
+                }
+                if let Some(required_department) = normalized_department {
+                    if user.department.as_deref() != Some(required_department) {
+                        continue;
+                    }
+                }
+                let Some(session) = session_by_user.get(occupant_id) else {
+                    continue;
+                };
+                let Some(occupant) = user_map.get(occupant_id) else {
+                    continue;
+                };
+                let occupant_name = display_name_of(occupant);
+                let department = user.department.as_deref().filter(|value| !value.is_empty());
+                let meta = match department {
+                    Some(department) => format!("{department} · {occupant_name}"),
+                    None => format!("未设置科室 · {occupant_name}"),
+                };
+                seat_rows.push(json!({
+                    "id": user.id,
+                    "username": user.username,
+                    "account_type": "position",
+                    "display_name": display_name,
+                    "department": user.department,
+                    "occupant_user_id": occupant_id,
+                    "occupant_display_name": occupant_name,
+                    "assignments": [],
+                    "label": display_name,
+                    "meta": meta,
+                    "status": session.status,
+                    "login_time": session.login_time.map(|value| value.to_rfc3339()),
+                    "last_heartbeat": session.last_seen.map(|value| value.to_rfc3339()),
+                    "ip_address": session.client_ip,
+                }));
+                continue;
+            }
+
+            // 一线：个人在线，且当前未占任何席。坐班的人只通过席出现。
+            let Some(session) = session_by_user.get(&user.id) else {
+                continue;
+            };
+            if let Some(required_department) = normalized_department {
+                if user.department.as_deref() != Some(required_department) {
+                    continue;
+                }
+            }
+            // 个人正占着某个席 -> 只以席行出现。
+            let occupying_seat = user_map
+                .values()
+                .any(|position| position.is_position() && position.current_occupant_user_id.as_deref() == Some(user.id.as_str()));
+            if occupying_seat {
+                continue;
+            }
+
+            let base = json!({
                 "id": user.id,
                 "username": user.username,
+                "account_type": "personal",
+                "display_name": display_name,
                 "department": user.department,
-                "job_title": user.job_title,
+                "occupant_user_id": serde_json::Value::Null,
+                "occupant_display_name": serde_json::Value::Null,
                 "status": session.status,
                 "login_time": session.login_time.map(|value| value.to_rfc3339()),
                 "last_heartbeat": session.last_seen.map(|value| value.to_rfc3339()),
                 "ip_address": session.client_ip,
-            }));
+            });
+
+            let user_slots = slots_by_user.get(&user.id).cloned().unwrap_or_default();
+            if user_slots.is_empty() {
+                frontline_no_work.push(base.updated_with(|| {
+                    json!({
+                        "assignments": Vec::<serde_json::Value>::new(),
+                        "label": display_name,
+                        "meta": "无在办工单",
+                    })
+                }));
+            } else {
+                frontline_with_work.push(base.updated_with(|| {
+                    let label = slot_label(&user_slots);
+                    let meta = format!("{display_name} · {}", user.department.as_deref().unwrap_or("未设置科室"));
+                    json!({
+                        "assignments": user_slots,
+                        "label": label,
+                        "meta": meta,
+                    })
+                }));
+            }
         }
+
+        // 排序：有在办工单的一线排最前（in_progress 优先，其次 planned_start_time），
+        // 其后按登录时间排席行，最后是无在办工单的一线（按登录时间倒序）。
+        frontline_with_work
+            .sort_by(|left, right| compare_frontline_order(left, right));
+        seat_rows.sort_by(|left, right| {
+            let left_login = left.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
+            let right_login = right.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
+            right_login.cmp(left_login)
+        });
+        frontline_no_work.sort_by(|left, right| {
+            let left_login = left.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
+            let right_login = right.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
+            right_login.cmp(left_login)
+        });
+
+        let mut items = Vec::with_capacity(seat_rows.len() + frontline_with_work.len() + frontline_no_work.len());
+        items.extend(frontline_with_work);
+        items.extend(seat_rows);
+        items.extend(frontline_no_work);
+        items.truncate(limit.clamp(1, 300) as usize);
 
         Ok(json!({
             "users": items,
             "total": items.len(),
         }))
+    }
+}
+
+fn display_name_of(user: &fms_domain::models::user::User) -> &str {
+    user.display_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(&user.username)
+}
+
+fn slot_label(user_slots: &[serde_json::Value]) -> String {
+    user_slots
+        .iter()
+        .map(|slot| {
+            let flight = slot.get("flight_no").and_then(|value| value.as_str()).unwrap_or_default();
+            let task = slot
+                .get("task_type_name")
+                .and_then(|value| value.as_str())
+                .filter(|value| !value.trim().is_empty())
+                .or_else(|| slot.get("task_type").and_then(|value| value.as_str()))
+                .unwrap_or_default();
+            let slot_name = slot
+                .get("slot_name")
+                .and_then(|value| value.as_str())
+                .filter(|value| !value.trim().is_empty())
+                .or_else(|| slot.get("slot_code").and_then(|value| value.as_str()))
+                .unwrap_or_default();
+            format!("{flight}-{task}-{slot_name}")
+        })
+        .collect::<Vec<_>>()
+        .join("；")
+}
+
+fn compare_frontline_order(left: &serde_json::Value, right: &serde_json::Value) -> std::cmp::Ordering {
+    fn key(item: &serde_json::Value) -> (u8, String) {
+        let assignments = item.get("assignments").and_then(|value| value.as_array()).cloned().unwrap_or_default();
+        let in_progress = assignments
+            .iter()
+            .any(|slot| slot.get("status").and_then(|value| value.as_str()) == Some("in_progress"));
+        let in_progress_rank = if in_progress { 0 } else { 1 };
+        let earliest = assignments
+            .iter()
+            .filter_map(|slot| slot.get("planned_start_time").and_then(|value| value.as_str()))
+            .min()
+            .unwrap_or_default()
+            .to_string();
+        (in_progress_rank, earliest)
+    }
+    key(left).cmp(&key(right))
+}
+
+trait UpdatedWith {
+    fn updated_with(self, extra: impl FnOnce() -> serde_json::Value) -> serde_json::Value;
+}
+
+impl UpdatedWith for serde_json::Value {
+    fn updated_with(self, extra: impl FnOnce() -> serde_json::Value) -> serde_json::Value {
+        let mut value = self;
+        if let Some(obj) = value.as_object_mut() {
+            if let serde_json::Value::Object(extra_obj) = extra() {
+                for (key, val) in extra_obj {
+                    obj.insert(key, val);
+                }
+            }
+        }
+        value
     }
 }
 
@@ -206,6 +406,7 @@ mod tests {
     use fms_domain::models::online_history::OnlineHistoryRecord;
     use fms_domain::models::session_runtime::{OnlineSessionStatus, SessionEstablishResult, SessionRuntimeStatus};
     use fms_domain::models::user::User;
+    use fms_domain::ports::dispatch_repository::DispatchOrderMemberRepository;
     use fms_domain::ports::online_history_repository::OnlineHistoryRepository;
     use fms_domain::ports::session_runtime_repository::SessionRuntimeRepository;
     use fms_domain::ports::user_repository::UserRepository;
@@ -421,6 +622,43 @@ mod tests {
         }
     }
 
+    fn sample_position(
+        id: &str,
+        username: &str,
+        department: &str,
+        occupant_user_id: Option<&str>,
+    ) -> User {
+        let now = Utc::now();
+        User {
+            id: id.to_string(),
+            email: format!("{username}@example.com"),
+            password_hash: "hashed".to_string(),
+            username: username.to_string(),
+            display_name: None,
+            roles: Vec::new(),
+            created_at: now,
+            updated_at: now,
+            last_login_at: None,
+            is_active: true,
+            is_verified: true,
+            is_admin: false,
+            verification_token: None,
+            verification_token_expires: None,
+            verified_at: None,
+            password_reset_token: None,
+            password_reset_token_expires: None,
+            password_changed_at: None,
+            department: Some(department.to_string()),
+            department_id: None,
+            job_level: Some(1),
+            job_title: Some("调度员".to_string()),
+            permission_version: 1,
+            account_type: "position".into(),
+            login_enabled: false,
+            current_occupant_user_id: occupant_user_id.map(str::to_string),
+        }
+    }
+
     fn sample_status(user_id: &str, status: &str, login_offset_minutes: i64, client_ip: &str) -> OnlineSessionStatus {
         let login_time = Utc::now() - Duration::minutes(login_offset_minutes);
         OnlineSessionStatus {
@@ -438,11 +676,57 @@ mod tests {
         }
     }
 
-    fn build_service(users: Vec<User>, statuses: Vec<OnlineSessionStatus>) -> OnlineStatusService {
+    struct MockDispatchOrderMemberRepository {
+        slots: Vec<serde_json::Value>,
+    }
+
+    #[async_trait::async_trait]
+    impl DispatchOrderMemberRepository for MockDispatchOrderMemberRepository {
+        async fn save(&self, _member: &fms_domain::models::dispatch::DispatchOrderMember) -> Result<(), DomainError> {
+            unreachable!("not used in online status tests")
+        }
+
+        async fn find_by_order(
+            &self,
+            _order_id: &str,
+        ) -> Result<Vec<fms_domain::models::dispatch::DispatchOrderMember>, DomainError> {
+            unreachable!("not used in online status tests")
+        }
+
+        async fn find_by_order_and_user(
+            &self,
+            _order_id: &str,
+            _user_id: &str,
+        ) -> Result<Option<fms_domain::models::dispatch::DispatchOrderMember>, DomainError> {
+            unreachable!("not used in online status tests")
+        }
+
+        async fn find_latest_checkout_for_user(
+            &self,
+            _user_id: &str,
+            _before: chrono::DateTime<chrono::Utc>,
+        ) -> Result<Option<serde_json::Value>, DomainError> {
+            Ok(None)
+        }
+
+        async fn find_active_slots_for_users(
+            &self,
+            _user_ids: &[String],
+        ) -> Result<Vec<serde_json::Value>, DomainError> {
+            Ok(self.slots.clone())
+        }
+    }
+
+    fn build_service(
+        users: Vec<User>,
+        statuses: Vec<OnlineSessionStatus>,
+        slots: Vec<serde_json::Value>,
+    ) -> OnlineStatusService {
         OnlineStatusService::new(
             Arc::new(MockUserRepository { users }),
             Arc::new(MockSessionRuntimeRepository { statuses }),
             Arc::new(MockOnlineHistoryRepository),
+            Arc::new(MockDispatchOrderMemberRepository { slots }),
         )
     }
 
@@ -459,10 +743,11 @@ mod tests {
                 sample_status("u-2", "idle", 10, "127.0.0.2"),
                 sample_status("u-3", "offline", 5, "127.0.0.3"),
             ],
+            Vec::new(),
         );
 
         let payload = service
-            .search_online_users(Some("ops"), Some("调度员"), Some("online"), 10)
+            .search_online_users(Some("ops"), Some("调度员"), Some("online"), 10, "self-1")
             .await
             .expect("search_online_users should succeed");
 
@@ -491,10 +776,11 @@ mod tests {
                 sample_status("u-1", "active", 20, "127.0.0.1"),
                 sample_status("u-2", "active", 5, "127.0.0.2"),
             ],
+            Vec::new(),
         );
 
         let payload = service
-            .search_online_users(None, None, Some("online"), 1)
+            .search_online_users(None, None, Some("online"), 1, "self-1")
             .await
             .expect("search_online_users should succeed");
 
@@ -505,5 +791,93 @@ mod tests {
         assert_eq!(users.len(), 1);
         assert_eq!(users[0]["id"].as_str(), Some("u-2"));
         assert_eq!(payload["total"].as_u64(), Some(1));
+    }
+
+    #[tokio::test]
+    async fn occupied_seat_with_live_occupant_appears_with_position_id_and_excludes_self_seat() {
+        // pos-1 被 u-1 占用（且 u-1 在线）；pos-2 被当前用户 self-1 占用 -> 本席被排除。
+        let service = build_service(
+            vec![
+                sample_user("u-1", "alpha", "ops", "调度员"),
+                sample_position("pos-1", "pos-alpha", "ops", Some("u-1")),
+                sample_position("pos-2", "pos-self", "ops", Some("self-1")),
+                sample_position("pos-empty", "pos-empty", "ops", None),
+            ],
+            vec![
+                sample_status("u-1", "active", 10, "127.0.0.9"),
+                sample_status("self-1", "active", 5, "127.0.0.8"),
+            ],
+            Vec::new(),
+        );
+
+        let payload = service
+            .search_online_users(None, None, Some("online"), 50, "self-1")
+            .await
+            .expect("search_online_users should succeed");
+
+        let users = payload["users"]
+            .as_array()
+            .expect("users should be returned as an array");
+        let ids: Vec<&str> = users
+            .iter()
+            .filter_map(|item| item.get("id").and_then(|value| value.as_str()))
+            .collect();
+        // pos-1 出现在列表；pos-2（本席）与 pos-empty（无人）都不出现。
+        assert!(ids.contains(&"pos-1"));
+        assert!(!ids.contains(&"pos-2"));
+        assert!(!ids.contains(&"pos-empty"));
+        // 占用者在席行中不作为一线重复出现。
+        assert!(!ids.contains(&"u-1"));
+
+        let seat = users
+            .iter()
+            .find(|item| item.get("id").and_then(|value| value.as_str()) == Some("pos-1"))
+            .expect("pos-1 seat row should exist");
+        assert_eq!(seat["account_type"].as_str(), Some("position"));
+        assert_eq!(seat["occupant_user_id"].as_str(), Some("u-1"));
+        assert_eq!(seat["occupant_display_name"].as_str(), Some("alpha"));
+        assert_eq!(seat["label"].as_str(), Some("pos-alpha"));
+        assert_eq!(seat["assignments"].as_array().map(Vec::len), Some(0));
+    }
+
+    #[tokio::test]
+    async fn frontline_builds_flight_task_slot_label_and_deduplicates_occupant() {
+        // u-9 在线且未占席，有两条工单槽 -> 一线行聚合两槽。
+        let service = build_service(
+            vec![
+                sample_user("u-9", "charlie", "ground", "装卸员"),
+            ],
+            vec![sample_status("u-9", "active", 5, "127.0.0.5")],
+            vec![
+                serde_json::json!({
+                    "user_id": "u-9",
+                    "order_id": "o-1",
+                    "flight_id": "f-1",
+                    "flight_no": "CA101",
+                    "task_type": "load",
+                    "task_type_name": "装载",
+                    "slot_code": "loader-1",
+                    "slot_name": "装卸一",
+                    "status": "in_progress",
+                    "planned_start_time": "2026-08-26T08:00:00Z",
+                }),
+            ],
+        );
+
+        let payload = service
+            .search_online_users(None, None, Some("online"), 50, "self-9")
+            .await
+            .expect("search_online_users should succeed");
+
+        let users = payload["users"]
+            .as_array()
+            .expect("users should be returned as an array");
+        assert_eq!(users.len(), 1);
+        let first = &users[0];
+        assert_eq!(first["account_type"].as_str(), Some("personal"));
+        assert_eq!(first["id"].as_str(), Some("u-9"));
+        assert_eq!(first["label"].as_str(), Some("CA101-装载-装卸一"));
+        assert_eq!(first["assignments"][0]["flight_no"].as_str(), Some("CA101"));
+        assert_eq!(first["assignments"][0]["slot_name"].as_str(), Some("装卸一"));
     }
 }

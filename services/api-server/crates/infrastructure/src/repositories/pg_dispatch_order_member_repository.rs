@@ -157,6 +157,92 @@ impl DispatchOrderMemberRepository for PgDispatchOrderMemberRepository {
             None => Ok(None),
         }
     }
+
+    async fn find_active_slots_for_users(
+        &self,
+        user_ids: &[String],
+    ) -> Result<Vec<serde_json::Value>, DomainError> {
+        if user_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let rows = sqlx::query(
+            r#"
+            SELECT dom.user_id,
+                   dom.dispatch_order_id AS order_id,
+                   do2.flight_id,
+                   f.flight_number AS flight_no,
+                   do2.task_type,
+                   do2.task_type_name,
+                   dom.slot_code,
+                   do2.crew_requirement_snapshot,
+                   do2.planned_start_time,
+                   do2.status
+            FROM dispatch_order_members dom
+            JOIN dispatch_orders do2 ON do2.id = dom.dispatch_order_id
+            LEFT JOIN flights f ON f.id = do2.flight_id
+            WHERE dom.user_id = ANY($1)
+              AND dom.is_active = TRUE
+              AND dom.slot_code IS NOT NULL
+              AND do2.publication_state = 'published'
+              AND do2.status IN ('assigned', 'in_progress')
+            ORDER BY CASE WHEN do2.status = 'in_progress' THEN 0 ELSE 1 END,
+                     do2.planned_start_time ASC NULLS LAST
+            "#,
+        )
+        .bind(user_ids)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+
+        let mut result = Vec::with_capacity(rows.len());
+        for row in rows {
+            let slot_code: Option<String> = row.try_get("slot_code").ok();
+            let slot_name = Self::slot_name_from_snapshot(
+                row.try_get::<Option<serde_json::Value>, _>("crew_requirement_snapshot").ok().flatten(),
+                slot_code.as_deref(),
+            );
+            result.push(serde_json::json!({
+                "user_id": row.try_get::<String, _>("user_id").unwrap_or_default(),
+                "order_id": row.try_get::<String, _>("order_id").unwrap_or_default(),
+                "flight_id": row.try_get::<String, _>("flight_id").unwrap_or_default(),
+                "flight_no": row.try_get::<Option<String>, _>("flight_no").ok().flatten(),
+                "task_type": row.try_get::<String, _>("task_type").unwrap_or_default(),
+                "task_type_name": row.try_get::<Option<String>, _>("task_type_name").ok().flatten(),
+                "slot_code": slot_code,
+                "slot_name": slot_name,
+                "status": row.try_get::<String, _>("status").unwrap_or_default(),
+                "planned_start_time": row.try_get::<Option<DateTime<Utc>>, _>("planned_start_time")
+                    .ok()
+                    .flatten()
+                    .map(|value| value.to_rfc3339()),
+            }));
+        }
+        Ok(result)
+    }
+}
+
+impl PgDispatchOrderMemberRepository {
+    fn slot_name_from_snapshot(
+        snapshot: Option<serde_json::Value>,
+        slot_code: Option<&str>,
+    ) -> Option<String> {
+        let slot_code = slot_code?;
+        let snapshot = snapshot?;
+        let arr = snapshot.as_array()?;
+        for item in arr {
+            if item.get("slot_code").and_then(|value| value.as_str()) == Some(slot_code) {
+                if let Some(name) = item
+                    .get("slot_name")
+                    .and_then(|value| value.as_str())
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                {
+                    return Some(name.to_string());
+                }
+            }
+        }
+        None
+    }
 }
 
 #[async_trait]
