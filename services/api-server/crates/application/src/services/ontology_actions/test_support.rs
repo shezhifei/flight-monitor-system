@@ -793,6 +793,7 @@ pub(crate) fn occupation_fixture(
         moving_to_stand: None,
         flight_id: Some("FL_OTHER".into()),
         status: OccupationStatus::Active,
+        client_action_id: None,
         created_by: None,
         created_at: now,
         updated_at: now,

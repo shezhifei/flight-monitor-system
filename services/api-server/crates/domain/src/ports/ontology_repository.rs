@@ -190,14 +190,37 @@ pub enum CarouselCreateOutcome {
     Deduplicated(CarouselAssignment),
 }
 
+/// 机位占用新建的幂等结果。
+///
+/// 以客户端 `client_action_id` 做幂等去重：首次落库返回 `Inserted`，
+/// 重复 token 返回 `Deduplicated(既有行)`（PR3 Open Questions §2）。
+#[derive(Debug, Clone)]
+pub enum StandCreateOutcome {
+    Inserted,
+    /// 重复幂等 token：返回既有行，调用方不重复回写展示列
+    Deduplicated(StandOccupation),
+}
+
+/// 登机口分配新建的幂等结果（同上）。
+#[derive(Debug, Clone)]
+pub enum GateCreateOutcome {
+    Inserted,
+    /// 重复幂等 token：返回既有行
+    Deduplicated(GateAssignment),
+}
+
 /// 本体 V1 事务仓储：跨聚合原子写（ReassignAircraft / Suggestion.Accept 等）。
 #[async_trait]
 pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
     /// 确保飞机存在（不变量 1）
     async fn upsert_aircraft_in_tx(&self, tx: &mut Tx, registration: &str) -> Result<(), DomainError>;
 
-    /// 新建占用
-    async fn create_occupation_in_tx(&self, tx: &mut Tx, occupation: &StandOccupation) -> Result<(), DomainError>;
+    /// 新建占用（幂等：按 `client_action_id` 去重，重复 token 返回既有行）
+    async fn create_occupation_in_tx(
+        &self,
+        tx: &mut Tx,
+        occupation: &StandOccupation,
+    ) -> Result<StandCreateOutcome, DomainError>;
 
     /// 调整占用（与航班计划同步时保持同一事务）
     async fn update_occupation_in_tx(&self, tx: &mut Tx, occupation: &StandOccupation) -> Result<(), DomainError>;
@@ -210,8 +233,12 @@ pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
         released_by: &str,
     ) -> Result<Option<StandOccupation>, DomainError>;
 
-    /// 新建口分配
-    async fn create_assignment_in_tx(&self, tx: &mut Tx, assignment: &GateAssignment) -> Result<(), DomainError>;
+    /// 新建口分配（幂等：按 `client_action_id` 去重，重复 token 返回既有行）
+    async fn create_assignment_in_tx(
+        &self,
+        tx: &mut Tx,
+        assignment: &GateAssignment,
+    ) -> Result<GateCreateOutcome, DomainError>;
 
     /// 调整口分配（与航班计划同步时保持同一事务）
     async fn update_assignment_in_tx(&self, tx: &mut Tx, assignment: &GateAssignment) -> Result<(), DomainError>;

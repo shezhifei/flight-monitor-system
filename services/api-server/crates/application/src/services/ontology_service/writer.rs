@@ -17,7 +17,8 @@ use fms_domain::ports::flight_repository::{
     FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
 };
 use fms_domain::ports::ontology_repository::{
-    CarouselCreateOutcome, OntologyTransactionalRepository, TurnaroundLinkRepository,
+    CarouselCreateOutcome, GateCreateOutcome, OntologyTransactionalRepository, StandCreateOutcome,
+    TurnaroundLinkRepository,
 };
 use fms_domain::ports::unit_of_work::UnitOfWork;
 use ulid::Ulid;
@@ -59,6 +60,7 @@ pub trait OntologyTransactions: Send + Sync {
     ) -> Result<bool, OntologyError>;
 
     /// 分配机位占用事务段：确保 Aircraft + 落 Occupation + 可选同步 Flight 计划字段。
+    /// 返回幂等结果：`Inserted` 或 `Deduplicated(既有行)`。
     async fn allocate_stand_tx(
         &self,
         registration: &str,
@@ -66,7 +68,7 @@ pub trait OntologyTransactions: Send + Sync {
         sync_flight_plan: bool,
         stand_code: &str,
         actor_id: &str,
-    ) -> Result<(), OntologyError>;
+    ) -> Result<StandCreateOutcome, OntologyError>;
 
     /// 调整机位占用事务段。
     async fn adjust_stand_tx(
@@ -76,7 +78,7 @@ pub trait OntologyTransactions: Send + Sync {
         actor_id: &str,
     ) -> Result<(), OntologyError>;
 
-    /// 分配登机口事务段。
+    /// 分配登机口事务段。返回幂等结果：`Inserted` 或 `Deduplicated(既有行)`。
     async fn allocate_gate_tx(
         &self,
         registration: &str,
@@ -84,7 +86,7 @@ pub trait OntologyTransactions: Send + Sync {
         sync_flight_plan: bool,
         gate_code: &str,
         actor_id: &str,
-    ) -> Result<(), OntologyError>;
+    ) -> Result<GateCreateOutcome, OntologyError>;
 
     /// 调整登机口事务段。
     async fn adjust_gate_tx(
@@ -430,6 +432,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                         moving_to_stand: None,
                         flight_id: Some(FlightId(flight_id.to_string())),
                         status: OccupationStatus::Active,
+                        client_action_id: None,
                         created_by: Some(accepted_by.to_string()),
                         created_at: now,
                         updated_at: now,
@@ -445,6 +448,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                         ends_at,
                         flight_id: Some(FlightId(flight_id.to_string())),
                         status: AssignmentStatus::Active,
+                        client_action_id: None,
                         created_by: Some(accepted_by.to_string()),
                         created_at: now,
                         updated_at: now,
@@ -508,16 +512,16 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         sync_flight_plan: bool,
         stand_code: &str,
         actor_id: &str,
-    ) -> Result<(), OntologyError> {
+    ) -> Result<StandCreateOutcome, OntologyError> {
         let mut tx = self
             .uow
             .begin()
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.upsert_aircraft_in_tx(&mut tx, registration).await?;
-        self.ontology_tx.create_occupation_in_tx(&mut tx, occupation).await?;
+        let outcome = self.ontology_tx.create_occupation_in_tx(&mut tx, occupation).await?;
 
-        if sync_flight_plan {
+        if matches!(outcome, StandCreateOutcome::Inserted) && sync_flight_plan {
             if let Some(flight_id) = occupation.flight_id.as_ref() {
                 self.sync_flight_plan_field(
                     &mut tx,
@@ -534,7 +538,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .commit(tx)
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
-        Ok(())
+        Ok(outcome)
     }
 
     async fn adjust_stand_tx(
@@ -575,16 +579,16 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         sync_flight_plan: bool,
         gate_code: &str,
         actor_id: &str,
-    ) -> Result<(), OntologyError> {
+    ) -> Result<GateCreateOutcome, OntologyError> {
         let mut tx = self
             .uow
             .begin()
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.upsert_aircraft_in_tx(&mut tx, registration).await?;
-        self.ontology_tx.create_assignment_in_tx(&mut tx, assignment).await?;
+        let outcome = self.ontology_tx.create_assignment_in_tx(&mut tx, assignment).await?;
 
-        if sync_flight_plan {
+        if matches!(outcome, GateCreateOutcome::Inserted) && sync_flight_plan {
             if let Some(flight_id) = assignment.flight_id.as_ref() {
                 self.sync_flight_plan_field(
                     &mut tx,
@@ -601,7 +605,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .commit(tx)
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
-        Ok(())
+        Ok(outcome)
     }
 
     async fn adjust_gate_tx(

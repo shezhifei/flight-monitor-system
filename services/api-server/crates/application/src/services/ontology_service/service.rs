@@ -16,7 +16,8 @@ use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::flight_repository::{FlightRepository, FlightUpdatePatch, PatchField};
 use fms_domain::ports::ontology_repository::{
     AircraftRepository, CarouselAssignmentRepository, CarouselCreateOutcome, GateAssignmentRepository,
-    ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
+    GateCreateOutcome, ResourceAdjustmentSuggestionRepository, StandCreateOutcome, StandOccupationRepository,
+    TurnaroundLinkRepository,
 };
 use fms_runtime::spawn_tracked::spawn_tracked;
 use tracing::{info, warn};
@@ -545,12 +546,14 @@ impl OntologyService {
                 .filter(|s| !s.is_empty())
                 .map(|s| FlightId(s.to_string())),
             status: OccupationStatus::Active,
+            client_action_id: request.client_action_id.clone(),
             created_by: Some(actor_id.to_string()),
             created_at: now,
             updated_at: now,
         };
 
-        self.tx_ops
+        let outcome = self
+            .tx_ops
             .allocate_stand_tx(
                 registration,
                 &occupation,
@@ -559,9 +562,13 @@ impl OntologyService {
                 actor_id,
             )
             .await?;
+        let effective = match outcome {
+            StandCreateOutcome::Inserted => occupation,
+            StandCreateOutcome::Deduplicated(existing) => existing,
+        };
 
         Ok(StandOccupationResult {
-            occupation: serde_json::to_value(&occupation).unwrap_or(serde_json::Value::Null),
+            occupation: serde_json::to_value(&effective).unwrap_or(serde_json::Value::Null),
             overlap_warnings,
         })
     }
@@ -698,6 +705,7 @@ impl OntologyService {
             ends_at: request.ends_at,
             flight_id: Some(FlightId(flight_id.to_string())),
             status: AssignmentStatus::Active,
+            client_action_id: request.client_action_id.clone(),
             created_by: Some(actor_id.to_string()),
             created_at: now,
             updated_at: now,
@@ -707,12 +715,17 @@ impl OntologyService {
             .build_gate_consistency_warnings(&assignment.registration, &gate_code, now)
             .await?;
 
-        self.tx_ops
+        let outcome = self
+            .tx_ops
             .allocate_gate_tx(&assignment.registration, &assignment, request.sync_flight_plan, gate_code, actor_id)
             .await?;
+        let effective = match outcome {
+            GateCreateOutcome::Inserted => assignment,
+            GateCreateOutcome::Deduplicated(existing) => existing,
+        };
 
         Ok(GateAssignmentResult {
-            assignment: serde_json::to_value(&assignment).unwrap_or(serde_json::Value::Null),
+            assignment: serde_json::to_value(&effective).unwrap_or(serde_json::Value::Null),
             consistency_warnings,
         })
     }

@@ -53,6 +53,8 @@ pub struct StandOccupation {
     pub moving_to_stand: Option<StandNumber>,
     pub flight_id: Option<FlightId>,
     pub status: OccupationStatus,
+    /// 客户端幂等 token（可选）；重复分配时返回既有行（Open Questions §2）
+    pub client_action_id: Option<String>,
     pub created_by: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -79,6 +81,8 @@ pub struct GateAssignment {
     pub ends_at: DateTime<Utc>,
     pub flight_id: Option<FlightId>,
     pub status: AssignmentStatus,
+    /// 客户端幂等 token（可选）；重复分配时返回既有行（Open Questions §2）
+    pub client_action_id: Option<String>,
     pub created_by: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

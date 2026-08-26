@@ -15,8 +15,8 @@ use fms_domain::models::ontology_v1::{
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::ontology_repository::{
     AircraftRepository, CarouselAssignmentRepository, CarouselCreateOutcome, GateAssignmentRepository,
-    OntologyTransactionalRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
-    TurnaroundLinkRepository,
+    GateCreateOutcome, OntologyTransactionalRepository, ResourceAdjustmentSuggestionRepository,
+    StandCreateOutcome, StandOccupationRepository, TurnaroundLinkRepository,
 };
 
 // ---------------------------------------------------------------------------
@@ -45,9 +45,10 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         &self,
         tx: &mut Transaction<'tx, Postgres>,
         occupation: &StandOccupation,
-    ) -> Result<(), DomainError> {
-        sqlx::query(&format!(
-            "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+    ) -> Result<StandCreateOutcome, DomainError> {
+        let inserted = sqlx::query(&format!(
+            "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) \
+             ON CONFLICT (client_action_id) WHERE client_action_id IS NOT NULL DO NOTHING RETURNING *",
             OCCUPATION_COLUMNS
         ))
         .bind(&occupation.id)
@@ -59,13 +60,29 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .bind(occupation.moving_to_stand.as_ref().map(|s| &s.0))
         .bind(occupation.flight_id.as_ref().map(|f| &f.0))
         .bind(occupation_status_str(occupation.status))
+        .bind(&occupation.client_action_id)
         .bind(&occupation.created_by)
         .bind(occupation.created_at)
         .bind(occupation.updated_at)
-        .execute(&mut **tx)
+        .fetch_optional(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(())
+        if inserted.is_some() {
+            return Ok(StandCreateOutcome::Inserted);
+        }
+        // 冲突 → 幂等去重：返回既有行
+        let existing = sqlx::query("SELECT * FROM stand_occupations WHERE client_action_id=$1")
+            .bind(&occupation.client_action_id)
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?
+            .map(|r| row_to_occupation(&r));
+        match existing {
+            Some(o) => Ok(StandCreateOutcome::Deduplicated(o)),
+            None => Err(DomainError::Internal(
+                "stand client_action_id conflict but row not found".into(),
+            )),
+        }
     }
 
     async fn update_occupation_in_tx(
@@ -118,9 +135,10 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         &self,
         tx: &mut Transaction<'tx, Postgres>,
         assignment: &GateAssignment,
-    ) -> Result<(), DomainError> {
-        sqlx::query(&format!(
-            "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+    ) -> Result<GateCreateOutcome, DomainError> {
+        let inserted = sqlx::query(&format!(
+            "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) \
+             ON CONFLICT (client_action_id) WHERE client_action_id IS NOT NULL DO NOTHING RETURNING *",
             ASSIGNMENT_COLUMNS
         ))
         .bind(&assignment.id)
@@ -130,13 +148,29 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .bind(assignment.ends_at)
         .bind(assignment.flight_id.as_ref().map(|f| &f.0))
         .bind(assignment_status_str(assignment.status))
+        .bind(&assignment.client_action_id)
         .bind(&assignment.created_by)
         .bind(assignment.created_at)
         .bind(assignment.updated_at)
-        .execute(&mut **tx)
+        .fetch_optional(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(())
+        if inserted.is_some() {
+            return Ok(GateCreateOutcome::Inserted);
+        }
+        // 冲突 → 幂等去重：返回既有行
+        let existing = sqlx::query("SELECT * FROM gate_assignments WHERE client_action_id=$1")
+            .bind(&assignment.client_action_id)
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?
+            .map(|r| row_to_assignment(&r));
+        match existing {
+            Some(a) => Ok(GateCreateOutcome::Deduplicated(a)),
+            None => Err(DomainError::Internal(
+                "gate client_action_id conflict but row not found".into(),
+            )),
+        }
     }
 
     async fn update_assignment_in_tx(
@@ -493,13 +527,14 @@ fn row_to_occupation(r: &sqlx::postgres::PgRow) -> StandOccupation {
             "expired" => OccupationStatus::Expired,
             _ => OccupationStatus::Active,
         },
+        client_action_id: r.try_get("client_action_id").unwrap_or(None),
         created_by: r.try_get("created_by").unwrap_or(None),
         created_at: r.get("created_at"),
         updated_at: r.get("updated_at"),
     }
 }
 
-const OCCUPATION_COLUMNS: &str = "id, registration, stand_code, starts_at, ends_at, kind, moving_to_stand, flight_id, status, created_by, created_at, updated_at";
+const OCCUPATION_COLUMNS: &str = "id, registration, stand_code, starts_at, ends_at, kind, moving_to_stand, flight_id, status, client_action_id, created_by, created_at, updated_at";
 
 #[async_trait]
 impl StandOccupationRepository for PgStandOccupationRepository {
@@ -514,7 +549,8 @@ impl StandOccupationRepository for PgStandOccupationRepository {
 
     async fn create(&self, occupation: &StandOccupation) -> Result<(), DomainError> {
         sqlx::query(&format!(
-            "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+            "INSERT INTO stand_occupations ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) \
+             ON CONFLICT (client_action_id) WHERE client_action_id IS NOT NULL DO NOTHING",
             OCCUPATION_COLUMNS
         ))
         .bind(&occupation.id)
@@ -526,6 +562,7 @@ impl StandOccupationRepository for PgStandOccupationRepository {
         .bind(occupation.moving_to_stand.as_ref().map(|s| &s.0))
         .bind(occupation.flight_id.as_ref().map(|f| &f.0))
         .bind(occupation_status_str(occupation.status))
+        .bind(&occupation.client_action_id)
         .bind(&occupation.created_by)
         .bind(occupation.created_at)
         .bind(occupation.updated_at)
@@ -673,6 +710,7 @@ fn row_to_assignment(r: &sqlx::postgres::PgRow) -> GateAssignment {
             "expired" => AssignmentStatus::Expired,
             _ => AssignmentStatus::Active,
         },
+        client_action_id: r.try_get("client_action_id").unwrap_or(None),
         created_by: r.try_get("created_by").unwrap_or(None),
         created_at: r.get("created_at"),
         updated_at: r.get("updated_at"),
@@ -680,7 +718,7 @@ fn row_to_assignment(r: &sqlx::postgres::PgRow) -> GateAssignment {
 }
 
 const ASSIGNMENT_COLUMNS: &str =
-    "id, registration, gate_code, starts_at, ends_at, flight_id, status, created_by, created_at, updated_at";
+    "id, registration, gate_code, starts_at, ends_at, flight_id, status, client_action_id, created_by, created_at, updated_at";
 
 #[async_trait]
 impl GateAssignmentRepository for PgGateAssignmentRepository {
@@ -695,7 +733,8 @@ impl GateAssignmentRepository for PgGateAssignmentRepository {
 
     async fn create(&self, assignment: &GateAssignment) -> Result<(), DomainError> {
         sqlx::query(&format!(
-            "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+            "INSERT INTO gate_assignments ({}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) \
+             ON CONFLICT (client_action_id) WHERE client_action_id IS NOT NULL DO NOTHING",
             ASSIGNMENT_COLUMNS
         ))
         .bind(&assignment.id)
@@ -705,6 +744,7 @@ impl GateAssignmentRepository for PgGateAssignmentRepository {
         .bind(assignment.ends_at)
         .bind(assignment.flight_id.as_ref().map(|f| &f.0))
         .bind(assignment_status_str(assignment.status))
+        .bind(&assignment.client_action_id)
         .bind(&assignment.created_by)
         .bind(assignment.created_at)
         .bind(assignment.updated_at)

@@ -15,7 +15,6 @@ use fms_domain::models::ai_proposal::{ActionProposalStatus, ApprovalPolicy, Risk
 use fms_domain::ports::ai_object_policy_repository::{
     AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicyRepositoryError,
 };
-use fms_domain::ports::flight_repository::FlightRepository;
 use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomainEventOutboxRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use serde_json::json;
@@ -545,7 +544,18 @@ async fn build_test_executor(
             CollaborationEventRecorder, NotificationCollaborationEvents, NotificationDeliveryPublisher,
             NotificationMetricsRecorder, NotificationReceiptGroupSync, NotificationService,
         },
+        ontology_service::{OntologyService, OntologyTransactions, OntologyWriter},
         todo_service::TodoWriter,
+    };
+    use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+    use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
+    use fms_domain::ports::ontology_repository::{
+        AircraftRepository, CarouselAssignmentRepository, GateAssignmentRepository, OntologyTransactionalRepository,
+        ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
+    };
+    use fms_infrastructure::repositories::pg_ontology_repository::{
+        PgAircraftRepository, PgCarouselAssignmentRepository, PgGateAssignmentRepository,
+        PgResourceAdjustmentSuggestionRepository, PgStandOccupationRepository, PgTurnaroundLinkRepository,
     };
     use fms_infrastructure::repositories::{
         pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
@@ -658,6 +668,41 @@ async fn build_test_executor(
             as Arc<dyn BusinessCaseMentionAudience>,
     ));
 
+    let ontology_flight_port: Arc<dyn FlightRepository + Send + Sync> = flight_repo.clone();
+    let aircraft_repo = Arc::new(PgAircraftRepository::new(pool.clone()));
+    let occupation_repo = Arc::new(PgStandOccupationRepository::new(pool.clone()));
+    let assignment_repo = Arc::new(PgGateAssignmentRepository::new(pool.clone()));
+    let link_repo = Arc::new(PgTurnaroundLinkRepository::new(pool.clone()));
+    let suggestion_repo = Arc::new(PgResourceAdjustmentSuggestionRepository::new(pool.clone()));
+    let carousel_repo = Arc::new(PgCarouselAssignmentRepository::new(pool.clone()));
+
+    let ontology_tx: Arc<
+        dyn OntologyTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
+    > = aircraft_repo.clone();
+    let flight_tx: Arc<dyn FlightTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync> =
+        flight_repo.clone();
+    let outbox_tx: Arc<
+        dyn DomainEventOutboxTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
+    > = outbox_repo.clone();
+    let ontology_writer: Arc<dyn OntologyTransactions> = Arc::new(OntologyWriter::new(
+        ontology_flight_port.clone(),
+        link_repo.clone(),
+        ontology_tx,
+        flight_tx,
+        outbox_tx,
+        Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool.clone())),
+    ));
+    let ontology_svc = Arc::new(OntologyService::new(
+        ontology_flight_port.clone(),
+        aircraft_repo,
+        occupation_repo,
+        assignment_repo,
+        link_repo,
+        suggestion_repo,
+        carousel_repo,
+        ontology_writer,
+    ));
+
     fms_application::services::domain_action_executor::DomainActionExecutor::new(
         flight_service,
         flight_writer,
@@ -665,6 +710,7 @@ async fn build_test_executor(
         dispatch_writer,
         business_case_service,
         business_case_writer,
+        ontology_svc,
         outbox_repo,
         anomaly_repo,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
