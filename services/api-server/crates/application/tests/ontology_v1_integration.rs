@@ -22,15 +22,15 @@ use fms_application::services::ontology_service::{OntologyService, OntologyTrans
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, OntologyTransactionalRepository,
+    AircraftRepository, CarouselAssignmentRepository, GateAssignmentRepository, OntologyTransactionalRepository,
     ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
 };
 use fms_infrastructure::db::transaction::PgUnitOfWork;
 use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomainEventOutboxRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_ontology_repository::{
-    PgAircraftRepository, PgGateAssignmentRepository, PgResourceAdjustmentSuggestionRepository,
-    PgStandOccupationRepository, PgTurnaroundLinkRepository,
+    PgAircraftRepository, PgCarouselAssignmentRepository, PgGateAssignmentRepository,
+    PgResourceAdjustmentSuggestionRepository, PgStandOccupationRepository, PgTurnaroundLinkRepository,
 };
 use sqlx::PgPool;
 
@@ -76,6 +76,7 @@ fn build_service(pool: PgPool) -> OntologyService {
     let assignments = Arc::new(PgGateAssignmentRepository::new(pool.clone()));
     let links = Arc::new(PgTurnaroundLinkRepository::new(pool.clone()));
     let suggestions = Arc::new(PgResourceAdjustmentSuggestionRepository::new(pool.clone()));
+    let carousels = Arc::new(PgCarouselAssignmentRepository::new(pool.clone()));
 
     let flight_port: Arc<dyn FlightRepository + Send + Sync> = flight_repo.clone();
     let aircraft_port: Arc<dyn AircraftRepository + Send + Sync> = aircraft.clone();
@@ -83,6 +84,7 @@ fn build_service(pool: PgPool) -> OntologyService {
     let assignment_port: Arc<dyn GateAssignmentRepository + Send + Sync> = assignments;
     let link_port: Arc<dyn TurnaroundLinkRepository + Send + Sync> = links.clone();
     let suggestion_port: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync> = suggestions;
+    let carousel_port: Arc<dyn CarouselAssignmentRepository + Send + Sync> = carousels.clone();
     let ontology_tx: Arc<
         dyn OntologyTransactionalRepository<sqlx::Transaction<'static, sqlx::Postgres>> + Send + Sync,
     > = aircraft.clone();
@@ -108,6 +110,7 @@ fn build_service(pool: PgPool) -> OntologyService {
         assignment_port,
         link_port,
         suggestion_port,
+        carousel_port,
         writer as Arc<dyn OntologyTransactions>,
     )
 }

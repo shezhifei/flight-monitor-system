@@ -269,6 +269,22 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         Ok(row.map(|r| row_to_carousel(&r)))
     }
 
+    async fn list_active_carousel_codes_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        flight_id: &str,
+    ) -> Result<Vec<String>, DomainError> {
+        let rows = sqlx::query(
+            "SELECT DISTINCT carousel_code FROM carousel_assignments \
+             WHERE flight_id=$1 AND status='active' ORDER BY carousel_code",
+        )
+        .bind(flight_id)
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(rows.iter().flat_map(|r| r.try_get::<String, _>("carousel_code")).collect())
+    }
+
     async fn create_link_in_tx(
         &self,
         tx: &mut Transaction<'tx, Postgres>,

@@ -9,14 +9,16 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use fms_domain::models::ontology_v1::{GateAssignment, ResourceAdjustmentSuggestion, StandOccupation, TurnaroundLink};
+use fms_domain::models::ontology_v1::{CarouselAssignment, GateAssignment, ResourceAdjustmentSuggestion, StandOccupation, TurnaroundLink};
 use fms_domain::models::ontology_v1_rules::enforce_link_health;
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::flight_repository::{
     FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
 };
-use fms_domain::ports::ontology_repository::{OntologyTransactionalRepository, TurnaroundLinkRepository};
+use fms_domain::ports::ontology_repository::{
+    CarouselCreateOutcome, OntologyTransactionalRepository, TurnaroundLinkRepository,
+};
 use fms_domain::ports::unit_of_work::UnitOfWork;
 use ulid::Ulid;
 
@@ -92,6 +94,28 @@ pub trait OntologyTransactions: Send + Sync {
         actor_id: &str,
     ) -> Result<(), OntologyError>;
 
+    /// 新建转盘分配事务段。返回幂等结果：`Inserted` 或 `Deduplicated(既有行)`。
+    /// 仅 `Inserted` 时回写展示列 `baggage_carousel`（同一事务内重算）。
+    async fn allocate_carousel_tx(
+        &self,
+        assignment: &CarouselAssignment,
+        actor_id: &str,
+    ) -> Result<CarouselCreateOutcome, OntologyError>;
+
+    /// 调整转盘分配事务段（改转盘/时段）+ 重算展示列。
+    async fn adjust_carousel_tx(
+        &self,
+        updated: &CarouselAssignment,
+        actor_id: &str,
+    ) -> Result<(), OntologyError>;
+
+    /// 释放转盘分配事务段 + 重算展示列（可能清空）。返回被释放的分配。
+    async fn release_carousel_tx(
+        &self,
+        id: &str,
+        released_by: &str,
+    ) -> Result<CarouselAssignment, OntologyError>;
+
     /// 新建建议事务段：旧 pending 过期 + 落新建议。
     async fn create_suggestion_tx(
         &self,
@@ -154,6 +178,44 @@ impl<U: UnitOfWork> OntologyWriter<U> {
         if let Some(g) = gate {
             patch.gate = g;
         }
+        if !patch.has_any_changes() {
+            return Ok(());
+        }
+        let _ = self
+            .flight_tx
+            .update_partial_in_tx(tx, flight_id, &patch)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
+        write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, flight_id, &patch, Some(actor_id)).await?;
+        Ok(())
+    }
+
+    /// 同一事务内按该航班所有 active 转盘 code 去重重算展示列 `baggage_carousel`。
+    /// 空则清空（`Clear` → NULL）。展示拼接不是约束：多条占用照样都能 allocate。
+    async fn sync_carousel_display_in_tx(
+        &self,
+        tx: &mut U::Tx,
+        flight_id: &str,
+        actor_id: &str,
+    ) -> Result<(), OntologyError> {
+        let codes = self
+            .ontology_tx
+            .list_active_carousel_codes_in_tx(tx, flight_id)
+            .await?;
+        let flight = self
+            .flight_repo
+            .find_by_id(flight_id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
+        let patch = FlightUpdatePatch {
+            expected_version: Some(flight.version),
+            baggage_carousel: if codes.is_empty() {
+                PatchField::Clear
+            } else {
+                PatchField::Set(codes.join(", "))
+            },
+            ..FlightUpdatePatch::default()
+        };
         if !patch.has_any_changes() {
             return Ok(());
         }
@@ -571,6 +633,75 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         Ok(())
+    }
+
+    async fn allocate_carousel_tx(
+        &self,
+        assignment: &CarouselAssignment,
+        actor_id: &str,
+    ) -> Result<CarouselCreateOutcome, OntologyError> {
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        let outcome = self.ontology_tx.create_carousel_in_tx(&mut tx, assignment).await?;
+        if matches!(outcome, CarouselCreateOutcome::Inserted) {
+            if let Some(flight_id) = &assignment.flight_id {
+                self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, actor_id).await?;
+            }
+        }
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(outcome)
+    }
+
+    async fn adjust_carousel_tx(
+        &self,
+        updated: &CarouselAssignment,
+        actor_id: &str,
+    ) -> Result<(), OntologyError> {
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        self.ontology_tx.update_carousel_in_tx(&mut tx, updated).await?;
+        if let Some(flight_id) = &updated.flight_id {
+            self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, actor_id).await?;
+        }
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn release_carousel_tx(
+        &self,
+        id: &str,
+        released_by: &str,
+    ) -> Result<CarouselAssignment, OntologyError> {
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        let assignment = self
+            .ontology_tx
+            .release_carousel_in_tx(&mut tx, id, released_by)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("active carousel assignment {id}")))?;
+        if let Some(flight_id) = &assignment.flight_id {
+            self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, released_by).await?;
+        }
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(assignment)
     }
 
     async fn create_suggestion_tx(

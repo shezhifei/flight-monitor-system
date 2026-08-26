@@ -29,12 +29,12 @@ use fms_domain::ports::flight_timeline_event_repository::{
     FlightTimelineEventRepository, FlightTimelineEventTransactionalRepository,
 };
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, OntologyTransactionalRepository,
+    AircraftRepository, CarouselAssignmentRepository, GateAssignmentRepository, OntologyTransactionalRepository,
     ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
 };
 use fms_infrastructure::repositories::pg_ontology_repository::{
-    PgAircraftRepository, PgGateAssignmentRepository, PgResourceAdjustmentSuggestionRepository,
-    PgStandOccupationRepository, PgTurnaroundLinkRepository,
+    PgAircraftRepository, PgCarouselAssignmentRepository, PgGateAssignmentRepository,
+    PgResourceAdjustmentSuggestionRepository, PgStandOccupationRepository, PgTurnaroundLinkRepository,
 };
 
 use fms_infrastructure::cache::flight_cache_backend::RedisFlightCacheBackend;
@@ -113,6 +113,7 @@ pub(crate) fn build_flight_services(
     let assignment_repo = Arc::new(PgGateAssignmentRepository::new(repos.pool.clone()));
     let link_repo = Arc::new(PgTurnaroundLinkRepository::new(repos.pool.clone()));
     let suggestion_repo = Arc::new(PgResourceAdjustmentSuggestionRepository::new(repos.pool.clone()));
+    let carousel_repo = Arc::new(PgCarouselAssignmentRepository::new(repos.pool.clone()));
     let ontology_tx: Arc<dyn OntologyTransactionalRepository<PgTx> + Send + Sync> = aircraft_repo.clone();
     let flight_repo_port: Arc<dyn FlightRepository + Send + Sync> = repos.flight_repo.clone();
     let dispatch_order_port: Arc<dyn DispatchOrderRepository + Send + Sync> = repos.dispatch_order_repo.clone();
@@ -125,6 +126,7 @@ pub(crate) fn build_flight_services(
     let assignment_port: Arc<dyn GateAssignmentRepository + Send + Sync> = assignment_repo;
     let link_port: Arc<dyn TurnaroundLinkRepository + Send + Sync> = link_repo;
     let suggestion_port: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync> = suggestion_repo;
+    let carousel_port: Arc<dyn CarouselAssignmentRepository + Send + Sync> = carousel_repo.clone();
 
     let ontology_writer: Arc<OntologyWriter<_>> = Arc::new(OntologyWriter::new(
         flight_repo_port.clone(),
@@ -142,6 +144,7 @@ pub(crate) fn build_flight_services(
             assignment_port,
             link_port,
             suggestion_port,
+            carousel_port,
             ontology_writer as Arc<dyn OntologyTransactions>,
         )
         .with_flight_service(flight_svc.clone()),

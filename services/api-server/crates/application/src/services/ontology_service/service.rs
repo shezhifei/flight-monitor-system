@@ -7,26 +7,28 @@ use std::time::Duration as StdDuration;
 use chrono::{DateTime, Utc};
 use fms_domain::error::DomainError;
 use fms_domain::models::ontology_v1::{
-    AssignmentStatus, GateAssignment, OccupationKind, OccupationStatus, ResourceAdjustmentSuggestion, StandOccupation,
-    SuggestionKind, SuggestionStatus, TurnaroundLink, TurnaroundLinkSource, TurnaroundLinkStatus,
+    AssignmentStatus, CarouselAssignment, GateAssignment, OccupationKind, OccupationStatus,
+    ResourceAdjustmentSuggestion, StandOccupation, SuggestionKind, SuggestionStatus, TurnaroundLink,
+    TurnaroundLinkSource, TurnaroundLinkStatus,
 };
 use fms_domain::models::ontology_v1_rules::{accept_permission_for, draft_can_be_occupied, enforce_link_health};
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::flight_repository::{FlightRepository, FlightUpdatePatch, PatchField};
 use fms_domain::ports::ontology_repository::{
-    AircraftRepository, GateAssignmentRepository, ResourceAdjustmentSuggestionRepository, StandOccupationRepository,
-    TurnaroundLinkRepository,
+    AircraftRepository, CarouselAssignmentRepository, CarouselCreateOutcome, GateAssignmentRepository,
+    ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
 };
 use fms_runtime::spawn_tracked::spawn_tracked;
 use tracing::{info, warn};
 use ulid::Ulid;
 
 use crate::schemas::ontology_schemas::{
-    AdjustGateRequest, AdjustStandRequest, AircraftResourceView, AllocateGateRequest, AllocateStandRequest,
-    AutoLinkScanRequest, AutoLinkScanResult, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
-    ConfirmDraftFlightsResponse, CreateSuggestionRequest, CreateTurnaroundLinkRequest, FlightResourceView,
-    GateAssignmentResult, ReassignAircraftRequest, ReassignAircraftResponse, ReleaseResourceRequest,
-    StandOccupationResult, SuggestionAcceptRequest, SuggestionQuery, SuggestionRejectRequest,
+    AdjustGateRequest, AdjustStandRequest, AdjustCarouselRequest, AircraftResourceView, AllocateCarouselRequest,
+    AllocateGateRequest, AllocateStandRequest, AutoLinkScanRequest, AutoLinkScanResult, BreakTurnaroundLinkRequest,
+    CarouselAssignmentResult, ConfirmDraftFlightsRequest, ConfirmDraftFlightsResponse, CreateSuggestionRequest,
+    CreateTurnaroundLinkRequest, FlightResourceView, GateAssignmentResult, ReassignAircraftRequest,
+    ReassignAircraftResponse, ReleaseResourceRequest, StandOccupationResult, SuggestionAcceptRequest, SuggestionQuery,
+    SuggestionRejectRequest,
 };
 use crate::services::flight_service::FlightService;
 
@@ -41,6 +43,7 @@ pub struct OntologyService {
     assignment_repo: Arc<dyn GateAssignmentRepository + Send + Sync>,
     link_repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
     suggestion_repo: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync>,
+    carousel_repo: Arc<dyn CarouselAssignmentRepository + Send + Sync>,
     /// 受控事务写入端口；泛型在 writer 侧止步。
     tx_ops: Arc<dyn OntologyTransactions>,
     /// 可选：复用 FlightService 的 draft 确认语义。
@@ -61,6 +64,7 @@ impl OntologyService {
         assignment_repo: Arc<dyn GateAssignmentRepository + Send + Sync>,
         link_repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
         suggestion_repo: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync>,
+        carousel_repo: Arc<dyn CarouselAssignmentRepository + Send + Sync>,
         tx_ops: Arc<dyn OntologyTransactions>,
     ) -> Self {
         Self {
@@ -70,6 +74,7 @@ impl OntologyService {
             assignment_repo,
             link_repo,
             suggestion_repo,
+            carousel_repo,
             tx_ops,
             flight_service: None,
             autolink_scanner_running: AtomicBool::new(false),
@@ -386,6 +391,7 @@ impl OntologyService {
         let occupations = self.occupation_repo.find_active_by_flight(flight_id).await?;
         let assignments = self.assignment_repo.find_active_by_flight(flight_id).await?;
         let links = self.link_repo.list_by_flight(flight_id).await?;
+        let carousels = self.carousel_repo.find_active_by_flight(flight_id).await?;
 
         Ok(FlightResourceView {
             flight_id: flight_id.to_string(),
@@ -399,6 +405,10 @@ impl OntologyService {
             assignments: assignments
                 .into_iter()
                 .map(|a| serde_json::to_value(a).unwrap_or(serde_json::Value::Null))
+                .collect(),
+            carousel_assignments: carousels
+                .into_iter()
+                .map(|c| serde_json::to_value(c).unwrap_or(serde_json::Value::Null))
                 .collect(),
             turnaround_links: links
                 .into_iter()
@@ -761,6 +771,141 @@ impl OntologyService {
             .release(assignment_id, released_by)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("active assignment {assignment_id}")))
+    }
+
+    // -----------------------------------------------------------------------
+    // CarouselAssignment 正式写路径（主体=航班；零业务约束）
+    // -----------------------------------------------------------------------
+
+    /// 分配转盘。零业务约束：不查重叠/不限额/不校验方向。展示列 `baggage_carousel`
+    /// 由同一事务内按航班重算。支持客户端 `client_action_id` 幂等去重。
+    pub async fn allocate_carousel(
+        &self,
+        request: AllocateCarouselRequest,
+        actor_id: &str,
+        actor_permissions: &[String],
+        actor_is_admin: bool,
+    ) -> Result<CarouselAssignmentResult, OntologyError> {
+        Self::ensure_has_permission(actor_permissions, actor_is_admin, "ontology.carousel.manage")?;
+        let carousel_code = request.carousel_code.trim();
+        let flight_id = request.flight_id.trim();
+        if carousel_code.is_empty() || flight_id.is_empty() {
+            return Err(OntologyError::validation(
+                "carousel_code and flight_id must not be empty",
+            ));
+        }
+        Self::ensure_time_window(request.starts_at, request.ends_at)?;
+        self.flight_repo
+            .find_by_id(flight_id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
+
+        let now = Utc::now();
+        let assignment = CarouselAssignment {
+            id: Ulid::new().to_string(),
+            carousel_code: carousel_code.to_string(),
+            registration: request
+                .registration
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string()),
+            flight_id: Some(FlightId(flight_id.to_string())),
+            starts_at: request.starts_at,
+            ends_at: request.ends_at,
+            status: AssignmentStatus::Active,
+            client_action_id: request
+                .client_action_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string()),
+            created_by: Some(actor_id.to_string()),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let outcome = self.tx_ops.allocate_carousel_tx(&assignment, actor_id).await?;
+        let (inserted, effective) = match outcome {
+            CarouselCreateOutcome::Inserted => (true, assignment),
+            CarouselCreateOutcome::Deduplicated(existing) => (false, existing),
+        };
+        Ok(CarouselAssignmentResult {
+            assignment: serde_json::to_value(&effective).unwrap_or(serde_json::Value::Null),
+            inserted,
+        })
+    }
+
+    /// 调整转盘分配（改转盘/时段）。
+    pub async fn adjust_carousel(
+        &self,
+        assignment_id: &str,
+        request: AdjustCarouselRequest,
+        actor_id: &str,
+        actor_permissions: &[String],
+        actor_is_admin: bool,
+    ) -> Result<CarouselAssignmentResult, OntologyError> {
+        Self::ensure_has_permission(actor_permissions, actor_is_admin, "ontology.carousel.manage")?;
+        let mut updated = self
+            .carousel_repo
+            .find_by_id(assignment_id)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("carousel assignment {assignment_id}")))?;
+        if !matches!(updated.status, AssignmentStatus::Active) {
+            return Err(OntologyError::conflict(format!(
+                "carousel assignment {assignment_id} is not active"
+            )));
+        }
+        if let Some(code) = request.carousel_code.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+            updated.carousel_code = code.to_string();
+        }
+        if let Some(starts) = request.starts_at {
+            updated.starts_at = starts;
+        }
+        if let Some(ends) = request.ends_at {
+            updated.ends_at = ends;
+        }
+        Self::ensure_time_window(updated.starts_at, updated.ends_at)?;
+        updated.updated_at = Utc::now();
+
+        self.tx_ops.adjust_carousel_tx(&updated, actor_id).await?;
+
+        Ok(CarouselAssignmentResult {
+            assignment: serde_json::to_value(&updated).unwrap_or(serde_json::Value::Null),
+            inserted: false,
+        })
+    }
+
+    /// 释放转盘分配；重算展示列（可能清空）。
+    pub async fn release_carousel(
+        &self,
+        assignment_id: &str,
+        request: ReleaseResourceRequest,
+        actor_id: &str,
+        actor_permissions: &[String],
+        actor_is_admin: bool,
+    ) -> Result<CarouselAssignment, OntologyError> {
+        Self::ensure_has_permission(actor_permissions, actor_is_admin, "ontology.carousel.manage")?;
+        let released_by = request
+            .released_by
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .unwrap_or(actor_id);
+        self.tx_ops.release_carousel_tx(assignment_id, released_by).await
+    }
+
+    /// 列出某航段全部转盘分配（时间倒序）。
+    pub async fn list_carousel_assignments(
+        &self,
+        flight_id: &str,
+        limit: i64,
+    ) -> Result<Vec<CarouselAssignment>, OntologyError> {
+        let flight_id = flight_id.trim();
+        if flight_id.is_empty() {
+            return Err(OntologyError::validation("flight_id must not be empty"));
+        }
+        Ok(self.carousel_repo.list_by_flight(flight_id, limit.clamp(1, 500)).await?)
     }
 
     // -----------------------------------------------------------------------

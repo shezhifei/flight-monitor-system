@@ -11,9 +11,10 @@ use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use fms_application::schemas::ontology_schemas::{
-    AdjustGateRequest, AdjustStandRequest, AllocateGateRequest, AllocateStandRequest, AutoLinkScanRequest,
-    BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest, CreateSuggestionRequest, CreateTurnaroundLinkRequest,
-    ReassignAircraftRequest, ReleaseResourceRequest, SuggestionAcceptRequest, SuggestionQuery, SuggestionRejectRequest,
+    AdjustCarouselRequest, AdjustGateRequest, AdjustStandRequest, AllocateCarouselRequest, AllocateGateRequest,
+    AllocateStandRequest, AutoLinkScanRequest, BreakTurnaroundLinkRequest, ConfirmDraftFlightsRequest,
+    CreateSuggestionRequest, CreateTurnaroundLinkRequest, ReassignAircraftRequest, ReleaseResourceRequest,
+    SuggestionAcceptRequest, SuggestionQuery, SuggestionRejectRequest,
 };
 use fms_application::services::ontology_service::{OntologyError, OntologyService};
 
@@ -244,6 +245,69 @@ async fn release_gate(
     Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
 }
 
+async fn allocate_carousel(
+    svc: web::Data<Arc<OntologyService>>,
+    body: web::Json<AllocateCarouselRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.carousel.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .allocate_carousel(body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Created().json(json!({ "success": true, "data": result })))
+}
+
+async fn adjust_carousel(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<AdjustCarouselRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.carousel.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let result = svc
+        .adjust_carousel(&path.into_inner(), body.into_inner(), &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn release_carousel(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    body: web::Json<ReleaseResourceRequest>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ontology.carousel.manage")?;
+    let (actor, permissions, is_admin) = actor_flags(&claims);
+    let mut request = body.into_inner();
+    request.released_by = Some(actor.clone());
+    let result = svc
+        .release_carousel(&path.into_inner(), request, &actor, &permissions, is_admin)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
+async fn list_carousel_assignments(
+    svc: web::Data<Arc<OntologyService>>,
+    path: web::Path<String>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    if !(claims.has_permission("ontology.carousel.manage") || claims.has_permission("ontology.read")) {
+        return Err(ApiError::Forbidden("missing permission ontology.read".into()));
+    }
+    let limit: i64 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50);
+    let result = svc
+        .list_carousel_assignments(&path.into_inner(), limit)
+        .await
+        .map_err(map_ontology_error)?;
+    Ok(HttpResponse::Ok().json(json!({ "success": true, "data": result })))
+}
+
 async fn create_turnaround_link(
     svc: web::Data<Arc<OntologyService>>,
     body: web::Json<CreateTurnaroundLinkRequest>,
@@ -351,6 +415,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/gates/assignments", web::post().to(allocate_gate))
             .route("/gates/assignments/{id}", web::patch().to(adjust_gate))
             .route("/gates/assignments/{id}/release", web::post().to(release_gate))
+            .route("/carousels/assignments", web::post().to(allocate_carousel))
+            .route("/carousels/assignments/{id}", web::patch().to(adjust_carousel))
+            .route("/carousels/assignments/{id}/release", web::post().to(release_carousel))
+            .route("/flights/{flight_id}/carousels", web::get().to(list_carousel_assignments))
             .route("/turnaround-links", web::post().to(create_turnaround_link))
             .route("/turnaround-links/{id}/break", web::post().to(break_turnaround_link))
             .route("/turnaround-links/auto-scan", web::post().to(auto_link_scan))

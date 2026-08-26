@@ -172,6 +172,40 @@ pub struct GateAssignmentResult {
 }
 
 // ---------------------------------------------------------------------------
+// 转盘分配 CarouselAssignment — 正式写路径（主体=航班；零业务约束）
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AllocateCarouselRequest {
+    /// 转盘 code（必须在启用目录 + 某座启用楼成员表里）
+    pub carousel_code: String,
+    /// 主体：航班
+    pub flight_id: String,
+    /// 可选机号投影（不参与任何规则）
+    pub registration: Option<String>,
+    pub starts_at: chrono::DateTime<chrono::Utc>,
+    pub ends_at: chrono::DateTime<chrono::Utc>,
+    /// 客户端幂等 token；重复 token 返回既有行而非新建
+    pub client_action_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdjustCarouselRequest {
+    pub carousel_code: Option<String>,
+    pub starts_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub ends_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CarouselAssignmentResult {
+    pub assignment: serde_json::Value,
+    /// false = 重复幂等 token 命中既有行（未新建，不重复回写展示列）
+    pub inserted: bool,
+}
+
+// ---------------------------------------------------------------------------
 // 周转链接 TurnaroundLink（§4.8）
 // ---------------------------------------------------------------------------
 
@@ -243,6 +277,7 @@ pub struct FlightResourceView {
     pub plan_gate: Option<String>,
     pub occupations: Vec<serde_json::Value>,
     pub assignments: Vec<serde_json::Value>,
+    pub carousel_assignments: Vec<serde_json::Value>,
     pub turnaround_links: Vec<serde_json::Value>,
 }
 
