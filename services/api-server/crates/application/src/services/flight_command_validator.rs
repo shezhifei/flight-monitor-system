@@ -86,8 +86,18 @@ pub async fn validate_create_payload(
 }
 
 pub fn validate_update_payload(dto: &FlightUpdate) -> Result<(), DomainError> {
-    if update_fields_present(dto).is_empty() {
+    let fields = update_fields_present(dto);
+    if fields.is_empty() {
         return Err(DomainError::ValidationError("未提供任何更新字段".into()));
+    }
+
+    // PR3「只读展示列」：stand/gate/terminal/baggage_carousel 只能由占用服务回写。
+    // PATCH / batch 一律拒绝，不再保留「计划同步」语义（上游值仅作 allocate 建议）。
+    const READONLY_DISPLAY_COLUMNS: &[&str] = &["stand", "gate", "terminal", "baggage_carousel"];
+    if let Some(field) = fields.iter().find(|f| READONLY_DISPLAY_COLUMNS.contains(f)) {
+        return Err(DomainError::ValidationError(format!(
+            "字段 {field} 为只读展示列，禁止通过 PATCH 修改"
+        )));
     }
 
     validate_leg_payload(
