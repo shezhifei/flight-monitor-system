@@ -32,7 +32,8 @@ impl UserRepository for PgUserRepository {
              is_verified, is_admin, verification_token, verification_token_expires, \
              verified_at, password_reset_token, password_reset_token_expires, \
              password_changed_at, last_login_at, department, department_id, \
-             job_level, job_title, permission_version, created_at, updated_at \
+             job_level, job_title, permission_version, account_type, login_enabled, \
+             current_occupant_user_id, created_at, updated_at \
              FROM users WHERE id = $1",
         )
         .bind(user_id)
@@ -64,7 +65,8 @@ impl UserRepository for PgUserRepository {
              is_verified, is_admin, verification_token, verification_token_expires, \
              verified_at, password_reset_token, password_reset_token_expires, \
              password_changed_at, last_login_at, department, department_id, \
-             job_level, job_title, permission_version, created_at, updated_at \
+             job_level, job_title, permission_version, account_type, login_enabled, \
+             current_occupant_user_id, created_at, updated_at \
              FROM users WHERE username = $1",
         )
         .bind(username)
@@ -87,7 +89,8 @@ impl UserRepository for PgUserRepository {
              is_verified, is_admin, verification_token, verification_token_expires, \
              verified_at, password_reset_token, password_reset_token_expires, \
              password_changed_at, last_login_at, department, department_id, \
-             job_level, job_title, permission_version, created_at, updated_at \
+             job_level, job_title, permission_version, account_type, login_enabled, \
+             current_occupant_user_id, created_at, updated_at \
              FROM users WHERE email = $1",
         )
         .bind(email)
@@ -110,7 +113,8 @@ impl UserRepository for PgUserRepository {
              is_verified, is_admin, verification_token, verification_token_expires, \
              verified_at, password_reset_token, password_reset_token_expires, \
              password_changed_at, last_login_at, department, department_id, \
-             job_level, job_title, permission_version, created_at, updated_at \
+             job_level, job_title, permission_version, account_type, login_enabled, \
+             current_occupant_user_id, created_at, updated_at \
              FROM users WHERE is_active = TRUE ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
         .bind(limit)
@@ -173,14 +177,16 @@ impl UserRepository for PgUserRepository {
                 verification_token, verification_token_expires, verified_at,
                 password_reset_token, password_reset_token_expires, password_changed_at,
                 last_login_at, department, department_id, job_level, job_title,
-                permission_version, created_at, updated_at
+                permission_version, account_type, login_enabled, current_occupant_user_id,
+                created_at, updated_at
             ) VALUES (
                 $1, $2, $3, $4, $5,
                 $6, $7, $8,
                 $9, $10, $11,
                 $12, $13, $14,
                 $15, $16, $17, $18, $19,
-                $20, $21, $22
+                $20, $21, $22, $23,
+                $24, $25
             )
             ON CONFLICT (id) DO UPDATE SET
                 username = EXCLUDED.username,
@@ -202,6 +208,9 @@ impl UserRepository for PgUserRepository {
                 job_level = EXCLUDED.job_level,
                 job_title = EXCLUDED.job_title,
                 permission_version = EXCLUDED.permission_version,
+                account_type = EXCLUDED.account_type,
+                login_enabled = EXCLUDED.login_enabled,
+                current_occupant_user_id = EXCLUDED.current_occupant_user_id,
                 updated_at = CURRENT_TIMESTAMP"#,
         )
         .bind(&user.id)
@@ -224,6 +233,9 @@ impl UserRepository for PgUserRepository {
         .bind(user.job_level)
         .bind(&user.job_title)
         .bind(user.permission_version)
+        .bind(&user.account_type)
+        .bind(user.login_enabled)
+        .bind(&user.current_occupant_user_id)
         .bind(user.created_at)
         .bind(user.updated_at)
         .execute(&self.pool)
@@ -401,5 +413,8 @@ fn row_to_user(r: &sqlx::postgres::PgRow, roles: Vec<Role>) -> User {
         job_level: r.get("job_level"),
         job_title: r.get("job_title"),
         permission_version: r.get("permission_version"),
+        account_type: r.try_get("account_type").unwrap_or_else(|_| "personal".to_string()),
+        login_enabled: r.try_get("login_enabled").unwrap_or(true),
+        current_occupant_user_id: r.try_get("current_occupant_user_id").unwrap_or(None),
     }
 }

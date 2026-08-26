@@ -30,6 +30,13 @@ pub struct UserCreate {
     pub job_level: Option<i16>,
     pub job_title: Option<String>,
     pub display_name: Option<String>,
+    /// 账号类型：`personal` / `position`。用户管理创建必选类型；岗位不可登录。
+    #[serde(default = "default_account_type")]
+    pub account_type: String,
+}
+
+fn default_account_type() -> String {
+    "personal".to_string()
 }
 
 fn default_job_level() -> Option<i16> {
@@ -110,6 +117,7 @@ pub struct UserAdminUpdate {
     pub department: Option<String>,
     pub job_level: Option<i16>,
     pub job_title: Option<String>,
+    // 注意：不含 account_type —— 创建后不可改类型（PR7）。
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +151,16 @@ pub struct UserResponse {
     pub job_level: Option<i16>,
     pub job_title: Option<String>,
     pub permission_version: i64,
+    #[serde(default = "default_account_type")]
+    pub account_type: String,
+    #[serde(default = "default_login_enabled")]
+    pub login_enabled: bool,
+    #[serde(default)]
+    pub current_occupant_user_id: Option<String>,
+}
+
+fn default_login_enabled() -> bool {
+    true
 }
 
 // ---------------------------------------------------------------------------

@@ -80,6 +80,19 @@ pub struct User {
     // 权限版本控制
     #[serde(default = "default_permission_version")]
     pub permission_version: i32,
+
+    /// 账号类型：`personal`（个人）/ `position`（岗位/席，不可登录）。
+    /// 已有行默认 `personal`（迁移 136）。
+    #[serde(default = "default_account_type")]
+    pub account_type: String,
+
+    /// 是否允许登录。岗位账号恒为 `false`，`login()` 直接拒。
+    #[serde(default = "default_login_enabled")]
+    pub login_enabled: bool,
+
+    /// 岗位账号：当前占用该席的个人用户 id（可空，个人账号恒为 None）。
+    #[serde(default)]
+    pub current_occupant_user_id: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -90,6 +103,28 @@ fn default_job_level() -> Option<i16> {
 }
 fn default_permission_version() -> i32 {
     1
+}
+fn default_account_type() -> String {
+    "personal".to_string()
+}
+fn default_login_enabled() -> bool {
+    true
+}
+
+/// 岗位账号常量。登录面（登录框）永不出现岗位；岗位行不可登录、不可为 admin。
+pub const ACCOUNT_TYPE_PERSONAL: &str = "personal";
+pub const ACCOUNT_TYPE_POSITION: &str = "position";
+
+/// 判断账号类型是否为受支持的取值之一。
+pub fn is_valid_account_type(value: &str) -> bool {
+    matches!(value, ACCOUNT_TYPE_PERSONAL | ACCOUNT_TYPE_POSITION)
+}
+
+impl User {
+    /// 是否为岗位（席）账号。
+    pub fn is_position(&self) -> bool {
+        self.account_type == ACCOUNT_TYPE_POSITION
+    }
 }
 
 impl User {

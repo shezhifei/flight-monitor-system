@@ -415,6 +415,9 @@ mod tests {
             job_level: Some(1),
             job_title: Some(job_title.to_string()),
             permission_version: 1,
+            account_type: "personal".into(),
+            login_enabled: true,
+            current_occupant_user_id: None,
         }
     }
 

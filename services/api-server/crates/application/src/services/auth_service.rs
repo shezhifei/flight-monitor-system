@@ -13,7 +13,7 @@ use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::Department;
 use fms_domain::models::session_runtime::{OnlineSessionStatus, SessionRuntimeStatus};
-use fms_domain::models::user::{Role, User};
+use fms_domain::models::user::{is_valid_account_type, Role, User, ACCOUNT_TYPE_PERSONAL, ACCOUNT_TYPE_POSITION};
 use fms_domain::ports::dispatch_repository::DepartmentRepository;
 use fms_domain::ports::online_history_repository::OnlineHistoryRepository;
 use fms_domain::ports::session_runtime_repository::SessionRuntimeRepository;
@@ -208,6 +208,10 @@ impl AuthService {
         if !user.is_active {
             return Err(DomainError::Unauthorized("账号已停用".into()));
         }
+        // 岗位账号或其 login_enabled=false 的行不可登录（岗位不设可用密码）。
+        if user.is_position() || !user.login_enabled {
+            return Err(DomainError::Unauthorized("该账号不可登录".into()));
+        }
 
         let _ = self.user_repo.update_last_login(&user.id).await;
         let token = self
@@ -230,7 +234,7 @@ impl AuthService {
     }
 
     /// 注册
-    pub async fn register(&self, dto: UserCreate) -> Result<UserResponse, DomainError> {
+    pub async fn register(&self, mut dto: UserCreate) -> Result<UserResponse, DomainError> {
         if dto
             .confirm_password
             .as_deref()
@@ -239,7 +243,28 @@ impl AuthService {
             return Err(DomainError::ValidationError("密码和确认密码不匹配".into()));
         }
 
-        validate_password_strength(&dto.password)?;
+        let account_type = dto.account_type.trim().to_ascii_lowercase();
+        let account_type = if is_valid_account_type(&account_type) {
+            account_type
+        } else {
+            return Err(DomainError::ValidationError(format!(
+                "账号类型必须为 {ACCOUNT_TYPE_PERSONAL} 或 {ACCOUNT_TYPE_POSITION}"
+            )));
+        };
+
+        // 岗位账号：不可 admin、不可登录、必须挂 department。个人账号默认可登录。
+        let is_position = account_type == ACCOUNT_TYPE_POSITION;
+        if is_position {
+            dto.is_admin = false;
+            if Self::normalize_department_name(dto.department.as_deref()).is_none() {
+                return Err(DomainError::ValidationError("岗位账号必须挂 department".into()));
+            }
+        }
+
+        // 岗位账号不设可用密码（占随机占位哈希），不校验强度；个人账号按原规则校验。
+        if !is_position {
+            validate_password_strength(&dto.password)?;
+        }
 
         let normalized_email = dto.email.clone().unwrap_or_else(|| dto.username.clone());
 
@@ -251,7 +276,12 @@ impl AuthService {
         }
 
         let assigned_roles = self.resolve_roles_by_name(dto.roles.as_deref().unwrap_or(&[])).await?;
-        let pwd_for_hash = dto.password.clone();
+        let pwd_for_hash = if is_position {
+            // 岗位不设可用密码：占一个不可逆的随机哈希占位，实际登录依赖 login_enabled=false。
+            format!("position-{}-{}", dto.username, ulid::Ulid::new())
+        } else {
+            dto.password.clone()
+        };
         let password_hash = tokio::task::spawn_blocking(move || bcrypt::hash(&pwd_for_hash, 12))
             .await
             .map_err(|_| DomainError::Internal("bcrypt task panicked".into()))?
@@ -282,6 +312,9 @@ impl AuthService {
             job_level: dto.job_level,
             job_title: dto.job_title,
             permission_version: 1,
+            account_type: account_type.clone(),
+            login_enabled: !is_position,
+            current_occupant_user_id: None,
         };
 
         self.user_repo.save(&user).await?;
@@ -326,6 +359,22 @@ impl AuthService {
         };
         let previous_department = user.department.clone();
         let mut permissions_changed = false;
+
+        // 岗位账号：禁 is_admin，login_enabled 恒 false（由登录侧强制个人）。
+        if user.is_position() {
+            if dto.is_admin == Some(true) {
+                return Err(DomainError::ValidationError(
+                    "岗位账号不允许设置 is_admin".into(),
+                ));
+            }
+            if let Some(jt) = dto.job_title.as_deref() {
+                if user.job_title.as_deref() != Some(jt) {
+                    return Err(DomainError::ValidationError(
+                        "岗位账号不允许设置 job_title".into(),
+                    ));
+                }
+            }
+        }
 
         if let Some(uname) = dto.username {
             if uname != user.username && self.user_repo.find_by_username(&uname).await?.is_some() {
@@ -1012,6 +1061,9 @@ fn user_to_response(u: &User) -> UserResponse {
         job_level: u.job_level,
         job_title: u.job_title.clone(),
         permission_version: i64::from(u.permission_version),
+        account_type: u.account_type.clone(),
+        login_enabled: u.login_enabled,
+        current_occupant_user_id: u.current_occupant_user_id.clone(),
     }
 }
 
@@ -1566,6 +1618,9 @@ mod tests {
             job_level: Some(1),
             job_title: None,
             permission_version: 1,
+            account_type: "personal".into(),
+            login_enabled: true,
+            current_occupant_user_id: None,
         }
     }
 

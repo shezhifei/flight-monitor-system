@@ -561,6 +561,9 @@ fn user_fixture(id: &str, department_id: Option<&str>) -> fms_domain::models::us
         job_level: None,
         job_title: Some("handler".to_string()),
         permission_version: 1,
+        account_type: "personal".to_string(),
+        login_enabled: true,
+        current_occupant_user_id: None,
     }
 }
 

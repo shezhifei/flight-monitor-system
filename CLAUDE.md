@@ -97,7 +97,7 @@ Visual language (ops console only): `docs/architecture/SIGNAL_SURFACE.md`. Speci
 ## Migrations
 
 SQL files in `migrations/`, numeric order. Next number only; never renumber.  
-Latest at time of writing: `137_*`.
+Latest at time of writing: `139_*`.
 
 ## Conventions
 
