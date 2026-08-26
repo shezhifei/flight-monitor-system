@@ -288,6 +288,9 @@ impl UserRepository for CachedUserRepository {
     async fn find_all(&self, limit: i64, offset: i64) -> Result<Vec<User>, DomainError> {
         self.inner.find_all(limit, offset).await
     }
+    async fn find_position_occupied_by(&self, personal_user_id: &str) -> Result<Option<User>, DomainError> {
+        self.inner.find_position_occupied_by(personal_user_id).await
+    }
 
     async fn list_distinct_departments_in_use(&self) -> Result<Vec<String>, DomainError> {
         self.inner.list_distinct_departments_in_use().await

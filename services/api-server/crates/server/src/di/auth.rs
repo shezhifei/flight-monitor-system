@@ -24,7 +24,7 @@ pub(crate) struct AuthServices {
     pub auth_validation_cache: Arc<fms_application::services::auth_validation_cache::AuthValidationCache>,
 }
 
-pub(crate) fn build_auth_services(repos: &SharedRepos, _infra: &SharedInfra, jwt_config: JwtConfig) -> AuthServices {
+pub(crate) fn build_auth_services(repos: &SharedRepos, infra: &SharedInfra, jwt_config: JwtConfig) -> AuthServices {
     let auth_svc = Arc::new(AuthService::new(
         repos.auth_user_repo.clone(),
         repos.auth_role_repo.clone(),
@@ -32,6 +32,7 @@ pub(crate) fn build_auth_services(repos: &SharedRepos, _infra: &SharedInfra, jwt
         repos.department_repo.clone(),
         repos.session_runtime_repo.clone(),
         repos.online_history_repo.clone(),
+        Some(infra.flowable_client.clone()),
         jwt_config,
     ));
     let auth_admin_query_svc = Arc::new(AuthAdminQueryService::new(

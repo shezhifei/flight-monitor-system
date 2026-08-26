@@ -12,6 +12,12 @@ pub trait UserRepository {
     async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError>;
     async fn find_all(&self, limit: i64, offset: i64) -> Result<Vec<User>, DomainError>;
+    /// 查找当前由 `personal_user_id` 占用的岗位账号（占用校验：停个人时若被某岗占用 → 409）。
+    /// 默认实现返回 `None`（视为未占用）仅用于测试替身；真实仓储必须覆写为按
+    /// `account_type='position' AND current_occupant_user_id=$1` 查询。
+    async fn find_position_occupied_by(&self, _personal_user_id: &str) -> Result<Option<User>, DomainError> {
+        Ok(None)
+    }
     async fn list_distinct_departments_in_use(&self) -> Result<Vec<String>, DomainError>;
     async fn has_any_user_with_department_id(&self, department_id: &str) -> Result<bool, DomainError>;
     async fn save(&self, user: &User) -> Result<(), DomainError>;

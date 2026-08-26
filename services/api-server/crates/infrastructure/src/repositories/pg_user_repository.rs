@@ -107,6 +107,30 @@ impl UserRepository for PgUserRepository {
         }
     }
 
+    async fn find_position_occupied_by(&self, personal_user_id: &str) -> Result<Option<User>, DomainError> {
+        let row = sqlx::query(
+            "SELECT id, email, password_hash, username, display_name, is_active, \
+             is_verified, is_admin, verification_token, verification_token_expires, \
+             verified_at, password_reset_token, password_reset_token_expires, \
+             password_changed_at, last_login_at, department, department_id, \
+             job_level, job_title, permission_version, account_type, login_enabled, \
+             current_occupant_user_id, created_at, updated_at \
+             FROM users WHERE account_type = 'position' AND current_occupant_user_id = $1 LIMIT 1",
+        )
+        .bind(personal_user_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        match row {
+            Some(r) => {
+                let uid: String = r.get("id");
+                let roles = self.load_roles(&uid).await?;
+                Ok(Some(row_to_user(&r, roles)))
+            }
+            None => Ok(None),
+        }
+    }
+
     async fn find_all(&self, limit: i64, offset: i64) -> Result<Vec<User>, DomainError> {
         let rows = sqlx::query(
             "SELECT id, email, password_hash, username, display_name, is_active, \

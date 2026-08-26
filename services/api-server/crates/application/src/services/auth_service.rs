@@ -15,6 +15,7 @@ use fms_domain::models::dispatch::Department;
 use fms_domain::models::session_runtime::{OnlineSessionStatus, SessionRuntimeStatus};
 use fms_domain::models::user::{is_valid_account_type, Role, User, ACCOUNT_TYPE_PERSONAL, ACCOUNT_TYPE_POSITION};
 use fms_domain::ports::dispatch_repository::DepartmentRepository;
+use fms_domain::ports::flowable_gateway::FlowableGateway;
 use fms_domain::ports::online_history_repository::OnlineHistoryRepository;
 use fms_domain::ports::session_runtime_repository::SessionRuntimeRepository;
 use fms_domain::ports::user_repository::{PermissionRepository, RoleRepository, UserRepository};
@@ -59,6 +60,7 @@ pub struct AuthService {
     department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
     session_runtime: Arc<dyn SessionRuntimeRepository + Send + Sync>,
     online_history_repo: Arc<dyn OnlineHistoryRepository + Send + Sync>,
+    flowable_gateway: Option<Arc<dyn FlowableGateway + Send + Sync>>,
     jwt_config: JwtConfig,
 }
 
@@ -148,6 +150,7 @@ impl AuthService {
         department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
         session_runtime: Arc<dyn SessionRuntimeRepository + Send + Sync>,
         online_history_repo: Arc<dyn OnlineHistoryRepository + Send + Sync>,
+        flowable_gateway: Option<Arc<dyn FlowableGateway + Send + Sync>>,
         jwt_config: JwtConfig,
     ) -> Self {
         Self {
@@ -157,6 +160,7 @@ impl AuthService {
             department_repo,
             session_runtime,
             online_history_repo,
+            flowable_gateway,
             jwt_config,
         }
     }
@@ -451,6 +455,41 @@ impl AuthService {
         Ok(user.map(|u| user_to_response(&u)))
     }
 
+    /// 停用前校验：返回 `Conflict`（HTTP 409）以阻止停用仍有运行依赖的账号。
+    /// - 停个人：若当前正被某个岗位占用席位 → 409（换占席走解锁/交接，无下岗按钮）。
+    /// - 停岗位：若席位有占用，或该岗有未完成的 Flowable 任务 → 409 + 明细。
+    async fn ensure_can_deactivate(&self, user: &User) -> Result<(), DomainError> {
+        let label = user.display_name.as_deref().unwrap_or(&user.username).to_string();
+        if user.is_position() {
+            if user.current_occupant_user_id.is_some() {
+                return Err(DomainError::Conflict(format!(
+                    "岗位「{label}」当前席位有人占用，请先交接或解锁再停用"
+                )));
+            }
+            if let Some(gw) = self.flowable_gateway.as_deref() {
+                let tasks = gw
+                    .get_tasks(&[("assignee", user.id.clone())])
+                    .await
+                    .map_err(|e| DomainError::Internal(format!("查询 Flowable 未结任务失败: {e}")))?;
+                if !tasks.is_empty() {
+                    return Err(DomainError::Conflict(format!(
+                        "岗位「{label}」还有 {} 个未完成的 Flowable 任务，请先完结再停用",
+                        tasks.len()
+                    )));
+                }
+            }
+            return Ok(());
+        }
+        // 个人：是否被某岗占用。
+        if let Some(position) = self.user_repo.find_position_occupied_by(&user.id).await? {
+            let pos_label = position.display_name.as_deref().unwrap_or(&position.username).to_string();
+            return Err(DomainError::Conflict(format!(
+                "个人「{label}」当前占用岗位「{pos_label}」的席位，请先交接或解锁再停用"
+            )));
+        }
+        Ok(())
+    }
+
     pub async fn update_user(&self, user_id: &str, dto: UserAdminUpdate) -> Result<Option<UserResponse>, DomainError> {
         let mut user = match self.user_repo.find_by_id(user_id).await? {
             Some(u) => u,
@@ -458,6 +497,11 @@ impl AuthService {
         };
         let previous_department = user.department.clone();
         let mut permissions_changed = false;
+
+        // 停用 409：正在停止（is_active false）时，个人若正被某岗占用、岗位若有占用或未结 Flowable 任务 → 冲突。
+        if dto.is_active == Some(false) {
+            self.ensure_can_deactivate(&user).await?;
+        }
 
         // 岗位账号：禁 is_admin，login_enabled 恒 false（由登录侧强制个人）。
         if user.is_position() {
@@ -1243,6 +1287,7 @@ mod tests {
     use fms_domain::models::online_history::OnlineHistoryRecord;
     use fms_domain::models::session_runtime::{OnlineSessionStatus, SessionEstablishResult, SessionRuntimeStatus};
     use fms_domain::models::user::{Permission, Role};
+    use fms_domain::ports::flowable_gateway::FlowableGatewayError;
     use fms_domain::ports::online_history_repository::OnlineHistoryRepository;
 
     use super::*;
@@ -1541,6 +1586,7 @@ mod tests {
                 versions: runtime_versions,
             }),
             Arc::new(MockOnlineHistoryRepository),
+            None,
             JwtConfig::default(),
         );
         (service, find_by_id_calls)
@@ -1741,6 +1787,7 @@ mod tests {
             Arc::new(MockDepartmentRepository),
             session,
             Arc::new(MockOnlineHistoryRepository),
+            None,
             JwtConfig::default(),
         );
         (service, revoke_calls, update_calls)
@@ -1856,6 +1903,13 @@ mod tests {
         async fn find_by_email(&self, _email: &str) -> Result<Option<User>, DomainError> {
             Ok(None)
         }
+        async fn find_position_occupied_by(&self, personal_user_id: &str) -> Result<Option<User>, DomainError> {
+            let users = self.users.lock().expect("lock");
+            Ok(users
+                .iter()
+                .cloned()
+                .find(|u| u.is_position() && u.current_occupant_user_id.as_deref() == Some(personal_user_id)))
+        }
         async fn find_all(&self, _limit: i64, _offset: i64) -> Result<Vec<User>, DomainError> {
             Ok(vec![])
         }
@@ -1956,6 +2010,13 @@ mod tests {
     }
 
     fn build_seat_service(users: Vec<User>) -> (AuthService, Arc<SeatUserRepo>) {
+        build_seat_service_with_gateway(users, None)
+    }
+
+    fn build_seat_service_with_gateway(
+        users: Vec<User>,
+        flowable: Option<StubFlowableGateway>,
+    ) -> (AuthService, Arc<SeatUserRepo>) {
         let repo = Arc::new(SeatUserRepo {
             users: std::sync::Mutex::new(users),
             update_calls: Arc::new(AtomicUsize::new(0)),
@@ -1972,9 +2033,154 @@ mod tests {
                 fail_revoke: false,
             }),
             Arc::new(MockOnlineHistoryRepository),
+            flowable.map(|g| Arc::new(g) as Arc<dyn FlowableGateway + Send + Sync>),
             JwtConfig::default(),
         );
         (service, repo)
+    }
+
+    /// 测试用的 Flowable 网关替身：仅 `get_tasks` 返回预设数据，其余方法一律返回空/否定。
+    struct StubFlowableGateway {
+        tasks: Vec<serde_json::Value>,
+    }
+
+    #[async_trait::async_trait]
+    impl FlowableGateway for StubFlowableGateway {
+        async fn get_tasks(
+            &self,
+            _filters: &[(&str, String)],
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(self.tasks.clone())
+        }
+        async fn get_process_definitions(
+            &self,
+            _key: Option<&str>,
+            _tenant_id: Option<&str>,
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
+        async fn get_process_definition(
+            &self,
+            _process_definition_id: &str,
+        ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+            Ok(None)
+        }
+        async fn get_process_definition_xml(
+            &self,
+            _process_definition_id: &str,
+        ) -> Result<Option<String>, FlowableGatewayError> {
+            Ok(None)
+        }
+        async fn get_deployments(
+            &self,
+            _name: Option<&str>,
+            _tenant_id: Option<&str>,
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
+        async fn deploy_process(
+            &self,
+            _bpmn_xml: &str,
+            _deployment_name: Option<&str>,
+            _category: Option<&str>,
+            _tenant_id: Option<&str>,
+        ) -> Result<serde_json::Value, FlowableGatewayError> {
+            Ok(serde_json::json!({}))
+        }
+        async fn delete_deployment(
+            &self,
+            _deployment_id: &str,
+            _cascade: bool,
+        ) -> Result<bool, FlowableGatewayError> {
+            Ok(false)
+        }
+        async fn start_process_instance(
+            &self,
+            _process_key: &str,
+            _variables: Option<&serde_json::Map<String, serde_json::Value>>,
+            _business_key: Option<&str>,
+            _tenant_id: Option<&str>,
+        ) -> Result<Option<String>, FlowableGatewayError> {
+            Ok(None)
+        }
+        async fn get_process_instances(
+            &self,
+            _filters: &[(&str, String)],
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
+        async fn get_process_instance(
+            &self,
+            _process_instance_id: &str,
+        ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+            Ok(None)
+        }
+        async fn delete_process_instance(
+            &self,
+            _process_instance_id: &str,
+            _delete_reason: Option<&str>,
+        ) -> Result<bool, FlowableGatewayError> {
+            Ok(false)
+        }
+        async fn get_task(&self, _task_id: &str) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+            Ok(None)
+        }
+        async fn claim_task(&self, _task_id: &str, _user_id: &str) -> Result<bool, FlowableGatewayError> {
+            Ok(false)
+        }
+        async fn unclaim_task(&self, _task_id: &str) -> Result<bool, FlowableGatewayError> {
+            Ok(false)
+        }
+        async fn complete_task(
+            &self,
+            _task_id: &str,
+            _variables: Option<&serde_json::Map<String, serde_json::Value>>,
+        ) -> Result<bool, FlowableGatewayError> {
+            Ok(false)
+        }
+        async fn get_executions(
+            &self,
+            _filters: &[(&str, String)],
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
+        async fn get_process_instance_variables(
+            &self,
+            _process_instance_id: &str,
+        ) -> Result<serde_json::Value, FlowableGatewayError> {
+            Ok(serde_json::json!({}))
+        }
+        async fn set_process_instance_variables(
+            &self,
+            _process_instance_id: &str,
+            _variables: &serde_json::Map<String, serde_json::Value>,
+        ) -> Result<bool, FlowableGatewayError> {
+            Ok(false)
+        }
+        async fn get_historic_process_instances(
+            &self,
+            _filters: &[(&str, String)],
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
+        async fn get_historic_tasks(
+            &self,
+            _filters: &[(&str, String)],
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
+        async fn get_historic_process_instance(
+            &self,
+            _process_instance_id: &str,
+        ) -> Result<Option<serde_json::Value>, FlowableGatewayError> {
+            Ok(None)
+        }
+        async fn get_historic_variable_instances(
+            &self,
+            _filters: &[(&str, String)],
+        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+            Ok(Vec::new())
+        }
     }
 
     #[tokio::test]
@@ -2100,5 +2306,84 @@ mod tests {
         assert!(!service.is_current_seat_occupant("user-1", "user-1").await.unwrap());
         assert!(!service.is_current_seat_occupant("missing-seat", "user-1").await.unwrap());
         assert!(!service.is_current_seat_occupant("seat-1", "  ").await.unwrap());
+    }
+
+    fn deactivate_dto() -> UserAdminUpdate {
+        UserAdminUpdate {
+            is_active: Some(false),
+            ..Default::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn deactivate_personal_occupied_by_seat_returns_conflict() {
+        let mut seat = seat_account("seat-1", "gate-01", true);
+        seat.current_occupant_user_id = Some("user-1".into());
+        let person = personal_account("user-1", "alice", "SecPass1");
+        let (service, repo) = build_seat_service(vec![seat, person]);
+
+        let err = service
+            .update_user("user-1", deactivate_dto())
+            .await
+            .expect_err("occupied personal must not be deactivated");
+        assert!(matches!(err, DomainError::Conflict(msg) if msg.contains("占用岗位")));
+        assert_eq!(repo.find(Some("user-1"), None).unwrap().is_active, true);
+    }
+
+    #[tokio::test]
+    async fn deactivate_personal_not_occupied_succeeds() {
+        let person = personal_account("user-1", "alice", "SecPass1");
+        let (service, repo) = build_seat_service(vec![person]);
+
+        let updated = service
+            .update_user("user-1", deactivate_dto())
+            .await
+            .expect("free personal can be deactivated")
+            .expect("user exists");
+        assert!(!updated.is_active);
+        assert_eq!(repo.find(Some("user-1"), None).unwrap().is_active, false);
+    }
+
+    #[tokio::test]
+    async fn deactivate_position_with_occupancy_returns_conflict() {
+        let mut seat = seat_account("seat-1", "gate-01", true);
+        seat.current_occupant_user_id = Some("user-1".into());
+        let (service, _repo) = build_seat_service(vec![seat]);
+
+        let err = service
+            .update_user("seat-1", deactivate_dto())
+            .await
+            .expect_err("occupied position must not be deactivated");
+        assert!(matches!(err, DomainError::Conflict(msg) if msg.contains("席位有人占用")));
+    }
+
+    #[tokio::test]
+    async fn deactivate_position_with_unfinished_task_returns_conflict() {
+        let seat = seat_account("seat-1", "gate-01", true);
+        let flowable = StubFlowableGateway {
+            tasks: vec![serde_json::json!({"taskDefinitionKey": "review"})],
+        };
+        let (service, _repo) = build_seat_service_with_gateway(vec![seat], Some(flowable));
+
+        let err = service
+            .update_user("seat-1", deactivate_dto())
+            .await
+            .expect_err("position with unfinished task must not be deactivated");
+        assert!(matches!(err, DomainError::Conflict(msg) if msg.contains("未完成的 Flowable 任务")));
+    }
+
+    #[tokio::test]
+    async fn deactivate_position_without_dependencies_succeeds() {
+        let seat = seat_account("seat-1", "gate-01", true);
+        let flowable = StubFlowableGateway { tasks: vec![] };
+        let (service, repo) = build_seat_service_with_gateway(vec![seat], Some(flowable));
+
+        let updated = service
+            .update_user("seat-1", deactivate_dto())
+            .await
+            .expect("dependency-free position can be deactivated")
+            .expect("user exists");
+        assert!(!updated.is_active);
+        assert_eq!(repo.find(Some("seat-1"), None).unwrap().is_active, false);
     }
 }
