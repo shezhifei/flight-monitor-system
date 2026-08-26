@@ -258,6 +258,14 @@ const AI_ACTION_PERMISSION_MAP: &[(&str, &[&str])] = &[
     ("Anomaly.escalate", &["anomaly:write"]),
     ("BusinessCase.create", &["business_case:create"]),
     ("BusinessCase.close_case", &["business_case:update"]),
+    // PR3 占用动作（与执行器分支一一对应，fail-closed；未接线的分支不登记）
+    ("StandOccupation.allocate", &["ontology.stand.manage"]),
+    ("StandOccupation.adjust", &["ontology.stand.manage"]),
+    ("StandOccupation.release", &["ontology.stand.manage"]),
+    ("GateAssignment.allocate", &["ontology.gate.manage"]),
+    ("GateAssignment.release", &["ontology.gate.manage"]),
+    ("CarouselAssignment.allocate", &["ontology.carousel.manage"]),
+    ("CarouselAssignment.release", &["ontology.carousel.manage"]),
 ];
 
 fn has_any_ai_permission(user_permissions: &[String], required_permissions: &[&str]) -> bool {
