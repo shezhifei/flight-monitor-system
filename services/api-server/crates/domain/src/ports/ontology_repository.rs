@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 
 use crate::error::DomainError;
 use crate::models::ontology_v1::{
-    Aircraft, GateAssignment, ResourceAdjustmentSuggestion, StandOccupation, TurnaroundLink,
+    Aircraft, CarouselAssignment, GateAssignment, ResourceAdjustmentSuggestion, StandOccupation, TurnaroundLink,
 };
 
 #[async_trait]
@@ -102,6 +102,18 @@ pub trait GateAssignmentRepository: Send + Sync {
 }
 
 #[async_trait]
+pub trait CarouselAssignmentRepository: Send + Sync {
+    /// 按 id 查询
+    async fn find_by_id(&self, id: &str) -> Result<Option<CarouselAssignment>, DomainError>;
+
+    /// 按航段取全部 active 分配（转盘无上限，同一航班可有多条未结束占用）
+    async fn find_active_by_flight(&self, flight_id: &str) -> Result<Vec<CarouselAssignment>, DomainError>;
+
+    /// 按航段列全部分配（时间倒序）
+    async fn list_by_flight(&self, flight_id: &str, limit: i64) -> Result<Vec<CarouselAssignment>, DomainError>;
+}
+
+#[async_trait]
 pub trait TurnaroundLinkRepository: Send + Sync {
     /// 按 id 查询
     async fn find_by_id(&self, id: &str) -> Result<Option<TurnaroundLink>, DomainError>;
@@ -167,6 +179,17 @@ pub trait ResourceAdjustmentSuggestionRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> Result<Option<ResourceAdjustmentSuggestion>, DomainError>;
 }
 
+/// 转盘新建的幂等结果。
+///
+/// 转盘零唯一性，没有可推导的自然键，因此以客户端 `client_action_id` 做幂等去重：
+/// 首次落库返回 `Inserted`，重复 token 返回 `Deduplicated(既有行)`。
+#[derive(Debug, Clone)]
+pub enum CarouselCreateOutcome {
+    Inserted,
+    /// 重复幂等 token：返回既有行，调用方不重复回写展示列
+    Deduplicated(CarouselAssignment),
+}
+
 /// 本体 V1 事务仓储：跨聚合原子写（ReassignAircraft / Suggestion.Accept 等）。
 #[async_trait]
 pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
@@ -200,6 +223,24 @@ pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
         id: &str,
         released_by: &str,
     ) -> Result<Option<GateAssignment>, DomainError>;
+
+    /// 新建转盘分配（幂等：按 `client_action_id` 去重，重复 token 返回既有行）
+    async fn create_carousel_in_tx(
+        &self,
+        tx: &mut Tx,
+        assignment: &CarouselAssignment,
+    ) -> Result<CarouselCreateOutcome, DomainError>;
+
+    /// 调整转盘分配（改转盘/时段）
+    async fn update_carousel_in_tx(&self, tx: &mut Tx, assignment: &CarouselAssignment) -> Result<(), DomainError>;
+
+    /// 释放转盘分配
+    async fn release_carousel_in_tx(
+        &self,
+        tx: &mut Tx,
+        id: &str,
+        released_by: &str,
+    ) -> Result<Option<CarouselAssignment>, DomainError>;
 
     /// 建链接（自动/手工）
     async fn create_link_in_tx(&self, tx: &mut Tx, link: &TurnaroundLink) -> Result<(), DomainError>;

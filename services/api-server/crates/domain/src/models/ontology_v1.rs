@@ -85,6 +85,36 @@ pub struct GateAssignment {
 }
 
 // ---------------------------------------------------------------------------
+// CarouselAssignment — 行李转盘分配（主体=航班；零业务约束）
+// ---------------------------------------------------------------------------
+//
+// 与机位/口不同，转盘分配**不做任何业务约束**：不限同一航班/同一周转的占用条数、
+// 不限同一转盘上的航班数、不查重叠、不校验方向/航班状态。展示列 `baggage_carousel`
+// 是该航班所有未结束占用的 code 去重拼接，拼接不是约束。
+//
+// `client_action_id`：客户端幂等 token（见计划 Open Questions §2）。落库 + 唯一索引，
+// 重复 token 返回既有行而非新建——转盘零唯一性，没有可推导的自然键。
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CarouselAssignment {
+    pub id: String,
+    /// 转盘 code（目录 `baggage_carousels.code` 的投影）
+    pub carousel_code: String,
+    /// 机号投影（可选；不参与任何规则）
+    pub registration: Option<String>,
+    /// 主体：航班
+    pub flight_id: Option<FlightId>,
+    pub starts_at: DateTime<Utc>,
+    pub ends_at: DateTime<Utc>,
+    pub status: AssignmentStatus,
+    /// 客户端幂等 token（可选）；重复分配时返回既有行
+    pub client_action_id: Option<String>,
+    pub created_by: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+// ---------------------------------------------------------------------------
 // TurnaroundLink — 进-出任务衔接边（不是机号边）
 // ---------------------------------------------------------------------------
 
