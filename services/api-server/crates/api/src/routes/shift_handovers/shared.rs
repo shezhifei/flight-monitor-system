@@ -5,8 +5,8 @@ pub(crate) use chrono::NaiveDate;
 pub(crate) use fms_application::schemas::auth_schemas::UserResponse;
 pub(crate) use fms_application::schemas::response::ApiResponse;
 pub(crate) use fms_application::schemas::shift_handover_schemas::{
-    ShiftHandoverCandidateResponse, ShiftHandoverCreateRequest, ShiftHandoverItemAcknowledgeRequest,
-    ShiftHandoverItemResponse, ShiftHandoverResponse,
+    ShiftHandoverCandidateResponse, ShiftHandoverCompleteRequest, ShiftHandoverCreateRequest,
+    ShiftHandoverItemAcknowledgeRequest, ShiftHandoverItemResponse, ShiftHandoverResponse,
 };
 pub(crate) use fms_application::services::auth_service::AuthService;
 pub(crate) use fms_application::services::authorization_service::PermissionCatalog;
@@ -130,6 +130,7 @@ pub(crate) fn to_handover_response(
         shift_code: handover.shift_code,
         from_user_id: handover.from_user_id,
         to_user_id: handover.to_user_id,
+        position_user_id: handover.position_user_id,
         from_operator_name: from_operator_name.clone(),
         from_operator_job_title: from_operator_job_title.clone(),
         from_operator_label: handover.from_operator_label.or_else(|| {

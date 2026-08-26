@@ -32,6 +32,7 @@ impl ShiftHandoverItemCreateRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ShiftHandoverCreateRequest {
+    pub position_user_id: String,
     pub shift_date: NaiveDate,
     pub shift_code: String,
     pub from_user_id: Option<String>,
@@ -46,6 +47,7 @@ pub struct ShiftHandoverCreateRequest {
 impl ShiftHandoverCreateRequest {
     pub fn validate(&self) -> Result<(), DomainError> {
         validate_required_max_length(&self.shift_code, MAX_SHIFT_CODE_LENGTH, "shift_code")?;
+        validate_required_max_length(&self.position_user_id, MAX_USER_ID_LENGTH, "position_user_id")?;
         validate_required_max_length(&self.to_user_id, MAX_USER_ID_LENGTH, "to_user_id")?;
         validate_optional_max_length(self.summary.as_deref(), MAX_SUMMARY_LENGTH, "summary")?;
         for item in &self.items {
@@ -59,6 +61,12 @@ impl ShiftHandoverCreateRequest {
 pub struct ShiftHandoverItemAcknowledgeRequest {
     #[serde(default = "default_true")]
     pub acknowledged: bool,
+}
+
+/// 交接完成请求：核接班人密码后调 OccupySeat 切占用。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ShiftHandoverCompleteRequest {
+    pub password: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,6 +93,7 @@ pub struct ShiftHandoverResponse {
     pub shift_code: String,
     pub from_user_id: String,
     pub to_user_id: String,
+    pub position_user_id: Option<String>,
     pub from_operator_name: Option<String>,
     pub from_operator_job_title: Option<String>,
     pub from_operator_label: Option<String>,

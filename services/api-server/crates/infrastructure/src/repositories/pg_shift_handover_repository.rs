@@ -34,6 +34,7 @@ impl ShiftHandoverRepository for PgShiftHandoverRepository {
                 shift_code,
                 from_user_id,
                 to_user_id,
+                position_user_id,
                 from_operator_name,
                 from_operator_job_title,
                 to_operator_name,
@@ -46,7 +47,7 @@ impl ShiftHandoverRepository for PgShiftHandoverRepository {
                 created_at,
                 updated_at
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
             )"#,
         )
         .bind(&handover.handover_id)
@@ -54,6 +55,7 @@ impl ShiftHandoverRepository for PgShiftHandoverRepository {
         .bind(&handover.shift_code)
         .bind(&handover.from_user_id)
         .bind(&handover.to_user_id)
+        .bind(&handover.position_user_id)
         .bind(&handover.from_operator_name)
         .bind(&handover.from_operator_job_title)
         .bind(&handover.to_operator_name)
@@ -328,6 +330,7 @@ fn row_to_handover(row: &sqlx::postgres::PgRow, items: Vec<ShiftHandoverItem>) -
         shift_code: row.get("shift_code"),
         from_user_id: row.get("from_user_id"),
         to_user_id: row.get("to_user_id"),
+        position_user_id: row.try_get::<Option<String>, _>("position_user_id").unwrap_or(None),
         from_operator_name: row.try_get::<Option<String>, _>("from_operator_name").unwrap_or(None),
         from_operator_job_title: row
             .try_get::<Option<String>, _>("from_operator_job_title")

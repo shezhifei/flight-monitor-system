@@ -8,15 +8,18 @@ use std::collections::HashSet;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::DispatchOrderStatus;
+use fms_domain::models::user::ACCOUNT_TYPE_PERSONAL;
 use fms_domain::models::shift_handover::{ShiftHandover, ShiftHandoverItem};
 use fms_domain::ports::shift_handover_repository::ShiftHandoverRepository;
 
+use crate::services::auth_service::AuthService;
 use crate::types::{
     ConcreteAnomalyService, ConcreteDispatchQueryService, ConcreteNotificationService, ConcreteTodoService,
 };
 
 pub struct ShiftHandoverService {
     repo: Arc<dyn ShiftHandoverRepository + Send + Sync>,
+    auth: Option<Arc<AuthService>>,
     dispatch_query_service: Option<Arc<ConcreteDispatchQueryService>>,
     anomaly_service: Option<Arc<ConcreteAnomalyService>>,
     notification_service: Option<Arc<ConcreteNotificationService>>,
@@ -27,11 +30,17 @@ impl ShiftHandoverService {
     pub fn new(repo: Arc<dyn ShiftHandoverRepository + Send + Sync>) -> Self {
         Self {
             repo,
+            auth: None,
             dispatch_query_service: None,
             anomaly_service: None,
             notification_service: None,
             todo_service: None,
         }
+    }
+
+    pub fn with_auth_service(mut self, auth: Arc<AuthService>) -> Self {
+        self.auth = Some(auth);
+        self
     }
 
     pub fn with_dispatch_query_service(mut self, dispatch_query_service: Arc<ConcreteDispatchQueryService>) -> Self {
@@ -56,6 +65,7 @@ impl ShiftHandoverService {
 
     pub async fn create(
         &self,
+        position_user_id: &str,
         shift_date: NaiveDate,
         shift_code: &str,
         from_user_id: Option<&str>,
@@ -72,6 +82,15 @@ impl ShiftHandoverService {
             return Err(DomainError::ValidationError("shift_code is required".into()));
         }
 
+        let normalized_position = position_user_id.trim();
+        if normalized_position.is_empty() {
+            return Err(DomainError::ValidationError("position_user_id is required".into()));
+        }
+        let auth = self
+            .auth
+            .as_ref()
+            .ok_or_else(|| DomainError::Internal("auth service unavailable for seat-gated handover".into()))?;
+
         let normalized_from = from_user_id.unwrap_or(actor_user_id).trim();
         let normalized_to = to_user_id.trim();
         if normalized_from.is_empty() {
@@ -83,6 +102,16 @@ impl ShiftHandoverService {
         if normalized_from == normalized_to {
             return Err(DomainError::ValidationError(
                 "from_user_id and to_user_id must be different".into(),
+            ));
+        }
+
+        // from/to 必须是个人账号（岗位不是人，不能作为交接双方）。
+        ensure_personal(auth, normalized_from).await?;
+        ensure_personal(auth, normalized_to).await?;
+        // 创建/submit：JWT（actor）必须是当前占该席的个人。
+        if !auth.is_current_seat_occupant(normalized_position, actor_user_id).await? {
+            return Err(DomainError::PermissionDenied(
+                "only the current seat occupant can start this handover".into(),
             ));
         }
 
@@ -114,6 +143,7 @@ impl ShiftHandoverService {
             shift_code: normalized_shift_code.to_string(),
             from_user_id: normalized_from.to_string(),
             to_user_id: normalized_to.to_string(),
+            position_user_id: Some(normalized_position.to_string()),
             from_operator_name: normalize_optional_string(from_operator_name),
             from_operator_job_title: normalize_optional_string(from_operator_job_title),
             from_operator_label: None,
@@ -245,6 +275,7 @@ impl ShiftHandoverService {
         handover_id: &str,
         actor_user_id: &str,
         is_admin: bool,
+        successor_password: &str,
         to_operator_name: Option<String>,
         to_operator_job_title: Option<String>,
     ) -> Result<Option<ShiftHandover>, DomainError> {
@@ -271,6 +302,29 @@ impl ShiftHandoverService {
                 pending_titles.join(", ")
             )));
         }
+
+        // 该单必须绑定岗位；complete 核接班人密码后调同一 OccupySeat 切占用。
+        let position_user_id = handover.position_user_id.clone().ok_or_else(|| {
+            DomainError::Conflict("handover is not bound to a position seat".into())
+        })?;
+        let auth = self
+            .auth
+            .as_ref()
+            .ok_or_else(|| DomainError::Internal("auth service unavailable for handover sign-off".into()))?;
+        let successor = auth
+            .find_user_by_id(&handover.to_user_id)
+            .await?
+            .ok_or_else(|| DomainError::Unauthorized("接班人账号不存在".into()))?;
+        // 内核接班人的个人密码（OccupySeat password 证明）。密码错误 → Unauthorized 中止 complete。
+        auth.occupy_seat(
+            &position_user_id,
+            &successor.username,
+            successor_password,
+            None,
+            None,
+            None,
+        )
+        .await?;
 
         self.repo
             .complete(
@@ -442,6 +496,17 @@ fn normalize_status_opt(status: Option<&str>) -> Result<Option<String>, DomainEr
         "draft" | "pending" | "sign_off" | "completed" => Ok(Some(value.to_string())),
         _ => Err(DomainError::ValidationError("invalid status".into())),
     }
+}
+
+/// from/to 必须是个人账号；岗位（席）不是人，不能作为交接双方。
+async fn ensure_personal(auth: &AuthService, user_id: &str) -> Result<(), DomainError> {
+    let Some(user) = auth.find_user_by_id(user_id).await? else {
+        return Err(DomainError::ValidationError(format!("交接人 {user_id} 不存在")));
+    };
+    if user.account_type != ACCOUNT_TYPE_PERSONAL {
+        return Err(DomainError::ValidationError(format!("{user_id} 是岗位账号，交接双方必须是个人账号")));
+    }
+    Ok(())
 }
 
 fn normalize_risk_level(risk_level: &str) -> Result<&str, DomainError> {

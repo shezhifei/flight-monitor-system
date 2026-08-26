@@ -120,6 +120,7 @@ pub(crate) async fn build_observability_services(
     ));
     let shift_handover_svc = Arc::new(
         ShiftHandoverService::new(repos.shift_handover_repo.clone())
+            .with_auth_service(auth.auth_svc.clone())
             .with_dispatch_query_service(dispatch.dispatch_query_svc.clone())
             .with_anomaly_service(dispatch.anomaly_svc.clone())
             .with_notification_service(shared.notification_svc.clone())

@@ -33,6 +33,10 @@ pub struct ShiftHandover {
     pub shift_code: String,
     pub from_user_id: String,
     pub to_user_id: String,
+    /// 该交接单所属岗位（席）账号 id。`from`/`to` 必须是个人；complete 核接班人密码后
+    /// 把 `position_user_id` 的占用切到接班人（OccupySeat）。岗位不是人，不能作为 from/to。
+    #[serde(default)]
+    pub position_user_id: Option<String>,
     pub from_operator_name: Option<String>,
     pub from_operator_job_title: Option<String>,
     pub from_operator_label: Option<String>,

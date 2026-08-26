@@ -24,6 +24,7 @@ pub(crate) async fn create_handover(
 
     let created = svc
         .create(
+            &body.position_user_id,
             body.shift_date,
             &body.shift_code,
             body.from_user_id.as_deref(),
@@ -245,6 +246,7 @@ pub(crate) async fn acknowledge_handover(
     req: HttpRequest,
     claims: JwtAuth,
     path: web::Path<String>,
+    body: web::Json<ShiftHandoverCompleteRequest>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission(PermissionCatalog::SHIFT_HANDOVER_ACK)?;
     let actor_user_id = actor_user_id(&claims)?;
@@ -264,6 +266,7 @@ pub(crate) async fn acknowledge_handover(
             &path.into_inner(),
             actor_user_id,
             claims.0.is_admin.unwrap_or(false),
+            &body.password,
             actor_profile.as_ref().and_then(effective_operator_name_for_user),
             actor_profile.as_ref().and_then(resolve_operator_job_title_for_user),
         )
