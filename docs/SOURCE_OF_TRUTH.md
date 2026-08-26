@@ -92,7 +92,7 @@
 | 事实 | 位置 |
 |---|---|
 | 迁移 | `migrations/*.sql` |
-| 当前最新 | `125_create_shadow_mode_tables.sql` |
+| 当前最新 | `137_create_personnel_runtime.sql` |
 | 空库自举 | `sqlx migrate run --source migrations` |
 | Outbox / CDC 设计 | `docs/architecture/ADR-0003-domain-event-outbox-cdc-relay.md` |
 
