@@ -1,6 +1,6 @@
 # 术语表
 
-文档基线：**2026-08-11**。同一概念只保留一套说法。
+文档基线：**2026-08-26**。同一概念只保留一套说法。
 
 > 默认 HTTP 后端：`services/api-server/`（Rust）。  
 > AI 侧车：`services/ai-sidecar/`。  
@@ -18,13 +18,17 @@
 | 信号面 | Signal surface | 本仓库运营台视觉语言。说明 `docs/architecture/SIGNAL_SURFACE.md`，标本 `frontend/signal-surface-preview.html`。 |
 | 兼容静态页 | Legacy static page | `/frontend/html/<page>.html`，仅兼容，不扩新功能。 |
 | AI 侧车 | AI sidecar | Python 进程，跑工具/LLM/NL Query 等；由 Rust 代理。 |
-| 待审批动作 | Pending action | 工具执行后等人审的对象，表 `ai_pending_actions`。 |
+| 待审批动作 | Pending action | 工具执行后等人审的对象，表 `ai_pending_actions`。**本体写不走它**——聊天卡批 pending 是假执行，禁止对 `ontology.*` 伪造 EXECUTED。 |
 | 业务事项 | Business case | 运行中的业务工作项；含 append、workflow、表单。 |
 | 派工工单 | Dispatch order | 派工主实体；重排、协同、时间线围绕它展开。 |
 | 运行资源本体 | Ops ontology | `Aircraft` / 占用 / 口 / 周转链；HTTP `/api/v2/ontology`。 |
 | 动作本体 | flight-ops.v1 | 同一对象上的只读 / 建议 / 受控写；HTTP `/api/v2/ai/ontology`。 |
+| 本体动作 | Object.action | `flight-ops.v1` 里的动作（如 `Flight.add_note`、`StandOccupation.allocate`）；治理字段（启用/风险/审批）来自「代码底 + overlay」。 |
+| 工具 / 适配器 | Tool / adapter | `ontology.lookup`/`propose_action` 等执行入口；有**固定角色**（内部只读 / proposal_only），**不是** `flight-ops.v1` 动作，不进合同、不作为独立动作登记。 |
 | 本体动作服务 | Ontology action services | 每条只读或建议动作一个应用服务，由 HTTP 选型。 |
 | 受控写执行器 | DomainActionExecutor | 审批后的写动作落到既有领域服务。 |
+| 提案 | Action proposal | `ai_action_proposals` 一行；**唯一受控写落点**。批「提案」才真写，`approve + execute` 走执行器，**不等于** pending-action。 |
+| 治理覆盖层 | Action overlay | 对代码 schema 已知 `(object, action)` 键的启用/风险/审批覆盖；`load_governed_schema()` 是唯一能得到完整 schema 的入口。 |
 | 事实来源 | Source of truth | 文档应对的唯一代码依据，见 `docs/SOURCE_OF_TRUTH.md`。 |
 | 文档基线 | Doc baseline | 当前约定仍有效的主文档集合与日期戳。 |
 

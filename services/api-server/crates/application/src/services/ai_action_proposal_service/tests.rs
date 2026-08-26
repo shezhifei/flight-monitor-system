@@ -10,11 +10,51 @@ mod tests {
     use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
     use crate::services::dispatch_service::DispatchService;
     use fms_domain::models::ai_proposal::{ActionProposalStatus, ApprovalPolicy, RiskLevel};
+    use fms_domain::ontology::governed::ActionOverlay;
     use fms_domain::ports::ai_object_policy_repository::{
         AiObjectAccessDecision, AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicyRepositoryError,
     };
+    use fms_domain::ports::ai_ontology_repository::{
+        AiOntologyRepository, AiOntologyRepositoryError,
+    };
     use serde_json::json;
     use std::sync::{Arc, Mutex};
+
+    /// 返回固定覆盖层的本体仓储：用于验证 generate_proposal 读取「代码底 + overlay」
+    /// 的治理字段（治理 G4 / PR6），而不是只读代码 schema。
+    struct OverlayOntologyRepository {
+        overlays: Vec<ActionOverlay>,
+    }
+
+    #[async_trait::async_trait]
+    impl AiOntologyRepository for OverlayOntologyRepository {
+        async fn load_action_overlays(&self) -> Result<Vec<ActionOverlay>, AiOntologyRepositoryError> {
+            Ok(self.overlays.clone())
+        }
+
+        async fn save_action_overlay(
+            &self,
+            _overlay: &ActionOverlay,
+        ) -> Result<(), AiOntologyRepositoryError> {
+            Ok(())
+        }
+
+        async fn delete_action_overlay(
+            &self,
+            _object: &str,
+            _action: &str,
+        ) -> Result<(), AiOntologyRepositoryError> {
+            Ok(())
+        }
+
+        async fn count_active_objects(&self) -> Result<i64, AiOntologyRepositoryError> {
+            Ok(0)
+        }
+
+        async fn count_active_write_actions(&self) -> Result<i64, AiOntologyRepositoryError> {
+            Ok(0)
+        }
+    }
 
     struct SequenceObjectPolicyRepository {
         decisions: Mutex<Vec<AiObjectAccessDecision>>,
@@ -261,6 +301,38 @@ mod tests {
 
         assert_eq!(proposal.risk_level, RiskLevel::Low);
         assert_eq!(proposal.approval_policy, ApprovalPolicy::AutoExecute);
+    }
+
+    #[tokio::test]
+    async fn generate_proposal_replaces_governance_with_overlay() {
+        // add_note 代码默认 low / auto_execute；overlay 抬到 high / require_approval。
+        // 治理 G4：generate 必须读「代码底 + overlay」，而不是只读代码 schema。
+        let repo = Arc::new(OverlayOntologyRepository {
+            overlays: vec![ActionOverlay {
+                object: "Flight".to_string(),
+                action: "add_note".to_string(),
+                is_active: Some(true),
+                risk: Some(RiskLevel::High),
+                requires_approval: Some(true),
+            }],
+        });
+        let service = AiActionProposalService::new().with_ontology_repository(repo);
+
+        let proposal = service
+            .generate_proposal(generate_request(
+                "add_note",
+                json!({"note_content": "ops note"}),
+                &["flight:write"],
+            ))
+            .await
+            .expect("overlaid action should remain proposable");
+
+        assert_eq!(proposal.risk_level, RiskLevel::High, "overlay risk must win");
+        assert_eq!(
+            proposal.approval_policy,
+            ApprovalPolicy::RequireApproval,
+            "overlay approval policy must win"
+        );
     }
 
     #[tokio::test]

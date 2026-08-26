@@ -188,12 +188,9 @@ impl AiActionProposalService {
         &self,
         req: GenerateProposalRequest,
     ) -> Result<AiActionProposal, AiActionProposalError> {
-        let action_def = Self::ontology_action_def(&req.object_type, &req.action_name).ok_or_else(|| {
-            AiActionProposalError::validation(format!(
-                "Action '{}.{}' is not declared in the active ontology schema",
-                req.object_type, req.action_name
-            ))
-        })?;
+        let action_def = self
+            .governed_action_def(&req.object_type, &req.action_name)
+            .await?;
 
         let proposal_id = format!("prop_{}", Ulid::new());
         let now = Utc::now();
@@ -962,13 +959,38 @@ impl AiActionProposalService {
         Ok(())
     }
 
-    /// 从确定性构建的 flight-ops.v1 schema 中查找动作定义（同步、无 IO）。
-    fn ontology_action_def(
+    /// 从「代码底 + overlay」的 governed schema 中查找动作定义。
+    /// generate 与导出必须读同一 `load_governed_schema`，覆盖层的启用/风险/审批
+    /// 才会作用于新提案（治理 G4 / PR6）。
+    async fn governed_action_def(
+        &self,
         object_type: &str,
         action_name: &str,
-    ) -> Option<fms_domain::models::ai_ontology::OntologyActionDef> {
-        let schema = fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema();
-        schema.objects.get(object_type)?.actions.get(action_name).cloned()
+    ) -> Result<fms_domain::models::ai_ontology::OntologyActionDef, AiActionProposalError> {
+        let overlays = match &self.ontology_repository {
+            Some(repo) => match repo.load_action_overlays().await {
+                Ok(overlays) => overlays,
+                Err(error) => {
+                    tracing::warn!(
+                        "failed to load AI ontology overlays for proposal generation: {}",
+                        error
+                    );
+                    Vec::new()
+                }
+            },
+            None => Vec::new(),
+        };
+        let schema = fms_domain::ontology::governed::load_governed_schema(&overlays);
+        schema
+            .objects
+            .get(object_type)
+            .and_then(|object| object.actions.get(action_name))
+            .cloned()
+            .ok_or_else(|| {
+                AiActionProposalError::validation(format!(
+                    "Action '{object_type}.{action_name}' is not declared in the active ontology schema"
+                ))
+            })
     }
 
     fn governance_from_action(

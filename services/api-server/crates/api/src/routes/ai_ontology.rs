@@ -163,6 +163,118 @@ async fn execute_advisory_action(
         .map_err(map_action_error)
 }
 
+// ---------------------------------------------------------------------------
+// Overlay 写（治理 G4 / PR6：定义页配置中心改启用/风险/审批）
+// ---------------------------------------------------------------------------
+
+/// 覆盖请求：只能针对代码 schema 已知的 `(object, action)` 键设置治理字段。
+/// 一个覆盖会整体改写该键的启用/风险/审批（upsert）；删除覆盖恢复代码默认。
+#[derive(Debug, Deserialize)]
+struct ActionOverlayRequest {
+    object: String,
+    action: String,
+    #[serde(default = "default_true")]
+    is_active: bool,
+    risk_level: Option<String>,
+    #[serde(default = "default_true")]
+    requires_approval: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn resolve_overlay_repo(
+    repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
+    action: &str,
+) -> Result<Arc<dyn AiOntologyRepository + Send + Sync>, ApiError> {
+    repo.map(|data| data.get_ref().clone())
+        .ok_or_else(|| ApiError::Internal(format!("ontology overlay write ({action}) requires a repository"))
+    )
+}
+
+async fn put_action_overlay(
+    claims: JwtAuth,
+    repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
+    body: web::Json<ActionOverlayRequest>,
+) -> Result<HttpResponse, ApiError> {
+    // 配置中心写操作：管理员或有 `ai:manage` 授予的用户。
+    claims.ensure_permission("ai:manage")?;
+
+    let object = body.object.trim();
+    let action = body.action.trim();
+    if object.is_empty() || action.is_empty() {
+        return Err(ApiError::BadRequest("object 与 action 必填".into()));
+    }
+
+    // fail-closed：只允许覆盖代码 schema 已知键，不能凭空新增对象/动作。
+    let schema = load_governed_schema(&[]);
+    let obj_def = schema.objects.get(object).ok_or_else(|| {
+        ApiError::NotFound(format!("object type '{object}' not in flight-ops.v1 base schema"))
+    })?;
+    if !obj_def.actions.contains_key(action) {
+        return Err(ApiError::NotFound(format!(
+            "action '{object}.{action}' not in flight-ops.v1 base schema"
+        )));
+    }
+
+    let risk = match &body.risk_level {
+        Some(raw) => fms_domain::models::ai_proposal::RiskLevel::from_str_loose(raw).ok_or_else(|| {
+            ApiError::BadRequest(format!("unknown risk_level: {raw}"))
+        })?,
+        None => fms_domain::models::ai_proposal::RiskLevel::from_str_loose(
+            &obj_def.actions[action].risk_level,
+        )
+        .unwrap_or_default(),
+    };
+
+    let overlay = fms_domain::ontology::governed::ActionOverlay {
+        object: object.to_string(),
+        action: action.to_string(),
+        is_active: Some(body.is_active),
+        risk: Some(risk),
+        requires_approval: Some(body.requires_approval),
+    };
+
+    let repo = resolve_overlay_repo(repo, "save")?;
+    repo.save_action_overlay(&overlay)
+        .await
+        .map_err(|error| ApiError::Internal(error.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "object": overlay.object,
+        "action": overlay.action,
+        "is_active": overlay.is_active,
+        "risk_level": overlay.risk.map(fms_domain::models::ai_proposal::RiskLevel::label),
+        "requires_approval": overlay.requires_approval,
+    })))
+}
+
+async fn delete_action_overlay(
+    claims: JwtAuth,
+    repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
+    body: web::Json<ActionOverlayRequest>,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("ai:manage")?;
+
+    let object = body.object.trim();
+    let action = body.action.trim();
+    if object.is_empty() || action.is_empty() {
+        return Err(ApiError::BadRequest("object 与 action 必填".into()));
+    }
+
+    let repo = resolve_overlay_repo(repo, "delete")?;
+    repo.delete_action_overlay(object, action)
+        .await
+        .map_err(|error| ApiError::Internal(error.to_string()))?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "object": object,
+        "action": action,
+        "deleted": true,
+    })))
+}
+
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v2/ai/ontology")
@@ -170,7 +282,9 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/objects", web::get().to(get_objects))
             .route("/actions", web::get().to(get_actions))
             .route("/actions/read", web::post().to(execute_read_action))
-            .route("/actions/advisory", web::post().to(execute_advisory_action)),
+            .route("/actions/advisory", web::post().to(execute_advisory_action))
+            .route("/actions/overlay", web::put().to(put_action_overlay))
+            .route("/actions/overlay", web::delete().to(delete_action_overlay)),
     );
 }
 
@@ -257,6 +371,45 @@ mod tests {
             .to_request();
         let resp = test::call_service(&app, unauth_advisory).await;
         assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
+    }
+
+    /// Overlay 写（治理 G4 / PR6）：未认证 401；缺 `ai:manage` 403；无仓储 fail-closed 500。
+    #[actix_web::test]
+    async fn test_overlay_write_fallback_without_repo() {
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(JwtSecret("test-secret".to_string())))
+                .configure(configure),
+        )
+        .await;
+        let body = serde_json::json!({"object": "Flight", "action": "add_note"});
+
+        let unauth = test::TestRequest::put()
+            .uri("/api/v2/ai/ontology/actions/overlay")
+            .set_json(&body)
+            .to_request();
+        let resp = test::call_service(&app, unauth).await;
+        assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
+
+        // 只有读权限没有 `ai:manage`：写 overlay 必须被拒。
+        let viewer = make_jwt(&["ai:view"]);
+        let req = test::TestRequest::put()
+            .uri("/api/v2/ai/ontology/actions/overlay")
+            .insert_header(("Authorization", format!("Bearer {viewer}")))
+            .set_json(&body)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
+
+        // 有 `ai:manage` 但没有仓储：既不能凭空新增对象/动作，也不能假装写成功 → 500。
+        let manager = make_jwt(&["ai:manage"]);
+        let req = test::TestRequest::put()
+            .uri("/api/v2/ai/ontology/actions/overlay")
+            .insert_header(("Authorization", format!("Bearer {manager}")))
+            .set_json(&body)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert_eq!(resp.status(), actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     #[actix_web::test]

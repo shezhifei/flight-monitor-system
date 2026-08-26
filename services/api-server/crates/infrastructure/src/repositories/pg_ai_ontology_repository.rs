@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
+use ulid::Ulid;
 
 use fms_domain::models::ai_proposal::RiskLevel;
 use fms_domain::ontology::governed::{load_governed_schema, ActionOverlay};
@@ -48,6 +49,51 @@ impl AiOntologyRepository for PgAiOntologyRepository {
             .collect();
 
         Ok(overlays)
+    }
+
+    async fn save_action_overlay(&self, overlay: &ActionOverlay) -> Result<(), AiOntologyRepositoryError> {
+        let risk_level = overlay.risk.map(RiskLevel::label).unwrap_or("medium");
+        let is_active = overlay.is_active.unwrap_or(true);
+        let requires_approval = overlay.requires_approval.unwrap_or(true);
+        sqlx::query(
+            r#"
+            INSERT INTO aip_ontology_actions (
+                id, name, object_type, category, requires_approval, risk_level,
+                constraint_rules, metadata, is_active
+            )
+            VALUES ($1, $2, $3, 'mutation', $4, $5, '[]'::jsonb, '{}'::jsonb, $6)
+            ON CONFLICT (object_type, name) DO UPDATE SET
+                requires_approval = EXCLUDED.requires_approval,
+                risk_level = EXCLUDED.risk_level,
+                is_active = EXCLUDED.is_active,
+                updated_at = CURRENT_TIMESTAMP
+            "#,
+        )
+        .bind(format!("ovr_{}", Ulid::new()))
+        .bind(&overlay.action)
+        .bind(&overlay.object)
+        .bind(requires_approval)
+        .bind(risk_level)
+        .bind(is_active)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(())
+    }
+
+    async fn delete_action_overlay(&self, object: &str, action: &str) -> Result<(), AiOntologyRepositoryError> {
+        sqlx::query(
+            r#"
+            DELETE FROM aip_ontology_actions
+            WHERE object_type = $1 AND name = $2
+            "#,
+        )
+        .bind(object)
+        .bind(action)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(())
     }
 
     async fn count_active_objects(&self) -> Result<i64, AiOntologyRepositoryError> {

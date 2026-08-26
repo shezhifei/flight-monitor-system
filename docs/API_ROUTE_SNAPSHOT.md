@@ -1,6 +1,6 @@
 # API 路由快照
 
-文档基线：**2026-08-13**。端点实现以 `services/api-server/crates/api/src/routes/*.rs` 为准；生产注册以 `services/api-server/crates/server/src/web.rs` 为准。本页供导航与巡检，不替代源码。
+文档基线：**2026-08-26**。端点实现以 `services/api-server/crates/api/src/routes/*.rs` 为准；生产注册以 `services/api-server/crates/server/src/web.rs` 为准。本页供导航与巡检，不替代源码。
 
 ## 1. 入口与健康
 
@@ -95,7 +95,7 @@
 | `/api/v2/ai/eval/*` | LLM Eval jobs | `routes/ai_eval.rs` |
 | `/api/v2/ai/nl-query/*` | NL Query（建议、执行、schema、历史、流） | `routes/nl_query/` |
 | `/api/v2/ai/copilot/*` | 业务案例草稿、批次、派发重试 | `routes/ai_copilot.rs` |
-| `/api/v2/ai/ontology/*` | 本体 schema / 对象 / 动作 | `routes/ai_ontology.rs` |
+| `/api/v2/ai/ontology/*` | 本体 schema / 对象 / 动作；`PUT/DELETE .../actions/overlay` 仅覆盖代码 schema 已知动作键（需 `ai:manage`） | `routes/ai_ontology.rs` |
 | `/api/v2/ai/proposals*` | 动作建议：生成、审批、执行、统计 | `routes/ai_proposals/` |
 | `/api/v2/ai/proposals/{id}/rollback*` | 回滚与补偿计划 | `routes/ai_rollback.rs` |
 | `/api/v2/ai/runs/{run_id}/resume` | 运行恢复 | `routes/ai_resume.rs` |
@@ -106,6 +106,8 @@
 | `/api/v2/ai/jobs/*` | Job / Run 只读查询 | `routes/ai_jobs.rs` |
 
 说明：独立 `/api/v2/ai-proxy/*` **已移除**（测试强制 404）。侧车转发走 `routes/ai/` 内代理逻辑，不是单独的 `ai_proxy` 模块。
+
+> **工具 ≠ 动作**：`/api/v2/ai/tools*`、`/api/v2/ai/pending-actions*` 是工具/待审层；`/api/v2/ai/proposals*` + `/api/v2/ai/ontology/*` 是本体动作层。`ontology.propose_action` 生成的只是提案（`ai_action_proposals`），必须 `approve + execute` 经执行器才真写；聊天卡批 pending-action 对 `ontology.*` **不会**落业务写。
 
 ### 6.3 内部 AI 端点
 

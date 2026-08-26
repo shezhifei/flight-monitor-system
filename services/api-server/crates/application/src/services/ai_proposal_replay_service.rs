@@ -363,6 +363,14 @@ mod tests {
             Ok(self.overlays.clone())
         }
 
+        async fn save_action_overlay(&self, _overlay: &ActionOverlay) -> Result<(), AiOntologyRepositoryError> {
+            Ok(())
+        }
+
+        async fn delete_action_overlay(&self, _object: &str, _action: &str) -> Result<(), AiOntologyRepositoryError> {
+            Ok(())
+        }
+
         async fn count_active_objects(&self) -> Result<i64, AiOntologyRepositoryError> {
             Ok(1)
         }

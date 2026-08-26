@@ -159,3 +159,22 @@ server/di/flight.rs                             装配 OntologyService + Ontolog
 
 本地验收（宿主机 psql，`flight_monitor_test` + migration 119）：**6/6 通过**
 （reassign / allocate+accept / auto-link / stand·gate AAR / draft+reject / link create·break）。
+
+---
+
+## 8. AI 治理（工具 ≠ 动作；提案 ≠ pending）
+
+`flight-ops.v1` 只含**本体动作**（`Object.action`，如 `Flight.add_note`、`StandOccupation.allocate`、
+`DispatchOrder.assign_slot`）。工具（`ontology.lookup` / `ontology.propose_action`）是执行**适配器**，有
+固定角色（内部只读 / proposal_only），**不是**本体动作，不进合同、不作为独立动作登记。不要把
+`MCP send`、`Notification.send` 等塞进 `flight-ops.v1`。
+
+受控写的唯一落点是**提案**：`ontology.propose_action` 只生成 `ai_action_proposals`（或 structured output
+的 `proposals[]`），必须经 `/api/v2/ai/proposals/{id}/approve` + `/execute` 走 `DomainActionExecutor` 才真写
+业务表 + outbox。**pending-action 假执行**（`ai_pending_actions` / 聊天卡）对 `ontology.*` 不落业务写；
+「批了 pending 就算已占用 / 已代签」是错的。
+
+治理字段（启用 / 风险 / 审批）只来自一份真相：`build_flight_ops_v1_schema()`（代码底）叠加
+`aip_ontology_actions` 覆盖。`load_governed_schema()` 是唯一能拿到完整 `OntologySchema` 的入口；
+配置中心通过 `PUT/DELETE /api/v2/ai/ontology/actions/overlay`（需 `ai:manage`，只认代码 schema 已知键）
+改启用 / 风险 / 审批，`generate` 与导出读同一函数，故配置中心改了审批、新提案立即同源生效。
