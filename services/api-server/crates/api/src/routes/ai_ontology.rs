@@ -288,7 +288,9 @@ mod tests {
             "exported_at is required by the schema export"
         );
         assert!(export["objects"].get("Flight").is_some());
-        assert!(export["actions"].get("Flight.change_stand").is_some());
+        // Flight.change_stand 已废止（PR #本体两层改造）——合同不得再含该动作
+        assert!(export["actions"].get("Flight.change_stand").is_none());
+        assert!(export["actions"].get("Flight.update_status").is_some());
         for level in ["low", "medium", "high", "critical"] {
             assert!(export["risk_policies"].get(level).is_some(), "risk policy for {level}");
         }
@@ -316,6 +318,11 @@ mod tests {
         let actions_arr = actions.as_array().unwrap();
         assert!(!actions_arr.is_empty());
         assert!(actions_arr.iter().any(|item| {
+            item.get("object").and_then(|v| v.as_str()) == Some("Flight")
+                && item.get("action").and_then(|v| v.as_str()) == Some("update_status")
+        }));
+        // Flight.change_stand 已废止 -> 不得出现在动作列表
+        assert!(!actions_arr.iter().any(|item| {
             item.get("object").and_then(|v| v.as_str()) == Some("Flight")
                 && item.get("action").and_then(|v| v.as_str()) == Some("change_stand")
         }));

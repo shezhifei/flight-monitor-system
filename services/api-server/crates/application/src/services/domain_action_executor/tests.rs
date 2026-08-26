@@ -191,14 +191,10 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastr
         flight_writer,
         dispatch_service,
         dispatch_writer,
-        notification_service,
-        label_service,
-        todo_writer,
         business_case_service,
         business_case_writer,
         outbox_repo,
         anomaly_repo,
-        notification_tx_repo_port,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
     )
 }
@@ -277,7 +273,8 @@ async fn test_flight_change_stand_validation() {
     let res = executor
         .execute_approved_action("Flight", "FL123", "change_stand", &json!({}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+    // change_stand 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
@@ -309,43 +306,17 @@ async fn test_notification_send_validation() {
     let res = executor
         .execute_approved_action("Notification", "NT123", "send", &json!({}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+    // Notification.send 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
-async fn test_notification_send_success() {
+async fn test_notification_send_fail_closed() {
     if !has_pool() {
         return;
     }
-    let pool = create_pool().await;
-    sqlx::query(
-        "INSERT INTO users (id, username, display_name, email, password_hash, is_active, is_verified) \
-         VALUES ($1, $2, $3, $4, $5, TRUE, TRUE) ON CONFLICT (id) DO NOTHING",
-    )
-    .bind("test_user_1")
-    .bind("test_user_1")
-    .bind("Test User 1")
-    .bind("test_user_1@example.com")
-    .bind("hashed_password")
-    .execute(&pool)
-    .await
-    .expect("insert test user");
-
-    sqlx::query(
-        "INSERT INTO users (id, username, display_name, email, password_hash, is_active, is_verified) \
-         VALUES ($1, $2, $3, $4, $5, TRUE, TRUE) ON CONFLICT (id) DO NOTHING",
-    )
-    .bind("tester_notif")
-    .bind("tester_notif")
-    .bind("Tester Notification")
-    .bind("tester_notif@example.com")
-    .bind("hashed_password")
-    .execute(&pool)
-    .await
-    .expect("insert tester notif user");
-
-    let executor = build_executor(pool).await;
+    let executor = build_executor(create_pool().await).await;
     let args = json!({
         "user_id": "test_user_1",
         "title": "Alert",
@@ -354,7 +325,8 @@ async fn test_notification_send_success() {
     let res = executor
         .execute_approved_action("Notification", "NT123", "send", &args, "tester_notif")
         .await;
-    assert!(res.is_ok(), "notification send failed: {:?}", res);
+    // Notification.send 已废止 -> 执行器 fail-closed（unknown action），不写入
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))), "got {:?}", res);
 }
 
 #[tokio::test]
@@ -427,7 +399,8 @@ async fn test_dispatch_order_reassign_validation() {
     let res = executor
         .execute_approved_action("DispatchOrder", "DP123", "reassign", &json!({}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+    // reassign 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
@@ -446,7 +419,8 @@ async fn test_dispatch_order_reassign_not_found() {
             "tester",
         )
         .await;
-    assert!(matches!(res, Err(DomainActionError::Execution(_))));
+    // reassign 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
@@ -472,33 +446,22 @@ async fn test_todo_create_validation() {
     let res = executor
         .execute_approved_action("Todo", "TD123", "create", &json!({}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+    // Todo.create 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
-async fn test_todo_create_success() {
+async fn test_todo_create_fail_closed() {
     if !has_pool() {
         return;
     }
-    let pool = create_pool().await;
-    sqlx::query(
-        "INSERT INTO users (id, username, email, password_hash, is_active, is_verified) \
-         VALUES ($1, $2, $3, $4, TRUE, TRUE) ON CONFLICT (id) DO NOTHING",
-    )
-    .bind("tester_todo")
-    .bind("tester_todo")
-    .bind("tester_todo@example.com")
-    .bind("hashed_password")
-    .execute(&pool)
-    .await
-    .expect("insert test user");
-
-    let executor = build_executor(pool).await;
+    let executor = build_executor(create_pool().await).await;
     let res = executor
         .execute_approved_action("Todo", "TD123", "create", &json!({"title": "Test Todo"}), "tester_todo")
         .await;
-    assert!(res.is_ok(), "todo create failed: {:?}", res);
+    // Todo.create 已废止 -> 执行器 fail-closed（unknown action），不写入
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))), "got {:?}", res);
 }
 
 #[tokio::test]
@@ -511,7 +474,8 @@ async fn test_todo_complete_not_found() {
     let res = executor
         .execute_approved_action("Todo", "TD_NONEXISTENT", "complete", &json!({}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Execution(_))));
+    // Todo.complete 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
@@ -524,7 +488,8 @@ async fn test_stand_reserve_validation() {
     let res = executor
         .execute_approved_action("Stand", "ST101", "reserve", &json!({}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+    // Stand.reserve 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
@@ -537,7 +502,8 @@ async fn test_stand_reserve_not_found() {
     let res = executor
         .execute_approved_action("Stand", "ST101", "reserve", &json!({"flight_id": "FL9999"}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Execution(_))));
+    // Stand.reserve 已废止 -> 执行器 fail-closed（unknown action）
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
 #[tokio::test]
@@ -922,56 +888,8 @@ async fn test_outbox_failure_rollback() {
             .expect("count business cases");
     assert_eq!(bc_count, 0, "expected no business case created");
 
-    // --- Test Notification.send Rollback ---
-    let res_notification = executor
-        .execute_approved_action(
-            "Notification",
-            "NT_TX_ROLLBACK",
-            "send",
-            &json!({
-                "user_id": "USR_TX_ROLLBACK",
-                "title": "rollback test notification",
-                "body": "should not persist"
-            }),
-            "tester_tx_rollback",
-        )
-        .await;
-    assert!(
-        is_outbox_failure(&res_notification),
-        "expected outbox failure for notification, got {:?}",
-        res_notification
-    );
-
-    let notification_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM notifications WHERE related_entity_id = 'NT_TX_ROLLBACK'")
-            .fetch_one(&pool)
-            .await
-            .expect("count notifications");
-    assert_eq!(notification_count, 0, "expected no notification created after rollback");
-
-    // --- Test Todo.create Rollback ---
-    let res_todo = executor
-        .execute_approved_action(
-            "Todo",
-            "TD_TX_ROLLBACK",
-            "create",
-            &json!({
-                "title": "rollback test todo"
-            }),
-            "tester_tx_rollback",
-        )
-        .await;
-    assert!(
-        is_outbox_failure(&res_todo),
-        "expected outbox failure for todo, got {:?}",
-        res_todo
-    );
-
-    let todo_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM todos WHERE source_id = 'TD_TX_ROLLBACK'")
-        .fetch_one(&pool)
-        .await
-        .expect("count todos");
-    assert_eq!(todo_count, 0, "expected no todo created after rollback");
+    // --- 注：Notification.send / Todo.create 已随合同退出（见 PR #本体两层改造），
+    // 执行器对其 fail-closed，不再走事务/outbox 路径，故不再作为 rollback 用例。
 
     guard.cleanup().await;
 }
@@ -1174,10 +1092,10 @@ async fn test_anomaly_resolve_success() {
     assert_eq!(status, "resolved");
 }
 
-// `Label.add` 缺参 -> Validation。
+// `Label.add` 对象已随合同退出 -> fail-closed（unknown action）。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
-async fn test_label_add_validation() {
+async fn test_label_add_fail_closed() {
     if !has_pool() {
         return;
     }
@@ -1185,13 +1103,13 @@ async fn test_label_add_validation() {
     let res = executor
         .execute_approved_action("Label", "LB1", "add", &json!({"flight_id": "FL123"}), "tester")
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))));
+    assert!(matches!(res, Err(DomainActionError::NotFound(_))));
 }
 
-// `Workflow.start` 未配置 Flowable 网关时拒绝执行。
+// `Workflow.start` 对象已随合同退出 -> fail-closed（unknown action）。
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL"]
-async fn test_workflow_start_requires_flowable_gateway() {
+async fn test_workflow_start_fail_closed() {
     if !has_pool() {
         return;
     }
@@ -1206,8 +1124,8 @@ async fn test_workflow_start_requires_flowable_gateway() {
         )
         .await;
     assert!(
-        matches!(res, Err(DomainActionError::Execution(ref msg)) if msg.contains("Flowable gateway")),
-        "expected Execution error without Flowable gateway, got {:?}",
+        matches!(res, Err(DomainActionError::NotFound(_))),
+        "expected fail-closed NotFound, got {:?}",
         res
     );
 }

@@ -7,8 +7,9 @@ Asserts:
    write-action, not MCP).
 2. Read/explain calls are forwarded to the injected ``OntologyTools`` adapter
    with the run id — never to a local stub.
-3. ``ontology.propose_action`` for a controlled write (``Flight.change_stand``)
-   produces an approval proposal and never executes directly.
+3. ``ontology.propose_action`` for a deprecated/unregistered write
+   (``Flight.change_stand``) fails closed (UNREGISTERED_ACTION) and never
+   produces a proposal or executes directly.
 4. Without a wired adapter the tools fail closed (no fabricated results).
 5. Without an MQ gate the tools fail closed (they are not public L0).
 """
@@ -20,11 +21,7 @@ from typing import Any
 import pytest
 
 from src.infrastructure.ai.ontology.action_client import OntologyActionClientError
-from src.infrastructure.ai.ontology_tools import (
-    ADVISORY_ACTIONS,
-    CONTROLLED_WRITE_ACTIONS,
-    UnregisteredActionError,
-)
+from src.infrastructure.ai.ontology_tools import ADVISORY_ACTIONS, UnregisteredActionError
 from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
     is_ontology_tool,
@@ -82,12 +79,7 @@ class FakeOntologyTools:
             return dict(self._propose_result)
         if action_name not in allowed_actions:
             raise UnregisteredActionError(action_name)
-        if action_name in CONTROLLED_WRITE_ACTIONS:
-            return {
-                "execution_mode": "proposal_only",
-                "action_name": action_name,
-                "parameters": dict(parameters),
-            }
+        # 未登记受控写由执行器层先 fail-closed；fake 只反映注册/建议分支。
         return {"suggestions": [{"stand_id": "B2"}], "evidence": {"source": "rust"}}
 
 
@@ -156,7 +148,9 @@ async def test_explain_constraints_routes_to_ontology_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_propose_controlled_write_builds_approval_proposal() -> None:
+async def test_propose_deprecated_write_fails_closed() -> None:
+    # Flight.change_stand 已废止（PR #本体两层改造）并移出 CONTROLLED_WRITE_ACTIONS。
+    # 未登记受控写 → propose_action fail-closed（UNREGISTERED_ACTION），不落提案、不进读取面。
     fake = FakeOntologyTools()
     executor = _executor(ontology_tools=fake)
     result = await executor.execute(
@@ -170,14 +164,10 @@ async def test_propose_controlled_write_builds_approval_proposal() -> None:
         },
         run_id="run_3",
     )
-    assert result.success is True
-    assert result.proposal is not None
-    proposal = result.proposal
-    assert proposal["object_type"] == "Flight"
-    assert proposal["action_name"] == "change_stand"
-    assert proposal["requires_approval"] is True
-    assert proposal["execution_mode"] == "proposal_only"
-    # Controlled writes never go through the read/advisory HTTP surface.
+    assert result.success is False
+    assert result.proposal is None
+    assert result.error is not None and "UNREGISTERED_ACTION" in result.error
+    # 未注册动作直接拒掉，不触发任何读取/解释面。
     assert fake.lookup_calls == []
     assert fake.explain_calls == []
 

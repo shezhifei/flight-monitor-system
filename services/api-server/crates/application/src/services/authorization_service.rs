@@ -251,17 +251,11 @@ impl AuthorizationService {
 const AI_ACTION_PERMISSION_MAP: &[(&str, &[&str])] = &[
     ("Flight.get_context", &["flight:read"]),
     ("Flight.update_status", &["flight:write"]),
-    ("Flight.change_stand", &["flight:write"]),
     ("Flight.add_note", &["flight:write"]),
     ("DispatchOrder.recommend_replan", &["dispatch:write"]),
-    ("DispatchOrder.reassign", &["dispatch:admin"]),
     ("DispatchOrder.publish", &["dispatch:publish"]),
-    ("Stand.reserve", &["dispatch:write"]),
     ("Anomaly.acknowledge", &["anomaly:write"]),
     ("Anomaly.escalate", &["anomaly:write"]),
-    ("Notification.send", &["notification:send"]),
-    ("Todo.create", &["todo:write"]),
-    ("Todo.complete", &["todo:write"]),
     ("BusinessCase.create", &["business_case:create"]),
     ("BusinessCase.close_case", &["business_case:update"]),
 ];
@@ -385,10 +379,10 @@ mod tests {
 
         assert!(flight_read.contains(&"Flight.get_context".to_string()));
         assert!(!flight_read.contains(&"Flight.change_stand".to_string()));
-        assert!(flight_write.contains(&"Flight.change_stand".to_string()));
         assert!(flight_write.contains(&"Flight.add_note".to_string()));
         assert!(admin.contains(&"DispatchOrder.recommend_replan".to_string()));
-        assert!(admin.contains(&"Stand.reserve".to_string()));
+        assert!(!admin.contains(&"Stand.reserve".to_string()), "Stand.reserve 已废止");
+        assert!(!admin.contains(&"Flight.change_stand".to_string()), "Flight.change_stand 已废止");
         assert!(none.is_empty(), "users without grants get no AI actions");
     }
 

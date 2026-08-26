@@ -106,7 +106,7 @@ async fn create_test_proposal(service: &AiActionProposalService, action_name: &s
         object_type: "Flight".to_string(),
         object_id: "FL123".to_string(),
         action_name: action_name.to_string(),
-        arguments: json!({"new_stand": "S02"}),
+        arguments: json!({"new_status": "delayed"}),
         reasoning: Some("test reason".to_string()),
         confidence: Some(0.9),
         requester_user_id: Some("generator".to_string()),
@@ -143,7 +143,7 @@ async fn validate_test_proposal(service: &AiActionProposalService, id: &str) {
 #[actix_web::test]
 async fn test_approve_proposal_forbidden_without_jwt() {
     let service = Arc::new(AiActionProposalService::new());
-    let proposal_id = create_test_proposal(&service, "change_stand").await;
+    let proposal_id = create_test_proposal(&service, "update_status").await;
     validate_test_proposal(&service, &proposal_id).await;
 
     let app = test::init_service(
@@ -228,7 +228,7 @@ async fn expire_stale_proposals_requires_ai_execute_permission() {
 #[actix_web::test]
 async fn test_approve_proposal_forbidden_without_required_action_permission() {
     let service = Arc::new(AiActionProposalService::new());
-    let proposal_id = create_test_proposal(&service, "change_stand").await;
+    let proposal_id = create_test_proposal(&service, "update_status").await;
     validate_test_proposal(&service, &proposal_id).await;
 
     let app = test::init_service(
@@ -257,7 +257,7 @@ async fn test_approve_proposal_forbidden_when_object_policy_denies() {
         AiObjectAccessDecision::Deny,  // deny for approval
     ]));
     let service = Arc::new(AiActionProposalService::new().with_object_policy_repository(policy_repo));
-    let proposal_id = create_test_proposal(&service, "change_stand").await;
+    let proposal_id = create_test_proposal(&service, "update_status").await;
     validate_test_proposal(&service, &proposal_id).await;
 
     let app = test::init_service(
@@ -282,7 +282,7 @@ async fn test_approve_proposal_forbidden_when_object_policy_denies() {
 #[actix_web::test]
 async fn test_execute_proposal_forbidden_without_required_action_permission() {
     let service = Arc::new(AiActionProposalService::new());
-    let proposal_id = create_test_proposal(&service, "change_stand").await;
+    let proposal_id = create_test_proposal(&service, "update_status").await;
     validate_test_proposal(&service, &proposal_id).await;
 
     let approver_token = make_jwt(&["flight:write"], None);
@@ -320,7 +320,7 @@ async fn test_execute_proposal_forbidden_when_object_policy_denies() {
         AiObjectAccessDecision::Deny,  // deny for execution
     ]));
     let service = Arc::new(AiActionProposalService::new().with_object_policy_repository(policy_repo));
-    let proposal_id = create_test_proposal(&service, "change_stand").await;
+    let proposal_id = create_test_proposal(&service, "update_status").await;
     validate_test_proposal(&service, &proposal_id).await;
 
     let approver_token = make_jwt(&["flight:write"], None);
@@ -355,7 +355,7 @@ async fn test_execute_proposal_respects_execution_feature_flag() {
     let _guard = EnvGuard::set("FMS_AI_PROPOSAL_EXECUTION_ENABLED", "0");
 
     let service = Arc::new(AiActionProposalService::new());
-    let proposal_id = create_test_proposal(&service, "change_stand").await;
+    let proposal_id = create_test_proposal(&service, "update_status").await;
     validate_test_proposal(&service, &proposal_id).await;
 
     let token = make_jwt(&["flight:write"], None);
@@ -410,8 +410,8 @@ async fn test_execute_proposal_expected_version_mismatch() {
         ontology_version: Some("flight-ops.v1".to_string()),
         object_type: "Flight".to_string(),
         object_id: "FL_NONEXISTENT_OR_LOW".to_string(),
-        action_name: "change_stand".to_string(),
-        arguments: json!({"new_stand": "S02"}),
+        action_name: "update_status".to_string(),
+        arguments: json!({"new_status": "delayed"}),
         reasoning: Some("test reason".to_string()),
         confidence: Some(0.9),
         requester_user_id: Some("generator".to_string()),
@@ -478,8 +478,8 @@ async fn test_execute_proposal_idempotency_conflict() {
         ontology_version: Some("flight-ops.v1".to_string()),
         object_type: "Flight".to_string(),
         object_id: "FL123".to_string(),
-        action_name: "change_stand".to_string(),
-        arguments: json!({"new_stand": "S02"}),
+        action_name: "update_status".to_string(),
+        arguments: json!({"new_status": "delayed"}),
         reasoning: Some("test reason".to_string()),
         confidence: Some(0.9),
         requester_user_id: Some("generator".to_string()),
@@ -663,14 +663,10 @@ async fn build_test_executor(
         flight_writer,
         dispatch_service,
         dispatch_writer,
-        notification_service,
-        label_service,
-        todo_writer,
         business_case_service,
         business_case_writer,
         outbox_repo,
         anomaly_repo,
-        notification_tx_repo_port,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
     )
 }

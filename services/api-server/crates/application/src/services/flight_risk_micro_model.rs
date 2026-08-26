@@ -278,7 +278,7 @@ impl FlightRiskMicroModel {
                     FlightRiskProposal::new(
                         "review_stand_assignment",
                         "Flight",
-                        "change_stand",
+                        "suggest_stand_adjustment",
                         format!(
                             "Critical risk flight {} at stand {} requires stand capacity review",
                             flight.flight_number.as_deref().unwrap_or(&flight_id),
@@ -294,8 +294,8 @@ impl FlightRiskMicroModel {
             proposals.push(
                 FlightRiskProposal::new(
                     "escalate_supervisor",
-                    "Notification",
-                    "send",
+                    "Anomaly",
+                    "escalate",
                     format!(
                         "Escalate critical risk flight {} to supervisor attention",
                         flight.flight_number.as_deref().unwrap_or(&flight_id)
@@ -329,8 +329,8 @@ impl FlightRiskMicroModel {
             proposals.push(
                 FlightRiskProposal::new(
                     "notify_delay",
-                    "Notification",
-                    "send",
+                    "Flight",
+                    "add_note",
                     format!(
                         "Inform stakeholders about departure delay for flight {}",
                         flight.flight_number.as_deref().unwrap_or(&flight_id)

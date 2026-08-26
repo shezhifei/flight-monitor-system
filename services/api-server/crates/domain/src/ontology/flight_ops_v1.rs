@@ -30,18 +30,6 @@ fn inverse_action_compensation(inverse: &str, requires_approval: bool) -> Option
     })
 }
 
-fn irreversible_compensation() -> Option<CompensationMetadata> {
-    Some(CompensationMetadata {
-        mode: "irreversible".to_string(),
-        requires_approval: true,
-        irreversible_fields: vec!["body".to_string()],
-        inverse_action_name: None,
-        before_snapshot_required: false,
-        followup_action_name: None,
-        followup_args: None,
-    })
-}
-
 /// 只读动作统一定义（见 `docs/architecture/ONTOLOGY_V1.md`：不创建 pending action，直接执行并返回 evidence）。
 fn read_action(
     name: &str,
@@ -366,45 +354,8 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
             compensation: restore_snapshot_compensation(true),
         },
     );
-    flight_actions.insert(
-        "change_stand".to_string(),
-        OntologyActionDef {
-            name: "change_stand".to_string(),
-            description: "Change the assigned stand for the flight (optional reason, before/after snapshot)."
-                .to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                p.insert(
-                    "new_stand_id".to_string(),
-                    OntologyActionParameter {
-                        name: "new_stand_id".to_string(),
-                        param_type: "String".to_string(),
-                        description: "The ID of the new stand".to_string(),
-                        required: true,
-                    },
-                );
-                p.insert(
-                    "reason".to_string(),
-                    string_param("reason", "Why the stand change is required", false),
-                );
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["new_stand_id"]}),
-            required_permissions: vec!["flight:write".to_string()],
-            risk_level: "medium".to_string(),
-            approval_strategy: "require_approval".to_string(),
-            approval_policy: "require_approval".to_string(),
-            constraints: vec![OntologyConstraint {
-                constraint_type: "Precondition".to_string(),
-                expression: "stand.is_available()".to_string(),
-                description: "Target stand must be available".to_string(),
-            }],
-            execution_mapping: Some("DomainActionExecutor.Flight.change_stand".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: restore_snapshot_compensation(true),
-        },
-    );
+    // `Flight.change_stand` 已废止 - PR #本体两层改造。展示用 stand 列只由 StandOccupation 占用回写。
+
     flight_actions.insert(
         "add_note".to_string(),
         OntologyActionDef {
@@ -612,40 +563,7 @@ pub fn build_flight_ops_v1_schema() -> OntologySchema {
     );
 
     let mut stand_actions = HashMap::new();
-    stand_actions.insert(
-        "reserve".to_string(),
-        OntologyActionDef {
-            name: "reserve".to_string(),
-            description: "Reserve the stand for a flight".to_string(),
-            category: "write".to_string(),
-            parameters: {
-                let mut p = HashMap::new();
-                p.insert(
-                    "flight_id".to_string(),
-                    OntologyActionParameter {
-                        name: "flight_id".to_string(),
-                        param_type: "String".to_string(),
-                        description: "The flight to reserve for".to_string(),
-                        required: true,
-                    },
-                );
-                p
-            },
-            parameters_schema: json!({"type": "object", "required": ["flight_id"]}),
-            required_permissions: vec!["dispatch:write".to_string()],
-            risk_level: "medium".to_string(),
-            approval_strategy: "require_approval".to_string(),
-            approval_policy: "require_approval".to_string(),
-            constraints: vec![OntologyConstraint {
-                constraint_type: "Precondition".to_string(),
-                expression: "is_available == true".to_string(),
-                description: "Stand must be available to reserve".to_string(),
-            }],
-            execution_mapping: Some("DomainActionExecutor.Stand.reserve".to_string()),
-            idempotency_key_strategy: Some("job_id:object_id:action_name".to_string()),
-            compensation: None,
-        },
-    );
+    // `Stand.reserve` 已废止 - PR #本体两层改造。机位占用一律走 `StandOccupation`。
 
     stand_actions.insert(
         "check_availability".to_string(),
@@ -1311,19 +1229,10 @@ mod tests {
         let flight = schema.objects.get("Flight").expect("Flight object exists");
         assert_eq!(flight.object_id_strategy, "flight_id");
 
-        let change_stand = flight.actions.get("change_stand").expect("Flight.change_stand exists");
-        assert_eq!(change_stand.category, "write");
-        assert_eq!(change_stand.required_permissions, vec!["flight:write"]);
-        assert_eq!(change_stand.risk_level, "medium");
-        assert_eq!(change_stand.approval_policy, "require_approval");
-        assert!(change_stand.parameters_schema["required"]
-            .as_array()
-            .expect("required array")
-            .iter()
-            .any(|item| item == "new_stand_id"));
-        assert_eq!(
-            change_stand.execution_mapping.as_deref(),
-            Some("DomainActionExecutor.Flight.change_stand")
+        // Flight.change_stand 已废止（PR #本体两层改造）——合同不得再含该动作
+        assert!(
+            !flight.actions.contains_key("change_stand"),
+            "Flight.change_stand 已废止，不得出现在合同里（改用 StandOccupation 占用回写）"
         );
 
         for (object_type, action_name) in [
@@ -1442,18 +1351,17 @@ mod tests {
             );
         }
 
-        let change_stand = schema.objects["Flight"].actions.get("change_stand").unwrap();
         assert!(
-            change_stand.parameters_schema["required"]
-                .as_array()
-                .expect("required array")
-                .iter()
-                .any(|item| item == "new_stand_id"),
-            "Flight.change_stand 必须要求 new_stand_id"
+            !schema.objects["Flight"].actions.contains_key("change_stand"),
+            "Flight.change_stand 已废止，不得出现在合同里（改用 StandOccupation 占用回写）"
         );
         assert!(
             !schema.objects["Flight"].actions.contains_key("update_stand"),
-            "Flight.update_stand must not be exported as an alias for Flight.change_stand"
+            "Flight.update_stand must not be exported as an alias"
+        );
+        assert!(
+            !schema.objects["Stand"].actions.contains_key("reserve"),
+            "Stand.reserve 已废止，不得出现在合同里（改用 StandOccupation.allocate）"
         );
     }
 

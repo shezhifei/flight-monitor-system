@@ -298,7 +298,7 @@ mod tests {
             ontology: EnvelopeOntology {
                 version: "flight-ops.v1".to_string(),
                 allowed_object_types: vec!["Flight".to_string()],
-                allowed_actions: vec!["Flight.change_stand".to_string()],
+                allowed_actions: vec!["Flight.update_status".to_string()],
                 risk_ceiling: "medium".to_string(),
             },
             context: EnvelopeContext {
@@ -348,16 +348,16 @@ mod tests {
         }
     }
 
-    fn change_stand_proposal(arguments: serde_json::Value) -> OutputProposal {
+    fn update_status_proposal(arguments: serde_json::Value) -> OutputProposal {
         OutputProposal {
             proposal_id: None,
             object_type: "Flight".to_string(),
             object_id: "flt_001".to_string(),
-            action_name: "change_stand".to_string(),
+            action_name: "update_status".to_string(),
             arguments,
             risk_level: "medium".to_string(),
             confidence: 0.88,
-            reasoning: "stand conflict".to_string(),
+            reasoning: "flight status change".to_string(),
             requires_approval: true,
         }
     }
@@ -376,19 +376,19 @@ mod tests {
     #[test]
     fn rejects_proposal_arguments_that_do_not_match_ontology_schema() {
         let validator = AiOutputValidator::new(build_flight_ops_v1_schema());
-        let body = output(vec![change_stand_proposal(json!({"reason": "missing stand"}))]);
+        let body = output(vec![update_status_proposal(json!({"reason": "missing status"}))]);
 
         let errors = validator.validate(&body, &envelope()).unwrap_err();
 
         assert!(errors
             .iter()
-            .any(|err| matches!(err, ValidationError::SchemaInvalid(message) if message.contains("new_stand_id"))));
+            .any(|err| matches!(err, ValidationError::SchemaInvalid(message) if message.contains("new_status"))));
     }
 
     #[test]
     fn rejects_proposal_for_object_not_present_in_context_envelope() {
         let validator = AiOutputValidator::new(build_flight_ops_v1_schema());
-        let mut proposal = change_stand_proposal(json!({"new_stand_id": "S2"}));
+        let mut proposal = update_status_proposal(json!({"new_status": "delayed"}));
         proposal.object_id = "flt_missing".to_string();
         let body = output(vec![proposal]);
 
@@ -402,19 +402,19 @@ mod tests {
     #[test]
     fn rejects_proposal_argument_type_mismatch() {
         let validator = AiOutputValidator::new(build_flight_ops_v1_schema());
-        let body = output(vec![change_stand_proposal(json!({"new_stand_id": 42}))]);
+        let body = output(vec![update_status_proposal(json!({"new_status": 42}))]);
 
         let errors = validator.validate(&body, &envelope()).unwrap_err();
 
         assert!(errors.iter().any(
-            |err| matches!(err, ValidationError::SchemaInvalid(message) if message.contains("new_stand_id") && message.contains("string"))
+            |err| matches!(err, ValidationError::SchemaInvalid(message) if message.contains("new_status") && message.contains("string"))
         ));
     }
 
     #[test]
     fn rejects_output_evidence_source_not_present_in_context_envelope() {
         let validator = AiOutputValidator::new(build_flight_ops_v1_schema());
-        let mut body = output(vec![change_stand_proposal(json!({"new_stand_id": "S2"}))]);
+        let mut body = output(vec![update_status_proposal(json!({"new_status": "delayed"}))]);
         body.evidence[0].source = "sidecar.direct_sql".to_string();
 
         let errors = validator.validate(&body, &envelope()).unwrap_err();

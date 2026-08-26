@@ -521,24 +521,6 @@
       ],
       "risk_level": "low"
     },
-    "Flight.change_stand": {
-      "action_name": "change_stand",
-      "approval_policy": "require_approval",
-      "arguments_schema": {
-        "required": [
-          "new_stand_id"
-        ],
-        "type": "object"
-      },
-      "category": "write",
-      "execution_mapping": "DomainActionExecutor.Flight.change_stand",
-      "object_type": "Flight",
-      "ontology_version": "flight-ops.v1",
-      "required_permissions": [
-        "flight:write"
-      ],
-      "risk_level": "medium"
-    },
     "Flight.get_context": {
       "action_name": "get_context",
       "approval_policy": "auto_execute",
@@ -789,24 +771,6 @@
         "flight:read"
       ],
       "risk_level": "low"
-    },
-    "Stand.reserve": {
-      "action_name": "reserve",
-      "approval_policy": "require_approval",
-      "arguments_schema": {
-        "required": [
-          "flight_id"
-        ],
-        "type": "object"
-      },
-      "category": "write",
-      "execution_mapping": "DomainActionExecutor.Stand.reserve",
-      "object_type": "Stand",
-      "ontology_version": "flight-ops.v1",
-      "required_permissions": [
-        "dispatch:write"
-      ],
-      "risk_level": "medium"
     },
     "StandOccupation.adjust": {
       "action_name": "adjust",
@@ -1149,24 +1113,6 @@
     }
   },
   "constraints": [
-    {
-      "action_name": "change_stand",
-      "constraint": {
-        "constraint_type": "Precondition",
-        "description": "Target stand must be available",
-        "expression": "stand.is_available()"
-      },
-      "object_type": "Flight"
-    },
-    {
-      "action_name": "reserve",
-      "constraint": {
-        "constraint_type": "Precondition",
-        "description": "Stand must be available to reserve",
-        "expression": "is_available == true"
-      },
-      "object_type": "Stand"
-    },
     {
       "action_name": "deactivate",
       "constraint": {
@@ -2360,55 +2306,6 @@
           ],
           "risk_level": "low"
         },
-        "change_stand": {
-          "approval_policy": "require_approval",
-          "approval_strategy": "require_approval",
-          "category": "write",
-          "compensation": {
-            "before_snapshot_required": true,
-            "followup_action_name": null,
-            "followup_args": null,
-            "inverse_action_name": null,
-            "irreversible_fields": [],
-            "mode": "restore_snapshot",
-            "requires_approval": true
-          },
-          "constraints": [
-            {
-              "constraint_type": "Precondition",
-              "description": "Target stand must be available",
-              "expression": "stand.is_available()"
-            }
-          ],
-          "description": "Change the assigned stand for the flight (optional reason, before/after snapshot).",
-          "execution_mapping": "DomainActionExecutor.Flight.change_stand",
-          "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "change_stand",
-          "parameters": {
-            "new_stand_id": {
-              "description": "The ID of the new stand",
-              "name": "new_stand_id",
-              "param_type": "String",
-              "required": true
-            },
-            "reason": {
-              "description": "Why the stand change is required",
-              "name": "reason",
-              "param_type": "String",
-              "required": false
-            }
-          },
-          "parameters_schema": {
-            "required": [
-              "new_stand_id"
-            ],
-            "type": "object"
-          },
-          "required_permissions": [
-            "flight:write"
-          ],
-          "risk_level": "medium"
-        },
         "get_context": {
           "approval_policy": "auto_execute",
           "approval_strategy": "auto_approve",
@@ -3078,41 +2975,6 @@
             "flight:read"
           ],
           "risk_level": "low"
-        },
-        "reserve": {
-          "approval_policy": "require_approval",
-          "approval_strategy": "require_approval",
-          "category": "write",
-          "compensation": null,
-          "constraints": [
-            {
-              "constraint_type": "Precondition",
-              "description": "Stand must be available to reserve",
-              "expression": "is_available == true"
-            }
-          ],
-          "description": "Reserve the stand for a flight",
-          "execution_mapping": "DomainActionExecutor.Stand.reserve",
-          "idempotency_key_strategy": "job_id:object_id:action_name",
-          "name": "reserve",
-          "parameters": {
-            "flight_id": {
-              "description": "The flight to reserve for",
-              "name": "flight_id",
-              "param_type": "String",
-              "required": true
-            }
-          },
-          "parameters_schema": {
-            "required": [
-              "flight_id"
-            ],
-            "type": "object"
-          },
-          "required_permissions": [
-            "dispatch:write"
-          ],
-          "risk_level": "medium"
         }
       },
       "description": "An airport parking stand",

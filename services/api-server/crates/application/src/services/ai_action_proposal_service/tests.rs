@@ -77,8 +77,8 @@ mod tests {
 
         let result = service
             .generate_proposal(generate_request(
-                "change_stand",
-                json!({"new_stand_id": "S02", "reason": "conflict"}),
+                "update_status",
+                json!({"new_status": "delayed", "reason": "conflict"}),
                 &["flight:read"],
             ))
             .await;
@@ -107,7 +107,7 @@ mod tests {
     #[tokio::test]
     async fn generate_proposal_rejects_permissions_that_differ_from_schema() {
         let service = AiActionProposalService::new();
-        let mut request = generate_request("change_stand", json!({"new_stand_id": "S02"}), &["flight:write"]);
+        let mut request = generate_request("update_status", json!({"new_status": "delayed"}), &["flight:write"]);
         request.required_permissions = Some(vec!["flight:manage".to_string()]);
 
         let result = service.generate_proposal(request).await;
@@ -121,7 +121,7 @@ mod tests {
     #[tokio::test]
     async fn generate_proposal_rejects_risk_level_that_differs_from_schema() {
         let service = AiActionProposalService::new();
-        let mut request = generate_request("change_stand", json!({"new_stand_id": "S02"}), &["flight:write"]);
+        let mut request = generate_request("update_status", json!({"new_status": "delayed"}), &["flight:write"]);
         request.risk_level = Some(RiskLevel::Low);
 
         let result = service.generate_proposal(request).await;
@@ -135,7 +135,7 @@ mod tests {
     #[tokio::test]
     async fn generate_proposal_rejects_approval_policy_that_differs_from_schema() {
         let service = AiActionProposalService::new();
-        let mut request = generate_request("change_stand", json!({"new_stand_id": "S02"}), &["flight:write"]);
+        let mut request = generate_request("update_status", json!({"new_status": "delayed"}), &["flight:write"]);
         request.approval_policy = Some(ApprovalPolicy::AutoExecute);
 
         let result = service.generate_proposal(request).await;
@@ -153,8 +153,8 @@ mod tests {
 
         let result = service
             .generate_proposal(generate_request(
-                "change_stand",
-                json!({"new_stand_id": "S02", "reason": "conflict"}),
+                "update_status",
+                json!({"new_status": "delayed", "reason": "conflict"}),
                 &["flight:write"],
             ))
             .await;
@@ -167,8 +167,8 @@ mod tests {
         let service = AiActionProposalService::new();
         let proposal = service
             .generate_proposal(generate_request(
-                "change_stand",
-                json!({"new_stand_id": "S02", "reason": "conflict"}),
+                "update_status",
+                json!({"new_status": "delayed", "reason": "conflict"}),
                 &["flight:write"],
             ))
             .await
@@ -218,8 +218,8 @@ mod tests {
         let service = AiActionProposalService::new().with_object_policy_repository(policy_repo);
         let proposal = service
             .generate_proposal(generate_request(
-                "change_stand",
-                json!({"new_stand_id": "S02", "reason": "conflict"}),
+                "update_status",
+                json!({"new_status": "delayed", "reason": "conflict"}),
                 &["flight:write"],
             ))
             .await
@@ -531,14 +531,10 @@ mod tests {
             flight_writer,
             dispatch_svc,
             dispatch_writer,
-            notif_svc,
-            label_svc,
-            todo_writer,
             bc_svc,
             business_case_writer,
             outbox_repo,
             anomaly_repo,
-            notif_tx_repo_port,
             Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
         ))
     }
@@ -1074,8 +1070,8 @@ mod tests {
             "run_expired",
             "Flight",
             "flt_1",
-            "change_stand",
-            json!({"new_stand_id": "S02", "reason": "conflict"}),
+            "update_status",
+            json!({"new_status": "delayed", "reason": "conflict"}),
         )
         .with_expires_at(Utc::now() - chrono::Duration::minutes(1));
         pending.required_permissions = vec!["flight:write".to_string()];
@@ -1109,8 +1105,8 @@ mod tests {
             "run_expired",
             "Flight",
             "flt_1",
-            "change_stand",
-            json!({"new_stand_id": "S02", "reason": "conflict"}),
+            "update_status",
+            json!({"new_status": "delayed", "reason": "conflict"}),
         )
         .with_expires_at(Utc::now() - chrono::Duration::minutes(1));
         approved.required_permissions = vec!["flight:write".to_string()];
@@ -1152,13 +1148,13 @@ mod tests {
             "prop_dup_first",
             "job_dup",
             "run_dup",
-            "Todo",
-            "TD_DUP",
-            "create",
-            json!({"title": "first"}),
+            "Flight",
+            "FL_DUP",
+            "update_status",
+            json!({"new_status": "delayed"}),
         )
         .with_metadata(json!({"idempotency_key": "dup_key_1"}));
-        executed.required_permissions = vec!["todo:write".to_string()];
+        executed.required_permissions = vec!["flight:write".to_string()];
         executed
             .transition_to(ActionProposalStatus::Validating)
             .expect("to validating");
@@ -1178,11 +1174,11 @@ mod tests {
 
         let mut request = generate_request_for(
             "job_dup",
-            "Todo",
-            "TD_DUP",
-            "create",
-            json!({"title": "second"}),
-            &["todo:write"],
+            "Flight",
+            "FL_DUP",
+            "update_status",
+            json!({"new_status": "delayed"}),
+            &["flight:write"],
         );
         request.idempotency_key = Some("dup_key_1".to_string());
         let proposal = service
@@ -1206,7 +1202,7 @@ mod tests {
                 .approve_proposal(ApproveProposalRequest {
                     proposal_id: proposal.proposal_id.clone(),
                     approver_id: "approver_1".to_string(),
-                    approver_permissions: vec!["todo:write".to_string()],
+                    approver_permissions: vec!["flight:write".to_string()],
                     approver_department_id: None,
                     modified_arguments: None,
                 })
@@ -1220,7 +1216,7 @@ mod tests {
             .execute_proposal(ExecuteProposalRequest {
                 proposal_id: proposal.proposal_id,
                 executor_id: "executor_1".to_string(),
-                executor_permissions: vec!["todo:write".to_string()],
+                executor_permissions: vec!["flight:write".to_string()],
                 executor_department_id: None,
             })
             .await;
@@ -1247,8 +1243,8 @@ mod tests {
             "job_version",
             "Flight",
             "flt_1",
-            "change_stand",
-            json!({"new_stand_id": "S02", "reason": "conflict"}),
+            "update_status",
+            json!({"new_status": "delayed", "reason": "conflict"}),
             &["flight:write"],
         );
         request.expected_object_version = Some(1);
@@ -1295,8 +1291,8 @@ mod tests {
         let service = AiActionProposalService::new();
         let proposal = service
             .generate_proposal(generate_request(
-                "change_stand",
-                json!({"new_stand_id": "S02", "reason": "conflict"}),
+                "update_status",
+                json!({"new_status": "delayed", "reason": "conflict"}),
                 &["flight:write"],
             ))
             .await

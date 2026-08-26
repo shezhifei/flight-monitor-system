@@ -119,32 +119,10 @@ ADVISORY_ACTIONS: frozenset[str] = frozenset(
 )
 
 #: Controlled write actions. These NEVER execute here: proposal path only.
+#: PR #本体两层改造：受控写动作尚未接线（PR3 前一律不登记），空名单 → 只留建议。
+#: 新写动作（StandOccupation.allocate 等）接入执行器后再逐个加入。
 CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({
-    # 新的占用动作 - PR #本体两层改造
-    "stand_occupation.allocate",
-    "stand_occupation.adjust",
-    "stand_occupation.release",
-    "gate_assignment.allocate",
-    "gate_assignment.release",
-    "carousel_assignment.allocate",
-    "carousel_assignment.release",
-    "team.update_status",
-    "team.change_location",
-    "team.add_member",
-    "team.remove_member",
-    "dispatch_order.assign_slot",
-    "dispatch_order.unassign_slot",
-    "dispatch_order.add_slot",
-    "dispatch_order.remove_slot",
-    "aircraft.reassign",
-    "turnaround_link.create",
-    "turnaround_link.break",
-    "department.create",
-    "department.update_profile",
-    "personnel.update_status",
-    "equipment_type.create",
-    "task_type.get_context",
-    # 旧动作已废止：Flight.change_stand removed in PR #本体两层改造
+    # 空名单：动作未接线前 propose_action 直接 UnregisteredActionError。
 })
 
 #: entity_id prefix → registered read action + object id argument name.

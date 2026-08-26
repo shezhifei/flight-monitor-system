@@ -2,22 +2,15 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::schemas::todo_schemas::{TodoComplete, TodoCreateCommand};
 use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
 use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flight_writer::FlightWriter;
-use crate::services::flowable_service::FlowableService;
-use crate::services::notification_service::NotificationCreate;
-use crate::services::todo_service::TodoWriter;
-use crate::types::{
-    ConcreteBusinessCaseService, ConcreteFlightService, ConcreteLabelService, ConcreteNotificationService,
-};
+use crate::types::{ConcreteBusinessCaseService, ConcreteFlightService};
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
-use fms_domain::ports::notification_repository::NotificationTransactionalRepository;
 use fms_domain::ports::unit_of_work::UnitOfWork;
 
 use super::helpers::{optional_string, required_string};
@@ -42,16 +35,11 @@ pub struct DomainActionExecutor<U: UnitOfWork> {
     flight_writer: Arc<FlightWriter<U::Tx>>,
     dispatch_service: Arc<DispatchService>,
     dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
-    notification_service: Arc<ConcreteNotificationService>,
-    label_service: Arc<ConcreteLabelService>,
-    todo_writer: Arc<TodoWriter<U::Tx>>,
     business_case_service: Arc<ConcreteBusinessCaseService>,
     business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
-    flowable_service: Option<FlowableService>,
     uow: Arc<U>,
     outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
     anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
-    notification_tx_repo: Arc<dyn NotificationTransactionalRepository<U::Tx> + Send + Sync>,
 }
 
 impl<U: UnitOfWork> DomainActionExecutor<U> {
@@ -60,14 +48,10 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
         flight_writer: Arc<FlightWriter<U::Tx>>,
         dispatch_service: Arc<DispatchService>,
         dispatch_writer: Arc<DispatchOrderWriter<U::Tx>>,
-        notification_service: Arc<ConcreteNotificationService>,
-        label_service: Arc<ConcreteLabelService>,
-        todo_writer: Arc<TodoWriter<U::Tx>>,
         business_case_service: Arc<ConcreteBusinessCaseService>,
         business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
         outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
-        notification_tx_repo: Arc<dyn NotificationTransactionalRepository<U::Tx> + Send + Sync>,
         uow: Arc<U>,
     ) -> Self {
         Self {
@@ -75,23 +59,12 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             flight_writer,
             dispatch_service,
             dispatch_writer,
-            notification_service,
-            label_service,
-            todo_writer,
             business_case_service,
             business_case_writer,
-            flowable_service: None,
             outbox_repo,
             anomaly_tx_repo,
-            notification_tx_repo,
             uow,
         }
-    }
-
-    /// `Workflow.start` 依赖的 Flowable 网关（可选注入）。
-    pub fn with_flowable_service(mut self, flowable_service: FlowableService) -> Self {
-        self.flowable_service = Some(flowable_service);
-        self
     }
 
     pub async fn execute_approved_action(
@@ -257,45 +230,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 self.flight_service.invalidate_hot_list().await;
                 Ok(serde_json::json!({ "success": true, "status": status }))
             }
-            "Flight.change_stand" => {
-                let new_stand_id = required_string(arguments, &["new_stand_id", "stand_id"], "new_stand_id")?;
-                let reason = optional_string(arguments, &["reason"]);
-                let before = self
-                    .flight_service
-                    .get_flight(object_id)
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
-                    .ok_or_else(|| DomainActionError::NotFound(format!("Flight {} not found", object_id)))?;
-                let before_snapshot = serde_json::json!({
-                    "stand": before.stand.as_ref().map(|s| s.as_str()),
-                    "status": before.status.clone(),
-                    "version": before.version,
-                });
-                let dto = crate::schemas::flight_schemas::FlightUpdate {
-                    expected_version: Some(before.version),
-                    stand: crate::schemas::flight_schemas::NullableUpdate::Set(new_stand_id.to_string()),
-                    ..Default::default()
-                };
-                let res = self
-                    .flight_writer
-                    .update_flight_in_tx(tx, object_id, dto, Some(executor_id.to_string()))
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
-                if res.is_none() {
-                    return Err(DomainActionError::NotFound(format!("Flight {} not found", object_id)));
-                }
-                self.flight_service.invalidate_hot_list().await;
-                let mut result = serde_json::json!({
-                    "success": true,
-                    "stand": new_stand_id,
-                    "before_snapshot": before_snapshot,
-                    "after_preview": { "stand": new_stand_id },
-                });
-                if let Some(reason) = reason {
-                    result["reason"] = serde_json::json!(reason);
-                }
-                Ok(result)
-            }
+            // `Flight.change_stand` 已废止（PR #本体两层改造）——展示列改由 StandOccupation 占用回写。
             // `Flight.update_delay`：更新预计到/离港时间（携带 before/after）。
             "Flight.update_delay" => {
                 let parse_dt = |key: &str| -> Result<Option<chrono::DateTime<chrono::Utc>>, DomainActionError> {
@@ -360,49 +295,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     },
                 }))
             }
-            "Notification.send" => {
-                let user_id = required_string(arguments, &["user_id", "recipient_user_id"], "user_id")?;
-                let title = required_string(arguments, &["title"], "title")?;
-                let body = required_string(arguments, &["body", "message"], "body")?;
-                let notification = self
-                    .notification_service
-                    .send_notification_in_tx(
-                        tx,
-                        self.notification_tx_repo.as_ref(),
-                        NotificationCreate {
-                            user_id: user_id.to_string(),
-                            title: title.to_string(),
-                            body: body.to_string(),
-                            category: optional_string(arguments, &["category"])
-                                .map(str::to_string)
-                                .or_else(|| Some("ai_action".to_string())),
-                            severity: optional_string(arguments, &["severity"]).map(str::to_string),
-                            flight_id: optional_string(arguments, &["flight_id"]).map(str::to_string),
-                            related_entity_type: optional_string(arguments, &["related_entity_type"])
-                                .map(str::to_string)
-                                .or_else(|| Some(object_type.to_string())),
-                            related_entity_id: optional_string(arguments, &["related_entity_id"])
-                                .map(str::to_string)
-                                .or_else(|| Some(object_id.to_string())),
-                            dispatch_order_id: optional_string(arguments, &["dispatch_order_id"]).map(str::to_string),
-                            group_id: optional_string(arguments, &["group_id"]).map(str::to_string),
-                            sender_user_id: Some(executor_id.to_string()),
-                            sender_username_snapshot: None,
-                            origin_type: Some("ai_action".to_string()),
-                            receipt_required: arguments
-                                .get("receipt_required")
-                                .and_then(Value::as_bool)
-                                .unwrap_or(false),
-                            receipt_group_id: optional_string(arguments, &["receipt_group_id"]).map(str::to_string),
-                        },
-                    )
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
-                Ok(serde_json::json!({
-                    "success": true,
-                    "notification_id": notification.notification_id,
-                }))
-            }
+            // `Notification.send` 已废止（PR #本体两层改造）——Notification 对象退出合同。
             "Anomaly.acknowledge" => {
                 self.anomaly_tx_repo
                     .acknowledge_in_tx(tx, object_id)
@@ -535,93 +428,8 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     "publication": result,
                 }))
             }
-            "Todo.create" => {
-                let title = required_string(arguments, &["title"], "title")?;
-                let todo = self
-                    .todo_writer
-                    .create_todo_in_tx(
-                        tx,
-                        TodoCreateCommand {
-                            title: title.to_string(),
-                            description: optional_string(arguments, &["description", "body"]).map(str::to_string),
-                            priority: optional_string(arguments, &["priority"]).map(str::to_string),
-                            category: optional_string(arguments, &["category"]).map(str::to_string),
-                            due_date: None,
-                            estimated_duration: arguments
-                                .get("estimated_duration")
-                                .and_then(Value::as_i64)
-                                .and_then(|value| i32::try_from(value).ok()),
-                            tags: arguments.get("tags").and_then(|value| {
-                                value.as_array().map(|items| {
-                                    items
-                                        .iter()
-                                        .filter_map(Value::as_str)
-                                        .map(str::to_string)
-                                        .collect::<Vec<_>>()
-                                })
-                            }),
-                            agent_entity_id: optional_string(arguments, &["agent_entity_id"]).map(str::to_string),
-                            source_type: Some("ai_action".to_string()),
-                            source_id: Some(object_id.to_string()),
-                            created_by: Some(executor_id.to_string()),
-                            assigned_to: optional_string(arguments, &["assigned_to", "assignee_id"])
-                                .map(str::to_string),
-                        },
-                        executor_id,
-                    )
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
-                Ok(serde_json::json!({
-                    "success": true,
-                    "todo_id": todo.id,
-                }))
-            }
-            "Todo.complete" => {
-                let actual_duration = arguments
-                    .get("actual_duration")
-                    .and_then(Value::as_i64)
-                    .and_then(|value| i32::try_from(value).ok());
-                let todo = self
-                    .todo_writer
-                    .complete_todo_in_tx(
-                        tx,
-                        object_id,
-                        TodoComplete {
-                            actual_duration,
-                            completed_by: Some(executor_id.to_string()),
-                        },
-                        executor_id,
-                    )
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?
-                    .ok_or_else(|| DomainActionError::Execution(format!("Todo not found: {object_id}")))?;
-                Ok(serde_json::json!({
-                    "success": true,
-                    "todo_id": todo.id,
-                    "status": todo.status,
-                }))
-            }
-            "Stand.reserve" => {
-                let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
-                let dto = crate::schemas::flight_schemas::FlightUpdate {
-                    stand: crate::schemas::flight_schemas::NullableUpdate::Set(object_id.to_string()),
-                    ..Default::default()
-                };
-                let res = self
-                    .flight_writer
-                    .update_flight_in_tx(tx, flight_id, dto, Some(executor_id.to_string()))
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
-                if res.is_none() {
-                    return Err(DomainActionError::Execution(format!("Flight {} not found", flight_id)));
-                }
-                self.flight_service.invalidate_hot_list().await;
-                Ok(serde_json::json!({
-                    "success": true,
-                    "stand_id": object_id,
-                    "flight_id": flight_id,
-                }))
-            }
+            // `Todo.create` / `Todo.complete` 已废止（PR #本体两层改造）——Todo 对象退出合同。
+            // `Stand.reserve` 已废止（PR #本体两层改造）——机位占用一律走 `StandOccupation`。
             "BusinessCase.create" => {
                 let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
                 let case_type = required_string(arguments, &["case_type"], "case_type")?;
@@ -696,58 +504,8 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     "status": updated.status,
                 }))
             }
-            // `Label.add`：为航班添加标签（唯一业务写入口为 LabelService）。
-            "Label.add" => {
-                let flight_id = required_string(arguments, &["flight_id"], "flight_id")?;
-                let label = required_string(arguments, &["label", "label_code", "code"], "label")?;
-                self.label_service
-                    .add_to_flight(flight_id, label, Some(executor_id))
-                    .await
-                    .map_err(|e| match e {
-                        fms_domain::error::DomainError::NotFound { entity_type, id } => {
-                            DomainActionError::NotFound(format!("{entity_type} {id} not found"))
-                        }
-                        fms_domain::error::DomainError::ValidationError(msg) => DomainActionError::Validation(msg),
-                        other => DomainActionError::Execution(other.to_string()),
-                    })?;
-                Ok(serde_json::json!({
-                    "success": true,
-                    "flight_id": flight_id,
-                    "label": label,
-                }))
-            }
-            // `Workflow.start`：发起 Flowable 流程（网关未配置时拒绝）。
-            "Workflow.start" => {
-                let flowable = self.flowable_service.as_ref().ok_or_else(|| {
-                    DomainActionError::Execution("workflow.start requires a configured Flowable gateway".to_string())
-                })?;
-                let template_id = required_string(
-                    arguments,
-                    &["workflow_template_id", "process_key"],
-                    "workflow_template_id",
-                )?;
-                let flight_id = optional_string(arguments, &["flight_id"]);
-                let mut variables: serde_json::Map<String, Value> = arguments
-                    .get("context")
-                    .and_then(Value::as_object)
-                    .cloned()
-                    .unwrap_or_default();
-                variables.insert(
-                    "ontology_version".to_string(),
-                    serde_json::json!(FLIGHT_OPS_ONTOLOGY_VERSION),
-                );
-                variables.insert("started_by".to_string(), serde_json::json!(executor_id));
-                let process_instance_id = flowable
-                    .start_process_instance(template_id, flight_id, Some(&variables), None)
-                    .await
-                    .map_err(|e| DomainActionError::Execution(e.to_string()))?;
-                Ok(serde_json::json!({
-                    "success": true,
-                    "workflow_template_id": template_id,
-                    "flight_id": flight_id,
-                    "process_instance_id": process_instance_id,
-                }))
-            }
+            // `Label.add` 已废止（PR #本体两层改造）——标签写入口迁至 `Flight.add_label`，接线延后，执行器 fail-closed。
+            // `Workflow.start` 已废止（PR #本体两层改造）——起流程是事项（BusinessCase）属性，执行器 fail-closed。
             // ⏸️ TODO: stand_occupation.allocate/adjust/release (PR #本体两层改造)
             // ⏸️ TODO: gate_assignment.allocate/release (subject: flight_id REQUIRED)
             // ⏸️ TODO: carousel_assignment.allocate/release (NO constraints - unlimited allowed)
