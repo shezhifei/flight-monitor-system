@@ -514,8 +514,9 @@ impl OntologyService {
         }
 
         // PR3「allocate 校验楼成员」：机位 code 在目录、启用、且挂在启用的楼上。
+        // 返回该机位所属 `Terminal.code`，用作展示列 `terminal` 推导。
         let locale = self.terminal_repo.stand_locale_by_code(stand_code).await?;
-        Self::ensure_facility_locale(locale, "Stand")?;
+        let terminal_code = Self::ensure_facility_locale(locale, "Stand")?;
 
         if let Some(flight_id) = request.flight_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
             let flight = self
@@ -568,6 +569,7 @@ impl OntologyService {
                 &occupation,
                 request.sync_flight_plan,
                 stand_code,
+                &terminal_code,
                 actor_id,
             )
             .await?;
@@ -638,7 +640,11 @@ impl OntologyService {
             .await?;
 
         if request.sync_flight_plan {
-            self.tx_ops.adjust_stand_tx(&updated, true, actor_id).await?;
+            let locale = self.terminal_repo.stand_locale_by_code(&updated.stand_code.0).await?;
+            let terminal_code = Self::ensure_facility_locale(locale, "Stand")?;
+            self.tx_ops
+                .adjust_stand_tx(&updated, true, &terminal_code, actor_id)
+                .await?;
         } else {
             self.occupation_repo.update(&updated).await?;
         }
@@ -665,10 +671,9 @@ impl OntologyService {
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .unwrap_or(actor_id);
-        self.occupation_repo
-            .release(occupation_id, released_by)
-            .await?
-            .ok_or_else(|| OntologyError::not_found(format!("active occupation {occupation_id}")))
+        self.tx_ops
+            .release_stand_tx(occupation_id, released_by)
+            .await
     }
 
     // -----------------------------------------------------------------------
@@ -801,10 +806,9 @@ impl OntologyService {
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .unwrap_or(actor_id);
-        self.assignment_repo
-            .release(assignment_id, released_by)
-            .await?
-            .ok_or_else(|| OntologyError::not_found(format!("active assignment {assignment_id}")))
+        self.tx_ops
+            .release_gate_tx(assignment_id, released_by)
+            .await
     }
 
     // -----------------------------------------------------------------------

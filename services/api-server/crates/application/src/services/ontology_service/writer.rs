@@ -61,22 +61,41 @@ pub trait OntologyTransactions: Send + Sync {
 
     /// 分配机位占用事务段：确保 Aircraft + 落 Occupation + 可选同步 Flight 计划字段。
     /// 返回幂等结果：`Inserted` 或 `Deduplicated(既有行)`。
+    /// `terminal_code` 为该机位所属已启用 `Terminal.code`（PR3 展示列楼推导）。
     async fn allocate_stand_tx(
         &self,
         registration: &str,
         occupation: &StandOccupation,
         sync_flight_plan: bool,
         stand_code: &str,
+        terminal_code: &str,
         actor_id: &str,
     ) -> Result<StandCreateOutcome, OntologyError>;
 
-    /// 调整机位占用事务段。
+    /// 调整机位占用事务段。`terminal_code` 为该机位所属已启用 `Terminal.code`
+    /// （PR3 展示列楼推导，调整机位时同步）。
     async fn adjust_stand_tx(
         &self,
         updated: &StandOccupation,
         sync_flight_plan: bool,
+        terminal_code: &str,
         actor_id: &str,
     ) -> Result<(), OntologyError>;
+
+    /// 释放机位占用事务段：release + 同航班展示列清空 `stand`/`terminal`。
+    /// 返回被释放的占用。
+    async fn release_stand_tx(
+        &self,
+        occupation_id: &str,
+        released_by: &str,
+    ) -> Result<StandOccupation, OntologyError>;
+
+    /// 释放登机口事务段：release + 同航班展示列清空 `gate`。返回被释放的分配。
+    async fn release_gate_tx(
+        &self,
+        assignment_id: &str,
+        released_by: &str,
+    ) -> Result<GateAssignment, OntologyError>;
 
     /// 分配登机口事务段。返回幂等结果：`Inserted` 或 `Deduplicated(既有行)`。
     async fn allocate_gate_tx(
@@ -156,13 +175,14 @@ impl<U: UnitOfWork> OntologyWriter<U> {
         }
     }
 
-    /// 在事务内把 Flight 计划机位/登机口与正式资源对齐（含 outbox 事件）。
+    /// 在事务内把 Flight 计划机位/登机口/楼与正式资源对齐（含 outbox 事件）。
     async fn sync_flight_plan_field(
         &self,
         tx: &mut U::Tx,
         flight_id: &str,
         stand: Option<PatchField<StandNumber>>,
         gate: Option<PatchField<GateNumber>>,
+        terminal: Option<PatchField<String>>,
         actor_id: &str,
     ) -> Result<(), OntologyError> {
         let flight = self
@@ -179,6 +199,9 @@ impl<U: UnitOfWork> OntologyWriter<U> {
         }
         if let Some(g) = gate {
             patch.gate = g;
+        }
+        if let Some(t) = terminal {
+            patch.terminal = t;
         }
         if !patch.has_any_changes() {
             return Ok(());
@@ -511,6 +534,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         occupation: &StandOccupation,
         sync_flight_plan: bool,
         stand_code: &str,
+        terminal_code: &str,
         actor_id: &str,
     ) -> Result<StandCreateOutcome, OntologyError> {
         let mut tx = self
@@ -528,6 +552,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                     &flight_id.0,
                     Some(PatchField::Set(StandNumber(stand_code.to_string()))),
                     None,
+                    Some(PatchField::Set(terminal_code.to_string())),
                     actor_id,
                 )
                 .await?;
@@ -545,6 +570,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         &self,
         updated: &StandOccupation,
         sync_flight_plan: bool,
+        terminal_code: &str,
         actor_id: &str,
     ) -> Result<(), OntologyError> {
         let mut tx = self
@@ -560,6 +586,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                     &flight_id.0,
                     Some(PatchField::Set(StandNumber(updated.stand_code.0.clone()))),
                     None,
+                    Some(PatchField::Set(terminal_code.to_string())),
                     actor_id,
                 )
                 .await?;
@@ -570,6 +597,72 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .await
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         Ok(())
+    }
+
+    async fn release_stand_tx(
+        &self,
+        occupation_id: &str,
+        released_by: &str,
+    ) -> Result<StandOccupation, OntologyError> {
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        let occupation = self
+            .ontology_tx
+            .release_occupation_in_tx(&mut tx, occupation_id, released_by)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("active occupation {occupation_id}")))?;
+        if let Some(flight_id) = occupation.flight_id.as_ref() {
+            self.sync_flight_plan_field(
+                &mut tx,
+                &flight_id.0,
+                Some(PatchField::Clear),
+                None,
+                Some(PatchField::Clear),
+                released_by,
+            )
+            .await?;
+        }
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(occupation)
+    }
+
+    async fn release_gate_tx(
+        &self,
+        assignment_id: &str,
+        released_by: &str,
+    ) -> Result<GateAssignment, OntologyError> {
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        let assignment = self
+            .ontology_tx
+            .release_assignment_in_tx(&mut tx, assignment_id, released_by)
+            .await?
+            .ok_or_else(|| OntologyError::not_found(format!("active assignment {assignment_id}")))?;
+        if let Some(flight_id) = assignment.flight_id.as_ref() {
+            self.sync_flight_plan_field(
+                &mut tx,
+                &flight_id.0,
+                None,
+                Some(PatchField::Clear),
+                None,
+                released_by,
+            )
+            .await?;
+        }
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
+        Ok(assignment)
     }
 
     async fn allocate_gate_tx(
@@ -595,6 +688,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                     &flight_id.0,
                     None,
                     Some(PatchField::Set(GateNumber(gate_code.to_string()))),
+                    None,
                     actor_id,
                 )
                 .await?;
@@ -627,6 +721,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                     &flight_id.0,
                     None,
                     Some(PatchField::Set(GateNumber(updated.gate_code.0.clone()))),
+                    None,
                     actor_id,
                 )
                 .await?;
