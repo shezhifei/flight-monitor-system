@@ -560,9 +560,14 @@ async fn build_test_executor(
     use fms_infrastructure::repositories::{
         pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
         pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
-        pg_dispatch_order_repository::PgDispatchOrderRepository, pg_flight_repository::PgFlightRepository,
-        pg_label_repository::PgLabelRepository, pg_notification_repository::PgNotificationRepository,
-        pg_todo_repository::PgTodoRepository,
+        pg_department_repository::PgDepartmentRepository, pg_dispatch_order_repository::PgDispatchOrderRepository,
+        pg_equipment_repository::PgEquipmentRepository, pg_equipment_type_repository::PgEquipmentTypeRepository,
+        pg_flight_repository::PgFlightRepository, pg_label_repository::PgLabelRepository,
+        pg_notification_repository::PgNotificationRepository, pg_personnel_runtime_repository::PgPersonnelRuntimeRepository,
+        pg_stand_repository::PgStandRepository, pg_task_type_repository::PgTaskTypeRepository,
+        pg_team_member_repository::PgTeamMemberRepository, pg_team_repository::PgTeamRepository,
+        pg_team_type_repository::PgTeamTypeRepository, pg_todo_repository::PgTodoRepository,
+        pg_user_repository::PgUserRepository,
     };
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
@@ -706,6 +711,21 @@ async fn build_test_executor(
         ontology_writer,
     ));
 
+    let dispatch_resource_svc: Arc<fms_application::types::ConcreteDispatchResourceService> = Arc::new(
+        fms_application::services::dispatch_resource_service::DispatchResourceService::new(
+            Arc::new(PgDepartmentRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentRepository + Send + Sync>,
+            Arc::new(PgTeamTypeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TeamTypeRepository + Send + Sync>,
+            Arc::new(PgTeamRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+            Arc::new(PgTeamMemberRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TeamMemberRepository + Send + Sync>,
+            Arc::new(PgEquipmentTypeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentTypeRepository + Send + Sync>,
+            Arc::new(PgEquipmentRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentRepository + Send + Sync>,
+            Arc::new(PgStandRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::StandRepository + Send + Sync>,
+            Arc::new(PgTaskTypeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TaskTypeRepository + Send + Sync>,
+            Arc::new(PgPersonnelRuntimeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
+            Arc::new(PgUserRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
+        ),
+    );
+
     fms_application::services::domain_action_executor::DomainActionExecutor::new(
         flight_service,
         flight_writer,
@@ -714,6 +734,7 @@ async fn build_test_executor(
         business_case_service,
         business_case_writer,
         ontology_svc,
+        dispatch_resource_svc,
         outbox_repo,
         anomaly_repo,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),

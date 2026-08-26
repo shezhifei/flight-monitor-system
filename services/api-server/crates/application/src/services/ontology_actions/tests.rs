@@ -1,6 +1,7 @@
 use super::test_support::{
     anomaly_fixture, flight_fixture, occupation_fixture, order_fixture, stand_fixture, FakeAnomalyRepo,
-    FakeBusinessCaseRepo, FakeDispatchRepo, FakeFlightRepo, FakeOccupationRepo, FakeStandRepo, FakeTeamRepo,
+    FakeBusinessCaseRepo, FakeDispatchRepo, FakeEquipmentRepo, FakeFlightRepo, FakeOccupationRepo,
+    FakePersonnelRuntimeRepo, FakeQualificationRepo, FakeStandRepo, FakeTeamRepo, FakeUserRepo,
 };
 use super::*;
 use chrono::{Duration, Utc};
@@ -41,6 +42,10 @@ fn actions(
             occupations: std::sync::Mutex::new(occupations),
         }),
         Arc::new(FakeBusinessCaseRepo),
+        Arc::new(FakeUserRepo::default()),
+        Arc::new(FakePersonnelRuntimeRepo::default()),
+        Arc::new(FakeQualificationRepo::default()),
+        Arc::new(FakeEquipmentRepo::default()),
     )
 }
 
@@ -77,6 +82,9 @@ fn permission_mapping_covers_read_and_advisory_actions() {
     assert_eq!(read_action_permission("anomaly.list_open"), Some("anomaly:read"));
     assert_eq!(read_action_permission("stand.check_availability"), Some("flight:read"));
     assert_eq!(read_action_permission("report.generate_briefing"), Some("flight:read"));
+    assert_eq!(read_action_permission("personnel.get_context"), Some("dispatch:read"));
+    assert_eq!(read_action_permission("team.get_context"), Some("dispatch:read"));
+    assert_eq!(read_action_permission("equipment.get_context"), Some("dispatch:read"));
     assert_eq!(read_action_permission("Flight.change_stand"), None);
 
     assert_eq!(
@@ -525,4 +533,208 @@ async fn suggest_broadcast_has_no_side_effects_and_validates_scope() {
         .await
         .unwrap_err();
     assert!(matches!(err, OntologyActionError::InvalidArguments(_)));
+}
+
+fn user_fixture(id: &str, department_id: Option<&str>) -> fms_domain::models::user::User {
+    let now = Utc::now();
+    fms_domain::models::user::User {
+        id: id.to_string(),
+        email: format!("{id}@test"),
+        password_hash: "secret-hash".to_string(),
+        username: id.to_string(),
+        display_name: Some(format!("{id} name")),
+        roles: vec![],
+        created_at: now,
+        updated_at: now,
+        last_login_at: None,
+        is_active: true,
+        is_verified: true,
+        is_admin: false,
+        verification_token: None,
+        verification_token_expires: None,
+        verified_at: None,
+        password_reset_token: None,
+        password_reset_token_expires: None,
+        password_changed_at: None,
+        department: None,
+        department_id: department_id.map(|s| s.to_string()),
+        job_level: None,
+        job_title: Some("handler".to_string()),
+        permission_version: 1,
+    }
+}
+
+fn personnel_runtime_fixture(user_id: &str) -> fms_domain::models::dispatch::PersonnelRuntime {
+    fms_domain::models::dispatch::PersonnelRuntime {
+        user_id: user_id.to_string(),
+        current_status: fms_domain::models::dispatch::PersonnelStatus::OnDuty,
+        current_stand_id: Some("S1".to_string()),
+        current_position_lat: Some(1.0),
+        current_position_lng: Some(2.0),
+        last_position_update: Some(Utc::now()),
+        updated_at: Some(Utc::now()),
+        updated_by: None,
+    }
+}
+
+#[tokio::test]
+async fn personnel_get_context_returns_sanitized_profile_with_runtime_and_default_grants() {
+    let svc = OntologyActionServices::new(
+        Arc::new(FakeFlightRepo::default()),
+        Arc::new(FakeDispatchRepo::default()),
+        Arc::new(FakeAnomalyRepo::default()),
+        Arc::new(FakeTeamRepo::default()),
+        Arc::new(FakeStandRepo::default()),
+        Arc::new(FakeOccupationRepo::default()),
+        Arc::new(FakeBusinessCaseRepo),
+        Arc::new(FakeUserRepo {
+            users: std::sync::Mutex::new(vec![user_fixture("P1", Some("dept-1"))]),
+        }),
+        Arc::new(FakePersonnelRuntimeRepo {
+            runtimes: std::sync::Mutex::new(vec![personnel_runtime_fixture("P1")]),
+        }),
+        Arc::new(FakeQualificationRepo::default()),
+        Arc::new(FakeEquipmentRepo::default()),
+    );
+
+    let result = svc
+        .personnel_context
+        .get(&json!({"user_id": "P1"}))
+        .await
+        .expect("get_context");
+    // 脱敏：绝不泄露密码哈希/令牌。
+    assert_eq!(result["person"]["user_id"], "P1");
+    assert!(result["person"].get("password_hash").is_none());
+    assert_eq!(result["runtime"]["current_status"], "on_duty");
+    assert_eq!(result["runtime"]["current_stand_id"], "S1");
+    assert_eq!(result["qualification_grants"], json!([]));
+    assert_eq!(result["evidence"]["ontology_version"], FLIGHT_OPS_ONTOLOGY_VERSION);
+}
+
+#[tokio::test]
+async fn personnel_get_context_missing_person_is_not_found() {
+    let svc = empty();
+    let err = svc
+        .personnel_context
+        .get(&json!({"user_id": "MISSING"}))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, OntologyActionError::NotFound(_)));
+}
+
+fn team_with_member_fixture(id: &str, name: &str) -> Team {
+    let mut team = team_fixture(id, name);
+    team.members = vec![fms_domain::models::dispatch::TeamMember {
+        id: format!("{id}-m1"),
+        team_id: id.to_string(),
+        user_id: "P1".to_string(),
+        role: fms_domain::models::dispatch::MemberRole::Leader,
+        can_drive: false,
+        joined_at: Some(Utc::now()),
+        left_at: None,
+        is_active: true,
+        username: Some("P1".to_string()),
+        user_display_name: Some("P1 name".to_string()),
+    }];
+    team
+}
+
+#[tokio::test]
+async fn team_get_context_returns_profile_with_active_members() {
+    let svc = actions(
+        vec![],
+        vec![],
+        vec![],
+        vec![team_with_member_fixture("TEAM1", "Alpha")],
+        vec![],
+        vec![],
+    );
+
+    let result = svc
+        .team_context
+        .get(&json!({"team_id": "TEAM1"}))
+        .await
+        .expect("get_context");
+    assert_eq!(result["team"]["team_id"], "TEAM1");
+    assert_eq!(result["team"]["name"], "Alpha");
+    assert_eq!(result["active_member_count"], 1);
+    assert_eq!(result["members"][0]["user_id"], "P1");
+    assert_eq!(result["evidence"]["ontology_version"], FLIGHT_OPS_ONTOLOGY_VERSION);
+}
+
+#[tokio::test]
+async fn team_get_context_missing_team_is_not_found() {
+    let svc = empty();
+    let err = svc
+        .team_context
+        .get(&json!({"team_id": "MISSING"}))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, OntologyActionError::NotFound(_)));
+}
+
+fn equipment_fixture(id: &str, code: &str) -> fms_domain::models::dispatch::Equipment {
+    fms_domain::models::dispatch::Equipment {
+        id: id.to_string(),
+        code: code.to_string(),
+        equipment_type_id: Some("ET1".to_string()),
+        name: Some("Tug".to_string()),
+        license_plate: None,
+        terminal: None,
+        status: fms_domain::models::dispatch::EquipmentStatus::Available,
+        current_position_lat: None,
+        current_position_lng: None,
+        current_stand_id: None,
+        last_position_update: None,
+        current_dispatch_id: None,
+        last_maintenance_date: None,
+        next_maintenance_date: None,
+        metadata: None,
+        created_at: None,
+        updated_at: None,
+        is_active: true,
+        equipment_type: None,
+    }
+}
+
+#[tokio::test]
+async fn equipment_get_context_returns_profile_with_type() {
+    let svc = OntologyActionServices::new(
+        Arc::new(FakeFlightRepo::default()),
+        Arc::new(FakeDispatchRepo::default()),
+        Arc::new(FakeAnomalyRepo::default()),
+        Arc::new(FakeTeamRepo::default()),
+        Arc::new(FakeStandRepo::default()),
+        Arc::new(FakeOccupationRepo::default()),
+        Arc::new(FakeBusinessCaseRepo),
+        Arc::new(FakeUserRepo::default()),
+        Arc::new(FakePersonnelRuntimeRepo::default()),
+        Arc::new(FakeQualificationRepo::default()),
+        Arc::new(FakeEquipmentRepo {
+            equipment: std::sync::Mutex::new(vec![equipment_fixture("EQ1", "TUG-01")]),
+        }),
+    );
+
+    let result = svc
+        .equipment_context
+        .get(&json!({"equipment_id": "EQ1"}))
+        .await
+        .expect("get_context");
+    assert_eq!(result["equipment"]["equipment_id"], "EQ1");
+    assert_eq!(result["equipment"]["code"], "TUG-01");
+    assert_eq!(result["equipment"]["equipment_type_id"], "ET1");
+    // 未加载设备类型时返回 null（不强造默认）。
+    assert!(result["equipment_type"].is_null());
+    assert_eq!(result["evidence"]["ontology_version"], FLIGHT_OPS_ONTOLOGY_VERSION);
+}
+
+#[tokio::test]
+async fn equipment_get_context_missing_equipment_is_not_found() {
+    let svc = empty();
+    let err = svc
+        .equipment_context
+        .get(&json!({"equipment_id": "MISSING"}))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, OntologyActionError::NotFound(_)));
 }

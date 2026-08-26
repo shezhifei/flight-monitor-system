@@ -57,10 +57,14 @@ fn ontology_actions_for_pool(pool: &sqlx::PgPool) -> Arc<OntologyActionServices>
     use fms_infrastructure::repositories::pg_anomaly_repository::PgAnomalyRepository;
     use fms_infrastructure::repositories::pg_business_case_repository::PgBusinessCaseRepository;
     use fms_infrastructure::repositories::pg_dispatch_order_repository::PgDispatchOrderRepository;
+    use fms_infrastructure::repositories::pg_equipment_repository::PgEquipmentRepository;
     use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
     use fms_infrastructure::repositories::pg_ontology_repository::PgStandOccupationRepository;
+    use fms_infrastructure::repositories::pg_personnel_runtime_repository::PgPersonnelRuntimeRepository;
+    use fms_infrastructure::repositories::pg_dispatch_personnel_rules_repository::PgQualificationGrantRepository;
     use fms_infrastructure::repositories::pg_stand_repository::PgStandRepository;
     use fms_infrastructure::repositories::pg_team_repository::PgTeamRepository;
+    use fms_infrastructure::repositories::pg_user_repository::PgUserRepository;
 
     Arc::new(OntologyActionServices::new(
         Arc::new(PgFlightRepository::new(pool.clone())),
@@ -70,6 +74,10 @@ fn ontology_actions_for_pool(pool: &sqlx::PgPool) -> Arc<OntologyActionServices>
         Arc::new(PgStandRepository::new(pool.clone())),
         Arc::new(PgStandOccupationRepository::new(pool.clone())),
         Arc::new(PgBusinessCaseRepository::new(pool.clone())),
+        Arc::new(PgUserRepository::new(pool.clone())),
+        Arc::new(PgPersonnelRuntimeRepository::new(pool.clone())),
+        Arc::new(PgQualificationGrantRepository::new(pool.clone())),
+        Arc::new(PgEquipmentRepository::new(pool.clone())),
     ))
 }
 

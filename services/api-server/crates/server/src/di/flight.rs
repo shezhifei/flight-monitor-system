@@ -22,7 +22,10 @@ use fms_application::services::ontology_service::{OntologyService, OntologyTrans
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::audit_log_repository::AuditLogRepository;
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
-use fms_domain::ports::dispatch_repository::{DispatchOrderRepository, StandRepository, TeamRepository};
+use fms_domain::ports::dispatch_repository::{
+    DispatchOrderRepository, EquipmentRepository, PersonnelRuntimeRepository, QualificationGrantRepository,
+    StandRepository, TeamRepository,
+};
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
 use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
 use fms_domain::ports::flight_timeline_event_repository::{
@@ -127,6 +130,9 @@ pub(crate) fn build_flight_services(
     let link_port: Arc<dyn TurnaroundLinkRepository + Send + Sync> = link_repo;
     let suggestion_port: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync> = suggestion_repo;
     let carousel_port: Arc<dyn CarouselAssignmentRepository + Send + Sync> = carousel_repo.clone();
+    let personnel_runtime_port: Arc<dyn PersonnelRuntimeRepository + Send + Sync> = repos.personnel_runtime_repo.clone();
+    let qualification_port: Arc<dyn QualificationGrantRepository + Send + Sync> = repos.qualification_grant_repo.clone();
+    let equipment_port: Arc<dyn EquipmentRepository + Send + Sync> = repos.equipment_repo.clone();
 
     let ontology_writer: Arc<OntologyWriter<_>> = Arc::new(OntologyWriter::new(
         flight_repo_port.clone(),
@@ -159,6 +165,10 @@ pub(crate) fn build_flight_services(
         stand_port,
         occupation_port,
         business_case_port,
+        repos.auth_user_repo.clone(),
+        personnel_runtime_port,
+        qualification_port,
+        equipment_port,
     ));
 
     FlightServices {

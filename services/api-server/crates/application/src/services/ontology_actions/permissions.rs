@@ -6,6 +6,9 @@ pub fn read_action_permission(action_name: &str) -> Option<&'static str> {
         "anomaly.list_open" => Some("anomaly:read"),
         "stand.check_availability" => Some("flight:read"),
         "report.generate_briefing" => Some("flight:read"),
+        "personnel.get_context" => Some("dispatch:read"),
+        "team.get_context" => Some("dispatch:read"),
+        "equipment.get_context" => Some("dispatch:read"),
         _ => None,
     }
 }

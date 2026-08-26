@@ -105,6 +105,9 @@ pub(crate) async fn dispatch_read_action(
         "anomaly.list_open" => actions.anomaly_open_list.list(arguments).await,
         "stand.check_availability" => actions.stand_availability.check(arguments).await,
         "report.generate_briefing" => actions.briefing.generate(arguments).await,
+        "personnel.get_context" => actions.personnel_context.get(arguments).await,
+        "team.get_context" => actions.team_context.get(arguments).await,
+        "equipment.get_context" => actions.equipment_context.get(arguments).await,
         other => Err(OntologyActionError::InvalidArguments(format!(
             "unknown read action: {other}"
         ))),

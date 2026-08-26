@@ -5,17 +5,22 @@ use serde_json::Value;
 use fms_domain::error::DomainError;
 use fms_domain::models::anomaly::{Anomaly, AnomalySeverity, AnomalyStatus, AnomalyType};
 use fms_domain::models::business_case::FlightBusinessCase;
-use fms_domain::models::dispatch::{DispatchOrder, Stand, Team};
+use fms_domain::models::dispatch::{
+    DispatchOrder, Equipment, PersonnelRuntime, QualificationGrant, Stand, Team,
+};
 use fms_domain::models::flight::Flight;
 use fms_domain::models::ontology_v1::{OccupationKind, OccupationStatus, StandOccupation};
 use fms_domain::models::value_objects::FlightStatus;
+use fms_domain::models::user::User;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
 use fms_domain::ports::dispatch_repository::{
-    CreateDispatchOrderCommand, DispatchOrderRepository, StandRepository, TeamRepository,
+    CreateDispatchOrderCommand, DispatchOrderRepository, EquipmentRepository, PersonnelRuntimeRepository,
+    QualificationGrantRepository, StandRepository, TeamRepository,
 };
 use fms_domain::ports::flight_repository::{FlightRepository, FlightSearchCriteria};
 use fms_domain::ports::ontology_repository::StandOccupationRepository;
+use fms_domain::ports::user_repository::UserRepository;
 
 // ── fake repositories（未用到的方法统一 unimplemented!）──
 
@@ -429,6 +434,81 @@ impl TeamRepository for FakeTeamRepo {
 }
 
 #[derive(Default)]
+pub(crate) struct FakeEquipmentRepo {
+    pub(crate) equipment: std::sync::Mutex<Vec<Equipment>>,
+}
+
+#[async_trait]
+impl EquipmentRepository for FakeEquipmentRepo {
+    async fn save(&self, _equipment: &Equipment) -> Result<Equipment, DomainError> {
+        unimplemented!()
+    }
+    async fn find_by_id(&self, id: &str) -> Result<Option<Equipment>, DomainError> {
+        Ok(self
+            .equipment
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|e| e.id == id)
+            .cloned())
+    }
+    async fn find_by_code(&self, code: &str) -> Result<Option<Equipment>, DomainError> {
+        Ok(self
+            .equipment
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|e| e.code == code)
+            .cloned())
+    }
+    async fn find_available_for_dispatch(
+        &self,
+        _equipment_type_id: Option<&str>,
+        _terminal: Option<&str>,
+    ) -> Result<Vec<Equipment>, DomainError> {
+        Ok(self
+            .equipment
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|e| e.is_active)
+            .cloned()
+            .collect())
+    }
+    async fn find_all(
+        &self,
+        include_inactive: bool,
+        _equipment_type_id: Option<&str>,
+        _terminal: Option<&str>,
+        _status: Option<&str>,
+        limit: i64,
+        _offset: i64,
+    ) -> Result<Vec<Equipment>, DomainError> {
+        Ok(self
+            .equipment
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|e| include_inactive || e.is_active)
+            .take(limit as usize)
+            .cloned()
+            .collect())
+    }
+    async fn update_position(
+        &self,
+        _id: &str,
+        _lat: f64,
+        _lng: f64,
+        _stand_id: Option<&str>,
+    ) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+    async fn update_status(&self, _id: &str, _status: &str) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+}
+
+#[derive(Default)]
 pub(crate) struct FakeStandRepo {
     pub(crate) stands: std::sync::Mutex<Vec<Stand>>,
 }
@@ -651,6 +731,112 @@ impl BusinessCaseRepository for FakeBusinessCaseRepo {
     }
     async fn delete(&self, _case_id: &str) -> Result<bool, DomainError> {
         unimplemented!()
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct FakeUserRepo {
+    pub(crate) users: std::sync::Mutex<Vec<User>>,
+}
+
+#[async_trait]
+impl UserRepository for FakeUserRepo {
+    async fn find_by_id(&self, id: &str) -> Result<Option<User>, DomainError> {
+        Ok(self.users.lock().unwrap().iter().find(|u| u.id == id).cloned())
+    }
+    async fn find_permission_version_by_id(&self, _id: &str) -> Result<Option<i32>, DomainError> {
+        unimplemented!()
+    }
+    async fn find_by_username(&self, _username: &str) -> Result<Option<User>, DomainError> {
+        unimplemented!()
+    }
+    async fn find_by_email(&self, _email: &str) -> Result<Option<User>, DomainError> {
+        unimplemented!()
+    }
+    async fn find_all(&self, _limit: i64, _offset: i64) -> Result<Vec<User>, DomainError> {
+        unimplemented!()
+    }
+    async fn list_distinct_departments_in_use(&self) -> Result<Vec<String>, DomainError> {
+        unimplemented!()
+    }
+    async fn has_any_user_with_department_id(&self, _department_id: &str) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+    async fn save(&self, _user: &User) -> Result<(), DomainError> {
+        unimplemented!()
+    }
+    async fn update(&self, _user: &User) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+    async fn delete(&self, _id: &str) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+    async fn update_password(&self, _id: &str, _password_hash: &str) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+    async fn update_last_login(&self, _id: &str) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct FakePersonnelRuntimeRepo {
+    pub(crate) runtimes: std::sync::Mutex<Vec<PersonnelRuntime>>,
+}
+
+#[async_trait]
+impl PersonnelRuntimeRepository for FakePersonnelRuntimeRepo {
+    async fn save(&self, runtime: &PersonnelRuntime) -> Result<PersonnelRuntime, DomainError> {
+        Ok(runtime.clone())
+    }
+    async fn find_by_user(&self, user_id: &str) -> Result<Option<PersonnelRuntime>, DomainError> {
+        Ok(self
+            .runtimes
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|r| r.user_id == user_id)
+            .cloned())
+    }
+    async fn update_status(&self, _user_id: &str, _status: &str, _updated_by: Option<&str>) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+    async fn update_position(
+        &self,
+        _user_id: &str,
+        _lat: f64,
+        _lng: f64,
+        _stand_id: Option<&str>,
+    ) -> Result<bool, DomainError> {
+        unimplemented!()
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct FakeQualificationRepo {
+    pub(crate) grants: std::sync::Mutex<Vec<QualificationGrant>>,
+}
+
+#[async_trait]
+impl QualificationGrantRepository for FakeQualificationRepo {
+    async fn save(&self, grant: &QualificationGrant) -> Result<QualificationGrant, DomainError> {
+        Ok(grant.clone())
+    }
+    async fn find_by_department(
+        &self,
+        _department_id: &str,
+        _at_time: Option<chrono::DateTime<chrono::Utc>>,
+        user_ids: &[String],
+        _include_inactive: bool,
+    ) -> Result<Vec<QualificationGrant>, DomainError> {
+        Ok(self
+            .grants
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|g| user_ids.iter().any(|id| id == &g.user_id))
+            .cloned()
+            .collect())
     }
 }
 
