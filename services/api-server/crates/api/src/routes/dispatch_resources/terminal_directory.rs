@@ -13,7 +13,8 @@ use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
 use crate::routes::dispatch_resources::{created_resp, ok_resp};
 use fms_application::services::terminal_resource_service::{
-    CarouselCreate, CarouselUpdate, GateCreate, GateUpdate, TerminalCreate, TerminalListQuery, TerminalUpdate,
+    CarouselCreate, CarouselUpdate, GateCreate, GateUpdate, StandCreate, StandUpdate, TerminalCreate,
+    TerminalListQuery, TerminalUpdate,
 };
 use fms_application::types::ConcreteTerminalResourceService;
 
@@ -149,6 +150,42 @@ pub async fn deactivate_carousel(
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("dispatch:manage")?;
     let saved = svc.deactivate_carousel(&path.into_inner()).await?;
+    Ok(ok_resp(&req, saved))
+}
+
+// ──────────────────────────────────────────────── Stand 目录 ──
+pub async fn create_stand(
+    req: HttpRequest,
+    svc: web::Data<TerminalSvc>,
+    claims: JwtAuth,
+    body: web::Json<StandCreate>,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("dispatch:manage")?;
+    let saved = svc.create_stand(body.into_inner()).await?;
+    Ok(created_resp(&req, saved))
+}
+
+pub async fn update_stand(
+    req: HttpRequest,
+    svc: web::Data<TerminalSvc>,
+    claims: JwtAuth,
+    path: web::Path<String>,
+    body: web::Json<StandUpdate>,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("dispatch:manage")?;
+    let saved = svc.update_stand(&path.into_inner(), body.into_inner()).await?;
+    Ok(ok_resp(&req, saved))
+}
+
+/// 停用机位。存在未结束占用 → 409。
+pub async fn deactivate_stand(
+    req: HttpRequest,
+    svc: web::Data<TerminalSvc>,
+    claims: JwtAuth,
+    path: web::Path<String>,
+) -> Result<HttpResponse, ApiError> {
+    claims.ensure_permission("dispatch:manage")?;
+    let saved = svc.deactivate_stand(&path.into_inner()).await?;
     Ok(ok_resp(&req, saved))
 }
 

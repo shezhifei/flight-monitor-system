@@ -58,7 +58,7 @@ impl DispatchFrontendReplanService {
                                     .as_deref()
                                     .unwrap_or_default()
                                     .to_string(),
-                                source_team_id: current_assignment.team_id.clone(),
+                                source_team_id: None,
                                 ..TaskCrewMemberResponse::default()
                             })
                         } else {
@@ -74,8 +74,7 @@ impl DispatchFrontendReplanService {
                     username: baseline_member.as_ref().and_then(|member| member.username.clone()),
                     source_team_id: baseline_member
                         .as_ref()
-                        .and_then(|member| member.source_team_id.clone())
-                        .or_else(|| current_assignment.team_id.clone()),
+                        .and_then(|member| member.source_team_id.clone()),
                     source_team_name: baseline_member
                         .as_ref()
                         .and_then(|member| member.source_team_name.clone()),
@@ -107,8 +106,6 @@ impl DispatchFrontendReplanService {
             .collect::<Vec<_>>();
 
         DispatchReplanBaselineAssignment {
-            assignee_type: current_assignment.assignee_type.clone(),
-            team_id: current_assignment.team_id.clone(),
             individual_user_id: current_assignment.individual_user_id.clone(),
             equipment_ids: current_assignment.equipment_ids.clone(),
             member_user_ids: current_assignment.member_user_ids.clone(),

@@ -1752,7 +1752,6 @@ CREATE TABLE IF NOT EXISTS equipment_types (
     code VARCHAR(20) UNIQUE,
     category VARCHAR(50),
     requires_driver BOOLEAN DEFAULT FALSE,
-    driver_team_type_id VARCHAR(26) REFERENCES team_types(id),
     icon VARCHAR(100),
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -1833,11 +1832,8 @@ CREATE TABLE IF NOT EXISTS dispatch_orders (
     flight_id VARCHAR(26) NOT NULL,
     task_type VARCHAR(50) NOT NULL,
     stand_id VARCHAR(26) REFERENCES stands(id),
-    assignee_type VARCHAR(20) NOT NULL,
-    team_id VARCHAR(26) REFERENCES teams(id),
     individual_user_id VARCHAR(26) REFERENCES users(id),
     driver_type VARCHAR(20),
-    driver_team_id VARCHAR(26) REFERENCES teams(id),
     driver_user_id VARCHAR(26) REFERENCES users(id),
     planned_start_time TIMESTAMP WITH TIME ZONE,
     planned_end_time TIMESTAMP WITH TIME ZONE,
@@ -1868,16 +1864,11 @@ CREATE TABLE IF NOT EXISTS dispatch_orders (
     completion_notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(flight_id, task_type),
-    CHECK (
-        (assignee_type = 'team' AND team_id IS NOT NULL AND individual_user_id IS NULL) OR
-        (assignee_type = 'individual' AND individual_user_id IS NOT NULL AND team_id IS NULL)
-    )
+    UNIQUE(flight_id, task_type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_dispatch_orders_flight ON dispatch_orders(flight_id);
 CREATE INDEX IF NOT EXISTS idx_dispatch_orders_status ON dispatch_orders(status);
-CREATE INDEX IF NOT EXISTS idx_dispatch_orders_team ON dispatch_orders(team_id);
 CREATE INDEX IF NOT EXISTS idx_dispatch_orders_planned_time ON dispatch_orders(planned_start_time);
 CREATE INDEX IF NOT EXISTS idx_dispatch_orders_process_instance ON dispatch_orders(process_instance_id);
 CREATE INDEX IF NOT EXISTS idx_dispatch_orders_source ON dispatch_orders(source);
@@ -3165,8 +3156,6 @@ SELECT
     d.flight_id,
     d.task_type,
     d.stand_id,
-    d.assignee_type,
-    d.team_id,
     d.individual_user_id,
     d.status,
     d.dispatch_type,

@@ -643,7 +643,6 @@ impl DispatchService {
                 }
                 None => {
                     if !Self::should_auto_create_checkin_member(
-                        order.assignee_type,
                         order.individual_user_id.as_deref(),
                         actor_id,
                     ) {

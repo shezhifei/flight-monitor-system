@@ -20,10 +20,11 @@ impl PgEquipmentRepository {
 #[async_trait]
 impl EquipmentRepository for PgEquipmentRepository {
     async fn save(&self, equipment: &Equipment) -> Result<Equipment, DomainError> {
+        // PR2：不再写 terminal（保留列仅供历史查询，见迁移 141）；department_id 为科室归属。
         sqlx::query(
             r#"
             INSERT INTO equipment (
-                id, code, equipment_type_id, name, license_plate, terminal,
+                id, code, equipment_type_id, department_id, name, license_plate,
                 status, current_position_lat, current_position_lng, current_stand_id,
                 last_position_update, current_dispatch_id, last_maintenance_date,
                 next_maintenance_date, metadata, is_active
@@ -36,9 +37,9 @@ impl EquipmentRepository for PgEquipmentRepository {
             ON CONFLICT (id) DO UPDATE SET
                 code = EXCLUDED.code,
                 equipment_type_id = EXCLUDED.equipment_type_id,
+                department_id = EXCLUDED.department_id,
                 name = EXCLUDED.name,
                 license_plate = EXCLUDED.license_plate,
-                terminal = EXCLUDED.terminal,
                 status = EXCLUDED.status,
                 current_position_lat = EXCLUDED.current_position_lat,
                 current_position_lng = EXCLUDED.current_position_lng,
@@ -55,9 +56,9 @@ impl EquipmentRepository for PgEquipmentRepository {
         .bind(&equipment.id)
         .bind(&equipment.code)
         .bind(&equipment.equipment_type_id)
+        .bind(&equipment.department_id)
         .bind(&equipment.name)
         .bind(&equipment.license_plate)
-        .bind(&equipment.terminal)
         .bind(equipment_status_value(equipment.status))
         .bind(equipment.current_position_lat)
         .bind(equipment.current_position_lng)
@@ -86,14 +87,14 @@ impl EquipmentRepository for PgEquipmentRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<Equipment>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT e.id, e.code, e.equipment_type_id, e.name, e.license_plate, e.terminal, e.status,
+            SELECT e.id, e.code, e.equipment_type_id, e.department_id, e.name, e.license_plate, e.status,
                    e.current_position_lat::double precision AS current_position_lat,
                    e.current_position_lng::double precision AS current_position_lng,
                    e.current_stand_id, e.last_position_update, e.current_dispatch_id,
                    e.last_maintenance_date, e.next_maintenance_date, e.metadata,
                    e.created_at, e.updated_at, e.is_active,
                    et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
-                   et.category AS equipment_type_category, et.requires_driver, et.driver_team_type_id,
+                   et.category AS equipment_type_category, et.requires_driver,
                    et.icon AS equipment_type_icon, et.description AS equipment_type_description,
                    et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active
             FROM equipment e
@@ -112,14 +113,14 @@ impl EquipmentRepository for PgEquipmentRepository {
     async fn find_by_code(&self, code: &str) -> Result<Option<Equipment>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT e.id, e.code, e.equipment_type_id, e.name, e.license_plate, e.terminal, e.status,
+            SELECT e.id, e.code, e.equipment_type_id, e.department_id, e.name, e.license_plate, e.status,
                    e.current_position_lat::double precision AS current_position_lat,
                    e.current_position_lng::double precision AS current_position_lng,
                    e.current_stand_id, e.last_position_update, e.current_dispatch_id,
                    e.last_maintenance_date, e.next_maintenance_date, e.metadata,
                    e.created_at, e.updated_at, e.is_active,
                    et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
-                   et.category AS equipment_type_category, et.requires_driver, et.driver_team_type_id,
+                   et.category AS equipment_type_category, et.requires_driver,
                    et.icon AS equipment_type_icon, et.description AS equipment_type_description,
                    et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active
             FROM equipment e
@@ -142,14 +143,14 @@ impl EquipmentRepository for PgEquipmentRepository {
     ) -> Result<Vec<Equipment>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
             r#"
-            SELECT e.id, e.code, e.equipment_type_id, e.name, e.license_plate, e.terminal, e.status,
+            SELECT e.id, e.code, e.equipment_type_id, e.department_id, e.name, e.license_plate, e.status,
                    e.current_position_lat::double precision AS current_position_lat,
                    e.current_position_lng::double precision AS current_position_lng,
                    e.current_stand_id, e.last_position_update, e.current_dispatch_id,
                    e.last_maintenance_date, e.next_maintenance_date, e.metadata,
                    e.created_at, e.updated_at, e.is_active,
                    et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
-                   et.category AS equipment_type_category, et.requires_driver, et.driver_team_type_id,
+                   et.category AS equipment_type_category, et.requires_driver,
                    et.icon AS equipment_type_icon, et.description AS equipment_type_description,
                    et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active
             FROM equipment e
@@ -185,14 +186,14 @@ impl EquipmentRepository for PgEquipmentRepository {
     ) -> Result<Vec<Equipment>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
             r#"
-            SELECT e.id, e.code, e.equipment_type_id, e.name, e.license_plate, e.terminal, e.status,
+            SELECT e.id, e.code, e.equipment_type_id, e.department_id, e.name, e.license_plate, e.status,
                    e.current_position_lat::double precision AS current_position_lat,
                    e.current_position_lng::double precision AS current_position_lng,
                    e.current_stand_id, e.last_position_update, e.current_dispatch_id,
                    e.last_maintenance_date, e.next_maintenance_date, e.metadata,
                    e.created_at, e.updated_at, e.is_active,
                    et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
-                   et.category AS equipment_type_category, et.requires_driver, et.driver_team_type_id,
+                   et.category AS equipment_type_category, et.requires_driver,
                    et.icon AS equipment_type_icon, et.description AS equipment_type_description,
                    et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active
             FROM equipment e
@@ -278,7 +279,6 @@ fn row_to_equipment(row: sqlx::postgres::PgRow) -> Equipment {
             code: row.get("equipment_type_code"),
             category: row.get("equipment_type_category"),
             requires_driver: row.get::<Option<bool>, _>("requires_driver").unwrap_or(false),
-            driver_team_type_id: row.get("driver_team_type_id"),
             icon: row.get("equipment_type_icon"),
             description: row.get("equipment_type_description"),
             created_at: row.get("equipment_type_created_at"),
@@ -290,9 +290,9 @@ fn row_to_equipment(row: sqlx::postgres::PgRow) -> Equipment {
         id: row.get("id"),
         code: row.get("code"),
         equipment_type_id: row.get("equipment_type_id"),
+        department_id: row.get("department_id"),
         name: row.get("name"),
         license_plate: row.get("license_plate"),
-        terminal: row.get("terminal"),
         status: parse_equipment_status(row.get::<Option<String>, _>("status").as_deref()),
         current_position_lat: row.get("current_position_lat"),
         current_position_lng: row.get("current_position_lng"),

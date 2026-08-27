@@ -4,7 +4,20 @@ import { useAuth } from './useAuth';
 
 export interface DispatchOnlineUserOption {
   user_id: string;
-  username: string;
+  username?: string;
+  account_type?: 'personal' | 'position' | string;
+  display_name?: string | null;
+  label?: string | null;
+  meta?: string | null;
+  occupant_user_id?: string | null;
+  occupant_display_name?: string | null;
+  assignments?: Array<{
+    flight_no?: string | null;
+    task_type?: string | null;
+    task_type_name?: string | null;
+    slot_code?: string | null;
+    slot_name?: string | null;
+  }> | null;
   job_title?: string | null;
   department?: string | null;
   status: string;

@@ -33,6 +33,7 @@ impl EquipmentContextService {
             "equipment_id": equipment.id,
             "code": equipment.code,
             "name": equipment.name,
+            "department_id": equipment.department_id,
             "license_plate": equipment.license_plate,
             "status": equipment.status,
             "current_dispatch_id": equipment.current_dispatch_id,

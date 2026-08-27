@@ -2,6 +2,10 @@
  * Registry of flight-monitor table cells that support same-column multi-select
  * and batch edit. Keys match the FlightList cell field identifiers used in
  * context-menu / edit-field handlers (not necessarily BASE_COLUMNS keys).
+ *
+ * PR3（本体两层改造）：stand / gate / terminal / baggage_carousel 为只读展示列，
+ * 真相在占用服务（StandOccupation / GateAssignment / CarouselAssignment），
+ * 监控不再提供这四列的批量/单格编辑入口，后端 batch/PATCH 同步拒绝。
  */
 
 export type BatchWriteStrategy = 'flight_patch' | 'timeline_event';
@@ -34,14 +38,6 @@ export const BATCH_EDITABLE_FIELDS: readonly BatchEditableField[] = [
     valueType: 'datetime',
     writeStrategy: 'flight_patch',
     adminOnly: true,
-  },
-  {
-    field: 'stand',
-    label: '机位',
-    valueType: 'text',
-    writeStrategy: 'flight_patch',
-    adminOnly: true,
-    maxLength: 32,
   },
   {
     field: 'cobt_time',
@@ -79,14 +75,6 @@ export const BATCH_EDITABLE_FIELDS: readonly BatchEditableField[] = [
     label: '撤轮挡',
     valueType: 'datetime',
     writeStrategy: 'timeline_event',
-  },
-  {
-    field: 'baggage_carousel',
-    label: '行李转盘',
-    valueType: 'text',
-    writeStrategy: 'flight_patch',
-    adminOnly: true,
-    maxLength: 32,
   },
   {
     field: 'flight_remarks',

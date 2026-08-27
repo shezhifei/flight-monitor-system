@@ -75,7 +75,7 @@ impl DispatchFrontendReplanService {
                     user_id: user_id.to_string(),
                     username: user_id.to_string(),
                     score: 100.0,
-                    source_team_id: current_assignment.team_id.clone(),
+                    source_team_id: None,
                     source_team_name: None,
                     qualification_code: None,
                     qualification_level_code: None,
@@ -92,10 +92,7 @@ impl DispatchFrontendReplanService {
                 user_id: user_id.to_string(),
                 username: member.username.clone().unwrap_or_else(|| user_id.to_string()),
                 score: 60.0,
-                source_team_id: member
-                    .source_team_id
-                    .clone()
-                    .or_else(|| current_assignment.team_id.clone()),
+                source_team_id: member.source_team_id.clone(),
                 source_team_name: None,
                 qualification_code: member.qualification_code.clone(),
                 qualification_level_code: member.qualification_level_code.clone(),
@@ -177,8 +174,6 @@ impl DispatchFrontendReplanService {
         for user in candidate_users.iter().take(Self::MAX_ENUMERATED_ASSIGNMENT_USERS) {
             for equipment_ids in &equipment_options {
                 let assignment = DispatchReplanAssignment {
-                    assignee_type: Some("individual".to_string()),
-                    team_id: current_assignment.team_id.clone().or_else(|| order.team_id.clone()),
                     individual_user_id: Some(user.user_id.clone()),
                     equipment_ids: equipment_ids.clone(),
                     member_user_ids: vec![user.user_id.clone()],

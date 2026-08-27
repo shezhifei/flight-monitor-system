@@ -1,5 +1,6 @@
 import { useApi } from '@/composables/useApi';
 import type { DispatchOrder, TimelineMember } from './useDispatchBoardOrders';
+import { rosterTeamIds, rosterTeamLabel } from './useDispatchBoardOrders';
 import type { ViewMode, TimelineLane } from './useDispatchBoardGantt';
 
 export interface ResourceFocus {
@@ -381,9 +382,12 @@ export function doesItemMatchResourceFocus(item: DispatchOrder | null, resourceF
   if (!item || item.is_flight_summary || !resourceFocus) return false;
 
   if (resourceFocus.resource_type === 'team') {
-    if (resourceFocus.resource_id && String(item.team_id ?? '').trim() === resourceFocus.resource_id) return true;
+    const teamIds = rosterTeamIds(item);
+    if (resourceFocus.resource_id && teamIds.includes(resourceFocus.resource_id)) return true;
     if (resourceFocus.resource_label) {
-      return String(item.team_name ?? item.lane_label ?? '').trim() === resourceFocus.resource_label;
+      const label = resourceFocus.resource_label.trim();
+      if (rosterTeamLabel(item) === label) return true;
+      return String(item.lane_label ?? '').trim() === label;
     }
     return false;
   }

@@ -8,6 +8,8 @@ mod types;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_terminal_equipment;
 
 pub use service::{DomainActionExecution, DomainActionExecutor};
 pub use types::{DomainActionError, DomainActionReceipt};

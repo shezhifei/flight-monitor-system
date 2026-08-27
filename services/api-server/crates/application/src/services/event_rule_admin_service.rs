@@ -356,28 +356,6 @@ mod tests {
             unimplemented!()
         }
 
-        async fn find_by_team(
-            &self,
-            _team_id: &str,
-            _status: Option<&str>,
-            _start_date: Option<chrono::DateTime<Utc>>,
-            _end_date: Option<chrono::DateTime<Utc>>,
-        ) -> Result<Vec<DispatchOrder>, DomainError> {
-            unimplemented!()
-        }
-
-        async fn find_by_team_filtered(
-            &self,
-            _team_id: &str,
-            _status: Option<&str>,
-            _source: Option<&str>,
-            _department: Option<&str>,
-            _limit: i64,
-            _offset: i64,
-        ) -> Result<Vec<DispatchOrder>, DomainError> {
-            unimplemented!()
-        }
-
         async fn find_by_user(&self, _user_id: &str, _status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
             unimplemented!()
         }
@@ -420,7 +398,6 @@ mod tests {
             &self,
             _window_start: chrono::DateTime<Utc>,
             _window_end: chrono::DateTime<Utc>,
-            _team_id: Option<&str>,
             _individual_user_id: Option<&str>,
             _stand_id: Option<&str>,
             _exclude_order_id: Option<&str>,

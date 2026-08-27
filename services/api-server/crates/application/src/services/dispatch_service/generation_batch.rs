@@ -70,14 +70,10 @@ impl DispatchService {
                 .filter(|value| !value.is_empty())
                 .map(str::to_string)
                 .or_else(|| stand.terminal.clone()),
-            assignee_type: AssigneeType::Team,
-            team_id: None,
-            team_name: None,
             department: None,
             individual_user_id: None,
             individual_username: None,
             driver_type: None,
-            driver_team_id: None,
             driver_user_id: None,
             planned_start_time: Some(planned_start_time),
             planned_end_time: Some(resolved_planned_end_time),
@@ -372,14 +368,10 @@ impl DispatchService {
                 stand_id: Some(request.stand_id),
                 stand_code: Some(stand.code.clone()),
                 terminal: request.terminal.or_else(|| stand.terminal.clone()),
-                assignee_type: AssigneeType::Team,
-                team_id: None,
-                team_name: None,
                 department: None,
                 individual_user_id: None,
                 individual_username: None,
                 driver_type: None,
-                driver_team_id: None,
                 driver_user_id: None,
                 planned_start_time: Some(request.planned_start_time),
                 planned_end_time: Some(request.planned_end_time),
@@ -806,8 +798,7 @@ impl DispatchService {
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty())
-            .map(str::to_string)
-            .or_else(|| order.team_id.clone());
+            .map(str::to_string);
         let mut seen_users = HashSet::new();
         let mut counts = HashMap::<String, usize>::new();
         let mut members = Vec::new();
@@ -1068,7 +1059,6 @@ impl DispatchService {
                     assigned_count += 1;
                     order_rows.push(json!({
                         "dispatch_order_id": order.id,
-                        "team_id": order.team_id,
                         "task_crew": order.task_crew,
                         "equipment_assignment": order.equipment_assignment,
                         "department_rule_version": order.department_rule_version,

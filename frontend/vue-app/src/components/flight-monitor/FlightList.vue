@@ -1064,17 +1064,11 @@ onBeforeUnmount(() => {
                 <td v-if="SPLIT_TIME_COLUMN_FIELDS[column.key]" class="cell-time">
                   {{ getTimeFieldDisplay(flight, SPLIT_TIME_COLUMN_FIELDS[column.key]) }}
                 </td>
+                <!-- PR3：stand/baggage_carousel 为只读展示列（真相在占用服务），无编辑/圈选入口 -->
                 <td
                   v-if="column.key === 'stand'"
-                  :class="cellSelectedClass(getFlightDomId(flight), 'stand')"
                   :data-flight-id="getFlightDomId(flight)"
                   data-field="stand"
-                  @pointerdown="onCellPointerDown($event, flight, 'stand')"
-                  @pointerenter="onCellPointerEnter($event, flight, 'stand')"
-                  @pointerup="onCellPointerUp"
-                  @click="onCellClick($event, 'stand')"
-                  @contextmenu="onEditableContextMenu($event, flight, 'stand')"
-                  @dblclick="emit('edit-field', getFlightDomId(flight), 'stand', 'text', flight.stand || '')"
                 >
                   {{ flight.stand || '—' }}
                 </td>
@@ -1083,15 +1077,8 @@ onBeforeUnmount(() => {
                 </td>
                 <td
                   v-if="column.key === 'baggage_carousel'"
-                  :class="cellSelectedClass(getFlightDomId(flight), 'baggage_carousel')"
                   :data-flight-id="getFlightDomId(flight)"
                   data-field="baggage_carousel"
-                  @pointerdown="onCellPointerDown($event, flight, 'baggage_carousel')"
-                  @pointerenter="onCellPointerEnter($event, flight, 'baggage_carousel')"
-                  @pointerup="onCellPointerUp"
-                  @click="onCellClick($event, 'baggage_carousel')"
-                  @contextmenu="onEditableContextMenu($event, flight, 'baggage_carousel')"
-                  @dblclick="emit('edit-field', getFlightDomId(flight), 'baggage_carousel', 'text', flight.baggage_carousel || '')"
                 >
                   {{ flight.baggage_carousel || '—' }}
                 </td>

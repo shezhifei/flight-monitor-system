@@ -417,6 +417,13 @@ impl AiRuntimeService {
                 .get_mut(action_id)
                 .ok_or_else(|| AiRuntimeError::not_found(action_id))?;
             ensure_action_open(action, now)?;
+            if action.tool_name.starts_with("ontology.") {
+                return Err(AiRuntimeError::conflict(
+                    "ONTOLOGY_PENDING_FORBIDDEN",
+                    "ontology.* 不能走 pending 假执行，必须经 /api/v2/ai/proposals/{id}/approve + execute",
+                    Some("use_execute_proposal".to_string()),
+                ));
+            }
 
             let final_arguments = merge_json_objects(action.arguments.clone(), modified_arguments.clone());
             action.status = "executed".to_string();

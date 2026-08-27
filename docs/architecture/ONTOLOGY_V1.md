@@ -6,9 +6,11 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 - 运行资源：`/api/v2/ontology` → `OntologyService`
 - AI 协议：`/api/v2/ai/ontology` → 命名动作服务 + `DomainActionExecutor`
 
-`flight-ops.v1` 当前动作面：6 只读 / 5 建议 / 受控写（机位写作为
-`Flight.change_stand`）。历史完整动作清单见
-[ontology-v1-contract](../plans/2026-05-11-ontology-v1-contract.md)。
+`flight-ops.v1` 是定义层唯一类型目录：对象、字段、关系、动作、启用/风险/审批。
+运行时加载永远走 `load_governed_schema()`（代码底 + `aip_ontology_actions` overlay）。
+受控写真写只经提案队列 + `DomainActionExecutor`。`Flight.change_stand` /
+`Stand.reserve` / `Todo.create` 已废止，fail-closed。金样见
+`docs/fixtures/flight_ops_v1_ontology_schema.json`。
 
 ---
 
@@ -18,7 +20,7 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 2. **任务与飞机分离**：航段（Flight）可换机；换机后周转链接按同机健康性维护。
 3. **冲突软约束**：机位时段重叠只告警，不硬拦。
 4. **分权**：AOC / TOC / GROUND 岗位权限模板（见 migration 119）。
-5. **建议接受即执行**：`ResourceAdjustmentSuggestion` 接受后回写 Flight 计划字段。
+5. **占用回写展示列**：机位/口/转盘生效后回写航班 `stand` / `gate` / `terminal` / `baggage_carousel` 作只读展示，不是计划真相。`ResourceAdjustmentSuggestion` 接受 = 对应 allocate，不是一等对象。
 
 ---
 
@@ -107,10 +109,10 @@ server/di/flight.rs                             装配 OntologyService + Ontolog
 `AnomalyOpenListService`、`StandAvailabilityService`、`BriefingService`。
 
 建议动作服务：`StandRecommendationService`、`DispatchReplanAdvisorService`、
-`AnomalyEscalationAdvisorService`、`DelayAdvisorService`、
-`NotificationBroadcastAdvisorService`。
+`AnomalyEscalationAdvisorService`、`DelayAdvisorService`。
+`notification.suggest_broadcast` 已随 Notification 退出合同，不再作为信封动作。
 
-机位受控写只有 `Flight.change_stand`。旧 `Flight.update_stand` 不在 schema 中，执行器也拒绝该动作名。
+机位/口/转盘受控写是占用三对象上的 `allocate` / `adjust` / `release`。`Flight.change_stand` 与 `Stand.reserve` 不在 schema 中，执行器 fail-closed。
 
 | 动作 | 服务 |
 |---|---|
@@ -124,8 +126,7 @@ server/di/flight.rs                             装配 OntologyService + Ontolog
 | `dispatch.suggest_replan` | `DispatchReplanAdvisorService` |
 | `anomaly.suggest_escalation` | `AnomalyEscalationAdvisorService` |
 | `flight.suggest_delay_action` | `DelayAdvisorService` |
-| `notification.suggest_broadcast` | `NotificationBroadcastAdvisorService` |
-| `Flight.change_stand` / `Flight.update_delay` / 其它受控写 | `DomainActionExecutor` → 既有领域服务 |
+| `Flight.add_note` / `Flight.update_delay` / 占用 allocate·release / 派工槽位 / 其它受控写 | `DomainActionExecutor` → 既有领域服务 |
 
 ---
 

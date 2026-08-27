@@ -249,16 +249,12 @@ pub struct FlightUpdate {
     pub expected_version: Option<i32>,
 
     pub status: Option<String>,
-    #[serde(default)]
-    pub gate: NullableUpdate<String>,
-    #[serde(default)]
-    pub terminal: NullableUpdate<String>,
-    #[serde(default)]
-    pub stand: NullableUpdate<String>,
+    // PR3（本体两层改造）：stand/gate/terminal/baggage_carousel 为只读展示列，
+    // 真相在占用服务（StandOccupation/GateAssignment/CarouselAssignment），
+    // 已从本结构删除——deny_unknown_fields 使携带这些键的请求以 422 拒绝，
+    // 与 batch-cells 枚举拒绝同思路（删字段而非保留字段再分支拒绝）。
     #[serde(default)]
     pub position: NullableUpdate<String>,
-    #[serde(default)]
-    pub baggage_carousel: NullableUpdate<String>,
 
     #[serde(default)]
     pub scheduled_departure: NullableUpdate<DateTime<Utc>>,
@@ -309,31 +305,53 @@ pub struct FlightUpdate {
 
 #[cfg(test)]
 mod tests {
-    use super::{FlightUpdate, NullableUpdate};
+    use super::{FlightBatchCellUpdateRequest, FlightUpdate, NullableUpdate};
 
     #[test]
     fn flight_update_distinguishes_absent_null_and_value_for_nullable_fields() {
         let absent: FlightUpdate = serde_json::from_value(serde_json::json!({})).unwrap();
-        assert!(matches!(absent.gate, NullableUpdate::Unset));
+        assert!(matches!(absent.position, NullableUpdate::Unset));
         assert!(matches!(absent.scheduled_departure, NullableUpdate::Unset));
 
         let clear: FlightUpdate = serde_json::from_value(serde_json::json!({
-            "gate": null,
+            "position": null,
             "scheduled_departure": null,
             "inbound_leg": null
         }))
         .unwrap();
-        assert!(matches!(clear.gate, NullableUpdate::Clear));
+        assert!(matches!(clear.position, NullableUpdate::Clear));
         assert!(matches!(clear.scheduled_departure, NullableUpdate::Clear));
         assert!(matches!(clear.inbound_leg, NullableUpdate::Clear));
 
         let value: FlightUpdate = serde_json::from_value(serde_json::json!({
-            "gate": "G12",
+            "position": "P12",
             "scheduled_departure": "2026-04-27T08:30:00Z"
         }))
         .unwrap();
-        assert!(matches!(value.gate, NullableUpdate::Set(ref gate) if gate == "G12"));
+        assert!(matches!(value.position, NullableUpdate::Set(ref position) if position == "P12"));
         assert!(matches!(value.scheduled_departure, NullableUpdate::Set(_)));
+    }
+
+    #[test]
+    fn flight_update_rejects_occupancy_owned_display_columns() {
+        // PR3：stand/gate/terminal/baggage_carousel 为只读展示列（真相在占用服务），
+        // deny_unknown_fields 使这些键在反序列化阶段即被拒绝（422）。
+        for field in ["stand", "gate", "terminal", "baggage_carousel"] {
+            let raw = format!(r#"{{"{field}":"X1","flight_remarks":"note"}}"#);
+            let result = serde_json::from_str::<FlightUpdate>(&raw);
+            assert!(result.is_err(), "{field} must be rejected");
+        }
+    }
+
+    #[test]
+    fn batch_cells_rejects_occupancy_owned_display_columns() {
+        // PR3：batch-cells 枚举不含 stand/gate/terminal/baggage_carousel，
+        // 携带这些 field 的批量请求在反序列化阶段即被拒绝（422）。
+        for field in ["stand", "gate", "terminal", "baggage_carousel"] {
+            let raw = format!(r#"{{"field":"{field}","value":"X1","targets":[]}}"#);
+            let result = serde_json::from_str::<FlightBatchCellUpdateRequest>(&raw);
+            assert!(result.is_err(), "batch field {field} must be rejected");
+        }
     }
 }
 

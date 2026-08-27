@@ -477,8 +477,59 @@ describe('useUserManager — fetch + me + users', () => {
       department: '运行控制中心',
       job_level: 7,
       job_title: '值班经理',
+      account_type: 'personal',
     });
     expect(manager.showUserModal.value).toBe(true);
+  });
+
+  it('openEditUserModal loads grants and createQualificationGrant posts to department rules', async () => {
+    apiMocks.getImpl = (url) => {
+      if (url.includes('/dispatch/resources/departments')) {
+        return apiMocks.okResult({
+          success: true,
+          data: [{ id: 'dept_ground', name: '运行控制中心', code: 'GROUND' }],
+        });
+      }
+      if (url.includes('/qualification-grants')) {
+        return apiMocks.okResult({ success: true, data: [] });
+      }
+      if (url.includes('/qualifications')) {
+        return apiMocks.okResult({
+          success: true,
+          data: [{ qualification_code: 'TOWING', qualification_name: '牵引', is_active: true }],
+        });
+      }
+      if (url.includes('/qualification-levels')) {
+        return apiMocks.okResult({
+          success: true,
+          data: [{ qualification_code: 'TOWING', level_code: 'senior', level_name: '高级', is_active: true }],
+        });
+      }
+      return apiMocks.okResult([]);
+    };
+    const manager = useUserManager();
+    await manager.openEditUserModal({
+      id: 'u1',
+      username: 'ops_manager',
+      email: 'ops@example.test',
+      department: '运行控制中心',
+      account_type: 'personal',
+    });
+    expect(manager.qualificationDepartmentId.value).toBe('dept_ground');
+    manager.qualificationGrantForm.value = { qualification_code: 'TOWING', level_code: 'senior' };
+    apiMocks.calls.length = 0;
+    const ok = await manager.createQualificationGrant();
+    expect(ok).toBe(true);
+    const post = findCall(
+      'POST',
+      (u) => u === '/api/v2/dispatch/rules/departments/dept_ground/qualification-grants',
+    );
+    expect(post?.body).toMatchObject({
+      user_id: 'u1',
+      qualification_code: 'TOWING',
+      level_code: 'senior',
+      status: 'active',
+    });
   });
 
   it('createUser posts roles/department/job fields', async () => {
@@ -493,6 +544,7 @@ describe('useUserManager — fetch + me + users', () => {
       department: '运行控制中心',
       job_level: 3,
       job_title: '主管',
+      account_type: 'personal',
     });
     expect(ok).toBe(true);
     const post = findCall('POST', (u) => u === '/api/v2/auth/register');
@@ -504,6 +556,7 @@ describe('useUserManager — fetch + me + users', () => {
       department: '运行控制中心',
       job_level: 3,
       job_title: '主管',
+      account_type: 'personal',
     });
   });
 });

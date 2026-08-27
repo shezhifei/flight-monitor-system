@@ -106,9 +106,9 @@ describe('fromApi/toApi mappers', () => {
       id: 'team-ground-01',
       name: '地服一组',
       team_type_id: 'team-type-driver',
+      department_id: 'dept-ground',
       code: 'GROUND-01',
       leader_id: '00000000-0000-4000-8000-000000000002',
-      terminal: 'T1',
       current_status: 'available',
       current_stand_id: 'stand-a12',
       member_count: 3,
@@ -117,6 +117,7 @@ describe('fromApi/toApi mappers', () => {
     expect(team).toMatchObject({
       id: 'team-ground-01',
       team_type_id: 'team-type-driver',
+      department_id: 'dept-ground',
       current_status: 'available',
       current_stand_id: 'stand-a12',
       leader_id: '00000000-0000-4000-8000-000000000002',
@@ -128,9 +129,9 @@ describe('fromApi/toApi mappers', () => {
       id: 'equipment-tug-01',
       code: 'TUG-01',
       equipment_type_id: 'equipment-type-tug',
+      department_id: 'dept-ground',
       name: '一号牵引车',
       license_plate: '粤A·FMS01',
-      terminal: 'T1',
       status: 'available',
       current_stand_id: 'stand-a12',
       next_maintenance_date: '2026-08-01',
@@ -139,20 +140,21 @@ describe('fromApi/toApi mappers', () => {
     expect(eq).toMatchObject({
       code: 'TUG-01',
       equipment_type_id: 'equipment-type-tug',
+      department_id: 'dept-ground',
       equipment_type_name: '牵引车',
       license_plate: '粤A·FMS01',
       next_maintenance_date: '2026-08-01',
     });
   });
 
-  it('equipment create payload requires code and backend field names', () => {
+  it('equipment create payload requires code + department_id (PR2 contract)', () => {
     expect(
       equipmentToCreateApi({
         code: 'TUG-02',
         name: '二号牵引车',
         equipment_type_id: 'equipment-type-tug',
+        department_id: 'dept-ground',
         license_plate: '粤A·FMS02',
-        terminal: 'T2',
         status: 'available',
         next_maintenance_date: '2026-09-01',
       }),
@@ -160,34 +162,32 @@ describe('fromApi/toApi mappers', () => {
       code: 'TUG-02',
       name: '二号牵引车',
       equipment_type_id: 'equipment-type-tug',
+      department_id: 'dept-ground',
       license_plate: '粤A·FMS02',
-      terminal: 'T2',
       next_maintenance_date: '2026-09-01',
     });
   });
 
-  it('team create payload uses team_type_id / leader_id / terminal', () => {
+  it('team create payload requires department_id, no team_type_id/terminal (PR2 contract)', () => {
     expect(
       teamToCreateApi({
         name: '地服二组',
         code: 'GROUND-02',
-        team_type_id: 'team-type-driver',
-        terminal: 'T1',
+        department_id: 'dept-ground',
         leader_id: 'u1',
         current_status: 'available',
       }),
     ).toEqual({
       name: '地服二组',
       code: 'GROUND-02',
-      team_type_id: 'team-type-driver',
-      terminal: 'T1',
+      department_id: 'dept-ground',
       leader_id: 'u1',
     });
   });
 });
 
 describe('useResourceManager', () => {
-  it('bootstraps with teams/team-types/equipment-types/users/me endpoints and page params', async () => {
+  it('bootstraps with teams/team-types/equipment-types/departments/users/me endpoints and page params', async () => {
     const { api, unmount } = await mountComposable();
     await nextTick();
     await nextTick();
@@ -195,6 +195,7 @@ describe('useResourceManager', () => {
     expect(urls.some(u => u.startsWith('/api/v2/dispatch/teams'))).toBe(true);
     expect(urls.some(u => u.startsWith('/api/v2/dispatch/team-types'))).toBe(true);
     expect(urls.some(u => u.startsWith('/api/v2/dispatch/equipment-types'))).toBe(true);
+    expect(urls.some(u => u.startsWith('/api/v2/dispatch/resources/departments'))).toBe(true);
     expect(urls.some(u => u.startsWith('/api/v2/auth/users'))).toBe(true);
     expect(urls).toContain('/api/v2/auth/me');
     const teamsUrl = urls.find(u => u.startsWith('/api/v2/dispatch/teams'));
@@ -217,9 +218,9 @@ describe('useResourceManager', () => {
                 id: 'team-ground-01',
                 name: '地服一组',
                 team_type_id: 'team-type-driver',
+                department_id: 'dept-ground',
                 code: 'GROUND-01',
                 leader_id: 'u2',
-                terminal: 'T1',
                 current_status: 'on_duty',
                 current_stand_id: 'stand-a12',
                 member_count: 3,
@@ -351,7 +352,7 @@ describe('useResourceManager', () => {
     unmount();
   });
 
-  it('createEquipmentType includes driver_team_type_id and icon', async () => {
+  it('createEquipmentType includes requires_driver and icon', async () => {
     const { api, unmount } = await mountComposable();
     await nextTick();
     recorded.length = 0;
@@ -360,7 +361,6 @@ describe('useResourceManager', () => {
       code: 'TUG',
       category: 'vehicle',
       requires_driver: true,
-      driver_team_type_id: 'team-type-driver',
       icon: 'tractor',
       description: '',
     });
@@ -370,14 +370,13 @@ describe('useResourceManager', () => {
       code: 'TUG',
       category: 'vehicle',
       requires_driver: true,
-      driver_team_type_id: 'team-type-driver',
       icon: 'tractor',
       description: null,
     });
     unmount();
   });
 
-  it('createEquipment includes required code field', async () => {
+  it('createEquipment includes required code and department_id fields', async () => {
     const { api, unmount } = await mountComposable();
     await nextTick();
     recorded.length = 0;
@@ -385,8 +384,8 @@ describe('useResourceManager', () => {
       code: 'TUG-01',
       name: '一号牵引车',
       equipment_type_id: 'equipment-type-tug',
+      department_id: 'dept-ground',
       license_plate: '粤A·FMS01',
-      terminal: 'T1',
       status: 'available',
       next_maintenance_date: '2026-08-01',
     });
@@ -396,8 +395,8 @@ describe('useResourceManager', () => {
       code: 'TUG-01',
       name: '一号牵引车',
       equipment_type_id: 'equipment-type-tug',
+      department_id: 'dept-ground',
       license_plate: '粤A·FMS01',
-      terminal: 'T1',
       next_maintenance_date: '2026-08-01',
     });
     unmount();
@@ -412,8 +411,8 @@ describe('useResourceManager', () => {
       code: '',
       name: '无代码',
       equipment_type_id: '',
+      department_id: 'dept-ground',
       license_plate: '',
-      terminal: '',
       status: 'available',
       next_maintenance_date: '',
     });
@@ -423,13 +422,78 @@ describe('useResourceManager', () => {
     unmount();
   });
 
+  it('rejects equipment create without department_id (PR2 required)', async () => {
+    const { api, unmount } = await mountComposable();
+    await nextTick();
+    recorded.length = 0;
+    toastCalls.length = 0;
+    const ok = await api.createEquipment({
+      code: 'TUG-09',
+      name: '',
+      equipment_type_id: '',
+      department_id: '',
+      license_plate: '',
+      status: 'available',
+      next_maintenance_date: '',
+    });
+    expect(ok).toBe(false);
+    expect(recorded.some(r => r.method === 'POST' && r.url === '/api/v2/dispatch/equipment')).toBe(false);
+    expect(toastCalls.some(t => t.message === '请选择所属科室')).toBe(true);
+    unmount();
+  });
+
+  it('rejects team create without department_id (PR2 required)', async () => {
+    const { api, unmount } = await mountComposable();
+    await nextTick();
+    recorded.length = 0;
+    toastCalls.length = 0;
+    const ok = await api.createTeam({
+      name: '地服三组',
+      code: '',
+      department_id: '',
+      leader_id: '',
+      current_status: 'available',
+    });
+    expect(ok).toBe(false);
+    expect(recorded.some(r => r.method === 'POST' && r.url === '/api/v2/dispatch/teams')).toBe(false);
+    expect(toastCalls.some(t => t.message === '请选择所属科室')).toBe(true);
+    unmount();
+  });
+
+  it('createDepartment posts to resources/departments and setDepartmentActive PUTs is_active', async () => {
+    const { api, unmount } = await mountComposable();
+    await nextTick();
+    recorded.length = 0;
+    const ok = await api.createDepartment({
+      name: '地面服务部',
+      code: 'GROUND',
+      description: '',
+      manager_id: 'u1',
+    });
+    expect(ok).toBe(true);
+    const post = recorded.find(r => r.method === 'POST' && r.url === '/api/v2/dispatch/resources/departments');
+    expect(post?.body).toEqual({
+      name: '地面服务部',
+      code: 'GROUND',
+      description: null,
+      manager_id: 'u1',
+    });
+
+    recorded.length = 0;
+    await api.setDepartmentActive('dept_1', false);
+    const put = recorded.find(
+      r => r.method === 'PUT' && r.url === '/api/v2/dispatch/resources/departments/dept_1',
+    );
+    expect(put?.body).toEqual({ is_active: false });
+    unmount();
+  });
+
   it('updateEquipmentStatus uses legacy PUT /equipment/{id}/status?status=...', async () => {
     const { api, unmount } = await mountComposable();
     await nextTick();
     recorded.length = 0;
     await api.updateEquipmentStatus('eq_1', {
       status: 'maintenance',
-      terminal: '机库A',
       next_maintenance_date: '2026-07-01',
     });
     const statusCall = recorded.find(r => r.method === 'PUT' && r.url.startsWith('/api/v2/dispatch/equipment/eq_1/status'));
@@ -437,8 +501,8 @@ describe('useResourceManager', () => {
     expect(statusCall?.url).toContain('status=maintenance');
     const metaCall = recorded.find(r => r.method === 'PUT' && r.url === '/api/v2/dispatch/equipment/eq_1');
     expect(metaCall).toBeTruthy();
-    expect((metaCall?.body as { terminal?: string }).terminal).toBe('机库A');
-    expect((metaCall?.body as { next_maintenance_date?: string }).next_maintenance_date).toBe('2026-07-01');
+    // PR2 起设备无常驻楼字段，meta 只带保养日期
+    expect(metaCall?.body).toEqual({ next_maintenance_date: '2026-07-01' });
     unmount();
   });
 

@@ -283,32 +283,6 @@ impl DispatchService {
     }
 
     pub(super) async fn resolve_followup_owner(&self, order: &DispatchOrder) -> Result<Option<String>, DomainError> {
-        if let Some(team_id) = order.team_id.as_deref() {
-            let team_repo = self.resources.team_repo.as_ref();
-            if let Some(team) = team_repo.find_by_id(team_id, true).await? {
-                if let Some(leader_id) = team
-                    .leader_id
-                    .as_deref()
-                    .map(str::trim)
-                    .filter(|value| !value.is_empty())
-                {
-                    return Ok(Some(leader_id.to_string()));
-                }
-            }
-        }
-
-        if let Some(team_id) = order.team_id.as_deref() {
-            let team_member_repo = self.resources.team_member_repo.as_ref();
-            for member in team_member_repo.find_by_team(team_id, false).await? {
-                if member.is_active && matches!(member.role, MemberRole::Leader) {
-                    let user_id = member.user_id.trim();
-                    if !user_id.is_empty() {
-                        return Ok(Some(user_id.to_string()));
-                    }
-                }
-            }
-        }
-
         for member in order.members.iter().filter(|member| member.is_active) {
             if matches!(member.role, MemberRole::Leader) {
                 let user_id = member.user_id.trim();

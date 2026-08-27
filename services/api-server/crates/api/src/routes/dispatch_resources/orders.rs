@@ -28,7 +28,6 @@ pub async fn list_orders(
     let orders = svc
         .list_order_records(
             query.flight_id.as_deref(),
-            query.team_id.as_deref(),
             query.status.as_deref(),
             query.source.as_deref(),
             department.as_deref(),

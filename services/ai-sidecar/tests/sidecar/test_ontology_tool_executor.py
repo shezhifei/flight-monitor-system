@@ -21,7 +21,9 @@ from typing import Any
 import pytest
 
 from src.infrastructure.ai.ontology.action_client import OntologyActionClientError
-from src.infrastructure.ai.ontology_tools import ADVISORY_ACTIONS, UnregisteredActionError
+from types import SimpleNamespace
+
+from src.infrastructure.ai.ontology_tools import UnregisteredActionError
 from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
     is_ontology_tool,
@@ -104,6 +106,10 @@ def _executor(**kwargs: Any) -> ToolExecutor:
     return ToolExecutor(**kwargs)
 
 
+def _envelope(*actions: str) -> SimpleNamespace:
+    return SimpleNamespace(ontology=SimpleNamespace(allowed_actions=list(actions)))
+
+
 def test_tool_type_is_ontology() -> None:
     executor = _executor()
     for name in ONTOLOGY_TOOL_NAMES:
@@ -149,8 +155,7 @@ async def test_explain_constraints_routes_to_ontology_client() -> None:
 
 @pytest.mark.asyncio
 async def test_propose_deprecated_write_fails_closed() -> None:
-    # Flight.change_stand 已废止（PR #本体两层改造）并移出 CONTROLLED_WRITE_ACTIONS。
-    # 未登记受控写 → propose_action fail-closed（UNREGISTERED_ACTION），不落提案、不进读取面。
+    # 信封不含已废止动作 → propose_action fail-closed，不落提案。
     fake = FakeOntologyTools()
     executor = _executor(ontology_tools=fake)
     result = await executor.execute(
@@ -163,6 +168,7 @@ async def test_propose_deprecated_write_fails_closed() -> None:
             },
         },
         run_id="run_3",
+        envelope=_envelope("StandOccupation.allocate"),
     )
     assert result.success is False
     assert result.proposal is None
@@ -191,11 +197,12 @@ async def test_propose_rejected_outcome_fails_without_proposal() -> None:
             "tool_call_id": "c3a",
             "tool_name": "ontology.propose_action",
             "arguments": {
-                "action_name": "Flight.change_stand",
-                "parameters": {"flight_id": "F1", "new_stand_id": "A12"},
+                "action_name": "StandOccupation.allocate",
+                "parameters": {"stand_code": "A12", "registration": "B-1234"},
             },
         },
         run_id="run_3a",
+        envelope=_envelope("StandOccupation.allocate"),
     )
     # Hard constraint rejection: failure surfaced, no proposal created.
     assert result.success is False
@@ -228,11 +235,12 @@ async def test_propose_controlled_write_proposal_carries_simulate() -> None:
             "tool_call_id": "c3b",
             "tool_name": "ontology.propose_action",
             "arguments": {
-                "action_name": "Flight.change_stand",
-                "parameters": {"flight_id": "F1", "new_stand_id": "A12"},
+                "action_name": "StandOccupation.allocate",
+                "parameters": {"stand_code": "A12", "registration": "B-1234"},
             },
         },
         run_id="run_3b",
+        envelope=_envelope("StandOccupation.allocate"),
     )
     assert result.success is True
     assert result.proposal is not None
@@ -241,22 +249,27 @@ async def test_propose_controlled_write_proposal_carries_simulate() -> None:
 
 
 @pytest.mark.asyncio
-async def test_propose_advisory_action_passes_through() -> None:
+async def test_propose_action_uses_envelope_allowlist() -> None:
     fake = FakeOntologyTools()
     executor = _executor(ontology_tools=fake)
     result = await executor.execute(
         {
             "tool_call_id": "c4",
             "tool_name": "ontology.propose_action",
-            "arguments": {"action_name": "flight.suggest_stand_adjustment", "parameters": {"flight_id": "F1"}},
+            "arguments": {
+                "action_name": "StandOccupation.allocate",
+                "parameters": {"stand_code": "A12"},
+            },
         },
         run_id="run_4",
+        envelope=_envelope("StandOccupation.allocate", "Flight.add_note"),
     )
     assert result.success is True
-    assert result.proposal is None
-    assert result.result["suggestions"] == [{"stand_id": "B2"}]
-    assert fake.propose_calls[0]["action_name"] == "flight.suggest_stand_adjustment"
-    assert set(fake.propose_calls[0]["allowed_actions"]) >= ADVISORY_ACTIONS
+    assert fake.propose_calls[0]["action_name"] == "StandOccupation.allocate"
+    assert fake.propose_calls[0]["allowed_actions"] == [
+        "StandOccupation.allocate",
+        "Flight.add_note",
+    ]
 
 
 @pytest.mark.asyncio

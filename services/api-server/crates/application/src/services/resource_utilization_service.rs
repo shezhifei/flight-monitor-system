@@ -135,13 +135,24 @@ impl ResourceUtilizationService {
         let mut team_minutes: HashMap<String, f64> = HashMap::new();
         let mut team_order_count: HashMap<String, i64> = HashMap::new();
 
+        // 工单不再挂班组：按成员的班组名册来源（source_team_id）聚合
         for order in orders {
-            let Some(team_id) = order.team_id.as_deref() else {
-                continue;
-            };
             let occupied_minutes = overlap_minutes(order, window_start, window_end);
-            *team_minutes.entry(team_id.to_string()).or_insert(0.0) += occupied_minutes;
-            *team_order_count.entry(team_id.to_string()).or_insert(0) += 1;
+            let mut seen_in_order = std::collections::HashSet::new();
+            for member in order.members.iter().filter(|member| member.is_active) {
+                let Some(team_id) = member
+                    .source_team_id
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                else {
+                    continue;
+                };
+                if seen_in_order.insert(team_id.to_string()) {
+                    *team_minutes.entry(team_id.to_string()).or_insert(0.0) += occupied_minutes;
+                    *team_order_count.entry(team_id.to_string()).or_insert(0) += 1;
+                }
+            }
         }
 
         let mut results = team_minutes

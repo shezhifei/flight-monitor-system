@@ -477,6 +477,38 @@ async fn approve_pending_action_notifies_requester() {
 }
 
 #[tokio::test]
+async fn approve_pending_ontology_tool_is_rejected() {
+    let service = AiRuntimeService::new();
+    let pending = service
+        .execute_tool(
+            AiToolExecutionSpec {
+                tool_name: "ontology.propose_action".to_string(),
+                category: "ontology".to_string(),
+                operation_level: "l2_write".to_string(),
+                side_effect: true,
+                query_intent: None,
+                query_dataset: None,
+            },
+            json!({"action_name": "Flight.add_note"}),
+            Some("requester_001".to_string()),
+            vec!["dispatcher".to_string()],
+        )
+        .await;
+    let action_id = pending["approval_id"].as_str().expect("approval id").to_string();
+
+    let error = service
+        .approve_pending_action(&action_id, "approver_001", None)
+        .await
+        .expect_err("ontology pending must not fake-execute");
+    match error {
+        crate::services::ai_runtime_service::AiRuntimeError::Conflict { code, .. } => {
+            assert_eq!(code, "ONTOLOGY_PENDING_FORBIDDEN");
+        }
+        other => panic!("expected conflict, got {other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn execute_tool_contract_matches_python_payload_shape() {
     let service = AiRuntimeService::new();
 

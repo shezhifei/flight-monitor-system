@@ -301,7 +301,7 @@ fn status_value(order: &DispatchOrder) -> &'static str {
 }
 
 fn is_assigned(order: &DispatchOrder) -> bool {
-    order.team_id.is_some() || order.individual_user_id.is_some() || !order.members.is_empty()
+    order.individual_user_id.is_some() || !order.members.is_empty()
 }
 
 fn group_key(order: &DispatchOrder, group_by: &str) -> (String, String) {
@@ -315,21 +315,26 @@ fn group_key(order: &DispatchOrder, group_by: &str) -> (String, String) {
             let label = order.task_type_name.clone().unwrap_or_else(|| key.clone());
             (key, label)
         }
+        // 班组不再是指派对象：默认按科室分组
         _ => {
-            let key = order.team_id.clone().unwrap_or_else(|| "unassigned".to_string());
-            let label = order.team_name.clone().unwrap_or_else(|| key.clone());
-            (key, label)
+            let key = order
+                .department_id
+                .clone()
+                .or_else(|| order.department.clone())
+                .unwrap_or_else(|| "unassigned".to_string());
+            (key.clone(), key)
         }
     }
 }
 
 fn team_occupied_minutes(orders: &[DispatchOrder], ws: DateTime<Utc>, we: DateTime<Utc>) -> HashMap<String, f64> {
+    // 工单不再挂班组：按科室聚合占用时长
     let mut result = HashMap::new();
     for order in orders {
-        let Some(team_id) = order.team_id.as_ref() else {
+        let Some(department_id) = order.department_id.as_ref() else {
             continue;
         };
-        *result.entry(team_id.clone()).or_insert(0.0) += occupied_minutes(order, ws, we);
+        *result.entry(department_id.clone()).or_insert(0.0) += occupied_minutes(order, ws, we);
     }
     result
 }

@@ -626,6 +626,8 @@ async fn build_test_executor(
                 as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
             Arc::new(fms_application::test_support::UnwiredRepository)
                 as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
+            Arc::new(PgEquipmentRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentRepository + Send + Sync>,
             dispatch_service.clone(),
         ));
 
@@ -743,6 +745,11 @@ async fn build_test_executor(
         business_case_writer,
         ontology_svc,
         dispatch_resource_svc,
+        Arc::new(fms_application::services::terminal_resource_service::TerminalResourceService::new(
+            Arc::new(fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository::new(
+                pool.clone(),
+            )) as Arc<dyn fms_domain::ports::dispatch_repository::TerminalRepository + Send + Sync>,
+        )) as Arc<fms_application::types::ConcreteTerminalResourceService>,
         outbox_repo,
         anomaly_repo,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
@@ -850,9 +857,58 @@ async fn test_execute_proposal_success() {
 
 // ── API DB Smoke helpers ──────────────────────────────────────────────
 
-fn smoke_todo_create_proposal(
+fn smoke_flight_id(correlation_id: &str) -> String {
+    format!("SMK{}", &correlation_id[correlation_id.len().saturating_sub(8)..])
+}
+
+async fn seed_smoke_flight(pool: &sqlx::PgPool, flight_id: &str) {
+    sqlx::query(
+        r#"INSERT INTO flights (
+                flight_id, airline_code, flight_number, registration,
+                aircraft_type_detail, status,
+                scheduled_departure, scheduled_arrival,
+                estimated_departure, estimated_arrival,
+                actual_departure, actual_arrival,
+                cobt_time, codt,
+                gate, stand, terminal, position, baggage_carousel,
+                has_boarding_restriction, is_quick_turnaround, is_commercial_signed,
+                created_at, updated_at, version,
+                flight_remarks, load_planning_remarks,
+                aircraft_maintenance_remarks, aircraft_check_remarks
+            ) VALUES (
+                $1, 'CA', $2, NULL,
+                NULL, 0,
+                NOW(), NOW() + INTERVAL '2 hours',
+                NULL, NULL,
+                NULL, NULL,
+                NULL, NULL,
+                'A12', 'S1', 'T1', NULL, NULL,
+                FALSE, FALSE, TRUE,
+                NOW(), NOW(), 1,
+                NULL, NULL, NULL, NULL
+            ) ON CONFLICT (flight_id) DO NOTHING"#,
+    )
+    .bind(flight_id)
+    .bind(format!("CA{}", &flight_id[..flight_id.len().min(4)]))
+    .execute(pool)
+    .await
+    .expect("seed smoke flight");
+}
+
+async fn smoke_flight_remarks(pool: &sqlx::PgPool, flight_id: &str) -> Option<String> {
+    let row: Option<(Option<String>,)> =
+        sqlx::query_as("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+            .bind(flight_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten();
+    row.and_then(|(value,)| value)
+}
+
+fn smoke_flight_add_note_proposal(
     proposal_id: &str,
-    object_id: &str,
+    flight_id: &str,
     correlation_id: &str,
 ) -> fms_domain::models::ai_proposal::AiActionProposal {
     use fms_domain::models::ai_proposal::AiActionProposal;
@@ -862,18 +918,18 @@ fn smoke_todo_create_proposal(
         job_id: format!("api_smoke_job_{proposal_id}"),
         run_id: format!("api_smoke_run_{proposal_id}"),
         ontology_version: "flight-ops.v1".to_string(),
-        object_type: "Todo".to_string(),
-        object_id: object_id.to_string(),
-        action_name: "create".to_string(),
-        arguments: json!({ "title": format!("API smoke todo {correlation_id}") }),
+        object_type: "Flight".to_string(),
+        object_id: flight_id.to_string(),
+        action_name: "add_note".to_string(),
+        arguments: json!({ "note_content": format!("API smoke note {correlation_id}") }),
         risk_level: RiskLevel::Low,
-        required_permissions: vec!["todo:write".to_string()],
+        required_permissions: vec!["flight:write".to_string()],
         approval_policy: ApprovalPolicy::AutoExecute,
         before_snapshot: None,
         after_preview: None,
         constraint_results: vec![],
         confidence: 0.95,
-        reasoning: "API smoke Todo.create".to_string(),
+        reasoning: "API smoke Flight.add_note".to_string(),
         status: ActionProposalStatus::Approved,
         pending_action_id: None,
         approved_by: Some("api_smoke_approver".to_string()),
@@ -968,7 +1024,7 @@ async fn save_smoke_proposal(pool: &sqlx::PgPool, proposal: &fms_domain::models:
 
 #[actix_web::test]
 #[ignore = "requires TEST_DATABASE_URL; API proposal smoke — run via scripts/dev/run_aip_api_staging_smoke.ps1"]
-async fn api_proposal_smoke_happy_path_todo_create_execute() {
+async fn api_proposal_smoke_happy_path_flight_add_note_execute() {
     if !has_pool() {
         return;
     }
@@ -979,8 +1035,9 @@ async fn api_proposal_smoke_happy_path_todo_create_execute() {
 
     let correlation_id = format!("urn:ulid:{}", ulid::Ulid::new());
     let proposal_id = format!("api_smoke_{}", ulid::Ulid::new());
-    let object_id = ulid::Ulid::new().to_string(); // ≤26 chars for outbox aggregate_id
-    let proposal = smoke_todo_create_proposal(&proposal_id, &object_id, &correlation_id);
+    let flight_id = smoke_flight_id(&correlation_id);
+    seed_smoke_flight(&pool, &flight_id).await;
+    let proposal = smoke_flight_add_note_proposal(&proposal_id, &flight_id, &correlation_id);
     save_smoke_proposal(&pool, &proposal).await;
 
     // Set execution env vars
@@ -996,7 +1053,7 @@ async fn api_proposal_smoke_happy_path_todo_create_execute() {
     )
     .await;
 
-    let token = make_jwt(&["todo:write", "system.config_read"], None);
+    let token = make_jwt(&["flight:write", "system.config_read"], None);
     let exec_req = test::TestRequest::post()
         .uri(&format!("/api/v2/ai/proposals/{proposal_id}/execute"))
         .insert_header(("Authorization", format!("Bearer {token}")))
@@ -1009,7 +1066,7 @@ async fn api_proposal_smoke_happy_path_todo_create_execute() {
     assert_eq!(
         resp_status,
         StatusCode::OK,
-        "API execute should return 200 for approved Todo.create, got body: {resp_text}"
+        "API execute should return 200 for approved Flight.add_note, got body: {resp_text}"
     );
 
     // 1. Proposal status is Executed
@@ -1020,19 +1077,20 @@ async fn api_proposal_smoke_happy_path_todo_create_execute() {
         "proposal should be in Executed status"
     );
 
-    // 2. Todo business row exists (source_id = object_id set by executor)
-    let todo_exists = todo_exists_by_source(&pool, "ai_action", &object_id)
-        .await
-        .unwrap_or(false);
-    assert!(todo_exists, "todo row should exist after API smoke execution");
+    // 2. Flight remarks written by Flight.add_note
+    let remarks = smoke_flight_remarks(&pool, &flight_id).await.unwrap_or_default();
+    assert!(
+        remarks.contains("API smoke note"),
+        "flight_remarks should be written after API smoke execution, got {remarks:?}"
+    );
 
-    // 3. Domain event outbox has a Todo.create event (aggregate_id = object_id)
-    let outbox_count = outbox_count_by_event_type(&pool, "Todo.create", &object_id)
+    // 3. Domain event outbox has a Flight.add_note event (aggregate_id = flight_id)
+    let outbox_count = outbox_count_by_event_type(&pool, "Flight.add_note", &flight_id)
         .await
         .unwrap();
     assert!(
         outbox_count >= 1,
-        "outbox should contain Todo.create event for proposal"
+        "outbox should contain Flight.add_note event for proposal"
     );
 
     // 4. Audit events recorded
@@ -1066,13 +1124,14 @@ async fn api_proposal_smoke_execution_disabled_returns_conflict() {
 
     let correlation_id = format!("urn:ulid:{}", ulid::Ulid::new());
     let proposal_id = format!("api_smoke_{}", ulid::Ulid::new());
-    let object_id = ulid::Ulid::new().to_string();
-    let proposal = smoke_todo_create_proposal(&proposal_id, &object_id, &correlation_id);
+    let flight_id = smoke_flight_id(&correlation_id);
+    seed_smoke_flight(&pool, &flight_id).await;
+    let proposal = smoke_flight_add_note_proposal(&proposal_id, &flight_id, &correlation_id);
     save_smoke_proposal(&pool, &proposal).await;
 
     // Count before
-    let todo_count_before = todo_count_by_source(&pool, "ai_action", &object_id).await.unwrap();
-    let outbox_count_before = outbox_count_by_event_type(&pool, "Todo.create", &object_id)
+    let remarks_before = smoke_flight_remarks(&pool, &flight_id).await;
+    let outbox_count_before = outbox_count_by_event_type(&pool, "Flight.add_note", &flight_id)
         .await
         .unwrap();
 
@@ -1088,7 +1147,7 @@ async fn api_proposal_smoke_execution_disabled_returns_conflict() {
     )
     .await;
 
-    let token = make_jwt(&["todo:write"], None);
+    let token = make_jwt(&["flight:write"], None);
     let exec_req = test::TestRequest::post()
         .uri(&format!("/api/v2/ai/proposals/{proposal_id}/execute"))
         .insert_header(("Authorization", format!("Bearer {token}")))
@@ -1110,13 +1169,13 @@ async fn api_proposal_smoke_execution_disabled_returns_conflict() {
     );
 
     // No side effects
-    let todo_count_after = todo_count_by_source(&pool, "ai_action", &object_id).await.unwrap();
-    let outbox_count_after = outbox_count_by_event_type(&pool, "Todo.create", &object_id)
+    let remarks_after = smoke_flight_remarks(&pool, &flight_id).await;
+    let outbox_count_after = outbox_count_by_event_type(&pool, "Flight.add_note", &flight_id)
         .await
         .unwrap();
     assert_eq!(
-        todo_count_after, todo_count_before,
-        "execution-disabled must not create todo rows"
+        remarks_after, remarks_before,
+        "execution-disabled must not write flight_remarks"
     );
     assert_eq!(
         outbox_count_after, outbox_count_before,
@@ -1137,8 +1196,9 @@ async fn api_proposal_smoke_permission_denied_returns_403() {
 
     let correlation_id = format!("urn:ulid:{}", ulid::Ulid::new());
     let proposal_id = format!("api_smoke_{}", ulid::Ulid::new());
-    let object_id = ulid::Ulid::new().to_string();
-    let proposal = smoke_todo_create_proposal(&proposal_id, &object_id, &correlation_id);
+    let flight_id = smoke_flight_id(&correlation_id);
+    seed_smoke_flight(&pool, &flight_id).await;
+    let proposal = smoke_flight_add_note_proposal(&proposal_id, &flight_id, &correlation_id);
     save_smoke_proposal(&pool, &proposal).await;
 
     let _env_guard = SMOKE_ENV_LOCK.lock().unwrap();
@@ -1153,7 +1213,7 @@ async fn api_proposal_smoke_permission_denied_returns_403() {
     )
     .await;
 
-    // Token missing todo:write → should be rejected
+    // Token missing flight:write → should be rejected
     let token = make_jwt(&["flight:read"], None);
     let exec_req = test::TestRequest::post()
         .uri(&format!("/api/v2/ai/proposals/{proposal_id}/execute"))
@@ -1164,7 +1224,7 @@ async fn api_proposal_smoke_permission_denied_returns_403() {
     assert_eq!(
         resp.status(),
         StatusCode::FORBIDDEN,
-        "API execute should return 403 when user lacks todo:write"
+        "API execute should return 403 when user lacks flight:write"
     );
 
     // Proposal remains Approved, no side effects
@@ -1175,10 +1235,11 @@ async fn api_proposal_smoke_permission_denied_returns_403() {
         "proposal should remain Approved when permission denied"
     );
 
-    let todo_exists = todo_exists_by_source(&pool, "ai_action", &object_id)
-        .await
-        .unwrap_or(false);
-    assert!(!todo_exists, "no todo should be created when permission denied");
+    let remarks = smoke_flight_remarks(&pool, &flight_id).await.unwrap_or_default();
+    assert!(
+        remarks.is_empty(),
+        "flight_remarks must stay empty when permission denied"
+    );
 }
 
 #[actix_web::test]
@@ -1199,8 +1260,9 @@ async fn api_proposal_smoke_readiness_not_ready_blocks_execute() {
 
     let correlation_id = format!("urn:ulid:{}", ulid::Ulid::new());
     let proposal_id = format!("api_smoke_{}", ulid::Ulid::new());
-    let object_id = ulid::Ulid::new().to_string();
-    let proposal = smoke_todo_create_proposal(&proposal_id, &object_id, &correlation_id);
+    let flight_id = smoke_flight_id(&correlation_id);
+    seed_smoke_flight(&pool, &flight_id).await;
+    let proposal = smoke_flight_add_note_proposal(&proposal_id, &flight_id, &correlation_id);
     save_smoke_proposal(&pool, &proposal).await;
 
     // Execution enabled but NO staging override → readiness fails
@@ -1216,7 +1278,7 @@ async fn api_proposal_smoke_readiness_not_ready_blocks_execute() {
     )
     .await;
 
-    let token = make_jwt(&["todo:write"], None);
+    let token = make_jwt(&["flight:write"], None);
     let exec_req = test::TestRequest::post()
         .uri(&format!("/api/v2/ai/proposals/{proposal_id}/execute"))
         .insert_header(("Authorization", format!("Bearer {token}")))
@@ -1248,8 +1310,9 @@ async fn api_proposal_smoke_readiness_not_ready_blocks_execute() {
     );
 
     // No side effects
-    let todo_exists = todo_exists_by_source(&pool, "ai_action", &object_id)
-        .await
-        .unwrap_or(false);
-    assert!(!todo_exists, "no todo should be created when readiness blocks");
+    let remarks = smoke_flight_remarks(&pool, &flight_id).await.unwrap_or_default();
+    assert!(
+        remarks.is_empty(),
+        "flight_remarks must stay empty when readiness blocks"
+    );
 }

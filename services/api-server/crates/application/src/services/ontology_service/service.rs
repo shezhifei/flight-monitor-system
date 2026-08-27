@@ -721,7 +721,7 @@ impl OntologyService {
             gate_code: GateNumber(gate_code.to_string()),
             starts_at: request.starts_at,
             ends_at: request.ends_at,
-            flight_id: Some(FlightId(flight_id.to_string())),
+            flight_id: FlightId(flight_id.to_string()),
             status: AssignmentStatus::Active,
             client_action_id: request.client_action_id.clone(),
             created_by: Some(actor_id.to_string()),

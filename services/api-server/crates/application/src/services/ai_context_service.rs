@@ -4,10 +4,13 @@ use crate::types::{
     ConcreteNotificationService, ConcreteTodoService,
 };
 use fms_domain::models::ai_context_envelope::*;
+use fms_domain::ontology::governed::{load_governed_schema, ActionOverlay};
 use fms_domain::ports::ai_context_snapshot_repository::{AiContextSnapshotKind, AiContextSnapshotRepository};
+use fms_domain::ports::ai_entity_config_repository::AiEntityConfigRepository;
 use fms_domain::ports::ai_object_policy_repository::{
     AiObjectAccessRequest, AiObjectPolicyRepository, AiObjectPolicySubject,
 };
+use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use std::collections::HashSet;
 use std::sync::Arc;
 use thiserror::Error;
@@ -28,6 +31,8 @@ pub struct AiContextService {
     todo_service: Option<Arc<ConcreteTodoService>>,
     object_policy_repository: Option<Arc<dyn AiObjectPolicyRepository + Send + Sync>>,
     snapshot_repository: Option<Arc<dyn AiContextSnapshotRepository>>,
+    ontology_repository: Option<Arc<dyn AiOntologyRepository + Send + Sync>>,
+    entity_config_repository: Option<Arc<dyn AiEntityConfigRepository + Send + Sync>>,
 }
 
 impl AiContextService {
@@ -42,6 +47,8 @@ impl AiContextService {
             todo_service: None,
             object_policy_repository: None,
             snapshot_repository: None,
+            ontology_repository: None,
+            entity_config_repository: None,
         }
     }
 
@@ -83,6 +90,19 @@ impl AiContextService {
         self
     }
 
+    pub fn with_ontology_repository(mut self, repository: Arc<dyn AiOntologyRepository + Send + Sync>) -> Self {
+        self.ontology_repository = Some(repository);
+        self
+    }
+
+    pub fn with_entity_config_repository(
+        mut self,
+        repository: Arc<dyn AiEntityConfigRepository + Send + Sync>,
+    ) -> Self {
+        self.entity_config_repository = Some(repository);
+        self
+    }
+
     pub async fn build_envelope(
         &self,
         user_id: &str,
@@ -92,40 +112,43 @@ impl AiContextService {
         user_message: &str,
         target_objects: &[(String, String)],
     ) -> Result<ContextEnvelope, AiContextError> {
-        let allowed_actions = self
-            .authorization_service
-            .get_allowed_ai_actions(user_id, roles)
-            .await
-            .map_err(|e| AiContextError::Internal(e.to_string()))?;
+        self.build_envelope_for_entity(
+            user_id,
+            roles,
+            department_id,
+            task_type,
+            user_message,
+            target_objects,
+            None,
+        )
+        .await
+    }
+
+    pub async fn build_envelope_for_entity(
+        &self,
+        user_id: &str,
+        roles: &[String],
+        department_id: Option<&str>,
+        task_type: &str,
+        user_message: &str,
+        target_objects: &[(String, String)],
+        entity_id: Option<&str>,
+    ) -> Result<ContextEnvelope, AiContextError> {
+        let overlays = self.load_action_overlays().await?;
+        let schema = load_governed_schema(&overlays);
+        let allowed_actions = AuthorizationService::allowed_ai_actions_from_schema(&schema, roles);
+        let risk_ceiling = self.resolve_entity_risk_ceiling(entity_id).await?;
 
         let mut objects = Vec::new();
         let mut evidence = Vec::new();
 
-        let mut allowed_object_types: Vec<String> = allowed_actions
-            .iter()
-            .map(|a| a.split('.').next().unwrap_or("").to_string())
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
-        for object_type in [
-            "Flight",
-            "FlightLeg",
-            "DispatchOrder",
-            "Stand",
-            "Team",
-            "Equipment",
-            "Anomaly",
-            "BusinessCase",
-            "WorkflowRun",
-            "Notification",
-            "Todo",
-        ] {
-            if can_read_context_object_type(roles, object_type)
-                && !allowed_object_types.iter().any(|allowed| allowed == object_type)
-            {
-                allowed_object_types.push(object_type.to_string());
-            }
-        }
+        let mut allowed_object_types: Vec<String> = schema.objects.keys().cloned().collect();
+        allowed_object_types.retain(|object_type| {
+            allowed_actions
+                .iter()
+                .any(|action| action.split('.').next() == Some(object_type.as_str()))
+                || can_read_context_object_type(roles, object_type)
+        });
         allowed_object_types.sort();
         let allowed_object_type_set: HashSet<&str> = allowed_object_types.iter().map(String::as_str).collect();
 
@@ -169,7 +192,7 @@ impl AiContextService {
                 version: "flight-ops.v1".to_string(),
                 allowed_object_types,
                 allowed_actions: allowed_actions.iter().map(|s| s.to_string()).collect(),
-                risk_ceiling: "medium".to_string(),
+                risk_ceiling: resolved_ai_risk_ceiling(risk_ceiling.as_deref()),
             },
             context: EnvelopeContext {
                 objects,
@@ -188,6 +211,44 @@ impl AiContextService {
         })
     }
 
+    async fn load_action_overlays(&self) -> Result<Vec<ActionOverlay>, AiContextError> {
+        let Some(repository) = &self.ontology_repository else {
+            return Ok(Vec::new());
+        };
+        match repository.load_action_overlays().await {
+            Ok(overlays) => Ok(overlays),
+            Err(error) => {
+                tracing::warn!("failed to load AI ontology overlays for envelope: {}", error);
+                Ok(Vec::new())
+            }
+        }
+    }
+
+    async fn resolve_entity_risk_ceiling(&self, entity_id: Option<&str>) -> Result<Option<String>, AiContextError> {
+        let Some(entity_id) = entity_id.map(str::trim).filter(|value| !value.is_empty()) else {
+            return Ok(None);
+        };
+        let Some(repository) = &self.entity_config_repository else {
+            return Ok(None);
+        };
+        let record = repository
+            .find_by_id(entity_id)
+            .await
+            .map_err(|error| AiContextError::Internal(error.to_string()))?;
+        let Some(record) = record else {
+            return Ok(None);
+        };
+        let ceiling = record
+            .config
+            .get("context_policy")
+            .and_then(|policy| policy.get("risk_ceiling"))
+            .and_then(|value| value.as_str())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
+        Ok(ceiling)
+    }
+
     async fn load_object_data(&self, obj_type: &str, obj_id: &str) -> Result<serde_json::Value, AiContextError> {
         match obj_type {
             "Flight" => {
@@ -199,7 +260,6 @@ impl AiContextService {
                     .ok_or_else(|| AiContextError::Internal(format!("Flight not found: {obj_id}")))?;
                 Ok(serde_json::to_value(flight).unwrap_or_default())
             }
-            "FlightLeg" => self.load_snapshot(AiContextSnapshotKind::FlightLeg, obj_id).await,
             "DispatchOrder" => {
                 let service = self
                     .dispatch_query_service
@@ -212,9 +272,6 @@ impl AiContextService {
                     .ok_or_else(|| AiContextError::Internal(format!("DispatchOrder not found: {obj_id}")))?;
                 Ok(serde_json::to_value(order).unwrap_or_default())
             }
-            "Stand" => self.load_snapshot(AiContextSnapshotKind::Stand, obj_id).await,
-            "Team" => self.load_snapshot(AiContextSnapshotKind::Team, obj_id).await,
-            "Equipment" => self.load_snapshot(AiContextSnapshotKind::Equipment, obj_id).await,
             "Anomaly" => {
                 let service = self
                     .anomaly_service
@@ -239,34 +296,22 @@ impl AiContextService {
                     .ok_or_else(|| AiContextError::Internal(format!("BusinessCase not found: {obj_id}")))?;
                 Ok(serde_json::to_value(case).unwrap_or_default())
             }
-            "WorkflowRun" => self.load_snapshot(AiContextSnapshotKind::WorkflowRun, obj_id).await,
-            "Notification" => {
-                let service = self
-                    .notification_service
-                    .as_ref()
-                    .ok_or_else(|| AiContextError::Internal("NotificationService unavailable".into()))?;
-                let notification = service
-                    .get_notification(obj_id, "")
-                    .await
-                    .map_err(|e| AiContextError::Internal(e.to_string()))?;
-                if let Some(notification) = notification {
-                    Ok(serde_json::to_value(notification).unwrap_or_default())
-                } else {
-                    self.load_snapshot(AiContextSnapshotKind::Notification, obj_id).await
-                }
-            }
-            "Todo" => {
-                let service = self
-                    .todo_service
-                    .as_ref()
-                    .ok_or_else(|| AiContextError::Internal("TodoService unavailable".into()))?;
-                let todo = service
-                    .get_todo(obj_id)
-                    .await
-                    .map_err(|e| AiContextError::Internal(e.to_string()))?
-                    .ok_or_else(|| AiContextError::Internal(format!("Todo not found: {obj_id}")))?;
-                Ok(serde_json::to_value(todo).unwrap_or_default())
-            }
+            "Stand" => self.load_snapshot(AiContextSnapshotKind::Stand, obj_id).await,
+            "Team" => self.load_snapshot(AiContextSnapshotKind::Team, obj_id).await,
+            "Equipment" => self.load_snapshot(AiContextSnapshotKind::Equipment, obj_id).await,
+            "Terminal" => self.load_snapshot(AiContextSnapshotKind::Terminal, obj_id).await,
+            "Gate" => self.load_snapshot(AiContextSnapshotKind::Gate, obj_id).await,
+            "BaggageCarousel" => self.load_snapshot(AiContextSnapshotKind::BaggageCarousel, obj_id).await,
+            "StandOccupation" => self.load_snapshot(AiContextSnapshotKind::StandOccupation, obj_id).await,
+            "GateAssignment" => self.load_snapshot(AiContextSnapshotKind::GateAssignment, obj_id).await,
+            "CarouselAssignment" => self.load_snapshot(AiContextSnapshotKind::CarouselAssignment, obj_id).await,
+            "Department" => self.load_snapshot(AiContextSnapshotKind::Department, obj_id).await,
+            "EquipmentType" => self.load_snapshot(AiContextSnapshotKind::EquipmentType, obj_id).await,
+            "Aircraft" => self.load_snapshot(AiContextSnapshotKind::Aircraft, obj_id).await,
+            "TurnaroundLink" => self.load_snapshot(AiContextSnapshotKind::TurnaroundLink, obj_id).await,
+            "Qualification" => self.load_snapshot(AiContextSnapshotKind::Qualification, obj_id).await,
+            "TaskType" => self.load_snapshot(AiContextSnapshotKind::TaskType, obj_id).await,
+            "Personnel" => self.load_snapshot(AiContextSnapshotKind::Personnel, obj_id).await,
             _ => Err(AiContextError::Internal(format!(
                 "unsupported context object type: {obj_type}"
             ))),
@@ -323,9 +368,22 @@ fn object_policy_subject(user_id: &str, permissions: &[String], department_id: O
     subject
 }
 
+pub fn resolved_ai_risk_ceiling(configured: Option<&str>) -> String {
+    let from_config = configured.map(str::trim).filter(|value| !value.is_empty());
+    let from_env = std::env::var("FMS_AI_ONTOLOGY_RISK_CEILING")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let raw = from_config.or(from_env.as_deref()).unwrap_or("medium");
+    match raw.to_ascii_lowercase().as_str() {
+        "low" | "medium" | "high" | "critical" => raw.to_ascii_lowercase(),
+        _ => "medium".to_string(),
+    }
+}
+
 fn can_read_context_object_type(user_permissions: &[String], object_type: &str) -> bool {
     let required = match object_type {
-        "Flight" | "FlightLeg" => &["flight:read", "flight.read", "flight:write"][..],
+        "Flight" => &["flight:read", "flight.read", "flight:write"][..],
         "DispatchOrder" => &[
             "dispatch:read",
             "dispatch:write",
@@ -333,11 +391,31 @@ fn can_read_context_object_type(user_permissions: &[String], object_type: &str) 
             "dispatch_order.read",
             "dispatch_order.update",
         ][..],
-        "Stand" | "Team" | "Equipment" => &[
+        "Stand" | "Team" | "Equipment" | "Terminal" | "Gate" | "BaggageCarousel" | "Department"
+        | "EquipmentType" | "Qualification" | "TaskType" => &[
             "dispatch:read",
             "dispatch:write",
             "dispatch:manage",
             "dispatch_catalog.read",
+            "ontology:manage",
+            "ontology.manage",
+        ][..],
+        "StandOccupation" => &["ontology:stand.manage", "ontology.stand.manage", "ontology:manage"][..],
+        "GateAssignment" => &["ontology:gate.manage", "ontology.gate.manage", "ontology:manage"][..],
+        "CarouselAssignment" => &["ontology:carousel.manage", "ontology.carousel.manage", "ontology:manage"][..],
+        "Personnel" => &[
+            "ontology:personnel.manage",
+            "ontology.personnel.manage",
+            "dispatch:manage",
+            "ontology:manage",
+        ][..],
+        "Aircraft" | "TurnaroundLink" => &[
+            "ontology:aircraft.manage",
+            "ontology.aircraft.manage",
+            "ontology:turnaround.create",
+            "ontology:turnaround.manage",
+            "ontology:manage",
+            "ontology.read",
         ][..],
         "Anomaly" => &["anomaly:read", "anomaly:write"][..],
         "BusinessCase" => &[
@@ -348,9 +426,6 @@ fn can_read_context_object_type(user_permissions: &[String], object_type: &str) 
             "business_case.create",
             "business_case.update",
         ][..],
-        "WorkflowRun" => &["workflow_run.read", "workflow_run.act"][..],
-        "Notification" => &["notification:read", "notification.read", "notification:send"][..],
-        "Todo" => &["todo:read", "todo:write", "todo.write"][..],
         _ => &[][..],
     };
 
@@ -472,5 +547,136 @@ mod tests {
             repository.requested.lock().unwrap().as_slice(),
             &[AiContextSnapshotKind::Stand]
         );
+    }
+
+    #[tokio::test]
+    async fn envelope_object_types_follow_schema_not_exited_objects() {
+        let envelope = service()
+            .build_envelope("admin", &["*".to_string()], None, "nl_query", "hello", &[])
+            .await
+            .unwrap();
+        assert!(envelope.ontology.allowed_object_types.contains(&"Personnel".to_string()));
+        assert!(envelope.ontology.allowed_object_types.contains(&"Terminal".to_string()));
+        assert!(envelope.ontology.allowed_object_types.contains(&"CarouselAssignment".to_string()));
+        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "FlightLeg"));
+        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "Todo"));
+        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "Notification"));
+        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "WorkflowRun"));
+        assert!(envelope.ontology.allowed_actions.contains(&"Flight.add_note".to_string()));
+        assert!(envelope.ontology.allowed_actions.contains(&"DispatchOrder.assign_slot".to_string()));
+        assert!(!envelope.ontology.allowed_actions.iter().any(|item| item == "Flight.change_stand"));
+        assert_eq!(envelope.ontology.risk_ceiling, "medium");
+    }
+
+    struct OverlayOntologyRepository {
+        overlays: Vec<ActionOverlay>,
+    }
+
+    #[async_trait]
+    impl AiOntologyRepository for OverlayOntologyRepository {
+        async fn load_action_overlays(
+            &self,
+        ) -> Result<Vec<ActionOverlay>, fms_domain::ports::ai_ontology_repository::AiOntologyRepositoryError> {
+            Ok(self.overlays.clone())
+        }
+        async fn save_action_overlay(
+            &self,
+            _overlay: &ActionOverlay,
+        ) -> Result<(), fms_domain::ports::ai_ontology_repository::AiOntologyRepositoryError> {
+            Ok(())
+        }
+        async fn delete_action_overlay(
+            &self,
+            _object: &str,
+            _action: &str,
+        ) -> Result<(), fms_domain::ports::ai_ontology_repository::AiOntologyRepositoryError> {
+            Ok(())
+        }
+        async fn count_active_objects(
+            &self,
+        ) -> Result<i64, fms_domain::ports::ai_ontology_repository::AiOntologyRepositoryError> {
+            Ok(0)
+        }
+        async fn count_active_write_actions(
+            &self,
+        ) -> Result<i64, fms_domain::ports::ai_ontology_repository::AiOntologyRepositoryError> {
+            Ok(0)
+        }
+    }
+
+    struct CeilingEntityConfigRepository {
+        ceiling: String,
+    }
+
+    #[async_trait]
+    impl AiEntityConfigRepository for CeilingEntityConfigRepository {
+        async fn find_all(&self) -> Result<Vec<fms_domain::models::ai_entity_config::AiEntityConfigRecord>, DomainError> {
+            Ok(Vec::new())
+        }
+        async fn find_by_id(
+            &self,
+            id: &str,
+        ) -> Result<Option<fms_domain::models::ai_entity_config::AiEntityConfigRecord>, DomainError> {
+            if id != "ops-entity" {
+                return Ok(None);
+            }
+            Ok(Some(fms_domain::models::ai_entity_config::AiEntityConfigRecord {
+                id: id.to_string(),
+                config: serde_json::json!({ "context_policy": { "risk_ceiling": self.ceiling } }),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            }))
+        }
+        async fn save(
+            &self,
+            _id: &str,
+            _config: &serde_json::Value,
+        ) -> Result<fms_domain::models::ai_entity_config::AiEntityConfigRecord, DomainError> {
+            Err(DomainError::Internal("not implemented".into()))
+        }
+        async fn delete(&self, _id: &str) -> Result<bool, DomainError> {
+            Ok(false)
+        }
+    }
+
+    #[tokio::test]
+    async fn envelope_omits_overlay_disabled_actions() {
+        let repository = Arc::new(OverlayOntologyRepository {
+            overlays: vec![ActionOverlay {
+                object: "Flight".to_string(),
+                action: "add_note".to_string(),
+                is_active: Some(false),
+                risk: None,
+                requires_approval: None,
+            }],
+        });
+        let envelope = service()
+            .with_ontology_repository(repository)
+            .build_envelope("admin", &["*".to_string()], None, "nl_query", "hello", &[])
+            .await
+            .unwrap();
+        assert!(!envelope.ontology.allowed_actions.iter().any(|item| item == "Flight.add_note"));
+        assert!(envelope.ontology.allowed_actions.contains(&"Flight.update_status".to_string()));
+    }
+
+    #[tokio::test]
+    async fn envelope_risk_ceiling_reads_entity_config() {
+        let repository = Arc::new(CeilingEntityConfigRepository {
+            ceiling: "high".to_string(),
+        });
+        let envelope = service()
+            .with_entity_config_repository(repository)
+            .build_envelope_for_entity(
+                "admin",
+                &["*".to_string()],
+                None,
+                "nl_query",
+                "hello",
+                &[],
+                Some("ops-entity"),
+            )
+            .await
+            .unwrap();
+        assert_eq!(envelope.ontology.risk_ceiling, "high");
     }
 }

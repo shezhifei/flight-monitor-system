@@ -9,12 +9,22 @@ use crate::error::DomainError;
 /// or SQL predicates through the port.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AiContextSnapshotKind {
-    FlightLeg,
     Stand,
     Team,
     Equipment,
-    WorkflowRun,
-    Notification,
+    Terminal,
+    Gate,
+    BaggageCarousel,
+    StandOccupation,
+    GateAssignment,
+    CarouselAssignment,
+    Department,
+    EquipmentType,
+    Aircraft,
+    TurnaroundLink,
+    Qualification,
+    TaskType,
+    Personnel,
 }
 
 #[async_trait]

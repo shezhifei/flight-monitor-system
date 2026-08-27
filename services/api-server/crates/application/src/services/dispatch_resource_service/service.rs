@@ -9,7 +9,6 @@ use fms_domain::models::dispatch::{
     Department, Equipment, EquipmentStatus, EquipmentType, MemberRole, PersonnelRuntime, PersonnelStatus, Stand,
     TaskType, Team, TeamMember, TeamStatus, TeamType,
 };
-use fms_domain::models::user::User;
 use fms_domain::ports::dispatch_repository::{
     DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, PersonnelRuntimeRepository, StandRepository,
     TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
@@ -249,14 +248,19 @@ impl<
         self.team_repo.find_by_id(team_id, load_members).await
     }
 
-    pub async fn create_team(&self, payload: TeamCreate) -> Result<Team, DomainError> {
+    /// 创建班组：`department_id` 必填且科室须存在；该科室经理或 admin 可建（计划 :182）。
+    /// PR2 起不再写 team_type_id / terminal（保留列仅供历史读取）。
+    pub async fn create_team(&self, payload: TeamCreate, actor_id: &str) -> Result<Team, DomainError> {
+        let department_id = self.require_existing_department(&payload.department_id).await?;
+        self.assert_department_scope(actor_id, Some(&department_id), "teams")
+            .await?;
         let team = Team {
             id: ulid::Ulid::new().to_string(),
             name: require_non_empty(&payload.name, "name")?,
-            team_type_id: normalize_optional_string(payload.team_type_id),
+            department_id: Some(department_id),
+            team_type_id: None,
             code: normalize_optional_string(payload.code),
             leader_id: normalize_optional_string(payload.leader_id),
-            terminal: normalize_optional_string(payload.terminal),
             current_status: TeamStatus::OffDuty,
             current_position_lat: None,
             current_position_lng: None,
@@ -272,27 +276,30 @@ impl<
         self.team_repo.save(&team).await
     }
 
-    pub async fn update_team(&self, team_id: &str, payload: TeamUpdate) -> Result<Team, DomainError> {
+    pub async fn update_team(&self, team_id: &str, payload: TeamUpdate, actor_id: &str) -> Result<Team, DomainError> {
         let mut team = self
             .team_repo
             .find_by_id(team_id, true)
             .await?
             .ok_or_else(|| not_found("team", team_id))?;
+        self.assert_department_scope(actor_id, team.department_id.as_deref(), "teams")
+            .await?;
 
         if let Some(name) = payload.name {
             team.name = require_non_empty(&name, "name")?;
         }
-        if payload.team_type_id.is_some() {
-            team.team_type_id = normalize_optional_string(payload.team_type_id);
+        if let Some(department_id) = payload.department_id {
+            // 换科室：新科室须存在，且操作者须同时是新科室经理或 admin。
+            let department_id = self.require_existing_department(&department_id).await?;
+            self.assert_department_scope(actor_id, Some(&department_id), "teams")
+                .await?;
+            team.department_id = Some(department_id);
         }
         if payload.code.is_some() {
             team.code = normalize_optional_string(payload.code);
         }
         if payload.leader_id.is_some() {
             team.leader_id = normalize_optional_string(payload.leader_id);
-        }
-        if payload.terminal.is_some() {
-            team.terminal = normalize_optional_string(payload.terminal);
         }
         if let Some(status) = payload.current_status {
             team.current_status = parse_team_status(&status)?;
@@ -304,12 +311,14 @@ impl<
         self.team_repo.save(&team).await
     }
 
-    pub async fn delete_team(&self, team_id: &str) -> Result<(), DomainError> {
+    pub async fn delete_team(&self, team_id: &str, actor_id: &str) -> Result<(), DomainError> {
         let mut team = self
             .team_repo
             .find_by_id(team_id, true)
             .await?
             .ok_or_else(|| not_found("team", team_id))?;
+        self.assert_department_scope(actor_id, team.department_id.as_deref(), "teams")
+            .await?;
         team.is_active = false;
         self.team_repo.save(&team).await?;
         Ok(())
@@ -349,16 +358,32 @@ impl<
         self.team_member_repo.find_by_team(team_id, include_inactive).await
     }
 
-    pub async fn add_team_member(&self, team_id: &str, payload: TeamMemberAdd) -> Result<TeamMember, DomainError> {
+    /// 入组（计划 :191）：必须是个人账号、科室等于班组科室、一人一条活跃
+    /// `team_members`；岗位账号或跨科室入组 409。边界：该班组科室经理或 admin。
+    pub async fn add_team_member(
+        &self,
+        team_id: &str,
+        payload: TeamMemberAdd,
+        actor_id: &str,
+    ) -> Result<TeamMember, DomainError> {
+        let team = self
+            .team_repo
+            .find_by_id(team_id, false)
+            .await?
+            .ok_or_else(|| not_found("team", team_id))?;
+        self.assert_department_scope(actor_id, team.department_id.as_deref(), "team roster")
+            .await?;
         let role = if payload.role.trim().is_empty() {
             MemberRole::Member
         } else {
             parse_member_role(&payload.role)?
         };
+        let user_id = require_non_empty(&payload.user_id, "user_id")?;
+        self.validate_team_membership_rules(&team, &user_id).await?;
         let member = TeamMember {
             id: ulid::Ulid::new().to_string(),
             team_id: team_id.to_string(),
-            user_id: require_non_empty(&payload.user_id, "user_id")?,
+            user_id,
             role,
             can_drive: payload.can_drive,
             joined_at: None,
@@ -371,7 +396,14 @@ impl<
         self.team_member_repo.save(&member).await
     }
 
-    pub async fn remove_team_member(&self, team_id: &str, user_id: &str) -> Result<(), DomainError> {
+    pub async fn remove_team_member(&self, team_id: &str, user_id: &str, actor_id: &str) -> Result<(), DomainError> {
+        let team = self
+            .team_repo
+            .find_by_id(team_id, false)
+            .await?
+            .ok_or_else(|| not_found("team", team_id))?;
+        self.assert_department_scope(actor_id, team.department_id.as_deref(), "team roster")
+            .await?;
         let removed = self.team_member_repo.remove_from_team(team_id, user_id).await?;
         if !removed {
             return Err(not_found("team_member", user_id));
@@ -401,7 +433,6 @@ impl<
             code: normalize_optional_string(payload.code),
             category: normalize_optional_string(payload.category),
             requires_driver: payload.requires_driver,
-            driver_team_type_id: normalize_optional_string(payload.driver_team_type_id),
             icon: normalize_optional_string(payload.icon),
             description: normalize_optional_string(payload.description),
             created_at: None,
@@ -434,9 +465,6 @@ impl<
         }
         if let Some(requires_driver) = payload.requires_driver {
             equipment_type.requires_driver = requires_driver;
-        }
-        if payload.driver_team_type_id.is_some() {
-            equipment_type.driver_team_type_id = normalize_optional_string(payload.driver_team_type_id);
         }
         if payload.icon.is_some() {
             equipment_type.icon = normalize_optional_string(payload.icon);
@@ -487,14 +515,19 @@ impl<
         self.equipment_repo.find_by_id(equipment_id).await
     }
 
-    pub async fn create_equipment(&self, payload: EquipmentCreate) -> Result<Equipment, DomainError> {
+    /// 创建设备：`department_id` 必填且科室须存在；该科室经理或 admin 可建（计划 :182）。
+    /// PR2 起不再写 terminal（设备无常驻楼字段，保留列仅供历史查询）。
+    pub async fn create_equipment(&self, payload: EquipmentCreate, actor_id: &str) -> Result<Equipment, DomainError> {
+        let department_id = self.require_existing_department(&payload.department_id).await?;
+        self.assert_department_scope(actor_id, Some(&department_id), "equipment")
+            .await?;
         let equipment = Equipment {
             id: ulid::Ulid::new().to_string(),
             code: require_non_empty(&payload.code, "code")?,
             equipment_type_id: normalize_optional_string(payload.equipment_type_id),
+            department_id: Some(department_id),
             name: normalize_optional_string(payload.name),
             license_plate: normalize_optional_string(payload.license_plate),
-            terminal: normalize_optional_string(payload.terminal),
             status: EquipmentStatus::Available,
             current_position_lat: None,
             current_position_lng: None,
@@ -517,12 +550,16 @@ impl<
         &self,
         equipment_id: &str,
         payload: EquipmentUpdate,
+        actor_id: &str,
     ) -> Result<Equipment, DomainError> {
         let mut equipment = self
             .equipment_repo
             .find_by_id(equipment_id)
             .await?
             .ok_or_else(|| not_found("equipment", equipment_id))?;
+        // 历史设备 department_id 可能为空：仅 admin 可改（见 assert_department_scope）。
+        self.assert_department_scope(actor_id, equipment.department_id.as_deref(), "equipment")
+            .await?;
 
         if let Some(code) = payload.code {
             equipment.code = require_non_empty(&code, "code")?;
@@ -530,14 +567,18 @@ impl<
         if payload.equipment_type_id.is_some() {
             equipment.equipment_type_id = normalize_optional_string(payload.equipment_type_id);
         }
+        if let Some(department_id) = payload.department_id {
+            // 换科室：新科室须存在，且操作者须同时是新科室经理或 admin。
+            let department_id = self.require_existing_department(&department_id).await?;
+            self.assert_department_scope(actor_id, Some(&department_id), "equipment")
+                .await?;
+            equipment.department_id = Some(department_id);
+        }
         if payload.name.is_some() {
             equipment.name = normalize_optional_string(payload.name);
         }
         if payload.license_plate.is_some() {
             equipment.license_plate = normalize_optional_string(payload.license_plate);
-        }
-        if payload.terminal.is_some() {
-            equipment.terminal = normalize_optional_string(payload.terminal);
         }
         if let Some(status) = payload.status {
             equipment.status = parse_equipment_status(&status)?;
@@ -705,8 +746,9 @@ impl<
         self.personnel_runtime_repo.save(&runtime).await
     }
 
-    /// `Personnel.assign_to_team`（入组）：必须是个人账号（岗位账号 PR7 后 409）、
-    /// 科室等于班组科室、一人一条活跃 `team_members`。边界：该人科室经理或 admin。
+    /// `Personnel.assign_to_team`（入组）：必须是个人账号（岗位账号 409）、
+    /// 科室等于班组科室（teams.department_id，PR2 起不再经 team_type 间接推导）、
+    /// 一人一条活跃 `team_members`。边界：该人科室经理或 admin。
     pub async fn assign_person_to_team(
         &self,
         person_user_id: &str,
@@ -714,43 +756,12 @@ impl<
         actor_id: &str,
     ) -> Result<(), DomainError> {
         self.assert_department_manager(actor_id, person_user_id).await?;
-        let person = self
-            .user_repo
-            .find_by_id(person_user_id)
-            .await?
-            .ok_or_else(|| not_found("person", person_user_id))?;
         let team = self
             .team_repo
             .find_by_id(team_id, false)
             .await?
             .ok_or_else(|| not_found("team", team_id))?;
-        // 班组科室 = 班组类型（team_type）的 department_id；科室须等于班组科室，否则 409。
-        let team_department_id = match team.team_type_id.as_deref() {
-            Some(team_type_id) => self
-                .team_type_repo
-                .find_by_id(team_type_id)
-                .await?
-                .and_then(|team_type| team_type.department_id),
-            None => None,
-        };
-        if !person.department_id.eq(&team_department_id) {
-            return Err(DomainError::Conflict(format!(
-                "person {person_user_id} department does not match team {team_id} department"
-            )));
-        }
-        // 一人一条活跃 team_members：已有活跃入组则冲突。
-        let existing = self
-            .team_member_repo
-            .find_by_user(person_user_id)
-            .await?
-            .into_iter()
-            .filter(|m| m.is_active)
-            .count();
-        if existing > 0 {
-            return Err(DomainError::Conflict(format!(
-                "person {person_user_id} already has an active team membership"
-            )));
-        }
+        self.validate_team_membership_rules(&team, person_user_id).await?;
         let member = TeamMember {
             id: ulid::Ulid::new().to_string(),
             team_id: team_id.to_string(),
@@ -806,6 +817,84 @@ impl<
             return Ok(());
         }
         self.assert_department_manager(actor_id, target_user_id).await
+    }
+
+    /// 科室须存在（班组/设备创建、换科室时校验引用完整性；120 后迁移不加 FK）。
+    async fn require_existing_department(&self, department_id: &str) -> Result<String, DomainError> {
+        let department_id = require_non_empty(department_id, "department_id")?;
+        if self.department_repo.find_by_id(&department_id).await?.is_none() {
+            return Err(DomainError::ValidationError(format!(
+                "department {department_id} does not exist"
+            )));
+        }
+        Ok(department_id)
+    }
+
+    /// 科室边界（计划 :182）：该科室 `manager_id` 或系统管理员可改本科室班组/设备/名册。
+    /// admin 旁路；`department_id` 为空（历史遗留行）时仅 admin 可改；
+    /// 全局 `team:manage` 不足以改别的科室（403）。
+    async fn assert_department_scope(
+        &self,
+        actor_id: &str,
+        department_id: Option<&str>,
+        resource: &str,
+    ) -> Result<(), DomainError> {
+        let actor = self
+            .user_repo
+            .find_by_id(actor_id)
+            .await?
+            .ok_or_else(|| not_found("actor", actor_id))?;
+        if actor.is_admin {
+            return Ok(());
+        }
+        let Some(department_id) = department_id else {
+            return Err(DomainError::PermissionDenied(format!(
+                "only a system admin may modify {resource} without a department"
+            )));
+        };
+        if let Some(dept) = self.department_repo.find_by_id(department_id).await? {
+            if dept.manager_id.as_deref() == Some(actor_id) {
+                return Ok(());
+            }
+        }
+        Err(DomainError::PermissionDenied(format!(
+            "only the department manager or a system admin may modify {resource} of department {department_id}"
+        )))
+    }
+
+    /// 入组规则（计划 :191）：必须是个人账号（岗位账号 409）、科室等于班组科室
+    /// （否则 409）、一人一条活跃 `team_members`（否则 409）。
+    async fn validate_team_membership_rules(&self, team: &Team, user_id: &str) -> Result<(), DomainError> {
+        let person = self
+            .user_repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| not_found("person", user_id))?;
+        if person.is_position() {
+            return Err(DomainError::Conflict(format!(
+                "position account {user_id} cannot join a team"
+            )));
+        }
+        if person.department_id != team.department_id {
+            return Err(DomainError::Conflict(format!(
+                "person {user_id} department does not match team {} department",
+                team.id
+            )));
+        }
+        // 一人一条活跃 team_members：已有活跃入组则冲突。
+        let existing = self
+            .team_member_repo
+            .find_by_user(user_id)
+            .await?
+            .into_iter()
+            .filter(|m| m.is_active)
+            .count();
+        if existing > 0 {
+            return Err(DomainError::Conflict(format!(
+                "person {user_id} already has an active team membership"
+            )));
+        }
+        Ok(())
     }
 
     /// 目标用户科室经理或 admin 才能改目标。admin 旁路；非经理（含同科室普通成员）403。

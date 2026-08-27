@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import type { OntologyObject, OntologyAction } from '../composables/useAiConfigCenter';
 import SvgIcon from '../../../components/ui/SvgIcon.vue';
 import UiBanner from '../../../components/ui/UiBanner.vue';
@@ -18,20 +19,26 @@ defineProps<{
 const emit = defineEmits<{
   'update:searchQuery': [value: string];
   refresh: [];
+  saveOverlay: [action: OntologyAction, patch: {
+    is_active: boolean;
+    risk_level: string;
+    requires_approval: boolean;
+  }];
 }>();
 
-type PillTone = 'act' | 'ok' | 'warn' | 'danger' | 'mute';
+const savingId = ref('');
 
-/* 风险等级 → 四声：低=ok，常规=mute，中=warn，高/严重=danger */
-function getRiskTone(level: string): PillTone {
-  const map: Record<string, PillTone> = {
-    LOW: 'ok',
-    NORMAL: 'mute',
-    MEDIUM: 'warn',
-    HIGH: 'danger',
-    CRITICAL: 'danger',
-  };
-  return map[level] || 'mute';
+async function onSave(action: OntologyAction): Promise<void> {
+  savingId.value = action.id;
+  try {
+    emit('saveOverlay', action, {
+      is_active: action.is_active,
+      risk_level: action.risk_level,
+      requires_approval: action.requires_approval,
+    });
+  } finally {
+    savingId.value = '';
+  }
 }
 </script>
 
@@ -45,14 +52,17 @@ function getRiskTone(level: string): PillTone {
         <div class="content-subtitle">
           {{ activeTab === 'objects'
             ? '浏览当前生效 Ontology 对象类型定义、字段、关系与动作'
-            : '浏览当前生效 Ontology 动作定义、参数、风险和审批策略' }}
+            : '覆盖已知动作的启用 / 风险 / 审批；generate 与导出读同一份 load_governed_schema' }}
         </div>
       </div>
     </div>
 
-    <UiBanner tone="warn" class="readonly-banner">
+    <UiBanner v-if="activeTab === 'objects'" tone="warn" class="readonly-banner">
       <SvgIcon src="/frontend/icons/forbidden.svg" />
-      <span><strong>Ontology 只读视图：</strong> 本页展示 Rust API 当前生效的对象与动作定义；变更请通过受控后端配置流程完成。</span>
+      <span><strong>对象目录只读：</strong> 类型合同来自代码 schema，不能在此增删对象。动作启用 / 风险 / 审批请到「动作」页覆盖。</span>
+    </UiBanner>
+    <UiBanner v-else tone="act" class="readonly-banner">
+      <span>只改已知 (object, action) 的启用、风险等级和是否审批。停用后该动作从信封与导出消失。</span>
     </UiBanner>
 
     <div class="content-body">
@@ -144,6 +154,7 @@ function getRiskTone(level: string): PillTone {
               <th>风险等级</th>
               <th>需审批</th>
               <th>状态</th>
+              <th>覆盖</th>
             </tr>
           </thead>
           <tbody>
@@ -165,19 +176,33 @@ function getRiskTone(level: string): PillTone {
                 {{ action.parameters.length }}
               </td>
               <td>
-                <UiPill :tone="getRiskTone(action.risk_level)">
-                  {{ action.risk_level }}
-                </UiPill>
+                <select v-model="action.risk_level" class="overlay-select" :aria-label="`${action.id} 风险`">
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                  <option value="critical">critical</option>
+                </select>
               </td>
               <td>
-                <UiPill :tone="action.requires_approval ? 'warn' : 'mute'">
-                  {{ action.requires_approval ? '是' : '否' }}
-                </UiPill>
+                <label class="overlay-check">
+                  <input v-model="action.requires_approval" type="checkbox">
+                  审批
+                </label>
               </td>
               <td>
-                <UiPill :tone="action.is_active ? 'ok' : 'mute'">
-                  {{ action.is_active ? '启用' : '禁用' }}
-                </UiPill>
+                <label class="overlay-check">
+                  <input v-model="action.is_active" type="checkbox">
+                  启用
+                </label>
+              </td>
+              <td>
+                <UiButton
+                  variant="tonal"
+                  :disabled="savingId === action.id"
+                  @click="onSave(action)"
+                >
+                  保存
+                </UiButton>
               </td>
             </tr>
           </tbody>
@@ -198,5 +223,16 @@ function getRiskTone(level: string): PillTone {
   display: flex;
   flex-direction: column;
   gap: var(--s2);
+}
+
+.overlay-select {
+  min-height: 32px;
+}
+
+.overlay-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-label);
 }
 </style>

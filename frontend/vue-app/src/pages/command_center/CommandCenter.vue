@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useCommandCenter } from '@/composables/useCommandCenter';
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import OccupySeatButton from '@/components/ops/OccupySeatButton.vue';
 import UiBanner from '@/components/ui/UiBanner.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiPill from '@/components/ui/UiPill.vue';
@@ -448,6 +449,7 @@ onUnmounted(() => {
         </div>
       </section>
     </UiStage>
+    <OccupySeatButton />
     <ThemeToggle />
   </div>
 </template>

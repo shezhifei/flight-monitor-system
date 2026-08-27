@@ -23,17 +23,11 @@ pub(super) fn optimal_order_status(order: &DispatchOrder) -> String {
 
 pub(super) fn optimal_order_has_assignment(order: &DispatchOrder) -> bool {
     order
-        .team_id
+        .individual_user_id
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .is_some()
-        || order
-            .individual_user_id
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .is_some()
         || !order_member_user_ids(order).is_empty()
 }
 
@@ -48,14 +42,10 @@ pub(super) fn order_to_response(o: &DispatchOrder) -> DispatchOrderResponse {
         stand_id: o.stand_id.clone(),
         stand_code: o.stand_code.clone(),
         terminal: o.terminal.clone(),
-        assignee_type: format!("{:?}", o.assignee_type).to_lowercase(),
-        team_id: o.team_id.clone(),
-        team_name: o.team_name.clone(),
         department: o.department.clone(),
         individual_user_id: o.individual_user_id.clone(),
         individual_username: o.individual_username.clone(),
         driver_type: o.driver_type.map(|value| value.as_ref().to_string()),
-        driver_team_id: o.driver_team_id.clone(),
         driver_user_id: o.driver_user_id.clone(),
         driver_assignment: None,
         planned_start_time: o.planned_start_time,
@@ -223,9 +213,6 @@ fn overlapping_member_user_ids(left: &DispatchOrder, right: &DispatchOrder) -> V
 pub(super) fn eta_conflict_kinds(current: &DispatchOrder, candidate: &DispatchOrder) -> Vec<String> {
     let mut conflict_kinds = Vec::new();
 
-    if current.team_id.is_some() && current.team_id == candidate.team_id {
-        conflict_kinds.push("team_overlap".to_string());
-    }
     if current.individual_user_id.is_some() && current.individual_user_id == candidate.individual_user_id {
         conflict_kinds.push("individual_overlap".to_string());
     }

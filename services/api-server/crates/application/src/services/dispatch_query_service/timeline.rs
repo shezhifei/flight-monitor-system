@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 
 use super::helpers::{
     build_employee_view_items, build_equipment_view_items, build_flight_items, build_flight_summary_items,
-    build_status_counts, build_status_orders, build_team_view_items, layout_dynamic_tracks, layout_fixed_lanes,
+    build_status_counts, build_status_orders, layout_dynamic_tracks, layout_fixed_lanes,
     normalize_order_for_timeline, resolve_window, serialize_lane, serialize_timeline_item,
 };
 use super::service::DispatchQueryService;
@@ -49,8 +49,8 @@ impl DispatchQueryService {
         };
 
         let display_items = match normalized_mode {
-            "team" => build_team_view_items(&normalized_orders),
-            "employee" => build_employee_view_items(&normalized_orders),
+            // 班组不再是指派对象：原 team 泳道并入按人泳道
+            "team" | "employee" => build_employee_view_items(&normalized_orders),
             "equipment" => build_equipment_view_items(&normalized_orders),
             _ if is_admin => build_flight_summary_items(&normalized_orders),
             _ => build_flight_items(&normalized_orders),

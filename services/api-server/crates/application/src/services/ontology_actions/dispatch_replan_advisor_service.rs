@@ -1,28 +1,21 @@
-//! Generates a dispatch reassignment proposal (`reassign`).
+//! Generates a dispatch replan suggestion (slot-based; teams are no longer assignment targets).
 
 use std::sync::Arc;
 
 use serde_json::{json, Value};
 
-use fms_domain::ports::dispatch_repository::{DispatchOrderRepository, TeamRepository};
+use fms_domain::ports::dispatch_repository::DispatchOrderRepository;
 
 use super::error::{repo_err, OntologyActionError};
-use super::support::{arg_str, constraint, required_str, suggestion_envelope, CANDIDATE_TEAMS_SCANNED};
+use super::support::{arg_str, constraint, required_str, suggestion_envelope};
 
 pub struct DispatchReplanAdvisorService {
     dispatch_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
-    team_repo: Arc<dyn TeamRepository + Send + Sync>,
 }
 
 impl DispatchReplanAdvisorService {
-    pub fn new(
-        dispatch_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
-        team_repo: Arc<dyn TeamRepository + Send + Sync>,
-    ) -> Self {
-        Self {
-            dispatch_repo,
-            team_repo,
-        }
+    pub fn new(dispatch_repo: Arc<dyn DispatchOrderRepository + Send + Sync>) -> Self {
+        Self { dispatch_repo }
     }
 
     pub async fn suggest(&self, args: &Value) -> Result<Value, OntologyActionError> {
@@ -30,97 +23,95 @@ impl DispatchReplanAdvisorService {
         let reason = required_str(args, "reason")?;
         let order = self
             .dispatch_repo
-            .find_by_id(order_id, false, None)
+            .find_by_id(order_id, true, None)
             .await
             .map_err(repo_err)?
             .ok_or_else(|| OntologyActionError::NotFound(format!("dispatch order {order_id}")))?;
 
-        let target_team = match arg_str(args, "target_team_id") {
-            Some(team_id) => self
-                .team_repo
-                .find_by_id(team_id, false)
-                .await
-                .map_err(repo_err)?
-                .ok_or_else(|| OntologyActionError::NotFound(format!("team {team_id}")))?,
-            None => {
-                let available = self
-                    .team_repo
-                    .find_available_for_dispatch(None, order.terminal.as_deref())
-                    .await
-                    .map_err(repo_err)?;
-                let mut teams = available
-                    .into_iter()
-                    .filter(|team| team.id != order.team_id.as_deref().unwrap_or(""))
-                    .collect::<Vec<_>>();
-                teams.truncate(CANDIDATE_TEAMS_SCANNED as usize);
-                teams
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| OntologyActionError::NotFound("no available team for replan".to_string()))?
+        // 槽位语义：冲突按「人 × 时间窗」检测，不再按班组
+        let member_user_ids = order
+            .members
+            .iter()
+            .filter(|member| member.is_active)
+            .map(|member| member.user_id.trim().to_string())
+            .filter(|user_id| !user_id.is_empty())
+            .collect::<Vec<_>>();
+
+        let mut member_conflicts = Vec::<Value>::new();
+        if let (Some(start), Some(end)) = (order.planned_start_time, order.planned_end_time) {
+            if end > start {
+                for user_id in &member_user_ids {
+                    let overlaps = self
+                        .dispatch_repo
+                        .find_overlapping_orders(start, end, Some(user_id), None, Some(&order.id))
+                        .await
+                        .map_err(repo_err)?;
+                    // find_overlapping_orders 按 individual_user_id 过滤，槽成员还需按 members 复核
+                    let overlaps = overlaps
+                        .into_iter()
+                        .filter(|candidate| {
+                            candidate.individual_user_id.as_deref() == Some(user_id.as_str())
+                                || candidate
+                                    .members
+                                    .iter()
+                                    .any(|member| member.is_active && member.user_id == *user_id)
+                        })
+                        .collect::<Vec<_>>();
+                    if !overlaps.is_empty() {
+                        member_conflicts.push(json!({
+                            "user_id": user_id,
+                            "conflicting_order_ids": overlaps.iter().map(|item| item.id.clone()).collect::<Vec<_>>(),
+                        }));
+                    }
+                }
             }
-        };
-
-        let conflicts = match (order.planned_start_time, order.planned_end_time) {
-            (Some(start), Some(end)) if end > start => self
-                .dispatch_repo
-                .find_overlapping_orders(start, end, Some(&target_team.id), None, None, Some(&order.id))
-                .await
-                .map_err(repo_err)?,
-            _ => Vec::new(),
-        };
-
-        let mut constraint_results = vec![
-            constraint("target_team_exists", true, "error", None),
-            constraint("target_team_active", target_team.is_active, "error", None),
-            constraint(
-                "target_team_different",
-                target_team.id != order.team_id.as_deref().unwrap_or(""),
-                "warning",
-                None,
-            ),
-        ];
-        if conflicts.is_empty() {
-            constraint_results.push(constraint("no_window_conflict", true, "warning", None));
-        } else {
-            constraint_results.push(constraint(
-                "no_window_conflict",
-                false,
-                "warning",
-                Some(&format!("{} conflicting order(s) for target team", conflicts.len())),
-            ));
         }
 
-        let score_before = 0.5f64;
-        let score_after = if conflicts.is_empty() && target_team.is_active {
-            0.9
+        let has_window = matches!(
+            (order.planned_start_time, order.planned_end_time),
+            (Some(start), Some(end)) if end > start
+        );
+
+        let members_conflict_message = if member_conflicts.is_empty() {
+            None
         } else {
-            0.55
+            Some(format!("{} member(s) have overlapping orders", member_conflicts.len()))
         };
-        let confidence = if conflicts.is_empty() { 0.85 } else { 0.5 };
+        let constraint_results = vec![
+            constraint("order_exists", true, "error", None),
+            constraint("has_time_window", has_window, "warning", None),
+            constraint(
+                "members_free_in_window",
+                member_conflicts.is_empty(),
+                "warning",
+                members_conflict_message.as_deref(),
+            ),
+        ];
+
+        let focus_user_id = arg_str(args, "focus_user_id");
+        let score_before = 0.5f64;
+        let score_after = if member_conflicts.is_empty() { 0.9 } else { 0.55 };
+        let confidence = if member_conflicts.is_empty() { 0.85 } else { 0.5 };
 
         Ok(suggestion_envelope(
             "DispatchOrder",
             order_id,
-            "reassign",
-            json!({ "assignee_id": target_team.id, "reason": reason }),
+            "suggest_replan",
+            json!({ "dispatch_order_id": order_id, "reason": reason, "focus_user_id": focus_user_id }),
             "high",
             constraint_results,
-            json!({ "team_id": order.team_id, "status": order.status.as_ref() }),
-            json!({ "team_id": target_team.id, "team_name": target_team.name }),
+            json!({ "status": order.status.as_ref(), "member_user_ids": member_user_ids }),
+            json!({ "hint": "adjust_slots_or_delay", "focus_user_id": focus_user_id }),
             confidence,
-            &format!("replan order {} to team {}: {}", order_id, target_team.id, reason),
+            &format!("replan order {order_id}: {reason}"),
             json!({
                 "resource_changes": [{
-                    "kind": "team",
-                    "from": order.team_id,
-                    "to": target_team.id,
+                    "kind": "crew_slots",
+                    "member_user_ids": member_user_ids,
                 }],
                 "score_before": score_before,
                 "score_after": score_after,
-                "conflicts": conflicts.iter().map(|c| json!({
-                    "order_id": c.id,
-                    "task_type": c.task_type,
-                })).collect::<Vec<_>>(),
+                "conflicts": member_conflicts,
             }),
         ))
     }

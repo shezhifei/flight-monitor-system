@@ -28,22 +28,16 @@ LEFT JOIN flights f ON f.flight_id = o.flight_id
 WHERE o.flight_id IS NOT NULL AND f.flight_id IS NULL;
 
 INSERT INTO ri_violations (check_name, detail)
-SELECT 'orphan.dispatch_orders.team_id', o.id
-FROM dispatch_orders o
-LEFT JOIN teams t ON t.id = o.team_id
-WHERE o.team_id IS NOT NULL AND t.id IS NULL;
-
-INSERT INTO ri_violations (check_name, detail)
 SELECT 'orphan.dispatch_orders.individual_user_id', o.id
 FROM dispatch_orders o
 LEFT JOIN users u ON u.id = o.individual_user_id
 WHERE o.individual_user_id IS NOT NULL AND u.id IS NULL;
 
 INSERT INTO ri_violations (check_name, detail)
-SELECT 'orphan.dispatch_orders.driver_team_id', o.id
-FROM dispatch_orders o
-LEFT JOIN teams t ON t.id = o.driver_team_id
-WHERE o.driver_team_id IS NOT NULL AND t.id IS NULL;
+SELECT 'orphan.dispatch_order_members.source_team_id', m.id
+FROM dispatch_order_members m
+LEFT JOIN teams t ON t.id = m.source_team_id
+WHERE m.source_team_id IS NOT NULL AND t.id IS NULL;
 
 INSERT INTO ri_violations (check_name, detail)
 SELECT 'orphan.dispatch_orders.driver_user_id', o.id

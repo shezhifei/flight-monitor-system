@@ -450,6 +450,24 @@ impl AuthService {
         Ok(users.iter().map(user_to_list_response).collect())
     }
 
+    /// 运行台「换人」席位目录：启用中的岗位账号（不含密码）。
+    pub async fn list_seats(&self) -> Result<Vec<serde_json::Value>, DomainError> {
+        let users = self.user_repo.find_all(10_000, 0).await?;
+        Ok(users
+            .into_iter()
+            .filter(|user| user.is_position() && user.is_active)
+            .map(|user| {
+                serde_json::json!({
+                    "id": user.id,
+                    "username": user.username,
+                    "display_name": user.display_name.clone().filter(|value| !value.trim().is_empty()).unwrap_or(user.username.clone()),
+                    "department": user.department,
+                    "current_occupant_user_id": user.current_occupant_user_id,
+                })
+            })
+            .collect())
+    }
+
     pub async fn find_user_by_id(&self, user_id: &str) -> Result<Option<UserResponse>, DomainError> {
         let user = self.user_repo.find_by_id(user_id).await?;
         Ok(user.map(|u| user_to_response(&u)))

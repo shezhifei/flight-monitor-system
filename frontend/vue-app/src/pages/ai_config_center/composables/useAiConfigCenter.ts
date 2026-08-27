@@ -143,6 +143,7 @@ export interface ModelsTabForm {
   preserve_recent_messages: number;
   summary_max_tokens: number;
   persist_summaries: boolean;
+  risk_ceiling: string;
   cache_enabled: boolean;
   provider_prompt_cache_enabled: boolean;
   provider_prompt_cache_retention: string;
@@ -275,6 +276,22 @@ export function useAiConfigCenter() {
     };
   }
 
+  async function saveActionOverlay(action: OntologyAction, patch: {
+    is_active: boolean;
+    risk_level: string;
+    requires_approval: boolean;
+  }): Promise<void> {
+    await aiConfigApi.saveOntologyActionOverlay({
+      object: action.object_type,
+      action: action.name,
+      is_active: patch.is_active,
+      risk_level: patch.risk_level.toLowerCase(),
+      requires_approval: patch.requires_approval,
+    });
+    toast.show('success', `${action.object_type}.${action.name} 覆盖已保存`);
+    await fetchData();
+  }
+
   function normalizeOntologyAction(raw: AiOntologyActionRouteRow): OntologyAction {
     const definition = raw.definition || {};
     const objectType = String(raw.object || '');
@@ -368,6 +385,7 @@ export function useAiConfigCenter() {
       preserve_recent_messages: 12,
       summary_max_tokens: 1200,
       persist_summaries: true,
+      risk_ceiling: 'medium',
       cache_enabled: true,
       provider_prompt_cache_enabled: false,
       provider_prompt_cache_retention: '24h',
@@ -759,6 +777,7 @@ export function useAiConfigCenter() {
       preserve_recent_messages: readNumber(contextPolicy.preserve_recent_messages, 12),
       summary_max_tokens: readNumber(contextPolicy.summary_max_tokens, 1200),
       persist_summaries: readBoolean(contextPolicy.persist_summaries, true),
+      risk_ceiling: readString(contextPolicy.risk_ceiling, 'medium') || 'medium',
       cache_enabled: readBoolean(cachePolicy.enabled, true),
       provider_prompt_cache_enabled: readBoolean(providerPromptCache.enabled, false),
       provider_prompt_cache_retention: readString(providerPromptCache.retention, '24h'),
@@ -1159,6 +1178,7 @@ export function useAiConfigCenter() {
           summary_model: modelsForm.value.summary_model.trim() || modelsForm.value.default_model.trim() || null,
           summary_max_tokens: modelsForm.value.summary_max_tokens,
           persist_summaries: modelsForm.value.persist_summaries,
+          risk_ceiling: modelsForm.value.risk_ceiling || 'medium',
         },
         cache_policy: {
           enabled: modelsForm.value.cache_enabled,
@@ -1372,7 +1392,7 @@ export function useAiConfigCenter() {
 
   return {
     activeTab, searchQuery, loading, objects, actions,
-    filteredObjects, filteredActions, fetchData,
+    filteredObjects, filteredActions, fetchData, saveActionOverlay,
     sidebarUser, handleLogout,
     capabilitySnapshot, capabilityLoading, capabilityValidation,
     mcpServers, mcpBindings, mcpLoading,

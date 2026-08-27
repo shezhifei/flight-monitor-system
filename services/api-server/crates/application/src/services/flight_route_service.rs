@@ -124,20 +124,8 @@ impl FlightRouteService {
         if dto.status.is_some() {
             fields.push("status");
         }
-        if dto.gate.is_touched() {
-            fields.push("gate");
-        }
-        if dto.terminal.is_touched() {
-            fields.push("terminal");
-        }
-        if dto.stand.is_touched() {
-            fields.push("stand");
-        }
         if dto.position.is_touched() {
             fields.push("position");
-        }
-        if dto.baggage_carousel.is_touched() {
-            fields.push("baggage_carousel");
         }
         if dto.scheduled_departure.is_touched() {
             fields.push("scheduled_departure");

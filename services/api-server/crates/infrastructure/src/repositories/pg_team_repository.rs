@@ -39,19 +39,19 @@ impl PgTeamRepository {
 #[async_trait]
 impl TeamRepository for PgTeamRepository {
     async fn save(&self, team: &Team) -> Result<Team, DomainError> {
+        // PR2：不再写 team_type_id / terminal（保留列仅供历史读取，见迁移 141）。
         sqlx::query(
             r#"
             INSERT INTO teams (
-                id, name, team_type_id, code, leader_id, terminal,
+                id, name, department_id, code, leader_id,
                 current_status, current_position_lat, current_position_lng,
                 current_stand_id, last_position_update, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
-                team_type_id = EXCLUDED.team_type_id,
+                department_id = EXCLUDED.department_id,
                 code = EXCLUDED.code,
                 leader_id = EXCLUDED.leader_id,
-                terminal = EXCLUDED.terminal,
                 current_status = EXCLUDED.current_status,
                 current_position_lat = EXCLUDED.current_position_lat,
                 current_position_lng = EXCLUDED.current_position_lng,
@@ -63,10 +63,9 @@ impl TeamRepository for PgTeamRepository {
         )
         .bind(&team.id)
         .bind(&team.name)
-        .bind(&team.team_type_id)
+        .bind(&team.department_id)
         .bind(&team.code)
         .bind(&team.leader_id)
-        .bind(&team.terminal)
         .bind(team_status_value(team.current_status))
         .bind(team.current_position_lat)
         .bind(team.current_position_lng)
@@ -85,7 +84,7 @@ impl TeamRepository for PgTeamRepository {
     async fn find_by_id(&self, id: &str, load_members: bool) -> Result<Option<Team>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, name, team_type_id, code, leader_id, terminal, current_status,
+            SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
                    current_stand_id, last_position_update, created_at, updated_at, is_active
@@ -114,7 +113,7 @@ impl TeamRepository for PgTeamRepository {
     async fn find_by_code(&self, code: &str) -> Result<Option<Team>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, name, team_type_id, code, leader_id, terminal, current_status,
+            SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
                    current_stand_id, last_position_update, created_at, updated_at, is_active
@@ -137,7 +136,7 @@ impl TeamRepository for PgTeamRepository {
     ) -> Result<Vec<Team>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
             r#"
-            SELECT id, name, team_type_id, code, leader_id, terminal, current_status,
+            SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
                    current_stand_id, last_position_update, created_at, updated_at, is_active
@@ -172,7 +171,7 @@ impl TeamRepository for PgTeamRepository {
     ) -> Result<Vec<Team>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
             r#"
-            SELECT id, name, team_type_id, code, leader_id, terminal, current_status,
+            SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
                    current_stand_id, last_position_update, created_at, updated_at, is_active
@@ -250,10 +249,10 @@ fn row_to_team(row: &sqlx::postgres::PgRow, members: Vec<TeamMember>) -> Team {
     Team {
         id: row.get("id"),
         name: row.get("name"),
+        department_id: row.get("department_id"),
         team_type_id: row.get("team_type_id"),
         code: row.get("code"),
         leader_id: row.get("leader_id"),
-        terminal: row.get("terminal"),
         current_status: parse_team_status(row.get::<Option<String>, _>("current_status").as_deref()),
         current_position_lat: row.get("current_position_lat"),
         current_position_lng: row.get("current_position_lng"),

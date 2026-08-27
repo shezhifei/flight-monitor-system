@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    AIP Staging Smoke Execution — runs Todo.create end-to-end smoke tests
+    AIP Staging Smoke Execution — runs Flight.add_note end-to-end smoke tests
     against the test database with full safety guards.
 
 .DESCRIPTION
@@ -111,7 +111,6 @@ try {
         "aip_ontology_actions",
         "aip_object_policies",
         "aip_functions",
-        "todos",
         "users"
     )
 

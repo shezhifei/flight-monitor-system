@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { formatDetailDateTime } from '@/composables/useDispatchBoardDetail';
 import type { DispatchOrder, TimelineMember, DispatchQualificationGap } from '@/composables/useDispatchBoardData';
+import { rosterTeamLabel } from '@/composables/useDispatchBoardData';
 
 export interface UseDispatchBoardPageDetailOptions {
   detailOrder: Ref<DispatchOrder | null>;
@@ -89,7 +90,7 @@ export function useDispatchBoardPageDetail(options: UseDispatchBoardPageDetailOp
     const o = detailOrder.value;
     if (!o) return [];
     return [
-      { label: '归属班组', value: String(o.team_name || '') },
+      { label: '归属班组', value: rosterTeamLabel(o) || '-' },
       { label: '负责人', value: String(o.individual_username || o.focus_user_name || '') },
       { label: '执行编组', value: detailCrewMembers.value.length > 0 ? detailCrewMembers.value.join(' / ') : '-' },
       { label: '资质缺口', value: detailQualificationGaps.value.length > 0 ? detailQualificationGaps.value.join(' ; ') : '-' },

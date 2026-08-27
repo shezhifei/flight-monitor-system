@@ -113,7 +113,8 @@ pub async fn create_equipment(
     body: web::Json<EquipmentCreate>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("equipment:manage")?;
-    let saved = svc.create_equipment(body.into_inner()).await?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
+    let saved = svc.create_equipment(body.into_inner(), actor_id).await?;
     Ok(created_resp(&req, to_equipment_response(saved)))
 }
 
@@ -125,7 +126,8 @@ pub async fn update_equipment(
     body: web::Json<EquipmentUpdate>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("equipment:manage")?;
-    let saved = svc.update_equipment(&path.into_inner(), body.into_inner()).await?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
+    let saved = svc.update_equipment(&path.into_inner(), body.into_inner(), actor_id).await?;
     Ok(ok_resp(&req, to_equipment_response(saved)))
 }
 

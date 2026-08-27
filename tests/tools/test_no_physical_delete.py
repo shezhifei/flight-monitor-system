@@ -45,6 +45,11 @@ TRANSIENT_TABLE_WHITELIST = frozenset(
         "operator_identity_contexts",      # per-session snapshot replacement
         "ai_action_proposals",       # smoke-test batch cleanup only
         "ai_conversations",          # transient AI conversation runtime
+        # Terminal membership junctions: composition facts for Terminal.remove_*.
+        # Directory rows (stands/gates/carousels) themselves are deactivated, not deleted.
+        "terminal_stands",
+        "terminal_gates",
+        "terminal_carousels",
     }
 )
 
@@ -61,6 +66,8 @@ FILE_WHITELIST = frozenset(
         # DELETE FROM statements below are inside #[cfg(test)] modules:
         "services/api-server/crates/infrastructure/src/repositories/pg_ai_ontology_repository.rs",
         "services/api-server/crates/infrastructure/src/repositories/pg_ai_object_policy_repository.rs",
+        # DELETE FROM statements below are inside #[cfg(test)] modules:
+        "services/api-server/crates/application/src/services/domain_action_executor/tests_terminal_equipment.rs",
     }
 )
 

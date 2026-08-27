@@ -3,6 +3,7 @@ import type { ComputedRef, Ref } from 'vue';
 import { useApi } from '@/composables/useApi';
 import {
   fetchAnalytics as fetchDispatchAnalytics,
+  rosterTeamLabel,
   type AnalyticsBreakdownItem,
   type AnalyticsTrendPoint,
   type ConflictItem,
@@ -215,7 +216,7 @@ export function useDispatchBoardPageAiAnalytics(options: UseDispatchBoardPageAiA
         bucket.occupiedMinutes += Math.round((end - start) / 60000);
         bucket.representativeOrderId = item.order_id || '';
       }
-      const team = String(item.team_name || '').trim();
+      const team = rosterTeamLabel(item);
       if (team) bucket.teamLabels.add(team);
       grouped.set(key, bucket);
     }

@@ -17,7 +17,7 @@ import './AiConfigCenter.css';
 
 const {
   activeTab, searchQuery, loading, objects, actions,
-  filteredObjects, filteredActions, fetchData,
+  filteredObjects, filteredActions, fetchData, saveActionOverlay,
   sidebarUser, handleLogout,
   capabilitySnapshot, capabilityLoading, capabilityValidation,
   mcpServers, mcpBindings, mcpLoading,
@@ -68,6 +68,7 @@ const {
           :filtered-actions="filteredActions"
           @update:search-query="searchQuery = $event"
           @refresh="fetchData"
+          @save-overlay="(action, patch) => saveActionOverlay(action, patch)"
         />
       </template>
 

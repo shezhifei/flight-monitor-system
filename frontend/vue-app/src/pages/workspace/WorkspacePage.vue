@@ -3,6 +3,7 @@ import { watch } from 'vue';
 import { pageUrl } from '@/shared/page-routes';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import OccupySeatButton from '@/components/ops/OccupySeatButton.vue';
 import { useTheme } from '@/composables/useTheme';
 import { useWorkspaceTabs } from './useWorkspaceTabs';
 
@@ -125,6 +126,7 @@ function onTabClose(event: Event, moduleId: string): void {
         <span class="ws-topbar__hint" :title="`最多 ${maxTabs} 个标签`">
           {{ openTabs.length }}/{{ maxTabs }}
         </span>
+        <OccupySeatButton />
         <ThemeToggle variant="inline" />
       </div>
     </header>

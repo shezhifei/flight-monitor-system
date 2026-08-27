@@ -143,26 +143,6 @@ impl DispatchOrderRepository for FakeDispatchRepo {
     ) -> Result<Vec<DispatchOrder>, DomainError> {
         unimplemented!()
     }
-    async fn find_by_team(
-        &self,
-        _team_id: &str,
-        _status: Option<&str>,
-        _start_date: Option<DateTime<Utc>>,
-        _end_date: Option<DateTime<Utc>>,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        unimplemented!()
-    }
-    async fn find_by_team_filtered(
-        &self,
-        _team_id: &str,
-        _status: Option<&str>,
-        _source: Option<&str>,
-        _department: Option<&str>,
-        _limit: i64,
-        _offset: i64,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        unimplemented!()
-    }
     async fn find_by_user(&self, _user_id: &str, _status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
         unimplemented!()
     }
@@ -201,7 +181,6 @@ impl DispatchOrderRepository for FakeDispatchRepo {
         &self,
         _window_start: DateTime<Utc>,
         _window_end: DateTime<Utc>,
-        team_id: Option<&str>,
         _individual_user_id: Option<&str>,
         _stand_id: Option<&str>,
         exclude_order_id: Option<&str>,
@@ -211,7 +190,10 @@ impl DispatchOrderRepository for FakeDispatchRepo {
             .lock()
             .unwrap()
             .iter()
-            .filter(|o| o.team_id.as_deref() == team_id && exclude_order_id.is_none_or(|excluded| o.id != excluded))
+            .filter(|o| {
+                let user_ok = _individual_user_id.is_none_or(|user_id| o.individual_user_id.as_deref() == Some(user_id));
+                user_ok && exclude_order_id.is_none_or(|excluded| o.id != excluded)
+            })
             .cloned()
             .collect())
     }
@@ -932,16 +914,25 @@ pub(crate) fn anomaly_fixture(
     }
 }
 
-pub(crate) fn order_fixture(id: &str, flight_id: &str, status: &str, team_id: Option<&str>) -> DispatchOrder {
+pub(crate) fn order_fixture(id: &str, flight_id: &str, status: &str, source_team_id: Option<&str>) -> DispatchOrder {
     let mut raw = serde_json::json!({
         "id": id,
         "flight_id": flight_id,
         "task_type": "baggage_unload",
         "status": status,
         "planned_start_time": Utc::now() + Duration::minutes(30),
+        "members": [],
     });
-    if let Some(team_id) = team_id {
-        raw["team_id"] = serde_json::json!(team_id);
+    if let Some(source_team_id) = source_team_id {
+        raw["members"] = serde_json::json!([{
+            "id": format!("{id}-m1"),
+            "dispatch_order_id": id,
+            "user_id": "user-1",
+            "role": "member",
+            "source_type": "team",
+            "source_team_id": source_team_id,
+            "is_active": true,
+        }]);
     }
     serde_json::from_value(raw).expect("dispatch order fixture")
 }

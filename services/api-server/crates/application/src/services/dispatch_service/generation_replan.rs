@@ -37,17 +37,6 @@ impl DispatchService {
 
         let mut grouped: HashMap<(String, String), Vec<DispatchOrder>> = HashMap::new();
         for order in &orders {
-            if let Some(team_id) = order
-                .team_id
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-            {
-                grouped
-                    .entry(("team".to_string(), team_id.to_string()))
-                    .or_default()
-                    .push(order.clone());
-            }
             for user_id in Self::order_member_user_ids(order) {
                 grouped
                     .entry(("user".to_string(), user_id))
@@ -82,25 +71,25 @@ impl DispatchService {
                     continue;
                 }
 
+                // 班组不再是指派对象：冲突只通过顺延（delay）建议消解
                 let candidate = if can_mutate(&current.id) {
-                    if let Some(candidate) = self
-                        .build_reassignment_suggestion(current, previous, current_start, current_end)
-                        .await?
-                    {
-                        Some(candidate)
-                    } else {
-                        Some(Self::build_delay_replan_suggestion(
-                            current,
-                            &previous.id,
-                            current_start,
-                            current_end,
-                            target_start,
-                            min_duration,
-                        ))
-                    }
+                    Some(Self::build_delay_replan_suggestion(
+                        current,
+                        &previous.id,
+                        current_start,
+                        current_end,
+                        target_start,
+                        min_duration,
+                    ))
                 } else if can_mutate(&previous.id) {
-                    self.build_reassignment_suggestion(previous, current, previous_start, previous_end)
-                        .await?
+                    Some(Self::build_delay_replan_suggestion(
+                        previous,
+                        &current.id,
+                        previous_start,
+                        previous_end,
+                        current_end + Duration::minutes(buffer_minutes),
+                        min_duration,
+                    ))
                 } else {
                     None
                 };

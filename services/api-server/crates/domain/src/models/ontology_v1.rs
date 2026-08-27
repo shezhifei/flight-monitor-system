@@ -79,7 +79,8 @@ pub struct GateAssignment {
     pub gate_code: GateNumber,
     pub starts_at: DateTime<Utc>,
     pub ends_at: DateTime<Utc>,
-    pub flight_id: Option<FlightId>,
+    /// 主体：航班（PR3 起必填；迁移 142 收敛 gate_assignments.flight_id NOT NULL）
+    pub flight_id: FlightId,
     pub status: AssignmentStatus,
     /// 客户端幂等 token（可选）；重复分配时返回既有行（Open Questions §2）
     pub client_action_id: Option<String>,

@@ -635,7 +635,7 @@ impl DispatchService {
         planned_start_time: DateTime<Utc>,
         planned_end_time: DateTime<Utc>,
         crew_requirement_snapshot: &[Value],
-    ) -> Result<(Vec<Value>, Vec<Value>, Option<String>, Option<String>, Option<String>), DomainError> {
+    ) -> Result<(Vec<Value>, Vec<Value>, Option<String>), DomainError> {
         let team_member_repo = self.resources.team_member_repo.as_ref();
         let qualification_grant_repo = self.resources.qualification_grant_repo.as_ref();
         let qualification_repo = self.resources.qualification_repo.as_ref();
@@ -648,8 +648,6 @@ impl DispatchService {
                     "reason": "no_qualified_grants",
                 })],
                 Some("当前无法补齐执行编组".to_string()),
-                None,
-                None,
             ));
         }
 
@@ -663,8 +661,6 @@ impl DispatchService {
                     "reason": "no_qualified_grants",
                 })],
                 Some("当前无法补齐执行编组".to_string()),
-                None,
-                None,
             ));
         }
 
@@ -709,7 +705,6 @@ impl DispatchService {
         let mut selected_user_ids = HashSet::<String>::new();
         let mut selected_members = Vec::<Value>::new();
         let mut qualification_gap = Vec::<Value>::new();
-        let mut selected_team_ids = Vec::<String>::new();
 
         for requirement in crew_requirement_snapshot {
             let Some(requirement_obj) = requirement.as_object() else {
@@ -765,9 +760,6 @@ impl DispatchService {
 
             for (user_id, level_code, source_team_id) in candidate_rows.into_iter().take(required_count) {
                 selected_user_ids.insert(user_id.clone());
-                if let Some(source_team_id) = source_team_id.as_deref() {
-                    selected_team_ids.push(source_team_id.to_string());
-                }
                 let memberships = if let Some(existing) = team_member_cache.get(&user_id) {
                     existing.clone()
                 } else {
@@ -821,36 +813,13 @@ impl DispatchService {
                 Vec::new(),
                 qualification_gap,
                 Some("当前无法补齐执行编组".to_string()),
-                None,
-                None,
             ));
-        }
-
-        let mut dominant_team_id = None;
-        let mut dominant_team_name = None;
-        if !selected_team_ids.is_empty() {
-            let mut counts = HashMap::<String, usize>::new();
-            for team_id in selected_team_ids {
-                *counts.entry(team_id).or_insert(0) += 1;
-            }
-            if let Some((team_id, _)) = counts
-                .into_iter()
-                .max_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)))
-            {
-                dominant_team_name = {
-                    let team_repo = self.resources.team_repo.as_ref();
-                    team_repo.find_by_id(&team_id, false).await?.map(|team| team.name)
-                };
-                dominant_team_id = Some(team_id);
-            }
         }
 
         Ok((
             selected_members,
             Vec::new(),
             Some("人员编组满足已发布资质组合规则".to_string()),
-            dominant_team_id,
-            dominant_team_name,
         ))
     }
 
@@ -1302,13 +1271,7 @@ impl DispatchService {
             return Ok(None);
         }
 
-        let (team_id, team_name) = Self::resolve_window_assignment_team(&selected_members);
-        let assignee_type = if selected_members.len() == 1 {
-            "individual"
-        } else {
-            "team"
-        };
-        let individual_user_id = (assignee_type == "individual")
+        let individual_user_id = (selected_members.len() == 1)
             .then(|| {
                 selected_members
                     .first()
@@ -1317,7 +1280,7 @@ impl DispatchService {
                     .map(str::to_string)
             })
             .flatten();
-        let individual_username = (assignee_type == "individual")
+        let individual_username = (selected_members.len() == 1)
             .then(|| {
                 selected_members
                     .first()
@@ -1359,9 +1322,6 @@ impl DispatchService {
         ]));
 
         let assignment = json!({
-            "assignee_type": assignee_type,
-            "team_id": team_id,
-            "team_name": team_name,
             "individual_user_id": individual_user_id,
             "individual_username": individual_username,
             "task_crew": task_crew,

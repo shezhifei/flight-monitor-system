@@ -138,7 +138,6 @@ pub struct StepListQuery {
 #[derive(Debug, serde::Deserialize)]
 pub struct OrderListQuery {
     pub flight_id: Option<String>,
-    pub team_id: Option<String>,
     pub status: Option<String>,
     pub source: Option<String>,
     pub page: Option<i64>,

@@ -268,10 +268,13 @@ pub struct TeamType {
 pub struct Team {
     pub id: String,
     pub name: String,
+    /// 所属科室（PR2 起写在班组上；历史无类型班组可为空，创建必填）。
+    #[serde(default)]
+    pub department_id: Option<String>,
+    /// 只读历史值：班组类型已降为只读目录，写路径不再接受/写入。
     pub team_type_id: Option<String>,
     pub code: Option<String>,
     pub leader_id: Option<String>,
-    pub terminal: Option<String>,
     #[serde(default = "default_off_duty")]
     pub current_status: TeamStatus,
     pub current_position_lat: Option<f64>,
@@ -809,7 +812,6 @@ pub struct EquipmentType {
     pub category: Option<String>,
     #[serde(default)]
     pub requires_driver: bool,
-    pub driver_team_type_id: Option<String>,
     pub icon: Option<String>,
     pub description: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
@@ -825,9 +827,11 @@ pub struct Equipment {
     pub id: String,
     pub code: String,
     pub equipment_type_id: Option<String>,
+    /// 所属科室（PR2 起挂在设备上；历史设备可为空，创建必填）。
+    #[serde(default)]
+    pub department_id: Option<String>,
     pub name: Option<String>,
     pub license_plate: Option<String>,
-    pub terminal: Option<String>,
     #[serde(default = "default_available")]
     pub status: EquipmentStatus,
     pub current_position_lat: Option<f64>,
@@ -927,18 +931,13 @@ pub struct DispatchOrder {
     pub stand_code: Option<String>,
     pub terminal: Option<String>,
 
-    // 分配单位
-    #[serde(default = "default_assignee_team")]
-    pub assignee_type: AssigneeType,
-    pub team_id: Option<String>,
-    pub team_name: Option<String>,
+    // 分配单位（班组不再是工单指派对象：人员按槽挂，见 members / task_crew）
     pub department: Option<String>,
     pub individual_user_id: Option<String>,
     pub individual_username: Option<String>,
 
-    // 司机资源
+    // 司机资源（司机资质在槽上表达，driver 只指向个人）
     pub driver_type: Option<AssigneeType>,
-    pub driver_team_id: Option<String>,
     pub driver_user_id: Option<String>,
 
     // 时间节点
@@ -1042,9 +1041,6 @@ pub struct DispatchOrder {
     pub equipment_list: Vec<Equipment>,
 }
 
-fn default_assignee_team() -> AssigneeType {
-    AssigneeType::Team
-}
 fn default_pending() -> DispatchOrderStatus {
     DispatchOrderStatus::Pending
 }
@@ -1076,10 +1072,8 @@ fn default_true() -> bool {
 impl DispatchOrder {
     /// 验证用户是否可以开始此派工单
     pub fn can_be_started_by(&self, user_id: &str) -> bool {
-        if self.assignee_type == AssigneeType::Individual {
-            if self.individual_user_id.as_deref() == Some(user_id) {
-                return true;
-            }
+        if self.individual_user_id.as_deref() == Some(user_id) {
+            return true;
         }
         self.members.iter().any(|m| m.user_id == user_id && m.is_active)
     }
@@ -1243,7 +1237,7 @@ mod tests {
     use serde_json::json;
 
     fn make_order(
-        assignee: AssigneeType,
+        _assignee: AssigneeType,
         individual_uid: Option<&str>,
         members: Vec<DispatchOrderMember>,
     ) -> DispatchOrder {
@@ -1251,7 +1245,6 @@ mod tests {
             "id": "do-1",
             "flight_id": "fl-1",
             "task_type": "boarding",
-            "assignee_type": assignee,
             "members": members,
         });
         if let Some(uid) = individual_uid {
@@ -1313,10 +1306,10 @@ mod tests {
         Team {
             id: "team-1".into(),
             name: "Ramp Team".into(),
+            department_id: None,
             team_type_id: None,
             code: None,
             leader_id: None,
-            terminal: None,
             current_status: status,
             current_position_lat: None,
             current_position_lng: None,
@@ -1335,9 +1328,9 @@ mod tests {
             id: "eq-1".into(),
             code: "GPU-01".into(),
             equipment_type_id: None,
+            department_id: None,
             name: None,
             license_plate: None,
-            terminal: None,
             status,
             current_position_lat: None,
             current_position_lng: None,

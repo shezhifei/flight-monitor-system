@@ -2,10 +2,10 @@ use super::*;
 use crate::services::business_case_service::{BusinessCaseMentionAudience, CollaborationMentionAudience};
 use crate::services::dispatch_service::DispatchService;
 use crate::types::ConcreteNotificationService;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::sync::Arc;
 
-fn has_pool() -> bool {
+pub(super) fn has_pool() -> bool {
     std::env::var("TEST_DATABASE_URL").is_ok()
 }
 
@@ -19,13 +19,13 @@ fn is_outbox_failure(res: &Result<DomainActionReceipt, DomainActionError>) -> bo
     )
 }
 
-async fn create_pool() -> sqlx::PgPool {
+pub(super) async fn create_pool() -> sqlx::PgPool {
     let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     sqlx::PgPool::connect(&url).await.expect("test db")
 }
 
 /// 测试用航班插入（满足 anomalies/dispatch_orders 的 flight_id 外键）。
-async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
+pub(super) async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
     sqlx::query(
         r#"INSERT INTO flights (
             flight_id, airline_code, flight_number, registration,
@@ -59,7 +59,7 @@ async fn insert_test_flight(pool: &sqlx::PgPool, flight_id: &str) {
     .expect("insert test flight");
 }
 
-async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastructure::db::transaction::PgUnitOfWork> {
+pub(super) async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastructure::db::transaction::PgUnitOfWork> {
     use crate::services::business_case_service::{BusinessCaseEventPublisher, BusinessCaseService, BusinessCaseWriter};
     use crate::services::dispatch_resource_service::DispatchResourceService;
     use crate::services::dispatch_service::writer::DispatchOrderWriter;
@@ -152,6 +152,8 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastr
                 as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
             Arc::new(crate::test_support::UnwiredRepository)
                 as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
+            Arc::new(PgEquipmentRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentRepository + Send + Sync>,
             dispatch_service.clone(),
         ));
 
@@ -225,6 +227,13 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastr
         Arc::new(PgUserRepository::new(pool.clone())) as Arc<dyn UserRepository + Send + Sync>,
     ));
 
+    let terminal_resource_svc: Arc<crate::types::ConcreteTerminalResourceService> = Arc::new(
+        crate::services::terminal_resource_service::TerminalResourceService::new(
+            Arc::new(PgTerminalRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::TerminalRepository + Send + Sync>,
+        ),
+    );
+
     DomainActionExecutor::new(
         flight_service,
         flight_writer,
@@ -234,6 +243,7 @@ async fn build_executor(pool: sqlx::PgPool) -> DomainActionExecutor<fms_infrastr
         business_case_writer,
         ontology_svc,
         dispatch_resource_svc,
+        terminal_resource_svc,
         outbox_repo,
         anomaly_repo,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
@@ -938,7 +948,7 @@ async fn test_outbox_failure_rollback() {
 
     // --- Test DispatchOrder.publish Rollback ---
     sqlx::query(
-        "INSERT INTO dispatch_orders (id, flight_id, task_type, publication_state, status, assignee_type, source_type) VALUES ($1, $1, 'T', 'prepublished', 'pending', 'team', 'generated') ON CONFLICT DO NOTHING"
+        "INSERT INTO dispatch_orders (id, flight_id, task_type, publication_state, status, source_type) VALUES ($1, $1, 'T', 'prepublished', 'pending', 'generated') ON CONFLICT DO NOTHING"
     )
     .bind("FL_TX_ROLLBACK")
     .execute(&pool)
@@ -1120,13 +1130,13 @@ async fn test_dispatch_order_update_status_success() {
         .execute(&pool)
         .await
         .expect("insert test team");
+    insert_test_flight(&pool, "DP_STATUS_OK").await;
     sqlx::query(
-        "INSERT INTO dispatch_orders (id, flight_id, task_type, publication_state, status, assignee_type, team_id, source_type) \
-         VALUES ($1, $1, 'T', 'prepublished', 'pending', 'team', $2, 'generated') \
-         ON CONFLICT (id) DO UPDATE SET team_id = EXCLUDED.team_id, status = EXCLUDED.status, updated_at = NOW()",
+        "INSERT INTO dispatch_orders (id, flight_id, task_type, publication_state, status, source_type) \
+         VALUES ($1, $1, 'T', 'prepublished', 'pending', 'generated') \
+         ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()",
     )
     .bind("DP_STATUS_OK")
-    .bind("TEAM_STATUS_OK")
     .execute(&pool)
     .await
     .expect("insert test order");

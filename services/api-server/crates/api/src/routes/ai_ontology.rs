@@ -54,13 +54,50 @@ async fn get_actions(
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    let schema = load_schema(repo).await;
+    // 定义页要能看见并重新启用被 overlay 停掉的动作，所以这里从代码底 schema 列全量，
+    // 再叠 overlay 的启用/风险/审批；运行时信封/导出仍走 load_governed_schema（停用即消失）。
+    let mut schema = fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema();
+    let overlays = if let Some(repo) = repo {
+        match repo.load_action_overlays().await {
+            Ok(overlays) => overlays,
+            Err(error) => {
+                tracing::warn!("failed to load AI ontology overlays for action catalog: {}", error);
+                Vec::new()
+            }
+        }
+    } else {
+        Vec::new()
+    };
+    let overlay_map: std::collections::HashMap<(String, String), fms_domain::ontology::governed::ActionOverlay> =
+        overlays
+            .into_iter()
+            .map(|overlay| ((overlay.object.clone(), overlay.action.clone()), overlay))
+            .collect();
     let mut actions = Vec::new();
-    for (obj_name, obj_def) in schema.objects {
-        for (action_name, action_def) in obj_def.actions {
+    for (obj_name, obj_def) in schema.objects.iter_mut() {
+        for (action_name, action_def) in obj_def.actions.iter_mut() {
+            let mut is_active = true;
+            if let Some(overlay) = overlay_map.get(&(obj_name.clone(), action_name.clone())) {
+                if overlay.is_active == Some(false) {
+                    is_active = false;
+                }
+                if let Some(risk) = overlay.risk {
+                    action_def.risk_level = risk.label().to_string();
+                }
+                if let Some(requires_approval) = overlay.requires_approval {
+                    let policy = if requires_approval {
+                        "require_approval"
+                    } else {
+                        "auto_execute"
+                    };
+                    action_def.approval_strategy = policy.to_string();
+                    action_def.approval_policy = policy.to_string();
+                }
+            }
             actions.push(serde_json::json!({
                 "object": obj_name,
                 "action": action_name,
+                "is_active": is_active,
                 "definition": action_def
             }));
         }

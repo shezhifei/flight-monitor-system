@@ -252,8 +252,6 @@ export interface DispatchOrderCreatePayload {
   department_id?: string | null;
   stand_id?: string | null;
   location?: string | null;
-  assignee_type?: string | null;
-  team_id?: string | null;
   individual_user_id?: string | null;
   planned_start_time?: string | null;
   planned_end_time?: string | null;

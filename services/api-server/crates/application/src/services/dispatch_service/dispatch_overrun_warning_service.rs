@@ -557,15 +557,15 @@ fn leg_scope_value(scope: LegScope) -> &'static str {
 
 /// 提取工单实际指派人员:个人单取 `individual_user_id`,班组单取活跃成员。
 pub fn actual_person_ids(order: &DispatchOrder) -> HashSet<String> {
-    match order.assignee_type {
-        AssigneeType::Individual => order.individual_user_id.iter().cloned().collect(),
-        AssigneeType::Team => order
+    let mut ids: HashSet<String> = order.individual_user_id.iter().cloned().collect();
+    ids.extend(
+        order
             .members
             .iter()
             .filter(|member| member.is_active)
-            .map(|member| member.user_id.clone())
-            .collect(),
-    }
+            .map(|member| member.user_id.clone()),
+    );
+    ids
 }
 
 /// 纯检测:满足全部条件时返回冲突详情,否则返回 `None`。
@@ -685,14 +685,10 @@ mod tests {
             task_type_name: None,
             stand_code: None,
             terminal: None,
-            assignee_type: AssigneeType::Individual,
-            team_id: None,
-            team_name: None,
             department: Some("dept-1".to_string()),
             individual_user_id: None,
             individual_username: None,
             driver_type: None,
-            driver_team_id: None,
             driver_user_id: None,
             planned_start_time: None,
             planned_end_time: None,
@@ -884,13 +880,11 @@ mod tests {
     fn team_orders_share_active_members_only() {
         let now = fixed_now();
         let mut current = in_progress_current(now - Duration::minutes(10), Some(now + Duration::minutes(20)));
-        current.assignee_type = AssigneeType::Team;
         current.individual_user_id = None;
         current = with_member(current, "shared", true);
         current = with_member(current, "inactive", false);
 
         let mut next = pending_next(now + Duration::minutes(5));
-        next.assignee_type = AssigneeType::Team;
         next.individual_user_id = None;
         next = with_member(next, "shared", true);
         next = with_member(next, "different", true);
@@ -977,26 +971,6 @@ mod tests {
         ) -> Result<Vec<DispatchOrder>, DomainError> {
             unimplemented!("find_by_flight_with_filters")
         }
-        async fn find_by_team(
-            &self,
-            _team_id: &str,
-            _status: Option<&str>,
-            _start_date: Option<DateTime<Utc>>,
-            _end_date: Option<DateTime<Utc>>,
-        ) -> Result<Vec<DispatchOrder>, DomainError> {
-            unimplemented!("find_by_team")
-        }
-        async fn find_by_team_filtered(
-            &self,
-            _team_id: &str,
-            _status: Option<&str>,
-            _source: Option<&str>,
-            _department: Option<&str>,
-            _limit: i64,
-            _offset: i64,
-        ) -> Result<Vec<DispatchOrder>, DomainError> {
-            unimplemented!("find_by_team_filtered")
-        }
         async fn find_by_user(&self, _user_id: &str, _status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
             unimplemented!("find_by_user")
         }
@@ -1055,7 +1029,6 @@ mod tests {
             &self,
             _window_start: DateTime<Utc>,
             _window_end: DateTime<Utc>,
-            _team_id: Option<&str>,
             _individual_user_id: Option<&str>,
             _stand_id: Option<&str>,
             _exclude_order_id: Option<&str>,

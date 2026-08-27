@@ -229,8 +229,6 @@ impl DispatchFrontendReplanService {
         }
         let equipment_ids = order.equipment_list.iter().map(|item| item.id.clone()).collect();
         DispatchReplanAssignment {
-            assignee_type: Some(assignee_type_text(order.assignee_type).to_string()),
-            team_id: order.team_id.clone(),
             individual_user_id: order.individual_user_id.clone(),
             equipment_ids,
             member_user_ids,
@@ -265,24 +263,10 @@ impl DispatchFrontendReplanService {
             }
         }
         normalized.member_user_ids = dedupe_strings(&normalized.member_user_ids);
-        if normalized.assignee_type.is_none() {
-            normalized.assignee_type = if normalized.team_id.is_some() {
-                Some("team".to_string())
-            } else if normalized.individual_user_id.is_some() {
-                Some("individual".to_string())
-            } else {
-                None
-            };
-        }
         normalized
     }
 
     fn apply_assignment_to_order(&self, order: &mut DispatchOrder, assignment: &DispatchReplanAssignment) {
-        order.assignee_type = match assignment.assignee_type.as_deref() {
-            Some("individual") => AssigneeType::Individual,
-            _ => AssigneeType::Team,
-        };
-        order.team_id = assignment.team_id.clone();
         order.individual_user_id = assignment.individual_user_id.clone();
         order.department_rule_version = assignment.department_rule_version.clone();
         order.crew_requirement_snapshot = assignment.crew_requirement_snapshot.clone();

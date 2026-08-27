@@ -15,7 +15,9 @@ use fms_application::services::ai_proposal_ingest_service::AiProposalIngestServi
 use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_domain::models::ai_structured_output::AiStructuredOutput;
 
-use super::shared::{bind_conversation_id, current_user_id, target_objects_from_request, NLQueryRequest};
+use super::shared::{
+    bind_conversation_id, current_user_id, entity_id_from_request, target_objects_from_request, NLQueryRequest,
+};
 
 pub(crate) async fn query_natural_language(
     req: HttpRequest,
@@ -44,13 +46,14 @@ pub(crate) async fn query_natural_language(
 
     let target_objects = target_objects_from_request(&body);
     let mut envelope = context_service
-        .build_envelope(
+        .build_envelope_for_entity(
             &user_id,
             &roles,
             claims.0.department_id.as_deref(),
             "nl_query",
             &body.question,
             &target_objects,
+            entity_id_from_request(&body),
         )
         .await
         .map_err(|e| ApiError::Internal(e.to_string()))?;

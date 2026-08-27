@@ -101,24 +101,20 @@ impl AiProposalIngestService {
     }
 
     async fn active_ontology_schema(&self) -> Option<OntologySchema> {
-        if !ontology_registry_enabled() {
-            return None;
-        }
-
-        let Some(repository) = &self.ontology_repository else {
-            return None;
+        let overlays = match &self.ontology_repository {
+            Some(repository) => match repository.load_action_overlays().await {
+                Ok(overlays) => overlays,
+                Err(error) => {
+                    tracing::warn!(
+                        "failed to load AI ontology overlays for proposal ingest: {}",
+                        error
+                    );
+                    Vec::new()
+                }
+            },
+            None => Vec::new(),
         };
-
-        match repository.load_action_overlays().await {
-            Ok(overlays) => Some(fms_domain::ontology::governed::load_governed_schema(&overlays)),
-            Err(error) => {
-                tracing::warn!(
-                    "failed to load AI ontology overlays for proposal ingest: {}",
-                    error
-                );
-                None
-            }
-        }
+        Some(fms_domain::ontology::governed::load_governed_schema(&overlays))
     }
 
     async fn create_proposal_from_output(
@@ -182,8 +178,4 @@ pub struct IngestResult {
     pub evidence_count: usize,
 }
 
-fn ontology_registry_enabled() -> bool {
-    std::env::var("FMS_AI_ONTOLOGY_REGISTRY_ENABLED")
-        .map(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
-        .unwrap_or(false)
-}
+

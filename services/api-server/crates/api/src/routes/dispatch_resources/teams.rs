@@ -57,7 +57,8 @@ pub async fn create_team(
     body: web::Json<TeamCreate>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("team:manage")?;
-    let saved = svc.create_team(body.into_inner()).await?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
+    let saved = svc.create_team(body.into_inner(), actor_id).await?;
     Ok(created_resp(&req, to_team_response(saved)))
 }
 
@@ -69,7 +70,8 @@ pub async fn update_team(
     body: web::Json<TeamUpdate>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("team:manage")?;
-    let saved = svc.update_team(&path.into_inner(), body.into_inner()).await?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
+    let saved = svc.update_team(&path.into_inner(), body.into_inner(), actor_id).await?;
     Ok(ok_resp(&req, to_team_response(saved)))
 }
 
@@ -80,7 +82,8 @@ pub async fn delete_team(
     path: web::Path<String>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("team:manage")?;
-    svc.delete_team(&path.into_inner()).await?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
+    svc.delete_team(&path.into_inner(), actor_id).await?;
     Ok(ok_resp(
         &req,
         MessageResponse {
@@ -146,7 +149,8 @@ pub async fn add_team_member(
     body: web::Json<TeamMemberAdd>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("team:manage")?;
-    let saved = svc.add_team_member(&path.into_inner(), body.into_inner()).await?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
+    let saved = svc.add_team_member(&path.into_inner(), body.into_inner(), actor_id).await?;
     Ok(created_resp(&req, to_member_response(saved)))
 }
 
@@ -157,8 +161,9 @@ pub async fn remove_team_member(
     path: web::Path<(String, String)>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("team:manage")?;
+    let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
     let (team_id, user_id) = path.into_inner();
-    svc.remove_team_member(&team_id, &user_id).await?;
+    svc.remove_team_member(&team_id, &user_id, actor_id).await?;
     Ok(ok_resp(
         &req,
         MessageResponse {

@@ -569,6 +569,8 @@ mod tests {
                     as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
                 Arc::new(crate::test_support::UnwiredRepository)
                     as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
+                Arc::new(crate::test_support::UnwiredRepository)
+                    as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentRepository + Send + Sync>,
                 dispatch_svc.clone(),
             ));
         let collab_repo = Arc::new(PgDispatchCollaborationRepository::new(pool.clone()));
@@ -649,6 +651,10 @@ mod tests {
                     as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
                 Arc::new(PgUserRepository::new(pool.clone())) as Arc<dyn UserRepository + Send + Sync>,
             )) as Arc<ConcreteDispatchResourceService>,
+            Arc::new(crate::services::terminal_resource_service::TerminalResourceService::new(
+                Arc::new(PgTerminalRepository::new(pool.clone()))
+                    as Arc<dyn fms_domain::ports::dispatch_repository::TerminalRepository + Send + Sync>,
+            )) as Arc<crate::types::ConcreteTerminalResourceService>,
             outbox_repo,
             anomaly_repo,
             Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),

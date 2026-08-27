@@ -39,7 +39,6 @@ impl DispatchQueryService {
     pub async fn list_orders(
         &self,
         flight_id: Option<&str>,
-        team_id: Option<&str>,
         status: Option<&str>,
         source: Option<&str>,
         department: Option<&str>,
@@ -57,13 +56,6 @@ impl DispatchQueryService {
             return self
                 .order_repo
                 .find_by_flight_with_filters(flight_id, status, source, department, limit, offset)
-                .await;
-        }
-
-        if let Some(team_id) = team_id {
-            return self
-                .order_repo
-                .find_by_team_filtered(team_id, status, source, department, limit, offset)
                 .await;
         }
 
@@ -88,7 +80,6 @@ impl DispatchQueryService {
     pub async fn list_order_records(
         &self,
         flight_id: Option<&str>,
-        team_id: Option<&str>,
         status: Option<&str>,
         source: Option<&str>,
         department: Option<&str>,
@@ -96,7 +87,7 @@ impl DispatchQueryService {
         page_size: i64,
     ) -> Result<Vec<Value>, DomainError> {
         let orders = self
-            .list_orders(flight_id, team_id, status, source, department, page, page_size)
+            .list_orders(flight_id, status, source, department, page, page_size)
             .await?;
         self.serialize_orders_with_receipt_summaries(&orders).await
     }
@@ -198,19 +189,6 @@ impl DispatchQueryService {
                 let (right_start, right_end) = effective_interval(right, window_start);
                 if left_end < right_start || right_end < left_start {
                     continue;
-                }
-
-                if left.team_id.is_some() && left.team_id == right.team_id {
-                    conflicts.push(build_conflict(
-                        "team_overlap",
-                        "high",
-                        left.team_id.clone(),
-                        left.team_name.clone().or_else(|| right.team_name.clone()),
-                        vec![left.id.clone(), right.id.clone()],
-                        "班组在同一时间段被重复分配",
-                        Some("优先调整后创建工单的开始时间".to_string()),
-                        json!({}),
-                    ));
                 }
 
                 if left.individual_user_id.is_some() && left.individual_user_id == right.individual_user_id {

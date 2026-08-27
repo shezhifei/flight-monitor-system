@@ -146,7 +146,7 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .bind(&assignment.gate_code.0)
         .bind(assignment.starts_at)
         .bind(assignment.ends_at)
-        .bind(assignment.flight_id.as_ref().map(|f| &f.0))
+        .bind(&assignment.flight_id.0)
         .bind(assignment_status_str(assignment.status))
         .bind(&assignment.client_action_id)
         .bind(&assignment.created_by)
@@ -701,10 +701,8 @@ fn row_to_assignment(r: &sqlx::postgres::PgRow) -> GateAssignment {
         gate_code: GateNumber(r.get("gate_code")),
         starts_at: r.get("starts_at"),
         ends_at: r.get("ends_at"),
-        flight_id: r
-            .try_get::<Option<String>, _>("flight_id")
-            .unwrap_or(None)
-            .map(FlightId),
+        // PR3 起 flight_id 必填（迁移 142 收敛 NOT NULL）
+        flight_id: FlightId(r.get("flight_id")),
         status: match r.get::<String, _>("status").as_str() {
             "released" => AssignmentStatus::Released,
             "expired" => AssignmentStatus::Expired,
@@ -742,7 +740,7 @@ impl GateAssignmentRepository for PgGateAssignmentRepository {
         .bind(&assignment.gate_code.0)
         .bind(assignment.starts_at)
         .bind(assignment.ends_at)
-        .bind(assignment.flight_id.as_ref().map(|f| &f.0))
+        .bind(&assignment.flight_id.0)
         .bind(assignment_status_str(assignment.status))
         .bind(&assignment.client_action_id)
         .bind(&assignment.created_by)

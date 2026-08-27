@@ -406,21 +406,26 @@ mod tests {
     #[test]
     fn update_patch_from_dto_preserves_clear_semantics() {
         let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
-            "gate": null,
+            "position": null,
             "scheduled_departure": null,
             "registration": null,
             "inbound_leg": null,
-            "terminal": "T2"
+            "flight_remarks": "note"
         }))
         .unwrap();
 
         let patch = update_patch_from_dto(dto).unwrap();
 
-        assert!(matches!(patch.gate, PatchField::Clear));
+        // PR3：stand/gate/terminal/baggage_carousel 为只读展示列，PATCH 恒 Unset
+        assert!(matches!(patch.gate, PatchField::Unset));
+        assert!(matches!(patch.terminal, PatchField::Unset));
+        assert!(matches!(patch.stand, PatchField::Unset));
+        assert!(matches!(patch.baggage_carousel, PatchField::Unset));
+        assert!(matches!(patch.position, PatchField::Clear));
         assert!(matches!(patch.scheduled_departure, PatchField::Clear));
         assert!(matches!(patch.registration, PatchField::Clear));
         assert!(matches!(patch.inbound_leg, PatchField::Clear));
-        assert!(matches!(patch.terminal, PatchField::Set(ref value) if value == "T2"));
+        assert!(matches!(patch.flight_remarks, PatchField::Set(ref value) if value == "note"));
     }
 
     #[test]
@@ -437,13 +442,13 @@ mod tests {
     fn update_fields_present_tracks_status_and_resources() {
         let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
             "status": "delayed",
-            "gate": "A1",
+            "position": "P1",
             "flight_remarks": "note"
         }))
         .unwrap();
         let fields = update_fields_present(&dto);
         assert!(fields.contains(&"status"));
-        assert!(fields.contains(&"gate"));
+        assert!(fields.contains(&"position"));
         assert!(fields.contains(&"flight_remarks"));
     }
 

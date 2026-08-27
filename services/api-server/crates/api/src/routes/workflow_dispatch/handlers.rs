@@ -180,7 +180,6 @@ pub(crate) async fn list_pending_workflow_dispatch_orders(
     let orders = query_svc
         .list_orders(
             None,
-            None,
             Some("pending"),
             Some("workflow"),
             department.as_deref(),

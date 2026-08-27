@@ -18,7 +18,9 @@ use fms_domain::models::ai_job::{AiJobStatus, AiRunStatus};
 use fms_runtime::spawn_tracked::spawn_tracked;
 use futures_util::stream::StreamExt;
 
-use super::shared::{current_user_id, resolve_stream_task_type, target_objects_from_request, NLQueryRequest};
+use super::shared::{
+    current_user_id, entity_id_from_request, resolve_stream_task_type, target_objects_from_request, NLQueryRequest,
+};
 
 pub(crate) async fn query_natural_language_stream_with_tools(
     req: HttpRequest,
@@ -44,13 +46,14 @@ pub(crate) async fn query_natural_language_stream_with_tools(
 
     let target_objects = target_objects_from_request(&body);
     let mut envelope = context_service
-        .build_envelope(
+        .build_envelope_for_entity(
             &user_id,
             &roles,
             claims.0.department_id.as_deref(),
             task_type,
             &body.question,
             &target_objects,
+            entity_id_from_request(&body),
         )
         .await
         .map_err(|e| ApiError::Internal(e.to_string()))?;

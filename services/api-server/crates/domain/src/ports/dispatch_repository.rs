@@ -68,22 +68,6 @@ pub trait DispatchOrderRepository {
         limit: i64,
         offset: i64,
     ) -> Result<Vec<DispatchOrder>, DomainError>;
-    async fn find_by_team(
-        &self,
-        team_id: &str,
-        status: Option<&str>,
-        start_date: Option<DateTime<Utc>>,
-        end_date: Option<DateTime<Utc>>,
-    ) -> Result<Vec<DispatchOrder>, DomainError>;
-    async fn find_by_team_filtered(
-        &self,
-        team_id: &str,
-        status: Option<&str>,
-        source: Option<&str>,
-        department: Option<&str>,
-        limit: i64,
-        offset: i64,
-    ) -> Result<Vec<DispatchOrder>, DomainError>;
     async fn find_by_user(&self, user_id: &str, status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError>;
     async fn find_all(
         &self,
@@ -114,7 +98,6 @@ pub trait DispatchOrderRepository {
         &self,
         window_start: DateTime<Utc>,
         window_end: DateTime<Utc>,
-        team_id: Option<&str>,
         individual_user_id: Option<&str>,
         stand_id: Option<&str>,
         exclude_order_id: Option<&str>,
@@ -196,6 +179,16 @@ pub trait DispatchOrderTransactionalRepository<Tx>: Send + Sync {
         action: &str,
         actor_id: Option<&str>,
         details: Option<serde_json::Value>,
+    ) -> Result<(), DomainError>;
+
+    /// 在调用方事务内整体替换工单的设备占用（`dispatch_order_equipment` 关联行 +
+    /// `equipment.current_dispatch_id`/`status` 同步），与非事务端口
+    /// [`DispatchOrderRepository::replace_order_equipment_assignments`] 同一套口径。
+    async fn replace_order_equipment_assignments_in_tx(
+        &self,
+        tx: &mut Tx,
+        id: &str,
+        equipment_ids: &[String],
     ) -> Result<(), DomainError>;
 }
 
@@ -520,6 +513,10 @@ pub trait TerminalRepository {
     // -- Terminal 成员关系（构成事实）--
     /// 按 id 取机位目录行（用于把 stand_id 映射到 code 以做占用守卫）。
     async fn find_stand_by_id(&self, stand_id: &str) -> Result<Option<Stand>, DomainError>;
+    /// 机位目录行 upsert（`stands` 表）。新建必须随后 `add_stand` 挂楼。
+    async fn save_stand(&self, stand: &Stand) -> Result<Stand, DomainError>;
+    /// 软启停机位（is_active）。返回更新后的实体，找不到返回 None。
+    async fn set_stand_active(&self, stand_id: &str, is_active: bool) -> Result<Option<Stand>, DomainError>;
     async fn add_stand(&self, terminal_id: &str, stand_id: &str) -> Result<(), DomainError>;
     async fn remove_stand(&self, stand_id: &str) -> Result<(), DomainError>;
     async fn add_gate(&self, terminal_id: &str, gate_id: &str) -> Result<(), DomainError>;

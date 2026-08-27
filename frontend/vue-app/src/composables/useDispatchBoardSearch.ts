@@ -2,7 +2,7 @@ import type { DispatchOrder, DispatchOrderStatus } from './useDispatchBoardOrder
 import type { SafetyGateFilter } from './useDispatchBoardGantt';
 import type { SafetyProgressMap } from './useDispatchBoardChecklist';
 import { normalizeTaskCrewMembers } from './useDispatchBoardResources';
-import { STATUS_LABELS } from './useDispatchBoardOrders';
+import { rosterTeamLabel, STATUS_LABELS } from './useDispatchBoardOrders';
 
 export interface SearchMatch {
   item: DispatchOrder;
@@ -39,7 +39,7 @@ export function searchTimelineItems(
       String(item.order_id ?? ''),
       String(item.flight_id ?? ''),
       String(item.task_type ?? ''),
-      String(item.team_name ?? ''),
+      rosterTeamLabel(item),
       String(item.lane_label ?? ''),
       ...crewMembers.map((m) => m.username),
     ].join(' ').toLowerCase();
@@ -51,7 +51,7 @@ export function searchTimelineItems(
         item,
         index: i,
         label: `${flightLabel} / ${taskLabel}`,
-        sub: `${STATUS_LABELS[item.status as DispatchOrderStatus] ?? item.status ?? ''} | ${String(item.team_name ?? item.lane_label ?? '').trim()}`,
+        sub: `${STATUS_LABELS[item.status as DispatchOrderStatus] ?? item.status ?? ''} | ${rosterTeamLabel(item) || String(item.lane_label ?? '').trim()}`,
       });
     }
   }

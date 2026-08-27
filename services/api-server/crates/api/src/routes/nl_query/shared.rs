@@ -39,6 +39,19 @@ pub(crate) fn bind_conversation_id(
     conversation_id
 }
 
+pub(crate) fn entity_id_from_request(body: &NLQueryRequest) -> Option<&str> {
+    body.context
+        .as_ref()
+        .and_then(|context| {
+            context
+                .get("entity_id")
+                .or_else(|| context.get("entityId"))
+                .and_then(Value::as_str)
+        })
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
 pub(crate) fn target_objects_from_request(body: &NLQueryRequest) -> Vec<(String, String)> {
     let mut targets = Vec::new();
     if let Some(context) = &body.context {
@@ -229,6 +242,28 @@ mod tests {
             ApiError::BadRequest(msg) => assert!(msg.contains("god_mode")),
             other => panic!("expected BadRequest, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn entity_id_from_request_reads_context() {
+        let missing = NLQueryRequest {
+            question: "status".into(),
+            conversation_id: None,
+            context: None,
+            streaming: None,
+            async_mode: None,
+            task_type: None,
+        };
+        assert_eq!(entity_id_from_request(&missing), None);
+        let present = NLQueryRequest {
+            question: "status".into(),
+            conversation_id: None,
+            context: Some(serde_json::json!({ "entity_id": " ops-entity " })),
+            streaming: None,
+            async_mode: None,
+            task_type: None,
+        };
+        assert_eq!(entity_id_from_request(&present), Some("ops-entity"));
     }
 
     #[test]

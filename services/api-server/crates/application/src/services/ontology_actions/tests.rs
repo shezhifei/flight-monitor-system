@@ -57,10 +57,10 @@ fn team_fixture(id: &str, name: &str) -> Team {
     Team {
         id: id.to_string(),
         name: name.to_string(),
+        department_id: None,
         team_type_id: None,
         code: None,
         leader_id: None,
-        terminal: None,
         current_status: fms_domain::models::dispatch::TeamStatus::OnDuty,
         current_position_lat: None,
         current_position_lng: None,
@@ -193,7 +193,7 @@ async fn flight_search_invalid_date_is_rejected() {
 }
 
 #[tokio::test]
-async fn dispatch_get_status_returns_team_and_conflicts() {
+async fn dispatch_get_status_returns_conflicts() {
     let mut order = order_fixture("ORD1", "FL1", "in_progress", Some("TEAM1"));
     order.conflict_reason = Some("equip conflict".to_string());
     let svc = actions(
@@ -210,7 +210,11 @@ async fn dispatch_get_status_returns_team_and_conflicts() {
         .await
         .expect("get_status");
     assert_eq!(result["dispatch_order"]["status"], "in_progress");
-    assert_eq!(result["team"]["name"], "Alpha");
+    assert_eq!(
+        result["dispatch_order"]["members"][0]["source_team_id"],
+        "TEAM1"
+    );
+    assert!(result["team"].is_null());
     assert_eq!(result["conflicts"][0]["description"], "equip conflict");
     assert!(result["evidence"].is_object());
 }
@@ -436,14 +440,13 @@ async fn suggest_replan_generates_reassign_proposal_with_scores() {
         .await
         .expect("replan suggestion");
     let suggestion = &result["suggestion"];
-    assert_eq!(suggestion["action_name"], "reassign");
+    assert_eq!(suggestion["action_name"], "suggest_replan");
     assert_eq!(suggestion["risk_level"], "high");
     assert_eq!(suggestion["arguments"]["reason"], "team unavailable");
-    assert_ne!(suggestion["arguments"]["assignee_id"], "TEAM_A");
+    assert_eq!(suggestion["arguments"]["dispatch_order_id"], "ORD1");
     assert_eq!(result["score_before"], 0.5);
     assert!(result["score_after"].as_f64().unwrap() > 0.5);
-    assert_eq!(result["resource_changes"][0]["kind"], "team");
-    assert_eq!(result["resource_changes"][0]["from"], "TEAM_A");
+    assert_eq!(result["resource_changes"][0]["kind"], "crew_slots");
 }
 
 #[tokio::test]
@@ -681,9 +684,9 @@ fn equipment_fixture(id: &str, code: &str) -> fms_domain::models::dispatch::Equi
         id: id.to_string(),
         code: code.to_string(),
         equipment_type_id: Some("ET1".to_string()),
+        department_id: None,
         name: Some("Tug".to_string()),
         license_plate: None,
-        terminal: None,
         status: fms_domain::models::dispatch::EquipmentStatus::Available,
         current_position_lat: None,
         current_position_lng: None,

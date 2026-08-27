@@ -72,16 +72,6 @@ function patch<K extends keyof EquipmentTypeFormData>(field: K, value: Equipment
       </label>
     </div>
     <div class="form-group">
-      <label for="et-driver-team">司机班组类型 ID</label>
-      <input
-        id="et-driver-team"
-        type="text"
-        :value="form.driver_team_type_id"
-        placeholder="可选，driver_team_type_id"
-        @input="patch('driver_team_type_id', ($event.target as HTMLInputElement).value)"
-      >
-    </div>
-    <div class="form-group">
       <label for="et-icon">图标</label>
       <input
         id="et-icon"

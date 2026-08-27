@@ -56,7 +56,6 @@ use fms_application::services::domain_action_executor::{DomainActionExecution, D
 
 use fms_domain::models::ai_job::AiJobStatus;
 use fms_domain::models::micro_model::MicroModelRegistry;
-use fms_domain::ontology::flight_ops_v1;
 use fms_domain::ports::ai_auth_context_loader::RunAuthorizationContextLoader;
 use fms_domain::ports::ai_copilot_repository::AiCopilotBusinessCaseBatchRepository;
 use fms_domain::ports::ai_execution_repository::{
@@ -68,7 +67,7 @@ use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository,
-    DispatchOrderRepository, DispatchOrderTransactionalRepository, PersonnelRuntimeRepository,
+    DispatchOrderRepository, DispatchOrderTransactionalRepository, EquipmentRepository, PersonnelRuntimeRepository,
     QualificationGrantRepository, StandRepository, TeamRepository,
 };
 use fms_domain::ports::user_repository::UserRepository;
@@ -181,6 +180,7 @@ pub(crate) fn build_ai_services(
             repos.qualification_repo.clone() as Arc<dyn DepartmentQualificationRepository + Send + Sync>,
             repos.personnel_runtime_repo.clone() as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
             repos.user_repo.clone() as Arc<dyn UserRepository + Send + Sync>,
+            repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
             dispatch.dispatch_svc.clone(),
         ));
     let domain_action_executor: Arc<DomainActionExecutor<_>> = Arc::new(DomainActionExecutor::new(
@@ -192,6 +192,7 @@ pub(crate) fn build_ai_services(
         business_case_writer,
         flight.ontology_svc.clone(),
         dispatch.dispatch_resource_svc.clone(),
+        dispatch.terminal_resource_svc.clone(),
         repos.domain_event_outbox_repo.clone(),
         repos.anomaly_repo.clone(),
         repos.unit_of_work.clone(),
@@ -249,7 +250,9 @@ pub(crate) fn build_ai_services(
 
     let ai_ontology_repo_pg: Arc<dyn AiOntologyRepository + Send + Sync> =
         Arc::new(PgAiOntologyRepository::new(pool.clone()));
-    let ai_output_validator = Arc::new(AiOutputValidator::new(flight_ops_v1::build_flight_ops_v1_schema()));
+    let ai_output_validator = Arc::new(AiOutputValidator::new(
+        fms_domain::ontology::governed::load_governed_schema(&[]),
+    ));
 
     let ai_proposal_ingest_svc = Arc::new(
         AiProposalIngestService::new(
@@ -284,7 +287,9 @@ pub(crate) fn build_ai_services(
             .with_notification_service(shared.notification_svc.clone())
             .with_todo_service(shared.todo_svc.clone())
             .with_object_policy_repository(ai_object_policy_repo)
-            .with_snapshot_repository(Arc::new(PgAiContextSnapshotRepository::new(pool.clone()))),
+            .with_snapshot_repository(Arc::new(PgAiContextSnapshotRepository::new(pool.clone())))
+            .with_ontology_repository(ai_ontology_repo_pg.clone())
+            .with_entity_config_repository(repos.ai_entity_config_repo.clone()),
     );
     let ai_runtime_client = Arc::new(AiRuntimeClient::new());
 

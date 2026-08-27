@@ -42,7 +42,6 @@ export interface ManualOrderDraft {
   flight_id: string;
   task_type: string;
   department_id: string;
-  team_id: string;
   individual_user_id: string;
   stand_id: string;
   location: string;
@@ -73,7 +72,6 @@ function emptyManualOrderDraft(departmentId = ''): ManualOrderDraft {
     flight_id: '',
     task_type: '',
     department_id: departmentId,
-    team_id: '',
     individual_user_id: '',
     stand_id: '',
     location: '',
@@ -368,7 +366,6 @@ export function useDispatchRuleWorkbench(options: UseDispatchRuleWorkbenchOption
       flight_id: draft.flight_id || null,
       task_type: draft.task_type,
       department_id: draft.department_id || null,
-      team_id: draft.team_id || null,
       individual_user_id: draft.individual_user_id || null,
       stand_id: draft.stand_id || null,
       location: draft.location || null,

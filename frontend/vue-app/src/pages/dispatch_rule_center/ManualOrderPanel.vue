@@ -73,7 +73,6 @@ const payloadPreview = computed(() => {
     flight_id: draft.flight_id || null,
     task_type: draft.task_type || null,
     department_id: draft.department_id || null,
-    team_id: draft.team_id || null,
     individual_user_id: draft.individual_user_id || null,
     stand_id: draft.stand_id || null,
     location: draft.location || null,
@@ -133,9 +132,6 @@ function onSubmit(): void {
           label="承担科室"
           min-width="100%"
         />
-      </label>
-      <label>班组 ID
-        <input :value="localDraft.team_id" type="text" @input="update('team_id', ($event.target as HTMLInputElement).value)">
       </label>
       <label>个人指派
         <input :value="localDraft.individual_user_id" type="text" @input="update('individual_user_id', ($event.target as HTMLInputElement).value)">

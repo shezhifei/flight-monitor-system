@@ -532,11 +532,9 @@ impl NormalizedFlightPayload {
         FlightUpdate {
             expected_version: None,
             status: self.status.clone(),
-            gate: update_from_option(self.gate.clone()),
-            terminal: update_from_option(self.terminal.clone()),
-            stand: update_from_option(self.stand.clone()),
+            // PR3：stand/gate/terminal/baggage_carousel 为只读展示列（占用服务回写），
+            // FlightUpdate 已不再携带这四列，导入更新路径同步忽略这些上游值。
             position: update_from_option(self.position.clone()),
-            baggage_carousel: update_from_option(self.baggage_carousel.clone()),
             scheduled_departure: update_from_option(self.scheduled_departure),
             scheduled_arrival: update_from_option(self.scheduled_arrival),
             estimated_departure: update_from_option(self.estimated_departure),

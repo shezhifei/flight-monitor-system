@@ -4,9 +4,9 @@ use fms_domain::models::dispatch_collaboration::NotificationReceiptSummary;
 use serde_json::{json, Value};
 
 use super::helpers::{
-    assignee_type_value, dispatch_order_member_to_value, dispatch_type_value, driver_assignee_type_value,
+    dispatch_order_member_to_value, dispatch_type_value, driver_assignee_type_value,
     lock_level_value, non_empty_object_string, null_if_blank_with_default, order_status_value, resolve_effective_times,
-    resolve_notification_receipt_summary, resolve_order_department, schedule_source_value,
+    resolve_notification_receipt_summary, resolve_order_department, roster_team_projection, schedule_source_value,
 };
 
 pub(crate) fn is_workflow_pending_query(status: Option<&str>, source: Option<&str>) -> bool {
@@ -24,6 +24,7 @@ pub fn dispatch_order_to_value_with_summary(
 ) -> Value {
     let (effective_start_time, effective_end_time, effective_end_source) = resolve_effective_times(order);
     let department = resolve_order_department(order);
+    let (roster_team_id, roster_team_name) = roster_team_projection(order);
     let driver_bindings = order
         .equipment_assignment
         .iter()
@@ -57,19 +58,12 @@ pub fn dispatch_order_to_value_with_summary(
             .map(str::trim)
             .map(|value| !value.is_empty())
             .unwrap_or(false)
-        || order
-            .driver_team_id
-            .as_deref()
-            .map(str::trim)
-            .map(|value| !value.is_empty())
-            .unwrap_or(false)
     {
         Some(json!({
             "driver_type": order
                 .driver_type
                 .map(driver_assignee_type_value)
                 .unwrap_or_default(),
-            "driver_team_id": order.driver_team_id,
             "driver_user_id": order.driver_user_id,
             "bindings": driver_bindings,
         }))
@@ -103,14 +97,12 @@ pub fn dispatch_order_to_value_with_summary(
         "stand_id": order.stand_id,
         "stand_code": order.stand_code,
         "terminal": order.terminal,
-        "assignee_type": assignee_type_value(order),
-        "team_id": order.team_id,
-        "team_name": order.team_name,
         "department": department,
+        "team_id": roster_team_id,
+        "team_name": roster_team_name,
         "individual_user_id": order.individual_user_id,
         "individual_username": order.individual_username,
         "driver_type": order.driver_type.map(driver_assignee_type_value),
-        "driver_team_id": order.driver_team_id,
         "driver_user_id": order.driver_user_id,
         "driver_assignment": driver_assignment,
         "planned_start_time": order.planned_start_time,

@@ -92,7 +92,7 @@
 | 事实 | 位置 |
 |---|---|
 | 迁移 | `migrations/*.sql` |
-| 当前最新 | `140_add_position_user_id_to_handover_view.sql` |
+| 当前最新 | `143_dispatch_drop_team_assignment.sql` |
 | 空库自举 | `sqlx migrate run --source migrations` |
 | Outbox / CDC 设计 | `docs/architecture/ADR-0003-domain-event-outbox-cdc-relay.md` |
 

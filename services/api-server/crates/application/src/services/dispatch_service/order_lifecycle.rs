@@ -25,8 +25,6 @@ impl DispatchService {
             department_id,
             stand_id,
             location,
-            assignee_type,
-            team_id,
             individual_user_id,
             planned_start_time,
             planned_end_time,
@@ -141,26 +139,10 @@ impl DispatchService {
         let now = Utc::now();
         let order_id = Self::new_dispatch_id();
 
-        let normalized_team_id = Self::normalize_optional_string(team_id);
         let normalized_individual_user_id = Self::normalize_optional_string(individual_user_id);
-        let has_explicit_assignee = normalized_team_id.is_some() || normalized_individual_user_id.is_some();
+        // 班组不再是指派对象：显式指派只接受个人；班组挂人走槽位领域函数
+        let has_explicit_assignee = normalized_individual_user_id.is_some();
         let has_inline_assignment = !task_crew.is_empty() || !equipment_assignment.is_empty();
-        let assignee_type = match assignee_type.as_deref().map(str::trim) {
-            Some("individual") => AssigneeType::Individual,
-            Some("team") => AssigneeType::Team,
-            None if normalized_individual_user_id.is_some() => AssigneeType::Individual,
-            _ => AssigneeType::Team,
-        };
-
-        if has_explicit_assignee && assignee_type == AssigneeType::Team && normalized_team_id.is_none() {
-            return Err(DomainError::ValidationError("班组派工必须提供 team_id".to_string()));
-        }
-        if has_explicit_assignee && assignee_type == AssigneeType::Individual && normalized_individual_user_id.is_none()
-        {
-            return Err(DomainError::ValidationError(
-                "个人派工必须提供 individual_user_id".to_string(),
-            ));
-        }
 
         let normalized_publication_state = publication_state.trim();
         let publication_state = if normalized_publication_state.is_empty() {
@@ -210,14 +192,10 @@ impl DispatchService {
             task_type_name: None,
             stand_code: None,
             terminal: None,
-            assignee_type,
-            team_id: normalized_team_id.clone(),
-            team_name: None,
             department: None,
             individual_user_id: normalized_individual_user_id.clone(),
             individual_username: None,
             driver_type: None,
-            driver_team_id: None,
             driver_user_id: None,
             planned_start_time,
             planned_end_time,
@@ -308,30 +286,6 @@ impl DispatchService {
         }
 
         let mut persisted_members = Vec::new();
-        if assignee_type == AssigneeType::Team {
-            if let Some(team_id) = normalized_team_id.as_deref() {
-                let team_member_repo = self.resources.team_member_repo.as_ref();
-                let team_members = team_member_repo.find_by_team(team_id, false).await?;
-                for tm in &team_members {
-                    persisted_members.push(DispatchOrderMember {
-                        id: ulid::Ulid::new().to_string(),
-                        dispatch_order_id: order_id.clone(),
-                        user_id: tm.user_id.clone(),
-                        role: tm.role,
-                        source_type: AssigneeType::Team,
-                        source_team_id: Some(team_id.to_string()),
-                        slot_code: None,
-                        qualification_code: None,
-                        qualification_level_code: None,
-                        assigned_at: Some(now),
-                        check_in_time: None,
-                        check_out_time: None,
-                        is_active: true,
-                        username: tm.username.clone(),
-                    });
-                }
-            }
-        }
         if should_prepare_for_optimization {
             persisted_members.extend(order.members.iter().cloned());
         }
@@ -364,11 +318,6 @@ impl DispatchService {
                 log_details: Some(serde_json::json!({
                     "event_id": Self::new_dispatch_id(),
                     "task_type": resolved_task_type,
-                    "assignee_type": match assignee_type {
-                        AssigneeType::Individual => "individual",
-                        AssigneeType::Team => "team",
-                    },
-                    "team_id": normalized_team_id,
                     "individual_user_id": normalized_individual_user_id,
                     "temporary_task_template_code": resolved_template_code,
                 })),
@@ -415,20 +364,12 @@ impl DispatchService {
         match assignee_type
             .map(str::trim)
             .filter(|value| !value.is_empty())
-            .unwrap_or("team")
+            .unwrap_or("individual")
         {
             "team" => {
-                assignment["assignee_type"] = json!("team");
-                assignment["team_id"] = json!(assignee_id);
-                assignment["team_name"] = {
-                    let team_repo = self.resources.team_repo.as_ref();
-                    match team_repo.find_by_id(assignee_id, false).await? {
-                        Some(team) => json!(team.name),
-                        None => Value::Null,
-                    }
-                };
-                assignment["individual_user_id"] = Value::Null;
-                assignment["individual_username"] = Value::Null;
+                return Err(DomainError::ValidationError(
+                    "班组指派已废止：请改用 assign_slot 按槽挂人".to_string(),
+                ));
             }
             "individual" | "user" => {
                 assignment["assignee_type"] = json!("individual");
@@ -437,8 +378,6 @@ impl DispatchService {
                     .and_then(|patch| patch.get("individual_username"))
                     .cloned()
                     .unwrap_or(Value::Null);
-                assignment["team_id"] = Value::Null;
-                assignment["team_name"] = Value::Null;
             }
             other => {
                 return Err(DomainError::ValidationError(format!(
@@ -549,7 +488,7 @@ impl DispatchService {
             }));
         }
 
-        let (task_crew_members, qualification_gap, availability_reason, dominant_team_id, dominant_team_name) = self
+        let (task_crew_members, qualification_gap, availability_reason) = self
             .select_preparation_members(
                 order,
                 &department_id,
@@ -586,12 +525,7 @@ impl DispatchService {
             }));
         }
 
-        let assignee_type = if task_crew_members.len() == 1 {
-            AssigneeType::Individual
-        } else {
-            AssigneeType::Team
-        };
-        let individual_user_id = (assignee_type == AssigneeType::Individual)
+        let individual_user_id = (task_crew_members.len() == 1)
             .then(|| {
                 task_crew_members
                     .first()
@@ -600,7 +534,7 @@ impl DispatchService {
                     .map(str::to_string)
             })
             .flatten();
-        let individual_username = (assignee_type == AssigneeType::Individual)
+        let individual_username = (task_crew_members.len() == 1)
             .then(|| {
                 task_crew_members
                     .first()
@@ -630,9 +564,6 @@ impl DispatchService {
             ("generated_from".to_string(), json!("qualification_coverage")),
         ]));
 
-        order.assignee_type = assignee_type;
-        order.team_id = dominant_team_id.clone();
-        order.team_name = dominant_team_name.clone();
         order.individual_user_id = individual_user_id.clone();
         order.individual_username = individual_username;
         if order.status == DispatchOrderStatus::Pending {
@@ -668,14 +599,21 @@ impl DispatchService {
                         dispatch_order_id: order.id.clone(),
                         user_id,
                         role: MemberRole::Member,
-                        source_type: assignee_type,
+                        source_type: if item
+                            .get("source_team_id")
+                            .and_then(Value::as_str)
+                            .is_some_and(|value| !value.trim().is_empty())
+                        {
+                            AssigneeType::Team
+                        } else {
+                            AssigneeType::Individual
+                        },
                         source_team_id: item
                             .get("source_team_id")
                             .and_then(Value::as_str)
                             .map(str::trim)
                             .filter(|value| !value.is_empty())
-                            .map(str::to_string)
-                            .or_else(|| dominant_team_id.clone()),
+                            .map(str::to_string),
                         slot_code: item.get("slot_code").and_then(Value::as_str).map(str::to_string),
                         qualification_code: item
                             .get("qualification_code")
@@ -974,7 +912,6 @@ impl DispatchService {
                 .find_orders_in_window(start, end, &Self::ACTIVE_CONFLICT_STATUSES, None, None, None, false)
                 .await?;
 
-            let requested_team_id = dto.team_id.as_deref().map(str::trim).filter(|value| !value.is_empty());
             let requested_user_id = dto
                 .individual_user_id
                 .as_deref()
@@ -996,21 +933,6 @@ impl DispatchService {
                 let (order_start, order_end) = Self::effective_interval(&order, start);
                 if order_end < start || end < order_start {
                     continue;
-                }
-
-                if let Some(team_id) = requested_team_id {
-                    if order.team_id.as_deref() == Some(team_id) {
-                        conflicts.push(Self::build_conflict(
-                            "team_overlap",
-                            "high",
-                            Some(team_id.to_string()),
-                            order.team_name.clone(),
-                            vec![order.id.clone()],
-                            "班组在目标时间段已被占用",
-                            Some("更换班组或调整任务时间"),
-                            json!({ "conflict_order_status": order.status.as_ref() }),
-                        ));
-                    }
                 }
 
                 if let Some(user_id) = requested_user_id {

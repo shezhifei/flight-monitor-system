@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { pageUrl } from '@/shared/page-routes';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
@@ -9,29 +9,37 @@ import UiPill from '@/components/ui/UiPill.vue';
 import UiSearch from '@/components/ui/UiSearch.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
 import { useResourceManager } from '@/composables/useResourceManager';
+import type { Department } from '@/composables/useResourceManager';
+import { useTerminalDirectory } from '@/composables/useTerminalDirectory';
+import type { BaggageCarousel, Gate, Stand, Terminal } from '@/composables/useTerminalDirectory';
+import { useQualificationCatalog } from '@/composables/useQualificationCatalog';
+import type { QualificationCatalog } from '@/composables/useQualificationCatalog';
 import { hasUserPermission, useAuth } from '@/composables/useAuth';
 import TeamMemberDrawer from './TeamMemberDrawer.vue';
-import TeamTypeModal from './TeamTypeModal.vue';
+import DepartmentsSection from './DepartmentsSection.vue';
+import QualificationsSection from './QualificationsSection.vue';
+import TerminalDirectorySection from './TerminalDirectorySection.vue';
 import EquipmentTypeModal from './EquipmentTypeModal.vue';
 import EquipmentStatusModal from './EquipmentStatusModal.vue';
 
 const auth = useAuth();
 const canManageTeams = computed(() => hasUserPermission(auth.getUser(), 'team:manage'));
 const canManageEquipment = computed(() => hasUserPermission(auth.getUser(), 'equipment:manage'));
+const canManageDispatch = computed(() => hasUserPermission(auth.getUser(), 'dispatch:manage'));
 const rm = useResourceManager({ loadAssignableUsers: canManageTeams.value });
+const td = useTerminalDirectory();
+const qc = useQualificationCatalog();
 
 function handleLogout() { auth.logout(); }
 
 const teamModalShow = computed(() => rm.modal.value.kind === 'team');
 const equipmentModalShow = computed(() => rm.modal.value.kind === 'equipment');
-const teamTypeModalShow = computed(() => rm.modal.value.kind === 'team-type');
 const equipmentTypeModalShow = computed(() => rm.modal.value.kind === 'equipment-type');
 const equipmentStatusModalShow = computed(() => rm.modal.value.kind === 'equipment-status');
 const teamMembersDrawerShow = computed(() => rm.modal.value.kind === 'team-members');
 
 const editingTeam = computed(() => rm.modal.value.kind === 'team' ? rm.modal.value.item ?? null : null);
 const editingEquipment = computed(() => rm.modal.value.kind === 'equipment' ? rm.modal.value.item ?? null : null);
-const editingTeamType = computed(() => rm.modal.value.kind === 'team-type' ? rm.modal.value.item ?? null : null);
 const editingEquipmentType = computed(() => rm.modal.value.kind === 'equipment-type' ? rm.modal.value.item ?? null : null);
 const editingEquipmentStatus = computed(() => rm.modal.value.kind === 'equipment-status' ? rm.modal.value.item : null);
 const activeMemberTeam = computed(() => rm.modal.value.kind === 'team-members' ? rm.modal.value.team : null);
@@ -98,9 +106,11 @@ const equipmentStatusFilterOptions = [
   { value: 'retired', label: '已报废' },
 ];
 
-const teamTypeOptions = computed(() => [
-  { value: '', label: '请选择...' },
-  ...rm.rawTeamTypes.value.map((tt) => ({ value: tt.id, label: tt.name })),
+const departmentOptions = computed(() => [
+  { value: '', label: '请选择科室' },
+  ...rm.rawDepartments.value
+    .filter((d) => d.is_active !== false)
+    .map((d) => ({ value: d.id, label: d.name })),
 ]);
 
 const leaderOptions = computed(() => [
@@ -136,11 +146,6 @@ async function confirmDeleteEquipment(id: string, name: string) {
   if (!canManageEquipment.value) return;
   if (!window.confirm(`确认删除设备「${name}」吗？`)) return;
   await rm.deleteEquipment(id);
-}
-async function confirmDeleteTeamType(id: string, name: string) {
-  if (!canManageTeams.value) return;
-  if (!window.confirm(`确认删除班组类型「${name}」吗？`)) return;
-  await rm.deleteTeamType(id);
 }
 async function confirmDeleteEquipmentType(id: string, name: string) {
   if (!canManageEquipment.value) return;
@@ -179,6 +184,114 @@ async function onSaveEquipment() {
     : await rm.createEquipment(rm.equipmentForm.value);
   if (ok) rm.closeModal();
 }
+
+// ------------- 科室目录 ----------------------------------
+
+const departmentModalShow = computed(() => rm.modal.value.kind === 'department');
+const editingDepartment = computed(() =>
+  rm.modal.value.kind === 'department' ? rm.modal.value.item ?? null : null,
+);
+
+const departmentManagerOptions = computed(() => [
+  { value: '', label: '暂不指定' },
+  ...rm.assignableUsers.value.map((u) => ({ value: u.id, label: userLabel(u) })),
+]);
+
+async function onSaveDepartment() {
+  if (!canManageTeams.value) return;
+  const m = rm.modal.value;
+  if (m.kind !== 'department') return;
+  const ok = m.item
+    ? await rm.updateDepartment(m.item.id, rm.departmentForm.value)
+    : await rm.createDepartment(rm.departmentForm.value);
+  if (ok) rm.closeModal();
+}
+
+async function onToggleDepartmentActive(dept: Department) {
+  if (!canManageTeams.value) return;
+  const active = dept.is_active !== false;
+  if (!window.confirm(`确认${active ? '停用' : '启用'}科室「${dept.name}」吗？`)) return;
+  await rm.setDepartmentActive(dept.id, !active);
+}
+
+// ------------- 资质目录 ----------------------------------
+
+const qualificationDepartmentOptions = computed(() => qc.departmentOptions(rm.rawDepartments.value));
+
+watch(
+  () => rm.activeSection.value,
+  (section) => {
+    if (section === 'qualifications' && !qc.selectedDepartmentId.value && rm.rawDepartments.value[0]) {
+      void qc.selectDepartment(rm.rawDepartments.value[0].id);
+    }
+  },
+);
+
+async function onSelectQualificationDepartment(id: string) {
+  await qc.selectDepartment(id);
+}
+
+async function onToggleQualificationActive(item: QualificationCatalog) {
+  if (!canManageDispatch.value) return;
+  const next = !item.is_active;
+  if (!window.confirm(`确认${next ? '启用' : '停用'}资质「${item.qualification_name}」吗？`)) return;
+  await qc.setCatalogActive(item, next);
+}
+
+// ------------- 空间目录（楼/口/转盘/机位挂楼） -------------
+
+/* 切到空间目录板块时按需装载楼列表 */
+watch(
+  () => rm.activeSection.value,
+  (section) => {
+    if (section === 'terminals' && td.terminals.value.length === 0) {
+      void td.fetchTerminals();
+    }
+  },
+  { immediate: true },
+);
+
+async function onDeactivateTerminal(t: Terminal) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认停用航站楼「${t.name}」吗？存在未结束占用时会被拒绝。`)) return;
+  await td.deactivateTerminal(t.terminal_id);
+}
+
+async function onDetachStand(s: Stand) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认把机位「${s.code}」从本楼移出吗？存在未结束占用时会被拒绝。`)) return;
+  await td.detachStand(s.id);
+}
+
+async function onDetachGate(g: Gate) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认把登机口「${g.code}」从本楼移出吗？`)) return;
+  await td.detachGate(g.gate_id);
+}
+
+async function onDetachCarousel(c: BaggageCarousel) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认把转盘「${c.code}」从本楼移出吗？`)) return;
+  await td.detachCarousel(c.carousel_id);
+}
+
+async function onDeactivateGate(g: Gate) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认停用登机口「${g.code}」吗？存在未结束分配时会被拒绝。`)) return;
+  await td.deactivateGate(g.gate_id);
+}
+
+async function onDeactivateCarousel(c: BaggageCarousel) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认停用转盘「${c.code}」吗？存在未结束分配时会被拒绝。`)) return;
+  await td.deactivateCarousel(c.carousel_id);
+}
+
+async function onDeactivateStand(s: Stand) {
+  if (!canManageDispatch.value) return;
+  if (!window.confirm(`确认停用机位「${s.code}」吗？存在未结束占用时会被拒绝。`)) return;
+  await td.deactivateStand(s.id);
+}
 </script>
 
 <template>
@@ -213,7 +326,39 @@ async function onSaveEquipment() {
             @click="rm.switchSection('team-types')"
           >
             <span class="nav-item-icon"><SvgIcon src="/frontend/icons/detail.svg" /></span>
-            <span>班组类型</span>
+            <span>班组类型（只读）</span>
+          </button>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">
+            目录
+          </div>
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ active: rm.activeSection.value === 'departments' }"
+            @click="rm.switchSection('departments')"
+          >
+            <span class="nav-item-icon"><SvgIcon src="/frontend/icons/folder.svg" /></span>
+            <span>科室目录</span>
+          </button>
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ active: rm.activeSection.value === 'qualifications' }"
+            @click="rm.switchSection('qualifications')"
+          >
+            <span class="nav-item-icon"><SvgIcon src="/frontend/icons/detail.svg" /></span>
+            <span>资质目录</span>
+          </button>
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ active: rm.activeSection.value === 'terminals' }"
+            @click="rm.switchSection('terminals')"
+          >
+            <span class="nav-item-icon"><SvgIcon src="/frontend/icons/storage.svg" /></span>
+            <span>空间目录</span>
           </button>
         </div>
         <div class="nav-section">
@@ -350,6 +495,7 @@ async function onSaveEquipment() {
                 <tr>
                   <th>班组名称</th>
                   <th>类型</th>
+                  <th>科室</th>
                   <th>班组长</th>
                   <th>成员</th>
                   <th>状态</th>
@@ -361,13 +507,13 @@ async function onSaveEquipment() {
               </thead>
               <tbody>
                 <tr v-if="rm.loading.value">
-                  <td colspan="7" class="empty-state">
+                  <td colspan="8" class="empty-state">
                     <div class="loading-spinner" />
                     <p>加载中...</p>
                   </td>
                 </tr>
                 <tr v-else-if="rm.teams.value.length === 0">
-                  <td colspan="7" class="empty-state">
+                  <td colspan="8" class="empty-state">
                     暂无班组数据
                   </td>
                 </tr>
@@ -390,6 +536,7 @@ async function onSaveEquipment() {
                       -
                     </template>
                   </td>
+                  <td>{{ team.department_name || '-' }}</td>
                   <td>{{ team.leader_name || '-' }}</td>
                   <td>
                     <div class="cell-stack">
@@ -406,7 +553,7 @@ async function onSaveEquipment() {
                       {{ teamStatusLabel(team.current_status) }}
                     </UiPill>
                   </td>
-                  <td>{{ team.current_stand_id || team.terminal || '-' }}</td>
+                  <td>{{ team.current_stand_id || '-' }}</td>
                   <td>
                     <div class="row-actions">
                       <UiButton v-if="canManageTeams" @click="rm.openTeamModal(team)">
@@ -433,9 +580,12 @@ async function onSaveEquipment() {
           <div class="content-heading">
             <div class="content-title">
               班组类型
+              <UiPill tone="mute" class="readonly-pill">
+                已下线 · 只读历史
+              </UiPill>
             </div>
             <div class="content-subtitle">
-              维护班组类型及其可执行的作业类型。
+              班组类型已降为只读历史目录（PR2 起写接口返回 410），班组改为直接挂科室；此处仅展示存量数据。
             </div>
           </div>
         </div>
@@ -448,14 +598,6 @@ async function onSaveEquipment() {
                 placeholder="搜索班组类型..."
               />
             </div>
-            <UiButton
-              v-if="canManageTeams"
-              variant="primary"
-              size="md"
-              @click="rm.openTeamTypeModal()"
-            >
-              <SvgIcon src="/frontend/icons/add.svg" :size="14" /> 新建类型
-            </UiButton>
           </div>
 
           <div class="table-container">
@@ -466,14 +608,11 @@ async function onSaveEquipment() {
                   <th>代码</th>
                   <th>可作业类型</th>
                   <th>关联班组</th>
-                  <th class="col-actions">
-                    操作
-                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="rm.teamTypes.value.length === 0">
-                  <td colspan="5" class="empty-state">
+                  <td colspan="4" class="empty-state">
                     暂无班组类型
                   </td>
                 </tr>
@@ -492,16 +631,6 @@ async function onSaveEquipment() {
                   <td>{{ tt.code || '-' }}</td>
                   <td>{{ (tt.task_types ?? []).join(', ') || '-' }}</td>
                   <td>{{ tt.team_count ?? '-' }}</td>
-                  <td>
-                    <div class="row-actions">
-                      <UiButton v-if="canManageTeams" @click="rm.openTeamTypeModal(tt)">
-                        编辑
-                      </UiButton>
-                      <UiButton v-if="canManageTeams" variant="danger" @click="confirmDeleteTeamType(tt.id, tt.name)">
-                        删除
-                      </UiButton>
-                    </div>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -594,6 +723,7 @@ async function onSaveEquipment() {
                 <tr>
                   <th>设备名称</th>
                   <th>类型</th>
+                  <th>科室</th>
                   <th>车牌/编号</th>
                   <th>状态</th>
                   <th>当前位置</th>
@@ -605,13 +735,13 @@ async function onSaveEquipment() {
               </thead>
               <tbody>
                 <tr v-if="rm.loading.value">
-                  <td colspan="7" class="empty-state">
+                  <td colspan="8" class="empty-state">
                     <div class="loading-spinner" />
                     <p>加载中...</p>
                   </td>
                 </tr>
                 <tr v-else-if="rm.equipment.value.length === 0">
-                  <td colspan="7" class="empty-state">
+                  <td colspan="8" class="empty-state">
                     暂无设备数据
                   </td>
                 </tr>
@@ -623,13 +753,14 @@ async function onSaveEquipment() {
                     </template>
                   </td>
                   <td>{{ eq.equipment_type_name || '-' }}</td>
+                  <td>{{ eq.department_name || '-' }}</td>
                   <td>{{ eq.license_plate || '-' }}</td>
                   <td>
                     <UiPill :tone="equipmentStatusTone(eq.status)">
                       {{ equipmentStatusLabel(eq.status) }}
                     </UiPill>
                   </td>
-                  <td>{{ eq.current_stand_id || eq.terminal || '-' }}</td>
+                  <td>{{ eq.current_stand_id || '-' }}</td>
                   <td>{{ eq.next_maintenance_date || '-' }}</td>
                   <td>
                     <div class="row-actions">
@@ -730,6 +861,95 @@ async function onSaveEquipment() {
           </div>
         </div>
       </section>
+
+      <!-- ========== Departments Section ========== -->
+      <DepartmentsSection
+        :active="rm.activeSection.value === 'departments'"
+        :can-manage="canManageTeams"
+        :departments="rm.departments.value"
+        :total="rm.departmentsTotal.value"
+        :search="rm.departmentSearch.value"
+        :saving="rm.saving.value"
+        :modal-open="departmentModalShow"
+        :editing="editingDepartment"
+        :form="rm.departmentForm.value"
+        :manager-options="departmentManagerOptions"
+        @update:search="rm.departmentSearch.value = $event"
+        @update:form="rm.departmentForm.value = $event"
+        @open="rm.openDepartmentModal($event)"
+        @close="rm.closeModal()"
+        @save="onSaveDepartment"
+        @toggle-active="onToggleDepartmentActive"
+      />
+
+      <!-- ========== Qualification Catalog Section ========== -->
+      <QualificationsSection
+        :active="rm.activeSection.value === 'qualifications'"
+        :can-manage="canManageDispatch"
+        :selected-department-id="qc.selectedDepartmentId.value"
+        :catalogs="qc.catalogs.value"
+        :search="qc.search.value"
+        :loading="qc.loading.value"
+        :saving="qc.saving.value"
+        :modal="qc.modal.value"
+        :form="qc.form.value"
+        :level-form="qc.levelForm.value"
+        :department-options="qualificationDepartmentOptions"
+        :levels-for="qc.levelsFor"
+        @update:selected-department-id="onSelectQualificationDepartment"
+        @update:search="qc.search.value = $event"
+        @update:form="qc.form.value = $event"
+        @update:level-form="qc.levelForm.value = $event"
+        @open="qc.openQualificationModal($event)"
+        @open-level="qc.openLevelModal($event)"
+        @close="qc.closeModal()"
+        @save="qc.saveCurrentModal()"
+        @toggle-active="onToggleQualificationActive"
+      />
+
+      <!-- ========== Terminal Directory Section ========== -->
+      <TerminalDirectorySection
+        :active="rm.activeSection.value === 'terminals'"
+        :can-manage="canManageDispatch"
+        :terminals="td.terminals.value"
+        :loading="td.loading.value"
+        :saving="td.saving.value"
+        :terminal-search="td.terminalSearch.value"
+        :selected-terminal-id="td.selectedTerminalId.value"
+        :directory="td.directory.value"
+        :context-loading="td.contextLoading.value"
+        :attachable-stands="td.attachableStands.value"
+        :attach-stand-id="td.attachStandId.value"
+        :modal="td.modal.value"
+        :terminal-form="td.terminalForm.value"
+        :gate-form="td.gateForm.value"
+        :carousel-form="td.carouselForm.value"
+        :stand-form="td.standForm.value"
+        @update:terminal-search="td.terminalSearch.value = $event"
+        @update:attach-stand-id="td.attachStandId.value = $event"
+        @update:terminal-form="td.terminalForm.value = $event"
+        @update:gate-form="td.gateForm.value = $event"
+        @update:carousel-form="td.carouselForm.value = $event"
+        @update:stand-form="td.standForm.value = $event"
+        @select="td.selectTerminal($event)"
+        @open-terminal="td.openTerminalModal($event)"
+        @open-gate="td.openGateModal($event)"
+        @open-carousel="td.openCarouselModal($event)"
+        @open-stand="td.openStandModal($event)"
+        @open-attach-stand="td.openAttachStandModal()"
+        @close="td.closeModal()"
+        @save="td.saveCurrentModal()"
+        @deactivate-terminal="onDeactivateTerminal"
+        @detach-stand="onDetachStand"
+        @detach-gate="onDetachGate"
+        @detach-carousel="onDetachCarousel"
+        @deactivate-gate="onDeactivateGate"
+        @deactivate-carousel="onDeactivateCarousel"
+        @deactivate-stand="onDeactivateStand"
+        @reactivate-gate="td.reactivateGate($event.gate_id)"
+        @reactivate-carousel="td.reactivateCarousel($event.carousel_id)"
+        @reactivate-stand="td.reactivateStand($event.id)"
+      />
     </main>
 
     <!-- Modals & Drawer：帽幕关一律走库件 -->
@@ -759,9 +979,9 @@ async function onSaveEquipment() {
       </div>
       <div class="form-group">
         <UiSelect
-          v-model="rm.teamForm.value.team_type_id"
-          :options="teamTypeOptions"
-          label="班组类型"
+          v-model="rm.teamForm.value.department_id"
+          :options="departmentOptions"
+          label="所属科室（必填）"
           min-width="100%"
         />
       </div>
@@ -772,15 +992,6 @@ async function onSaveEquipment() {
           label="班组长"
           min-width="100%"
         />
-      </div>
-      <div class="form-group">
-        <label for="t-terminal">航站楼</label>
-        <input
-          id="t-terminal"
-          v-model="rm.teamForm.value.terminal"
-          type="text"
-          placeholder="例如：T1"
-        >
       </div>
       <div class="form-group">
         <UiSelect
@@ -797,7 +1008,7 @@ async function onSaveEquipment() {
         <UiButton
           size="md"
           variant="primary"
-          :disabled="!rm.teamForm.value.name.trim() || rm.saving.value"
+          :disabled="!rm.teamForm.value.name.trim() || !rm.teamForm.value.department_id || rm.saving.value"
           @click="onSaveTeam"
         >
           {{ rm.saving.value ? '保存中...' : '保存' }}
@@ -838,21 +1049,20 @@ async function onSaveEquipment() {
         />
       </div>
       <div class="form-group">
+        <UiSelect
+          v-model="rm.equipmentForm.value.department_id"
+          :options="departmentOptions"
+          label="所属科室（必填）"
+          min-width="100%"
+        />
+      </div>
+      <div class="form-group">
         <label for="e-plate">车牌</label>
         <input
           id="e-plate"
           v-model="rm.equipmentForm.value.license_plate"
           type="text"
           placeholder="可选"
-        >
-      </div>
-      <div class="form-group">
-        <label for="e-terminal">航站楼</label>
-        <input
-          id="e-terminal"
-          v-model="rm.equipmentForm.value.terminal"
-          type="text"
-          placeholder="例如：T1"
         >
       </div>
       <div class="form-group">
@@ -874,23 +1084,13 @@ async function onSaveEquipment() {
         <UiButton
           size="md"
           variant="primary"
-          :disabled="!rm.equipmentForm.value.code.trim() || rm.saving.value"
+          :disabled="!rm.equipmentForm.value.code.trim() || !rm.equipmentForm.value.department_id || rm.saving.value"
           @click="onSaveEquipment"
         >
           {{ rm.saving.value ? '保存中...' : '保存' }}
         </UiButton>
       </template>
     </UiModal>
-
-    <TeamTypeModal
-      :show="teamTypeModalShow"
-      :editing="editingTeamType"
-      :form="rm.teamTypeForm.value"
-      :saving="rm.saving.value"
-      @close="rm.closeModal()"
-      @save="rm.saveCurrentModal()"
-      @update:form="rm.teamTypeForm.value = $event"
-    />
 
     <EquipmentTypeModal
       :show="equipmentTypeModalShow"
@@ -980,6 +1180,11 @@ async function onSaveEquipment() {
 
 .driver-pill {
   margin-left: var(--s2);
+}
+
+.readonly-pill {
+  margin-left: var(--s2);
+  vertical-align: middle;
 }
 
 .loading-spinner {

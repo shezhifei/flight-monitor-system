@@ -66,16 +66,6 @@ const statusModel = computed<string>({
       />
     </div>
     <div class="form-group">
-      <label for="es-terminal">航站楼 / 位置</label>
-      <input
-        id="es-terminal"
-        type="text"
-        :value="form.terminal"
-        placeholder="例如：T1"
-        @input="patch('terminal', ($event.target as HTMLInputElement).value)"
-      >
-    </div>
-    <div class="form-group">
       <label for="es-next">下次保养日期</label>
       <input
         id="es-next"

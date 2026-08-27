@@ -70,20 +70,10 @@ pub fn update_changed_fields(dto: &fms_application::schemas::flight_schemas::Fli
     if dto.status.is_some() {
         fields.push("status");
     }
-    if dto.gate.is_touched() {
-        fields.push("gate");
-    }
-    if dto.terminal.is_touched() {
-        fields.push("terminal");
-    }
-    if dto.stand.is_touched() {
-        fields.push("stand");
-    }
+    // PR3：stand/gate/terminal/baggage_carousel 为只读展示列，已从 FlightUpdate
+    // 删除（serde 422 拒绝），不再出现在 PATCH 变更字段里。
     if dto.position.is_touched() {
         fields.push("position");
-    }
-    if dto.baggage_carousel.is_touched() {
-        fields.push("baggage_carousel");
     }
     if dto.scheduled_departure.is_touched() {
         fields.push("scheduled_departure");

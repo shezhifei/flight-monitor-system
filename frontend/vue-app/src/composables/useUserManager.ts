@@ -81,6 +81,8 @@ export interface UserFormState {
   department: string;
   job_level: number;
   job_title: string;
+  /** `personal` | `position`。创建后不可改。 */
+  account_type: 'personal' | 'position';
 }
 
 export interface RoleFormState {
@@ -101,6 +103,33 @@ export interface TemplateFormState {
 
 export type TemplateApplyMode = 'replace' | 'append' | 'clear';
 
+export interface QualificationGrant {
+  id: string;
+  user_id: string;
+  department_id: string;
+  qualification_code: string;
+  level_code: string;
+  status: string;
+}
+
+export interface QualificationCatalogOption {
+  qualification_code: string;
+  qualification_name: string;
+  is_active: boolean;
+}
+
+export interface QualificationLevelOption {
+  qualification_code: string;
+  level_code: string;
+  level_name: string;
+  is_active: boolean;
+}
+
+export interface QualificationGrantFormState {
+  qualification_code: string;
+  level_code: string;
+}
+
 function emptyUserForm(): UserFormState {
   return {
     username: '',
@@ -112,6 +141,7 @@ function emptyUserForm(): UserFormState {
     department: '',
     job_level: 1,
     job_title: '',
+    account_type: 'personal',
   };
 }
 
@@ -397,9 +427,15 @@ export function useUserManager() {
       department: normalizeDepartmentName(form.department) || undefined,
       job_level: typeof form.job_level === 'number' ? form.job_level : 1,
       job_title: normalizeDepartmentName(form.job_title) || undefined,
+      account_type: form.account_type === 'position' ? 'position' : 'personal',
     };
+    if (payload.account_type === 'position') {
+      payload.is_admin = false;
+    }
     if (form.password) {
       payload.password = form.password;
+    } else if (payload.account_type === 'position') {
+      payload.password = `position-${Date.now()}`;
     }
     return payload;
   }
@@ -462,13 +498,20 @@ export function useUserManager() {
       department: user.department ?? '',
       job_level: typeof user.job_level === 'number' ? user.job_level : 1,
       job_title: user.job_title ?? '',
+      account_type: user.account_type === 'position' ? 'position' : 'personal',
     };
     showUserModal.value = true;
+    if (userForm.value.account_type === 'personal') {
+      await loadUserQualifications(user);
+    } else {
+      clearQualificationState();
+    }
   }
 
   function closeUserModal(): void {
     showUserModal.value = false;
     editingUser.value = null;
+    clearQualificationState();
   }
 
   async function saveUser(): Promise<void> {
@@ -481,6 +524,10 @@ export function useUserManager() {
       toast.showToast('warning', '请填写邮箱');
       return;
     }
+    if (userForm.value.account_type === 'position' && !userForm.value.department.trim()) {
+      toast.showToast('warning', '岗位账号必须挂科室');
+      return;
+    }
     savingUser.value = true;
     try {
       const ok = editingUser.value
@@ -489,6 +536,136 @@ export function useUserManager() {
       if (ok) closeUserModal();
     } finally {
       savingUser.value = false;
+    }
+  }
+
+  // -------- Qualification grants (personnel page) --------
+
+  const qualificationGrants = ref<QualificationGrant[]>([]);
+  const qualificationCatalogs = ref<QualificationCatalogOption[]>([]);
+  const qualificationLevels = ref<QualificationLevelOption[]>([]);
+  const qualificationGrantForm = ref<QualificationGrantFormState>({
+    qualification_code: '',
+    level_code: '',
+  });
+  const qualificationDepartmentId = ref('');
+  const qualificationHint = ref('');
+  const savingGrant = ref(false);
+
+  const levelsForGrantForm = computed(() =>
+    qualificationLevels.value.filter(
+      (item) => item.is_active && item.qualification_code === qualificationGrantForm.value.qualification_code,
+    ),
+  );
+
+  function clearQualificationState(): void {
+    qualificationGrants.value = [];
+    qualificationCatalogs.value = [];
+    qualificationLevels.value = [];
+    qualificationGrantForm.value = { qualification_code: '', level_code: '' };
+    qualificationDepartmentId.value = '';
+    qualificationHint.value = '';
+  }
+
+  async function resolveDepartmentId(user: ManagedUser, departmentName: string): Promise<string | null> {
+    const direct = String(user.department_id ?? '').trim();
+    if (direct) return direct;
+    const res = await api.get<unknown>('/api/v2/dispatch/resources/departments?page_size=500');
+    if (!res.ok) return null;
+    const list = extractList<Record<string, unknown>>(res.data);
+    const needle = departmentName.trim();
+    const match = list.find((item) => {
+      const id = String(item.id ?? '').trim();
+      const name = String(item.name ?? '').trim();
+      const code = String(item.code ?? '').trim();
+      return id === needle || name === needle || code === needle;
+    });
+    return match ? String(match.id) : null;
+  }
+
+  async function loadUserQualifications(user: ManagedUser): Promise<void> {
+    clearQualificationState();
+    const departmentId = await resolveDepartmentId(user, user.department ?? userForm.value.department);
+    if (!departmentId) {
+      qualificationHint.value = '该人未挂到科室目录，无法发放资质。请先在科室目录建档并把用户科室写成同一名称或代码。';
+      return;
+    }
+    qualificationDepartmentId.value = departmentId;
+    const base = `/api/v2/dispatch/rules/departments/${encodeURIComponent(departmentId)}`;
+    const [grantRes, catalogRes, levelRes] = await Promise.all([
+      api.get<unknown>(`${base}/qualification-grants?user_ids=${encodeURIComponent(user.id)}&include_inactive=true`),
+      api.get<unknown>(`${base}/qualifications?include_inactive=false`),
+      api.get<unknown>(`${base}/qualification-levels?include_inactive=false`),
+    ]);
+    if (!grantRes.ok || !catalogRes.ok || !levelRes.ok) {
+      toast.showToast('error', '加载人员资质失败');
+      return;
+    }
+    qualificationGrants.value = extractList<QualificationGrant>(grantRes.data);
+    qualificationCatalogs.value = extractList<QualificationCatalogOption>(catalogRes.data);
+    qualificationLevels.value = extractList<QualificationLevelOption>(levelRes.data);
+  }
+
+  async function createQualificationGrant(): Promise<boolean> {
+    const user = editingUser.value;
+    const departmentId = qualificationDepartmentId.value;
+    const form = qualificationGrantForm.value;
+    if (!user || !departmentId) return false;
+    if (!form.qualification_code.trim() || !form.level_code.trim()) {
+      toast.showToast('warning', '请选择资质和等级');
+      return false;
+    }
+    savingGrant.value = true;
+    try {
+      const res = await api.post<unknown>(
+        `/api/v2/dispatch/rules/departments/${encodeURIComponent(departmentId)}/qualification-grants`,
+        {
+          user_id: user.id,
+          qualification_code: form.qualification_code.trim(),
+          level_code: form.level_code.trim(),
+          status: 'active',
+        },
+      );
+      if (!res.ok) {
+        toast.showToast('error', extractErrorMessage(res.data, '发放资质失败'));
+        return false;
+      }
+      toast.showToast('success', '资质已发放');
+      qualificationGrantForm.value = { qualification_code: '', level_code: '' };
+      await loadUserQualifications(user);
+      return true;
+    } finally {
+      savingGrant.value = false;
+    }
+  }
+
+  async function revokeQualificationGrant(grant: QualificationGrant): Promise<boolean> {
+    const user = editingUser.value;
+    const departmentId = qualificationDepartmentId.value;
+    if (!user || !departmentId) return false;
+    if (typeof window !== 'undefined' && !window.confirm(`确认收回资质 ${grant.qualification_code}/${grant.level_code}？`)) {
+      return false;
+    }
+    savingGrant.value = true;
+    try {
+      const res = await api.post<unknown>(
+        `/api/v2/dispatch/rules/departments/${encodeURIComponent(departmentId)}/qualification-grants`,
+        {
+          user_id: user.id,
+          qualification_code: grant.qualification_code,
+          level_code: grant.level_code,
+          status: 'suspended',
+        },
+      );
+      if (!res.ok) {
+        toast.showToast('error', extractErrorMessage(res.data, '收回资质失败'));
+        return false;
+      }
+      toast.showToast('success', '资质已收回');
+      await loadUserQualifications(user);
+      return true;
+    } finally {
+      savingGrant.value = false;
     }
   }
 
@@ -806,5 +983,15 @@ export function useUserManager() {
     permissionCodesOf,
     permissionNamesOf,
     roleNamesOf,
+    qualificationGrants,
+    qualificationCatalogs,
+    qualificationLevels,
+    qualificationGrantForm,
+    qualificationDepartmentId,
+    qualificationHint,
+    savingGrant,
+    levelsForGrantForm,
+    createQualificationGrant,
+    revokeQualificationGrant,
   };
 }

@@ -20,11 +20,7 @@ pub fn denied_update_fields(dto: &FlightUpdate, is_admin: bool, permissions: &[S
             "aircraft_type_detail" => dto.aircraft_type_detail.is_touched(),
             "inbound_leg" => dto.inbound_leg.is_touched(),
             "outbound_leg" => dto.outbound_leg.is_touched(),
-            "stand" => dto.stand.is_touched(),
-            "gate" => dto.gate.is_touched(),
-            "terminal" => dto.terminal.is_touched(),
             "position" => dto.position.is_touched(),
-            "baggage_carousel" => dto.baggage_carousel.is_touched(),
             "scheduled_arrival" => dto.scheduled_arrival.is_touched(),
             "scheduled_departure" => dto.scheduled_departure.is_touched(),
             "estimated_arrival" => dto.estimated_arrival.is_touched(),
@@ -91,14 +87,8 @@ pub fn validate_update_payload(dto: &FlightUpdate) -> Result<(), DomainError> {
         return Err(DomainError::ValidationError("未提供任何更新字段".into()));
     }
 
-    // PR3「只读展示列」：stand/gate/terminal/baggage_carousel 只能由占用服务回写。
-    // PATCH / batch 一律拒绝，不再保留「计划同步」语义（上游值仅作 allocate 建议）。
-    const READONLY_DISPLAY_COLUMNS: &[&str] = &["stand", "gate", "terminal", "baggage_carousel"];
-    if let Some(field) = fields.iter().find(|f| READONLY_DISPLAY_COLUMNS.contains(f)) {
-        return Err(DomainError::ValidationError(format!(
-            "字段 {field} 为只读展示列，禁止通过 PATCH 修改"
-        )));
-    }
+    // PR3「只读展示列」：stand/gate/terminal/baggage_carousel 已从 FlightUpdate
+    // 删除（serde deny_unknown_fields 直接 422），只能由占用服务回写，无需在此分支。
 
     validate_leg_payload(
         nullable_update_value(dto.inbound_leg.as_ref()),
@@ -119,20 +109,8 @@ pub fn update_fields_present(dto: &FlightUpdate) -> Vec<&'static str> {
     if dto.status.is_some() {
         fields.push("status");
     }
-    if dto.gate.is_touched() {
-        fields.push("gate");
-    }
-    if dto.terminal.is_touched() {
-        fields.push("terminal");
-    }
-    if dto.stand.is_touched() {
-        fields.push("stand");
-    }
     if dto.position.is_touched() {
         fields.push("position");
-    }
-    if dto.baggage_carousel.is_touched() {
-        fields.push("baggage_carousel");
     }
     if dto.scheduled_departure.is_touched() {
         fields.push("scheduled_departure");
@@ -233,11 +211,7 @@ fn sync_locked_fields() -> &'static [&'static str] {
         "aircraft_type_detail",
         "inbound_leg",
         "outbound_leg",
-        "stand",
-        "gate",
-        "terminal",
         "position",
-        "baggage_carousel",
         "scheduled_arrival",
         "scheduled_departure",
         "estimated_arrival",
@@ -268,13 +242,13 @@ mod tests {
     fn update_fields_present_tracks_status_and_resources() {
         let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
             "status": "delayed",
-            "gate": "A1",
+            "position": "P1",
             "flight_remarks": "note"
         }))
         .unwrap();
         let fields = update_fields_present(&dto);
         assert!(fields.contains(&"status"));
-        assert!(fields.contains(&"gate"));
+        assert!(fields.contains(&"position"));
         assert!(fields.contains(&"flight_remarks"));
     }
 
@@ -282,14 +256,14 @@ mod tests {
     fn denied_update_fields_blocks_sync_locked_for_non_admin() {
         let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
             "status": "delayed",
-            "gate": "A1",
+            "position": "P1",
             "cobt_time": "2026-07-17T10:00:00Z",
             "flight_remarks": "note"
         }))
         .unwrap();
         let denied = denied_update_fields(&dto, false, &[]);
         assert!(denied.contains(&"status".to_string()));
-        assert!(denied.contains(&"gate".to_string()));
+        assert!(denied.contains(&"position".to_string()));
         assert!(denied.contains(&"cobt_time".to_string()));
         assert!(!denied.iter().any(|f| f == "flight_remarks"));
     }
@@ -298,7 +272,7 @@ mod tests {
     fn denied_update_fields_allows_admin() {
         let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
             "status": "delayed",
-            "gate": "A1"
+            "position": "P1"
         }))
         .unwrap();
         assert!(denied_update_fields(&dto, true, &[]).is_empty());

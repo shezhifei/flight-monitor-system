@@ -33,6 +33,7 @@ impl TeamContextService {
             "team_id": team.id,
             "name": team.name,
             "code": team.code,
+            "department_id": team.department_id,
             "leader_id": team.leader_id,
             "current_status": team.current_status,
             "current_stand_id": team.current_stand_id,

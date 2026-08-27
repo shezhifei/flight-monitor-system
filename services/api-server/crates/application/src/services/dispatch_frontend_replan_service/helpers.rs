@@ -37,13 +37,6 @@ pub(crate) fn order_status_text(status: DispatchOrderStatus) -> &'static str {
     }
 }
 
-pub(crate) fn assignee_type_text(assignee_type: AssigneeType) -> &'static str {
-    match assignee_type {
-        AssigneeType::Team => "team",
-        AssigneeType::Individual => "individual",
-    }
-}
-
 pub(crate) fn lock_level_text(lock_level: DispatchLockLevel) -> &'static str {
     match lock_level {
         DispatchLockLevel::Active => "active",
@@ -396,11 +389,6 @@ pub(crate) fn shared_resource_keys(left: &DispatchOrder, right: &DispatchOrder) 
 
 pub(crate) fn order_resource_keys(order: &DispatchOrder) -> HashSet<String> {
     let mut keys = HashSet::new();
-    if let Some(team_id) = order.team_id.as_deref() {
-        if !team_id.is_empty() {
-            keys.insert(format!("team:{team_id}"));
-        }
-    }
     if let Some(user_id) = order.individual_user_id.as_deref() {
         if !user_id.is_empty() {
             keys.insert(format!("user:{user_id}"));
@@ -419,7 +407,6 @@ pub(crate) fn order_resource_keys(order: &DispatchOrder) -> HashSet<String> {
 
 pub(crate) fn has_primary_assignment(assignment: &DispatchReplanAssignment) -> bool {
     assignment.individual_user_id.is_some()
-        || assignment.team_id.is_some()
         || !assignment.member_user_ids.is_empty()
         || !assignment.task_crew.members.is_empty()
 }
@@ -474,9 +461,7 @@ pub(crate) fn push_candidate_assignment(
     assignment: DispatchReplanAssignment,
 ) {
     let key = format!(
-        "{}|{}|{}|{}",
-        assignment.assignee_type.as_deref().unwrap_or_default(),
-        assignment.team_id.as_deref().unwrap_or_default(),
+        "{}|{}",
         assignment.individual_user_id.as_deref().unwrap_or_default(),
         assignment.equipment_ids.join(",")
     );
@@ -542,11 +527,6 @@ pub(crate) fn assignment_member_ids(assignment: &DispatchReplanAssignment) -> Ve
 
 pub(crate) fn assignment_resource_keys(assignment: &DispatchReplanAssignment) -> Vec<String> {
     let mut values = Vec::new();
-    if let Some(team_id) = assignment.team_id.as_deref() {
-        if !team_id.is_empty() {
-            values.push(format!("team:{team_id}"));
-        }
-    }
     if let Some(user_id) = assignment.individual_user_id.as_deref() {
         if !user_id.is_empty() {
             values.push(format!("user:{user_id}"));
@@ -581,10 +561,8 @@ pub(crate) fn build_dispatch_members(
     order: &DispatchOrder,
     assignment: &DispatchReplanAssignment,
 ) -> Vec<DispatchOrderMember> {
-    let source_type = match assignment.assignee_type.as_deref() {
-        Some("individual") => AssigneeType::Individual,
-        _ => AssigneeType::Team,
-    };
+    // 成员来源：名册（班组）投影 vs 个人直派
+    let source_type = AssigneeType::Individual;
     let task_members = task_crew_members(assignment);
     let mut result = Vec::new();
     for member in task_members {
@@ -601,7 +579,7 @@ pub(crate) fn build_dispatch_members(
                 _ => MemberRole::Member,
             },
             source_type,
-            source_team_id: assignment.team_id.clone(),
+            source_team_id: member.source_team_id.clone(),
             slot_code: member.slot_code.clone(),
             qualification_code: member.qualification_code.clone(),
             qualification_level_code: member.qualification_level_code.clone(),
@@ -620,7 +598,7 @@ pub(crate) fn build_dispatch_members(
                 user_id,
                 role: MemberRole::Member,
                 source_type,
-                source_team_id: assignment.team_id.clone(),
+                source_team_id: None,
                 slot_code: None,
                 qualification_code: None,
                 qualification_level_code: None,

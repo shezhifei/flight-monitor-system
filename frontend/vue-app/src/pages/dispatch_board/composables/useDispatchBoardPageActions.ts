@@ -13,6 +13,7 @@ import {
   type DispatchQualificationGap,
   type AnalyticsTrendPoint,
   type AnalyticsBreakdownItem,
+  rosterTeamLabel,
   batchCompleteOrders,
   countOrdersByStatus,
   type SafetyGateFilter,
@@ -298,7 +299,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
       const start = toTimestamp(item.actual_start_time || item.planned_start_time || item.start_time);
       const end = toTimestamp(item.actual_end_time || item.effective_end_time || item.planned_end_time || item.end_time);
       if (start > 0 && end > start) { bucket.occupiedMinutes += Math.round((end - start) / 60000); bucket.representativeOrderId = item.order_id || ''; }
-      const team = String(item.team_name || '').trim();
+      const team = rosterTeamLabel(item);
       if (team) bucket.teamLabels.add(team);
       grouped.set(key, bucket);
     }
@@ -599,7 +600,7 @@ export function useDispatchBoardPageActions(options: UseDispatchBoardPageActions
   const detailResourceInfoRows = computed(() => {
     const o = p.detailOrder.value;
     if (!o) return [];
-    return [{ label: '归属班组', value: String(o.team_name || '') }, { label: '负责人', value: String(o.individual_username || o.focus_user_name || '') }, { label: '执行编组', value: detailCrewMembers.value.length > 0 ? detailCrewMembers.value.join(' / ') : '-' }, { label: '资质缺口', value: detailQualificationGaps.value.length > 0 ? detailQualificationGaps.value.join(' ; ') : '-' }, { label: '设备', value: detailEquipmentCodes.value.length > 0 ? detailEquipmentCodes.value.join(' / ') : '-' }];
+    return [{ label: '归属班组', value: rosterTeamLabel(o) || '-' }, { label: '负责人', value: String(o.individual_username || o.focus_user_name || '') }, { label: '执行编组', value: detailCrewMembers.value.length > 0 ? detailCrewMembers.value.join(' / ') : '-' }, { label: '资质缺口', value: detailQualificationGaps.value.length > 0 ? detailQualificationGaps.value.join(' ; ') : '-' }, { label: '设备', value: detailEquipmentCodes.value.length > 0 ? detailEquipmentCodes.value.join(' / ') : '-' }];
   });
   const detailFlightStatusSummary = computed(() => {
     const counts = new Map<string, number>();

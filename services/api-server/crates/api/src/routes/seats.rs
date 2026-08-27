@@ -68,8 +68,23 @@ pub(crate) async fn occupy(
     }
 }
 
+pub(crate) async fn list_seats(
+    svc: web::Data<Arc<AuthService>>,
+    claims: JwtAuth,
+) -> Result<HttpResponse, ApiError> {
+    let _person = claims
+        .0
+        .sub
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| ApiError::Unauthorized("missing authenticated user".into()))?;
+    let seats = svc.list_seats().await.map_err(ApiError::from)?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({ "items": seats, "total": seats.len() })))
+}
+
 /// 配置占席路由
 pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(web::resource("/api/v2/seats").route(web::get().to(list_seats)));
     cfg.service(
         web::scope("/api/v2/seats")
             .route("/{position_id}/occupy", web::post().to(occupy)),

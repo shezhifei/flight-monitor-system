@@ -40,14 +40,13 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
         sqlx::query(
             r#"
             INSERT INTO equipment_types (
-                id, name, code, category, requires_driver, driver_team_type_id, icon, description, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                id, name, code, category, requires_driver, icon, description, is_active
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
                 code = EXCLUDED.code,
                 category = EXCLUDED.category,
                 requires_driver = EXCLUDED.requires_driver,
-                driver_team_type_id = EXCLUDED.driver_team_type_id,
                 icon = EXCLUDED.icon,
                 description = EXCLUDED.description,
                 is_active = EXCLUDED.is_active
@@ -58,7 +57,6 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
         .bind(&equipment_type.code)
         .bind(&equipment_type.category)
         .bind(equipment_type.requires_driver)
-        .bind(&equipment_type.driver_team_type_id)
         .bind(&equipment_type.icon)
         .bind(&equipment_type.description)
         .bind(equipment_type.is_active)
@@ -74,7 +72,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<EquipmentType>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, name, code, category, requires_driver, driver_team_type_id, icon, description, created_at, is_active
+            SELECT id, name, code, category, requires_driver, icon, description, created_at, is_active
             FROM equipment_types
             WHERE id = $1
             "#,
@@ -100,7 +98,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
         offset: i64,
     ) -> Result<Vec<EquipmentType>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, name, code, category, requires_driver, driver_team_type_id, icon, description, created_at, is_active FROM equipment_types WHERE 1=1",
+            "SELECT id, name, code, category, requires_driver, icon, description, created_at, is_active FROM equipment_types WHERE 1=1",
         );
         if !include_inactive {
             builder.push(" AND is_active = TRUE");
@@ -180,7 +178,6 @@ fn row_to_equipment_type(row: &sqlx::postgres::PgRow, task_types: Vec<String>) -
         code: row.get("code"),
         category: row.get("category"),
         requires_driver: row.get::<Option<bool>, _>("requires_driver").unwrap_or(false),
-        driver_team_type_id: row.get("driver_team_type_id"),
         icon: row.get("icon"),
         description: row.get("description"),
         created_at: row.get("created_at"),

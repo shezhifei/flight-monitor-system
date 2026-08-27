@@ -13,11 +13,13 @@ use serde_json::Value;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
-    BaggageCarousel, Gate, Terminal, TerminalDirectory,
+    BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory,
 };
 use fms_domain::ports::dispatch_repository::TerminalRepository;
 
-use super::schemas::{CarouselCreate, CarouselUpdate, GateCreate, GateUpdate, TerminalCreate, TerminalUpdate};
+use super::schemas::{
+    CarouselCreate, CarouselUpdate, GateCreate, GateUpdate, StandCreate, StandUpdate, TerminalCreate, TerminalUpdate,
+};
 
 pub struct TerminalResourceService<TR: TerminalRepository + ?Sized> {
     terminal_repo: Arc<TR>,
@@ -246,8 +248,115 @@ impl<TR: TerminalRepository + ?Sized> TerminalResourceService<TR> {
             .ok_or_else(|| DomainError::Internal("deactivate carousel returned no row".into()))
     }
 
+    // --------------------------------------------------------------- Stand --
+    /// 新建机位目录行并立刻挂到启用楼（同一服务调用内建行 + 成员表）。
+    pub async fn create_stand(&self, payload: StandCreate) -> Result<Stand, DomainError> {
+        let terminal_id = require_non_empty(&payload.terminal_id, "terminal_id")?;
+        let terminal = self
+            .terminal_repo
+            .find_terminal_by_id(&terminal_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "terminal",
+                id: terminal_id.clone(),
+            })?;
+        if !terminal.is_active {
+            return Err(DomainError::BusinessRuleViolation(
+                "不能向已停用航站楼添加机位".into(),
+            ));
+        }
+
+        let stand = Stand {
+            id: ulid::Ulid::new().to_string(),
+            code: require_non_empty(&payload.code, "code")?,
+            name: payload
+                .name
+                .map(|value| value.trim().to_string())
+                .filter(|v| !v.is_empty()),
+            terminal: Some(terminal.code.clone()),
+            area: payload
+                .area
+                .map(|value| value.trim().to_string())
+                .filter(|v| !v.is_empty()),
+            position_lat: payload.position_lat,
+            position_lng: payload.position_lng,
+            stand_type: payload
+                .stand_type
+                .map(|value| value.trim().to_string())
+                .filter(|v| !v.is_empty()),
+            size_category: payload
+                .size_category
+                .map(|value| value.trim().to_string())
+                .filter(|v| !v.is_empty()),
+            is_active: true,
+            created_at: None,
+        };
+        let stand = self.terminal_repo.save_stand(&stand).await?;
+        self.terminal_repo.add_stand(&terminal_id, &stand.id).await?;
+        Ok(stand)
+    }
+
+    pub async fn update_stand(&self, stand_id: &str, payload: StandUpdate) -> Result<Stand, DomainError> {
+        let mut stand = self
+            .terminal_repo
+            .find_stand_by_id(stand_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "stand",
+                id: stand_id.to_string(),
+            })?;
+        if let Some(name) = payload.name {
+            stand.name = Some(name.trim().to_string()).filter(|v| !v.is_empty());
+        }
+        if let Some(area) = payload.area {
+            stand.area = Some(area.trim().to_string()).filter(|v| !v.is_empty());
+        }
+        if let Some(lat) = payload.position_lat {
+            stand.position_lat = lat;
+        }
+        if let Some(lng) = payload.position_lng {
+            stand.position_lng = lng;
+        }
+        if let Some(stand_type) = payload.stand_type {
+            stand.stand_type = Some(stand_type.trim().to_string()).filter(|v| !v.is_empty());
+        }
+        if let Some(size_category) = payload.size_category {
+            stand.size_category = Some(size_category.trim().to_string()).filter(|v| !v.is_empty());
+        }
+        if let Some(is_active) = payload.is_active {
+            stand.is_active = is_active;
+        }
+        self.terminal_repo.save_stand(&stand).await
+    }
+
+    /// 停用机位。若存在未结束占用 → 409 带明细。
+    pub async fn deactivate_stand(&self, stand_id: &str) -> Result<Stand, DomainError> {
+        let stand = self
+            .terminal_repo
+            .find_stand_by_id(stand_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "stand",
+                id: stand_id.to_string(),
+            })?;
+        if !stand.is_active {
+            return Ok(stand);
+        }
+        let conflicts = self.terminal_repo.active_stand_occupations(&stand.code).await?;
+        if !conflicts.is_empty() {
+            return Err(conflict_with_details(
+                "停用机位失败：存在未结束占用",
+                Value::Array(conflicts),
+            ));
+        }
+        self.terminal_repo
+            .set_stand_active(stand_id, false)
+            .await?
+            .ok_or_else(|| DomainError::Internal("deactivate stand returned no row".into()))
+    }
+
     // ------------------------------------------------------------ members --
-    /// 把既有机位挂到某座启用楼。机位自身不作为一等建行（目录由 `stands` 表负责）。
+    /// 把既有机位挂到某座启用楼。新机位建档走 `create_stand`（建行 + 挂楼）。
     pub async fn add_stand_member(&self, terminal_id: &str, stand_id: &str) -> Result<(), DomainError> {
         self.ensure_terminal_active(terminal_id).await?;
         self.terminal_repo.add_stand(terminal_id, stand_id).await

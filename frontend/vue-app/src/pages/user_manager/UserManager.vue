@@ -61,6 +61,14 @@ const {
   saveTemplate,
   deleteTemplate,
   roleNamesOf,
+  qualificationGrants,
+  qualificationCatalogs,
+  levelsForGrantForm,
+  qualificationGrantForm,
+  qualificationHint,
+  savingGrant,
+  createQualificationGrant,
+  revokeQualificationGrant,
 } = useUserManager();
 
 const auth = useAuth();
@@ -510,9 +518,18 @@ function templatePermissionCount(tmpl: {
       :roles="roles"
       :department-suggestions="departmentSuggestions"
       :saving="savingUser"
+      :qualification-hint="qualificationHint"
+      :qualification-grants="qualificationGrants"
+      :qualification-catalogs="qualificationCatalogs"
+      :qualification-levels="levelsForGrantForm"
+      :qualification-grant-form="qualificationGrantForm"
+      :saving-grant="savingGrant"
       @close="closeUserModal"
       @save="saveUser"
       @update:form="userForm = $event"
+      @update:qualification-grant-form="qualificationGrantForm = $event"
+      @grant="createQualificationGrant"
+      @revoke="revokeQualificationGrant"
     />
 
     <RoleModal

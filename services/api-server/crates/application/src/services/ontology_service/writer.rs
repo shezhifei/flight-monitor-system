@@ -469,7 +469,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                         gate_code: GateNumber(suggestion.suggested_value.clone()),
                         starts_at,
                         ends_at,
-                        flight_id: Some(FlightId(flight_id.to_string())),
+                        flight_id: FlightId(flight_id.to_string()),
                         status: AssignmentStatus::Active,
                         client_action_id: None,
                         created_by: Some(accepted_by.to_string()),
@@ -647,17 +647,16 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .release_assignment_in_tx(&mut tx, assignment_id, released_by)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("active assignment {assignment_id}")))?;
-        if let Some(flight_id) = assignment.flight_id.as_ref() {
-            self.sync_flight_plan_field(
-                &mut tx,
-                &flight_id.0,
-                None,
-                Some(PatchField::Clear),
-                None,
-                released_by,
-            )
-            .await?;
-        }
+        // flight_id 必填（PR3）：release 后清空该航班的 gate 展示列
+        self.sync_flight_plan_field(
+            &mut tx,
+            &assignment.flight_id.0,
+            None,
+            Some(PatchField::Clear),
+            None,
+            released_by,
+        )
+        .await?;
         self.uow
             .commit(tx)
             .await
@@ -682,17 +681,16 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         let outcome = self.ontology_tx.create_assignment_in_tx(&mut tx, assignment).await?;
 
         if matches!(outcome, GateCreateOutcome::Inserted) && sync_flight_plan {
-            if let Some(flight_id) = assignment.flight_id.as_ref() {
-                self.sync_flight_plan_field(
-                    &mut tx,
-                    &flight_id.0,
-                    None,
-                    Some(PatchField::Set(GateNumber(gate_code.to_string()))),
-                    None,
-                    actor_id,
-                )
-                .await?;
-            }
+            // flight_id 必填（PR3）：allocate 后回写该航班的 gate 展示列
+            self.sync_flight_plan_field(
+                &mut tx,
+                &assignment.flight_id.0,
+                None,
+                Some(PatchField::Set(GateNumber(gate_code.to_string()))),
+                None,
+                actor_id,
+            )
+            .await?;
         }
 
         self.uow
@@ -715,17 +713,15 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.update_assignment_in_tx(&mut tx, updated).await?;
         if sync_flight_plan {
-            if let Some(flight_id) = updated.flight_id.as_ref() {
-                self.sync_flight_plan_field(
-                    &mut tx,
-                    &flight_id.0,
-                    None,
-                    Some(PatchField::Set(GateNumber(updated.gate_code.0.clone()))),
-                    None,
-                    actor_id,
-                )
-                .await?;
-            }
+            self.sync_flight_plan_field(
+                &mut tx,
+                &updated.flight_id.0,
+                None,
+                Some(PatchField::Set(GateNumber(updated.gate_code.0.clone()))),
+                None,
+                actor_id,
+            )
+            .await?;
         }
         self.uow
             .commit(tx)

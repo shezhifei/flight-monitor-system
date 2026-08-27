@@ -13,6 +13,7 @@ import ResourceSidebar from './sections/ResourceSidebar.vue';
 import AiDrawerSection from './sections/AiDrawerSection.vue';
 import ChatDrawerSection from './sections/ChatDrawerSection.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import OccupySeatButton from '@/components/ops/OccupySeatButton.vue';
 import { disposeTrendChart } from './composables/useTrendChart';
 onBeforeUnmount(disposeTrendChart);
 
@@ -166,6 +167,7 @@ const {
 
     <GuideAndLegendPanel :class="{ open: p.isGuideAndLegendPanelVisible.value }" :settings="p.guideSettings" @close="actions.closeGuideAndLegendPanel" @settings-change="actions.handleGuideSettingsChange" />
     <AiReactEntryShell :entry-name="'dispatch_board_ai'" surface="drawer" />
+    <OccupySeatButton />
     <ThemeToggle />
   </div>
 </template>

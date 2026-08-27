@@ -39,6 +39,7 @@ fn application_services_boundary_debt_inventory_matches_baseline() {
         "ai_runtime_service/rollback_service.rs",
         "dispatch_chat_service.rs",
         "domain_action_executor/tests.rs",
+        "domain_action_executor/tests_terminal_equipment.rs",
         "flight_runtime_service/tests.rs",
         "in_memory_ai_proposal_repository.rs",
     ]

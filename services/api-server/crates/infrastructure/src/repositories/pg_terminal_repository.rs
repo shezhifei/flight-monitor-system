@@ -284,6 +284,58 @@ impl TerminalRepository for PgTerminalRepository {
         Ok(row.map(row_to_stand))
     }
 
+    async fn save_stand(&self, stand: &Stand) -> Result<Stand, DomainError> {
+        let id = opaque_id_or_ulid(stand.id.clone());
+        sqlx::query(
+            r#"
+            INSERT INTO stands (
+                id, code, name, terminal, area, position_lat, position_lng,
+                stand_type, size_category, is_active
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            ON CONFLICT (id) DO UPDATE SET
+                code = EXCLUDED.code,
+                name = EXCLUDED.name,
+                terminal = EXCLUDED.terminal,
+                area = EXCLUDED.area,
+                position_lat = EXCLUDED.position_lat,
+                position_lng = EXCLUDED.position_lng,
+                stand_type = EXCLUDED.stand_type,
+                size_category = EXCLUDED.size_category,
+                is_active = EXCLUDED.is_active
+            "#,
+        )
+        .bind(&id)
+        .bind(&stand.code)
+        .bind(&stand.name)
+        .bind(&stand.terminal)
+        .bind(&stand.area)
+        .bind(stand.position_lat)
+        .bind(stand.position_lng)
+        .bind(&stand.stand_type)
+        .bind(&stand.size_category)
+        .bind(stand.is_active)
+        .execute(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        self.find_stand_by_id(&id)
+            .await?
+            .ok_or_else(|| DomainError::Internal("stand save returned no row".into()))
+    }
+
+    async fn set_stand_active(&self, stand_id: &str, is_active: bool) -> Result<Option<Stand>, DomainError> {
+        let result = sqlx::query("UPDATE stands SET is_active = $1 WHERE id = $2")
+            .bind(is_active)
+            .bind(stand_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+        if result.rows_affected() == 0 {
+            return Ok(None);
+        }
+        self.find_stand_by_id(stand_id).await
+    }
+
     async fn add_stand(&self, terminal_id: &str, stand_id: &str) -> Result<(), DomainError> {
         sqlx::query(
             r#"

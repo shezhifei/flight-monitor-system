@@ -258,8 +258,8 @@ fn build_states(orders: &[DispatchOrder]) -> HashMap<String, ScenarioOrderState>
             ScenarioOrderState {
                 order_id: order.id.clone(),
                 flight_id: Some(order.flight_id.clone()),
-                team_id: opt_string_or_default(&order.team_id),
-                team_name: order.team_name.clone(),
+                team_id: String::new(),
+                team_name: None,
                 individual_user_id: opt_string_or_default(&order.individual_user_id),
                 individual_username: order.individual_username.clone(),
                 stand_id: opt_string_or_default(&order.stand_id),

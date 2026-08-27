@@ -64,7 +64,27 @@ impl DispatchFrontendReplanService {
             baseline_assignment: DispatchReplanBaselineAssignment::default(),
             personnel_slots: Vec::new(),
             equipment_slots: Vec::new(),
-            team_id: order.team_id.clone(),
+            team_id: {
+                let mut ids = order
+                    .members
+                    .iter()
+                    .filter_map(|member| {
+                        member
+                            .source_team_id
+                            .as_deref()
+                            .map(str::trim)
+                            .filter(|value| !value.is_empty())
+                            .map(str::to_string)
+                    })
+                    .collect::<Vec<_>>();
+                ids.sort();
+                ids.dedup();
+                if ids.len() == 1 {
+                    ids.pop()
+                } else {
+                    None
+                }
+            },
             department_id: order.department_id.clone(),
             individual_user_id: order.individual_user_id.clone(),
             equipment_ids,
@@ -236,14 +256,10 @@ mod tests {
             task_type_name: None,
             stand_code: None,
             terminal: None,
-            assignee_type: fms_domain::models::dispatch::AssigneeType::Individual,
-            team_id: None,
-            team_name: None,
             department: None,
             individual_user_id: Some("user-1".to_string()),
             individual_username: None,
             driver_type: None,
-            driver_team_id: None,
             driver_user_id: None,
             planned_start_time: Some(now),
             planned_end_time: Some(now + Duration::minutes(30)),

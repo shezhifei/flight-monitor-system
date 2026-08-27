@@ -215,7 +215,7 @@ if ($exitCode -ne 0) {
     Write-Host "=== API SMOKE TESTS FAILED ===" -ForegroundColor Red
     Write-Host ""
     Write-Host "Troubleshooting:" -ForegroundColor Red
-    Write-Host "  - 'API execute should return 200' → DomainActionExecutor not wired or TodoService missing"
+    Write-Host "  - 'API execute should return 200' → DomainActionExecutor not wired or Flight.add_note missing"
     Write-Host "  - 'API execute should return 409' → env var not cleaned; check --test-threads=1"
     Write-Host "  - 'API execute should return 403' → permission or readiness gate issue"
     Write-Host "  - 'readiness should be Ready' → env var override not set in time"

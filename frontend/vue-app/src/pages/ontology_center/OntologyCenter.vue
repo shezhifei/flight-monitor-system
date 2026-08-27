@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import OccupySeatButton from '@/components/ops/OccupySeatButton.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import { useOntologyWorkbench } from './useOntologyWorkbench';
@@ -96,6 +97,7 @@ function countLabel(n: number | undefined): string {
           </div>
         </div>
         <div class="ontology-header-actions">
+          <OccupySeatButton />
           <ThemeToggle />
         </div>
       </header>

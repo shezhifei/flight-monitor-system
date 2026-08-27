@@ -108,39 +108,6 @@ class UnregisteredActionError(ValueError):
         self.action_name = action_name
 
 
-#: Registered advisory actions (mirror of Rust `advisory_action_permission`).
-ADVISORY_ACTIONS: frozenset[str] = frozenset(
-    {
-        "flight.suggest_stand_adjustment",
-        "flight.suggest_delay_action",
-        "dispatch.suggest_replan",
-        "anomaly.suggest_escalation",
-        # notification.suggest_broadcast removed - Notification object deleted in PR #本体两层改造
-    }
-)
-
-#: Controlled write actions. These NEVER execute here: proposal path only.
-#: PR #本体两层改造（PR3 占用收口）：名单换成占用三对象。机位/口重叠是 soft
-#: （告警不硬拦，见 `_simulate_controlled_write`）；转盘显式零约束。
-#: 废止的 `Flight.change_stand` / `Stand.reserve` 不在此名单 → propose_action
-#: 直接 `UnregisteredActionError`（fail-closed，不留兼容分支）。
-#: PR5 派工槽位：`DispatchOrder.assign_slot` / `unassign_slot` / `add_slot` /
-#: `remove_slot` 与规则同一领域函数，proposal 路径模拟（不执行），无资源可占
-#: → 走 `_simulate_controlled_write` 的 proposal_only 分支。
-CONTROLLED_WRITE_ACTIONS: frozenset[str] = frozenset({
-    "StandOccupation.allocate",
-    "StandOccupation.adjust",
-    "StandOccupation.release",
-    "GateAssignment.allocate",
-    "GateAssignment.release",
-    "CarouselAssignment.allocate",
-    "CarouselAssignment.release",
-    "DispatchOrder.assign_slot",
-    "DispatchOrder.unassign_slot",
-    "DispatchOrder.add_slot",
-    "DispatchOrder.remove_slot",
-})
-
 #: 仅机位占用走可用性模拟（`stand.check_availability`，重叠 soft）。
 #: 口/转盘占用与全部 release 不模拟冲突（转盘显式零约束）。
 _OCCUPATION_STAND_SIM_ACTIONS: frozenset[str] = frozenset({
@@ -172,6 +139,27 @@ _ENTITY_PREFIX_MAP: dict[str, tuple[str, str]] = {
     "aircraft": ("aircraft.get_context", "registration"),
     "turnaround_link": ("turnaround_link.get_context", "link_id"),
 }
+_ENTITY_PREFIX_MAP.update({
+    "Flight": _ENTITY_PREFIX_MAP["flight"],
+    "Stand": _ENTITY_PREFIX_MAP["stand"],
+    "StandOccupation": _ENTITY_PREFIX_MAP["stand_occupation"],
+    "Gate": _ENTITY_PREFIX_MAP["gate"],
+    "GateAssignment": _ENTITY_PREFIX_MAP["gate_assignment"],
+    "BaggageCarousel": _ENTITY_PREFIX_MAP["baggage_carousel"],
+    "CarouselAssignment": _ENTITY_PREFIX_MAP["carousel_assignment"],
+    "Terminal": _ENTITY_PREFIX_MAP["terminal"],
+    "DispatchOrder": _ENTITY_PREFIX_MAP["dispatch_order"],
+    "Anomaly": _ENTITY_PREFIX_MAP["anomaly"],
+    "BusinessCase": _ENTITY_PREFIX_MAP["business_case"],
+    "Team": _ENTITY_PREFIX_MAP["team"],
+    "Department": _ENTITY_PREFIX_MAP["department"],
+    "Personnel": _ENTITY_PREFIX_MAP["personnel"],
+    "Equipment": _ENTITY_PREFIX_MAP["equipment"],
+    "EquipmentType": _ENTITY_PREFIX_MAP["equipment_type"],
+    "TaskType": _ENTITY_PREFIX_MAP["task_type"],
+    "Aircraft": _ENTITY_PREFIX_MAP["aircraft"],
+    "TurnaroundLink": _ENTITY_PREFIX_MAP["turnaround_link"],
+})
 
 
 def parse_entity_id(entity_id: str) -> tuple[str, dict[str, Any]]:
@@ -288,8 +276,6 @@ class OntologyTools:
             or change.get("gate_code")
             or action
             in {
-                "change_stand",
-                "reassign_gate",
                 "StandOccupation.allocate",
                 "StandOccupation.adjust",
                 "GateAssignment.allocate",
@@ -395,20 +381,13 @@ class OntologyTools:
             logger.warning("ontology_propose_rejected_unregistered run=%s action=%s", run_id, action_name)
             raise UnregisteredActionError(action_name)
 
-        if action_name in ADVISORY_ACTIONS:
-            return await self._client.advisory(run_id=run_id, action_name=action_name, arguments=parameters or {})
-
-        if action_name in CONTROLLED_WRITE_ACTIONS:
-            # Controlled writes are never executed here. Simulate first
-            # (constraints + before-state); the proposal/approval path
-            # stays the single write surface.
-            return await self._simulate_controlled_write(
-                run_id=run_id,
-                action_name=action_name,
-                parameters=parameters or {},
-            )
-
-        raise UnregisteredActionError(action_name)
+        # 侧车零动作名：信封是唯一允许名单。propose_action 永远只生成提案，
+        # 不走 pending 假执行，也不在这里分发 advisory。
+        return await self._simulate_controlled_write(
+            run_id=run_id,
+            action_name=action_name,
+            parameters=parameters or {},
+        )
 
     async def _simulate_controlled_write(
         self,
@@ -515,8 +494,6 @@ class OntologyTools:
 
 
 __all__ = [
-    "ADVISORY_ACTIONS",
-    "CONTROLLED_WRITE_ACTIONS",
     "ConstraintSeverity",
     "ConstraintViolation",
     "EntityLookupResult",

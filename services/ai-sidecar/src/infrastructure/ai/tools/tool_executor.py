@@ -27,11 +27,7 @@ from src.infrastructure.ai.capability_resolver import is_tool_allowed, normalize
 from src.infrastructure.ai.governance.governance_resolver import is_public_l0_tool
 from src.infrastructure.ai.mcp.annotations import normalize_mcp_tool_annotations
 from src.infrastructure.ai.ontology.action_client import OntologyActionClientError
-from src.infrastructure.ai.ontology_tools import (
-    ADVISORY_ACTIONS,
-    CONTROLLED_WRITE_ACTIONS,
-    UnregisteredActionError,
-)
+from src.infrastructure.ai.ontology_tools import UnregisteredActionError
 from src.infrastructure.ai.tools.ontology_tool_definitions import (
     ONTOLOGY_TOOL_NAMES,
     is_ontology_tool,
@@ -66,6 +62,23 @@ OnChildEvent = Callable[["StreamEvent"], Awaitable[None]]
 logger = get_logger(__name__)
 
 _MCP_TOOL_PREFIX = "mcp."
+
+
+def _envelope_allowed_actions(envelope: Any | None) -> list[str]:
+    """Read ``envelope.ontology.allowed_actions``; missing envelope → empty (fail-closed)."""
+    if envelope is None:
+        return []
+    ontology = getattr(envelope, "ontology", None)
+    if ontology is None and isinstance(envelope, dict):
+        ontology = envelope.get("ontology")
+    if ontology is None:
+        return []
+    actions = getattr(ontology, "allowed_actions", None)
+    if actions is None and isinstance(ontology, dict):
+        actions = ontology.get("allowed_actions")
+    if not isinstance(actions, list):
+        return []
+    return [str(action) for action in actions if str(action).strip()]
 
 
 @dataclass
@@ -1000,7 +1013,7 @@ class ToolExecutor:
                     run_id=run_id,
                     action_name=action_name,
                     parameters=parameters,
-                    allowed_actions=sorted(ADVISORY_ACTIONS | CONTROLLED_WRITE_ACTIONS),
+                    allowed_actions=_envelope_allowed_actions(envelope),
                 )
                 if isinstance(outcome, dict) and outcome.get("execution_mode") == "rejected":
                     # Simulate-before-proposal found hard constraint violations:
@@ -1165,7 +1178,7 @@ class ToolExecutor:
     ) -> ToolExecutionResult:
         """Build an approval proposal for a controlled ontology write.
 
-        Controlled writes (e.g. ``Flight.change_stand``) are never
+        Controlled writes (e.g. ``StandOccupation.allocate``) are never
         executed by the sidecar: the only outcome is a proposal routed
         through the existing approval surface. When provided, the
         ``simulate`` block (before/after + constraint outcome) rides on

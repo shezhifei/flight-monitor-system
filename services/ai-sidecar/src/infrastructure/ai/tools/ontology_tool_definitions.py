@@ -55,7 +55,7 @@ ONTOLOGY_EXPLAIN_CONSTRAINTS = BaseToolDefinition(
         "proposed_change": {
             "type": "object",
             "description": (
-                "Proposed change, e.g. {action: change_stand, new_stand_id: A12, "
+                "Proposed change, e.g. {action: StandOccupation.allocate, stand_code: A12, "
                 "time_window: {start, end}}"
             ),
         },
@@ -69,16 +69,15 @@ ONTOLOGY_EXPLAIN_CONSTRAINTS = BaseToolDefinition(
 ONTOLOGY_PROPOSE_ACTION = BaseToolDefinition(
     name="ontology.propose_action",
     description=(
-        "Run a registered advisory action, or propose a controlled write. "
-        "Controlled writes (e.g. Flight.change_stand) are proposal-only and "
-        "are never executed directly."
+        "Propose a governed ontology write. Controlled writes "
+        "(e.g. StandOccupation.allocate) are proposal-only and are never executed directly."
     ),
     parameters={
         "action_name": {
             "type": "string",
             "description": (
-                "Registered action name, e.g. flight.suggest_stand_adjustment "
-                "or Flight.change_stand"
+                "Registered action name from envelope.allowed_actions, "
+                "e.g. StandOccupation.allocate or Flight.add_note"
             ),
         },
         "parameters": {

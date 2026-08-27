@@ -63,8 +63,40 @@ function isCurrentUserRecipient(user: DispatchOnlineUserOption): boolean {
   const { ids, username } = getCurrentUserIdentity();
   const userId = String(user.user_id || '').trim();
   if (userId && ids.has(userId)) return true;
-  const uname = String(user.username || '').trim().toLowerCase();
+  const occupantId = String(user.occupant_user_id || '').trim();
+  if (occupantId && ids.has(occupantId)) return true;
+  const uname = String(user.username || user.display_name || '').trim().toLowerCase();
   return Boolean(username && uname && username === uname);
+}
+
+function recipientPrimaryLabel(user: DispatchOnlineUserOption): string {
+  const label = String(user.label || '').trim();
+  if (label) return label;
+  if (user.account_type === 'position') {
+    return String(user.display_name || user.username || user.user_id).trim();
+  }
+  const assignments = Array.isArray(user.assignments) ? user.assignments : [];
+  if (assignments.length > 0) {
+    const first = assignments[0];
+    const flight = String(first?.flight_no || '').trim();
+    const task = String(first?.task_type_name || first?.task_type || '').trim();
+    const slot = String(first?.slot_name || first?.slot_code || '').trim();
+    return [flight, task, slot].filter(Boolean).join('-');
+  }
+  return String(user.display_name || user.username || user.user_id).trim();
+}
+
+function recipientSecondaryLabel(user: DispatchOnlineUserOption): string {
+  const meta = String(user.meta || '').trim();
+  if (meta) return meta;
+  if (user.account_type === 'position') {
+    const occupant = String(user.occupant_display_name || '').trim();
+    const department = String(user.department || '').trim() || '未设置科室';
+    return occupant ? `${department} · ${occupant}` : department;
+  }
+  const department = String(user.department || '').trim();
+  const name = String(user.display_name || user.username || '').trim();
+  return [name, department].filter(Boolean).join(' · ') || '一线';
 }
 
 /** 对齐 legacy renderOriginBadge：workflow → 流程，其余 → 人工 */
@@ -360,8 +392,8 @@ onUnmounted(() => {
           <div class="rail__head">
             <UiSearch
               :model-value="searchKeyword"
-              label="搜索姓名或部门"
-              placeholder="搜索姓名 / 部门"
+              label="搜索岗名、航班或槽位"
+              placeholder="岗名 / 在岗人 / 航班号-任务-槽位"
               @update:model-value="onSearchInput"
               @submit="loadOnlineUsers"
             />
@@ -376,14 +408,14 @@ onUnmounted(() => {
               @click="toggleUserSelection(user.user_id)"
             >
               <UiAvatar
-                :text="user.username"
+                :text="recipientPrimaryLabel(user)"
                 size="sm"
-                :tone="user.status === 'online' ? 'ok' : 'mute'"
-                :label="`${user.username}（${user.status === 'online' ? '在线' : '离线'}）`"
+                :tone="user.status === 'online' || user.status === 'active' ? 'ok' : 'mute'"
+                :label="`${recipientPrimaryLabel(user)}（${user.status === 'online' || user.status === 'active' ? '在线' : '离线'}）`"
               />
               <span class="who__id">
-                <span class="who__name">{{ user.username }}</span>
-                <span class="who__meta">{{ user.department || '中心' }} · {{ user.job_title || '调度员' }}</span>
+                <span class="who__name">{{ recipientPrimaryLabel(user) }}</span>
+                <span class="who__meta">{{ recipientSecondaryLabel(user) }}</span>
               </span>
               <svg
                 v-if="selectedUserIds.includes(user.user_id)"
@@ -648,7 +680,7 @@ onUnmounted(() => {
 
     <template v-if="activeTab === 'send'" #footer>
       <span class="foot__count">
-        已选择 <span class="foot__num">{{ selectedUserIds.length }}</span> 位人员
+        已选择 <span class="foot__num">{{ selectedUserIds.length }}</span> 个收件人
       </span>
       <UiButton
         variant="primary"

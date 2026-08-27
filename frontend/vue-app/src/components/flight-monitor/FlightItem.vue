@@ -148,7 +148,8 @@ function handleKeydown(event: KeyboardEvent): void {
     </div>
 
     <div class="flight-info info-gap">
-      <span class="flight-type" @dblclick="emit('edit-field', flightId, 'stand', 'text', flight.stand || '')">
+      <!-- PR3：stand/gate 为只读展示列（真相在占用服务），卡片不再提供双击编辑 -->
+      <span class="flight-type">
         {{ getStandGateDisplay(flight) }}
       </span>
       <span class="mission-type">{{ getCommercialSignedLabel(flight) }} · {{ hasVipMarker(flight as unknown as FlightModel) ? 'VIP' : '常规' }}</span>

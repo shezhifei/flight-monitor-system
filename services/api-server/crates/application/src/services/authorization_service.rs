@@ -70,16 +70,33 @@ impl PermissionCatalog {
 pub struct AuthorizationService;
 
 impl AuthorizationService {
+    /// 代码底 schema ∩ 用户权限。生产信封走 `AiContextService`（会叠 overlay）。
     pub async fn get_allowed_ai_actions(&self, _user_id: &str, roles: &[String]) -> Result<Vec<String>, String> {
+        Ok(Self::allowed_ai_actions_from_schema(
+            &fms_domain::ontology::governed::load_governed_schema(&[]),
+            roles,
+        ))
+    }
+
+    pub fn allowed_ai_actions_from_schema(
+        schema: &fms_domain::models::ai_ontology::OntologySchema,
+        roles: &[String],
+    ) -> Vec<String> {
         let mut actions = Vec::new();
-        for (action, required_permissions) in AI_ACTION_PERMISSION_MAP {
-            if has_any_ai_permission(roles, required_permissions) {
-                actions.push((*action).to_string());
+        for (object_name, object) in &schema.objects {
+            for (action_name, action_def) in &object.actions {
+                if action_def.required_permissions.is_empty() {
+                    continue;
+                }
+                let required: Vec<&str> = action_def.required_permissions.iter().map(String::as_str).collect();
+                if has_any_ai_permission(roles, &required) {
+                    actions.push(format!("{object_name}.{action_name}"));
+                }
             }
         }
         actions.sort();
         actions.dedup();
-        Ok(actions)
+        actions
     }
 
     pub fn has_ai_action_grants(user_permissions: &[String], required_permissions: &[String]) -> bool {
@@ -248,39 +265,6 @@ impl AuthorizationService {
     }
 }
 
-const AI_ACTION_PERMISSION_MAP: &[(&str, &[&str])] = &[
-    ("Flight.get_context", &["flight:read"]),
-    ("Flight.update_status", &["flight:write"]),
-    ("Flight.add_note", &["flight:write"]),
-    ("DispatchOrder.recommend_replan", &["dispatch:write"]),
-    ("DispatchOrder.publish", &["dispatch:publish"]),
-    ("Anomaly.acknowledge", &["anomaly:write"]),
-    ("Anomaly.escalate", &["anomaly:write"]),
-    ("BusinessCase.create", &["business_case:create"]),
-    ("BusinessCase.close_case", &["business_case:update"]),
-    // PR3 占用动作（与执行器分支一一对应，fail-closed；未接线的分支不登记）
-    ("StandOccupation.allocate", &["ontology.stand.manage"]),
-    ("StandOccupation.adjust", &["ontology.stand.manage"]),
-    ("StandOccupation.release", &["ontology.stand.manage"]),
-    ("GateAssignment.allocate", &["ontology.gate.manage"]),
-    ("GateAssignment.release", &["ontology.gate.manage"]),
-    ("CarouselAssignment.allocate", &["ontology.carousel.manage"]),
-    ("CarouselAssignment.release", &["ontology.carousel.manage"]),
-    // PR4 组织执行器（与 schema/执行器分支一一对应，fail-closed）。科室边界由执行器/领域服务再验（manager_id + admin 旁路）。
-    ("Team.update_status", &["ontology.team.manage"]),
-    ("Team.change_location", &["ontology.team.manage"]),
-    ("Team.add_member", &["ontology.team.manage"]),
-    ("Team.remove_member", &["ontology.team.manage"]),
-    ("Personnel.update_status", &["ontology.personnel.manage"]),
-    ("Personnel.change_location", &["ontology.personnel.manage"]),
-    ("Personnel.assign_to_team", &["ontology.personnel.manage"]),
-    ("Personnel.leave_team", &["ontology.personnel.manage"]),
-    ("Equipment.update_status", &["ontology.equipment.manage"]),
-    ("Equipment.change_location", &["ontology.equipment.manage"]),
-    ("Equipment.assign", &["ontology.equipment.manage"]),
-    ("Equipment.release", &["ontology.equipment.manage"]),
-];
-
 fn has_any_ai_permission(user_permissions: &[String], required_permissions: &[&str]) -> bool {
     user_permissions.iter().any(|permission| permission == "*")
         || required_permissions.iter().any(|required| {
@@ -290,14 +274,20 @@ fn has_any_ai_permission(user_permissions: &[String], required_permissions: &[&s
         })
 }
 
+fn normalize_ai_permission(permission: &str) -> String {
+    permission.replace(':', ".")
+}
+
 fn permission_matches_ai_grant(permission: &str, required: &str) -> bool {
     permission == required
+        || normalize_ai_permission(permission) == normalize_ai_permission(required)
         || matches!(
             (permission, required),
             ("flight:write", "flight:read")
                 | ("dispatch:manage", "dispatch:write")
                 | ("dispatch:manage", "dispatch:publish")
                 | ("dispatch:manage", "dispatch:admin")
+                | ("dispatch:manage", "ontology:manage")
                 | ("automation:notify_send", "notification:send")
                 | ("automation:dispatch_create", "dispatch:write")
                 | ("business_case:update", "business_case:create")
@@ -401,9 +391,36 @@ mod tests {
         assert!(flight_read.contains(&"Flight.get_context".to_string()));
         assert!(!flight_read.contains(&"Flight.change_stand".to_string()));
         assert!(flight_write.contains(&"Flight.add_note".to_string()));
+        assert!(flight_write.contains(&"Flight.update_delay".to_string()));
         assert!(admin.contains(&"DispatchOrder.recommend_replan".to_string()));
+        assert!(admin.contains(&"DispatchOrder.assign_slot".to_string()));
         assert!(!admin.contains(&"Stand.reserve".to_string()), "Stand.reserve 已废止");
         assert!(!admin.contains(&"Flight.change_stand".to_string()), "Flight.change_stand 已废止");
+        assert!(!admin.contains(&"Todo.create".to_string()), "Todo 已退出合同");
+        // schema 声明 Terminal 成员动作为 ontology:manage；dispatch:manage 仍作别名。
+        let resource_mgr = svc
+            .get_allowed_ai_actions("resource_mgr", &["ontology:manage".to_string()])
+            .await
+            .unwrap();
+        for action in [
+            "Terminal.add_stand",
+            "Terminal.remove_stand",
+            "Terminal.add_gate",
+            "Terminal.remove_gate",
+            "Terminal.add_carousel",
+            "Terminal.remove_carousel",
+        ] {
+            assert!(resource_mgr.contains(&action.to_string()), "ontology:manage 应含 {action}");
+            assert!(!flight_read.contains(&action.to_string()), "flight:read 不应含 {action}");
+        }
+        let dispatch_mgr = svc
+            .get_allowed_ai_actions("dispatch_mgr", &["dispatch:manage".to_string()])
+            .await
+            .unwrap();
+        assert!(
+            dispatch_mgr.contains(&"Terminal.add_stand".to_string()),
+            "dispatch:manage 别名应对齐 schema ontology:manage"
+        );
         assert!(none.is_empty(), "users without grants get no AI actions");
     }
 

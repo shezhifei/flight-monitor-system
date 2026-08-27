@@ -92,6 +92,15 @@ const emit = defineEmits<{
         <input v-model="form.persist_summaries" type="checkbox">
         <span>持久化摘要</span>
       </label>
+      <div class="form-group">
+        <label for="risk-ceiling">信封风险上限</label>
+        <select id="risk-ceiling" v-model="form.risk_ceiling" class="form-select">
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+          <option value="critical">critical</option>
+        </select>
+      </div>
     </div>
     <div class="capability-grid">
       <label class="checkbox-label">

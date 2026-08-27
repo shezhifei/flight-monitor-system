@@ -43,6 +43,33 @@ pub struct CarouselUpdate {
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
+pub struct StandCreate {
+    /// 目录行必须立即挂楼。
+    pub terminal_id: String,
+    /// 业务键，如 A12。
+    pub code: String,
+    pub name: Option<String>,
+    pub area: Option<String>,
+    #[serde(default)]
+    pub position_lat: f64,
+    #[serde(default)]
+    pub position_lng: f64,
+    pub stand_type: Option<String>,
+    pub size_category: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct StandUpdate {
+    pub name: Option<String>,
+    pub area: Option<String>,
+    pub position_lat: Option<f64>,
+    pub position_lng: Option<f64>,
+    pub stand_type: Option<String>,
+    pub size_category: Option<String>,
+    pub is_active: Option<bool>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct TerminalListQuery {
     pub include_inactive: Option<bool>,
 }

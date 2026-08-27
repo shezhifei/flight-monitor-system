@@ -451,26 +451,6 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
     ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
         Err(unwired("DispatchOrderRepository::find_by_flight_with_filters"))
     }
-    async fn find_by_team(
-        &self,
-        _: &str,
-        _: Option<&str>,
-        _: Option<chrono::DateTime<chrono::Utc>>,
-        _: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
-        Err(unwired("DispatchOrderRepository::find_by_team"))
-    }
-    async fn find_by_team_filtered(
-        &self,
-        _: &str,
-        _: Option<&str>,
-        _: Option<&str>,
-        _: Option<&str>,
-        _: i64,
-        _: i64,
-    ) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
-        Err(unwired("DispatchOrderRepository::find_by_team_filtered"))
-    }
     async fn find_by_user(&self, _: &str, _: Option<&str>) -> Result<Vec<dispatch::DispatchOrder>, DomainError> {
         Err(unwired("DispatchOrderRepository::find_by_user"))
     }
@@ -509,7 +489,6 @@ impl dispatch_repository::DispatchOrderRepository for UnwiredRepository {
         &self,
         _: chrono::DateTime<chrono::Utc>,
         _: chrono::DateTime<chrono::Utc>,
-        _: Option<&str>,
         _: Option<&str>,
         _: Option<&str>,
         _: Option<&str>,
@@ -611,6 +590,17 @@ impl<Tx: Send> dispatch_repository::DispatchOrderTransactionalRepository<Tx> for
         _: Option<serde_json::Value>,
     ) -> Result<(), DomainError> {
         Err(unwired("DispatchOrderTransactionalRepository::append_log_in_tx"))
+    }
+
+    async fn replace_order_equipment_assignments_in_tx(
+        &self,
+        _: &mut Tx,
+        _: &str,
+        _: &[String],
+    ) -> Result<(), DomainError> {
+        Err(unwired(
+            "DispatchOrderTransactionalRepository::replace_order_equipment_assignments_in_tx",
+        ))
     }
 }
 

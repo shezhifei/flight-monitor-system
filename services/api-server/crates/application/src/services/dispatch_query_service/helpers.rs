@@ -32,6 +32,106 @@ pub(crate) fn dispatch_order_member_to_value(member: &fms_domain::models::dispat
     })
 }
 
+/// 工单列表只读班组投影：来自名册 `source_team_*`，不是 order.team_id。
+pub(crate) fn roster_team_projection(order: &DispatchOrder) -> (Option<String>, Option<String>) {
+    let mut ids = Vec::new();
+    let mut names = Vec::new();
+    let mut seen_ids = HashSet::new();
+    let mut seen_names = HashSet::new();
+
+    for member in &order.members {
+        if let Some(id) = member
+            .source_team_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            if seen_ids.insert(id.to_string()) {
+                ids.push(id.to_string());
+            }
+        }
+    }
+
+    if let Some(obj) = order.task_crew.as_object() {
+        if let Some(arr) = obj.get("source_team_ids").and_then(Value::as_array) {
+            for value in arr {
+                if let Some(id) = value.as_str().map(str::trim).filter(|value| !value.is_empty()) {
+                    if seen_ids.insert(id.to_string()) {
+                        ids.push(id.to_string());
+                    }
+                }
+            }
+        }
+        if let Some(arr) = obj.get("source_team_names").and_then(Value::as_array) {
+            for value in arr {
+                if let Some(name) = value.as_str().map(str::trim).filter(|value| !value.is_empty()) {
+                    if seen_names.insert(name.to_string()) {
+                        names.push(name.to_string());
+                    }
+                }
+            }
+        }
+        if let Some(arr) = obj.get("members").and_then(Value::as_array) {
+            for member in arr {
+                if let Some(id) = member
+                    .get("source_team_id")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                {
+                    if seen_ids.insert(id.to_string()) {
+                        ids.push(id.to_string());
+                    }
+                }
+                if let Some(name) = member
+                    .get("source_team_name")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                {
+                    if seen_names.insert(name.to_string()) {
+                        names.push(name.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    (
+        ids.first().cloned(),
+        if names.is_empty() {
+            None
+        } else {
+            Some(names.join(" / "))
+        },
+    )
+}
+
+fn source_team_name_for_user(order: &DispatchOrder, user_id: &str) -> Option<String> {
+    order
+        .task_crew
+        .as_object()
+        .and_then(|obj| obj.get("members"))
+        .and_then(Value::as_array)
+        .and_then(|members| {
+            members.iter().find(|member| {
+                member
+                    .get("user_id")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    == Some(user_id)
+            })
+        })
+        .and_then(|member| {
+            member
+                .get("source_team_name")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+        })
+}
+
 pub(crate) fn non_empty_object_string(entry: &serde_json::Map<String, Value>, key: &str) -> bool {
     entry
         .get(key)
@@ -220,13 +320,6 @@ pub(crate) fn dispatch_type_value(order: &DispatchOrder) -> &'static str {
     }
 }
 
-pub(crate) fn assignee_type_value(order: &DispatchOrder) -> &'static str {
-    match order.assignee_type {
-        fms_domain::models::dispatch::AssigneeType::Team => "team",
-        fms_domain::models::dispatch::AssigneeType::Individual => "individual",
-    }
-}
-
 pub(crate) fn driver_assignee_type_value(assignee_type: fms_domain::models::dispatch::AssigneeType) -> &'static str {
     match assignee_type {
         fms_domain::models::dispatch::AssigneeType::Team => "team",
@@ -244,7 +337,12 @@ pub(crate) fn normalize_order_for_timeline(order: &DispatchOrder) -> NormalizedT
         .map(|member| {
             json!({
                 "id": member.user_id,
+                "user_id": member.user_id,
                 "name": member.username,
+                "username": member.username,
+                "source_team_id": member.source_team_id,
+                "source_team_name": source_team_name_for_user(order, &member.user_id),
+                "slot_code": member.slot_code,
             })
         })
         .collect::<Vec<_>>();
@@ -272,7 +370,6 @@ pub(crate) fn normalize_order_for_timeline(order: &DispatchOrder) -> NormalizedT
     let assignee_text = order
         .individual_username
         .clone()
-        .or_else(|| order.team_name.clone())
         .or_else(|| member_names.first().cloned())
         .unwrap_or_else(|| "未分配".to_string());
     let equipment_text = if equipment_codes.is_empty() {
@@ -299,8 +396,6 @@ pub(crate) fn normalize_order_for_timeline(order: &DispatchOrder) -> NormalizedT
         estimated_completion_reported_at: order.estimated_completion_reported_at,
         estimated_completion_note: order.estimated_completion_note.clone(),
         effective_end_source: effective_end_source.unwrap_or_else(|| "planned_end_time".to_string()),
-        team_id: order.team_id.clone(),
-        team_name: order.team_name.clone(),
         individual_user_id: order.individual_user_id.clone(),
         individual_username: order.individual_username.clone(),
         stand_id: order.stand_id.clone(),
@@ -350,8 +445,6 @@ pub(crate) fn build_flight_items(orders: &[NormalizedTimelineOrder]) -> Vec<Time
             lane_index: 0,
             lane_subtrack: 0,
             lane_subtrack_count: 1,
-            team_id: order.team_id.clone(),
-            team_name: order.team_name.clone(),
             individual_user_id: order.individual_user_id.clone(),
             individual_username: order.individual_username.clone(),
             stand_id: order.stand_id.clone(),
@@ -411,8 +504,6 @@ pub(crate) fn build_flight_summary_items(orders: &[NormalizedTimelineOrder]) -> 
             lane_index: 0,
             lane_subtrack: 0,
             lane_subtrack_count: 1,
-            team_id: None,
-            team_name: None,
             individual_user_id: None,
             individual_username: None,
             stand_id: first.stand_id.clone(),
@@ -448,20 +539,6 @@ pub(crate) fn build_flight_summary_items(orders: &[NormalizedTimelineOrder]) -> 
     }
     result.sort_by_key(|item| (item.start_time, item.flight_no.clone()));
     result
-}
-
-pub(crate) fn build_team_view_items(orders: &[NormalizedTimelineOrder]) -> Vec<TimelineItem> {
-    build_flight_items(orders)
-        .into_iter()
-        .map(|mut item| {
-            item.lane_key = format!(
-                "team:{}",
-                item.team_id.clone().unwrap_or_else(|| "__unassigned__".to_string())
-            );
-            item.lane_label = item.team_name.clone().unwrap_or_else(|| "未分配班组".to_string());
-            item
-        })
-        .collect()
 }
 
 pub(crate) fn build_employee_view_items(orders: &[NormalizedTimelineOrder]) -> Vec<TimelineItem> {
@@ -757,8 +834,6 @@ pub(crate) fn serialize_timeline_item(item: &TimelineItem) -> Value {
         "lane_index": item.lane_index,
         "lane_subtrack": item.lane_subtrack,
         "lane_subtrack_count": item.lane_subtrack_count,
-        "team_id": item.team_id,
-        "team_name": item.team_name,
         "individual_user_id": item.individual_user_id,
         "individual_username": item.individual_username,
         "stand_id": item.stand_id,
@@ -779,7 +854,49 @@ pub(crate) fn serialize_timeline_item(item: &TimelineItem) -> Value {
         "focus_user_name": item.focus_user_name,
         "focus_equipment_id": item.focus_equipment_id,
         "focus_equipment_code": item.focus_equipment_code,
+        "team_id": timeline_roster_team_id(&item.members),
+        "team_name": timeline_roster_team_name(&item.members),
     })
+}
+
+fn timeline_roster_team_id(members: &[Value]) -> Option<String> {
+    let mut ids = Vec::new();
+    let mut seen = HashSet::new();
+    for member in members {
+        if let Some(id) = member
+            .get("source_team_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            if seen.insert(id.to_string()) {
+                ids.push(id.to_string());
+            }
+        }
+    }
+    ids.first().cloned()
+}
+
+fn timeline_roster_team_name(members: &[Value]) -> Option<String> {
+    let mut names = Vec::new();
+    let mut seen = HashSet::new();
+    for member in members {
+        if let Some(name) = member
+            .get("source_team_name")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            if seen.insert(name.to_string()) {
+                names.push(name.to_string());
+            }
+        }
+    }
+    if names.is_empty() {
+        None
+    } else {
+        Some(names.join(" / "))
+    }
 }
 
 pub(crate) fn build_conflict(

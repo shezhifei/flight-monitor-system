@@ -117,11 +117,7 @@ impl FlightUpdateCommand {
         let d = &self.dto;
         d.expected_version.is_some()
             || d.status.is_some()
-            || d.gate.is_touched()
-            || d.terminal.is_touched()
-            || d.stand.is_touched()
             || d.position.is_touched()
-            || d.baggage_carousel.is_touched()
             || d.scheduled_departure.is_touched()
             || d.scheduled_arrival.is_touched()
             || d.estimated_departure.is_touched()

@@ -69,26 +69,6 @@ impl DispatchOrderRepository for StubOrderRepo {
     ) -> Result<Vec<DispatchOrder>, DomainError> {
         unimplemented!("find_by_flight_with_filters")
     }
-    async fn find_by_team(
-        &self,
-        _team_id: &str,
-        _status: Option<&str>,
-        _start_date: Option<DateTime<Utc>>,
-        _end_date: Option<DateTime<Utc>>,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        unimplemented!("find_by_team")
-    }
-    async fn find_by_team_filtered(
-        &self,
-        _team_id: &str,
-        _status: Option<&str>,
-        _source: Option<&str>,
-        _department: Option<&str>,
-        _limit: i64,
-        _offset: i64,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        unimplemented!("find_by_team_filtered")
-    }
     async fn find_by_user(&self, _user_id: &str, _status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
         unimplemented!("find_by_user")
     }
@@ -115,7 +95,6 @@ impl DispatchOrderRepository for StubOrderRepo {
         &self,
         _window_start: DateTime<Utc>,
         _window_end: DateTime<Utc>,
-        _team_id: Option<&str>,
         _individual_user_id: Option<&str>,
         _stand_id: Option<&str>,
         _exclude_order_id: Option<&str>,

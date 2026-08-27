@@ -79,6 +79,8 @@ pub enum ApiError {
     Forbidden(String),
     /// 404 Not Found
     NotFound(String),
+    /// 410 Gone（已下线的写路径，如只读化的历史目录）
+    Gone(String),
     /// 409 Conflict
     Conflict(String),
     /// 422 Validation Error
@@ -106,6 +108,7 @@ impl fmt::Display for ApiError {
             Self::Unauthorized(msg) => write!(f, "Unauthorized: {msg}"),
             Self::Forbidden(msg) => write!(f, "Forbidden: {msg}"),
             Self::NotFound(msg) => write!(f, "Not Found: {msg}"),
+            Self::Gone(msg) => write!(f, "Gone: {msg}"),
             Self::Conflict(msg) => write!(f, "Conflict: {msg}"),
             Self::ValidationError(msg) => write!(f, "Validation Error: {msg}"),
             Self::ValidationErrorWithDetails { message, .. } => {
@@ -137,6 +140,7 @@ impl ResponseError for ApiError {
             Self::Unauthorized(msg) => (actix_web::http::StatusCode::UNAUTHORIZED, msg.clone()),
             Self::Forbidden(msg) => (actix_web::http::StatusCode::FORBIDDEN, msg.clone()),
             Self::NotFound(msg) => (actix_web::http::StatusCode::NOT_FOUND, msg.clone()),
+            Self::Gone(msg) => (actix_web::http::StatusCode::GONE, msg.clone()),
             Self::Conflict(msg) => (actix_web::http::StatusCode::CONFLICT, msg.clone()),
             Self::ValidationError(msg) => (actix_web::http::StatusCode::UNPROCESSABLE_ENTITY, msg.clone()),
             Self::ValidationErrorWithDetails { message, details } => {

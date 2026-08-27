@@ -89,18 +89,10 @@ impl DispatchService {
     }
 
     pub(super) fn assignment_from_order(order: &DispatchOrder) -> Value {
-        let assignee_type = match order.assignee_type {
-            AssigneeType::Team => "team",
-            AssigneeType::Individual => "individual",
-        };
         json!({
-            "assignee_type": assignee_type,
-            "team_id": order.team_id,
-            "team_name": order.team_name,
             "individual_user_id": order.individual_user_id,
             "individual_username": order.individual_username,
             "driver_type": order.driver_type.map(|value| format!("{:?}", value).to_lowercase()),
-            "driver_team_id": order.driver_team_id,
             "driver_user_id": order.driver_user_id,
             "equipment_ids": Self::equipment_ids_from_order(order),
             "member_user_ids": Self::order_member_user_ids(order),
@@ -179,10 +171,9 @@ impl DispatchService {
 
     pub(super) fn assignment_driver_binding(
         assignment: &Value,
-    ) -> (Option<AssigneeType>, Option<String>, Option<String>) {
+    ) -> (Option<AssigneeType>, Option<String>) {
         let driver_type = match Self::assignment_string_field(assignment, "driver_type").as_deref() {
             Some("individual") => Some(AssigneeType::Individual),
-            Some("team") => Some(AssigneeType::Team),
             _ => assignment
                 .get("equipment_assignment")
                 .and_then(Value::as_array)
@@ -196,7 +187,6 @@ impl DispatchService {
                         .map(|_| AssigneeType::Individual)
                 }),
         };
-        let driver_team_id = Self::assignment_string_field(assignment, "driver_team_id");
         let driver_user_id = Self::assignment_string_field(assignment, "driver_user_id").or_else(|| {
             assignment
                 .get("equipment_assignment")
@@ -211,7 +201,7 @@ impl DispatchService {
                         .map(str::to_string)
                 })
         });
-        (driver_type, driver_team_id, driver_user_id)
+        (driver_type, driver_user_id)
     }
 
     pub(super) fn assignment_member_user_ids(assignment: &Value) -> Vec<String> {
@@ -252,11 +242,8 @@ impl DispatchService {
         order: &DispatchOrder,
         assignment: &Value,
     ) -> Vec<DispatchOrderMember> {
-        let source_type = match Self::assignment_string_field(assignment, "assignee_type").as_deref() {
-            Some("individual") => AssigneeType::Individual,
-            _ => AssigneeType::Team,
-        };
-        let fallback_team_id = Self::assignment_string_field(assignment, "team_id");
+        let source_type = AssigneeType::Individual;
+        let fallback_team_id = Self::assignment_string_field(assignment, "source_team_id");
         let task_crew_members = Self::assignment_task_crew_members(assignment);
         let mut desired_members = task_crew_members
             .into_iter()
@@ -394,44 +381,26 @@ impl DispatchService {
             return;
         };
 
-        match assignment
-            .get("assignee_type")
+        // 班组不再是指派对象：忽略 assignee_type=team / team_id / team_name；
+        // 仅接受个人指派（槽位挂人走 assign_slot 领域函数）
+        if assignment
+            .get("individual_user_id")
             .and_then(Value::as_str)
             .map(str::trim)
-            .filter(|value| !value.is_empty())
+            .is_some_and(|value| !value.is_empty())
         {
-            Some("team") => {
-                order.assignee_type = AssigneeType::Team;
-                order.team_id = assignment
-                    .get("team_id")
-                    .and_then(Value::as_str)
-                    .map(ToString::to_string);
-                order.team_name = assignment
-                    .get("team_name")
-                    .and_then(Value::as_str)
-                    .map(ToString::to_string);
-                order.individual_user_id = None;
-                order.individual_username = None;
-            }
-            Some("individual") => {
-                order.assignee_type = AssigneeType::Individual;
-                order.individual_user_id = assignment
-                    .get("individual_user_id")
-                    .and_then(Value::as_str)
-                    .map(ToString::to_string);
-                order.individual_username = assignment
-                    .get("individual_username")
-                    .and_then(Value::as_str)
-                    .map(ToString::to_string);
-                order.team_id = None;
-                order.team_name = None;
-            }
-            _ => {}
+            order.individual_user_id = assignment
+                .get("individual_user_id")
+                .and_then(Value::as_str)
+                .map(ToString::to_string);
+            order.individual_username = assignment
+                .get("individual_username")
+                .and_then(Value::as_str)
+                .map(ToString::to_string);
         }
 
-        let (driver_type, driver_team_id, driver_user_id) = Self::assignment_driver_binding(assignment);
+        let (driver_type, driver_user_id) = Self::assignment_driver_binding(assignment);
         order.driver_type = driver_type;
-        order.driver_team_id = driver_team_id;
         order.driver_user_id = driver_user_id;
         order.department_rule_version = Self::assignment_string_field(assignment, "department_rule_version");
         order.crew_requirement_snapshot = Self::assignment_array_field(assignment, "crew_requirement_snapshot");
@@ -454,85 +423,6 @@ impl DispatchService {
                 _ => DispatchLockLevel::Optimizable,
             };
         }
-    }
-
-    pub(super) async fn build_reassignment_suggestion(
-        &self,
-        current: &DispatchOrder,
-        previous: &DispatchOrder,
-        planned_start_time: DateTime<Utc>,
-        planned_end_time: DateTime<Utc>,
-    ) -> Result<Option<Value>, DomainError> {
-        if matches!(
-            current.lock_level,
-            DispatchLockLevel::Frozen | DispatchLockLevel::ManualLock
-        ) || current.task_type.trim().is_empty()
-        {
-            return Ok(None);
-        }
-
-        let team_type_repo = self.resources.team_type_repo.as_ref();
-        let team_repo = self.resources.team_repo.as_ref();
-
-        let team_types = team_type_repo.find_by_task_type(&current.task_type).await?;
-        if team_types.is_empty() {
-            return Ok(None);
-        }
-
-        let mut seen_team_ids = HashSet::new();
-        for team_type in team_types {
-            let teams = team_repo
-                .find_available_for_dispatch(Some(&team_type.id), current.terminal.as_deref())
-                .await?;
-            for team in teams {
-                if !seen_team_ids.insert(team.id.clone()) {
-                    continue;
-                }
-                if current.team_id.as_deref() == Some(team.id.as_str()) {
-                    continue;
-                }
-                let overlaps = self
-                    .order
-                    .order_repo
-                    .find_overlapping_orders(
-                        planned_start_time,
-                        planned_end_time,
-                        Some(&team.id),
-                        None,
-                        None,
-                        Some(&current.id),
-                    )
-                    .await?;
-                if !overlaps.is_empty() {
-                    continue;
-                }
-
-                let mut suggested_assignment = Self::assignment_from_order(current);
-                suggested_assignment["assignee_type"] = json!("team");
-                suggested_assignment["team_id"] = json!(team.id);
-                suggested_assignment["team_name"] = json!(team.name);
-                suggested_assignment["individual_user_id"] = Value::Null;
-                suggested_assignment["individual_username"] = Value::Null;
-                return Ok(Some(json!({
-                    "dispatch_order_id": current.id,
-                    "reason": "resource_reassignment",
-                    "suggestion_type": "assigned_conflict_resolution",
-                    "order_class": "assigned_conflict",
-                    "original_start_time": current.planned_start_time,
-                    "original_end_time": current.planned_end_time,
-                    "suggested_start_time": current.planned_start_time,
-                    "suggested_end_time": current.planned_end_time,
-                    "related_dispatch_order_id": previous.id,
-                    "impact_score": 1.0,
-                    "current_assignment": Self::assignment_from_order(current),
-                    "suggested_assignment": suggested_assignment,
-                    "lateness_minutes": 0,
-                    "travel_minutes": 0,
-                })));
-            }
-        }
-
-        Ok(None)
     }
 
     pub(super) fn is_better_replan_candidate(candidate: &Value, existing: Option<&Value>) -> bool {
@@ -831,12 +721,10 @@ impl DispatchService {
     }
 
     pub(super) fn should_auto_create_checkin_member(
-        assignee_type: AssigneeType,
         individual_user_id: Option<&str>,
         actor_id: &str,
     ) -> bool {
-        assignee_type == AssigneeType::Individual
-            && individual_user_id.as_deref().is_some_and(|user_id| user_id == actor_id)
+        individual_user_id.as_deref().is_some_and(|user_id| user_id == actor_id)
     }
 
     pub(super) fn serialize_crew_requirement_snapshot(requirements: &[TaskTypeCrewSlotRequirement]) -> Vec<Value> {
@@ -980,12 +868,6 @@ impl DispatchService {
             .unwrap_or(false)
             || order
                 .individual_user_id
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .is_some()
-            || order
-                .team_id
                 .as_deref()
                 .map(str::trim)
                 .filter(|value| !value.is_empty())

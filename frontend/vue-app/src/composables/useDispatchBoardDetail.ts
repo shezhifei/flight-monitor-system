@@ -119,9 +119,9 @@ function parseLocalDateTimeInput(raw: string): string | null {
 function buildDetailFocusContext(order: DispatchOrder): DispatchBoardDetailFocusContext {
   const orderId = resolveDispatchOrderId(order);
   const focus = buildResourceFocus({
-    resource_type: order.team_id ? 'team' : 'employee',
-    resource_id: order.team_id || order.focus_user_id || order.individual_user_id,
-    resource_label: order.team_name || order.focus_user_name || order.individual_username,
+    resource_type: 'employee',
+    resource_id: order.focus_user_id || order.individual_user_id,
+    resource_label: order.focus_user_name || order.individual_username,
     related_order_ids: orderId ? [orderId] : [],
   });
 

@@ -225,6 +225,17 @@ export function useAiConfigApi() {
     return Array.isArray(payload.items) ? payload.items : [];
   }
 
+  async function saveOntologyActionOverlay(payload: {
+    object: string;
+    action: string;
+    is_active: boolean;
+    risk_level: string;
+    requires_approval: boolean;
+  }): Promise<void> {
+    const result = await api.put(`${AI_BASE}/ontology/actions/overlay`, payload);
+    requireOk(result, '保存 Ontology 覆盖失败');
+  }
+
   async function getEntityCapabilities(entityId: string): Promise<EnrichedCapabilitySnapshot> {
     const result = await api.get<EnrichedCapabilitySnapshot>(`${AI_BASE}/entities/${entityId}/capabilities`);
     return requireOk<EnrichedCapabilitySnapshot>(result, '加载能力快照失败');
@@ -322,6 +333,7 @@ export function useAiConfigApi() {
     testConnection,
     listOntologyObjects,
     listOntologyActions,
+    saveOntologyActionOverlay,
     getEntityCapabilities,
     validateEntityCapabilities,
     listMcpServers,

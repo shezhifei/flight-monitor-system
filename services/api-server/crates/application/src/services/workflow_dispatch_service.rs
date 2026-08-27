@@ -338,14 +338,10 @@ impl<
             task_type_name: None,
             stand_code: None,
             terminal: None,
-            assignee_type: AssigneeType::Individual,
-            team_id: None,
-            team_name: None,
             department: Some(target_department.clone()),
             individual_user_id: Some(owner.id.clone()),
             individual_username: None,
             driver_type: None,
-            driver_team_id: None,
             driver_user_id: None,
             planned_start_time: payload.planned_start_time,
             planned_end_time: payload.planned_end_time,
@@ -463,9 +459,6 @@ impl<
                 id: dispatch_order_id.to_string(),
             })?;
 
-        order.assignee_type = AssigneeType::Individual;
-        order.team_id = None;
-        order.team_name = None;
         order.individual_user_id = assigned_user_ids.first().cloned();
         order.individual_username = match assigned_user_ids.first() {
             Some(first_user_id) => self

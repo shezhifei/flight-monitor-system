@@ -141,6 +141,7 @@ export interface ContextPolicyConfig {
   summary_model?: string;
   summary_max_tokens: number;
   persist_summaries: boolean;
+  risk_ceiling: 'low' | 'medium' | 'high' | 'critical';
 }
 
 // === 缓存策略 ===
@@ -533,6 +534,7 @@ export function createDefaultContextPolicy(): ContextPolicyConfig {
     preserve_recent_messages: 12,
     summary_max_tokens: 1200,
     persist_summaries: true,
+    risk_ceiling: 'medium',
   };
 }
 

@@ -403,6 +403,9 @@ pub struct ContextPolicyConfig {
     pub summary_max_tokens: i64,
     #[serde(default = "default_true")]
     pub persist_summaries: bool,
+    /// 信封 risk_ceiling。默认 medium；overlay 调高的动作会被校验器砍掉。
+    #[serde(default = "default_risk_ceiling")]
+    pub risk_ceiling: String,
 }
 
 fn default_max_context_tokens() -> i64 {
@@ -421,6 +424,10 @@ fn default_summary_max_tokens() -> i64 {
     1200
 }
 
+fn default_risk_ceiling() -> String {
+    "medium".to_string()
+}
+
 impl Default for ContextPolicyConfig {
     fn default() -> Self {
         Self {
@@ -431,6 +438,7 @@ impl Default for ContextPolicyConfig {
             summary_model: None,
             summary_max_tokens: default_summary_max_tokens(),
             persist_summaries: true,
+            risk_ceiling: default_risk_ceiling(),
         }
     }
 }

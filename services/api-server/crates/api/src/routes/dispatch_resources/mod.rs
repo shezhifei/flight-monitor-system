@@ -307,6 +307,15 @@ pub fn configure_terminal_directory_routes(cfg: &mut web::ServiceConfig) {
         .route(
             "/api/v2/dispatch/carousels/{carousel_id}/deactivate",
             web::post().to(terminal_directory::deactivate_carousel),
+        )
+        .route("/api/v2/dispatch/stands", web::post().to(terminal_directory::create_stand))
+        .route(
+            "/api/v2/dispatch/stands/{stand_id}",
+            web::patch().to(terminal_directory::update_stand),
+        )
+        .route(
+            "/api/v2/dispatch/stands/{stand_id}/deactivate",
+            web::post().to(terminal_directory::deactivate_stand),
         );
 }
 

@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { ManagedUser, UserFormState, UserRole } from '@/composables/useUserManager';
+import type {
+  ManagedUser,
+  QualificationCatalogOption,
+  QualificationGrant,
+  QualificationGrantFormState,
+  QualificationLevelOption,
+  UserFormState,
+  UserRole,
+} from '@/composables/useUserManager';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiModal from '@/components/ui/UiModal.vue';
+import QualificationGrantPanel from './QualificationGrantPanel.vue';
 
 const props = defineProps<{
   show: boolean;
@@ -12,11 +21,20 @@ const props = defineProps<{
   roles: UserRole[];
   departmentSuggestions?: string[];
   saving?: boolean;
+  qualificationHint?: string;
+  qualificationGrants?: QualificationGrant[];
+  qualificationCatalogs?: QualificationCatalogOption[];
+  qualificationLevels?: QualificationLevelOption[];
+  qualificationGrantForm?: QualificationGrantFormState;
+  savingGrant?: boolean;
 }>();
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'save'): void;
   (e: 'update:form', value: UserFormState): void;
+  (e: 'update:qualificationGrantForm', value: QualificationGrantFormState): void;
+  (e: 'grant'): void;
+  (e: 'revoke', grant: QualificationGrant): void;
 }>();
 
 const showPassword = ref(false);
@@ -28,7 +46,8 @@ const canSave = computed(() => {
   const email = props.form.email.trim();
   const password = props.form.password.trim();
   if (!username || !email || !emailPattern.test(email)) return false;
-  if (!props.editing && !password) return false;
+  if (!props.editing && props.form.account_type !== 'position' && !password) return false;
+  if (props.form.account_type === 'position' && !props.form.department.trim()) return false;
   return true;
 });
 
@@ -96,7 +115,7 @@ function isRoleChecked(roleName: string): boolean {
           id="user-password"
           :type="showPassword ? 'text' : 'password'"
           :value="form.password"
-          :placeholder="editing ? '留空不修改' : '请输入密码'"
+          :placeholder="editing ? '留空不修改' : (form.account_type === 'position' ? '岗位账号无需登录密码（可填占位）' : '请输入密码')"
           @input="update('password', ($event.target as HTMLInputElement).value)"
         >
         <button
@@ -115,6 +134,21 @@ function isRoleChecked(roleName: string): boolean {
       </div>
     </div>
 
+    <div class="form-group">
+      <label for="user-account-type">账号类型</label>
+      <select
+        id="user-account-type"
+        :value="form.account_type"
+        :disabled="!!editing"
+        @change="update('account_type', (($event.target as HTMLSelectElement).value === 'position' ? 'position' : 'personal'))"
+      >
+        <option value="personal">个人（可登录）</option>
+        <option value="position">岗位（席 / 流程收件，不能登录）</option>
+      </select>
+      <p v-if="form.account_type === 'position'" class="form-hint">
+        岗位不是人：禁登录、禁管理员，必须挂科室。创建后不可改类型。
+      </p>
+    </div>
     <div class="form-group">
       <label for="user-department">所属科室</label>
       <input
@@ -174,6 +208,7 @@ function isRoleChecked(roleName: string): boolean {
         <input
           type="checkbox"
           :checked="form.is_admin"
+          :disabled="form.account_type === 'position'"
           @change="update('is_admin', ($event.target as HTMLInputElement).checked)"
         >
         管理员
@@ -204,6 +239,19 @@ function isRoleChecked(roleName: string): boolean {
       </div>
     </div>
 
+    <QualificationGrantPanel
+      :visible="Boolean(editing) && form.account_type === 'personal'"
+      :hint="qualificationHint ?? ''"
+      :grants="qualificationGrants ?? []"
+      :catalogs="qualificationCatalogs ?? []"
+      :levels="qualificationLevels ?? []"
+      :form="qualificationGrantForm ?? { qualification_code: '', level_code: '' }"
+      :saving="savingGrant"
+      @update:form="emit('update:qualificationGrantForm', $event)"
+      @grant="emit('grant')"
+      @revoke="emit('revoke', $event)"
+    />
+
     <template #footer>
       <UiButton @click="emit('close')">
         取消
@@ -231,6 +279,12 @@ function isRoleChecked(roleName: string): boolean {
   font-weight: var(--fw-medium);
   margin-bottom: var(--s2);
   color: var(--ink-subtle);
+}
+
+.form-hint {
+  margin: 6px 0 0;
+  font-size: var(--fs-label);
+  color: var(--ink-muted);
 }
 
 .form-group input[type="text"],

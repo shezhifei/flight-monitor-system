@@ -14,7 +14,9 @@ use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flight_writer::FlightWriter;
 use crate::services::ontology_service::{OntologyError, OntologyService};
-use crate::types::{ConcreteBusinessCaseService, ConcreteDispatchResourceService, ConcreteFlightService};
+use crate::types::{
+    ConcreteBusinessCaseService, ConcreteDispatchResourceService, ConcreteFlightService, ConcreteTerminalResourceService,
+};
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
@@ -46,6 +48,7 @@ pub struct DomainActionExecutor<U: UnitOfWork> {
     business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
     ontology_svc: Arc<OntologyService>,
     dispatch_resource_svc: Arc<ConcreteDispatchResourceService>,
+    terminal_resource_svc: Arc<ConcreteTerminalResourceService>,
     uow: Arc<U>,
     outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
     anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
@@ -61,6 +64,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
         business_case_writer: Arc<BusinessCaseWriter<U::Tx>>,
         ontology_svc: Arc<OntologyService>,
         dispatch_resource_svc: Arc<ConcreteDispatchResourceService>,
+        terminal_resource_svc: Arc<ConcreteTerminalResourceService>,
         outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
         anomaly_tx_repo: Arc<dyn AnomalyTransactionalRepository<U::Tx> + Send + Sync>,
         uow: Arc<U>,
@@ -74,6 +78,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             business_case_writer,
             ontology_svc,
             dispatch_resource_svc,
+            terminal_resource_svc,
             uow,
             outbox_repo,
             anomaly_tx_repo,
@@ -146,6 +151,12 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     "DispatchOrder.assign_slot" | "DispatchOrder.unassign_slot" | "DispatchOrder.add_slot"
                     | "DispatchOrder.remove_slot" => {
                         self.dispatch_service.sync_dispatch_chat_for_order(object_id).await;
+                    }
+                    // 设备槽变更同样影响工单聊天/通知投影；object_id 是设备，工单 id 从回执取。
+                    "Equipment.assign" | "Equipment.release" => {
+                        if let Some(order_id) = val.get("order_id").and_then(Value::as_str) {
+                            self.dispatch_service.sync_dispatch_chat_for_order(order_id).await;
+                        }
                     }
                     "BusinessCase.create" => {
                         if let Some(flight_id) = val.get("flight_id").and_then(Value::as_str) {
@@ -524,7 +535,58 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
             // ⏸️ TODO: gate_assignment.allocate/release 已接线（见下方占用动作分支）。
             // ⏸️ TODO: carousel_assignment.allocate/release 已接线（见下方占用动作分支）。
 
-            // ⏸️ TODO: equipment.assign/release（工单设备槽，PR5 接线；当前 fail-closed）
+            // PR4 Terminal 成员写动作：成员表是构成事实，执行器只做参数映射 + 调
+            // TerminalResourceService（不写第二套 SQL）。`remove_*` 有未结束占用/分配时
+            // 领域服务返回 Conflict(409 明细)，这里映射成 Execution("conflict: ...")。
+            // 幂等键把成员 id 编进去（schema 的 member_id 策略，见计划「新动作接到执行器时的坑」#4）。
+            "Terminal.add_stand" => {
+                let stand_id = required_string(arguments, &["stand_id"], "stand_id")?;
+                self.terminal_resource_svc
+                    .add_stand_member(object_id, stand_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "terminal_id": object_id, "stand_id": stand_id }))
+            }
+            "Terminal.remove_stand" => {
+                let stand_id = required_string(arguments, &["stand_id"], "stand_id")?;
+                self.terminal_resource_svc
+                    .remove_stand_member(stand_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "terminal_id": object_id, "stand_id": stand_id }))
+            }
+            "Terminal.add_gate" => {
+                let gate_id = required_string(arguments, &["gate_id"], "gate_id")?;
+                self.terminal_resource_svc
+                    .add_gate_member(object_id, gate_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "terminal_id": object_id, "gate_id": gate_id }))
+            }
+            "Terminal.remove_gate" => {
+                let gate_id = required_string(arguments, &["gate_id"], "gate_id")?;
+                self.terminal_resource_svc
+                    .remove_gate_member(gate_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "terminal_id": object_id, "gate_id": gate_id }))
+            }
+            "Terminal.add_carousel" => {
+                let carousel_id = required_string(arguments, &["carousel_id"], "carousel_id")?;
+                self.terminal_resource_svc
+                    .add_carousel_member(object_id, carousel_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "terminal_id": object_id, "carousel_id": carousel_id }))
+            }
+            "Terminal.remove_carousel" => {
+                let carousel_id = required_string(arguments, &["carousel_id"], "carousel_id")?;
+                self.terminal_resource_svc
+                    .remove_carousel_member(carousel_id)
+                    .await
+                    .map_err(map_service_error)?;
+                Ok(serde_json::json!({ "success": true, "terminal_id": object_id, "carousel_id": carousel_id }))
+            }
 
             // PR4 人员 runtime / 入组出组：本人可直接改在岗；改别人或入组/出组须经理或 admin
             // （科室边界在 DispatchResourceService 领域层再验，执行器不拼 SQL）。
@@ -593,13 +655,13 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                         .collect();
                     for uid in desired.iter().filter(|uid| !current.contains(*uid)) {
                         self.dispatch_resource_svc
-                            .add_team_member(team_id, TeamMemberAdd { user_id: (*uid).clone(), role: "member".into(), can_drive: false })
+                            .add_team_member(team_id, TeamMemberAdd { user_id: (*uid).clone(), role: "member".into(), can_drive: false }, executor_id)
                             .await
                             .map_err(map_service_error)?;
                     }
                     for uid in current.iter().filter(|uid| !desired.contains(uid)) {
                         self.dispatch_resource_svc
-                            .remove_team_member(team_id, uid.as_str())
+                            .remove_team_member(team_id, uid.as_str(), executor_id)
                             .await
                             .map_err(map_service_error)?;
                     }
@@ -625,7 +687,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 let user_id = required_string(arguments, &["user_id"], "user_id")?;
                 let member = self
                     .dispatch_resource_svc
-                    .add_team_member(team_id, TeamMemberAdd { user_id: user_id.to_string(), role: "member".into(), can_drive: false })
+                    .add_team_member(team_id, TeamMemberAdd { user_id: user_id.to_string(), role: "member".into(), can_drive: false }, executor_id)
                     .await
                     .map_err(map_service_error)?;
                 Ok(serde_json::json!({ "success": true, "team_id": team_id, "member_user_id": member.user_id }))
@@ -634,7 +696,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 let team_id = required_string(arguments, &["team_id"], "team_id")?;
                 let user_id = required_string(arguments, &["user_id"], "user_id")?;
                 self.dispatch_resource_svc
-                    .remove_team_member(team_id, user_id)
+                    .remove_team_member(team_id, user_id, executor_id)
                     .await
                     .map_err(map_service_error)?;
                 Ok(serde_json::json!({ "success": true, "team_id": team_id, "member_user_id": user_id }))
@@ -656,6 +718,52 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     .await
                     .map_err(map_service_error)?;
                 Ok(serde_json::json!({ "success": true, "equipment_id": equipment_id }))
+            }
+            // `Equipment.assign` / `release`：对齐工单设备槽（与人员槽同一 `DispatchOrderWriter`
+            // 领域函数，槽写入在调用方事务内；设备行/关联表由仓储同事务同步，禁止只改设备行）。
+            "Equipment.assign" => {
+                let equipment_id = required_string(arguments, &["equipment_id"], "equipment_id")?;
+                let dispatch_order_id = required_string(arguments, &["dispatch_order_id"], "dispatch_order_id")?;
+                let slot_code = required_string(arguments, &["slot_code"], "slot_code")?;
+                let order = self
+                    .dispatch_writer
+                    .assign_equipment_slot_in_tx(tx, dispatch_order_id, slot_code, equipment_id, executor_id)
+                    .await
+                    .map_err(map_dispatch_writer_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "equipment_id": equipment_id,
+                    "order_id": order.id,
+                    "slot_code": slot_code,
+                }))
+            }
+            "Equipment.release" => {
+                let equipment_id = required_string(arguments, &["equipment_id"], "equipment_id")?;
+                let slot_code = optional_string(arguments, &["slot_code"]).map(str::to_string);
+                // 未给工单时按设备当前占用反查（equipment.current_dispatch_id）。
+                let dispatch_order_id = match optional_string(arguments, &["dispatch_order_id"]) {
+                    Some(order_id) => order_id.to_string(),
+                    None => self
+                        .dispatch_resource_svc
+                        .get_equipment(equipment_id)
+                        .await
+                        .map_err(map_service_error)?
+                        .and_then(|equipment| equipment.current_dispatch_id)
+                        .ok_or_else(|| {
+                            DomainActionError::Validation(format!("设备 {equipment_id} 当前未指派到任何工单"))
+                        })?,
+                };
+                let order = self
+                    .dispatch_writer
+                    .release_equipment_slot_in_tx(tx, &dispatch_order_id, slot_code.as_deref(), equipment_id, executor_id)
+                    .await
+                    .map_err(map_dispatch_writer_error)?;
+                Ok(serde_json::json!({
+                    "success": true,
+                    "equipment_id": equipment_id,
+                    "order_id": order.id,
+                    "slot_code": slot_code,
+                }))
             }
             "StandOccupation.allocate" => {
                 let stand_code = required_string(arguments, &["stand_code"], "stand_code")?;

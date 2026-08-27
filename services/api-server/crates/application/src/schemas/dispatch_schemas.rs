@@ -117,19 +117,20 @@ pub struct TeamTypeResponse {
 #[derive(Debug, Clone, Deserialize)]
 pub struct TeamCreate {
     pub name: String,
-    pub team_type_id: Option<String>,
+    /// 所属科室，创建必填（PR2 起班组直接挂科室）。
+    pub department_id: String,
     pub code: Option<String>,
     pub leader_id: Option<String>,
-    pub terminal: Option<String>,
+    // PR2 起不再接受 team_type_id / terminal：serde 默认忽略未知字段，
+    // 旧客户端多带这两个键不会报错，只是被忽略。
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TeamUpdate {
     pub name: Option<String>,
-    pub team_type_id: Option<String>,
+    pub department_id: Option<String>,
     pub code: Option<String>,
     pub leader_id: Option<String>,
-    pub terminal: Option<String>,
     pub current_status: Option<String>,
     pub is_active: Option<bool>,
 }
@@ -160,10 +161,11 @@ pub struct TeamMemberResponse {
 pub struct TeamResponse {
     pub id: String,
     pub name: String,
+    pub department_id: Option<String>,
+    /// 只读历史值：班组类型已降为只读目录（PR2）。
     pub team_type_id: Option<String>,
     pub code: Option<String>,
     pub leader_id: Option<String>,
-    pub terminal: Option<String>,
     pub current_status: String,
     pub current_position: Option<PositionSchema>,
     pub current_stand_id: Option<String>,
@@ -775,7 +777,6 @@ pub struct EquipmentTypeCreate {
     pub category: Option<String>,
     #[serde(default)]
     pub requires_driver: bool,
-    pub driver_team_type_id: Option<String>,
     pub icon: Option<String>,
     pub description: Option<String>,
 }
@@ -786,7 +787,6 @@ pub struct EquipmentTypeUpdate {
     pub code: Option<String>,
     pub category: Option<String>,
     pub requires_driver: Option<bool>,
-    pub driver_team_type_id: Option<String>,
     pub icon: Option<String>,
     pub description: Option<String>,
 }
@@ -798,7 +798,6 @@ pub struct EquipmentTypeResponse {
     pub code: Option<String>,
     pub category: Option<String>,
     pub requires_driver: bool,
-    pub driver_team_type_id: Option<String>,
     pub icon: Option<String>,
     pub description: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
@@ -813,19 +812,21 @@ pub struct EquipmentTypeResponse {
 pub struct EquipmentCreate {
     pub code: String,
     pub equipment_type_id: Option<String>,
+    /// 所属科室，创建必填（PR2 起设备直接挂科室）。
+    pub department_id: String,
     pub name: Option<String>,
     pub license_plate: Option<String>,
-    pub terminal: Option<String>,
     pub next_maintenance_date: Option<NaiveDate>,
+    // PR2 起不再接受 terminal（设备无常驻楼字段）。
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EquipmentUpdate {
     pub code: Option<String>,
     pub equipment_type_id: Option<String>,
+    pub department_id: Option<String>,
     pub name: Option<String>,
     pub license_plate: Option<String>,
-    pub terminal: Option<String>,
     pub status: Option<String>,
     pub next_maintenance_date: Option<NaiveDate>,
     pub is_active: Option<bool>,
@@ -841,9 +842,9 @@ pub struct EquipmentResponse {
     pub id: String,
     pub code: String,
     pub equipment_type_id: Option<String>,
+    pub department_id: Option<String>,
     pub name: Option<String>,
     pub license_plate: Option<String>,
-    pub terminal: Option<String>,
     pub status: String,
     pub current_position: Option<PositionSchema>,
     pub current_stand_id: Option<String>,
@@ -930,8 +931,6 @@ pub struct DispatchOrderCreate {
     pub department_id: Option<String>,
     pub stand_id: Option<String>,
     pub location: Option<String>,
-    pub assignee_type: Option<String>,
-    pub team_id: Option<String>,
     pub individual_user_id: Option<String>,
     pub planned_start_time: Option<DateTime<Utc>>,
     pub planned_end_time: Option<DateTime<Utc>>,
@@ -1069,14 +1068,10 @@ pub struct DispatchOrderResponse {
     pub stand_id: Option<String>,
     pub stand_code: Option<String>,
     pub terminal: Option<String>,
-    pub assignee_type: String,
-    pub team_id: Option<String>,
-    pub team_name: Option<String>,
     pub department: Option<String>,
     pub individual_user_id: Option<String>,
     pub individual_username: Option<String>,
     pub driver_type: Option<String>,
-    pub driver_team_id: Option<String>,
     pub driver_user_id: Option<String>,
     pub driver_assignment: Option<HashMap<String, serde_json::Value>>,
     pub planned_start_time: Option<DateTime<Utc>>,
@@ -1519,7 +1514,6 @@ pub struct ValidateOrderRequest {
     pub task_type: Option<String>,
     pub dispatch_order_id: Option<String>,
     pub stand_id: Option<String>,
-    pub team_id: Option<String>,
     pub individual_user_id: Option<String>,
     #[serde(default)]
     pub equipment_ids: Vec<String>,
@@ -1729,8 +1723,6 @@ fn default_task_crew_generated_from() -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct DispatchReplanAssignment {
-    pub assignee_type: Option<String>,
-    pub team_id: Option<String>,
     pub individual_user_id: Option<String>,
     #[serde(default)]
     pub equipment_ids: Vec<String>,
@@ -1835,8 +1827,6 @@ pub struct DispatchReplanBaselineEquipmentSlotAssignment {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct DispatchReplanBaselineAssignment {
-    pub assignee_type: Option<String>,
-    pub team_id: Option<String>,
     pub individual_user_id: Option<String>,
     #[serde(default)]
     pub equipment_ids: Vec<String>,

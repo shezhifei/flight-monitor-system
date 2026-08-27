@@ -49,8 +49,8 @@ impl PgDispatchOrderRepository {
             r#"
                 INSERT INTO dispatch_orders (
                     id, flight_id, task_type, stand_id,
-                    assignee_type, team_id, individual_user_id,
-                    driver_type, driver_team_id, driver_user_id,
+                    individual_user_id,
+                    driver_type, driver_user_id,
                     planned_start_time, planned_end_time,
                     actual_start_time, actual_end_time,
                     estimated_completion_time,
@@ -77,37 +77,34 @@ impl PgDispatchOrderRepository {
                     completion_offset_minutes, completion_warning_lead_minutes
                 ) VALUES (
                     $1, $2, $3, $4,
-                    $5, $6, $7,
-                    $8, $9, $10,
-                    $11, $12,
-                    $13, $14,
-                    $15, $16, $17, $18,
-                    $19, $20, $21, $22,
+                    $5,
+                    $6, $7,
+                    $8, $9,
+                    $10, $11,
+                    $12, $13, $14, $15,
+                    $16, $17, $18, $19,
+                    $20, $21,
+                    $22,
                     $23, $24,
-                    $25,
-                    $26, $27,
-                    $28, $29, $30,
-                    $31, $32,
-                    $33, $34, $35, $36,
-                    $37, $38, $39, $40,
-                    $41, $42, $43, $44,
-                    $45, $46,
-                    $47, $48, $49, $50,
-                    $51, $52, $53, $54,
-                    $55, $56,
-                    $57, $58,
-                    $59, $60, $61,
-                    $62, $63,
-                    $64, $65, $66,
-                    $67, $68
+                    $25, $26, $27,
+                    $28, $29,
+                    $30, $31, $32, $33,
+                    $34, $35, $36, $37,
+                    $38, $39, $40, $41,
+                    $42, $43,
+                    $44, $45, $46, $47,
+                    $48, $49, $50, $51,
+                    $52, $53,
+                    $54, $55,
+                    $56, $57, $58,
+                    $59, $60,
+                    $61, $62, $63,
+                    $64, $65
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     stand_id = EXCLUDED.stand_id,
-                    assignee_type = EXCLUDED.assignee_type,
-                    team_id = EXCLUDED.team_id,
                     individual_user_id = EXCLUDED.individual_user_id,
                     driver_type = EXCLUDED.driver_type,
-                    driver_team_id = EXCLUDED.driver_team_id,
                     driver_user_id = EXCLUDED.driver_user_id,
                     planned_start_time = EXCLUDED.planned_start_time,
                     planned_end_time = EXCLUDED.planned_end_time,
@@ -173,11 +170,8 @@ impl PgDispatchOrderRepository {
         .bind(&order.flight_id)
         .bind(&order.task_type)
         .bind(&order.stand_id)
-        .bind(assignee_type_value(order.assignee_type))
-        .bind(&order.team_id)
         .bind(&order.individual_user_id)
         .bind(order.driver_type.map(assignee_type_value))
-        .bind(&order.driver_team_id)
         .bind(&order.driver_user_id)
         .bind(order.planned_start_time)
         .bind(order.planned_end_time)
@@ -535,8 +529,8 @@ impl PgDispatchOrderRepository {
         r#"
             SELECT
                 d.id, d.flight_id, d.task_type, d.stand_id,
-                d.assignee_type, d.team_id, d.individual_user_id,
-                d.driver_type, d.driver_team_id, d.driver_user_id,
+                d.individual_user_id,
+                d.driver_type, d.driver_user_id,
                 d.planned_start_time, d.planned_end_time,
                 d.actual_start_time, d.actual_end_time,
                 d.estimated_completion_time,
@@ -563,10 +557,8 @@ impl PgDispatchOrderRepository {
                 d.supervisor_notified, d.supervisor_notified_at,
                 d.assignment_deadline, d.completed_by, d.completion_notes,
                 d.created_at, d.updated_at,
-                t.name AS team_name,
                 COALESCE(
                     d.workflow_context->>'target_department',
-                    tu.department,
                     iu.department
                 ) AS department,
                 iu.username AS individual_username,
@@ -575,15 +567,12 @@ impl PgDispatchOrderRepository {
                 COALESCE(f.gate, d.workflow_context->>'gate') AS gate,
                 COALESCE(
                     s.terminal,
-                    t.terminal,
                     f.terminal,
                     d.workflow_context->>'terminal'
                 ) AS terminal,
                 COALESCE(f.flight_number, fl.flight_no) AS flight_no
             FROM dispatch_orders d
-            LEFT JOIN teams t ON d.team_id = t.id
             LEFT JOIN users iu ON d.individual_user_id = iu.id
-            LEFT JOIN users tu ON t.leader_id = tu.id
             LEFT JOIN stands s ON d.stand_id = s.id
             LEFT JOIN task_types st ON d.task_type = st.code
             LEFT JOIN flights f ON f.flight_id = d.flight_id
@@ -833,64 +822,6 @@ impl DispatchOrderRepository for PgDispatchOrderRepository {
         self.fetch_orders(builder, true).await
     }
 
-    async fn find_by_team(
-        &self,
-        team_id: &str,
-        status: Option<&str>,
-        start_date: Option<DateTime<Utc>>,
-        end_date: Option<DateTime<Utc>>,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        let mut builder = QueryBuilder::<Postgres>::new(Self::base_order_select());
-        builder.push(" WHERE d.team_id = ");
-        builder.push_bind(team_id);
-        if let Some(status) = status {
-            builder.push(" AND d.status = ");
-            builder.push_bind(status);
-        }
-        if let Some(start_date) = start_date {
-            builder.push(" AND d.planned_start_time >= ");
-            builder.push_bind(start_date);
-        }
-        if let Some(end_date) = end_date {
-            builder.push(" AND d.planned_start_time <= ");
-            builder.push_bind(end_date);
-        }
-        builder.push(" ORDER BY d.planned_start_time DESC NULLS LAST, d.created_at DESC");
-        builder.push(" LIMIT 1000");
-
-        self.fetch_orders(builder, true).await
-    }
-
-    async fn find_by_team_filtered(
-        &self,
-        team_id: &str,
-        status: Option<&str>,
-        source: Option<&str>,
-        department: Option<&str>,
-        limit: i64,
-        offset: i64,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        let mut builder = QueryBuilder::<Postgres>::new(Self::base_order_select());
-        builder.push(" WHERE d.team_id = ");
-        builder.push_bind(team_id);
-        if let Some(status) = status {
-            builder.push(" AND d.status = ");
-            builder.push_bind(status);
-        }
-        if let Some(source) = source {
-            builder.push(" AND d.source = ");
-            builder.push_bind(source);
-        }
-        builder = Self::apply_department_filter(builder, department);
-        builder.push(" ORDER BY d.planned_start_time DESC NULLS LAST, d.created_at DESC");
-        builder.push(" LIMIT ");
-        builder.push_bind(limit.max(1));
-        builder.push(" OFFSET ");
-        builder.push_bind(offset.max(0));
-
-        self.fetch_orders(builder, true).await
-    }
-
     async fn find_by_user(&self, user_id: &str, status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(Self::base_order_select());
         builder.push(
@@ -1006,7 +937,6 @@ impl DispatchOrderRepository for PgDispatchOrderRepository {
         &self,
         window_start: DateTime<Utc>,
         window_end: DateTime<Utc>,
-        team_id: Option<&str>,
         individual_user_id: Option<&str>,
         stand_id: Option<&str>,
         exclude_order_id: Option<&str>,
@@ -1017,10 +947,6 @@ impl DispatchOrderRepository for PgDispatchOrderRepository {
         builder.push(" AND d.planned_end_time > ");
         builder.push_bind(window_start);
         builder.push(" AND d.status NOT IN ('cancelled', 'completed')");
-        if let Some(tid) = team_id {
-            builder.push(" AND d.team_id = ");
-            builder.push_bind(tid);
-        }
         if let Some(uid) = individual_user_id {
             builder.push(" AND d.individual_user_id = ");
             builder.push_bind(uid);
@@ -1177,7 +1103,7 @@ impl DispatchOrderRepository for PgDispatchOrderRepository {
                  WHERE d.id = $2 \
                    AND d.status NOT IN ('completed', 'cancelled') \
                    AND ( \
-                        (d.assignee_type = 'individual' AND d.individual_user_id = $3) \
+                        d.individual_user_id = $3 \
                         OR EXISTS ( \
                             SELECT 1 \
                             FROM dispatch_order_members dom \
@@ -1471,6 +1397,15 @@ impl<'tx> DispatchOrderTransactionalRepository<Transaction<'tx, Postgres>> for P
     ) -> Result<(), DomainError> {
         PgDispatchOrderRepository::append_log_in_tx(&mut *tx, dispatch_order_id, action, actor_id, details).await
     }
+
+    async fn replace_order_equipment_assignments_in_tx(
+        &self,
+        tx: &mut Transaction<'tx, Postgres>,
+        id: &str,
+        equipment_ids: &[String],
+    ) -> Result<(), DomainError> {
+        PgDispatchOrderRepository::replace_order_equipment_assignments_in_tx(&mut *tx, id, equipment_ids).await
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1486,9 +1421,6 @@ fn row_to_order(row: &PgRow) -> DispatchOrder {
         task_type_name: row.try_get("task_type_name").ok().flatten(),
         stand_code: row.try_get("stand_code").ok().flatten(),
         terminal: row.try_get("terminal").ok().flatten(),
-        assignee_type: parse_assignee_type(row.get::<Option<String>, _>("assignee_type").as_deref()),
-        team_id: row.get("team_id"),
-        team_name: row.try_get("team_name").ok().flatten(),
         department: row.try_get("department").ok().flatten(),
         individual_user_id: row.get("individual_user_id"),
         individual_username: row.try_get("individual_username").ok().flatten(),
@@ -1496,7 +1428,6 @@ fn row_to_order(row: &PgRow) -> DispatchOrder {
             .get::<Option<String>, _>("driver_type")
             .as_deref()
             .map(|value| parse_assignee_type(Some(value))),
-        driver_team_id: row.get("driver_team_id"),
         driver_user_id: row.get("driver_user_id"),
         planned_start_time: row.get("planned_start_time"),
         planned_end_time: row.get("planned_end_time"),
@@ -1646,9 +1577,9 @@ fn row_to_equipment(row: &PgRow) -> Equipment {
         id: row.get("id"),
         code: row.get::<Option<String>, _>("code").unwrap_or_default(),
         equipment_type_id: row.get("equipment_type_id"),
+        department_id: row.try_get("department_id").ok().flatten(),
         name: row.get("name"),
         license_plate: row.try_get("license_plate").ok().flatten(),
-        terminal: row.get("terminal"),
         status: match row.get::<Option<String>, _>("status").as_deref() {
             Some("in_use") => EquipmentStatus::InUse,
             Some("maintenance") => EquipmentStatus::Maintenance,

@@ -68,12 +68,53 @@ export interface TimelineMember {
   slot_code?: string | null;
   qualification_code?: string | null;
   qualification_level_code?: string | null;
+  source_team_id?: string | null;
+  source_team_name?: string | null;
   [key: string]: unknown;
+}
+
+/** 工单只读班组名：名册投影，不是 order.team_id 指派。 */
+export function rosterTeamLabel(order: DispatchOrder | null | undefined): string {
+  const direct = String(order?.team_name ?? '').trim();
+  if (direct) return direct;
+  const names = new Set<string>();
+  const crewNames = order?.task_crew && Array.isArray(order.task_crew.source_team_names)
+    ? order.task_crew.source_team_names
+    : [];
+  for (const name of crewNames) {
+    const trimmed = String(name ?? '').trim();
+    if (trimmed) names.add(trimmed);
+  }
+  for (const member of order?.members ?? []) {
+    const trimmed = String(member.source_team_name ?? '').trim();
+    if (trimmed) names.add(trimmed);
+  }
+  return Array.from(names).join(' / ');
+}
+
+export function rosterTeamIds(order: DispatchOrder | null | undefined): string[] {
+  const ids = new Set<string>();
+  const direct = String(order?.team_id ?? '').trim();
+  if (direct) ids.add(direct);
+  const crewIds = order?.task_crew && Array.isArray(order.task_crew.source_team_ids)
+    ? order.task_crew.source_team_ids
+    : [];
+  for (const id of crewIds) {
+    const trimmed = String(id ?? '').trim();
+    if (trimmed) ids.add(trimmed);
+  }
+  for (const member of order?.members ?? []) {
+    const trimmed = String(member.source_team_id ?? '').trim();
+    if (trimmed) ids.add(trimmed);
+  }
+  return Array.from(ids);
 }
 
 
 export interface TaskCrew {
   members?: ReadonlyArray<TimelineMember>;
+  source_team_ids?: ReadonlyArray<string>;
+  source_team_names?: ReadonlyArray<string>;
   [key: string]: unknown;
 }
 

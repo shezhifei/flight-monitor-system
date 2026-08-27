@@ -3,7 +3,7 @@ use crate::test_support::stub_dispatch_dependencies;
 use chrono::{TimeZone, Utc};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
-    AssigneeType, DispatchLockLevel, DispatchOrder, DispatchOrderStatus, DispatchType, ScheduleSource,
+    DispatchLockLevel, DispatchOrder, DispatchOrderStatus, DispatchType, ScheduleSource,
 };
 use fms_domain::ports::dispatch_repository::{CreateDispatchOrderCommand, DispatchOrderRepository};
 use serde_json::json;
@@ -63,27 +63,7 @@ impl DispatchOrderRepository for RecordingDispatchOrderRepo {
         unimplemented!()
     }
 
-    async fn find_by_team(
-        &self,
-        _team_id: &str,
-        _status: Option<&str>,
-        _start_date: Option<chrono::DateTime<Utc>>,
-        _end_date: Option<chrono::DateTime<Utc>>,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        unimplemented!()
-    }
 
-    async fn find_by_team_filtered(
-        &self,
-        _team_id: &str,
-        _status: Option<&str>,
-        _source: Option<&str>,
-        _department: Option<&str>,
-        _limit: i64,
-        _offset: i64,
-    ) -> Result<Vec<DispatchOrder>, DomainError> {
-        unimplemented!()
-    }
 
     async fn find_by_user(&self, _user_id: &str, _status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
         unimplemented!()
@@ -127,7 +107,6 @@ impl DispatchOrderRepository for RecordingDispatchOrderRepo {
         &self,
         _window_start: chrono::DateTime<Utc>,
         _window_end: chrono::DateTime<Utc>,
-        _team_id: Option<&str>,
         _individual_user_id: Option<&str>,
         _stand_id: Option<&str>,
         _exclude_order_id: Option<&str>,
@@ -264,14 +243,10 @@ fn event_generated_order() -> DispatchOrder {
         task_type_name: None,
         stand_code: None,
         terminal: Some("T1".to_string()),
-        assignee_type: AssigneeType::Team,
-        team_id: None,
-        team_name: None,
         department: None,
         individual_user_id: None,
         individual_username: None,
         driver_type: None,
-        driver_team_id: None,
         driver_user_id: None,
         planned_start_time: Some(now),
         planned_end_time: Some(now + chrono::Duration::minutes(30)),
@@ -411,25 +386,14 @@ fn normalize_optional_ref_trims_and_drops_blank_values() {
 #[test]
 fn auto_create_checkin_member_only_for_matching_individual_assignee() {
     assert!(DispatchService::should_auto_create_checkin_member(
-        AssigneeType::Individual,
         Some("user-1"),
         "user-1"
     ));
     assert!(!DispatchService::should_auto_create_checkin_member(
-        AssigneeType::Individual,
         Some("user-1"),
         "user-2"
     ));
-    assert!(!DispatchService::should_auto_create_checkin_member(
-        AssigneeType::Team,
-        Some("user-1"),
-        "user-1"
-    ));
-    assert!(!DispatchService::should_auto_create_checkin_member(
-        AssigneeType::Individual,
-        None,
-        "user-1"
-    ));
+    assert!(!DispatchService::should_auto_create_checkin_member(None, "user-1"));
 }
 
 #[test]

@@ -6,16 +6,25 @@ import { useToast } from './useToast';
 // Typed models — backend field names (dispatch_schemas.rs)
 // ----------------------------------------------------------------------------
 
-export type ResourceSection = 'teams' | 'team-types' | 'equipment' | 'equipment-types';
+export type ResourceSection =
+  | 'teams'
+  | 'team-types'
+  | 'equipment'
+  | 'equipment-types'
+  | 'departments'
+  | 'qualifications'
+  | 'terminals';
 
 export interface Team {
   id: string;
   name: string;
+  /** 只读历史值：班组类型已降为只读目录（PR2） */
   team_type_id?: string | null;
+  /** PR2 起班组直接挂科室 */
+  department_id?: string | null;
   code?: string | null;
   leader_id?: string | null;
   leader_name?: string | null;
-  terminal?: string | null;
   current_status?: string | null;
   current_stand_id?: string | null;
   member_count?: number;
@@ -23,6 +32,19 @@ export interface Team {
   /** Resolved client-side from team types */
   team_type_name?: string | null;
   team_type_color?: string | null;
+  /** Resolved client-side from departments */
+  department_name?: string | null;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  code?: string | null;
+  description?: string | null;
+  manager_id?: string | null;
+  is_active?: boolean;
+  /** Resolved client-side from assignable users */
+  manager_name?: string | null;
 }
 
 export interface TeamMember {
@@ -56,12 +78,15 @@ export interface Equipment {
   name?: string | null;
   equipment_type_id?: string | null;
   equipment_type_name?: string | null;
+  /** PR2 起设备直接挂科室（无常驻楼字段） */
+  department_id?: string | null;
   license_plate?: string | null;
-  terminal?: string | null;
   status?: string | null;
   current_stand_id?: string | null;
   next_maintenance_date?: string | null;
   is_active?: boolean;
+  /** Resolved client-side from departments */
+  department_name?: string | null;
 }
 
 export interface EquipmentType {
@@ -70,7 +95,6 @@ export interface EquipmentType {
   code?: string | null;
   category?: string | null;
   requires_driver?: boolean;
-  driver_team_type_id?: string | null;
   icon?: string | null;
   description?: string | null;
   is_active?: boolean;
@@ -103,13 +127,13 @@ export type ResourceModal =
   | { kind: 'team-type'; item?: TeamType }
   | { kind: 'equipment-type'; item?: EquipmentType }
   | { kind: 'equipment-status'; item: Equipment }
+  | { kind: 'department'; item?: Department }
   | { kind: 'team-members'; team: Team };
 
 export interface TeamFormData {
   name: string;
   code: string;
-  team_type_id: string;
-  terminal: string;
+  department_id: string;
   leader_id: string;
   current_status: string;
 }
@@ -118,10 +142,17 @@ export interface EquipmentFormData {
   code: string;
   name: string;
   equipment_type_id: string;
+  department_id: string;
   license_plate: string;
-  terminal: string;
   status: string;
   next_maintenance_date: string;
+}
+
+export interface DepartmentFormData {
+  name: string;
+  code: string;
+  description: string;
+  manager_id: string;
 }
 
 export interface TeamTypeFormData {
@@ -139,14 +170,12 @@ export interface EquipmentTypeFormData {
   code: string;
   category: string;
   requires_driver: boolean;
-  driver_team_type_id: string;
   icon: string;
   description: string;
 }
 
 export interface EquipmentStatusFormData {
   status: string;
-  terminal: string;
   next_maintenance_date: string;
 }
 
@@ -195,10 +224,10 @@ export function teamFromApi(raw: unknown): Team | null {
     id,
     name,
     team_type_id: asString(r.team_type_id),
+    department_id: asString(r.department_id),
     code: asString(r.code),
     leader_id: asString(r.leader_id),
     leader_name: asString(r.leader_name),
-    terminal: asString(r.terminal),
     current_status: asString(r.current_status) ?? 'available',
     current_stand_id: asString(r.current_stand_id),
     member_count: asNumber(r.member_count) ?? 0,
@@ -210,8 +239,7 @@ export function teamToCreateApi(form: TeamFormData) {
   return {
     name: form.name.trim(),
     code: form.code.trim() || null,
-    team_type_id: form.team_type_id.trim() || null,
-    terminal: form.terminal.trim() || null,
+    department_id: form.department_id.trim(),
     leader_id: form.leader_id.trim() || null,
   };
 }
@@ -220,8 +248,7 @@ export function teamToUpdateApi(form: TeamFormData) {
   return {
     name: form.name.trim(),
     code: form.code.trim() || null,
-    team_type_id: form.team_type_id.trim() || null,
-    terminal: form.terminal.trim() || null,
+    department_id: form.department_id.trim() || null,
     leader_id: form.leader_id.trim() || null,
     current_status: form.current_status.trim() || null,
   };
@@ -293,8 +320,8 @@ export function equipmentFromApi(raw: unknown): Equipment | null {
     name: asString(r.name),
     equipment_type_id: asString(r.equipment_type_id),
     equipment_type_name: asString(r.equipment_type_name),
+    department_id: asString(r.department_id),
     license_plate: asString(r.license_plate),
-    terminal: asString(r.terminal),
     status: asString(r.status) ?? 'available',
     current_stand_id: asString(r.current_stand_id),
     next_maintenance_date: asString(r.next_maintenance_date),
@@ -307,8 +334,8 @@ export function equipmentToCreateApi(form: EquipmentFormData) {
     code: form.code.trim(),
     name: form.name.trim() || null,
     equipment_type_id: form.equipment_type_id.trim() || null,
+    department_id: form.department_id.trim(),
     license_plate: form.license_plate.trim() || null,
-    terminal: form.terminal.trim() || null,
     next_maintenance_date: form.next_maintenance_date.trim() || null,
   };
 }
@@ -318,8 +345,8 @@ export function equipmentToUpdateApi(form: EquipmentFormData) {
     code: form.code.trim() || null,
     name: form.name.trim() || null,
     equipment_type_id: form.equipment_type_id.trim() || null,
+    department_id: form.department_id.trim() || null,
     license_plate: form.license_plate.trim() || null,
-    terminal: form.terminal.trim() || null,
     status: form.status.trim() || null,
     next_maintenance_date: form.next_maintenance_date.trim() || null,
   };
@@ -337,7 +364,6 @@ export function equipmentTypeFromApi(raw: unknown): EquipmentType | null {
     code: asString(r.code),
     category: asString(r.category),
     requires_driver: asBool(r.requires_driver),
-    driver_team_type_id: asString(r.driver_team_type_id),
     icon: asString(r.icon),
     description: asString(r.description),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
@@ -351,9 +377,33 @@ export function equipmentTypeToApi(form: EquipmentTypeFormData) {
     code: form.code.trim() || null,
     category: form.category.trim() || null,
     requires_driver: form.requires_driver,
-    driver_team_type_id: form.driver_team_type_id.trim() || null,
     icon: form.icon.trim() || null,
     description: form.description.trim() || null,
+  };
+}
+
+export function departmentFromApi(raw: unknown): Department | null {
+  const r = asRecord(raw);
+  if (!r) return null;
+  const id = asString(r.id);
+  const name = asString(r.name);
+  if (!id || !name) return null;
+  return {
+    id,
+    name,
+    code: asString(r.code),
+    description: asString(r.description),
+    manager_id: asString(r.manager_id),
+    is_active: r.is_active === undefined ? true : asBool(r.is_active),
+  };
+}
+
+export function departmentToApi(form: DepartmentFormData) {
+  return {
+    name: form.name.trim(),
+    code: form.code.trim() || null,
+    description: form.description.trim() || null,
+    manager_id: form.manager_id.trim() || null,
   };
 }
 
@@ -409,8 +459,15 @@ async function extractErrorMessage(response: Response, fallback: string): Promis
   try {
     const ct = String(response.headers.get('content-type') || '').toLowerCase();
     if (ct.includes('application/json')) {
-      const body = (await response.clone().json()) as { message?: string; error?: string; detail?: string };
-      return body.message || body.error || body.detail || fallback;
+      const body = (await response.clone().json()) as {
+        message?: string;
+        detail?: string;
+        error?: string | { message?: string };
+      };
+      // 真实错误体为 { success:false, error:{ message, ... } }；兼容旧的扁平 message/detail。
+      if (typeof body.error === 'object' && body.error?.message) return body.error.message;
+      if (typeof body.error === 'string' && body.error) return body.error;
+      return body.message || body.detail || fallback;
     }
     const text = await response.clone().text();
     return text.trim() || fallback;
@@ -451,6 +508,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   const equipment = ref<Equipment[]>([]);
   const teamTypes = ref<TeamType[]>([]);
   const equipmentTypes = ref<EquipmentType[]>([]);
+  const departments = ref<Department[]>([]);
   const assignableUsers = ref<AssignableUser[]>([]);
 
   // server-reported / page totals
@@ -458,6 +516,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   const equipmentTotal = ref(0);
   const teamTypesTotal = ref(0);
   const equipmentTypesTotal = ref(0);
+  const departmentsTotal = ref(0);
 
   // independent filter state per section
   const teamSearch = ref('');
@@ -470,6 +529,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
 
   const teamTypeSearch = ref('');
   const equipmentTypeSearch = ref('');
+  const departmentSearch = ref('');
 
   // discriminated modal state
   const modal = ref<ResourceModal>({ kind: 'none' });
@@ -478,8 +538,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   const teamForm = ref<TeamFormData>({
     name: '',
     code: '',
-    team_type_id: '',
-    terminal: '',
+    department_id: '',
     leader_id: '',
     current_status: 'available',
   });
@@ -487,8 +546,8 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     code: '',
     name: '',
     equipment_type_id: '',
+    department_id: '',
     license_plate: '',
-    terminal: '',
     status: 'available',
     next_maintenance_date: '',
   });
@@ -506,14 +565,18 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     code: '',
     category: '',
     requires_driver: false,
-    driver_team_type_id: '',
     icon: '',
     description: '',
   });
   const equipmentStatusForm = ref<EquipmentStatusFormData>({
     status: 'available',
-    terminal: '',
     next_maintenance_date: '',
+  });
+  const departmentForm = ref<DepartmentFormData>({
+    name: '',
+    code: '',
+    description: '',
+    manager_id: '',
   });
 
   // team member drawer state
@@ -533,20 +596,31 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   function enrichTeam(team: Team): Team {
     const type = teamTypes.value.find(t => t.id === team.team_type_id);
     const leader = assignableUsers.value.find(u => u.id === team.leader_id);
+    const dept = departments.value.find(d => d.id === team.department_id);
     return {
       ...team,
       team_type_name: type?.name ?? team.team_type_name ?? null,
       team_type_color: type?.color ?? team.team_type_color ?? null,
       leader_name: team.leader_name || leader?.display_name || leader?.username || null,
+      department_name: dept?.name ?? team.department_name ?? null,
     };
   }
 
   function enrichEquipment(eq: Equipment): Equipment {
-    if (eq.equipment_type_name) return eq;
     const type = equipmentTypes.value.find(t => t.id === eq.equipment_type_id);
+    const dept = departments.value.find(d => d.id === eq.department_id);
     return {
       ...eq,
-      equipment_type_name: type?.name ?? null,
+      equipment_type_name: eq.equipment_type_name ?? type?.name ?? null,
+      department_name: dept?.name ?? eq.department_name ?? null,
+    };
+  }
+
+  function enrichDepartment(dept: Department): Department {
+    const manager = assignableUsers.value.find(u => u.id === dept.manager_id);
+    return {
+      ...dept,
+      manager_name: dept.manager_name || manager?.display_name || manager?.username || null,
     };
   }
 
@@ -596,6 +670,15 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     if (!q) return equipmentTypes.value;
     return equipmentTypes.value.filter(t => {
       const hay = [t.name, t.code, t.category, t.icon].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  });
+
+  const filteredDepartments = computed(() => {
+    const q = departmentSearch.value.trim().toLowerCase();
+    return departments.value.map(enrichDepartment).filter(d => {
+      if (!q) return true;
+      const hay = [d.name, d.code, d.description, d.manager_name].filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
   });
@@ -684,6 +767,21 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     equipmentTypesTotal.value = unwrapTotal(res.data, list.length);
   }
 
+  async function fetchDepartments(includeInactive = false) {
+    const res = await api.get<unknown>(
+      `/api/v2/dispatch/resources/departments${pageQuery({ include_inactive: includeInactive })}`,
+    );
+    if (!res.ok) {
+      toast.showToast('error', await extractErrorMessage(res.response, '加载科室失败'));
+      return;
+    }
+    const list = unwrapListRaw(res.data)
+      .map(departmentFromApi)
+      .filter((d): d is Department => Boolean(d));
+    departments.value = list;
+    departmentsTotal.value = unwrapTotal(res.data, list.length);
+  }
+
   async function fetchAssignableUsers() {
     const res = await api.get<unknown>('/api/v2/auth/users?page=1&page_size=200');
     if (!res.ok) {
@@ -720,6 +818,10 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   async function createTeam(form: TeamFormData): Promise<boolean> {
     if (!form.name.trim()) {
       toast.showToast('warning', '请填写班组名称');
+      return false;
+    }
+    if (!form.department_id.trim()) {
+      toast.showToast('warning', '请选择所属科室');
       return false;
     }
     saving.value = true;
@@ -777,6 +879,10 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   async function createEquipment(form: EquipmentFormData): Promise<boolean> {
     if (!form.code.trim()) {
       toast.showToast('warning', '请填写设备代码');
+      return false;
+    }
+    if (!form.department_id.trim()) {
+      toast.showToast('warning', '请选择所属科室');
       return false;
     }
     saving.value = true;
@@ -843,7 +949,6 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
         return false;
       }
       const meta: Record<string, string> = {};
-      if (form.terminal.trim()) meta.terminal = form.terminal.trim();
       if (form.next_maintenance_date.trim()) meta.next_maintenance_date = form.next_maintenance_date.trim();
       if (Object.keys(meta).length > 0) {
         const metaRes = await api.put<unknown>(`/api/v2/dispatch/equipment/${encodeURIComponent(id)}`, meta);
@@ -972,6 +1077,67 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     }
   }
 
+  // ------------- Department CRUD ---------------------------
+
+  async function createDepartment(form: DepartmentFormData): Promise<boolean> {
+    if (!form.name.trim()) {
+      toast.showToast('warning', '请填写科室名称');
+      return false;
+    }
+    saving.value = true;
+    try {
+      const res = await api.post<unknown>('/api/v2/dispatch/resources/departments', departmentToApi(form));
+      if (!res.ok) {
+        toast.showToast('error', await extractErrorMessage(res.response, '创建科室失败'));
+        return false;
+      }
+      toast.showToast('success', '科室已创建');
+      await fetchDepartments(true);
+      return true;
+    } finally {
+      saving.value = false;
+    }
+  }
+
+  async function updateDepartment(id: string, form: DepartmentFormData): Promise<boolean> {
+    saving.value = true;
+    try {
+      const res = await api.put<unknown>(
+        `/api/v2/dispatch/resources/departments/${encodeURIComponent(id)}`,
+        departmentToApi(form),
+      );
+      if (!res.ok) {
+        toast.showToast('error', await extractErrorMessage(res.response, '更新科室失败'));
+        return false;
+      }
+      toast.showToast('success', '科室已更新');
+      await fetchDepartments(true);
+      return true;
+    } finally {
+      saving.value = false;
+    }
+  }
+
+  /** 科室无 DELETE：停用/启用走 PUT is_active。 */
+  async function setDepartmentActive(id: string, active: boolean): Promise<boolean> {
+    saving.value = true;
+    try {
+      const res = await api.put<unknown>(
+        `/api/v2/dispatch/resources/departments/${encodeURIComponent(id)}`,
+        { is_active: active },
+      );
+      if (!res.ok) {
+        toast.showToast('error', await extractErrorMessage(res.response, active ? '启用科室失败' : '停用科室失败'));
+        return false;
+      }
+      toast.showToast('success', active ? '科室已启用' : '科室已停用');
+      await fetchDepartments(true);
+      return true;
+    } finally {
+      saving.value = false;
+    }
+  }
+
   // ------------- Team Members ------------------------------
 
   async function loadTeamMembers(teamId: string) {
@@ -1034,12 +1200,11 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
       ? {
           name: item.name || '',
           code: item.code || '',
-          team_type_id: item.team_type_id || '',
-          terminal: item.terminal || '',
+          department_id: item.department_id || '',
           leader_id: item.leader_id || '',
           current_status: item.current_status || 'available',
         }
-      : { name: '', code: '', team_type_id: '', terminal: '', leader_id: '', current_status: 'available' };
+      : { name: '', code: '', department_id: '', leader_id: '', current_status: 'available' };
     modal.value = { kind: 'team', item };
     if (options.loadAssignableUsers !== false && assignableUsers.value.length === 0) {
       void fetchAssignableUsers();
@@ -1052,8 +1217,8 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           code: item.code || '',
           name: item.name || '',
           equipment_type_id: item.equipment_type_id || '',
+          department_id: item.department_id || '',
           license_plate: item.license_plate || '',
-          terminal: item.terminal || '',
           status: item.status || 'available',
           next_maintenance_date: item.next_maintenance_date || '',
         }
@@ -1061,12 +1226,27 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           code: '',
           name: '',
           equipment_type_id: '',
+          department_id: '',
           license_plate: '',
-          terminal: '',
           status: 'available',
           next_maintenance_date: '',
         };
     modal.value = { kind: 'equipment', item };
+  }
+
+  function openDepartmentModal(item?: Department) {
+    departmentForm.value = item
+      ? {
+          name: item.name || '',
+          code: item.code || '',
+          description: item.description || '',
+          manager_id: item.manager_id || '',
+        }
+      : { name: '', code: '', description: '', manager_id: '' };
+    modal.value = { kind: 'department', item };
+    if (options.loadAssignableUsers !== false && assignableUsers.value.length === 0) {
+      void fetchAssignableUsers();
+    }
   }
 
   function openTeamTypeModal(item?: TeamType) {
@@ -1099,7 +1279,6 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           code: item.code || '',
           category: item.category || '',
           requires_driver: Boolean(item.requires_driver),
-          driver_team_type_id: item.driver_team_type_id || '',
           icon: item.icon || '',
           description: item.description || '',
         }
@@ -1108,7 +1287,6 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           code: '',
           category: '',
           requires_driver: false,
-          driver_team_type_id: '',
           icon: '',
           description: '',
         };
@@ -1118,7 +1296,6 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
   function openEquipmentStatusModal(item: Equipment) {
     equipmentStatusForm.value = {
       status: item.status || 'available',
-      terminal: item.terminal || '',
       next_maintenance_date: item.next_maintenance_date || '',
     };
     modal.value = { kind: 'equipment-status', item };
@@ -1158,6 +1335,10 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
         : await createEquipmentType(equipmentTypeForm.value);
     } else if (m.kind === 'equipment-status') {
       ok = await updateEquipmentStatus(m.item.id, equipmentStatusForm.value);
+    } else if (m.kind === 'department') {
+      ok = m.item
+        ? await updateDepartment(m.item.id, departmentForm.value)
+        : await createDepartment(departmentForm.value);
     }
     if (ok) closeModal();
   }
@@ -1170,12 +1351,15 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     else if (section === 'equipment') fetchEquipment();
     else if (section === 'team-types') fetchTeamTypes();
     else if (section === 'equipment-types') fetchEquipmentTypes();
+    else if (section === 'departments' || section === 'qualifications') fetchDepartments(true);
+    // 'terminals' 板块由 useTerminalDirectory 自行加载
   }
 
   onMounted(() => {
     fetchTeams();
     fetchTeamTypes();
     fetchEquipmentTypes();
+    fetchDepartments();
     if (options.loadAssignableUsers !== false) {
       fetchAssignableUsers();
     }
@@ -1197,6 +1381,8 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     rawTeamTypes: teamTypes,
     equipmentTypes: filteredEquipmentTypes,
     rawEquipmentTypes: equipmentTypes,
+    departments: filteredDepartments,
+    rawDepartments: departments,
     assignableUsers,
     filteredAssignableUsers,
 
@@ -1205,6 +1391,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     equipmentTotal,
     teamTypesTotal,
     equipmentTypesTotal,
+    departmentsTotal,
 
     // filters
     teamSearch,
@@ -1215,6 +1402,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     equipmentStatusFilter,
     teamTypeSearch,
     equipmentTypeSearch,
+    departmentSearch,
     memberSearch,
 
     // modal
@@ -1224,11 +1412,13 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     teamTypeForm,
     equipmentTypeForm,
     equipmentStatusForm,
+    departmentForm,
     openTeamModal,
     openEquipmentModal,
     openTeamTypeModal,
     openEquipmentTypeModal,
     openEquipmentStatusModal,
+    openDepartmentModal,
     openTeamMembersDrawer,
     closeModal,
     saveCurrentModal,
@@ -1256,12 +1446,16 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     createEquipmentType,
     updateEquipmentType,
     deleteEquipmentType,
+    createDepartment,
+    updateDepartment,
+    setDepartmentActive,
 
     // fetchers
     fetchTeams,
     fetchEquipment,
     fetchTeamTypes,
     fetchEquipmentTypes,
+    fetchDepartments,
     fetchAssignableUsers,
     fetchSidebarUser,
 

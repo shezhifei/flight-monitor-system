@@ -16,7 +16,7 @@ use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository,
-    DispatchOrderRepository, DispatchOrderTransactionalRepository, PersonnelRuntimeRepository,
+    DispatchOrderRepository, DispatchOrderTransactionalRepository, EquipmentRepository, PersonnelRuntimeRepository,
     QualificationGrantRepository, TeamRepository,
 };
 use fms_domain::ports::user_repository::UserRepository;
@@ -36,6 +36,7 @@ pub struct DispatchOrderWriter<Tx> {
     qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
     personnel_runtime_repo: Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
     user_repo: Arc<dyn UserRepository + Send + Sync>,
+    equipment_repo: Arc<dyn EquipmentRepository + Send + Sync>,
     dispatch_service: Arc<DispatchService>,
 }
 
@@ -50,6 +51,7 @@ impl<Tx> DispatchOrderWriter<Tx> {
         qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
         personnel_runtime_repo: Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
         user_repo: Arc<dyn UserRepository + Send + Sync>,
+        equipment_repo: Arc<dyn EquipmentRepository + Send + Sync>,
         dispatch_service: Arc<DispatchService>,
     ) -> Self {
         Self {
@@ -62,6 +64,7 @@ impl<Tx> DispatchOrderWriter<Tx> {
             qualification_repo,
             personnel_runtime_repo,
             user_repo,
+            equipment_repo,
             dispatch_service,
         }
     }
@@ -94,17 +97,12 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
         match assignee_type
             .map(str::trim)
             .filter(|value| !value.is_empty())
-            .unwrap_or("team")
+            .unwrap_or("individual")
         {
             "team" => {
-                assignment["assignee_type"] = json!("team");
-                assignment["team_id"] = json!(assignee_id);
-                assignment["team_name"] = match self.team_repo.find_by_id(assignee_id, false).await? {
-                    Some(team) => json!(team.name),
-                    None => Value::Null,
-                };
-                assignment["individual_user_id"] = Value::Null;
-                assignment["individual_username"] = Value::Null;
+                return Err(DomainError::ValidationError(
+                    "班组指派已废止：请改用 assign_slot 按槽挂人".to_string(),
+                ));
             }
             "individual" | "user" => {
                 assignment["assignee_type"] = json!("individual");
@@ -113,8 +111,6 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
                     .and_then(|patch| patch.get("individual_username"))
                     .cloned()
                     .unwrap_or(Value::Null);
-                assignment["team_id"] = Value::Null;
-                assignment["team_name"] = Value::Null;
             }
             other => {
                 return Err(DomainError::ValidationError(format!(
@@ -625,6 +621,169 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
             .await?;
 
         Ok(order_to_response(&order))
+    }
+
+    /// `Equipment.assign`：把设备指派到工单设备槽（与人员槽同一套领域模型/同一写入方）。
+    /// 同步更新 `equipment_assignment` 快照列，并在同一事务内经
+    /// `replace_order_equipment_assignments_in_tx` 回写 `dispatch_order_equipment` 与
+    /// `equipment.current_dispatch_id`/`status`——禁止只改设备行或只改快照列。
+    pub async fn assign_equipment_slot_in_tx(
+        &self,
+        tx: &mut Tx,
+        order_id: &str,
+        slot_code: &str,
+        equipment_id: &str,
+        actor_id: &str,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        DispatchService::ensure_actor(actor_id)?;
+        let slot_code = slot_code.trim();
+        let equipment_id = equipment_id.trim();
+        if slot_code.is_empty() {
+            return Err(DomainError::ValidationError("slot_code is required".into()));
+        }
+        if equipment_id.is_empty() {
+            return Err(DomainError::ValidationError("equipment_id is required".into()));
+        }
+
+        let Some(mut order) = self.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+        self.assert_order_assignable(&order)?;
+
+        let requirement = order
+            .equipment_requirement_snapshot
+            .iter()
+            .find(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code))
+            .cloned()
+            .ok_or_else(|| DomainError::ValidationError(format!("工单 {order_id} 不存在设备槽位 {slot_code}")))?;
+
+        let equipment = self
+            .equipment_repo
+            .find_by_id(equipment_id)
+            .await?
+            .ok_or_else(|| DomainError::ValidationError(format!("设备 {equipment_id} 不存在")))?;
+        // 槽位声明了设备类型时必须匹配（与生成期候选集同一校验口径）。
+        if let Some(required_type) = requirement
+            .get("equipment_type_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            if equipment.equipment_type_id.as_deref() != Some(required_type) {
+                return Err(DomainError::BusinessRuleViolation(format!(
+                    "设备 {equipment_id} 的类型与槽位 {slot_code} 要求的设备类型不一致"
+                )));
+            }
+        }
+
+        let now = Utc::now();
+        // 一槽一机、一机一槽：先摘掉该槽旧设备与该设备在本单其它槽上的占用。
+        order.equipment_assignment.retain(|entry| {
+            entry.get("slot_code").and_then(Value::as_str) != Some(slot_code)
+                && entry.get("equipment_id").and_then(Value::as_str) != Some(equipment_id)
+        });
+        order.equipment_assignment.push(json!({
+            "slot_code": slot_code,
+            "equipment_id": equipment.id,
+            "equipment_code": equipment.code,
+            "driver_user_id": Value::Null,
+        }));
+
+        // 仅设备落槽不把工单翻成 Assigned：派工语义以人员/责任方为准（与 reassign 一致）。
+        order.updated_at = Some(now);
+        self.order_tx_repo.save_in_tx(tx, &order).await?;
+        self.order_tx_repo
+            .replace_order_equipment_assignments_in_tx(tx, &order.id, &Self::equipment_ids_of(&order))
+            .await?;
+        self.order_tx_repo
+            .append_log_in_tx(
+                tx,
+                &order.id,
+                "assign_equipment_slot",
+                Some(actor_id),
+                Some(json!({ "slot_code": slot_code, "equipment_id": equipment_id })),
+            )
+            .await?;
+
+        Ok(order_to_response(&order))
+    }
+
+    /// `Equipment.release`：把设备从工单设备槽释放（不删槽，只清设备占用）。
+    /// `slot_code` 为空时摘掉该设备在本单上的全部槽位占用。
+    pub async fn release_equipment_slot_in_tx(
+        &self,
+        tx: &mut Tx,
+        order_id: &str,
+        slot_code: Option<&str>,
+        equipment_id: &str,
+        actor_id: &str,
+    ) -> Result<DispatchOrderResponse, DomainError> {
+        DispatchService::ensure_actor(actor_id)?;
+        let equipment_id = equipment_id.trim();
+        if equipment_id.is_empty() {
+            return Err(DomainError::ValidationError("equipment_id is required".into()));
+        }
+        let slot_code = slot_code.map(str::trim).filter(|value| !value.is_empty());
+
+        let Some(mut order) = self.order_repo.find_by_id(order_id, false, None).await? else {
+            return Err(DomainError::NotFound {
+                entity_type: "DispatchOrder",
+                id: order_id.to_string(),
+            });
+        };
+        self.assert_order_assignable(&order)?;
+
+        let before = order.equipment_assignment.len();
+        order.equipment_assignment.retain(|entry| {
+            let equipment_matches = entry.get("equipment_id").and_then(Value::as_str) == Some(equipment_id);
+            let slot_matches =
+                slot_code.is_none() || entry.get("slot_code").and_then(Value::as_str) == slot_code;
+            !(equipment_matches && slot_matches)
+        });
+        if order.equipment_assignment.len() == before {
+            return Err(DomainError::ValidationError(format!(
+                "设备 {equipment_id} 未指派到工单 {order_id}{}",
+                slot_code.map(|code| format!(" 的槽位 {code}")).unwrap_or_default()
+            )));
+        }
+
+        order.updated_at = Some(Utc::now());
+        self.order_tx_repo.save_in_tx(tx, &order).await?;
+        self.order_tx_repo
+            .replace_order_equipment_assignments_in_tx(tx, &order.id, &Self::equipment_ids_of(&order))
+            .await?;
+        self.order_tx_repo
+            .append_log_in_tx(
+                tx,
+                &order.id,
+                "release_equipment_slot",
+                Some(actor_id),
+                Some(json!({ "slot_code": slot_code, "equipment_id": equipment_id })),
+            )
+            .await?;
+
+        Ok(order_to_response(&order))
+    }
+
+    /// 工单 `equipment_assignment` 快照列里的全部设备 id（去重保序）。
+    fn equipment_ids_of(order: &DispatchOrder) -> Vec<String> {
+        let mut ids = Vec::new();
+        for entry in &order.equipment_assignment {
+            if let Some(id) = entry
+                .get("equipment_id")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                if !ids.iter().any(|existing| existing == id) {
+                    ids.push(id.to_string());
+                }
+            }
+        }
+        ids
     }
 
     /// 已完结（completed/cancelled）的工单不允许改槽。

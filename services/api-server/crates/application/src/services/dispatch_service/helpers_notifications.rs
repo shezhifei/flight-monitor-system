@@ -73,17 +73,6 @@ impl DispatchService {
             }
         }
 
-        if let Some(team_id) = order.team_id.as_deref() {
-            let team_repo = self.resources.team_repo.as_ref();
-            if let Ok(Some(team)) = team_repo.find_by_id(team_id, false).await {
-                if let Some(leader_id) = team.leader_id.as_deref() {
-                    let normalized = leader_id.trim();
-                    if !normalized.is_empty() && normalized != actor_id {
-                        recipient_ids.insert(normalized.to_string());
-                    }
-                }
-            }
-        }
 
         let mut recipients = recipient_ids.into_iter().collect::<Vec<_>>();
         recipients.sort();
@@ -611,37 +600,6 @@ impl DispatchService {
             .flatten()
             .any(|(booked_start, booked_end)| *booked_start < end_time && start_time < *booked_end)
     }
-
-    pub(super) fn resolve_window_assignment_team(members: &[Value]) -> (Option<String>, Option<String>) {
-        let mut counts = HashMap::<String, i64>::new();
-        let mut team_names = HashMap::<String, Option<String>>::new();
-        for member in members {
-            let Some(team_id) = member
-                .get("source_team_id")
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string)
-            else {
-                continue;
-            };
-            *counts.entry(team_id.clone()).or_insert(0) += 1;
-            team_names.entry(team_id.clone()).or_insert_with(|| {
-                member
-                    .get("source_team_name")
-                    .and_then(Value::as_str)
-                    .map(str::to_string)
-            });
-        }
-        counts
-            .into_iter()
-            .max_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)))
-            .map(|(team_id, _)| {
-                let team_name = team_names.remove(&team_id).flatten();
-                (Some(team_id), team_name)
-            })
-            .unwrap_or((None, None))
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -654,12 +612,6 @@ pub(super) fn optimal_order_status(order: &DispatchOrder) -> String {
 
 pub(super) fn optimal_order_has_assignment(order: &DispatchOrder) -> bool {
     order
-        .team_id
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .is_some()
-        || order
             .individual_user_id
             .as_deref()
             .map(str::trim)
@@ -679,14 +631,10 @@ pub(super) fn order_to_response(o: &DispatchOrder) -> DispatchOrderResponse {
         stand_id: o.stand_id.clone(),
         stand_code: o.stand_code.clone(),
         terminal: o.terminal.clone(),
-        assignee_type: format!("{:?}", o.assignee_type).to_lowercase(),
-        team_id: o.team_id.clone(),
-        team_name: o.team_name.clone(),
         department: o.department.clone(),
         individual_user_id: o.individual_user_id.clone(),
         individual_username: o.individual_username.clone(),
         driver_type: o.driver_type.map(|value| value.as_ref().to_string()),
-        driver_team_id: o.driver_team_id.clone(),
         driver_user_id: o.driver_user_id.clone(),
         driver_assignment: None,
         planned_start_time: o.planned_start_time,
@@ -854,9 +802,6 @@ fn overlapping_member_user_ids(left: &DispatchOrder, right: &DispatchOrder) -> V
 pub(super) fn eta_conflict_kinds(current: &DispatchOrder, candidate: &DispatchOrder) -> Vec<String> {
     let mut conflict_kinds = Vec::new();
 
-    if current.team_id.is_some() && current.team_id == candidate.team_id {
-        conflict_kinds.push("team_overlap".to_string());
-    }
     if current.individual_user_id.is_some() && current.individual_user_id == candidate.individual_user_id {
         conflict_kinds.push("individual_overlap".to_string());
     }

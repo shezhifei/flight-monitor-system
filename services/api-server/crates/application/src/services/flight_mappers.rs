@@ -132,11 +132,13 @@ pub fn update_patch_from_dto(dto: FlightUpdate) -> Result<FlightUpdatePatch, Dom
     Ok(FlightUpdatePatch {
         expected_version: dto.expected_version,
         status: dto.status.as_deref().map(parse_status).transpose()?,
-        gate: patch_field_map(dto.gate, GateNumber),
-        terminal: patch_field_identity(dto.terminal),
-        stand: patch_field_map(dto.stand, StandNumber),
+        // PR3：stand/gate/terminal/baggage_carousel 为只读展示列，PATCH DTO 已不含
+        // 这些字段（serde 拒绝）；此处恒为 Unset，仅占用服务回写展示列。
+        gate: PatchField::Unset,
+        terminal: PatchField::Unset,
+        stand: PatchField::Unset,
         position: patch_field_identity(dto.position),
-        baggage_carousel: patch_field_identity(dto.baggage_carousel),
+        baggage_carousel: PatchField::Unset,
         scheduled_departure: patch_field_identity(dto.scheduled_departure),
         scheduled_arrival: patch_field_identity(dto.scheduled_arrival),
         estimated_departure: patch_field_identity(dto.estimated_departure),
@@ -319,20 +321,25 @@ mod tests {
     #[test]
     fn update_patch_from_dto_preserves_clear_semantics() {
         let dto: FlightUpdate = serde_json::from_value(serde_json::json!({
-            "gate": null,
+            "position": null,
             "scheduled_departure": null,
             "registration": null,
             "inbound_leg": null,
-            "terminal": "T2"
+            "flight_remarks": "note"
         }))
         .unwrap();
 
         let patch = update_patch_from_dto(dto).unwrap();
 
-        assert!(matches!(patch.gate, PatchField::Clear));
+        // PR3：stand/gate/terminal/baggage_carousel 为只读展示列，PATCH 恒 Unset
+        assert!(matches!(patch.gate, PatchField::Unset));
+        assert!(matches!(patch.stand, PatchField::Unset));
+        assert!(matches!(patch.terminal, PatchField::Unset));
+        assert!(matches!(patch.baggage_carousel, PatchField::Unset));
+        assert!(matches!(patch.position, PatchField::Clear));
         assert!(matches!(patch.scheduled_departure, PatchField::Clear));
         assert!(matches!(patch.registration, PatchField::Clear));
         assert!(matches!(patch.inbound_leg, PatchField::Clear));
-        assert!(matches!(patch.terminal, PatchField::Set(ref value) if value == "T2"));
+        assert!(matches!(patch.flight_remarks, PatchField::Set(ref value) if value == "note"));
     }
 }

@@ -9,6 +9,7 @@ import UiSearch from '../../../components/ui/UiSearch.vue';
 import UiSegment from '../../../components/ui/UiSegment.vue';
 import UiSelect from '../../../components/ui/UiSelect.vue';
 import UiToolbar from '../../../components/ui/UiToolbar.vue';
+import OccupySeatButton from '../../../components/ops/OccupySeatButton.vue';
 import type { FlightViewMode } from '../../../components/flight-monitor/helpers';
 import { SEARCH_FIELD_OPTIONS } from '../../../components/flight-monitor/helpers';
 import type { BusinessFilters, SearchFields } from '../../../composables/useFlightData';
@@ -107,6 +108,7 @@ function setCommercialSignedFilter(value: string): void {
       <template #meta>
         <UiPill id="connectionStatusPill" :tone="connectionTone">{{ connectionStatusText }}</UiPill>
         <div id="lastUpdated" class="fm-last-updated">{{ lastUpdatedLabel }}</div>
+        <OccupySeatButton />
         <UiButton
           id="refreshBtn"
           variant="quiet"

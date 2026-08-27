@@ -110,18 +110,9 @@ impl ResourceAvailabilityService {
                 DispatchLockLevel::Optimizable,
             ));
         }
-        if let Some(value) = terminal {
-            if team.terminal.as_deref().is_some_and(|item| item != value) {
-                return Ok(unavailable(
-                    "team",
-                    &resource_id,
-                    ScheduleSource::CurrentStatusFallback,
-                    "班组不在目标航站楼值守",
-                    HashMap::new(),
-                    DispatchLockLevel::Optimizable,
-                ));
-            }
-        }
+        // PR2：班组无常驻楼字段（teams.terminal 已废弃停写），不再按常驻楼判不可用；
+        // terminal 参数仅保留给排班/占用维度使用。
+        let _ = terminal;
 
         let instances = self
             .shift_instance_repo
@@ -226,17 +217,8 @@ impl ResourceAvailabilityService {
             }
         }
 
-        let overlaps = self
-            .order_repo
-            .find_overlapping_orders(
-                planned_start_time,
-                planned_end_time,
-                Some(&resource_id),
-                None,
-                None,
-                exclude_order_id,
-            )
-            .await?;
+        // 班组不再承担工单指派：班组可用性只看在岗/请休/休息，不再查工单重叠
+        let overlaps: Vec<fms_domain::models::dispatch::DispatchOrder> = Vec::new();
         if !overlaps.is_empty() {
             let mut overlap_meta = HashMap::new();
             overlap_meta.insert(
@@ -290,14 +272,7 @@ impl ResourceAvailabilityService {
             "fallback_penalty".to_string(),
             if has_shift_instance { 0.0 } else { -8.0 },
         );
-        score_breakdown.insert(
-            "terminal_match".to_string(),
-            if terminal.is_some() && team.terminal.as_deref() == terminal {
-                10.0
-            } else {
-                0.0
-            },
-        );
+        // PR2：terminal_match 计分随 teams.terminal 废弃一并移除。
         score_breakdown.insert(
             "member_ready".to_string(),
             if member_ids.is_empty() { 6.0 } else { 12.0 },
@@ -345,18 +320,8 @@ impl ResourceAvailabilityService {
                 DispatchLockLevel::Optimizable,
             ));
         }
-        if let Some(value) = terminal {
-            if equipment.terminal.as_deref().is_some_and(|item| item != value) {
-                return Ok(unavailable(
-                    "equipment",
-                    &resource_id,
-                    ScheduleSource::CurrentStatusFallback,
-                    "设备不在目标航站楼",
-                    HashMap::new(),
-                    DispatchLockLevel::Optimizable,
-                ));
-            }
-        }
+        // PR2：设备无常驻楼字段（equipment.terminal 已废弃停写），不再按常驻楼判不可用。
+        let _ = terminal;
 
         let equipment_ids = vec![resource_id.clone()];
         let downtimes = self
@@ -522,7 +487,6 @@ impl ResourceAvailabilityService {
             .find_overlapping_orders(
                 planned_start_time,
                 planned_end_time,
-                None,
                 Some(&resource_id),
                 None,
                 exclude_order_id,
@@ -645,6 +609,8 @@ impl ResourceAvailabilityService {
         user_id: &str,
         terminal: Option<&str>,
     ) -> Result<Option<Team>, DomainError> {
+        // PR2：班组无常驻楼字段，terminal 不再参与班组回退筛选。
+        let _ = terminal;
         let memberships = self.team_member_repo.find_by_user(user_id).await?;
         for membership in memberships {
             let Some(team) = self.team_repo.find_by_id(&membership.team_id, false).await? else {
@@ -652,11 +618,6 @@ impl ResourceAvailabilityService {
             };
             if !team.is_active {
                 continue;
-            }
-            if let Some(value) = terminal {
-                if team.terminal.as_deref().is_some_and(|item| item != value) {
-                    continue;
-                }
             }
             if team.current_status == TeamStatus::OnDuty {
                 return Ok(Some(team));

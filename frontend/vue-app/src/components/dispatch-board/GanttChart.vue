@@ -399,8 +399,14 @@ function renderTooltip(item: DispatchOrder | null | undefined): string {
     parts.push('<div>冲突治理：当前关注任务</div>');
   }
 
-  if (item.team_name || item.individual_username) {
-    parts.push(`<div>执行：${escapeHtml(item.individual_username || item.team_name || '-')}</div>`);
+  const executor = String(item.individual_username || item.focus_user_name || '').trim()
+    || (Array.isArray(item.member_names) ? item.member_names.filter(Boolean).join(' / ') : '');
+  const rosterTeam = String(item.team_name || '').trim();
+  if (executor) {
+    parts.push(`<div>执行：${escapeHtml(executor)}</div>`);
+  }
+  if (rosterTeam) {
+    parts.push(`<div>归属班组：${escapeHtml(rosterTeam)}</div>`);
   }
 
   if (Array.isArray(item.equipment_codes) && item.equipment_codes.length > 0) {

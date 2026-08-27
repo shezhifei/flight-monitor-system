@@ -361,10 +361,7 @@ impl DispatchFrontendReplanService {
         self.apply_assignment_to_order(&mut order, &normalized_assignment);
         if context.snapshot_order.order_class == "unassigned"
             && matches!(order.status, DispatchOrderStatus::Pending)
-            && matches!(
-                normalized_assignment.assignee_type.as_deref(),
-                Some("team") | Some("individual")
-            )
+            && has_primary_assignment(&normalized_assignment)
         {
             order.status = DispatchOrderStatus::Assigned;
         }
@@ -795,14 +792,10 @@ mod tests {
             stand_id: None,
             stand_code: None,
             terminal: None,
-            assignee_type: AssigneeType::Team,
-            team_id: None,
-            team_name: None,
             department: None,
             individual_user_id: None,
             individual_username: None,
             driver_type: None,
-            driver_team_id: None,
             driver_user_id: None,
             planned_start_time: Some(expected_end - Duration::minutes(30)),
             planned_end_time: Some(expected_end),

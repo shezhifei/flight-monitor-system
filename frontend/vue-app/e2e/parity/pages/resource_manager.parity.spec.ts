@@ -72,7 +72,6 @@ const EQUIPMENT_TYPES = {
       code: 'TUG',
       category: 'vehicle',
       requires_driver: true,
-      driver_team_type_id: 'team-type-driver',
       icon: 'tractor',
       description: '航空器牵引设备',
       is_active: true,

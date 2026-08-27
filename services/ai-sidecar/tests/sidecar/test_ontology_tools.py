@@ -96,8 +96,7 @@ async def test_propose_unregistered_action_fails_closed() -> None:
 
 @pytest.mark.asyncio
 async def test_propose_deprecated_change_stand_fails_closed() -> None:
-    # Flight.change_stand 已废止（PR #本体两层改造）并移出 CONTROLLED_WRITE_ACTIONS。
-    # 受控写名单现在是占用三对象 → 该动作 propose 直接 UnregisteredActionError，不进 simulate、不落提案。
+    # 信封是唯一允许名单：已废止动作不在 envelope.allowed_actions 内 → Unregistered。
     client = RecordingClient()
     tools = OntologyTools(client=client)
     with pytest.raises(UnregisteredActionError):
@@ -105,30 +104,25 @@ async def test_propose_deprecated_change_stand_fails_closed() -> None:
             run_id="run_1",
             action_name="Flight.change_stand",
             parameters={"flight_id": "F1", "new_stand_id": "A12"},
-            allowed_actions=["Flight.change_stand"],
+            allowed_actions=["StandOccupation.allocate"],
         )
     assert client.read_calls == []
     assert client.advisory_calls == []
 
 
 @pytest.mark.asyncio
-async def test_propose_advisory_action_calls_client() -> None:
-    client = RecordingClient(advisory_result={"suggestions": [{"stand_id": "B2"}]})
+async def test_propose_action_in_envelope_is_proposal_only() -> None:
+    client = RecordingClient()
     tools = OntologyTools(client=client)
     result = await tools.propose_action(
         run_id="run_1",
-        action_name="flight.suggest_stand_adjustment",
-        parameters={"flight_id": "F1"},
-        allowed_actions=["flight.suggest_stand_adjustment"],
+        action_name="DispatchOrder.assign_slot",
+        parameters={"dispatch_order_id": "DO1", "slot_code": "lead"},
+        allowed_actions=["DispatchOrder.assign_slot"],
     )
-    assert result == {"suggestions": [{"stand_id": "B2"}]}
-    assert client.advisory_calls == [
-        {
-            "run_id": "run_1",
-            "action_name": "flight.suggest_stand_adjustment",
-            "arguments": {"flight_id": "F1"},
-        }
-    ]
+    assert result["execution_mode"] == "proposal_only"
+    assert result["action_name"] == "DispatchOrder.assign_slot"
+    assert client.advisory_calls == []
 
 
 @pytest.mark.asyncio
