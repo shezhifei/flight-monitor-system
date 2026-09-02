@@ -7,6 +7,7 @@ import {
 } from '../../../composables/useFlightCrud';
 import {
   normalizeFlightId,
+  resolveDirectionalFlightId,
   type Flight,
   type UseFlightDataReturn,
 } from '../../../composables/useFlightData';
@@ -345,16 +346,31 @@ export function useFlightBatchEdit(options: UseFlightBatchEditOptions): UseFligh
       return;
     }
 
-    const targets = flightIds.map((flightId) => {
+    // batch-cells 的写入目标是方向航班，不是监控行 row_id（拆表后过站行的
+    // row_id = 链 id = 已软删聚合行，后端拒绝写）。选中集合里携带的是 row_id，
+    // 这里按字段方向解析成 inbound_flight_id / outbound_flight_id。
+    const targets: Array<{ flight_id: string; expected_version: number | null; expected_value: unknown }> = [];
+    const unresolvedRows: string[] = [];
+    for (const flightId of flightIds) {
       const flight = flightData.findFlightById(flightId);
-      const expectedVersion = readFlightVersion(flight);
-      const currentValue = readFlightFieldValue(flight, field);
-      return {
-        flight_id: flightId,
-        expected_version: expectedVersion,
-        expected_value: currentValue,
-      };
-    });
+      const targetFlightId = flight ? resolveDirectionalFlightId(flight, field) : null;
+      if (!targetFlightId) {
+        unresolvedRows.push(flightId);
+        continue;
+      }
+      targets.push({
+        flight_id: targetFlightId,
+        expected_version: readFlightVersion(flight),
+        expected_value: readFlightFieldValue(flight, field),
+      });
+    }
+    if (unresolvedRows.length) {
+      const message = `有 ${unresolvedRows.length} 行无法解析该字段所属方向的航班，已取消本次批量提交`;
+      modalState.value.error = message;
+      toast.showToast('warning', message, { duration: 5000 });
+      announce(`批量更新失败：${message}`);
+      return;
+    }
 
     modalState.value.saving = true;
     modalState.value.error = null;
@@ -494,16 +510,21 @@ export function useFlightBatchEdit(options: UseFlightBatchEditOptions): UseFligh
           throw new Error('时间线撤销未配置');
         }
       } else {
-        // Snapshot datetime: clear via batch API N=1.
+        // Snapshot datetime: clear via batch API N=1. Target the directional
+        // flight, not the monitor row_id.
+        const revokeFlight = flightData.findFlightById(flightId);
+        const revokeTargetId = revokeFlight
+          ? resolveDirectionalFlightId(revokeFlight, field) ?? flightId
+          : flightId;
         await patchFlightBatchCells(
           {
             field,
             value: null,
             client_action_id: createClientActionId(),
             targets: [{
-              flight_id: flightId,
-              expected_version: readFlightVersion(flightData.findFlightById(flightId)),
-              expected_value: readFlightFieldValue(flightData.findFlightById(flightId), field),
+              flight_id: revokeTargetId,
+              expected_version: readFlightVersion(revokeFlight),
+              expected_value: readFlightFieldValue(revokeFlight, field),
             }],
           },
           {

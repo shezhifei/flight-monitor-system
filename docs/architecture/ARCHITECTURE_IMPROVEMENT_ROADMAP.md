@@ -4,7 +4,7 @@
 |------|-----|
 | 状态 | Active |
 | 编制日期 | 2026-07-11 |
-| 文档基线 | 2026-08-11（与产品文档同步；历史 Wave 记录保留） |
+| 文档基线 | 2026-08-28（与产品文档同步；历史 Wave 记录保留） |
 | 基线评分 | **8.1 / 10**（模块化单体 + AI 侧车，存量债可控） |
 | 目标评分 | **≈ 9.0 / 10**（边界清晰、可重建、安全默认 fail-closed、AI 不旁路域写） |
 | 事实源对齐 | `docs/SOURCE_OF_TRUTH.md`、`docs/architecture/*`、`services/api-server/`、`services/ai-sidecar/` |

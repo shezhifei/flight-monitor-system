@@ -2,20 +2,22 @@
 
 ## 核心运行状态
 
-- 航班身份、资源位、时间状态、航段、版本号
+- 方向航班身份（`flight_id` + `direction` inbound|outbound，禁止 both）
+- 资源展示列（占用回写）、时间状态、版本号
 - 状态变迁对象与聚合未提交变更
 - 仓储原子保存、变更记录、`domain_event_outbox`
+- 同 UoW 写入 `flight_monitor_rows`（热列表投影，不是第二种 Flight）
 
 这些职责必须保持在 `domain -> application write model -> infrastructure repository` 主链内。
 
 ## 视图派生信息
 
-- 航班详情缓存载荷
-- 航班列表载荷
+- 航班详情缓存载荷（一班 Flight）
+- 航班列表载荷（宽表 DTO；进出港已是列，不是查询时拼出来的）
 - protobuf / json 输出形状
 - SSE / WebSocket 广播消息体
 
-这些职责属于 projection / realtime adapter，不属于核心状态真相源。
+这些职责属于 projection / realtime adapter，不属于核心状态真相源。`flight_monitor_rows` 是落库读模型，但仍由航班/链/占用写路径投影，不得反向定义 `Flight`。
 
 ## 外围上下文附属信息
 
@@ -48,4 +50,5 @@
 - 写后副作用已通过 `FlightWritePersistencePlan` 和 `FlightWriteSideEffectRequest` 明确化。
 - 仓储读模型反序列化不再依赖应用层 mapper。
 - 监控实时/告警输出已通过 port + adapter 连接，而不是基础设施直接引用应用交付模块。
+- 热列表切到 `flight_monitor_rows`；领域 `Flight` 是一班一方向。兼容 `inbound_leg` / `outbound_leg` 载荷仍可出现在方向航班 DTO 上，但不得再表示「一个聚合里两班」。
 

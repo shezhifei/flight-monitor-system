@@ -111,6 +111,10 @@ pub struct FlightRiskAssessment {
 pub struct FlightCreate {
     pub flight_id: Option<String>,
     pub flight_number: Option<String>,
+    /// Canonical direction of this single Flight. When omitted it is inferred
+    /// from the sole leg; specifying both legs is rejected.
+    #[serde(default)]
+    pub direction: Option<String>,
     pub airline_code: Option<String>,
     pub registration: Option<String>,
     pub aircraft_type_detail: Option<String>,
@@ -362,6 +366,23 @@ mod tests {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FlightResponse {
     pub flight_id: Option<String>,
+    /// 监控行稳定键（flight_monitor_rows.row_id）。写入后永不因建链/拆链而改。
+    /// 前端列表选中键用它，不用 `flight_id`（过站行的 flight_id 在拆表后指向
+    /// 进港/出港方向航班，会在建链/拆链时漂移）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_id: Option<String>,
+    /// 同机周转链 id（turnaround_links.id），仅过站行有。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link_id: Option<String>,
+    /// 行类型：turnaround | single。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// 进港方向航班 id（详情/PATCH 进港侧单元格用）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound_flight_id: Option<String>,
+    /// 出港方向航班 id（详情/PATCH 出港侧单元格用）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outbound_flight_id: Option<String>,
     pub flight_number: Option<String>,
     pub airline_code: Option<String>,
     pub registration: Option<String>,

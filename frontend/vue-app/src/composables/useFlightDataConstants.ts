@@ -46,6 +46,26 @@ export const DISPATCH_TIMELINE_FIELD_META = {
 
 export const DISPATCH_TIMELINE_FIELDS = new Set<string>(Object.keys(DISPATCH_TIMELINE_FIELD_META));
 
+/**
+ * 快照字段（非时间线）的方向归属：该字段属于进港还是出港方向航班。
+ * 拆表后过站行 = 链 id + 两班方向航班；单元格 PATCH 必须打在对应方向航班上，
+ * 不能用 row_id（过站行的 row_id = 链 id = 已软删聚合行，后端会拒绝写）。
+ * 时间线字段的方向见 DISPATCH_TIMELINE_FIELD_META.leg_type。
+ * 未列出的行级字段（备注等）按「进港优先」解析，见 resolveDirectionalFlightId。
+ */
+export const FLIGHT_FIELD_DIRECTION = {
+  scheduled_departure: 'outbound',
+  estimated_departure: 'outbound',
+  actual_departure: 'outbound',
+  codt: 'outbound',
+  cobt_time: 'outbound',
+  scheduled_arrival: 'inbound',
+  estimated_arrival: 'inbound',
+  actual_arrival: 'inbound',
+} as const satisfies Record<string, 'inbound' | 'outbound'>;
+
+export type FlightFieldDirection = 'inbound' | 'outbound';
+
 export const TIME_FIELDS = [
   'scheduled_departure',
   'scheduled_arrival',

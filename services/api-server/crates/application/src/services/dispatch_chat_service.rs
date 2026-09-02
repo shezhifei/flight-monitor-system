@@ -1566,8 +1566,8 @@ fn resolve_archive_anchor(
 
 fn resolve_archive_at(flight: &Flight) -> Option<DateTime<Utc>> {
     resolve_archive_anchor(
-        flight.inbound_leg.is_some(),
-        flight.outbound_leg.is_some(),
+        flight.is_arrival_flight(),
+        flight.is_departure_flight(),
         flight.actual_departure,
         flight.actual_arrival,
     )
@@ -1575,15 +1575,10 @@ fn resolve_archive_at(flight: &Flight) -> Option<DateTime<Utc>> {
 }
 
 fn build_group_name(flight_id: &str, flight: Option<&Flight>) -> String {
-    let outbound = flight
-        .and_then(|value| value.outbound_leg.as_ref())
-        .map(|leg| normalize(&leg.flight_no))
+    let flight_no = flight
+        .and_then(|value| value.get_flight_numbers().into_iter().next())
+        .map(|value| normalize(&value))
         .filter(|value| !value.is_empty());
-    let inbound = flight
-        .and_then(|value| value.inbound_leg.as_ref())
-        .map(|leg| normalize(&leg.flight_no))
-        .filter(|value| !value.is_empty());
-    let flight_no = outbound.or(inbound);
     match flight_no {
         Some(flight_no) => format!("{} 保障协同群", flight_no),
         None => format!("航班 {} 保障协同群", flight_id),
@@ -1596,15 +1591,9 @@ fn build_group_metadata(
     active_orders: &[&DispatchOrder],
     related_departments: &[String],
 ) -> serde_json::Value {
+    let numbers = flight.map(Flight::get_flight_numbers).unwrap_or_default();
     json!({
-        "outbound_leg": flight
-            .and_then(|value| value.outbound_leg.as_ref())
-            .map(|leg| json!({ "flight_no": leg.flight_no }))
-            .unwrap_or(serde_json::Value::Null),
-        "inbound_leg": flight
-            .and_then(|value| value.inbound_leg.as_ref())
-            .map(|leg| json!({ "flight_no": leg.flight_no }))
-            .unwrap_or(serde_json::Value::Null),
+        "flight_numbers": numbers,
         "related_departments": related_departments,
         "active_dispatch_order_ids": active_orders.iter().map(|order| order.id.clone()).collect::<Vec<_>>(),
         "related_dispatch_order_ids": related_orders.iter().map(|order| order.id.clone()).collect::<Vec<_>>(),
@@ -1748,15 +1737,15 @@ fn is_dispatch_order_chat_relevant(dispatch_order: &DispatchOrder) -> bool {
 }
 
 fn is_arrival_flight(flight: Option<&Flight>) -> bool {
-    matches!(flight, Some(flight) if flight.inbound_leg.is_some() && flight.outbound_leg.is_none())
+    matches!(flight, Some(flight) if flight.is_arrival_flight() && !flight.is_departure_flight())
 }
 
 fn is_departure_flight(flight: Option<&Flight>) -> bool {
-    matches!(flight, Some(flight) if flight.outbound_leg.is_some() && flight.inbound_leg.is_none())
+    matches!(flight, Some(flight) if flight.is_departure_flight() && !flight.is_arrival_flight())
 }
 
 fn is_transit_flight(flight: Option<&Flight>) -> bool {
-    matches!(flight, Some(flight) if flight.outbound_leg.is_some() && flight.inbound_leg.is_some())
+    matches!(flight, Some(flight) if flight.is_turnaround_flight())
 }
 
 fn build_deprecation_message(reason: &str) -> String {

@@ -16,6 +16,7 @@ use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransact
 use fms_domain::ports::flight_repository::{
     FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
 };
+use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowTransactionalRepository;
 use fms_domain::ports::ontology_repository::{
     CarouselCreateOutcome, GateCreateOutcome, OntologyTransactionalRepository, StandCreateOutcome,
     TurnaroundLinkRepository,
@@ -32,6 +33,19 @@ use super::error::OntologyError;
 /// 具体实现由装配点的 [`OntologyWriter`] 给出。
 #[async_trait::async_trait]
 pub trait OntologyTransactions: Send + Sync {
+    /// Create a turnaround link and merge its monitor rows atomically. The
+    /// inbound row_id is retained; the outbound single-sided row is retired.
+    async fn create_turnaround_link_tx(
+        &self,
+        link: &TurnaroundLink,
+    ) -> Result<(), OntologyError>;
+
+    /// Break a turnaround link and split its monitor rows atomically.
+    async fn break_turnaround_link_tx(
+        &self,
+        link: &TurnaroundLink,
+    ) -> Result<(), OntologyError>;
+
     /// §7 ReassignAircraft：同事务内写机号、确保 Aircraft、维护周转链接健康、过期旧建议。
     async fn reassign_aircraft(
         &self,
@@ -153,6 +167,7 @@ pub struct OntologyWriter<U: UnitOfWork> {
     flight_tx: Arc<dyn FlightTransactionalRepository<U::Tx> + Send + Sync>,
     outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<U::Tx> + Send + Sync>,
     uow: Arc<U>,
+    monitor_row_tx: Option<Arc<dyn FlightMonitorRowTransactionalRepository<U::Tx> + Send + Sync>>,
 }
 
 impl<U: UnitOfWork> OntologyWriter<U> {
@@ -172,7 +187,16 @@ impl<U: UnitOfWork> OntologyWriter<U> {
             flight_tx,
             outbox_repo,
             uow,
+            monitor_row_tx: None,
         }
+    }
+
+    pub fn with_monitor_row_repository(
+        mut self,
+        repo: Arc<dyn FlightMonitorRowTransactionalRepository<U::Tx> + Send + Sync>,
+    ) -> Self {
+        self.monitor_row_tx = Some(repo);
+        self
     }
 
     /// 在事务内把 Flight 计划机位/登机口/楼与正式资源对齐（含 outbox 事件）。
@@ -206,11 +230,17 @@ impl<U: UnitOfWork> OntologyWriter<U> {
         if !patch.has_any_changes() {
             return Ok(());
         }
-        let _ = self
+        let updated = self
             .flight_tx
             .update_partial_in_tx(tx, flight_id, &patch)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
+        if let Some(monitor) = &self.monitor_row_tx {
+            let row = crate::services::flight_monitor_row_service::FlightMonitorRowService::<
+                dyn fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository + Send + Sync,
+            >::project_from_flight(&updated);
+            monitor.upsert_in_tx(tx, &row).await.map_err(OntologyError::from)?;
+        }
         write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, flight_id, &patch, Some(actor_id)).await?;
         Ok(())
     }
@@ -244,11 +274,17 @@ impl<U: UnitOfWork> OntologyWriter<U> {
         if !patch.has_any_changes() {
             return Ok(());
         }
-        let _ = self
+        let updated = self
             .flight_tx
             .update_partial_in_tx(tx, flight_id, &patch)
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("flight {flight_id}")))?;
+        if let Some(monitor) = &self.monitor_row_tx {
+            let row = crate::services::flight_monitor_row_service::FlightMonitorRowService::<
+                dyn fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository + Send + Sync,
+            >::project_from_flight(&updated);
+            monitor.upsert_in_tx(tx, &row).await.map_err(OntologyError::from)?;
+        }
         write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, flight_id, &patch, Some(actor_id)).await?;
         Ok(())
     }
@@ -256,6 +292,30 @@ impl<U: UnitOfWork> OntologyWriter<U> {
 
 #[async_trait::async_trait]
 impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
+    async fn create_turnaround_link_tx(&self, link: &TurnaroundLink) -> Result<(), OntologyError> {
+        let mut tx = self.uow.begin().await.map_err(|e| OntologyError::internal(e.to_string()))?;
+        self.ontology_tx.create_link_in_tx(&mut tx, link).await?;
+        if let Some(monitor) = &self.monitor_row_tx {
+            monitor
+                .merge_turnaround_in_tx(&mut tx, &link.id, &link.inbound_flight_id.0, &link.outbound_flight_id.0)
+                .await
+                .map_err(OntologyError::from)?;
+        }
+        self.uow.commit(tx).await.map_err(|e| OntologyError::internal(e.to_string()))
+    }
+
+    async fn break_turnaround_link_tx(&self, link: &TurnaroundLink) -> Result<(), OntologyError> {
+        let mut tx = self.uow.begin().await.map_err(|e| OntologyError::internal(e.to_string()))?;
+        self.ontology_tx.update_link_in_tx(&mut tx, link).await?;
+        if let Some(monitor) = &self.monitor_row_tx {
+            monitor
+                .break_turnaround_in_tx(&mut tx, &link.id, &link.inbound_flight_id.0, &link.outbound_flight_id.0)
+                .await
+                .map_err(OntologyError::from)?;
+        }
+        self.uow.commit(tx).await.map_err(|e| OntologyError::internal(e.to_string()))
+    }
+
     async fn reassign_aircraft(
         &self,
         request: ReassignAircraftRequest,
@@ -358,7 +418,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             }
 
             // 4) 出港侧尝试自动建链（同机 + 时间窗候选）
-            if updated.outbound_leg.is_some() {
+            if updated.is_departure_flight() {
                 let candidates = self
                     .link_repo
                     .find_candidates_for_outbound(new_registration, flight_id, updated.scheduled_departure, 360)

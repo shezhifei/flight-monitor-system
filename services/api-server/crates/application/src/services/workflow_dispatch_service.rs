@@ -397,6 +397,7 @@ impl<
             supervisor_notified: false,
             supervisor_notified_at: None,
             assignment_deadline: Some(assignment_deadline),
+            attributes: serde_json::json!({}),
             completed_by: None,
             completion_notes: None,
             gate: None,

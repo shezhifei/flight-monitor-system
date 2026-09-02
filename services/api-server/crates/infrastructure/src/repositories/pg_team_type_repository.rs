@@ -5,7 +5,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::TeamType;
-use fms_domain::ports::dispatch_repository::TeamTypeRepository;
+use fms_domain::ports::dispatch_repository::{TeamTypeRepository, TeamTypeTransactionalRepository};
 
 pub struct PgTeamTypeRepository {
     pool: PgPool,
@@ -42,60 +42,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
             .begin()
             .await
             .map_err(|err| DomainError::Internal(err.to_string()))?;
-
-        sqlx::query(
-            r#"
-            INSERT INTO team_types (
-                id, department_id, name, code, description, color, is_driver_type, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (id) DO UPDATE SET
-                department_id = EXCLUDED.department_id,
-                name = EXCLUDED.name,
-                code = EXCLUDED.code,
-                description = EXCLUDED.description,
-                color = EXCLUDED.color,
-                is_driver_type = EXCLUDED.is_driver_type,
-                is_active = EXCLUDED.is_active,
-                deleted_at = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            "#,
-        )
-        .bind(&team_type.id)
-        .bind(&team_type.department_id)
-        .bind(&team_type.name)
-        .bind(&team_type.code)
-        .bind(&team_type.description)
-        .bind(&team_type.color)
-        .bind(team_type.is_driver_type)
-        .bind(team_type.is_active)
-        .execute(&mut *tx)
-        .await
-        .map_err(|err| DomainError::Internal(err.to_string()))?;
-
-        sqlx::query("UPDATE team_type_steps SET deleted_at = NOW() WHERE team_type_id = $1 AND deleted_at IS NULL")
-            .bind(&team_type.id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|err| DomainError::Internal(err.to_string()))?;
-
-        if !team_type.task_types.is_empty() {
-            let mut query_builder =
-                QueryBuilder::<Postgres>::new("INSERT INTO team_type_steps (team_type_id, task_type, priority) ");
-            query_builder.push_values(&team_type.task_types, |mut b, task_type| {
-                let priority = team_type.task_types.len() as i32;
-                b.push_bind(&team_type.id).push_bind(task_type).push_bind(priority);
-            });
-            query_builder.push(
-                " ON CONFLICT (team_type_id, task_type) DO UPDATE SET \
-                 priority = EXCLUDED.priority, deleted_at = NULL",
-            );
-            query_builder
-                .build()
-                .execute(&mut *tx)
-                .await
-                .map_err(|err| DomainError::Internal(err.to_string()))?;
-        }
-
+        persist_team_type_in_tx(&mut tx, team_type).await?;
         tx.commit()
             .await
             .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -108,7 +55,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<TeamType>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active
+            SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active, attributes
             FROM team_types
             WHERE id = $1 AND deleted_at IS NULL
             "#,
@@ -129,7 +76,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
 
     async fn find_all(&self, include_inactive: bool, limit: i64, offset: i64) -> Result<Vec<TeamType>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active FROM team_types WHERE deleted_at IS NULL",
+            "SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active, attributes FROM team_types WHERE deleted_at IS NULL",
         );
         if !include_inactive {
             builder.push(" AND is_active = TRUE");
@@ -184,7 +131,7 @@ impl TeamTypeRepository for PgTeamTypeRepository {
         let rows = sqlx::query(
             r#"
             SELECT tt.id, tt.department_id, tt.name, tt.code, tt.description,
-                   tt.color, tt.is_driver_type, tt.created_at, tt.updated_at, tt.is_active
+                   tt.color, tt.is_driver_type, tt.created_at, tt.updated_at, tt.is_active, tt.attributes
             FROM team_types tt
             INNER JOIN team_type_steps tts ON tts.team_type_id = tt.id
             WHERE tts.task_type = $1 AND tts.deleted_at IS NULL AND tt.deleted_at IS NULL AND tt.is_active = TRUE
@@ -264,5 +211,93 @@ fn row_to_team_type(row: &sqlx::postgres::PgRow, task_types: Vec<String>) -> Tea
         updated_at: row.get("updated_at"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
         task_types,
+        attributes: row.get("attributes"),
+    }
+}
+
+/// 事务内保存：upsert 主行 + 重建 team_type_steps，不自行 commit。
+/// 调用方（attribute writer）负责在同一 UnitOfWork 里追加 reference index 写入。
+async fn persist_team_type_in_tx(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    team_type: &TeamType,
+) -> Result<(), DomainError> {
+    sqlx::query(
+        r#"
+        INSERT INTO team_types (
+            id, department_id, name, code, description, color, is_driver_type, is_active, attributes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET
+            department_id = EXCLUDED.department_id,
+            name = EXCLUDED.name,
+            code = EXCLUDED.code,
+            description = EXCLUDED.description,
+            color = EXCLUDED.color,
+            is_driver_type = EXCLUDED.is_driver_type,
+            is_active = EXCLUDED.is_active,
+            attributes = EXCLUDED.attributes,
+            deleted_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        "#,
+    )
+    .bind(&team_type.id)
+    .bind(&team_type.department_id)
+    .bind(&team_type.name)
+    .bind(&team_type.code)
+    .bind(&team_type.description)
+    .bind(&team_type.color)
+    .bind(team_type.is_driver_type)
+    .bind(team_type.is_active)
+    .bind(&team_type.attributes)
+    .execute(&mut **tx)
+    .await
+    .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+    sqlx::query("UPDATE team_type_steps SET deleted_at = NOW() WHERE team_type_id = $1 AND deleted_at IS NULL")
+        .bind(&team_type.id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+    if !team_type.task_types.is_empty() {
+        let mut query_builder =
+            QueryBuilder::<Postgres>::new("INSERT INTO team_type_steps (team_type_id, task_type, priority) ");
+        query_builder.push_values(&team_type.task_types, |mut b, task_type| {
+            let priority = team_type.task_types.len() as i32;
+            b.push_bind(&team_type.id).push_bind(task_type).push_bind(priority);
+        });
+        query_builder.push(
+            " ON CONFLICT (team_type_id, task_type) DO UPDATE SET \
+             priority = EXCLUDED.priority, deleted_at = NULL",
+        );
+        query_builder
+            .build()
+            .execute(&mut **tx)
+            .await
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+    }
+    Ok(())
+}
+
+#[async_trait]
+impl<'tx> TeamTypeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgTeamTypeRepository {
+    async fn save_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        team_type: &TeamType,
+    ) -> Result<TeamType, DomainError> {
+        persist_team_type_in_tx(tx, team_type).await?;
+        let row = sqlx::query(
+            r#"
+            SELECT id, department_id, name, code, description, color, is_driver_type, created_at, updated_at, is_active, attributes
+            FROM team_types
+            WHERE id = $1 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(&team_type.id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?
+        .ok_or_else(|| DomainError::Internal("team type save returned no row".into()))?;
+        Ok(row_to_team_type(&row, team_type.task_types.clone()))
     }
 }

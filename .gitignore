@@ -200,6 +200,7 @@ docs/operations/*
 !docs/operations/frontend-parity-audit.md
 !docs/operations/dispatch-overrun-warning.md
 !docs/operations/ontology-v1-agent-handoff.md
+!docs/operations/HOST_PERF.md
 
 # Plans: keep only the long-lived architecture / debt plans
 docs/plans/*

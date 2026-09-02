@@ -1,6 +1,6 @@
 # 文档维护流程
 
-文档基线：**2026-08-11**。代码变了就按这页同步文档。事实来源表见 `docs/SOURCE_OF_TRUTH.md`。
+文档基线：**2026-08-28**。代码变了就按这页同步文档。事实来源表见 `docs/SOURCE_OF_TRUTH.md`。
 
 ## 1. 什么时候要改文档
 
@@ -25,6 +25,7 @@
 | 变更类型 | 必改 | 常改 |
 |---|---|---|
 | 启动 / compose / host 脚本 | `README.md`, `QUICK_START.md`, `docs/DEPLOYMENT.md`, `docs/SOURCE_OF_TRUTH.md` | `docs/SYSTEM_MANUAL.md` |
+| 宿主机压测 / PG 超参 | `docs/operations/HOST_PERF.md`, `docs/SOURCE_OF_TRUTH.md` | `docs/DEPLOYMENT.md`, `docs/operations/RUST_PERFORMANCE_TUNING.md` |
 | API 路由 / 权限 | `docs/API_ROUTE_SNAPSHOT.md` | `README.md`, `docs/SYSTEM_MANUAL.md` |
 | Vault / 密钥 | `docs/DEPLOYMENT.md`, `docs/SOURCE_OF_TRUTH.md` | `QUICK_START.md` |
 | 迁移 / schema | `README.md`, `QUICK_START.md`, `docs/DEPLOYMENT.md` | `docs/SYSTEM_MANUAL.md` |

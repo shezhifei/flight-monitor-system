@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
+import type { FieldOverlay, FieldReferenceEntry } from '@/composables/useFieldOverlays';
 import type { DepartmentResponse, TaskTypeResponse } from './dispatchRuleWorkbenchApi';
 import type { ManualOrderDraft } from './useDispatchRuleWorkbench';
 
@@ -12,6 +14,9 @@ const props = defineProps<{
   saving: boolean;
   disabled: boolean;
   lastCreatedOrderId?: string | null;
+  fieldOverlays?: FieldOverlay[];
+  fieldCatalogEntries?: Record<string, Array<{ code: string; name: string }>>;
+  fieldReferenceEntries?: Record<string, FieldReferenceEntry[]>;
 }>();
 
 const emit = defineEmits<{
@@ -88,6 +93,7 @@ const payloadPreview = computed(() => {
     leg_scope: draft.leg_scope,
     manual_lock: draft.manual_lock,
     remarks: draft.remarks || null,
+    attributes: draft.attributes,
   };
 });
 
@@ -180,6 +186,14 @@ function onSubmit(): void {
       <label class="full-row">备注
         <textarea :value="localDraft.remarks" rows="2" @input="update('remarks', ($event.target as HTMLTextAreaElement).value)" />
       </label>
+      <FieldOverlayForm
+        class="full-row overlay-fields"
+        :model-value="localDraft.attributes"
+        :overlays="props.fieldOverlays ?? []"
+        :catalog-entries="props.fieldCatalogEntries ?? {}"
+        :reference-entries="props.fieldReferenceEntries ?? {}"
+        @update:model-value="update('attributes', $event)"
+      />
 
       <div class="form-actions full-row">
         <UiButton @click="showPayloadPreview = !showPayloadPreview">

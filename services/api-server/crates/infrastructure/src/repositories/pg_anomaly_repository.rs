@@ -30,7 +30,7 @@ impl AnomalyRepository for PgAnomalyRepository {
     }
 
     async fn find_by_flight(&self, flight_id: &str) -> Result<Vec<Anomaly>, DomainError> {
-        let rows = sqlx::query("SELECT * FROM anomalies WHERE flight_id = $1 ORDER BY detected_at DESC")
+        let rows = sqlx::query("SELECT * FROM anomalies WHERE flight_id = $1 OR (subject_type = 'Flight' AND subject_id = $1) ORDER BY detected_at DESC")
             .bind(flight_id)
             .fetch_all(&self.pool)
             .await
@@ -116,14 +116,17 @@ impl AnomalyRepository for PgAnomalyRepository {
             .map_err(|e| DomainError::Internal(format!("Failed to serialize anomaly context_data: {e}")))?;
         sqlx::query(
             r#"INSERT INTO anomalies (
-                anomaly_id, flight_id, anomaly_type, severity, title, description,
+                anomaly_id, subject_type, subject_id, flight_id, anomaly_type, severity, title, description,
                 status, detected_at, resolved_at, escalation_level,
                 last_escalated_at, linked_todo_id, rule_id,
                 context_data, created_at, updated_at
             ) VALUES (
-                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
             )
             ON CONFLICT (anomaly_id) DO UPDATE SET
+                subject_type = EXCLUDED.subject_type,
+                subject_id = EXCLUDED.subject_id,
+                flight_id = EXCLUDED.flight_id,
                 status = EXCLUDED.status,
                 resolved_at = EXCLUDED.resolved_at,
                 escalation_level = EXCLUDED.escalation_level,
@@ -131,6 +134,8 @@ impl AnomalyRepository for PgAnomalyRepository {
                 updated_at = EXCLUDED.updated_at"#,
         )
         .bind(&a.anomaly_id)
+        .bind(&a.subject_type)
+        .bind(&a.subject_id)
         .bind(&a.flight_id)
         .bind(a.anomaly_type.as_ref())
         .bind(a.severity.as_ref())
@@ -322,9 +327,29 @@ fn row_to_anomaly(r: &sqlx::postgres::PgRow) -> Anomaly {
     let context_data: std::collections::HashMap<String, serde_json::Value> =
         serde_json::from_value(ctx).unwrap_or_default();
 
+    let flight_id = r
+        .try_get::<Option<String>, _>("flight_id")
+        .ok()
+        .flatten()
+        .unwrap_or_default();
+    let subject_type = r
+        .try_get::<Option<String>, _>("subject_type")
+        .ok()
+        .flatten()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "Flight".to_string());
+    let subject_id = r
+        .try_get::<Option<String>, _>("subject_id")
+        .ok()
+        .flatten()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| flight_id.clone());
+
     Anomaly {
         anomaly_id: r.get("anomaly_id"),
-        flight_id: r.get("flight_id"),
+        subject_type,
+        subject_id,
+        flight_id,
         anomaly_type: parse_anomaly_type(r.get::<String, _>("anomaly_type").as_str()),
         severity: parse_severity(r.get::<String, _>("severity").as_str()),
         title: r.get("title"),

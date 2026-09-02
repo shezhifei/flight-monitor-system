@@ -4,10 +4,10 @@ import {
   DEFAULT_BUSINESS_FILTERS,
   DEFAULT_SEARCH_FIELDS,
   getAnomalyCountForFlight,
+  getFlightRowId,
   hasActiveBusinessFilters,
   hasVipMarker,
   isDelayedFlight,
-  normalizeFlightId,
   type BusinessFilters,
   type Flight,
 } from '../../../composables/useFlightData';
@@ -190,8 +190,9 @@ export function useFlightMonitorList(options: UseFlightMonitorListOptions): UseF
       announce('当前没有匹配的航班');
       return;
     }
-    if (!selectedFlightId.value || !visibleFlights.value.some((flight) => normalizeFlightId(flight.flight_id) === selectedFlightId.value)) {
-      selectedFlightId.value = normalizeFlightId(visibleFlights.value[0]?.flight_id);
+    // 选中键 = 监控行 row_id（稳定，不随建链/拆链漂移）。
+    if (!selectedFlightId.value || !visibleFlights.value.some((flight) => getFlightRowId(flight) === selectedFlightId.value)) {
+      selectedFlightId.value = getFlightRowId(visibleFlights.value[0]);
     }
     await focusSelectedFlight();
     announce(`搜索完成，当前显示 ${visibleCount.value} 个航班`);

@@ -1349,9 +1349,27 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
     }
 
     async fn summarize_receipts_for_order(&self, order_id: &str) -> Result<NotificationReceiptSummary, DomainError> {
-        let row = sqlx::query(
+        let mut summaries = self.summarize_receipts_for_orders(&[order_id.to_string()]).await?;
+        Ok(summaries.remove(order_id).unwrap_or_default())
+    }
+
+    async fn summarize_receipts_for_orders(
+        &self,
+        order_ids: &[String],
+    ) -> Result<std::collections::HashMap<String, NotificationReceiptSummary>, DomainError> {
+        let ids: Vec<String> = order_ids
+            .iter()
+            .map(|id| id.trim().to_string())
+            .filter(|id| !id.is_empty())
+            .collect();
+        if ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        let rows = sqlx::query(
             r#"
             SELECT
+                dispatch_order_id,
                 COUNT(*) FILTER (WHERE receipt_group_id IS NOT NULL)::BIGINT AS total_count,
                 COUNT(*) FILTER (WHERE receipt_required = TRUE AND ack_status = 'pending')::BIGINT AS pending_count,
                 COUNT(*) FILTER (WHERE ack_status = 'acknowledged')::BIGINT AS acknowledged_count,
@@ -1359,16 +1377,29 @@ impl DispatchCollaborationRepository for PgDispatchCollaborationRepository {
                 MAX(COALESCE(ack_at, read_at, delivered_at, created_at)) AS latest_updated_at,
                 ARRAY_REMOVE(ARRAY_AGG(DISTINCT receipt_group_id), NULL) AS receipt_group_ids
             FROM notifications
-            WHERE dispatch_order_id = $1
+            WHERE dispatch_order_id = ANY($1)
               AND receipt_group_id IS NOT NULL
+            GROUP BY dispatch_order_id
             "#,
         )
-        .bind(order_id)
-        .fetch_one(&self.pool)
+        .bind(&ids)
+        .fetch_all(&self.pool)
         .await
         .map_err(internal_error)?;
 
-        Ok(row_to_receipt_summary(&row))
+        let mut summaries = std::collections::HashMap::with_capacity(ids.len());
+        for row in rows {
+            let Some(order_id) = row
+                .try_get::<Option<String>, _>("dispatch_order_id")
+                .ok()
+                .flatten()
+                .filter(|value| !value.is_empty())
+            else {
+                continue;
+            };
+            summaries.insert(order_id, row_to_receipt_summary(&row));
+        }
+        Ok(summaries)
     }
 }
 

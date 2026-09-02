@@ -15,7 +15,9 @@ use fms_application::services::flight_runtime_service::{
     DispatchTimelineWriter, FlightRuntimeService, FlightTimelineWriter,
 };
 use fms_application::services::flight_service::FlightService;
-use fms_application::services::flight_writer::{FlightTransactionalWrites, FlightWriter, UowFlightWriter};
+use fms_application::services::flight_writer::{
+    FlightTransactionalWrites, FlightWriter, UowFlightImportPairWriter, UowFlightWriter,
+};
 use fms_application::services::label_service::LabelService;
 use fms_application::services::ontology_actions::OntologyActionServices;
 use fms_application::services::ontology_service::{OntologyService, OntologyTransactions, OntologyWriter};
@@ -27,6 +29,7 @@ use fms_domain::ports::dispatch_repository::{
     StandRepository, TeamRepository,
 };
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowTransactionalRepository;
 use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
 use fms_domain::ports::flight_timeline_event_repository::{
     FlightTimelineEventRepository, FlightTimelineEventTransactionalRepository,
@@ -76,24 +79,32 @@ pub(crate) fn build_flight_services(
     let flight_tx_repo: Arc<dyn FlightTransactionalRepository<PgTx> + Send + Sync> = repos.flight_repo.clone();
     let outbox_tx_repo: Arc<dyn DomainEventOutboxTransactionalRepository<PgTx> + Send + Sync> =
         repos.domain_event_outbox_repo.clone();
+    let monitor_row_tx_repo: Arc<dyn FlightMonitorRowTransactionalRepository<PgTx> + Send + Sync> =
+        repos.flight_monitor_row_repo.clone();
     let timeline_pg = Arc::new(PgFlightTimelineEventRepository::new(repos.pool.clone()));
     let timeline_read: Arc<dyn FlightTimelineEventRepository + Send + Sync> = timeline_pg.clone();
     let timeline_tx_repo: Arc<dyn FlightTimelineEventTransactionalRepository<PgTx> + Send + Sync> = timeline_pg;
-    let flight_writer: Arc<FlightWriter<PgTx>> = Arc::new(FlightWriter::new(
-        repos.flight_repo.clone() as Arc<dyn FlightRepository + Send + Sync>,
-        flight_tx_repo.clone(),
-        outbox_tx_repo.clone(),
-    ));
+    let flight_writer: Arc<FlightWriter<PgTx>> = Arc::new(
+        FlightWriter::new(
+            repos.flight_repo.clone() as Arc<dyn FlightRepository + Send + Sync>,
+            flight_tx_repo.clone(),
+            outbox_tx_repo.clone(),
+        )
+        .with_monitor_row_repository(monitor_row_tx_repo.clone()),
+    );
     let flight_uow_writer: Arc<UowFlightWriter<_>> = Arc::new(UowFlightWriter::new(
         FlightWriter::new(
             repos.flight_repo.clone() as Arc<dyn FlightRepository + Send + Sync>,
             flight_tx_repo.clone(),
             outbox_tx_repo.clone(),
-        ),
+        )
+        .with_monitor_row_repository(monitor_row_tx_repo.clone()),
         repos.unit_of_work.clone(),
     ));
     let flight_svc = Arc::new(
         FlightService::new(repos.flight_repo.clone())
+            .with_monitor_row_repository(repos.flight_monitor_row_repo.clone()
+                as Arc<dyn fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository + Send + Sync>)
             .with_transactional_writer(flight_uow_writer as Arc<dyn FlightTransactionalWrites>),
     );
     let flight_batch_cell_svc: Arc<dyn FlightBatchCellUpdate> = Arc::new(
@@ -108,16 +119,39 @@ pub(crate) fn build_flight_services(
         .with_projection_repository(repos.flight_runtime_projection_repo.clone()),
     );
     let label_svc = Arc::new(LabelService::new(repos.label_repo.clone(), infra.sse_hub.clone()));
-    let flight_import_svc = Arc::new(FlightImportService::new(flight_svc.clone()));
+    let aircraft_repo = Arc::new(PgAircraftRepository::new(repos.pool.clone()));
+    let ontology_tx: Arc<dyn OntologyTransactionalRepository<PgTx> + Send + Sync> = aircraft_repo.clone();
+    let pair_flight_writer = FlightWriter::new(
+        repos.flight_repo.clone() as Arc<dyn FlightRepository + Send + Sync>,
+        flight_tx_repo.clone(),
+        outbox_tx_repo.clone(),
+    )
+    .with_monitor_row_repository(monitor_row_tx_repo.clone());
+    let pair_writer = Arc::new(UowFlightImportPairWriter::new(
+        pair_flight_writer,
+        ontology_tx.clone(),
+        monitor_row_tx_repo.clone(),
+        repos.unit_of_work.clone(),
+    ));
+    let flight_import_svc = Arc::new(
+        FlightImportService::new(flight_svc.clone())
+            .with_metadata_catalogs(Arc::new(
+                fms_application::services::metadata_catalog_service::MetadataCatalogService::new(
+                    repos.metadata_catalog_repo.clone()
+                        as Arc<dyn fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository + Send + Sync>,
+                ),
+            ))
+            .with_turnaround_link_repository(Arc::new(PgTurnaroundLinkRepository::new(repos.pool.clone())))
+            .with_monitor_row_repository(repos.flight_monitor_row_repo.clone())
+            .with_pair_transactional_writer(pair_writer),
+    );
     let flight_archive_svc = Arc::new(FlightArchiveService::new(repos.flight_archive_repo.clone()));
 
-    let aircraft_repo = Arc::new(PgAircraftRepository::new(repos.pool.clone()));
     let occupation_repo = Arc::new(PgStandOccupationRepository::new(repos.pool.clone()));
     let assignment_repo = Arc::new(PgGateAssignmentRepository::new(repos.pool.clone()));
     let link_repo = Arc::new(PgTurnaroundLinkRepository::new(repos.pool.clone()));
     let suggestion_repo = Arc::new(PgResourceAdjustmentSuggestionRepository::new(repos.pool.clone()));
     let carousel_repo = Arc::new(PgCarouselAssignmentRepository::new(repos.pool.clone()));
-    let ontology_tx: Arc<dyn OntologyTransactionalRepository<PgTx> + Send + Sync> = aircraft_repo.clone();
     let flight_repo_port: Arc<dyn FlightRepository + Send + Sync> = repos.flight_repo.clone();
     let dispatch_order_port: Arc<dyn DispatchOrderRepository + Send + Sync> = repos.dispatch_order_repo.clone();
     let anomaly_port: Arc<dyn AnomalyRepository + Send + Sync> = repos.anomaly_repo.clone();
@@ -130,8 +164,10 @@ pub(crate) fn build_flight_services(
     let link_port: Arc<dyn TurnaroundLinkRepository + Send + Sync> = link_repo;
     let suggestion_port: Arc<dyn ResourceAdjustmentSuggestionRepository + Send + Sync> = suggestion_repo;
     let carousel_port: Arc<dyn CarouselAssignmentRepository + Send + Sync> = carousel_repo.clone();
-    let personnel_runtime_port: Arc<dyn PersonnelRuntimeRepository + Send + Sync> = repos.personnel_runtime_repo.clone();
-    let qualification_port: Arc<dyn QualificationGrantRepository + Send + Sync> = repos.qualification_grant_repo.clone();
+    let personnel_runtime_port: Arc<dyn PersonnelRuntimeRepository + Send + Sync> =
+        repos.personnel_runtime_repo.clone();
+    let qualification_port: Arc<dyn QualificationGrantRepository + Send + Sync> =
+        repos.qualification_grant_repo.clone();
     let equipment_port: Arc<dyn EquipmentRepository + Send + Sync> = repos.equipment_repo.clone();
 
     let ontology_writer: Arc<OntologyWriter<_>> = Arc::new(OntologyWriter::new(
@@ -141,6 +177,8 @@ pub(crate) fn build_flight_services(
         flight_tx_repo.clone(),
         outbox_tx_repo.clone(),
         repos.unit_of_work.clone(),
+    ).with_monitor_row_repository(
+        monitor_row_tx_repo.clone(),
     ));
     let ontology_svc = Arc::new(
         OntologyService::new(

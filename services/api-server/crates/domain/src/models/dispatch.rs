@@ -242,6 +242,8 @@ pub struct Department {
     pub updated_at: Option<DateTime<Utc>>,
     #[serde(default = "default_true")]
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 /// 班组类型
@@ -261,6 +263,8 @@ pub struct TeamType {
     pub is_active: bool,
     #[serde(default)]
     pub task_types: Vec<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 /// 班组
@@ -288,6 +292,8 @@ pub struct Team {
     pub team_type: Option<TeamType>,
     #[serde(default)]
     pub members: Vec<TeamMember>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 fn default_off_duty() -> TeamStatus {
@@ -410,6 +416,8 @@ pub struct DepartmentQualificationCatalog {
     pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -718,6 +726,8 @@ pub struct Terminal {
     pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 /// 登机口目录。必须挂楼；成员关系在 `terminal_gates`。
@@ -730,6 +740,8 @@ pub struct Gate {
     pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 /// 行李转盘目录。必须挂楼；成员关系在 `terminal_carousels`。
@@ -742,6 +754,8 @@ pub struct BaggageCarousel {
     pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 /// 一个航站楼的只读上下文：楼 + 三类成员列表（目录行）。
@@ -773,6 +787,8 @@ pub struct Stand {
     pub size_category: Option<String>,
     #[serde(default = "default_true")]
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -784,6 +800,8 @@ pub struct TaskType {
     pub name: String,
     pub default_department_id: Option<String>,
     pub category: Option<String>,
+    #[serde(default = "default_task_type_anchor")]
+    pub anchor: String,
     pub sequence_order: Option<i32>,
     pub default_duration_minutes: Option<i32>,
     #[serde(default = "default_trigger_offset")]
@@ -793,7 +811,13 @@ pub struct TaskType {
     pub description: Option<String>,
     #[serde(default = "default_true")]
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
     pub created_at: Option<DateTime<Utc>>,
+}
+
+fn default_task_type_anchor() -> String {
+    "link".to_string()
 }
 
 fn default_trigger_offset() -> i32 {
@@ -819,6 +843,8 @@ pub struct EquipmentType {
     pub is_active: bool,
     #[serde(default)]
     pub task_types: Vec<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 /// 设备
@@ -847,6 +873,8 @@ pub struct Equipment {
     #[serde(default = "default_true")]
     pub is_active: bool,
     pub equipment_type: Option<EquipmentType>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 fn default_available() -> EquipmentStatus {
@@ -914,6 +942,8 @@ pub struct PersonnelRuntime {
     pub last_position_update: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub updated_by: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 fn default_personnel_off_duty() -> PersonnelStatus {
@@ -1025,6 +1055,9 @@ pub struct DispatchOrder {
     pub supervisor_notified: bool,
     pub supervisor_notified_at: Option<DateTime<Utc>>,
     pub assignment_deadline: Option<DateTime<Utc>>,
+
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 
     // 完成信息
     pub completed_by: Option<String>,
@@ -1320,6 +1353,7 @@ mod tests {
             is_active: active,
             team_type: None,
             members,
+            attributes: serde_json::json!({}),
         }
     }
 
@@ -1344,6 +1378,7 @@ mod tests {
             updated_at: None,
             is_active: active,
             equipment_type: None,
+            attributes: serde_json::json!({}),
         }
     }
 

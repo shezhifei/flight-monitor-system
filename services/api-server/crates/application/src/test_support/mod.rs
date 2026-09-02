@@ -119,6 +119,8 @@ pub fn stub_dispatch_dependencies() -> DispatchServiceDependencies {
             order_repo: unwired_repo.clone(),
             member_repo: unwired_repo.clone(),
             todo_repo: unwired_repo.clone(),
+            field_overlay_repo: None,
+            object_reference_validator: None,
         },
         rules: DispatchRuleServiceDependencies {
             department_repo: unwired_repo.clone(),

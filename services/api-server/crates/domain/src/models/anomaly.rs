@@ -70,6 +70,12 @@ impl AsRef<str> for AnomalyStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Anomaly {
     pub anomaly_id: String,
+    /// Canonical ontology subject. `flight_id` remains a compatibility field
+    /// for legacy consumers and is empty when the subject is not a Flight.
+    #[serde(default = "default_subject_type")]
+    pub subject_type: String,
+    #[serde(default)]
+    pub subject_id: String,
     pub flight_id: String,
     pub anomaly_type: AnomalyType,
     pub severity: AnomalySeverity,
@@ -92,6 +98,10 @@ pub struct Anomaly {
 
 fn default_open() -> AnomalyStatus {
     AnomalyStatus::Open
+}
+
+fn default_subject_type() -> String {
+    "Flight".to_string()
 }
 
 impl Anomaly {

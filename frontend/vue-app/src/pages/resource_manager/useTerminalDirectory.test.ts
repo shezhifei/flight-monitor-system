@@ -129,9 +129,9 @@ describe('useTerminalDirectory', () => {
   it('createTerminal POSTs code+name and refreshes list', async () => {
     setupContextResponder();
     const td = useTerminalDirectory();
-    await td.createTerminal({ code: 'T2', name: '二号航站楼' });
+    await td.createTerminal({ code: 'T2', name: '二号航站楼', attributes: {} });
     const post = recorded.find(r => r.method === 'POST' && r.url === '/api/v2/dispatch/terminals');
-    expect(post?.body).toEqual({ code: 'T2', name: '二号航站楼' });
+    expect(post?.body).toEqual({ code: 'T2', name: '二号航站楼', attributes: {} });
     expect(recorded.some(r => r.method === 'GET' && r.url.startsWith('/api/v2/dispatch/terminals?'))).toBe(true);
   });
 
@@ -145,6 +145,7 @@ describe('useTerminalDirectory', () => {
       area: '',
       stand_type: '',
       size_category: '',
+      attributes: {},
     });
     expect(fail).toBe(false);
     expect(recorded.some(r => r.method === 'POST' && r.url === '/api/v2/dispatch/stands')).toBe(false);
@@ -157,16 +158,18 @@ describe('useTerminalDirectory', () => {
       area: '远',
       stand_type: '',
       size_category: 'C',
+      attributes: {},
     });
     expect(ok).toBe(true);
     const post = recorded.find(r => r.method === 'POST' && r.url === '/api/v2/dispatch/stands');
+    // size_category 旧列只读：新建不再提交；attributes（含 overlay 值）整体提交。
     expect(post?.body).toEqual({
       terminal_id: 'term_t1',
       code: 'C03',
       name: '远机位',
       area: '远',
       stand_type: null,
-      size_category: 'C',
+      attributes: {},
     });
   });
 
@@ -174,16 +177,16 @@ describe('useTerminalDirectory', () => {
     setupContextResponder();
     const td = useTerminalDirectory();
     recorded.length = 0;
-    const fail = await td.createGate({ code: 'G-B01', name: '' });
+    const fail = await td.createGate({ code: 'G-B01', name: '', attributes: {} });
     expect(fail).toBe(false);
     expect(recorded.some(r => r.method === 'POST' && r.url === '/api/v2/dispatch/gates')).toBe(false);
 
     await td.selectTerminal('term_t1');
     recorded.length = 0;
-    const ok = await td.createGate({ code: 'G-B01', name: 'B01口' });
+    const ok = await td.createGate({ code: 'G-B01', name: 'B01口', attributes: {} });
     expect(ok).toBe(true);
     const post = recorded.find(r => r.method === 'POST' && r.url === '/api/v2/dispatch/gates');
-    expect(post?.body).toEqual({ terminal_id: 'term_t1', code: 'G-B01', name: 'B01口' });
+    expect(post?.body).toEqual({ terminal_id: 'term_t1', code: 'G-B01', name: 'B01口', attributes: {} });
   });
 
   it('attach/detach stand hit the member routes', async () => {
@@ -268,5 +271,30 @@ describe('useTerminalDirectory', () => {
     await td.selectTerminal('term_t1');
     await td.fetchAllStands();
     expect(td.attachableStands.value.map(s => s.id)).toEqual(['stand_c03']);
+  });
+
+  it('openStandModal seeds combined_stand=false and loads stored attributes', async () => {
+    setupContextResponder();
+    const td = useTerminalDirectory();
+
+    // 新建：未触碰时 combined_stand 显式为 false，composed_of 不会先显示。
+    td.openStandModal();
+    expect(td.standForm.value.attributes).toEqual({ combined_stand: false });
+
+    // 编辑：已存值优先于种子。
+    td.openStandModal({
+      id: 'stand_316',
+      code: '316',
+      attributes: { combined_stand: true, stand_use: 'remote', composed_of: ['316L', '316R'] },
+    });
+    expect(td.standForm.value.attributes).toEqual({
+      combined_stand: true,
+      stand_use: 'remote',
+      composed_of: ['316L', '316R'],
+    });
+
+    // 已存 combined_stand=false 时保留 false（不是缺省）。
+    td.openStandModal({ id: 'stand_c03', code: 'C03', attributes: { stand_use: 'remote' } });
+    expect(td.standForm.value.attributes).toEqual({ combined_stand: false, stand_use: 'remote' });
   });
 });

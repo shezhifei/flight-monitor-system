@@ -11,5 +11,7 @@ mod types;
 #[cfg(test)]
 mod tests;
 
-pub use serialization::{dispatch_order_to_value, dispatch_order_to_value_with_summary};
+pub use serialization::{
+    dispatch_order_to_value, dispatch_order_to_value_with_summary, serialize_orders_with_receipt_summaries,
+};
 pub use service::DispatchQueryService;

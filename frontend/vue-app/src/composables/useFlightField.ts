@@ -6,7 +6,7 @@ import type {
   LegType,
   Station,
 } from './useFlightDataTypes';
-import { DISPATCH_TIMELINE_FIELDS, FLIGHT_MISSION_LABELS, TIME_FIELDS } from './useFlightDataConstants';
+import { DISPATCH_TIMELINE_FIELDS, DISPATCH_TIMELINE_FIELD_META, FLIGHT_FIELD_DIRECTION, FLIGHT_MISSION_LABELS, TIME_FIELDS } from './useFlightDataConstants';
 
 const timeFormatter = new Intl.DateTimeFormat('zh-CN', {
   hour: '2-digit',
@@ -30,6 +30,35 @@ export function isSameFlightId(
   return leftId !== '' && leftId === rightId;
 }
 
+/**
+ * 监控行稳定键：row_id 优先（写入后永不因建链/拆链而改），旧载荷回退 flight_id。
+ * 列表 :key、selectedFlightId、单元格多选都用它。
+ */
+export function getFlightRowId(flight: Flight | null | undefined): string {
+  if (!flight) {
+    return '';
+  }
+  return normalizeFlightId(flight.row_id) || normalizeFlightId(flight.flight_id);
+}
+
+/** 行的全部已知身份键（row_id / flight_id / 进出港方向 id），用于缓存归并。 */
+export function flightIdentityKeys(flight: Flight): string[] {
+  const keys = [
+    flight.row_id,
+    flight.flight_id,
+    flight.inbound_flight_id,
+    flight.outbound_flight_id,
+  ];
+  const seen = new Set<string>();
+  keys.forEach((key) => {
+    const normalized = normalizeFlightId(key);
+    if (normalized) {
+      seen.add(normalized);
+    }
+  });
+  return Array.from(seen);
+}
+
 export function findFlightById(
   flightId: string | number | null | undefined,
   flights: Flight[] = [],
@@ -40,9 +69,42 @@ export function findFlightById(
     return null;
   }
 
-  return flights.find((flight) => normalizeFlightId(flight.flight_id) === targetId)
-    ?? originalFlights.find((flight) => normalizeFlightId(flight.flight_id) === targetId)
+  return flights.find((flight) => flightIdentityKeys(flight).includes(targetId))
+    ?? originalFlights.find((flight) => flightIdentityKeys(flight).includes(targetId))
     ?? null;
+}
+
+/**
+ * 把单元格字段解析到方向航班 id（单元格 PATCH 的真实目标）。
+ *
+ * - 进港字段（计划/预计/实际到达、进港时间线里程碑）→ inbound_flight_id；
+ * - 出港字段（起飞侧、COBT、出港时间线里程碑）→ outbound_flight_id；
+ * - 行级字段（备注等）→ 进港优先（与宽行兼容主 id 一致）；
+ * - 方向缺失时不借用对侧 id（拆表后过站行两侧是两班不同航班）；
+ * - 旧载荷（无方向 id，聚合期数据）回退 flight_id。
+ * 返回 null 表示无法解析（调用方应拒绝提交，不能拿 row_id 去打方向航班）。
+ */
+export function resolveDirectionalFlightId(
+  flight: Flight | null | undefined,
+  field: string,
+): string | null {
+  if (!flight) {
+    return null;
+  }
+  const direction = DISPATCH_TIMELINE_FIELD_META[field as keyof typeof DISPATCH_TIMELINE_FIELD_META]?.leg_type
+    ?? FLIGHT_FIELD_DIRECTION[field as keyof typeof FLIGHT_FIELD_DIRECTION]
+    ?? null;
+  const inboundId = normalizeFlightId(flight.inbound_flight_id);
+  const outboundId = normalizeFlightId(flight.outbound_flight_id);
+  const fallback = normalizeFlightId(flight.flight_id);
+
+  if (!direction) {
+    return inboundId || outboundId || fallback || null;
+  }
+  if (direction === 'inbound') {
+    return inboundId || (outboundId ? null : fallback) || null;
+  }
+  return outboundId || (inboundId ? null : fallback) || null;
 }
 
 export function normalizeAirportContext(rawContext: Partial<AirportContext> | null | undefined): AirportContext {

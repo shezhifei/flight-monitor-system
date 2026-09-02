@@ -6,6 +6,8 @@ import UiModal from '@/components/ui/UiModal.vue';
 import UiPill from '@/components/ui/UiPill.vue';
 import UiSearch from '@/components/ui/UiSearch.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
+import type { FieldOverlay, FieldReferenceEntry } from '@/composables/useFieldOverlays';
 
 const props = defineProps<{
   active: boolean;
@@ -18,6 +20,9 @@ const props = defineProps<{
   editing: Department | null;
   form: DepartmentFormData;
   managerOptions: Array<{ value: string; label: string }>;
+  fieldOverlays?: FieldOverlay[];
+  fieldCatalogEntries?: Record<string, Array<{ code: string; name: string }>>;
+  fieldReferenceEntries?: Record<string, FieldReferenceEntry[]>;
 }>();
 
 const emit = defineEmits<{
@@ -135,6 +140,13 @@ function patch<K extends keyof DepartmentFormData>(field: K, value: DepartmentFo
           @input="patch('name', ($event.target as HTMLInputElement).value)"
         >
       </div>
+      <FieldOverlayForm
+        :model-value="form.attributes ?? {}"
+        :overlays="fieldOverlays ?? []"
+        :catalog-entries="fieldCatalogEntries ?? {}"
+        :reference-entries="fieldReferenceEntries ?? {}"
+        @update:model-value="patch('attributes', $event)"
+      />
       <div class="form-group">
         <label for="d-code">代码</label>
         <input

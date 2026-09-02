@@ -8,7 +8,7 @@ use sqlx::{PgPool, Row};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{PersonnelRuntime, PersonnelStatus};
-use fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository;
+use fms_domain::ports::dispatch_repository::{PersonnelRuntimeRepository, PersonnelRuntimeTransactionalRepository};
 
 pub struct PgPersonnelRuntimeRepository {
     pool: PgPool,
@@ -28,8 +28,8 @@ impl PersonnelRuntimeRepository for PgPersonnelRuntimeRepository {
             INSERT INTO personnel_runtime (
                 user_id, current_status, current_stand_id,
                 current_position_lat, current_position_lng,
-                last_position_update, updated_at, updated_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7)
+                last_position_update, updated_at, updated_by, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7, $8)
             ON CONFLICT (user_id) DO UPDATE SET
                 current_status = EXCLUDED.current_status,
                 current_stand_id = EXCLUDED.current_stand_id,
@@ -38,6 +38,7 @@ impl PersonnelRuntimeRepository for PgPersonnelRuntimeRepository {
                 last_position_update = EXCLUDED.last_position_update,
                 updated_at = CURRENT_TIMESTAMP,
                 updated_by = EXCLUDED.updated_by
+                ,attributes = EXCLUDED.attributes
             "#,
         )
         .bind(&runtime.user_id)
@@ -47,6 +48,7 @@ impl PersonnelRuntimeRepository for PgPersonnelRuntimeRepository {
         .bind(runtime.current_position_lng)
         .bind(runtime.last_position_update)
         .bind(&runtime.updated_by)
+        .bind(&runtime.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -62,7 +64,7 @@ impl PersonnelRuntimeRepository for PgPersonnelRuntimeRepository {
             SELECT user_id, current_status, current_stand_id,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
-                   last_position_update, updated_at, updated_by
+                   last_position_update, updated_at, updated_by, attributes
             FROM personnel_runtime
             WHERE user_id = $1
             "#,
@@ -126,6 +128,48 @@ impl PersonnelRuntimeRepository for PgPersonnelRuntimeRepository {
     }
 }
 
+#[async_trait]
+impl<'tx> PersonnelRuntimeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
+    for PgPersonnelRuntimeRepository
+{
+    async fn save_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        runtime: &PersonnelRuntime,
+    ) -> Result<(), DomainError> {
+        sqlx::query(
+            r#"
+            INSERT INTO personnel_runtime (
+                user_id, current_status, current_stand_id,
+                current_position_lat, current_position_lng,
+                last_position_update, updated_at, updated_by, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7, $8)
+            ON CONFLICT (user_id) DO UPDATE SET
+                current_status = EXCLUDED.current_status,
+                current_stand_id = EXCLUDED.current_stand_id,
+                current_position_lat = EXCLUDED.current_position_lat,
+                current_position_lng = EXCLUDED.current_position_lng,
+                last_position_update = EXCLUDED.last_position_update,
+                updated_at = CURRENT_TIMESTAMP,
+                updated_by = EXCLUDED.updated_by,
+                attributes = EXCLUDED.attributes
+            "#,
+        )
+        .bind(&runtime.user_id)
+        .bind(personnel_status_value(runtime.current_status))
+        .bind(&runtime.current_stand_id)
+        .bind(runtime.current_position_lat)
+        .bind(runtime.current_position_lng)
+        .bind(runtime.last_position_update)
+        .bind(&runtime.updated_by)
+        .bind(&runtime.attributes)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(())
+    }
+}
+
 fn row_to_personnel_runtime(row: &sqlx::postgres::PgRow) -> PersonnelRuntime {
     PersonnelRuntime {
         user_id: row.get("user_id"),
@@ -136,6 +180,7 @@ fn row_to_personnel_runtime(row: &sqlx::postgres::PgRow) -> PersonnelRuntime {
         last_position_update: row.get("last_position_update"),
         updated_at: row.get("updated_at"),
         updated_by: row.get("updated_by"),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }
 

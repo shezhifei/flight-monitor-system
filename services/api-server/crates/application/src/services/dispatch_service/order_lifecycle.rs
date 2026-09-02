@@ -6,6 +6,7 @@ use fms_domain::models::dispatch::*;
 use fms_domain::ports::dispatch_repository::CreateDispatchOrderCommand;
 
 use crate::schemas::dispatch_schemas::*;
+use crate::services::attribute_validation::{collect_attribute_references, validate_attributes};
 
 use super::helpers::order_to_response;
 use super::{DispatchService, NULL_VALUE};
@@ -39,7 +40,18 @@ impl DispatchService {
             equipment_assignment,
             manual_lock,
             remarks,
+            attributes,
         } = dto;
+
+        let attributes = validate_attributes(
+            "DispatchOrder",
+            attributes,
+            self.order.field_overlay_repo.as_ref(),
+        )
+        .await?;
+        if let Some(validator) = self.order.object_reference_validator.as_ref() {
+            validator.validate("DispatchOrder", &attributes).await?;
+        }
 
         let flight_id = flight_id.unwrap_or_default();
         if let (Some(start), Some(end)) = (planned_start_time.as_ref(), planned_end_time.as_ref()) {
@@ -255,6 +267,7 @@ impl DispatchService {
             supervisor_notified: false,
             supervisor_notified_at: None,
             assignment_deadline: None,
+            attributes,
             completed_by: None,
             completion_notes: None,
             gate: None,
@@ -306,6 +319,21 @@ impl DispatchService {
             Vec::new()
         };
 
+        // 手工创建可能携带 object_ref 扩展属性：先收集引用投影，
+        // 由 create_order_atomic 在同一事务内写入 owner 行 + 引用索引。
+        let attribute_references = collect_attribute_references(
+            "DispatchOrder",
+            &order.id,
+            &order.attributes,
+            self.order.field_overlay_repo.as_ref(),
+        )
+        .await?;
+        let attribute_references = if attribute_references.is_empty() {
+            None
+        } else {
+            Some(attribute_references)
+        };
+
         self.order
             .order_repo
             .create_order_atomic(CreateDispatchOrderCommand {
@@ -321,6 +349,7 @@ impl DispatchService {
                     "individual_user_id": normalized_individual_user_id,
                     "temporary_task_template_code": resolved_template_code,
                 })),
+                attribute_references,
             })
             .await?;
 

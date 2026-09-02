@@ -12,6 +12,8 @@ import type {
   TaskTypeResponse,
   TaskTypeCreatePayload,
 } from './dispatchRuleWorkbenchApi';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
+import type { FieldOverlay, FieldReferenceEntry } from '@/composables/useFieldOverlays';
 
 const props = withDefaults(
   defineProps<{
@@ -22,6 +24,9 @@ const props = withDefaults(
     disabled: boolean;
     disabledReason?: string;
     showCreateForm?: boolean;
+    fieldOverlays?: FieldOverlay[];
+    fieldCatalogEntries?: Record<string, Array<{ code: string; name: string }>>;
+    fieldReferenceEntries?: Record<string, FieldReferenceEntry[]>;
   }>(),
   {
     disabledReason: undefined,
@@ -50,6 +55,7 @@ function createDefaultDraft(): TaskTypeCreatePayload {
     trigger_offset_minutes: 30,
     trigger_type: 'before_eta',
     description: '',
+    attributes: {},
   };
 }
 
@@ -155,6 +161,13 @@ const triggerModel = computed<string>({
             placeholder="如 TOWING"
           >
         </label>
+        <FieldOverlayForm
+          :model-value="draft.attributes ?? {}"
+          :overlays="props.fieldOverlays ?? []"
+          :catalog-entries="props.fieldCatalogEntries ?? {}"
+          :reference-entries="props.fieldReferenceEntries ?? {}"
+          @update:model-value="draft.attributes = $event"
+        />
         <label>
           <span>名称</span>
           <input

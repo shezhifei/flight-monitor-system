@@ -235,22 +235,5 @@ pub(crate) fn extract_optional_operator_context(
 }
 
 pub(crate) fn resolve_flight_no(flight: &fms_application::schemas::flight_schemas::FlightResponse) -> String {
-    flight
-        .flight_number
-        .clone()
-        .or_else(|| {
-            flight
-                .outbound_leg
-                .as_ref()
-                .map(|leg| leg.flight_no.clone())
-                .filter(|value| !value.trim().is_empty())
-        })
-        .or_else(|| {
-            flight
-                .inbound_leg
-                .as_ref()
-                .map(|leg| leg.flight_no.clone())
-                .filter(|value| !value.trim().is_empty())
-        })
-        .unwrap_or_default()
+    flight.flight_number.clone().unwrap_or_default()
 }

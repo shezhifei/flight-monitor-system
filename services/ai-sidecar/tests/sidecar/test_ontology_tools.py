@@ -154,7 +154,7 @@ async def test_explain_stand_change_uses_rust_availability() -> None:
         run_id="run_1",
         entity_type="Flight",
         proposed_change={
-            "action": "change_stand",
+            "action": "StandOccupation.allocate",
             "new_stand_id": "A12",
             "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"},
         },
@@ -181,10 +181,23 @@ async def test_explain_stand_change_without_time_window_fails_closed() -> None:
     result = await tools.explain_constraints(
         run_id="run_1",
         entity_type="Flight",
-        proposed_change={"action": "change_stand", "new_stand_id": "A12"},
+        proposed_change={"action": "StandOccupation.allocate", "new_stand_id": "A12"},
     )
     assert len(result["violations"]) == 1
     assert result["violations"][0]["severity"] == "hard"
+    assert client.read_calls == []
+
+
+@pytest.mark.asyncio
+async def test_explain_deprecated_change_stand_key_fails_closed() -> None:
+    client = RecordingClient()
+    tools = OntologyTools(client=client)
+    result = await tools.explain_constraints(
+        run_id="run_legacy",
+        entity_type="Flight",
+        proposed_change={"action": "change_stand", "new_stand_id": "A12", "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"}},
+    )
+    assert result["violations"][0]["rule_id"] == "unsupported_constraint_mapping"
     assert client.read_calls == []
 
 

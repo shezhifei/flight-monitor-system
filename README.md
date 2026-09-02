@@ -4,7 +4,8 @@
 
 机场航班运行平台：航班主数据、派工协同、认证授权、异常观测、AI 工具执行、移动作业、实时事件。
 
-> **文档基线：2026-08-11**  
+> **文档基线：2026-08-28**
+>
 > HTTP 默认走 **Rust**（`services/api-server/`）。Python 只做 **AI 侧车** 与可选 worker/runtime。依赖在启动时显式装配，不靠导入期单例。密钥用 Vault CE + AppRole + Vault Agent 渲染文件交付，不要把长期密钥写回 `.env` 或 compose。
 
 ## 架构
@@ -27,7 +28,7 @@ Browser / Vue MPA
 | 消息网关 | `services/mq-gateway/` | RocketMQ 边界 |
 | 前端 | `frontend/vue-app/` | Vue 3 多页；访问 `/frontend/<page>.html` |
 | 移动端 | `mobile/flutter-app/` + `mobile/core/` | Flutter + Rust（Android）；旧 Kotlin 在 `legacy/android-kotlin/` |
-| 迁移 | `migrations/*.sql` | 按编号顺序；当前最新 **121** |
+| 迁移 | `migrations/*.sql` | 按编号顺序；当前最新 **158** |
 
 标准 Docker 拓扑（`deploy/docker/docker-compose.distributed.yml`）默认服务包括：`rust-api`、`postgres`、`redis`、`rocketmq-namesrv`、`rocketmq-broker`、`mq-gateway`（及 `flowable-db-bootstrap`、Vault 相关服务）。Flowable 工作流引擎以 embedded 模式运行在 api-server 进程内（flowable-rust-oss 调库，`FLOWABLE_ENGINE_MODE=embedded`），不再有独立 Tomcat 服务。Python HTTP API 不是默认路径。
 
@@ -35,14 +36,14 @@ Browser / Vue MPA
 
 ## 子系统
 
-- **Flight**：主数据、状态、事件、归档、标签、外部同步与导入
-- **Dispatch**：资源、工单、排班、协同、重排、审核、Flowable
+- **Flight**：方向航班（一班进或一班出）、周转链、监控宽表、状态、事件、归档、标签、外部同步与导入
+- **Dispatch**：资源、工单、排班、协同、重排、审核、Flowable；码表与字段 overlay 在资源管理
 - **Business Case**：事项类型、append、工作流、部门可见性、表单
 - **Auth**：登录会话、权限模板、角色、在线状态、强制下线
 - **AI**：实体配置、工具执行、待审批动作、NL Query、LLM Eval；Rust 管入口，Python 侧车跑模型/工具
 - **Observability**：健康检查、系统状态、SSE、runtime diagnostics
 - **Mobile**：工作台、操作事件、附件、设备注册/心跳
-- **Frontend**：22 个页面入口（login、dashboard、flight_monitor、dispatch_board、command_center、ai_config_center 等）
+- **Frontend**：23 个正式 Vue 页（login、dashboard、workspace、flight_monitor、dispatch_board、command_center、resource_manager、ontology_center、ai_config_center 等；另有 `index` 跳转桩）
 
 ## 快速启动
 
@@ -96,8 +97,9 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
 ## 数据与迁移
 
 - 目录：`migrations/`，按数字前缀顺序应用
-- 当前最新：`121_add_soft_delete_columns.sql`
+- 当前最新：`158_idx_flight_monitor_rows_active_sort.sql`
 - 引用完整性策略：迁移 `120` 移除全部外键，改由应用层逻辑保证；产品删除统一软删除（`deleted_at` 标记，见迁移 `121`；`users` 复用 `is_active`），审计禁止物理删除业务数据；巡检兜底见 `scripts/database/check_referential_integrity.sql`，回归防护见 `tests/tools/test_no_new_foreign_keys.py` 与 `test_no_physical_delete.py`
+- `144`–`158` 覆盖码表、字段 overlay、监控宽表、异常主体、任务锚点、航班身份拆分（`Flight` 一班一方向，`flight_monitor_rows` 是热列表读模型）与监控热路径部分索引
 - Host 模式默认跑 `scripts/database/setup_postgresql.sql`、`sqlx migrate run` 和 `scripts/database/verify_runtime_schema.sql`
 - 已有库只补未应用迁移；不要手改 `_sqlx_migrations` 伪造进度
 - 含 `CREATE INDEX CONCURRENTLY` 的迁移必须独占一个文件，且首行 `-- no-transaction`

@@ -312,7 +312,9 @@ export function getAnomalyBadgeClass(flight: Flight): string {
 }
 
 export function getFlightDomId(flight: Flight): string {
-  return normalizeFlightId(flight?.flight_id);
+  // 监控行稳定键：row_id 永不因建链/拆链而改；旧载荷（无 row_id）回退 flight_id。
+  // 单元格 PATCH / 时间线写不在此解析方向——那些路径用 resolveDirectionalFlightId。
+  return normalizeFlightId(flight?.row_id) || normalizeFlightId(flight?.flight_id);
 }
 
 export function getCaseReceiptProjection(

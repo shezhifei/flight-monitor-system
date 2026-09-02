@@ -71,6 +71,7 @@ fn team_fixture(id: &str, name: &str) -> Team {
         is_active: true,
         team_type: None,
         members: vec![],
+        attributes: serde_json::json!({}),
     }
 }
 
@@ -580,6 +581,7 @@ fn personnel_runtime_fixture(user_id: &str) -> fms_domain::models::dispatch::Per
         last_position_update: Some(Utc::now()),
         updated_at: Some(Utc::now()),
         updated_by: None,
+        attributes: serde_json::json!({}),
     }
 }
 
@@ -700,6 +702,7 @@ fn equipment_fixture(id: &str, code: &str) -> fms_domain::models::dispatch::Equi
         updated_at: None,
         is_active: true,
         equipment_type: None,
+        attributes: serde_json::json!({}),
     }
 }
 

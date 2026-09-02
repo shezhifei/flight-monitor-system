@@ -1,0 +1,71 @@
+{
+  "name": "airport_ops",
+  "description": "Mixed read/write approximating an AOC console: list polls, session keep-alive, dispatch board, todo create, and flight remark patches.",
+  "endpoints": [
+    {
+      "name": "flights_list",
+      "method": "GET",
+      "path": "/api/v2/flights?page=1&page_size=20",
+      "weight": 48,
+      "auth": true
+    },
+    {
+      "name": "monitor_rows",
+      "method": "GET",
+      "path": "/api/v2/flights/monitor-rows?page=1&page_size=20",
+      "weight": 10,
+      "auth": true
+    },
+    {
+      "name": "auth_me",
+      "method": "GET",
+      "path": "/api/v2/auth/me",
+      "weight": 8,
+      "auth": true
+    },
+    {
+      "name": "notifications_unread",
+      "method": "GET",
+      "path": "/api/v2/notifications/unread-count",
+      "weight": 8,
+      "auth": true
+    },
+    {
+      "name": "todos_list",
+      "method": "GET",
+      "path": "/api/v2/todos?page=1&size=20",
+      "weight": 6,
+      "auth": true
+    },
+    {
+      "name": "dispatch_orders",
+      "method": "GET",
+      "path": "/api/v2/dispatch-orders?page=1&page_size=20",
+      "weight": 5,
+      "auth": true
+    },
+    {
+      "name": "health_ping",
+      "method": "GET",
+      "path": "/api/v2/health/ping",
+      "weight": 5,
+      "auth": false
+    },
+    {
+      "name": "todo_create",
+      "method": "POST",
+      "path": "/api/v2/todos",
+      "weight": 6,
+      "auth": true,
+      "body": "{\"title\":\"perf-todo-{seq}\",\"priority\":\"low\",\"category\":\"ops\"}"
+    },
+    {
+      "name": "flight_patch_remarks",
+      "method": "PATCH",
+      "path": "/api/v2/flights/{flight_id}",
+      "weight": 4,
+      "auth": true,
+      "body": "{\"flight_remarks\":\"perf-{seq}\"}"
+    }
+  ]
+}

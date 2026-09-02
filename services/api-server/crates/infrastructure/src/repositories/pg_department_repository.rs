@@ -5,7 +5,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::Department;
-use fms_domain::ports::dispatch_repository::DepartmentRepository;
+use fms_domain::ports::dispatch_repository::{DepartmentRepository, DepartmentTransactionalRepository};
 
 use super::soft_delete_audit::record_soft_delete;
 
@@ -25,8 +25,8 @@ impl DepartmentRepository for PgDepartmentRepository {
         sqlx::query(
             r#"
             INSERT INTO departments (
-                id, name, code, description, manager_id, terminal, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                id, name, code, description, manager_id, terminal, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
                 code = EXCLUDED.code,
@@ -34,6 +34,7 @@ impl DepartmentRepository for PgDepartmentRepository {
                 manager_id = EXCLUDED.manager_id,
                 terminal = EXCLUDED.terminal,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 deleted_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
             "#,
@@ -45,6 +46,7 @@ impl DepartmentRepository for PgDepartmentRepository {
         .bind(&dept.manager_id)
         .bind(&dept.terminal)
         .bind(dept.is_active)
+        .bind(&dept.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -57,7 +59,7 @@ impl DepartmentRepository for PgDepartmentRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<Department>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active
+            SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active, attributes
             FROM departments
             WHERE id = $1 AND deleted_at IS NULL
             "#,
@@ -73,7 +75,7 @@ impl DepartmentRepository for PgDepartmentRepository {
     async fn find_by_name(&self, name: &str) -> Result<Option<Department>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active
+            SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active, attributes
             FROM departments
             WHERE name = $1 AND deleted_at IS NULL
             LIMIT 1
@@ -89,7 +91,7 @@ impl DepartmentRepository for PgDepartmentRepository {
 
     async fn find_all(&self, include_inactive: bool, limit: i64, offset: i64) -> Result<Vec<Department>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active FROM departments WHERE deleted_at IS NULL",
+            "SELECT id, name, code, description, manager_id, terminal, created_at, updated_at, is_active, attributes FROM departments WHERE deleted_at IS NULL",
         );
         if !include_inactive {
             builder.push(" AND is_active = TRUE");
@@ -156,6 +158,61 @@ impl DepartmentRepository for PgDepartmentRepository {
     }
 }
 
+#[async_trait]
+impl<'tx> DepartmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
+    for PgDepartmentRepository
+{
+    async fn save_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        dept: &Department,
+    ) -> Result<Department, DomainError> {
+        sqlx::query(
+            r#"
+            INSERT INTO departments (
+                id, name, code, description, manager_id, terminal, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                code = EXCLUDED.code,
+                description = EXCLUDED.description,
+                manager_id = EXCLUDED.manager_id,
+                terminal = EXCLUDED.terminal,
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
+                deleted_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            "#,
+        )
+        .bind(&dept.id)
+        .bind(&dept.name)
+        .bind(&dept.code)
+        .bind(&dept.description)
+        .bind(&dept.manager_id)
+        .bind(&dept.terminal)
+        .bind(dept.is_active)
+        .bind(&dept.attributes)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        let row = sqlx::query(
+            r#"
+            SELECT id, name, code, description, manager_id, terminal,
+                   created_at, updated_at, is_active, attributes
+            FROM departments
+            WHERE id = $1 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(&dept.id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?
+        .ok_or_else(|| DomainError::Internal("department transactional save returned no row".into()))?;
+        Ok(row_to_department(&row))
+    }
+}
+
 fn row_to_department(row: &sqlx::postgres::PgRow) -> Department {
     Department {
         id: row.get("id"),
@@ -167,5 +224,6 @@ fn row_to_department(row: &sqlx::postgres::PgRow) -> Department {
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }

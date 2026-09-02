@@ -6,7 +6,7 @@ import { useToast } from '../../../composables/useToast';
 import {
   DEFAULT_BUSINESS_FILTERS,
   DEFAULT_SEARCH_FIELDS,
-  normalizeFlightId as normalizeFlightIdValue,
+  getFlightRowId,
   type Flight,
 } from '../../../composables/useFlightData';
 import { useFlightData } from '../../../composables/useFlightData';
@@ -51,6 +51,7 @@ export interface UseFlightMonitorPageReturn {
 
   // Computed
   selectedFlight: ComputedRef<Flight | null>;
+  selectedFlightContextId: ComputedRef<string | null>;
   isAuthenticated: ComputedRef<boolean>;
   lastUpdatedLabel: ComputedRef<string>;
   realtimeUpdateMessages: ComputedRef<string[]>;
@@ -146,6 +147,17 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
   const flightInsightOpen = ref(false);
 
   const selectedFlight = computed(() => flightData.findFlightById(selectedFlightId.value));
+  // 行级浮层（AI 洞察 / 副驾 / 协作聊天 / 建事项）按「一班航班」取上下文：
+  // 拆表后监控行的 row_id 是链 id，不是航班；这里解析为方向航班 id（进港优先）。
+  const selectedFlightContextId = computed(() => {
+    const flight = selectedFlight.value;
+    if (!flight) {
+      return null;
+    }
+    const inboundId = flight.inbound_flight_id != null ? String(flight.inbound_flight_id).trim() : '';
+    const outboundId = flight.outbound_flight_id != null ? String(flight.outbound_flight_id).trim() : '';
+    return inboundId || outboundId || getFlightRowId(flight) || null;
+  });
   const isAuthenticated = computed(() => auth.isAuthenticated());
   const lastUpdatedLabel = computed(() => `最后更新: ${flightStream.lastUpdatedAt.value.toLocaleTimeString('zh-CN', { hour12: false })}`);
   const realtimeUpdateMessages = computed(() => Array.from(flightStream.updateMessages.value));
@@ -197,9 +209,11 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
         alertPoolOpen.value = false;
         return;
       }
-      const selectedVisible = flights.some((flight) => normalizeFlightId(flight.flight_id) === selectedFlightId.value);
+      // 选中键 = 监控行 row_id（建链/拆链不漂移）；flight_id 在过站行指向
+      // 进港方向航班，拆表后会漂，不作选中键。
+      const selectedVisible = flights.some((flight) => getFlightRowId(flight) === selectedFlightId.value);
       if (!selectedVisible) {
-        selectedFlightId.value = normalizeFlightId(flights[0]?.flight_id);
+        selectedFlightId.value = getFlightRowId(flights[0]);
       }
     },
     { immediate: true },
@@ -214,7 +228,7 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
 
   const orderedFlightIds = computed(() =>
     flightData.sortedFlights.value
-      .map((flight) => normalizeFlightIdValue(flight.flight_id))
+      .map((flight) => getFlightRowId(flight))
       .filter(Boolean),
   );
 
@@ -512,6 +526,7 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
     openChatFromNotification,
     closeChat,
     selectedFlight,
+    selectedFlightContextId,
     isAuthenticated,
     lastUpdatedLabel,
     realtimeUpdateMessages,
@@ -533,9 +548,4 @@ export function useFlightMonitorPage(): UseFlightMonitorPageReturn {
     refreshFlights,
     setupPanelResizer,
   };
-}
-
-function normalizeFlightId(flightId: unknown): string | null {
-  const id = String(flightId ?? '').trim();
-  return id || null;
 }

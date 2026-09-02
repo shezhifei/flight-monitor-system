@@ -9,9 +9,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
+use crate::services::flight_monitor_row_service::FlightMonitorRowService;
 use fms_domain::error::DomainError;
 use fms_domain::models::value_objects::FlightStatus;
-use fms_domain::ports::flight_repository::{FlightRepository, FlightSearchCriteria, FlightUpdatePatch};
+use fms_domain::ports::flight_monitor_row_repository::{FlightMonitorRowQuery, FlightMonitorRowRepository};
+use fms_domain::ports::flight_repository::{FlightRepository, FlightUpdatePatch};
 
 use crate::schemas::flight_schemas::{FlightCreate, FlightListResponse, FlightResponse, FlightUpdate};
 use crate::services::flight_command_validator;
@@ -34,6 +36,7 @@ pub struct FlightService {
     /// 受控写入端口：save/update/delete 连同 outbox 事件在同一事务内提交。
     /// 未接线时退化为不带 outbox 的单条仓储写入（测试装配使用）。
     tx_writes: Option<Arc<dyn FlightTransactionalWrites>>,
+    monitor_rows: Option<Arc<dyn FlightMonitorRowRepository + Send + Sync>>,
     hot_list: RwLock<Option<FlightListResponse>>,
     negative_cache: DashMap<String, Instant>,
 }
@@ -63,6 +66,7 @@ impl FlightService {
         Self {
             repo,
             tx_writes: None,
+            monitor_rows: None,
             hot_list: RwLock::new(None),
             negative_cache: DashMap::new(),
         }
@@ -70,6 +74,11 @@ impl FlightService {
 
     pub fn with_transactional_writer(mut self, writer: Arc<dyn FlightTransactionalWrites>) -> Self {
         self.tx_writes = Some(writer);
+        self
+    }
+
+    pub fn with_monitor_row_repository(mut self, repo: Arc<dyn FlightMonitorRowRepository + Send + Sync>) -> Self {
+        self.monitor_rows = Some(repo);
         self
     }
 
@@ -156,60 +165,53 @@ impl FlightService {
                 return Ok(response);
             }
         }
-        let repo_start = Instant::now();
-        let items = if has_open_anomaly.is_some() {
-            self.repo
-                .search(
-                    &FlightSearchCriteria {
-                        has_open_anomaly,
-                        ..FlightSearchCriteria::default()
-                    },
-                    size,
-                    offset,
-                )
-                .await?
-        } else {
-            self.repo.find_all(size, offset).await?
-        };
-        let repo_ms = repo_start.elapsed().as_secs_f64() * 1000.0;
-        let total = items.len() as i64;
-        let pages = if size > 0 { (total + size - 1) / size } else { 0 };
-        let map_start = Instant::now();
-        let response_items = items.iter().map(to_response).collect();
-        let map_ms = map_start.elapsed().as_secs_f64() * 1000.0;
-
-        if trace {
-            tracing::info!(
-                target: "fms_perf",
-                event = "flights_list_service",
+        let monitor_rows = self.monitor_rows.as_ref().ok_or_else(|| {
+            DomainError::Internal("flight_monitor_rows repository is required for flight list reads".into())
+        })?;
+        {
+            let criteria = FlightMonitorRowQuery {
+                has_open_anomaly,
+                ..FlightMonitorRowQuery::default()
+            };
+            let repo_start = Instant::now();
+            let rows = monitor_rows.search(&criteria, size, offset).await?;
+            let total = monitor_rows.count_filtered(&criteria).await?;
+            let response_items = rows
+                .iter()
+                .map(FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::to_response)
+                .collect();
+            let pages = if size > 0 { (total + size - 1) / size } else { 0 };
+            let response = FlightListResponse {
+                items: response_items,
+                total,
                 page,
-                page_size = size,
-                offset,
-                has_open_anomaly = has_open_anomaly.unwrap_or(false),
-                repo_items = items.len(),
-                repo_ms,
-                dto_map_ms = map_ms,
-                total_ms = total_start.elapsed().as_secs_f64() * 1000.0,
-            );
+                size,
+                pages,
+            };
+            if trace {
+                tracing::info!(target: "fms_perf", event = "flights_list_service", page, page_size = size, offset, repo_items = rows.len(), repo_ms = repo_start.elapsed().as_secs_f64() * 1000.0, dto_map_ms = 0.0, total_ms = total_start.elapsed().as_secs_f64() * 1000.0, monitor_row_path = true);
+            }
+            if hot_path {
+                *self.hot_list.write().await = Some(response.clone());
+            }
+            return Ok(response);
         }
-
-        let response = FlightListResponse {
-            items: response_items,
-            total,
-            page,
-            size,
-            pages,
-        };
-        if hot_path {
-            *self.hot_list.write().await = Some(response.clone());
-        }
-
-        Ok(response)
     }
 
     /// 创建航班（显式命令入口，ADR-0002）。
     pub async fn execute_create(&self, command: FlightCreateCommand) -> Result<FlightResponse, DomainError> {
         self.create_flight_inner(command.dto, command.actor_id).await
+    }
+
+    /// Validate and materialize a create DTO without persisting it.
+    ///
+    /// Import workflows use this seam to prepare multiple directional flights
+    /// before handing them to a single UnitOfWork. Keeping validation and
+    /// mapping here ensures the transactional writer cannot be bypassed by a
+    /// second, subtly different DTO path.
+    pub async fn prepare_create(&self, dto: FlightCreate) -> Result<fms_domain::models::flight::Flight, DomainError> {
+        let dto = flight_command_validator::validate_create_payload(self.repo.as_ref(), dto).await?;
+        from_create(dto)
     }
 
     /// 更新航班（显式命令入口，ADR-0002）。
@@ -228,7 +230,18 @@ impl FlightService {
 
         match self.tx_writes.as_ref() {
             Some(writes) => writes.save_with_created_event(&flight, created_by.as_deref()).await?,
-            None => self.repo.save(&flight).await?,
+            None => {
+                self.repo.save(&flight).await?;
+                let repo = self.monitor_rows.as_ref().ok_or_else(|| {
+                    DomainError::Internal("flight_monitor_rows repository is required for non-transactional flight writes".into())
+                })?;
+                repo.upsert(
+                    &FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::project_from_flight(
+                        &flight,
+                    ),
+                )
+                .await?;
+            }
         }
 
         self.invalidate_hot_list().await;
@@ -247,6 +260,8 @@ impl FlightService {
     ) -> Result<Option<FlightResponse>, DomainError> {
         flight_command_validator::validate_update_payload(&dto)?;
         let patch = update_patch_from_dto(dto)?;
+        flight_command_validator::reject_legacy_aggregate_write(self.repo.as_ref(), flight_id).await?;
+        flight_command_validator::ensure_directional_leg_patch(self.repo.as_ref(), flight_id, &patch).await?;
         flight_command_validator::ensure_status_transition(self.repo.as_ref(), flight_id, &patch).await?;
 
         let flight = match self.tx_writes.as_ref() {
@@ -255,7 +270,21 @@ impl FlightService {
                     .update_partial_with_events(flight_id, &patch, updated_by.as_deref())
                     .await?
             }
-            None => self.repo.update_partial(flight_id, &patch).await?,
+            None => {
+                let flight = self.repo.update_partial(flight_id, &patch).await?;
+                if let Some(ref flight) = flight {
+                    let repo = self.monitor_rows.as_ref().ok_or_else(|| {
+                        DomainError::Internal("flight_monitor_rows repository is required for non-transactional flight writes".into())
+                    })?;
+                    repo.upsert(
+                        &FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::project_from_flight(
+                            flight,
+                        ),
+                    )
+                    .await?;
+                }
+                flight
+            }
         };
         let Some(flight) = flight else {
             return Ok(None);
@@ -304,7 +333,21 @@ impl FlightService {
                     .update_partial_with_events(flight_id, &patch, actor_id.as_deref())
                     .await?
             }
-            None => self.repo.update_partial(flight_id, &patch).await?,
+            None => {
+                let flight = self.repo.update_partial(flight_id, &patch).await?;
+                if let Some(ref flight) = flight {
+                    let repo = self.monitor_rows.as_ref().ok_or_else(|| {
+                        DomainError::Internal("flight_monitor_rows repository is required for non-transactional flight writes".into())
+                    })?;
+                    repo.upsert(
+                        &FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::project_from_flight(
+                            flight,
+                        ),
+                    )
+                    .await?;
+                }
+                flight
+            }
         };
         let Some(flight) = flight else {
             return Ok(None);
@@ -323,6 +366,9 @@ impl FlightService {
             None => self.repo.delete(flight_id).await?,
         };
         if deleted {
+            if let Some(repo) = &self.monitor_rows {
+                repo.deactivate_flight(flight_id).await?;
+            }
             self.invalidate_hot_list().await;
             self.negative_cache.remove(flight_id);
         }
@@ -345,21 +391,22 @@ impl FlightService {
         size: i64,
     ) -> Result<Vec<FlightResponse>, DomainError> {
         let offset = (page - 1).max(0) * size.max(1);
-        let flights = self
-            .repo
-            .search(
-                &FlightSearchCriteria {
-                    flight_no: flight_no.map(str::to_string),
-                    status: status.map(str::to_string),
-                    origin: origin.map(str::to_string),
-                    destination: destination.map(str::to_string),
-                    has_open_anomaly,
-                },
-                size.max(1),
-                offset,
-            )
-            .await?;
-        Ok(flights.iter().map(to_response).collect())
+        let monitor_rows = self.monitor_rows.as_ref().ok_or_else(|| {
+            DomainError::Internal("flight_monitor_rows repository is required for flight search reads".into())
+        })?;
+        let criteria = FlightMonitorRowQuery {
+            query: flight_no.map(str::to_string),
+            status: status.map(str::to_string),
+            origin: origin.map(str::to_string),
+            destination: destination.map(str::to_string),
+            has_open_anomaly,
+            ..FlightMonitorRowQuery::default()
+        };
+        let rows = monitor_rows.search(&criteria, size.max(1), offset).await?;
+        Ok(rows
+            .iter()
+            .map(FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::to_response)
+            .collect())
     }
 
     /// KPI 快照 (stub)

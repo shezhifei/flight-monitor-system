@@ -1,6 +1,6 @@
 # 快速开始
 
-文档基线：**2026-08-11**。默认用 Docker 标准拓扑或 Host Rust 本机联调；不要把 Python HTTP API 当作启动路径。
+文档基线：**2026-08-28**。默认用 Docker 标准拓扑或 Host Rust 本机联调；不要把 Python HTTP API 当作启动路径。
 
 ## 1. Docker 标准拓扑
 
@@ -62,6 +62,14 @@ docker compose -f deploy\docker\docker-compose.distributed.yml ps
 
 组件日志：`.runtime/host-services/{service}/`。PostgreSQL 若是系统服务，host stop 不会自动关掉。
 
+宿主机混合压测与 Postgres 超参：`docs/operations/HOST_PERF.md`。
+
+```powershell
+$env:FMS_PERF_PASSWORD = "<login password>"
+.\scripts\perf\apply_host_perf_profile.ps1 -StackMemoryMb 3072 -ApplyPostgres
+.\scripts\perf\run_host_mixed_qps.ps1 -ApiBaseUrl https://localhost:18443 -Insecure
+```
+
 ## 3. 边缘部署
 
 ```powershell
@@ -94,7 +102,7 @@ sqlx migrate run --database-url $env:DATABASE_URL
 psql -v ON_ERROR_STOP=1 --file scripts\database\verify_runtime_schema.sql $env:DATABASE_URL
 ```
 
-- 最新迁移：`121_add_soft_delete_columns.sql`（`120` 移除全部外键，`121` 加软删除列；产品删除统一软删，引用完整性由应用层 + `scripts/database/check_referential_integrity.sql` 巡检保证）
+- 最新迁移：`158_idx_flight_monitor_rows_active_sort.sql`（`120` 移除全部外键，`121` 加软删除列；`144`–`158` 含码表、字段 overlay、监控宽表、航班身份拆分。产品删除统一软删，引用完整性由应用层 + `scripts/database/check_referential_integrity.sql` 巡检保证）
 - 空库可直接 `sqlx migrate run --source migrations`
 - `CREATE INDEX CONCURRENTLY` 必须单独文件，首行 `-- no-transaction`（见 107–112 一类迁移）
 

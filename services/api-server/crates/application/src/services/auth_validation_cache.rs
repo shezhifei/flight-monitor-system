@@ -1,3 +1,4 @@
+use crate::schemas::auth_schemas::TokenData;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::RwLock;
@@ -5,6 +6,7 @@ use std::time::{Duration, Instant};
 
 const DEFAULT_FRESHNESS_CACHE_TTL_MS: u64 = 2000;
 const DEFAULT_PERMISSION_CACHE_TTL_MS: u64 = 2000;
+const DEFAULT_CLAIMS_CACHE_TTL_MS: u64 = 2000;
 
 struct CacheEntry<T: Clone> {
     value: T,
@@ -24,8 +26,10 @@ impl<T: Clone> CacheEntry<T> {
 pub struct AuthValidationCache {
     freshness_cache: RwLock<LruCache<String, CacheEntry<bool>>>,
     permission_cache: RwLock<LruCache<String, CacheEntry<bool>>>,
+    claims_cache: RwLock<LruCache<String, CacheEntry<TokenData>>>,
     freshness_ttl: Duration,
     permission_ttl: Duration,
+    claims_ttl: Duration,
 }
 
 impl AuthValidationCache {
@@ -38,6 +42,10 @@ impl AuthValidationCache {
             .unwrap_or_else(|_| DEFAULT_PERMISSION_CACHE_TTL_MS.to_string())
             .parse()
             .unwrap_or(DEFAULT_PERMISSION_CACHE_TTL_MS);
+        let claims_ttl_ms: u64 = std::env::var("AUTH_CLAIMS_CACHE_TTL_MS")
+            .unwrap_or_else(|_| DEFAULT_CLAIMS_CACHE_TTL_MS.to_string())
+            .parse()
+            .unwrap_or(DEFAULT_CLAIMS_CACHE_TTL_MS);
         let max_entries: usize = std::env::var("AUTH_CACHE_MAX_ENTRIES")
             .unwrap_or_else(|_| "50000".to_string())
             .parse()
@@ -47,9 +55,40 @@ impl AuthValidationCache {
         Self {
             freshness_cache: RwLock::new(LruCache::new(cap)),
             permission_cache: RwLock::new(LruCache::new(cap)),
+            claims_cache: RwLock::new(LruCache::new(cap)),
             freshness_ttl: Duration::from_millis(freshness_ttl_ms),
             permission_ttl: Duration::from_millis(permission_ttl_ms),
+            claims_ttl: Duration::from_millis(claims_ttl_ms),
         }
+    }
+
+    pub fn get_cached_claims(&self, token_hash: &str) -> Option<TokenData> {
+        let cache = self
+            .claims_cache
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match cache.peek(token_hash) {
+            Some(entry) if entry.is_valid() => Some(entry.value.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn set_cached_claims(&self, token_hash: &str, claims: TokenData) {
+        if token_hash.is_empty() {
+            return;
+        }
+        let mut cache = self
+            .claims_cache
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        put_with_expiration_guard(
+            &mut cache,
+            token_hash.to_string(),
+            CacheEntry {
+                value: claims,
+                expires_at: Instant::now() + self.claims_ttl,
+            },
+        );
     }
 
     pub async fn get_cached_freshness(&self, user_id: &str, session_key: &str) -> Option<bool> {
@@ -178,8 +217,10 @@ mod tests {
         AuthValidationCache {
             freshness_cache: RwLock::new(LruCache::new(cap)),
             permission_cache: RwLock::new(LruCache::new(cap)),
+            claims_cache: RwLock::new(LruCache::new(cap)),
             freshness_ttl: Duration::from_millis(freshness_ttl_ms),
             permission_ttl: Duration::from_millis(permission_ttl_ms),
+            claims_ttl: Duration::from_millis(freshness_ttl_ms),
         }
     }
 
@@ -334,5 +375,34 @@ mod tests {
         for join in joins {
             join.await.unwrap();
         }
+    }
+
+    fn sample_claims(sub: &str) -> TokenData {
+        TokenData {
+            sub: Some(sub.to_string()),
+            email: None,
+            username: Some(sub.to_string()),
+            token_kind: Some("access".to_string()),
+            is_admin: Some(false),
+            permissions: vec!["flight:read".to_string()],
+            department: None,
+            department_id: None,
+            pv: Some(1),
+            iat: Some(1),
+            exp: Some(i64::MAX / 2),
+            iss: None,
+            aud: None,
+            ua_hash: None,
+            ip_subnet_hash: None,
+        }
+    }
+
+    #[test]
+    fn claims_cache_hit_on_same_token_hash() {
+        let cache = make_cache(1000, 5000, 5000);
+        cache.set_cached_claims("hash-a", sample_claims("user1"));
+        let cached = cache.get_cached_claims("hash-a").expect("cached claims");
+        assert_eq!(cached.sub.as_deref(), Some("user1"));
+        assert!(cache.get_cached_claims("hash-b").is_none());
     }
 }

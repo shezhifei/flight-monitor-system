@@ -25,6 +25,7 @@ struct FakeNotificationRepo {
     ack_result: Mutex<Option<Notification>>,
     summary: Mutex<Option<Value>>,
     sent_groups: Mutex<Vec<Value>>,
+    count_unread_calls: Mutex<u32>,
 }
 
 impl FakeNotificationRepo {
@@ -34,6 +35,7 @@ impl FakeNotificationRepo {
             ack_result: Mutex::new(None),
             summary: Mutex::new(None),
             sent_groups: Mutex::new(Vec::new()),
+            count_unread_calls: Mutex::new(0),
         }
     }
 }
@@ -107,6 +109,7 @@ impl NotificationRepository for FakeNotificationRepo {
     }
 
     async fn count_unread(&self, user_id: &str) -> Result<i64, DomainError> {
+        *self.count_unread_calls.lock().expect("lock count") += 1;
         Ok(self
             .saved
             .lock()
@@ -953,4 +956,27 @@ async fn receipt_required_collaboration_event_includes_sender_user_id() {
     assert_eq!(events[1].event_type, "notification_receipt_required");
     assert_eq!(events[1].payload["receipt_group_id"], receipt_group_id);
     assert_eq!(events[1].payload["sender_user_id"], "sender_001");
+}
+
+#[tokio::test]
+async fn unread_count_reuses_ttl_cache_until_mark_all_read() {
+    let repo = Arc::new(FakeNotificationRepo::new());
+    let service = NotificationService::new(
+        repo.clone(),
+        Arc::new(FakePreferenceRepo),
+        Arc::new(NoCollaborationEvents),
+        Arc::new(NoopNotificationDeliveryPublisher),
+        Arc::new(NoopNotificationMetricsRecorder),
+        Arc::new(NoopNotificationReceiptGroupSync),
+    );
+
+    let first = service.get_unread_count("user_001").await.expect("count");
+    let second = service.get_unread_count("user_001").await.expect("count");
+    assert_eq!(first, 0);
+    assert_eq!(second, 0);
+    assert_eq!(*repo.count_unread_calls.lock().expect("lock count"), 1);
+
+    service.mark_all_read("user_001").await.expect("mark all");
+    let _ = service.get_unread_count("user_001").await.expect("count after invalidate");
+    assert_eq!(*repo.count_unread_calls.lock().expect("lock count"), 2);
 }

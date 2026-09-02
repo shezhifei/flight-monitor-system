@@ -1,0 +1,26 @@
+# Host mixed-load profile for a 3GiB full-stack RAM budget.
+# Generated shape from scripts/perf/tune_postgres.py --stack-memory-mb 3072
+# Apply with:
+#   .\.venv\Scripts\python.exe scripts\perf\tune_postgres.py --apply --stack-memory-mb 3072
+# shared_buffers / max_connections / shared_preload_libraries need a PostgreSQL restart.
+
+max_connections = 64
+shared_buffers = 480MB
+effective_cache_size = 1472MB
+maintenance_work_mem = 96MB
+work_mem = 5MB
+wal_buffers = 16MB
+min_wal_size = 256MB
+max_wal_size = 1GB
+checkpoint_completion_target = 0.9
+random_page_cost = 1.1
+effective_io_concurrency = 200
+huge_pages = off
+default_statistics_target = 100
+autovacuum = on
+autovacuum_naptime = 10s
+idle_in_transaction_session_timeout = 30s
+synchronous_commit = on
+wal_compression = on
+shared_preload_libraries = pg_stat_statements
+pg_stat_statements.track = all

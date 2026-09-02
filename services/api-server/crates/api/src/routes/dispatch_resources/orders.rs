@@ -5,7 +5,8 @@ use std::sync::Arc;
 use crate::error::ApiError;
 use crate::middleware::jwt::JwtAuth;
 use crate::middleware::permissions::PermissionCheck;
-use crate::routes::dispatch_resources::{department_scope, ok_resp, request_wants_protobuf};
+use crate::routes::dispatch_resources::{department_scope, ok_resp, request_id, request_wants_protobuf};
+use crate::routes::ttl_bytes_cache::{json_bytes_response, TtlBytesCache};
 use fms_application::services::auth_service::AuthService;
 use fms_application::services::dispatch_collaboration_query_service::DispatchCollaborationQueryService;
 use fms_application::services::dispatch_query_service::DispatchQueryService;
@@ -15,6 +16,30 @@ use fms_application::services::dispatch_resource_service::{
 };
 
 const PROTOBUF_MEDIA_TYPE: &str = "application/x-protobuf";
+const DISPATCH_ORDER_LIST_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(1);
+
+static DISPATCH_ORDER_LIST_CACHE: once_cell::sync::Lazy<TtlBytesCache> =
+    once_cell::sync::Lazy::new(|| TtlBytesCache::new(DISPATCH_ORDER_LIST_CACHE_TTL));
+
+fn blank_filter(value: Option<&str>) -> bool {
+    value.map(str::trim).filter(|item| !item.is_empty()).is_none()
+}
+
+fn can_use_dispatch_order_list_cache(
+    req: &HttpRequest,
+    department: Option<&str>,
+    query: &OrderListQuery,
+    page: i64,
+    page_size: i64,
+) -> bool {
+    department.is_none()
+        && page == 1
+        && page_size == 20
+        && blank_filter(query.flight_id.as_deref())
+        && blank_filter(query.status.as_deref())
+        && blank_filter(query.source.as_deref())
+        && !request_wants_protobuf(req)
+}
 
 pub async fn list_orders(
     req: HttpRequest,
@@ -25,17 +50,38 @@ pub async fn list_orders(
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("dispatch:view")?;
     let department = department_scope(auth_svc.get_ref(), &claims).await?;
+    let page = query.page.unwrap_or(1).max(1);
+    let page_size = query.page_size.unwrap_or(20).clamp(1, 100);
+    let use_cache = can_use_dispatch_order_list_cache(&req, department.as_deref(), &query, page, page_size);
+    if use_cache {
+        if let Some(body) = DISPATCH_ORDER_LIST_CACHE.get() {
+            return Ok(json_bytes_response(body));
+        }
+    }
     let orders = svc
         .list_order_records(
             query.flight_id.as_deref(),
             query.status.as_deref(),
             query.source.as_deref(),
             department.as_deref(),
-            query.page.unwrap_or(1),
-            query.page_size.unwrap_or(20),
+            page,
+            page_size,
         )
         .await?;
-    Ok(ok_resp(&req, orders))
+    if !use_cache {
+        return Ok(ok_resp(&req, orders));
+    }
+    let payload = json!({
+        "success": true,
+        "data": orders,
+        "error": null,
+        "request_id": request_id(&req),
+    });
+    let body = web::Bytes::from(
+        serde_json::to_vec(&payload).map_err(|error| ApiError::Internal(error.to_string()))?,
+    );
+    DISPATCH_ORDER_LIST_CACHE.store(body.clone());
+    Ok(json_bytes_response(body))
 }
 
 pub async fn list_my_orders(

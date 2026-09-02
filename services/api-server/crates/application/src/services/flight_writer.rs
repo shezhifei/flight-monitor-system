@@ -13,7 +13,9 @@ use std::sync::Arc;
 use fms_domain::error::DomainError;
 use fms_domain::models::flight::Flight;
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowTransactionalRepository;
 use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository, FlightUpdatePatch};
+use fms_domain::ports::ontology_repository::OntologyTransactionalRepository;
 use fms_domain::ports::unit_of_work::UnitOfWork;
 
 use crate::schemas::flight_schemas::{FlightResponse, FlightUpdate};
@@ -23,11 +25,13 @@ use crate::services::flight_domain_events::{
     FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT,
 };
 use crate::services::flight_mappers::{to_response, update_patch_from_dto};
+use crate::services::flight_import_service::FlightImportPairTransactionalWriter;
 
 pub struct FlightWriter<Tx> {
     repo: Arc<dyn FlightRepository + Send + Sync>,
     tx_repo: Arc<dyn FlightTransactionalRepository<Tx> + Send + Sync>,
     outbox_repo: Arc<dyn DomainEventOutboxTransactionalRepository<Tx> + Send + Sync>,
+    monitor_row_repo: Option<Arc<dyn FlightMonitorRowTransactionalRepository<Tx> + Send + Sync>>,
 }
 
 impl<Tx> FlightWriter<Tx> {
@@ -40,7 +44,16 @@ impl<Tx> FlightWriter<Tx> {
             repo,
             tx_repo,
             outbox_repo,
+            monitor_row_repo: None,
         }
+    }
+
+    pub fn with_monitor_row_repository(
+        mut self,
+        repo: Arc<dyn FlightMonitorRowTransactionalRepository<Tx> + Send + Sync>,
+    ) -> Self {
+        self.monitor_row_repo = Some(repo);
+        self
     }
 }
 
@@ -56,10 +69,13 @@ impl<Tx: Send> FlightWriter<Tx> {
     ) -> Result<Option<FlightResponse>, DomainError> {
         flight_command_validator::validate_update_payload(&dto)?;
         let patch = update_patch_from_dto(dto)?;
+        flight_command_validator::reject_legacy_aggregate_write(self.repo.as_ref(), flight_id).await?;
+        flight_command_validator::ensure_directional_leg_patch(self.repo.as_ref(), flight_id, &patch).await?;
         flight_command_validator::ensure_status_transition(self.repo.as_ref(), flight_id, &patch).await?;
         let Some(flight) = self.tx_repo.update_partial_in_tx(tx, flight_id, &patch).await? else {
             return Ok(None);
         };
+        self.upsert_monitor_row_in_tx(tx, &flight).await?;
         write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, flight_id, &patch, updated_by.as_deref())
             .await?;
         let mut response = to_response(&flight);
@@ -74,6 +90,7 @@ impl<Tx: Send> FlightWriter<Tx> {
         created_by: Option<&str>,
     ) -> Result<(), DomainError> {
         self.tx_repo.save_in_tx(tx, flight).await?;
+        self.upsert_monitor_row_in_tx(tx, flight).await?;
         write_flight_outbox_event(
             self.outbox_repo.as_ref(),
             tx,
@@ -95,6 +112,7 @@ impl<Tx: Send> FlightWriter<Tx> {
         let Some(flight) = self.tx_repo.update_partial_in_tx(tx, flight_id, patch).await? else {
             return Ok(None);
         };
+        self.upsert_monitor_row_in_tx(tx, &flight).await?;
         write_flight_update_outbox_events(self.outbox_repo.as_ref(), tx, flight_id, patch, actor).await?;
         Ok(Some(flight))
     }
@@ -102,6 +120,9 @@ impl<Tx: Send> FlightWriter<Tx> {
     pub async fn delete_with_deleted_event(&self, tx: &mut Tx, flight_id: &str) -> Result<bool, DomainError> {
         let deleted = self.tx_repo.delete_in_tx(tx, flight_id).await?;
         if deleted {
+            if let Some(repo) = self.monitor_row_repo.as_ref() {
+                repo.deactivate_flight_in_tx(tx, flight_id).await?;
+            }
             write_flight_outbox_event(
                 self.outbox_repo.as_ref(),
                 tx,
@@ -113,6 +134,16 @@ impl<Tx: Send> FlightWriter<Tx> {
             .await?;
         }
         Ok(deleted)
+    }
+
+    async fn upsert_monitor_row_in_tx(&self, tx: &mut Tx, flight: &Flight) -> Result<(), DomainError> {
+        let Some(repo) = self.monitor_row_repo.as_ref() else {
+            return Ok(());
+        };
+        let row = crate::services::flight_monitor_row_service::FlightMonitorRowService::<
+            dyn fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository + Send + Sync,
+        >::project_from_flight(flight);
+        repo.upsert_in_tx(tx, &row).await
     }
 }
 
@@ -175,5 +206,67 @@ impl<U: UnitOfWork> FlightTransactionalWrites for UowFlightWriter<U> {
         let deleted = self.writer.delete_with_deleted_event(&mut tx, flight_id).await?;
         self.uow.commit(tx).await?;
         Ok(deleted)
+    }
+}
+
+/// UnitOfWork adapter for importing an inbound/outbound turnaround pair.
+///
+/// A pair import is one consistency boundary: both directional flights, the
+/// TurnaroundLink, outbox events and the monitor-row merge must commit or roll
+/// back together. The adapter keeps the concrete transaction type at the DI
+/// boundary while reusing the same typed writers as ordinary flight writes.
+pub struct UowFlightImportPairWriter<U: UnitOfWork> {
+    flight_writer: FlightWriter<U::Tx>,
+    ontology_tx: Arc<dyn OntologyTransactionalRepository<U::Tx> + Send + Sync>,
+    monitor_row_repo: Arc<dyn FlightMonitorRowTransactionalRepository<U::Tx> + Send + Sync>,
+    uow: Arc<U>,
+}
+
+impl<U: UnitOfWork> UowFlightImportPairWriter<U> {
+    pub fn new(
+        flight_writer: FlightWriter<U::Tx>,
+        ontology_tx: Arc<dyn OntologyTransactionalRepository<U::Tx> + Send + Sync>,
+        monitor_row_repo: Arc<dyn FlightMonitorRowTransactionalRepository<U::Tx> + Send + Sync>,
+        uow: Arc<U>,
+    ) -> Self {
+        Self {
+            flight_writer,
+            ontology_tx,
+            monitor_row_repo,
+            uow,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<U> FlightImportPairTransactionalWriter for UowFlightImportPairWriter<U>
+where
+    U: UnitOfWork,
+    U::Tx: Send,
+{
+    async fn create_pair(
+        &self,
+        inbound: &Flight,
+        outbound: &Flight,
+        link: &fms_domain::models::ontology_v1::TurnaroundLink,
+        actor_id: &str,
+    ) -> Result<(), DomainError> {
+        let mut tx = self.uow.begin().await?;
+        self.flight_writer
+            .save_with_created_event(&mut tx, inbound, Some(actor_id))
+            .await?;
+        self.flight_writer
+            .save_with_created_event(&mut tx, outbound, Some(actor_id))
+            .await?;
+        self.ontology_tx.create_link_in_tx(&mut tx, link).await?;
+        self.monitor_row_repo
+            .merge_turnaround_in_tx(
+                &mut tx,
+                &link.id,
+                inbound.flight_id.as_str(),
+                outbound.flight_id.as_str(),
+            )
+            .await?;
+        self.uow.commit(tx).await
     }
 }

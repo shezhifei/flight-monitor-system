@@ -1,6 +1,6 @@
 # 航班监控系统手册
 
-文档基线：**2026-08-11**。面向开发与运维，描述分层、子系统与运行约束。细节命令以 `QUICK_START.md` / `docs/DEPLOYMENT.md` 为准；路由明细以 `docs/API_ROUTE_SNAPSHOT.md` 与源码为准。
+文档基线：**2026-08-28**。面向开发与运维，描述分层、子系统与运行约束。细节命令以 `QUICK_START.md` / `docs/DEPLOYMENT.md` 为准；路由明细以 `docs/API_ROUTE_SNAPSHOT.md` 与源码为准。
 
 ## 1. 系统定位
 
@@ -74,7 +74,7 @@ config/                       # 侧车相关配置（如 ai_config.py）
 参数：`-SkipBuild`、`-SkipMigrations`、`-UseCargoRun`。  
 命令：`start` / `stop` / `status` / `logs` / `restart`。
 
-Host 适合排障，不替代 Docker 作为验收基线。
+Host 适合排障，不替代 Docker 作为验收基线。宿主机混合压测与 Postgres 超参见 `docs/operations/HOST_PERF.md`。
 
 ### 4.3 Python AI 侧车
 
@@ -90,12 +90,15 @@ Host 适合排障，不替代 Docker 作为验收基线。
 
 ### 5.1 Flight
 
-主数据读写、腿/状态/时间线、导入、标签、归档、事件发布。  
-写副作用应在应用服务层；写边界见 `docs/architecture/ADR-0002-flight-core-write-boundary.md`。航班/时间线/异常域在 `032` 迁移后强切解耦。
+方向航班（一班进港 **或** 一班出港）、周转链、监控宽表、状态、时间线、导入、标签、归档、事件。
+`Flight.direction` 只能是 `inbound` / `outbound`。同机保障用 `TurnaroundLink`，不是把两班塞进一个 Flight。
+热列表 / 搜索 / 计数只读 `flight_monitor_rows`（`GET /api/v2/flights`、`/search`、`/monitor-rows`），禁止 JOIN `flights` / `flight_legs`。详情按 `flight_id` 读一班。`row_id` 不因建链/拆链改变。
+航班写与监控投影同一 UnitOfWork；写边界见 `docs/architecture/ADR-0002-flight-core-write-boundary.md`。身份拆分见迁移 `155`。
 
 ### 5.2 Dispatch
 
-工单、资源、班组、设备、机位、排班、协同聊天、重排预览/应用、Flowable 触发与指派。  
+工单、资源、班组、设备、机位、排班、协同聊天、重排预览/应用、Flowable 触发与指派。
+`TaskType.anchor`（`inbound` \| `outbound` \| `link`）决定工单挂进港航班、出港航班还是周转链。码表与字段 overlay 在资源管理维护。
 路由 `routes/dispatch*.rs`，应用服务 `dispatch*.rs`。协同账本自 `035` 起；幂等相关见 `069`、`070`。
 
 ### 5.3 Business Case
@@ -130,7 +133,8 @@ Workbench、operations events、uploads、device register/heartbeat/unregister�
 
 | 事实 | 运行/操作面 | 本体/管线面 | 边界 |
 |---|---|---|---|
-| 机位 | `PATCH /api/v2/flights/{flight_id}` 写 `flights.stand` | `/api/v2/ontology` 管理 `stand_occupations`，可选同步航班计划 | 即时运行字段与时段占用模型并存 |
+| 机位 / 口 / 转盘 | 航班 `stand`/`gate`/`terminal`/`baggage_carousel` 是占用回写展示列；监控 PATCH 拒绝这四列。列表格子读 `flight_monitor_rows` | `/api/v2/ontology` 管理 `StandOccupation` / `GateAssignment` / `CarouselAssignment` | 展示列不是计划真相；占用对象才是写入口 |
+| 监控行 vs Flight | `GET /api/v2/flights` 热列表读宽表一行（进出港是列） | 详情 / `flight.get_context` 按 `flight_id` 读一班方向航班 | 监控行不是本体对象；不要把两班 zip 成列表行 |
 | AI 审批 | Vue/ai-react 使用 `/api/v2/ai/pending-actions` | proposal 管线使用 `/api/v2/ai/proposals`，执行时回写 pending action | 人工工具审批与本体动作 proposal 两个工作流通过桥接保持一致 |
 | 工单时间线 | `/api/v2/dispatch-orders/{order_id}/timeline` 投影协同账本中的工单状态事件 | `/api/v2/mobile/workbench` 提供移动作业日志/工单摘要 | 同一工单事实按桌面时间线与移动工作台契约分别读取 |
 
@@ -144,7 +148,7 @@ Workbench、operations events、uploads、device register/heartbeat/unregister�
 | 正式访问 | `/frontend/<page>.html` |
 | 兼容访问 | `/frontend/html/<page>.html` |
 
-约 22 个页面入口（login、dashboard、flight_monitor、dispatch_board、command_center、ai_*、nl_query、system_status、flowable_modeler 等）。新功能只走 Vue 多页。  
+23 个正式 Vue 页（login、dashboard、workspace、flight_monitor、dispatch_board、command_center、resource_manager、ontology_center、ai_*、nl_query、system_status、flowable_modeler 等；`index` 只做跳转）。新功能只走 Vue 多页。
 根路径 `/` 跳到正式 Vue 登录页 `/frontend/login.html`。
 
 ## 7. 配置、密钥与迁移
@@ -162,7 +166,7 @@ Workbench、operations events、uploads、device register/heartbeat/unregister�
 ### 迁移
 
 - 目录：`migrations/*.sql`
-- 当前最新：`121_add_soft_delete_columns.sql`
+- 当前最新：`158_idx_flight_monitor_rows_active_sort.sql`
 - 按编号顺序；Host 默认可自动执行
 - 空库可用 `sqlx migrate run --source migrations`
 - `CREATE INDEX CONCURRENTLY`：每文件一条，首行 `-- no-transaction`

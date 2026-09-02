@@ -1035,7 +1035,7 @@ impl OntologyService {
         };
         link = enforce_link_health(&link, inbound.registration.as_deref(), outbound.registration.as_deref());
 
-        self.link_repo.create(&link).await?;
+        self.tx_ops.create_turnaround_link_tx(&link).await?;
         Ok(link)
     }
 
@@ -1076,7 +1076,7 @@ impl OntologyService {
         link.updated_at = Utc::now();
         let _ = request.broken_by;
 
-        self.link_repo.update(&link).await?;
+        self.tx_ops.break_turnaround_link_tx(&link).await?;
         Ok(link)
     }
 
@@ -1165,9 +1165,9 @@ impl OntologyService {
         // 并发下可能撞唯一约束。原先这里开了事务并在两个错误分支里 rollback，
         // 但事务里只有这一条 INSERT——单条语句失败本身就不会留下任何需要回滚的改动，
         // 那两句 rollback 是空操作。
-        match self.link_repo.create(&link).await {
+        match self.tx_ops.create_turnaround_link_tx(&link).await {
             Ok(()) => Ok(Some(link.id)),
-            Err(DomainError::Internal(msg)) if msg.contains("duplicate") || msg.contains("unique") => Ok(None),
+            Err(OntologyError::Internal(msg)) if msg.contains("duplicate") || msg.contains("unique") => Ok(None),
             Err(e) => Err(OntologyError::from(e)),
         }
     }
@@ -1393,7 +1393,7 @@ impl OntologyService {
             return Ok(());
         };
         // 仅对有出港边的航段尝试
-        if flight.outbound_leg.is_none() {
+        if !flight.is_departure_flight() {
             return Ok(());
         }
         match self

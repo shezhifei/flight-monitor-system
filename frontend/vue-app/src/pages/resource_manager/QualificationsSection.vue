@@ -13,6 +13,8 @@ import UiModal from '@/components/ui/UiModal.vue';
 import UiPill from '@/components/ui/UiPill.vue';
 import UiSearch from '@/components/ui/UiSearch.vue';
 import UiSelect from '@/components/ui/UiSelect.vue';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
+import type { FieldOverlay, FieldReferenceEntry } from '@/composables/useFieldOverlays';
 
 const props = defineProps<{
   active: boolean;
@@ -26,6 +28,9 @@ const props = defineProps<{
   form: QualificationFormData;
   levelForm: QualificationLevelFormData;
   departmentOptions: Array<{ value: string; label: string }>;
+  fieldOverlays?: FieldOverlay[];
+  fieldCatalogEntries?: Record<string, Array<{ code: string; name: string }>>;
+  fieldReferenceEntries?: Record<string, FieldReferenceEntry[]>;
   levelsFor: (code: string) => QualificationLevel[];
 }>();
 
@@ -174,6 +179,13 @@ function levelSummary(code: string): string {
           @input="patchForm('qualification_code', ($event.target as HTMLInputElement).value)"
         >
       </div>
+      <FieldOverlayForm
+        :model-value="form.attributes ?? {}"
+        :overlays="fieldOverlays ?? []"
+        :catalog-entries="fieldCatalogEntries ?? {}"
+        :reference-entries="fieldReferenceEntries ?? {}"
+        @update:model-value="patchForm('attributes', $event)"
+      />
       <div class="form-group">
         <label for="q-name">名称 <span class="required">*</span></label>
         <input

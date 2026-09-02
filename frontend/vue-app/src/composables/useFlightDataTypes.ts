@@ -53,6 +53,17 @@ export type DispatchTimelineCache = Map<string, DispatchTimelineCacheEntry>;
 
 export interface Flight {
   flight_id?: string | number | null;
+  /** 监控行稳定键（flight_monitor_rows.row_id）。建链/拆链不改变此值；
+   * 列表选中键 / :key 用它。flight_id 是兼容字段（过站行=进港方向航班 id）。 */
+  row_id?: string | number | null;
+  /** 同机周转链 id（turnaround_links.id），仅过站行有。 */
+  link_id?: string | number | null;
+  /** 行类型：turnaround | single。 */
+  kind?: string | null;
+  /** 进港方向航班 id：详情 / 进港侧单元格 PATCH 的真实目标。 */
+  inbound_flight_id?: string | number | null;
+  /** 出港方向航班 id：详情 / 出港侧单元格 PATCH 的真实目标。 */
+  outbound_flight_id?: string | number | null;
   flight_number?: string | null;
   inbound_leg?: Partial<FlightLeg> | null;
   outbound_leg?: Partial<FlightLeg> | null;

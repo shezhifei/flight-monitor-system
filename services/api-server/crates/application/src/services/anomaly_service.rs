@@ -9,12 +9,14 @@ use std::sync::Arc;
 use fms_domain::error::DomainError;
 use fms_domain::models::anomaly::*;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
+use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository;
 use fms_domain::ports::flight_repository::FlightRepository;
 
 /// 异常告警服务
 pub struct AnomalyService {
     repo: Arc<dyn AnomalyRepository + Send + Sync>,
     flight_repo: Option<Arc<dyn FlightRepository + Send + Sync>>,
+    monitor_rows: Option<Arc<dyn FlightMonitorRowRepository + Send + Sync>>,
 }
 
 impl AnomalyService {
@@ -22,6 +24,7 @@ impl AnomalyService {
         Self {
             repo,
             flight_repo: None,
+            monitor_rows: None,
         }
     }
 }
@@ -29,6 +32,14 @@ impl AnomalyService {
 impl AnomalyService {
     pub fn with_flight_repository(mut self, flight_repo: Arc<dyn FlightRepository + Send + Sync>) -> Self {
         self.flight_repo = Some(flight_repo);
+        self
+    }
+
+    pub fn with_monitor_row_repository(
+        mut self,
+        monitor_rows: Arc<dyn FlightMonitorRowRepository + Send + Sync>,
+    ) -> Self {
+        self.monitor_rows = Some(monitor_rows);
         self
     }
 
@@ -68,7 +79,11 @@ impl AnomalyService {
 
     /// 确认异常
     pub async fn acknowledge(&self, anomaly_id: &str) -> Result<bool, DomainError> {
-        self.repo.acknowledge(anomaly_id).await
+        let changed = self.repo.acknowledge(anomaly_id).await?;
+        if changed {
+            self.refresh_monitor_anomaly_flag(anomaly_id).await?;
+        }
+        Ok(changed)
     }
 
     pub async fn escalate(&self, anomaly_id: &str) -> Result<bool, DomainError> {
@@ -76,15 +91,39 @@ impl AnomalyService {
     }
 
     pub async fn resolve(&self, anomaly_id: &str) -> Result<bool, DomainError> {
-        self.repo.resolve(anomaly_id).await
+        let changed = self.repo.resolve(anomaly_id).await?;
+        if changed {
+            self.refresh_monitor_anomaly_flag(anomaly_id).await?;
+        }
+        Ok(changed)
     }
 
     /// 创建异常
     pub async fn create_anomaly(&self, dto: AnomalyCreate) -> Result<AnomalyResponse, DomainError> {
         let now = Utc::now();
+        let subject_type = dto
+            .subject_type
+            .clone()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "Flight".to_string());
+        let subject_id = dto
+            .subject_id
+            .clone()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| dto.flight_id.clone());
+        if subject_id.trim().is_empty() {
+            return Err(DomainError::ValidationError("subject_id 不能为空".into()));
+        }
+        let flight_id = if subject_type.eq_ignore_ascii_case("Flight") {
+            subject_id.clone()
+        } else {
+            dto.flight_id.clone()
+        };
         let anomaly = Anomaly {
             anomaly_id: ulid::Ulid::new().to_string(),
-            flight_id: dto.flight_id,
+            subject_type,
+            subject_id,
+            flight_id,
             anomaly_type: parse_type(&dto.anomaly_type),
             severity: parse_sev(&dto.severity),
             title: dto.title,
@@ -101,7 +140,20 @@ impl AnomalyService {
             updated_at: now,
         };
         self.repo.save(&anomaly).await?;
+        if let Some(repo) = &self.monitor_rows {
+            repo.refresh_anomaly_flag(&anomaly.flight_id).await?;
+        }
         Ok(anomaly_to_response(&anomaly))
+    }
+
+    async fn refresh_monitor_anomaly_flag(&self, anomaly_id: &str) -> Result<(), DomainError> {
+        let Some(monitor_rows) = &self.monitor_rows else {
+            return Ok(());
+        };
+        let Some(anomaly) = self.repo.find_by_id(anomaly_id).await? else {
+            return Ok(());
+        };
+        monitor_rows.refresh_anomaly_flag(&anomaly.flight_id).await
     }
 
     pub async fn evaluate_flight(&self, flight_id: &str) -> Result<Vec<AnomalyResponse>, DomainError> {
@@ -266,7 +318,10 @@ impl AnomalyService {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct AnomalyCreate {
+    #[serde(default)]
     pub flight_id: String,
+    pub subject_type: Option<String>,
+    pub subject_id: Option<String>,
     pub anomaly_type: String,
     pub severity: String,
     pub title: String,
@@ -278,6 +333,8 @@ pub struct AnomalyCreate {
 #[derive(Debug, Clone, Serialize)]
 pub struct AnomalyResponse {
     pub anomaly_id: String,
+    pub subject_type: String,
+    pub subject_id: String,
     pub flight_id: String,
     pub anomaly_type: String,
     pub severity: String,
@@ -348,6 +405,8 @@ pub struct AnomalyRuleResponse {
 fn anomaly_to_response(a: &Anomaly) -> AnomalyResponse {
     AnomalyResponse {
         anomaly_id: a.anomaly_id.clone(),
+        subject_type: a.subject_type.clone(),
+        subject_id: a.subject_id.clone(),
         flight_id: a.flight_id.clone(),
         anomaly_type: anomaly_type_value(a.anomaly_type).to_string(),
         severity: a.severity.as_ref().to_string(),
@@ -618,6 +677,8 @@ fn build_gate_stand_conflict_anomaly(
 
     Some(AnomalyCreate {
         flight_id: flight.flight_id.0.clone(),
+        subject_type: None,
+        subject_id: None,
         anomaly_type: "gate_stand_conflict".to_string(),
         severity: rule.severity.clone(),
         title: format!("Gate/Stand conflict: {flight_number}"),

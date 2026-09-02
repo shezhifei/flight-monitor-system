@@ -5,13 +5,11 @@ use serde_json::Value;
 use fms_domain::error::DomainError;
 use fms_domain::models::anomaly::{Anomaly, AnomalySeverity, AnomalyStatus, AnomalyType};
 use fms_domain::models::business_case::FlightBusinessCase;
-use fms_domain::models::dispatch::{
-    DispatchOrder, Equipment, PersonnelRuntime, QualificationGrant, Stand, Team,
-};
+use fms_domain::models::dispatch::{DispatchOrder, Equipment, PersonnelRuntime, QualificationGrant, Stand, Team};
 use fms_domain::models::flight::Flight;
 use fms_domain::models::ontology_v1::{OccupationKind, OccupationStatus, StandOccupation};
-use fms_domain::models::value_objects::FlightStatus;
 use fms_domain::models::user::User;
+use fms_domain::models::value_objects::FlightStatus;
 use fms_domain::ports::anomaly_repository::AnomalyRepository;
 use fms_domain::ports::business_case_repository::BusinessCaseRepository;
 use fms_domain::ports::dispatch_repository::{
@@ -191,7 +189,8 @@ impl DispatchOrderRepository for FakeDispatchRepo {
             .unwrap()
             .iter()
             .filter(|o| {
-                let user_ok = _individual_user_id.is_none_or(|user_id| o.individual_user_id.as_deref() == Some(user_id));
+                let user_ok =
+                    _individual_user_id.is_none_or(|user_id| o.individual_user_id.as_deref() == Some(user_id));
                 user_ok && exclude_order_id.is_none_or(|excluded| o.id != excluded)
             })
             .cloned()
@@ -426,22 +425,10 @@ impl EquipmentRepository for FakeEquipmentRepo {
         unimplemented!()
     }
     async fn find_by_id(&self, id: &str) -> Result<Option<Equipment>, DomainError> {
-        Ok(self
-            .equipment
-            .lock()
-            .unwrap()
-            .iter()
-            .find(|e| e.id == id)
-            .cloned())
+        Ok(self.equipment.lock().unwrap().iter().find(|e| e.id == id).cloned())
     }
     async fn find_by_code(&self, code: &str) -> Result<Option<Equipment>, DomainError> {
-        Ok(self
-            .equipment
-            .lock()
-            .unwrap()
-            .iter()
-            .find(|e| e.code == code)
-            .cloned())
+        Ok(self.equipment.lock().unwrap().iter().find(|e| e.code == code).cloned())
     }
     async fn find_available_for_dispatch(
         &self,
@@ -780,7 +767,12 @@ impl PersonnelRuntimeRepository for FakePersonnelRuntimeRepo {
             .find(|r| r.user_id == user_id)
             .cloned())
     }
-    async fn update_status(&self, _user_id: &str, _status: &str, _updated_by: Option<&str>) -> Result<bool, DomainError> {
+    async fn update_status(
+        &self,
+        _user_id: &str,
+        _status: &str,
+        _updated_by: Option<&str>,
+    ) -> Result<bool, DomainError> {
         unimplemented!()
     }
     async fn update_position(
@@ -896,6 +888,8 @@ pub(crate) fn anomaly_fixture(
     let now = Utc::now();
     Anomaly {
         anomaly_id: id.to_string(),
+        subject_type: "Flight".to_string(),
+        subject_id: flight_id.to_string(),
         flight_id: flight_id.to_string(),
         anomaly_type: AnomalyType::DispatchIssue,
         severity,
@@ -949,6 +943,7 @@ pub(crate) fn stand_fixture(id: &str, code: &str, active: bool) -> Stand {
         stand_type: None,
         size_category: None,
         is_active: active,
+        attributes: serde_json::json!({}),
         created_at: None,
     }
 }

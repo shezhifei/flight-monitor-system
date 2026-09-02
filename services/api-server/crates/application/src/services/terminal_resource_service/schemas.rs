@@ -5,11 +5,14 @@ pub struct TerminalCreate {
     /// 业务键，如 T1 / T2。
     pub code: String,
     pub name: String,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct TerminalUpdate {
     pub name: Option<String>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -19,12 +22,15 @@ pub struct GateCreate {
     /// 业务键，如 G-A01。
     pub code: String,
     pub name: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct GateUpdate {
     pub name: Option<String>,
     pub is_active: Option<bool>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -34,12 +40,15 @@ pub struct CarouselCreate {
     /// 业务键，如 B1。
     pub code: String,
     pub name: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CarouselUpdate {
     pub name: Option<String>,
     pub is_active: Option<bool>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -56,6 +65,8 @@ pub struct StandCreate {
     pub position_lng: f64,
     pub stand_type: Option<String>,
     pub size_category: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -67,6 +78,7 @@ pub struct StandUpdate {
     pub stand_type: Option<String>,
     pub size_category: Option<String>,
     pub is_active: Option<bool>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]

@@ -375,6 +375,16 @@ export interface BusinessCaseProperties {
 
 export interface FlightResponse {
   flight_id?: string | null;
+  /** 监控行稳定键（flight_monitor_rows.row_id）：建链/拆链不改；列表选中键用它。 */
+  row_id?: string | null;
+  /** 同机周转链 id（turnaround_links.id），仅过站行有。 */
+  link_id?: string | null;
+  /** 行类型：turnaround | single。 */
+  kind?: string | null;
+  /** 进港方向航班 id（进港侧详情/单元格 PATCH 的目标）。 */
+  inbound_flight_id?: string | null;
+  /** 出港方向航班 id（出港侧详情/单元格 PATCH 的目标）。 */
+  outbound_flight_id?: string | null;
   flight_number?: string | null;
   airline_code?: string | null;
   registration?: string | null;

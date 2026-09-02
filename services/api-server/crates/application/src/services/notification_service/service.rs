@@ -1,6 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
+use dashmap::DashMap;
 use tracing::{error, warn};
 
 use fms_domain::error::DomainError;
@@ -40,6 +42,7 @@ pub struct NotificationService<
     /// 这里的 `RwLock` 是循环依赖的断点（notification ↔ business_case_workflow），
     /// 不是可选性：里面永远有一个实现，只是可以被换掉。
     pub(crate) receipt_group_sync: std::sync::RwLock<Arc<RS>>,
+    unread_count_cache: DashMap<String, (Instant, i64)>,
 }
 
 impl<
@@ -66,7 +69,23 @@ impl<
             delivery_publisher,
             metrics_recorder,
             receipt_group_sync: std::sync::RwLock::new(receipt_group_sync),
+            unread_count_cache: DashMap::new(),
         }
+    }
+
+    fn unread_count_cache_ttl() -> Duration {
+        static TTL: OnceLock<Duration> = OnceLock::new();
+        *TTL.get_or_init(|| {
+            let millis = std::env::var("NOTIFICATION_UNREAD_CACHE_TTL_MS")
+                .ok()
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(2000);
+            Duration::from_millis(millis)
+        })
+    }
+
+    fn invalidate_unread_count(&self, user_id: &str) {
+        self.unread_count_cache.remove(user_id);
     }
 
     /// 打断 notification ↔ business_case_workflow 的构造环：先用一个占位实现建服务，
@@ -92,7 +111,20 @@ impl<
 
     /// 获取未读数
     pub async fn get_unread_count(&self, user_id: &str) -> Result<i64, DomainError> {
-        self.repo.count_unread(user_id).await
+        let ttl = Self::unread_count_cache_ttl();
+        if !ttl.is_zero() {
+            if let Some(entry) = self.unread_count_cache.get(user_id) {
+                if entry.0.elapsed() < ttl {
+                    return Ok(entry.1);
+                }
+            }
+        }
+        let count = self.repo.count_unread(user_id).await?;
+        if !ttl.is_zero() && !user_id.is_empty() {
+            self.unread_count_cache
+                .insert(user_id.to_string(), (Instant::now(), count));
+        }
+        Ok(count)
     }
 
     pub async fn get_notification(
@@ -108,6 +140,7 @@ impl<
         let updated = self.repo.mark_read(notification_id, user_id).await?;
         if updated {
             let _ = self.repo.mark_delivered(notification_id, user_id).await?;
+            self.invalidate_unread_count(user_id);
         }
         Ok(updated)
     }
@@ -152,7 +185,9 @@ impl<
 
     /// 全部已读
     pub async fn mark_all_read(&self, user_id: &str) -> Result<i64, DomainError> {
-        self.repo.mark_all_read(user_id).await
+        let updated = self.repo.mark_all_read(user_id).await?;
+        self.invalidate_unread_count(user_id);
+        Ok(updated)
     }
 
     pub async fn get_preferences(&self, user_id: &str) -> Result<NotificationPreference, DomainError> {

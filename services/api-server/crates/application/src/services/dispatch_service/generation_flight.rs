@@ -224,10 +224,9 @@ impl DispatchService {
                 .map(str::to_string)
         });
         let stand_type = flight.and_then(|item| {
-            item.inbound_leg
-                .as_ref()
+            item.inbound_leg_view()
                 .and_then(|leg| leg.stand_type.clone())
-                .or_else(|| item.outbound_leg.as_ref().and_then(|leg| leg.stand_type.clone()))
+                .or_else(|| item.outbound_leg_view().and_then(|leg| leg.stand_type.clone()))
         });
         let is_turnaround = flight.map(Flight::is_turnaround_flight).unwrap_or(true);
         let arrival_anchor = flight
@@ -278,7 +277,7 @@ impl DispatchService {
         );
 
         let mut contexts = HashMap::new();
-        if let Some(inbound_leg) = flight.and_then(|item| item.inbound_leg.as_ref()) {
+        if let Some(inbound_leg) = flight.and_then(Flight::inbound_leg_view) {
             let mut context = shared.clone();
             context.insert("leg_scope".to_string(), json!("inbound"));
             context.insert(
@@ -330,7 +329,7 @@ impl DispatchService {
             contexts.insert("inbound".to_string(), context);
         }
 
-        if let Some(outbound_leg) = flight.and_then(|item| item.outbound_leg.as_ref()) {
+        if let Some(outbound_leg) = flight.and_then(Flight::outbound_leg_view) {
             let mut context = shared.clone();
             context.insert("leg_scope".to_string(), json!("outbound"));
             context.insert(
@@ -423,6 +422,18 @@ impl DispatchService {
                 let Some(context) = contexts.get(leg_scope) else {
                     continue;
                 };
+                let task_type = task_type_repo.find_by_code(&rule.task_type).await?.ok_or_else(|| {
+                    DomainError::BusinessRuleViolation(format!(
+                        "规则 {} 引用不存在的作业类型 {}",
+                        rule.id, rule.task_type
+                    ))
+                })?;
+                if task_type.anchor != leg_scope {
+                    return Err(DomainError::BusinessRuleViolation(format!(
+                        "规则 {} 的 leg_scope={} 与作业类型 {} 的 anchor={} 不一致",
+                        rule.id, leg_scope, rule.task_type, task_type.anchor
+                    )));
+                }
                 if !Self::legacy_generation_conditions_match(context, &rule.conditions) {
                     continue;
                 }
@@ -469,11 +480,7 @@ impl DispatchService {
                     if let Some(duration) = rule.duration_minutes {
                         duration
                     } else {
-                        task_type_repo
-                            .find_by_code(&rule.task_type)
-                            .await?
-                            .and_then(|item| item.default_duration_minutes)
-                            .unwrap_or(15)
+                        task_type.default_duration_minutes.unwrap_or(15)
                     }
                 } else {
                     0
@@ -809,11 +816,7 @@ impl DispatchService {
         }
 
         if !qualification_gap.is_empty() {
-            return Ok((
-                Vec::new(),
-                qualification_gap,
-                Some("当前无法补齐执行编组".to_string()),
-            ));
+            return Ok((Vec::new(), qualification_gap, Some("当前无法补齐执行编组".to_string())));
         }
 
         Ok((

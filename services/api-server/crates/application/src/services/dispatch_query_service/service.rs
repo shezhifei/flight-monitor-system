@@ -89,7 +89,7 @@ impl DispatchQueryService {
         let orders = self
             .list_orders(flight_id, status, source, department, page, page_size)
             .await?;
-        self.serialize_orders_with_receipt_summaries(&orders).await
+        super::serialize_orders_with_receipt_summaries(self.collaboration_repo.as_ref(), &orders).await
     }
 
     pub async fn get_order_record(
@@ -107,19 +107,7 @@ impl DispatchQueryService {
 
     pub async fn list_my_order_records(&self, user_id: &str, status: Option<&str>) -> Result<Vec<Value>, DomainError> {
         let orders = self.list_my_orders(user_id, status).await?;
-        self.serialize_orders_with_receipt_summaries(&orders).await
-    }
-
-    async fn serialize_orders_with_receipt_summaries(
-        &self,
-        orders: &[DispatchOrder],
-    ) -> Result<Vec<Value>, DomainError> {
-        let mut payload = Vec::with_capacity(orders.len());
-        for order in orders {
-            let summary = self.collaboration_repo.summarize_receipts_for_order(&order.id).await?;
-            payload.push(dispatch_order_to_value_with_summary(order, Some(&summary)));
-        }
-        Ok(payload)
+        super::serialize_orders_with_receipt_summaries(self.collaboration_repo.as_ref(), &orders).await
     }
 
     pub async fn get_order_timeline(&self, order_id: &str, limit: i64) -> Result<Option<Value>, DomainError> {

@@ -8,7 +8,8 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 use actix_cors::Cors;
 use actix_web::dev::Service;
-use actix_web::{middleware::Logger, App, HttpMessage, HttpServer};
+use actix_web::middleware::{Condition, Logger};
+use actix_web::{App, HttpMessage, HttpServer};
 use chrono::Utc;
 use fms_infrastructure::config::RedisConfig;
 use fms_infrastructure::db::{build_connect_options, PostgresTlsConfig};
@@ -297,7 +298,10 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(fms_api::middleware::global_error::GlobalErrorMiddleware)
             .wrap(fms_api::middleware::metrics::MetricsMiddleware)
-            .wrap(Logger::default().exclude("/api/v2/flights"))
+            .wrap(Condition::new(
+                http_access_log_enabled(),
+                Logger::default().exclude("/api/v2/flights"),
+            ))
             .wrap(fms_api::middleware::anti_replay::AntiReplay::new())
             // 自定义安全防御与请求头填充中间件
             .wrap_fn(move |mut req, srv| {
@@ -375,6 +379,9 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or(default_workers);
     let server = server.workers(actix_workers);
     info!(actix_workers, "Actix-web worker threads configured");
+    if !http_access_log_enabled() {
+        info!("HTTP access log disabled (FMS_HTTP_ACCESS_LOG=0)");
+    }
 
     let bind_addr = format!("{host}:{port}");
 
@@ -421,4 +428,38 @@ async fn main() -> std::io::Result<()> {
     }
 
     server_result.map_err(Into::into)
+}
+
+fn http_access_log_enabled() -> bool {
+    http_access_log_enabled_from(std::env::var("FMS_HTTP_ACCESS_LOG").ok().as_deref())
+}
+
+fn http_access_log_enabled_from(value: Option<&str>) -> bool {
+    match value {
+        Some(value) => !matches!(
+            value.trim().to_ascii_lowercase().as_str(),
+            "0" | "off" | "false" | "none"
+        ),
+        None => true,
+    }
+}
+
+#[cfg(test)]
+mod http_access_log_tests {
+    use super::http_access_log_enabled_from;
+
+    #[test]
+    fn access_log_defaults_on() {
+        assert!(http_access_log_enabled_from(None));
+        assert!(http_access_log_enabled_from(Some("full")));
+        assert!(http_access_log_enabled_from(Some("1")));
+    }
+
+    #[test]
+    fn access_log_can_be_disabled() {
+        assert!(!http_access_log_enabled_from(Some("0")));
+        assert!(!http_access_log_enabled_from(Some("off")));
+        assert!(!http_access_log_enabled_from(Some("false")));
+        assert!(!http_access_log_enabled_from(Some("NONE")));
+    }
 }

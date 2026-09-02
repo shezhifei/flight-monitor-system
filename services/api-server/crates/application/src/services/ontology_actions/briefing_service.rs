@@ -73,15 +73,15 @@ impl BriefingService {
             .flatten()
             .any(|moment| moment >= shift_start && moment <= shift_end);
             let in_scope = match scope {
-                "inbound" => flight.inbound_leg.is_some(),
-                "outbound" => flight.outbound_leg.is_some(),
+                "inbound" => flight.is_arrival_flight(),
+                "outbound" => flight.is_departure_flight(),
                 _ => true,
             };
             in_window && in_scope
         });
 
-        let arrivals = flights.iter().filter(|flight| flight.inbound_leg.is_some()).count();
-        let departures = flights.iter().filter(|flight| flight.outbound_leg.is_some()).count();
+        let arrivals = flights.iter().filter(|flight| flight.is_arrival_flight()).count();
+        let departures = flights.iter().filter(|flight| flight.is_departure_flight()).count();
         let cancelled = flights
             .iter()
             .filter(|flight| flight.status == FlightStatus::Cancelled)

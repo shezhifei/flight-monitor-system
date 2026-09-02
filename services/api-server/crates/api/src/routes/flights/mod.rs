@@ -6,6 +6,7 @@ mod batch_cells;
 mod cache;
 mod crud;
 mod list;
+mod monitor_rows;
 mod proto;
 mod shared;
 mod sse;
@@ -26,6 +27,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("", web::get().to(list::list_flights))
             .route("", web::post().to(crud::create_flight))
             .route("/search", web::get().to(list::search_flights))
+            .route("/monitor-rows", web::get().to(monitor_rows::list))
             .route("/updates/recent", web::get().to(list::recent_updates))
             .route("/stream", web::get().to(shared::removed_public_route))
             .route("/ws", web::get().to(shared::removed_public_route))

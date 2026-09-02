@@ -4024,6 +4024,12 @@
       },
       "description": "Ground handling task type directory",
       "fields": {
+        "anchor": {
+          "description": "Flight leg binding anchor: inbound, outbound, or link",
+          "field_type": "String",
+          "name": "anchor",
+          "required": true
+        },
         "code": {
           "description": "Task type code",
           "field_type": "String",

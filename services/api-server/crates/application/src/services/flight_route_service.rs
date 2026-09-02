@@ -398,6 +398,11 @@ mod tests {
     fn base_flight() -> FlightResponse {
         FlightResponse {
             flight_id: Some("flight-001".to_string()),
+        row_id: None,
+        link_id: None,
+        kind: None,
+        inbound_flight_id: None,
+        outbound_flight_id: None,
             flight_number: Some("MU1234".to_string()),
             airline_code: None,
             registration: None,

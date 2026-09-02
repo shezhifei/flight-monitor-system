@@ -17,15 +17,37 @@ pub(super) fn build_flight_context_snapshot(
     flight: &crate::schemas::flight_schemas::FlightResponse,
 ) -> HashMap<String, serde_json::Value> {
     let mut snapshot = HashMap::new();
+    // Directional flights carry one canonical leg.  Keep the historic
+    // inbound/outbound variable names for workflow compatibility, but derive
+    // them from `direction` so an opposite compatibility leg can never leak
+    // into a business-case snapshot.
+    let inbound_flight_no = match flight.direction.as_deref() {
+        Some("inbound") => flight
+            .inbound_leg
+            .as_ref()
+            .map(|leg| leg.flight_no.clone())
+            .or_else(|| flight.flight_number.clone()),
+        Some("outbound") => None,
+        _ => flight.inbound_leg.as_ref().map(|leg| leg.flight_no.clone()),
+    };
+    let outbound_flight_no = match flight.direction.as_deref() {
+        Some("outbound") => flight
+            .outbound_leg
+            .as_ref()
+            .map(|leg| leg.flight_no.clone())
+            .or_else(|| flight.flight_number.clone()),
+        Some("inbound") => None,
+        _ => flight.outbound_leg.as_ref().map(|leg| leg.flight_no.clone()),
+    };
     insert_opt_string(
         &mut snapshot,
         "inbound_flight_no",
-        flight.inbound_leg.as_ref().map(|leg| leg.flight_no.clone()),
+        inbound_flight_no,
     );
     insert_opt_string(
         &mut snapshot,
         "outbound_flight_no",
-        flight.outbound_leg.as_ref().map(|leg| leg.flight_no.clone()),
+        outbound_flight_no,
     );
     insert_opt_string(&mut snapshot, "flight_id", flight.flight_id.clone());
     insert_opt_string(&mut snapshot, "flight_no", flight.flight_number.clone());

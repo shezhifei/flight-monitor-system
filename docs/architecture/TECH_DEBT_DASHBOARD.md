@@ -1,6 +1,6 @@
 # 技术债看板（架构边界）
 
-更新：**2026-08-11**（与文档基线对齐；指标以仓库内测试与代码为准）。
+更新：**2026-08-28**（与文档基线对齐；指标以仓库内测试与代码为准）。
 
 主 API：**Rust** `services/api-server`（`fms-api` / `fms-application` / `fms-infrastructure`）。  
 AI：**Python** `services/ai-sidecar`，经 HTTP 与 Rust 协作。不再使用已移除的 `*_routes.py` 单体路由。

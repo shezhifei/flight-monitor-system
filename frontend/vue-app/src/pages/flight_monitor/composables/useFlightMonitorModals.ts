@@ -200,11 +200,18 @@ export function useFlightMonitorModals(options: UseFlightMonitorModalsOptions): 
       return;
     }
 
+    // 建事项挂「一班航班」：拆表后选中键 row_id 是链 id，不能当 flight_id 写；
+    // 解析为方向航班 id（进港优先），旧载荷回退选中键本身。
+    const flight = selectedFlight.value;
+    const inboundId = flight?.inbound_flight_id != null ? String(flight.inbound_flight_id).trim() : '';
+    const outboundId = flight?.outbound_flight_id != null ? String(flight.outbound_flight_id).trim() : '';
+    const contextFlightId = inboundId || outboundId || selectedFlightId.value;
+
     let caseData: BusinessCaseCreatePayload;
     if (eventType === 'gate_baggage_check') {
       caseData = {
         case_type: eventType,
-        flight_id: selectedFlightId.value,
+        flight_id: contextFlightId,
         description: triggerReason ? `[${triggerReason}] ${description}` : description,
         status: eventStatus,
         context: {
@@ -218,7 +225,7 @@ export function useFlightMonitorModals(options: UseFlightMonitorModalsOptions): 
     } else {
       caseData = {
         case_type: eventType,
-        flight_id: selectedFlightId.value,
+        flight_id: contextFlightId,
         description: description,
         status: eventStatus,
         context: {

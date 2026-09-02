@@ -8,6 +8,7 @@ sequenceDiagram
     participant Svc as FlightService
     participant Domain as flight / flight_state
     participant Repo as FlightRepository
+    participant Monitor as FlightMonitorRowRepository
     participant Pg as PgFlightRepository
     participant Outbox as domain_event_outbox
     participant CDC as CDC/SQL relay
@@ -17,9 +18,10 @@ sequenceDiagram
     Route->>Route: auth / map DTO / HTTP response
     Route->>Svc: create_flight / update_flight
     Svc->>Domain: validate + from_create / update_patch_from_dto
-    Note over Domain: 状态规则见 flight_state::can_transition
+    Note over Domain: 状态规则见 flight_state::can_transition；direction 禁 both
     Svc->>Repo: save_in_tx / update_partial_in_tx
     Repo->>Pg: SQL 持久化
+    Svc->>Monitor: 同 UoW upsert flight_monitor_rows
     Svc->>Outbox: 同事务 INSERT flight.*_v2
     Pg-->>Svc: Flight
     Svc-->>Route: FlightResponse（无 SSE/缓存旁路）
@@ -36,6 +38,7 @@ sequenceDiagram
 - **领域模型与状态规则**：`domain/src/models/flight.rs`、`domain/src/models/flight_state.rs`
 - **仓储端口**：`domain/src/ports/flight_repository.rs`（`FlightRepository` / `FlightUpdatePatch`）
 - **仓储实现**：`infrastructure/src/repositories/pg_flight_repository.rs`；可选缓存装饰 `cached_flight_repository.rs`（仅失效，不定义状态）
+- **监控宽表**：同一 UnitOfWork upsert `flight_monitor_rows`（`flight_monitor_row_service.rs` / `pg_flight_monitor_row_repository.rs`）。列表不得读到半更新的拼行。Outbox 只负责缓存失效和广播，不是监控真相。
 - **Outbox**：同事务写 `flight.*_v2`；投递见 [ADR-0003](ADR-0003-domain-event-outbox-cdc-relay.md)
 - **消费方**：`domain_event_subscriber_service` — 投影/缓存失效 + SSE（`Broadcaster`）
 
@@ -47,6 +50,7 @@ sequenceDiagram
 | 航班领域事件与核心表 **同事务** 写 `domain_event_outbox` | **已落地**：HTTP create/update 与 `update_flight_in_tx` 均写 `flight.*_v2`；AI 另写 action 级 `Flight.*` 事件 |
 | 写后 SSE/缓存仅为消费方 | **已落地**：`crud` 与 `timeline` 路由均无旁路广播/失效；subscriber 驱动 SSE 与缓存失效 |
 | 显式命令边界 | **已落地**：`FlightCreateCommand` / `FlightUpdateCommand` + `execute_create` / `execute_update` |
+| 热列表与核心写同 UoW | **已落地**：create/update 投影 `flight_monitor_rows`；`GET /api/v2/flights` 列表/搜索只读这张表 |
 
 时间线事件类型：`flight.timeline_upserted_v2` / `flight.timeline_deleted_v2`（与核心航班 outbox 同一消费链）。
 

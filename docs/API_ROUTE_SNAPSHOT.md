@@ -1,6 +1,6 @@
 # API 路由快照
 
-文档基线：**2026-08-26**。端点实现以 `services/api-server/crates/api/src/routes/*.rs` 为准；生产注册以 `services/api-server/crates/server/src/web.rs` 为准。本页供导航与巡检，不替代源码。
+文档基线：**2026-08-28**。端点实现以 `services/api-server/crates/api/src/routes/*.rs` 为准；生产注册以 `services/api-server/crates/server/src/web.rs` 为准。本页供导航与巡检，不替代源码。
 
 ## 1. 入口与健康
 
@@ -34,12 +34,13 @@
 
 | 路由组 | 说明 | 源码 |
 |---|---|---|
-| `/api/v2/flights*` | 航班主数据、航班腿、状态、时间线、导入相关主链 | `services/api-server/crates/api/src/routes/flights.rs` |
+| `/api/v2/flights*` | 方向航班主数据、状态、时间线、导入；列表/搜索读 `flight_monitor_rows` | `services/api-server/crates/api/src/routes/flights/` |
+| `/api/v2/flights/monitor-rows` | 监控宽表直读（一格一行，进出港是列） | `services/api-server/crates/api/src/routes/flights/monitor_rows.rs` |
 | `/api/v2/archive/*` | 航班归档查询与触发 | `services/api-server/crates/api/src/routes/archive.rs` |
-| `/api/v2/labels*` | 标签定义、航班标签、航班腿标签 CRUD | `services/api-server/crates/api/src/routes/labels.rs` |
+| `/api/v2/labels*` | 标签定义、航班标签 CRUD | `services/api-server/crates/api/src/routes/labels.rs` |
 | `/api/v2/labels/definitions*` | 标签定义管理（仅管理员） | `services/api-server/crates/api/src/routes/labels.rs` |
 | `/api/v2/labels/flight-labels*` | 航班标签绑定管理 | `services/api-server/crates/api/src/routes/labels.rs` |
-| `/api/v2/anomalies*` | 异常列表、规则、确认、解决 | `services/api-server/crates/api/src/routes/anomalies.rs` |
+| `/api/v2/anomalies*` | 异常列表、规则、确认、解决；主体为 `subject_type` + `subject_id` | `services/api-server/crates/api/src/routes/anomalies.rs` |
 | `/api/v2/kpi/*` | KPI snapshot、trend、compare、baseline compare | `services/api-server/crates/api/src/routes/kpi.rs` |
 | `/api/v2/dashboard/workbench` | 运行工作台聚合数据 | `services/api-server/crates/api/src/routes/dashboard.rs` |
 
@@ -48,7 +49,9 @@
 | 路由组 | 说明 | 源码 |
 |---|---|---|
 | `/api/v2/dispatch-orders*` | 派工工单、分配、时间线、冲突、重排、follow-up | `services/api-server/crates/api/src/routes/dispatch.rs` |
-| `/api/v2/dispatch/*` | 派工规则、资源、排班、分析与直连兼容面 | `services/api-server/crates/api/src/routes/dispatch.rs`, `dispatch_resources.rs` |
+| `/api/v2/dispatch/*` | 派工规则、资源、排班、分析与直连兼容面 | `services/api-server/crates/api/src/routes/dispatch.rs`, `dispatch_resources/` |
+| `/api/v2/dispatch/metadata-catalogs*` | 元数据码表与条目 CRUD（亦挂 `/dispatch/resources/metadata-catalogs*`） | `services/api-server/crates/api/src/routes/dispatch_resources/metadata_catalogs.rs` |
+| `/api/v2/dispatch/resources/ontology-field-overlays*` | 对象字段 overlay（写需 `dispatch:manage`） | `services/api-server/crates/api/src/routes/dispatch_resources/field_overlays.rs` |
 | `/api/v2/dispatch/collaboration/*` | 协同群组、协同事件、工单协作视图 | `services/api-server/crates/api/src/routes/dispatch_collaboration.rs` |
 | `/api/v2/dispatch/chat/*` | 派工聊天 | `services/api-server/crates/api/src/routes/dispatch_chat.rs` |
 | `/api/v2/dispatch/analytics/resource-utilization/*` | 资源利用率 summary / stands / teams / equipment | `services/api-server/crates/api/src/routes/resource_utilization.rs` |

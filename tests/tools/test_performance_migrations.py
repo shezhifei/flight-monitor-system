@@ -11,10 +11,12 @@ MIGRATIONS = ROOT / "migrations"
 
 def test_concurrent_indexes_are_one_per_file_with_no_transaction() -> None:
     ai_runs = (MIGRATIONS / "129_idx_ai_runs_job_id_created_at.sql").read_text(encoding="utf-8")
-    dispatch = (MIGRATIONS / "130_idx_dispatch_orders_released_status.sql").read_text(encoding="utf-8")
+    dispatch = (MIGRATIONS / "130_idx_dispatch_order_equipment_live_release.sql").read_text(encoding="utf-8")
+    monitor = (MIGRATIONS / "158_idx_flight_monitor_rows_active_sort.sql").read_text(encoding="utf-8")
     for text, name in (
         (ai_runs, "idx_ai_runs_job_id_created_at"),
-        (dispatch, "idx_dispatch_orders_released_status"),
+        (dispatch, "idx_dispatch_order_equipment_live_release"),
+        (monitor, "idx_flight_monitor_rows_active_sort"),
     ):
         assert text.splitlines()[0].strip() == "-- no-transaction"
         assert "BEGIN" not in text.upper().replace("NO-TRANSACTION", "")
@@ -23,10 +25,16 @@ def test_concurrent_indexes_are_one_per_file_with_no_transaction() -> None:
         assert text.upper().count("CREATE INDEX CONCURRENTLY") == 1
 
 
-def test_dispatch_orders_index_is_partial_on_live_rows() -> None:
-    text = (MIGRATIONS / "130_idx_dispatch_orders_released_status.sql").read_text(encoding="utf-8")
-    assert "ON dispatch_orders (released_at, status)" in text
-    assert "WHERE deleted_at IS NULL" in text
+def test_monitor_hot_path_index_is_partial_on_active_rows() -> None:
+    text = (MIGRATIONS / "158_idx_flight_monitor_rows_active_sort.sql").read_text(encoding="utf-8")
+    assert "ON flight_monitor_rows (sort_time DESC, row_id)" in text
+    assert "WHERE is_active" in text
+
+
+def test_dispatch_order_equipment_index_is_partial_on_live_rows() -> None:
+    text = (MIGRATIONS / "130_idx_dispatch_order_equipment_live_release.sql").read_text(encoding="utf-8")
+    assert "ON dispatch_order_equipment (dispatch_order_id)" in text
+    assert "WHERE released_at IS NULL" in text
     deleted = (MIGRATIONS / "128_add_dispatch_orders_deleted_at.sql").read_text(encoding="utf-8")
     assert "ADD COLUMN IF NOT EXISTS deleted_at" in deleted
 

@@ -7,6 +7,7 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiPill from '@/components/ui/UiPill.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useToast } from '@/composables/useToast';
+import { useFieldOverlays } from '@/composables/useFieldOverlays';
 import LabelManagerPanel from '@/pages/label_manager/components/LabelManagerPanel.vue';
 import DepartmentSelector from './DepartmentSelector.vue';
 import TaskTypePanel from './TaskTypePanel.vue';
@@ -32,6 +33,9 @@ type PageSection = 'rules' | 'labels';
 
 const toast = useToast();
 const auth = useAuth();
+const fieldOverlays = useFieldOverlays();
+const taskTypeFieldOverlays = fieldOverlays.forObject('TaskType');
+const dispatchOrderFieldOverlays = fieldOverlays.forObject('DispatchOrder');
 
 const {
   departments,
@@ -71,6 +75,21 @@ const {
   selectTaskType,
   setActivePanel,
 } = useDispatchRuleWorkbench();
+
+const fieldReferenceEntries = computed(() => ({
+  Department: departments.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  TaskType: taskTypes.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  EquipmentType: equipmentTypes.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+}));
+
+watch(
+  () => activePanel.value,
+  () => {
+    void fieldOverlays.load('TaskType');
+    if (activePanel.value === 'manualOrder') void fieldOverlays.load('DispatchOrder');
+  },
+  { immediate: true },
+);
 
 const drawerOpen = ref(false);
 const exporting = ref(false);
@@ -424,6 +443,9 @@ const pageSubtitle = computed(() => {
             :saving="saving"
             :disabled="isAggregateView || loading"
             :disabled-reason="isAggregateView ? '请先选择具体科室才能新增/删除任务类型。' : undefined"
+            :field-overlays="taskTypeFieldOverlays"
+            :field-catalog-entries="fieldOverlays.catalogEntries.value"
+            :field-reference-entries="fieldReferenceEntries"
             @select="selectTaskType"
             @create="handleCreateTaskType"
             @delete="handleDeleteTaskType"
@@ -490,6 +512,9 @@ const pageSubtitle = computed(() => {
                     :saving="saving"
                     :disabled="isAggregateView"
                     :last-created-order-id="lastOrderId"
+                    :field-overlays="dispatchOrderFieldOverlays"
+                    :field-catalog-entries="fieldOverlays.catalogEntries.value"
+                    :field-reference-entries="fieldReferenceEntries"
                     @update:draft="(v) => (manualOrderDraft = v)"
                     @submit="handleCreateManualOrder"
                     @dirty="(v) => markDirty('manualOrderDraft', v)"

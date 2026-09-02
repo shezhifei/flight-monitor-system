@@ -3,12 +3,17 @@ import { computed } from 'vue';
 import type { EquipmentType, EquipmentTypeFormData } from '@/composables/useResourceManager';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiModal from '@/components/ui/UiModal.vue';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
+import type { FieldOverlay, FieldReferenceEntry } from '@/composables/useFieldOverlays';
 
 const props = defineProps<{
   show: boolean;
   editing: EquipmentType | null;
   form: EquipmentTypeFormData;
   saving: boolean;
+  fieldOverlays?: FieldOverlay[];
+  fieldCatalogEntries?: Record<string, Array<{ code: string; name: string }>>;
+  fieldReferenceEntries?: Record<string, FieldReferenceEntry[]>;
 }>();
 
 const emit = defineEmits<{
@@ -90,6 +95,13 @@ function patch<K extends keyof EquipmentTypeFormData>(field: K, value: Equipment
         @input="patch('description', ($event.target as HTMLTextAreaElement).value)"
       />
     </div>
+    <FieldOverlayForm
+      :model-value="form.attributes ?? {}"
+      :overlays="fieldOverlays ?? []"
+      :catalog-entries="fieldCatalogEntries ?? {}"
+      :reference-entries="fieldReferenceEntries ?? {}"
+      @update:model-value="patch('attributes', $event)"
+    />
 
     <template #footer>
       <UiButton @click="emit('close')">

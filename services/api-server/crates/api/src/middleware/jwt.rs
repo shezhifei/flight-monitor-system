@@ -85,16 +85,29 @@ pub async fn extract_jwt(req: &HttpRequest) -> Result<JwtAuth, ApiError> {
 
     let decode_start = Instant::now();
     let token = extract_request_token(req)?;
+    let cache = req.app_data::<web::Data<Arc<AuthValidationCache>>>();
+    let token_hash = token_value_hash(&token.value);
 
-    let audience = req.app_data::<web::Data<JwtAudience>>().map(|data| data.get_ref());
-    let config = load_jwt_verifier_config()?;
-    let validation = build_jwt_validation_full(audience, config.algorithm, config.issuer.as_deref());
-    let decoding_key = build_decoding_key(req, config)?;
+    let claims = if let Some(cached) = cache.as_ref().and_then(|cache| cache.get_cached_claims(&token_hash)) {
+        if claims_expired(&cached) {
+            return Err(ApiError::Unauthorized("认证令牌无效".into()));
+        }
+        cached
+    } else {
+        let audience = req.app_data::<web::Data<JwtAudience>>().map(|data| data.get_ref());
+        let config = load_jwt_verifier_config()?;
+        let validation = build_jwt_validation_full(audience, config.algorithm, config.issuer.as_deref());
+        let decoding_key = build_decoding_key(req, config)?;
 
-    let decoded = decode::<TokenData>(&token.value, &decoding_key, &validation).map_err(|e| {
-        warn!(error = %e, "JWT validation failed");
-        ApiError::Unauthorized("认证令牌无效".into())
-    })?;
+        let decoded = decode::<TokenData>(&token.value, &decoding_key, &validation).map_err(|e| {
+            warn!(error = %e, "JWT validation failed");
+            ApiError::Unauthorized("认证令牌无效".into())
+        })?;
+        if let Some(cache) = cache.as_ref() {
+            cache.set_cached_claims(&token_hash, decoded.claims.clone());
+        }
+        decoded.claims
+    };
 
     if let Some(m) = &metrics {
         m.record_latency(
@@ -103,15 +116,13 @@ pub async fn extract_jwt(req: &HttpRequest) -> Result<JwtAuth, ApiError> {
         );
     }
 
-    validate_token_kind(&decoded.claims, token.kind)?;
-    validate_client_context(req, &decoded.claims)?;
+    validate_token_kind(&claims, token.kind)?;
+    validate_client_context(req, &claims)?;
 
     if let Some(auth_svc) = req.app_data::<web::Data<Arc<AuthService>>>() {
-        let token_user_id = decoded.claims.sub.as_deref().unwrap_or("").to_string();
-        let token_permission_version = decoded.claims.pv.unwrap_or(1);
-        let freshness_session_key = token_value_hash(&token.value);
-
-        let cache = req.app_data::<web::Data<Arc<AuthValidationCache>>>();
+        let token_user_id = claims.sub.as_deref().unwrap_or("").to_string();
+        let token_permission_version = claims.pv.unwrap_or(1);
+        let freshness_session_key = token_hash.clone();
 
         let freshness_start = Instant::now();
         let freshness_valid = if let Some(cache_data) = &cache {
@@ -121,7 +132,7 @@ pub async fn extract_jwt(req: &HttpRequest) -> Result<JwtAuth, ApiError> {
             {
                 cached
             } else {
-                let valid = auth_svc.validate_access_claims_freshness(&decoded.claims).await.is_ok();
+                let valid = auth_svc.validate_access_claims_freshness(&claims).await.is_ok();
                 cache_data
                     .set_cached_freshness(&token_user_id, &freshness_session_key, valid)
                     .await;
@@ -129,7 +140,7 @@ pub async fn extract_jwt(req: &HttpRequest) -> Result<JwtAuth, ApiError> {
             }
         } else {
             auth_svc
-                .validate_access_claims_freshness(&decoded.claims)
+                .validate_access_claims_freshness(&claims)
                 .await
                 .map_err(ApiError::from)?;
             true
@@ -178,7 +189,18 @@ pub async fn extract_jwt(req: &HttpRequest) -> Result<JwtAuth, ApiError> {
         }
     }
 
-    Ok(JwtAuth(decoded.claims))
+    Ok(JwtAuth(claims))
+}
+
+fn claims_expired(claims: &TokenData) -> bool {
+    let Some(exp) = claims.exp else {
+        return false;
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or(0);
+    exp <= now
 }
 
 fn validate_client_context(req: &HttpRequest, claims: &TokenData) -> Result<(), ApiError> {

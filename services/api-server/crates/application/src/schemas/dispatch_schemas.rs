@@ -42,6 +42,8 @@ pub struct DepartmentCreate {
     pub description: Option<String>,
     pub manager_id: Option<String>,
     pub terminal: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -52,6 +54,7 @@ pub struct DepartmentUpdate {
     pub manager_id: Option<String>,
     pub terminal: Option<String>,
     pub is_active: Option<bool>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -65,6 +68,8 @@ pub struct DepartmentResponse {
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +87,8 @@ pub struct TeamTypeCreate {
     pub is_driver_type: bool,
     #[serde(default)]
     pub task_types: Vec<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -93,6 +100,7 @@ pub struct TeamTypeUpdate {
     pub color: Option<String>,
     pub is_driver_type: Option<bool>,
     pub task_types: Option<Vec<String>>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -108,6 +116,8 @@ pub struct TeamTypeResponse {
     pub task_types: Vec<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +131,8 @@ pub struct TeamCreate {
     pub department_id: String,
     pub code: Option<String>,
     pub leader_id: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
     // PR2 起不再接受 team_type_id / terminal：serde 默认忽略未知字段，
     // 旧客户端多带这两个键不会报错，只是被忽略。
 }
@@ -133,6 +145,7 @@ pub struct TeamUpdate {
     pub leader_id: Option<String>,
     pub current_status: Option<String>,
     pub is_active: Option<bool>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -176,6 +189,8 @@ pub struct TeamResponse {
     pub member_count: i32,
     #[serde(default)]
     pub members: Vec<TeamMemberResponse>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -344,6 +359,8 @@ pub struct DepartmentQualificationCatalogCreate {
     pub description: Option<String>,
     #[serde(default = "default_true_flag")]
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -356,6 +373,8 @@ pub struct DepartmentQualificationCatalogResponse {
     pub is_active: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -779,6 +798,8 @@ pub struct EquipmentTypeCreate {
     pub requires_driver: bool,
     pub icon: Option<String>,
     pub description: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -789,6 +810,7 @@ pub struct EquipmentTypeUpdate {
     pub requires_driver: Option<bool>,
     pub icon: Option<String>,
     pub description: Option<String>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -802,6 +824,8 @@ pub struct EquipmentTypeResponse {
     pub description: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -817,6 +841,8 @@ pub struct EquipmentCreate {
     pub name: Option<String>,
     pub license_plate: Option<String>,
     pub next_maintenance_date: Option<NaiveDate>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
     // PR2 起不再接受 terminal（设备无常驻楼字段）。
 }
 
@@ -830,6 +856,7 @@ pub struct EquipmentUpdate {
     pub status: Option<String>,
     pub next_maintenance_date: Option<NaiveDate>,
     pub is_active: Option<bool>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -854,6 +881,8 @@ pub struct EquipmentResponse {
     pub created_at: Option<DateTime<Utc>>,
     pub is_active: bool,
     pub equipment_type_name: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -870,6 +899,8 @@ pub struct StandCreate {
     pub position_lng: f64,
     pub stand_type: Option<String>,
     pub size_category: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -883,6 +914,8 @@ pub struct StandResponse {
     pub stand_type: Option<String>,
     pub size_category: Option<String>,
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -895,6 +928,8 @@ pub struct TaskTypeCreate {
     pub name: String,
     pub default_department_id: Option<String>,
     pub category: Option<String>,
+    #[serde(default)]
+    pub anchor: Option<String>,
     pub sequence_order: Option<i32>,
     pub default_duration_minutes: Option<i32>,
     #[serde(default = "default_trigger_offset")]
@@ -902,6 +937,8 @@ pub struct TaskTypeCreate {
     #[serde(default = "default_trigger_type")]
     pub trigger_type: String,
     pub description: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -911,12 +948,15 @@ pub struct TaskTypeResponse {
     pub name: String,
     pub default_department_id: Option<String>,
     pub category: Option<String>,
+    pub anchor: String,
     pub sequence_order: Option<i32>,
     pub default_duration_minutes: Option<i32>,
     pub trigger_offset_minutes: i32,
     pub trigger_type: String,
     pub description: Option<String>,
     pub is_active: bool,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 // ---------------------------------------------------------------------------
@@ -954,6 +994,8 @@ pub struct DispatchOrderCreate {
     #[serde(default)]
     pub manual_lock: bool,
     pub remarks: Option<String>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1150,6 +1192,8 @@ pub struct DispatchOrderResponse {
     pub equipment_codes: Vec<String>,
     #[serde(default)]
     pub notification_receipt_summary: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub attributes: serde_json::Value,
 }
 
 fn default_dispatch_order_publication_state() -> String {

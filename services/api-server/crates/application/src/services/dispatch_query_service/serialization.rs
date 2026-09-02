@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
+use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::DispatchOrder;
 use fms_domain::models::dispatch_collaboration::NotificationReceiptSummary;
+use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use serde_json::{json, Value};
 
 use super::helpers::{
@@ -16,6 +18,21 @@ pub(crate) fn is_workflow_pending_query(status: Option<&str>, source: Option<&st
 
 pub fn dispatch_order_to_value(order: &DispatchOrder) -> Value {
     dispatch_order_to_value_with_summary(order, None)
+}
+
+pub async fn serialize_orders_with_receipt_summaries(
+    collaboration_repo: &(dyn DispatchCollaborationRepository + Send + Sync),
+    orders: &[DispatchOrder],
+) -> Result<Vec<Value>, DomainError> {
+    if orders.is_empty() {
+        return Ok(Vec::new());
+    }
+    let ids: Vec<String> = orders.iter().map(|order| order.id.clone()).collect();
+    let summaries = collaboration_repo.summarize_receipts_for_orders(&ids).await?;
+    Ok(orders
+        .iter()
+        .map(|order| dispatch_order_to_value_with_summary(order, summaries.get(&order.id)))
+        .collect())
 }
 
 pub fn dispatch_order_to_value_with_summary(

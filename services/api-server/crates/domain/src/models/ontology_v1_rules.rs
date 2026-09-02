@@ -22,10 +22,10 @@ pub fn outbound_aircraft_locked(status: FlightStatus) -> bool {
 /// §7.2 步骤 1 闸门。`flight` 按航段方向分别判定：
 /// 进港任务看进港侧状态；出港任务看出港侧状态；过站行两侧都判。
 pub fn reassign_gate_violation(flight: &Flight) -> Option<&'static str> {
-    if flight.inbound_leg.is_some() && inbound_aircraft_locked(flight.status) {
+    if flight.is_arrival_flight() && inbound_aircraft_locked(flight.status) {
         return Some("inbound has departed from previous station; aircraft is locked");
     }
-    if flight.outbound_leg.is_some() && outbound_aircraft_locked(flight.status) {
+    if flight.is_departure_flight() && outbound_aircraft_locked(flight.status) {
         return Some("outbound has started boarding; aircraft is locked");
     }
     None

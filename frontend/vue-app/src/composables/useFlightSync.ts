@@ -8,7 +8,7 @@ import type {
   Flight,
 } from './useFlightDataTypes';
 import { DISPATCH_TIMELINE_FIELD_META } from './useFlightDataConstants';
-import { findFlightById, normalizeFlightId, syncFlightTimelineFieldsFromCache } from './useFlightField';
+import { findFlightById, flightIdentityKeys, normalizeFlightId, resolveDirectionalFlightId, syncFlightTimelineFieldsFromCache } from './useFlightField';
 
 function getLatestDispatchTimelineEvent(
   cache: DispatchTimelineCache | null | undefined,
@@ -82,12 +82,19 @@ export function updateDispatchTimelineCache(
   });
 
   const nextCache = new Map(options.cache ?? createDispatchTimelineCache());
-  nextCache.set(normalizedId, { byMilestone, rawItems: list });
-
+  // 同一监控行的进/出港时间线并入同一缓存视图：行级字段名（里程碑按方向命名）
+  // 不会冲突，且行对象按自身身份键读取时两侧都能命中。
+  const cacheKeys = new Set<string>([normalizedId]);
   const targets = [
     findFlightById(normalizedId, options.flights ?? [], []),
     findFlightById(normalizedId, options.originalFlights ?? [], []),
   ].filter((target): target is Flight => Boolean(target));
+  targets.forEach((target) => {
+    flightIdentityKeys(target).forEach((key) => cacheKeys.add(key));
+  });
+  cacheKeys.forEach((key) => {
+    nextCache.set(key, { byMilestone, rawItems: list });
+  });
 
   targets.forEach((target) => {
     syncFlightTimelineFieldsFromCache(target, nextCache);
@@ -138,15 +145,21 @@ export async function writeDispatchTimelineField(
   const milestoneCode = String(field || '').trim();
   const legType = DISPATCH_TIMELINE_FIELD_META[milestoneCode as keyof typeof DISPATCH_TIMELINE_FIELD_META]?.leg_type ?? null;
 
+  // 拆表后时间线事件按方向航班存储：监控行 row_id 要先解析到字段所属方向
+  // （DISPATCH_TIMELINE_FIELD_META.leg_type）的那班航班，row_id 本身（= 链 id）
+  // 不是时间线的写入目标。行不在传入列表（旧载荷/未知 id）时按原 id 直写。
+  const flight = findFlightById(normalizedId, options.flights ?? [], options.originalFlights ?? []);
+  const targetId = flight ? resolveDirectionalFlightId(flight, milestoneCode) ?? normalizedId : normalizedId;
+
   if (!options.value) {
-    const loaded = await loadDispatchTimelineForFlight(normalizedId, options);
-    const existing = getLatestDispatchTimelineEvent(loaded.cache, normalizedId, milestoneCode);
+    const loaded = await loadDispatchTimelineForFlight(targetId, options);
+    const existing = getLatestDispatchTimelineEvent(loaded.cache, targetId, milestoneCode);
     if (!existing?.timeline_id) {
-      const rawItems = loaded.cache.get(normalizedId)?.rawItems ?? [];
+      const rawItems = loaded.cache.get(targetId)?.rawItems ?? [];
       return {
         items: rawItems.filter((item) => item?.milestone_code !== milestoneCode),
         cache: updateDispatchTimelineCache(
-          normalizedId,
+          targetId,
           rawItems.filter((item) => item?.milestone_code !== milestoneCode),
           { ...options, cache: loaded.cache },
         ),
@@ -154,7 +167,7 @@ export async function writeDispatchTimelineField(
     }
 
     const deleteResponse = await options.authFetch(
-      `${options.apiBase}/flights/${encodeURIComponent(normalizedId)}/dispatch-timeline/events/${encodeURIComponent(String(existing.timeline_id))}`,
+      `${options.apiBase}/flights/${encodeURIComponent(targetId)}/dispatch-timeline/events/${encodeURIComponent(String(existing.timeline_id))}`,
       { method: 'DELETE' },
     );
     if (!deleteResponse.ok) {
@@ -167,7 +180,7 @@ export async function writeDispatchTimelineField(
       occurred_at: options.value,
       leg_type: legType,
       client_action_id: buildDispatchTimelineClientActionId(
-        normalizedId,
+        targetId,
         milestoneCode,
         options.value,
       ),
@@ -175,7 +188,7 @@ export async function writeDispatchTimelineField(
       payload: {},
     };
     const postResponse = await options.authFetch(
-      `${options.apiBase}/flights/${encodeURIComponent(normalizedId)}/dispatch-timeline/events`,
+      `${options.apiBase}/flights/${encodeURIComponent(targetId)}/dispatch-timeline/events`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,7 +210,7 @@ export async function writeDispatchTimelineField(
     }
   }
 
-  return loadDispatchTimelineForFlight(normalizedId, {
+  return loadDispatchTimelineForFlight(targetId, {
     ...options,
     force: true,
   });

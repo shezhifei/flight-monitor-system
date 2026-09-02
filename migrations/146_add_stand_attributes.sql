@@ -1,0 +1,2 @@
+ALTER TABLE stands
+    ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;

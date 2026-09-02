@@ -63,6 +63,7 @@ impl DepartmentRepository for FakeDepartmentRepo {
             created_at: None,
             updated_at: None,
             is_active: true,
+            attributes: serde_json::json!({}),
         }))
     }
 
