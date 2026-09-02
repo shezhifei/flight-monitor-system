@@ -13,6 +13,7 @@ export interface Terminal {
   code: string;
   name: string;
   is_active: boolean;
+  attributes?: Record<string, unknown>;
 }
 
 export interface Gate {
@@ -20,6 +21,7 @@ export interface Gate {
   code: string;
   name?: string | null;
   is_active: boolean;
+  attributes?: Record<string, unknown>;
 }
 
 export interface BaggageCarousel {
@@ -27,6 +29,7 @@ export interface BaggageCarousel {
   code: string;
   name?: string | null;
   is_active: boolean;
+  attributes?: Record<string, unknown>;
 }
 
 export interface Stand {
@@ -40,6 +43,7 @@ export interface Stand {
   position_lat?: number;
   position_lng?: number;
   is_active?: boolean;
+  attributes?: Record<string, unknown>;
 }
 
 export interface TerminalDirectory {
@@ -61,16 +65,19 @@ export type DirectoryModal =
 export interface TerminalFormData {
   code: string;
   name: string;
+  attributes: Record<string, unknown>;
 }
 
 export interface GateFormData {
   code: string;
   name: string;
+  attributes: Record<string, unknown>;
 }
 
 export interface CarouselFormData {
   code: string;
   name: string;
+  attributes: Record<string, unknown>;
 }
 
 export interface StandFormData {
@@ -79,6 +86,7 @@ export interface StandFormData {
   area: string;
   stand_type: string;
   size_category: string;
+  attributes: Record<string, unknown>;
 }
 
 // ----------------------------------------------------------------------------
@@ -98,6 +106,13 @@ function asString(value: unknown): string | null {
 
 function asBool(value: unknown): boolean {
   return Boolean(value);
+}
+
+/** attributes 是 JSONB object；缺失/形状不对时按空对象处理。 */
+function asAttributes(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
 }
 
 function unwrap<T>(payload: unknown): T | null {
@@ -164,7 +179,13 @@ export function terminalFromApi(raw: unknown): Terminal | null {
   const code = asString(r.code);
   const name = asString(r.name);
   if (!terminal_id || !code || !name) return null;
-  return { terminal_id, code, name, is_active: r.is_active === undefined ? true : asBool(r.is_active) };
+  return {
+    terminal_id,
+    code,
+    name,
+    is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
+  };
 }
 
 export function gateFromApi(raw: unknown): Gate | null {
@@ -178,6 +199,7 @@ export function gateFromApi(raw: unknown): Gate | null {
     code,
     name: asString(r.name),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -192,6 +214,7 @@ export function carouselFromApi(raw: unknown): BaggageCarousel | null {
     code,
     name: asString(r.name),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -212,6 +235,7 @@ export function standFromApi(raw: unknown): Stand | null {
     position_lat: typeof r.position_lat === 'number' ? r.position_lat : undefined,
     position_lng: typeof r.position_lng === 'number' ? r.position_lng : undefined,
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -251,15 +275,18 @@ export function useTerminalDirectory() {
   const attachStandId = ref('');
 
   const modal = ref<DirectoryModal>({ kind: 'none' });
-  const terminalForm = ref<TerminalFormData>({ code: '', name: '' });
-  const gateForm = ref<GateFormData>({ code: '', name: '' });
-  const carouselForm = ref<CarouselFormData>({ code: '', name: '' });
+  const terminalForm = ref<TerminalFormData>({ code: '', name: '', attributes: {} });
+  const gateForm = ref<GateFormData>({ code: '', name: '', attributes: {} });
+  const carouselForm = ref<CarouselFormData>({ code: '', name: '', attributes: {} });
   const standForm = ref<StandFormData>({
     code: '',
     name: '',
     area: '',
     stand_type: '',
     size_category: '',
+    // 显式种子：combined_stand 未被触碰时视为 false，
+    // composed_of（visible_when: combined_stand eq true）不会先闪现。
+    attributes: { combined_stand: false },
   });
 
   const filteredTerminals = computed(() => {
@@ -349,6 +376,7 @@ export function useTerminalDirectory() {
       const res = await api.post<unknown>('/api/v2/dispatch/terminals', {
         code: form.code.trim(),
         name: form.name.trim(),
+        attributes: form.attributes,
       });
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '创建航站楼失败'));
@@ -371,6 +399,7 @@ export function useTerminalDirectory() {
     try {
       const res = await api.patch<unknown>(`/api/v2/dispatch/terminals/${encodeURIComponent(id)}`, {
         name: form.name.trim(),
+        attributes: form.attributes,
       });
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '更新航站楼失败'));
@@ -420,6 +449,7 @@ export function useTerminalDirectory() {
         terminal_id: terminalId,
         code: form.code.trim(),
         name: form.name.trim() || null,
+        attributes: form.attributes,
       });
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '创建登机口失败'));
@@ -438,6 +468,7 @@ export function useTerminalDirectory() {
     try {
       const res = await api.patch<unknown>(`/api/v2/dispatch/gates/${encodeURIComponent(id)}`, {
         name: form.name.trim() || null,
+        attributes: form.attributes,
       });
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '更新登机口失败'));
@@ -497,6 +528,7 @@ export function useTerminalDirectory() {
         terminal_id: terminalId,
         code: form.code.trim(),
         name: form.name.trim() || null,
+        attributes: form.attributes,
       });
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '创建行李转盘失败'));
@@ -515,6 +547,7 @@ export function useTerminalDirectory() {
     try {
       const res = await api.patch<unknown>(`/api/v2/dispatch/carousels/${encodeURIComponent(id)}`, {
         name: form.name.trim() || null,
+        attributes: form.attributes,
       });
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '更新行李转盘失败'));
@@ -572,14 +605,16 @@ export function useTerminalDirectory() {
     }
     saving.value = true;
     try {
-      const res = await api.post<unknown>('/api/v2/dispatch/stands', {
+      // size_category 旧列只读（等级改认 overlay max_size_category），不再可写。
+      const body = {
         terminal_id: terminalId,
         code: form.code.trim(),
         name: form.name.trim() || null,
         area: form.area.trim() || null,
         stand_type: form.stand_type.trim() || null,
-        size_category: form.size_category.trim() || null,
-      });
+        attributes: form.attributes,
+      };
+      const res = await api.post<unknown>('/api/v2/dispatch/stands', body);
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '创建机位失败'));
         return false;
@@ -596,12 +631,14 @@ export function useTerminalDirectory() {
   async function updateStand(id: string, form: StandFormData): Promise<boolean> {
     saving.value = true;
     try {
-      const res = await api.patch<unknown>(`/api/v2/dispatch/stands/${encodeURIComponent(id)}`, {
+      // size_category 旧列只读（等级改认 overlay max_size_category），不再可写。
+      const body = {
         name: form.name.trim() || null,
         area: form.area.trim() || null,
         stand_type: form.stand_type.trim() || null,
-        size_category: form.size_category.trim() || null,
-      });
+        attributes: form.attributes,
+      };
+      const res = await api.patch<unknown>(`/api/v2/dispatch/stands/${encodeURIComponent(id)}`, body);
       if (!res.ok) {
         toast.showToast('error', await extractErrorMessage(res.response, '更新机位失败'));
         return false;
@@ -717,17 +754,23 @@ export function useTerminalDirectory() {
   // ------------- Modal openers -----------------------------
 
   function openTerminalModal(item?: Terminal) {
-    terminalForm.value = item ? { code: item.code, name: item.name } : { code: '', name: '' };
+    terminalForm.value = item
+      ? { code: item.code, name: item.name, attributes: { ...(item.attributes || {}) } }
+      : { code: '', name: '', attributes: {} };
     modal.value = { kind: 'terminal', item };
   }
 
   function openGateModal(item?: Gate) {
-    gateForm.value = item ? { code: item.code, name: item.name || '' } : { code: '', name: '' };
+    gateForm.value = item
+      ? { code: item.code, name: item.name || '', attributes: { ...(item.attributes || {}) } }
+      : { code: '', name: '', attributes: {} };
     modal.value = { kind: 'gate', item };
   }
 
   function openCarouselModal(item?: BaggageCarousel) {
-    carouselForm.value = item ? { code: item.code, name: item.name || '' } : { code: '', name: '' };
+    carouselForm.value = item
+      ? { code: item.code, name: item.name || '', attributes: { ...(item.attributes || {}) } }
+      : { code: '', name: '', attributes: {} };
     modal.value = { kind: 'carousel', item };
   }
 
@@ -739,8 +782,17 @@ export function useTerminalDirectory() {
           area: item.area || '',
           stand_type: item.stand_type || '',
           size_category: item.size_category || '',
+          // combined_stand 种子在已存值之前：旧值优先，未配置时默认 false。
+          attributes: { combined_stand: false, ...(item.attributes || {}) },
         }
-      : { code: '', name: '', area: '', stand_type: '', size_category: '' };
+      : {
+          code: '',
+          name: '',
+          area: '',
+          stand_type: '',
+          size_category: '',
+          attributes: { combined_stand: false },
+        };
     modal.value = { kind: 'stand', item };
   }
 

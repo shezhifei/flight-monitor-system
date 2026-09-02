@@ -5,7 +5,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::EquipmentType;
-use fms_domain::ports::dispatch_repository::EquipmentTypeRepository;
+use fms_domain::ports::dispatch_repository::{EquipmentTypeRepository, EquipmentTypeTransactionalRepository};
 
 pub struct PgEquipmentTypeRepository {
     pool: PgPool,
@@ -40,8 +40,8 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
         sqlx::query(
             r#"
             INSERT INTO equipment_types (
-                id, name, code, category, requires_driver, icon, description, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                id, name, code, category, requires_driver, icon, description, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
                 code = EXCLUDED.code,
@@ -50,6 +50,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
                 icon = EXCLUDED.icon,
                 description = EXCLUDED.description,
                 is_active = EXCLUDED.is_active
+                ,attributes = EXCLUDED.attributes
             "#,
         )
         .bind(&equipment_type.id)
@@ -60,6 +61,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
         .bind(&equipment_type.icon)
         .bind(&equipment_type.description)
         .bind(equipment_type.is_active)
+        .bind(&equipment_type.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -72,7 +74,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
     async fn find_by_id(&self, id: &str) -> Result<Option<EquipmentType>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT id, name, code, category, requires_driver, icon, description, created_at, is_active
+            SELECT id, name, code, category, requires_driver, icon, description, created_at, is_active, attributes
             FROM equipment_types
             WHERE id = $1
             "#,
@@ -98,7 +100,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
         offset: i64,
     ) -> Result<Vec<EquipmentType>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, name, code, category, requires_driver, icon, description, created_at, is_active FROM equipment_types WHERE 1=1",
+            "SELECT id, name, code, category, requires_driver, icon, description, created_at, is_active, attributes FROM equipment_types WHERE 1=1",
         );
         if !include_inactive {
             builder.push(" AND is_active = TRUE");
@@ -171,6 +173,70 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
     }
 }
 
+#[async_trait]
+impl<'tx> EquipmentTypeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
+    for PgEquipmentTypeRepository
+{
+    async fn save_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        equipment_type: &EquipmentType,
+    ) -> Result<EquipmentType, DomainError> {
+        sqlx::query(
+            r#"
+            INSERT INTO equipment_types (
+                id, name, code, category, requires_driver, icon, description, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                code = EXCLUDED.code,
+                category = EXCLUDED.category,
+                requires_driver = EXCLUDED.requires_driver,
+                icon = EXCLUDED.icon,
+                description = EXCLUDED.description,
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes
+            "#,
+        )
+        .bind(&equipment_type.id)
+        .bind(&equipment_type.name)
+        .bind(&equipment_type.code)
+        .bind(&equipment_type.category)
+        .bind(equipment_type.requires_driver)
+        .bind(&equipment_type.icon)
+        .bind(&equipment_type.description)
+        .bind(equipment_type.is_active)
+        .bind(&equipment_type.attributes)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        let row = sqlx::query(
+            r#"
+            SELECT id, name, code, category, requires_driver, icon, description,
+                   created_at, is_active, attributes
+            FROM equipment_types
+            WHERE id = $1
+            "#,
+        )
+        .bind(&equipment_type.id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?
+        .ok_or_else(|| DomainError::Internal("equipment type transactional save returned no row".into()))?;
+
+        let task_type_rows = sqlx::query(
+            "SELECT task_type FROM equipment_type_steps WHERE equipment_type_id = $1 ORDER BY is_required DESC, min_count DESC, task_type ASC",
+        )
+        .bind(&equipment_type.id)
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        let task_types = task_type_rows.iter().map(|item| item.get("task_type")).collect();
+        Ok(row_to_equipment_type(&row, task_types))
+    }
+}
+
 fn row_to_equipment_type(row: &sqlx::postgres::PgRow, task_types: Vec<String>) -> EquipmentType {
     EquipmentType {
         id: row.get("id"),
@@ -183,5 +249,6 @@ fn row_to_equipment_type(row: &sqlx::postgres::PgRow, task_types: Vec<String>) -
         created_at: row.get("created_at"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
         task_types,
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }

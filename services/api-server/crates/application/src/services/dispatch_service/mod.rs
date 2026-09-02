@@ -41,6 +41,7 @@ use fms_domain::ports::dispatch_repository::{
 };
 use fms_domain::ports::flight_repository::FlightRepository;
 use fms_domain::ports::todo_repository::TodoRepository;
+use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
 
 use async_trait::async_trait;
 
@@ -48,6 +49,7 @@ use crate::services::dispatch_chat_service::DispatchChatService;
 use crate::services::dispatch_order_adjuster_handler::EventRuleOrderGateway;
 use crate::services::notification_service::{DispatchBatchNotificationCreate, NotificationService};
 use crate::services::resource_availability_service::ResourceAvailabilityGateway;
+use crate::services::attribute_validation::ObjectReferenceValidator;
 
 #[async_trait]
 pub trait DispatchNotificationSender: Send + Sync {
@@ -112,6 +114,8 @@ pub struct DispatchOrderServiceDependencies {
     pub order_repo: Arc<dyn DispatchOrderRepository + Send + Sync>,
     pub member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
     pub todo_repo: Arc<dyn TodoRepository + Send + Sync>,
+    pub field_overlay_repo: Option<Arc<dyn FieldOverlayRepository + Send + Sync>>,
+    pub object_reference_validator: Option<Arc<dyn ObjectReferenceValidator>>,
 }
 
 pub struct DispatchRuleServiceDependencies {

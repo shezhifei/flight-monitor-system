@@ -484,6 +484,9 @@ async function writePunchValue(
       apiBase: auth.apiBase.value,
       authFetch: auth.fetch,
       value: isoValue,
+      // row_id → 方向航班 id 的解析需要行数据（进/出港时间线打在方向航班上）
+      flights: [...props.flights] as unknown as FlightModel[],
+      originalFlights: [...props.flights] as unknown as FlightModel[],
     });
     toast.showToast('success', successMessage, { duration: 2500 });
     return true;

@@ -6,10 +6,22 @@
 	}
 }
 
+(fms_proxy) {
+	reverse_proxy {$FMS_CADDY_UPSTREAM} {
+		header_up X-Forwarded-Port {server_port}
+
+		transport http {
+			versions 1.1 2
+			dial_timeout 5s
+			response_header_timeout 60s
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}
+
 {$FMS_CADDY_SITE_HOST}:{$FMS_CADDY_HTTPS_PORT} {
 	tls internal
-
-	encode zstd gzip
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
@@ -26,15 +38,16 @@
 		format json
 	}
 
-	reverse_proxy {$FMS_CADDY_UPSTREAM} {
-		header_up X-Forwarded-Port {server_port}
-
-		transport http {
-			versions 1.1 2
-			dial_timeout 5s
-			response_header_timeout 60s
-			read_timeout 300s
-			write_timeout 300s
+	handle /api/* {
+		encode {
+			gzip 1
+			minimum_length 256
 		}
+		import fms_proxy
+	}
+
+	handle {
+		encode zstd gzip
+		import fms_proxy
 	}
 }

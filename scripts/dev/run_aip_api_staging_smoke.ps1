@@ -228,8 +228,8 @@ Write-Host ""
 Write-Host "=== ALL API SMOKE TESTS PASSED ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Verification summary:" -ForegroundColor Cyan
-Write-Host "  [PASS] Todo.create proposal executed via HTTP API end-to-end"
-Write-Host "  [PASS] Business row created in todos table"
+Write-Host "  [PASS] Flight.add_note proposal executed via HTTP API end-to-end"
+Write-Host "  [PASS] Flight remarks updated through the controlled write path"
 Write-Host "  [PASS] Domain event outbox entry written"
 Write-Host "  [PASS] Audit events: execution_requested, execution_started, execution_succeeded"
 Write-Host "  [PASS] Execution-disabled: API returns 409 Conflict, no side effects"

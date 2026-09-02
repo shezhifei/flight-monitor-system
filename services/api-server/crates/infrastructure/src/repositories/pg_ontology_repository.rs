@@ -1036,10 +1036,10 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
              FROM flights f \
              WHERE f.registration = $1 \
                AND f.flight_id <> $2 \
-               AND EXISTS ( \
+               AND (f.direction = 'inbound' OR (f.direction IS NULL AND EXISTS ( \
                    SELECT 1 FROM flight_legs fl \
                    WHERE fl.flight_id = f.flight_id AND fl.leg_type = 'inbound' \
-               ) \
+               ))) \
                AND f.status IN (2, 8, 10) \
                AND NOT EXISTS ( \
                    SELECT 1 FROM turnaround_links tl \
@@ -1081,10 +1081,10 @@ impl TurnaroundLinkRepository for PgTurnaroundLinkRepository {
              FROM flights f \
              WHERE f.registration IS NOT NULL \
                AND btrim(f.registration) <> '' \
-               AND EXISTS ( \
+               AND (f.direction = 'outbound' OR (f.direction IS NULL AND EXISTS ( \
                    SELECT 1 FROM flight_legs fl \
                    WHERE fl.flight_id = f.flight_id AND fl.leg_type = 'outbound' \
-               ) \
+               ))) \
                AND COALESCE(f.is_draft, FALSE) = FALSE \
                AND f.status < 7 \
                AND NOT EXISTS ( \

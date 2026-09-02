@@ -102,6 +102,7 @@ impl AuthAdminQueryService {
                 created_at: Some(Utc::now()),
                 updated_at: Some(Utc::now()),
                 is_active: true,
+                attributes: serde_json::json!({}),
             };
             let saved = self.department_repo.save(&department).await?;
             existing_by_name.insert(saved.name.trim().to_string(), saved);

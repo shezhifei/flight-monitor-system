@@ -69,6 +69,8 @@ const {
   savingGrant,
   createQualificationGrant,
   revokeQualificationGrant,
+  personnelFieldOverlays,
+  fieldCatalogEntries,
 } = useUserManager();
 
 const auth = useAuth();
@@ -524,6 +526,8 @@ function templatePermissionCount(tmpl: {
       :qualification-levels="levelsForGrantForm"
       :qualification-grant-form="qualificationGrantForm"
       :saving-grant="savingGrant"
+      :personnel-field-overlays="personnelFieldOverlays"
+      :field-catalog-entries="fieldCatalogEntries"
       @close="closeUserModal"
       @save="saveUser"
       @update:form="userForm = $event"

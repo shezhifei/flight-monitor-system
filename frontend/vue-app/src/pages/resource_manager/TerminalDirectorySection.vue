@@ -12,6 +12,8 @@ import type {
   TerminalDirectory,
   TerminalFormData,
 } from '@/composables/useTerminalDirectory';
+import type { FieldOverlay, FieldReferenceEntry } from '@/composables/useFieldOverlays';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiModal from '@/components/ui/UiModal.vue';
@@ -36,6 +38,12 @@ const props = defineProps<{
   gateForm: GateFormData;
   carouselForm: CarouselFormData;
   standForm: StandFormData;
+  terminalFieldOverlays: FieldOverlay[];
+  gateFieldOverlays: FieldOverlay[];
+  carouselFieldOverlays: FieldOverlay[];
+  standFieldOverlays: FieldOverlay[];
+  fieldCatalogEntries: Record<string, Array<{ code: string; name: string }>>;
+  fieldReferenceEntries: Record<string, FieldReferenceEntry[]>;
 }>();
 
 const emit = defineEmits<{
@@ -97,6 +105,20 @@ function patchCarousel<K extends keyof CarouselFormData>(field: K, value: Carous
 }
 function patchStand<K extends keyof StandFormData>(field: K, value: StandFormData[K]) {
   emit('update:standForm', { ...props.standForm, [field]: value });
+}
+
+/* 四个目录模态共用 FieldOverlayForm 渲染 overlay 字段；attributes 值整体替换。 */
+function patchTerminalAttributes(value: Record<string, unknown>) {
+  emit('update:terminalForm', { ...props.terminalForm, attributes: value });
+}
+function patchGateAttributes(value: Record<string, unknown>) {
+  emit('update:gateForm', { ...props.gateForm, attributes: value });
+}
+function patchCarouselAttributes(value: Record<string, unknown>) {
+  emit('update:carouselForm', { ...props.carouselForm, attributes: value });
+}
+function patchStandAttributes(value: Record<string, unknown>) {
+  emit('update:standForm', { ...props.standForm, attributes: value });
 }
 
 /* 占用明细行：后端 Value 形状不定，通用 key: value 渲染 */
@@ -456,6 +478,13 @@ function detailEntries(item: unknown): Array<[string, string]> {
           @input="patchTerminal('name', ($event.target as HTMLInputElement).value)"
         >
       </div>
+      <FieldOverlayForm
+        :model-value="terminalForm.attributes"
+        :overlays="terminalFieldOverlays"
+        :catalog-entries="fieldCatalogEntries"
+        :reference-entries="fieldReferenceEntries"
+        @update:model-value="patchTerminalAttributes($event)"
+      />
       <template #footer>
         <UiButton size="md" @click="emit('close')">
           取消
@@ -499,6 +528,13 @@ function detailEntries(item: unknown): Array<[string, string]> {
           @input="patchGate('name', ($event.target as HTMLInputElement).value)"
         >
       </div>
+      <FieldOverlayForm
+        :model-value="gateForm.attributes"
+        :overlays="gateFieldOverlays"
+        :catalog-entries="fieldCatalogEntries"
+        :reference-entries="fieldReferenceEntries"
+        @update:model-value="patchGateAttributes($event)"
+      />
       <template #footer>
         <UiButton size="md" @click="emit('close')">
           取消
@@ -542,6 +578,13 @@ function detailEntries(item: unknown): Array<[string, string]> {
           @input="patchCarousel('name', ($event.target as HTMLInputElement).value)"
         >
       </div>
+      <FieldOverlayForm
+        :model-value="carouselForm.attributes"
+        :overlays="carouselFieldOverlays"
+        :catalog-entries="fieldCatalogEntries"
+        :reference-entries="fieldReferenceEntries"
+        @update:model-value="patchCarouselAttributes($event)"
+      />
       <template #footer>
         <UiButton size="md" @click="emit('close')">
           取消
@@ -605,16 +648,25 @@ function detailEntries(item: unknown): Array<[string, string]> {
           @input="patchStand('stand_type', ($event.target as HTMLInputElement).value)"
         >
       </div>
-      <div class="form-group">
-        <label for="stand-size">机型等级</label>
+      <!-- 旧列 size_category 已废弃为只读投影：等级只认 overlay max_size_category；
+           编辑时只读展示，新建不再提供可写输入。 -->
+      <div v-if="editingStand" class="form-group">
+        <label for="stand-size">机型等级（只读）</label>
         <input
           id="stand-size"
           type="text"
-          :value="standForm.size_category"
-          placeholder="可选，如 C / E"
-          @input="patchStand('size_category', ($event.target as HTMLInputElement).value)"
+          :value="standForm.size_category || '-'"
+          disabled
+          title="旧列已废弃；最大可停等级请用「最大 ICAO 等级」扩展字段配置"
         >
       </div>
+      <FieldOverlayForm
+        :model-value="standForm.attributes"
+        :overlays="standFieldOverlays"
+        :catalog-entries="fieldCatalogEntries"
+        :reference-entries="fieldReferenceEntries"
+        @update:model-value="patchStandAttributes($event)"
+      />
       <template #footer>
         <UiButton size="md" @click="emit('close')">
           取消

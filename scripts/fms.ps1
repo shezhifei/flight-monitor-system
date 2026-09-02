@@ -797,8 +797,23 @@ $HostServiceDescriptors = @(
             @"
 https://localhost:$httpsPort {
     tls internal
-    encode zstd gzip
-    reverse_proxy 127.0.0.1:$apiPort
+    handle /api/* {
+        encode {
+            gzip 1
+            minimum_length 256
+        }
+        reverse_proxy 127.0.0.1:$apiPort {
+            transport http {
+                versions 1.1 2
+                keepalive 2m
+                keepalive_idle_conns 256
+            }
+        }
+    }
+    handle {
+        encode zstd gzip
+        reverse_proxy 127.0.0.1:$apiPort
+    }
 }
 "@ | Out-File -LiteralPath $caddyFile -Encoding ascii -Force
             return @("run", "--config", $caddyFile, "--adapter", "caddyfile")

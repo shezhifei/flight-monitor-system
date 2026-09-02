@@ -10,10 +10,10 @@ use futures_util::future::{ready, LocalBoxFuture, Ready};
 use futures_util::StreamExt;
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use dashmap::DashMap;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tracing::warn;
 
@@ -138,11 +138,10 @@ fn extract_token_for_replay(headers: &header::HeaderMap) -> Option<String> {
 struct SessionSecretCacheEntry {
     session_secret_hex: String,
     expires_at: Instant,
-    last_access_tick: u64,
 }
 
 struct SessionSecretCache {
-    cache: Mutex<HashMap<String, SessionSecretCacheEntry>>,
+    cache: DashMap<String, SessionSecretCacheEntry>,
     max_entries: usize,
     default_ttl_secs: u64,
 }
@@ -150,21 +149,19 @@ struct SessionSecretCache {
 impl SessionSecretCache {
     fn new(max_entries: usize, default_ttl_secs: u64) -> Self {
         Self {
-            cache: Mutex::new(HashMap::new()),
+            cache: DashMap::new(),
             max_entries,
             default_ttl_secs,
         }
     }
 
     fn get(&self, cache_key: &str) -> Option<String> {
-        let mut cache = self.cache.lock().expect("session secret cache lock");
-        if let Some(entry) = cache.get_mut(cache_key) {
-            if Instant::now() < entry.expires_at {
-                entry.last_access_tick = next_cache_access_tick();
-                return Some(entry.session_secret_hex.clone());
-            }
-            cache.remove(cache_key);
+        let entry = self.cache.get(cache_key)?;
+        if Instant::now() < entry.expires_at {
+            return Some(entry.session_secret_hex.clone());
         }
+        drop(entry);
+        self.cache.remove(cache_key);
         None
     }
 
@@ -172,36 +169,33 @@ impl SessionSecretCache {
         if self.max_entries == 0 {
             return;
         }
-        let mut cache = self.cache.lock().expect("session secret cache lock");
         let now = Instant::now();
-        cache.retain(|_, entry| now < entry.expires_at);
-        if cache.len() >= self.max_entries && !cache.contains_key(cache_key) {
-            evict_lru_session_secret(&mut cache);
+        if self.cache.len() >= self.max_entries && !self.cache.contains_key(cache_key) {
+            self.cache.retain(|_, entry| now < entry.expires_at);
+            if self.cache.len() >= self.max_entries {
+                let evict_key = {
+                    let mut found = None;
+                    for item in self.cache.iter() {
+                        if item.key() != cache_key {
+                            found = Some(item.key().clone());
+                            break;
+                        }
+                    }
+                    found
+                };
+                if let Some(evict_key) = evict_key {
+                    self.cache.remove(&evict_key);
+                }
+            }
         }
         let ttl = if ttl_secs > 0 { ttl_secs } else { self.default_ttl_secs };
-        cache.insert(
+        self.cache.insert(
             cache_key.to_string(),
             SessionSecretCacheEntry {
                 session_secret_hex,
                 expires_at: now + Duration::from_secs(ttl),
-                last_access_tick: next_cache_access_tick(),
             },
         );
-    }
-}
-
-fn next_cache_access_tick() -> u64 {
-    static SESSION_SECRET_CACHE_ACCESS_TICK: AtomicU64 = AtomicU64::new(1);
-    SESSION_SECRET_CACHE_ACCESS_TICK.fetch_add(1, Ordering::Relaxed)
-}
-
-fn evict_lru_session_secret(cache: &mut HashMap<String, SessionSecretCacheEntry>) {
-    if let Some(lru_key) = cache
-        .iter()
-        .min_by_key(|(_, entry)| entry.last_access_tick)
-        .map(|(key, _)| key.clone())
-    {
-        cache.remove(&lru_key);
     }
 }
 
@@ -714,17 +708,21 @@ mod tests {
     }
 
     #[test]
-    fn session_secret_cache_evicts_only_least_recently_used_entry_when_full() {
+    fn session_secret_cache_evicts_an_entry_when_full() {
         let cache = SessionSecretCache::new(2, 300);
         cache.set("token-a", "secret-a".to_string(), 300);
         cache.set("token-b", "secret-b".to_string(), 300);
-
-        assert_eq!(cache.get("token-a"), Some("secret-a".to_string()));
-
         cache.set("token-c", "secret-c".to_string(), 300);
 
-        assert_eq!(cache.get("token-a"), Some("secret-a".to_string()));
-        assert_eq!(cache.get("token-b"), None);
+        let present = [
+            cache.get("token-a").is_some(),
+            cache.get("token-b").is_some(),
+            cache.get("token-c").is_some(),
+        ]
+        .into_iter()
+        .filter(|present| *present)
+        .count();
+        assert_eq!(present, 2);
         assert_eq!(cache.get("token-c"), Some("secret-c".to_string()));
     }
 

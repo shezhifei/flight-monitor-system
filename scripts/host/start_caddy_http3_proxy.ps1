@@ -29,8 +29,23 @@ $stderr = Join-Path $runtimeDir "caddy.stderr.log"
 @"
 https://localhost:$HttpsPort {
     tls internal
-    encode zstd gzip
-    reverse_proxy 127.0.0.1:$ApiPort
+    handle /api/* {
+        encode {
+            gzip 1
+            minimum_length 256
+        }
+        reverse_proxy 127.0.0.1:$ApiPort {
+            transport http {
+                versions 1.1 2
+                keepalive 2m
+                keepalive_idle_conns 256
+            }
+        }
+    }
+    handle {
+        encode zstd gzip
+        reverse_proxy 127.0.0.1:$ApiPort
+    }
 }
 "@ | Out-File -LiteralPath $caddyFile -Encoding ascii
 

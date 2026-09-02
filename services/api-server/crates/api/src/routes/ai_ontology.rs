@@ -6,7 +6,8 @@ use chrono::Utc;
 use fms_application::services::ontology_actions::{
     advisory_action_permission, read_action_permission, OntologyActionError, OntologyActionServices,
 };
-use fms_domain::ontology::governed::load_governed_schema;
+use fms_domain::ontology::governed::{load_governed_schema, load_governed_schema_with_fields};
+use fms_application::types::ConcreteFieldOverlayService;
 use fms_domain::ontology::schema_export::{build_schema_export, OntologySchemaExport};
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use serde::Deserialize;
@@ -27,24 +28,47 @@ async fn load_schema(
     load_governed_schema(&[])
 }
 
+async fn load_action_overlays(
+    repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
+) -> Vec<fms_domain::ontology::governed::ActionOverlay> {
+    match repo {
+        Some(repo) => repo.load_action_overlays().await.unwrap_or_default(),
+        None => Vec::new(),
+    }
+}
+
 /// 返回稳定 schema export 结构（ontology_version / exported_at / objects / actions /
 /// risk_policies / constraints）。
 async fn get_schema(
     repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
+    field_repo: Option<web::Data<Arc<ConcreteFieldOverlayService>>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    let schema = load_schema(repo).await;
+    let mut schema = load_schema(repo.clone()).await;
+    if let Some(field_repo) = field_repo {
+        if let Ok(fields) = field_repo.list(None, false).await {
+            let actions = load_action_overlays(repo.clone()).await;
+            schema = load_governed_schema_with_fields(&actions, &fields);
+        }
+    }
     let export: OntologySchemaExport = build_schema_export(&schema, Utc::now());
     Ok(HttpResponse::Ok().json(export))
 }
 
 async fn get_objects(
     repo: Option<web::Data<Arc<dyn AiOntologyRepository + Send + Sync>>>,
+    field_repo: Option<web::Data<Arc<ConcreteFieldOverlayService>>>,
     claims: JwtAuth,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("ai:view")?;
-    let schema = load_schema(repo).await;
+    let mut schema = load_schema(repo.clone()).await;
+    if let Some(field_repo) = field_repo {
+        if let Ok(fields) = field_repo.list(None, false).await {
+            let actions = load_action_overlays(repo.clone()).await;
+            schema = load_governed_schema_with_fields(&actions, &fields);
+        }
+    }
     let objects: Vec<_> = schema.objects.values().cloned().collect();
     Ok(HttpResponse::Ok().json(objects))
 }

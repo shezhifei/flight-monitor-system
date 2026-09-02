@@ -66,6 +66,7 @@ fn to_department_response(department: Department) -> DepartmentResponse {
         created_at: department.created_at,
         updated_at: department.updated_at,
         is_active: department.is_active,
+        attributes: department.attributes,
     }
 }
 

@@ -41,13 +41,16 @@ routes/flights/crud.rs
 3. DTO → 领域：`from_create` 或 `update_patch_from_dto` → `Flight` / `FlightUpdatePatch`
 4. 状态变更应可对照 `flight_state::can_transition`（禁止无校验旁路扩散）
 5. 经 port 持久化：`save_in_tx` / `update_partial_in_tx`（HTTP create/update 在服务内开事务）
-6. **同事务**写 `domain_event_outbox`（`flight.*_v2` 事件族，见 ADR-0003 / [FLIGHT_WRITE_SEQUENCE](FLIGHT_WRITE_SEQUENCE.md)）
-7. 热列表 / 负缓存失效（`invalidate_hot_list` 等）— **仅失效**
-8. 外部事务路径：`update_flight_in_tx` 供 AI 等调用方编排；action 级 outbox 由调用方写入
+6. **同事务**投影 `flight_monitor_rows`（热列表读模型，不是第二种 Flight）
+7. **同事务**写 `domain_event_outbox`（`flight.*_v2` 事件族，见 ADR-0003 / [FLIGHT_WRITE_SEQUENCE](FLIGHT_WRITE_SEQUENCE.md)）
+8. 热列表 / 负缓存失效（`invalidate_hot_list` 等）— **仅失效**
+9. 外部事务路径：`update_flight_in_tx` 供 AI 等调用方编排；action 级 outbox 由调用方写入
+
+方向航班只能 PATCH 其规范方向对应的兼容 leg 载荷；对侧 leg 由 `ensure_directional_leg_patch` 拒绝。`stand`/`gate`/`terminal`/`baggage_carousel` 不在 `FlightUpdate` 上（422）。
 
 ## 非 API 写入口
 
-- **AI**：ontology 映射 `DomainActionExecutor.Flight.*`（如 `update_status`、`change_stand`、`add_note`）
+- **AI**：ontology 映射 `DomainActionExecutor.Flight.*`（如 `update_status`、`add_note`）。机位写走 `StandOccupation.allocate` / `adjust` / `release`；`Flight.change_stand` 已废止
 - **系统任务 / 流程**：须落到同一 `FlightService` 或同一 `FlightRepository` 写端口
 
 不允许在 AI sidecar、脚本或外围驱动中自行 `UPDATE flights` / 只写缓存当真相。
@@ -55,7 +58,8 @@ routes/flights/crud.rs
 ## 明确禁止
 
 - 绕过 `FlightRepository` 直接 SQL 改航班核心表
-- 以缓存、SSE payload、投影表为写真相
+- 以缓存、SSE payload、或查询时 concat 两班 Flight 为写真相
+- 热列表 JOIN `flights` / `flight_legs` 代替读 `flight_monitor_rows`
 - 在 application 层新增与航班核心写无关的「顺手 SQL」绕过 port
 
 ## 历史（Python，仅归档）

@@ -14,6 +14,12 @@ use crate::schemas::flight_schemas::{
 pub fn to_response(f: &Flight) -> FlightResponse {
     FlightResponse {
         flight_id: Some(f.flight_id.0.clone()),
+        // 详情路径按方向航班读取；监控行身份字段只由宽表投影填充。
+        row_id: None,
+        link_id: None,
+        kind: None,
+        inbound_flight_id: None,
+        outbound_flight_id: None,
         flight_number: f.flight_number.as_ref().map(|n| n.0.clone()),
         airline_code: f.airline_code.clone(),
         registration: f.registration.clone(),
@@ -48,8 +54,11 @@ pub fn to_response(f: &Flight) -> FlightResponse {
         has_boarding_restriction: f.has_boarding_restriction,
         is_quick_turnaround: f.is_quick_turnaround,
         is_commercial_signed: f.is_commercial_signed,
-        inbound_leg: f.inbound_leg.as_ref().map(leg_to_payload),
-        outbound_leg: f.outbound_leg.as_ref().map(leg_to_payload),
+        // Direction is part of flight identity.  Expose only the canonical
+        // side for directional flights; legacy aggregate rows (direction is
+        // null) continue to expose both compatibility legs during rollout.
+        inbound_leg: f.inbound_leg_view().map(leg_to_payload),
+        outbound_leg: f.outbound_leg_view().map(leg_to_payload),
         anomaly_summary: anomaly_summary_from_map(&f.anomaly_summary),
         business_cases: Vec::new(),
         created_at: Some(f.created_at),
@@ -78,15 +87,28 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
     let now = chrono::Utc::now();
     let inbound_leg = dto.inbound_leg.map(payload_to_leg);
     let outbound_leg = dto.outbound_leg.map(payload_to_leg);
-    if inbound_leg.is_none() && outbound_leg.is_none() {
+    if inbound_leg.is_some() && outbound_leg.is_some() {
         return Err(DomainError::ValidationError(
-            "航班创建至少需要 inbound_leg 或 outbound_leg".into(),
+            "一个 Flight 只能包含一个方向；进出港请分别创建两班并通过 TurnaroundLink 关联".into(),
         ));
     }
+    let canonical_leg = inbound_leg.as_ref().or(outbound_leg.as_ref()).ok_or_else(|| {
+        DomainError::ValidationError("航班创建至少需要 inbound_leg 或 outbound_leg".into())
+    })?;
+    let direction = match (dto.direction.as_deref().map(|value| value.trim().to_ascii_lowercase()), canonical_leg.leg_type) {
+        (Some(value), LegType::Inbound) if value == "inbound" => Some(value),
+        (Some(value), LegType::Outbound) if value == "outbound" => Some(value),
+        (Some(_), _) => {
+            return Err(DomainError::ValidationError("direction 与航段方向不一致".into()));
+        }
+        (None, LegType::Inbound) => Some("inbound".to_string()),
+        (None, LegType::Outbound) => Some("outbound".to_string()),
+    };
+    let is_inbound = direction.as_deref() == Some("inbound");
 
     Ok(Flight {
         flight_id: FlightId(dto.flight_id.unwrap_or_else(|| ulid::Ulid::new().to_string())),
-        flight_number: dto.flight_number.map(FlightNumber),
+        flight_number: dto.flight_number.or_else(|| Some(canonical_leg.flight_no.clone())).map(FlightNumber),
         airline_code: dto.airline_code,
         registration: dto.registration,
         aircraft_type_detail: dto.aircraft_type_detail.map(AircraftType),
@@ -95,16 +117,16 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
         terminal: dto.terminal,
         position: dto.position,
         baggage_carousel: dto.baggage_carousel,
-        scheduled_departure: dto.scheduled_departure,
-        scheduled_arrival: dto.scheduled_arrival,
-        estimated_departure: dto.estimated_departure,
-        estimated_arrival: dto.estimated_arrival,
-        actual_departure: dto.actual_departure,
-        actual_arrival: dto.actual_arrival,
+        scheduled_departure: if is_inbound { None } else { dto.scheduled_departure },
+        scheduled_arrival: if is_inbound { dto.scheduled_arrival.or(canonical_leg.scheduled_time) } else { None },
+        estimated_departure: if is_inbound { None } else { dto.estimated_departure },
+        estimated_arrival: if is_inbound { dto.estimated_arrival } else { None },
+        actual_departure: if is_inbound { None } else { dto.actual_departure },
+        actual_arrival: if is_inbound { dto.actual_arrival } else { None },
         cobt_time: None,
         codt: None,
         has_boarding_restriction: dto.has_boarding_restriction,
-        is_quick_turnaround: dto.is_quick_turnaround,
+        is_quick_turnaround: false,
         is_commercial_signed: dto.is_commercial_signed,
         status: match dto.status {
             Some(status) => parse_status(&status)?,
@@ -121,7 +143,7 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
         load_planning_remarks: dto.load_planning_remarks,
         aircraft_maintenance_remarks: dto.aircraft_maintenance_remarks,
         aircraft_check_remarks: dto.aircraft_check_remarks,
-        direction: None,
+        direction,
         flight_kind: "passenger".to_string(),
         is_draft: false,
         divert: false,
@@ -341,5 +363,30 @@ mod tests {
         assert!(matches!(patch.registration, PatchField::Clear));
         assert!(matches!(patch.inbound_leg, PatchField::Clear));
         assert!(matches!(patch.flight_remarks, PatchField::Set(ref value) if value == "note"));
+    }
+
+    #[test]
+    fn create_mapping_rejects_legacy_two_leg_aggregate() {
+        let dto: FlightCreate = serde_json::from_value(serde_json::json!({
+            "flight_number": "CA1234",
+            "inbound_leg": {"leg_type":"inbound", "flight_no":"CA1233", "flight_type":"domestic"},
+            "outbound_leg": {"leg_type":"outbound", "flight_no":"CA1234", "flight_type":"domestic"}
+        }))
+        .unwrap();
+        let error = from_create(dto).expect_err("a Flight must be single-direction");
+        assert!(error.to_string().contains("只能包含一个方向"));
+    }
+
+    #[test]
+    fn create_mapping_infers_direction_from_the_single_leg() {
+        let dto: FlightCreate = serde_json::from_value(serde_json::json!({
+            "inbound_leg": {"leg_type":"inbound", "flight_no":"CA1233", "flight_type":"domestic"}
+        }))
+        .unwrap();
+        let flight = from_create(dto).unwrap();
+        assert_eq!(flight.direction.as_deref(), Some("inbound"));
+        assert!(flight.inbound_leg.is_some());
+        assert!(flight.outbound_leg.is_none());
+        assert!(flight.scheduled_departure.is_none());
     }
 }

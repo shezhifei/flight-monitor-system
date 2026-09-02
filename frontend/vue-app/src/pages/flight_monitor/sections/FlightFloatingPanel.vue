@@ -28,6 +28,8 @@ const props = defineProps<{
   dispatchChatOpen: boolean;
   flightInsightOpen: boolean;
   selectedFlightId: string | null;
+  /** 行级浮层的航班上下文 id：方向航班 id（进港优先），不是监控行 row_id（链 id）。 */
+  selectedFlightContextId?: string | null;
   chatGroupId?: string | null;
   selectedFlightNo: string | undefined;
   flightNoResolver?: (flightId: string) => string | null | undefined;
@@ -58,6 +60,9 @@ const emit = defineEmits<{
 const aiAssistantOpen = ref(false);
 const copilotOpen = ref(false);
 const aiUnread = ref(0);
+
+// 浮层子面板按方向航班取上下文；旧页面未传时回退选中键（row_id）。
+const flightContextId = computed(() => props.selectedFlightContextId ?? props.selectedFlightId);
 const chatUnread = ref(0);
 
 // 角浮：一页一颗主声悬钮，点开抬起临时工具箱
@@ -282,21 +287,21 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointerDo
   />
   <FlightInsightModal
     :is-open="flightInsightOpen"
-    :flight-id="selectedFlightId"
+    :flight-id="flightContextId"
     :flight-no="selectedFlightNo"
     @close="emit('close-insight')"
   />
 
   <AIAssistantFloatPanel
     v-model:open="aiAssistantOpen"
-    :selected-flight-id="selectedFlightId"
+    :selected-flight-id="flightContextId"
     :selected-flight-no="selectedFlightNo"
     @update:unread="aiUnread = $event"
   />
 
   <AutoCopilotVoicePanel
     v-model:open="copilotOpen"
-    :selected-flight-id="selectedFlightId"
+    :selected-flight-id="flightContextId"
     :selected-flight-no="selectedFlightNo"
     :business-case-types="businessCaseTypes"
     @created="emit('auto-copilot-created', $event)"
@@ -304,7 +309,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointerDo
 
   <DispatchCollaborationChat
     :is-open="dispatchChatOpen"
-    :flight-id="chatGroupId ? null : selectedFlightId"
+    :flight-id="chatGroupId ? null : flightContextId"
     :group-id="chatGroupId || undefined"
     @close="emit('close-chat')"
     @toast="emit('toast', $event)"

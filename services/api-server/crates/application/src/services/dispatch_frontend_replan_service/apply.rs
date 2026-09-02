@@ -380,6 +380,8 @@ impl DispatchFrontendReplanService {
                     "actor_name": actor_name,
                 })),
                 order: order.clone(),
+                // replan 不改扩展属性；沿用 order 现有引用投影，无需替换索引。
+                attribute_references: None,
             })
             .await?;
 
@@ -851,6 +853,7 @@ mod tests {
             supervisor_notified: false,
             supervisor_notified_at: None,
             assignment_deadline: None,
+            attributes: serde_json::json!({}),
             completed_by: None,
             completion_notes: None,
             gate: None,

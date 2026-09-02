@@ -110,6 +110,7 @@ impl AuthService {
                             created_at: Some(Utc::now()),
                             updated_at: Some(Utc::now()),
                             is_active: true,
+                            attributes: serde_json::json!({}),
                         })
                         .await?;
                 }

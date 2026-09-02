@@ -23,6 +23,11 @@ use fms_domain::ports::dispatch_repository::{
     FlightGenerationRuleRepository, GenerationAdjustmentRuleRepository, QualificationGrantRepository,
     TemporaryTaskTemplateRepository,
 };
+use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
+use crate::services::attribute_validation::collect_attribute_references;
+use crate::services::attribute_validation::validate_attributes;
+use crate::services::attribute_validation::ObjectReferenceValidator;
+use crate::services::qualification_writer::QualificationAttributeTransactionalWriter;
 
 pub struct DispatchRuleService {
     department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
@@ -32,6 +37,9 @@ pub struct DispatchRuleService {
     generation_rule_repo: Arc<dyn FlightGenerationRuleRepository + Send + Sync>,
     adjustment_rule_repo: Arc<dyn GenerationAdjustmentRuleRepository + Send + Sync>,
     temporary_task_template_repo: Arc<dyn TemporaryTaskTemplateRepository + Send + Sync>,
+    field_overlay_repo: Option<Arc<dyn FieldOverlayRepository + Send + Sync>>,
+    object_reference_validator: Option<Arc<dyn ObjectReferenceValidator>>,
+    qualification_writer: Option<Arc<dyn QualificationAttributeTransactionalWriter>>,
 }
 
 impl DispatchRuleService {
@@ -52,7 +60,34 @@ impl DispatchRuleService {
             generation_rule_repo,
             adjustment_rule_repo,
             temporary_task_template_repo,
+            field_overlay_repo: None,
+            object_reference_validator: None,
+            qualification_writer: None,
         }
+    }
+
+    pub fn with_field_overlay_repository(
+        mut self,
+        repo: Arc<dyn FieldOverlayRepository + Send + Sync>,
+    ) -> Self {
+        self.field_overlay_repo = Some(repo);
+        self
+    }
+
+    pub fn with_object_reference_validator(
+        mut self,
+        validator: Arc<dyn ObjectReferenceValidator>,
+    ) -> Self {
+        self.object_reference_validator = Some(validator);
+        self
+    }
+
+    pub fn with_qualification_writer(
+        mut self,
+        writer: Arc<dyn QualificationAttributeTransactionalWriter>,
+    ) -> Self {
+        self.qualification_writer = Some(writer);
+        self
     }
 
     pub async fn create_qualification(
@@ -61,6 +96,15 @@ impl DispatchRuleService {
         payload: DepartmentQualificationCatalogCreate,
     ) -> Result<DepartmentQualificationCatalog, DomainError> {
         self.ensure_department(department_id).await?;
+        let attributes = validate_attributes(
+            "Qualification",
+            payload.attributes,
+            self.field_overlay_repo.as_ref(),
+        )
+        .await?;
+        if let Some(validator) = self.object_reference_validator.as_ref() {
+            validator.validate("Qualification", &attributes).await?;
+        }
         let item = DepartmentQualificationCatalog {
             id: ulid::Ulid::new().to_string(),
             department_id: department_id.to_string(),
@@ -70,7 +114,20 @@ impl DispatchRuleService {
             is_active: payload.is_active,
             created_at: None,
             updated_at: None,
+            attributes,
         };
+        // writer 路径：目录行 + reference index 同一 UnitOfWork 提交；
+        // 无 writer 时保持原仓储直写行为（validator 已做引用校验）。
+        if let Some(writer) = self.qualification_writer.as_ref() {
+            let references = collect_attribute_references(
+                "Qualification",
+                &item.id,
+                &item.attributes,
+                self.field_overlay_repo.as_ref(),
+            )
+            .await?;
+            return writer.save_catalog_with_references(&item, &references).await;
+        }
         self.qualification_repo.save_catalog(&item).await
     }
 

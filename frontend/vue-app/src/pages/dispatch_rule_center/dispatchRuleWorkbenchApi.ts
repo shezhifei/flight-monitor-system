@@ -23,6 +23,7 @@ export interface TaskTypeResponse {
   trigger_type: string;
   description?: string | null;
   is_active: boolean;
+  attributes?: Record<string, unknown>;
 }
 
 export interface TaskTypeCreatePayload {
@@ -34,6 +35,7 @@ export interface TaskTypeCreatePayload {
   trigger_offset_minutes?: number;
   trigger_type?: string;
   description?: string | null;
+  attributes?: Record<string, unknown>;
 }
 
 export interface EquipmentTypeResponse {
@@ -266,6 +268,7 @@ export interface DispatchOrderCreatePayload {
   equipment_requirement_snapshot?: unknown[];
   task_crew?: Record<string, unknown>;
   equipment_assignment?: unknown[];
+  attributes?: Record<string, unknown>;
 }
 
 export interface DispatchOrderCreateResponse {

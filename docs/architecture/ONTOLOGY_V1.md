@@ -8,6 +8,12 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 
 `flight-ops.v1` 是定义层唯一类型目录：对象、字段、关系、动作、启用/风险/审批。
 运行时加载永远走 `load_governed_schema()`（代码底 + `aip_ontology_actions` overlay）。
+
+字段扩展使用同一治理边界下的 `ontology_field_overlays`：对象/动作仍只能来自代码合同，
+overlay 只能为已知对象补充字段元数据（类型、码表/对象引用、可见性和表单 widget），
+不能修改代码核心字段类型。需要同时读取两类 overlay 时使用
+`load_governed_schema_with_fields()`；字段目录 API 位于
+`/api/v2/dispatch/resources/ontology-field-overlays`，写操作要求 `dispatch:manage`。
 受控写真写只经提案队列 + `DomainActionExecutor`。`Flight.change_stand` /
 `Stand.reserve` / `Todo.create` 已废止，fail-closed。金样见
 `docs/fixtures/flight_ops_v1_ontology_schema.json`。
@@ -17,7 +23,7 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 ## 1. 设计原则
 
 1. **飞机中心**：资源占用主体是 `registration`（原样存储、全局唯一），不是机位标量。
-2. **任务与飞机分离**：航段（Flight）可换机；换机后周转链接按同机健康性维护。
+2. **任务与飞机分离**：方向航班（Flight）可换机；换机后周转链按同机健康性维护。
 3. **冲突软约束**：机位时段重叠只告警，不硬拦。
 4. **分权**：AOC / TOC / GROUND 岗位权限模板（见 migration 119）。
 5. **占用回写展示列**：机位/口/转盘生效后回写航班 `stand` / `gate` / `terminal` / `baggage_carousel` 作只读展示，不是计划真相。`ResourceAdjustmentSuggestion` 接受 = 对应 allocate，不是一等对象。
@@ -28,12 +34,30 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 
 | 对象 | 主键 | 说明 |
 |------|------|------|
-| Aircraft | `registration` | 飞机；首次写入 upsert |
-| Flight | `flight_id` | 增加 `direction` / `flight_kind` / `is_draft` / `divert` |
-| StandOccupation | `id` | 飞机+时段+机位；`normal` \| `moving` |
-| GateAssignment | `id` | 飞机+时段+登机口 |
-| TurnaroundLink | `id` | 进港航段 ↔ 出港航段；`active` \| `broken` |
-| ResourceAdjustmentSuggestion | `id` | 机位/口建议；pending → accepted_executed \| rejected \| expired |
+| Terminal | `terminal_id` | 航站楼目录；成员事实在 `terminal_stands` / `terminal_gates` / `terminal_carousels` |
+| Stand | `stand_id` | 机位目录；必须挂启用的 Terminal |
+| Gate | `gate_id` | 登机口目录；必须挂启用的 Terminal |
+| BaggageCarousel | `carousel_id` | 行李转盘目录；必须挂启用的 Terminal |
+| StandOccupation | `occupation_id` | 飞机（registration）+ 时段 + 机位；重叠仅软告警 |
+| GateAssignment | `assignment_id` | 航班（flight_id）+ 时段 + 登机口；重叠仅软告警 |
+| CarouselAssignment | `assignment_id` | 航班（flight_id）+ 时段 + 转盘；无数量/重叠约束 |
+| Aircraft | `registration` | 飞机；首次占用时 upsert |
+| TurnaroundLink | `id` | 入港 Flight ↔ 出港 Flight 的保障周转链；`active` \| `broken`。不是旅客衔接，也不是 Flight |
+| Flight | `flight_id` | 一班进港 **或** 一班出港。`direction` 只能 `inbound` \| `outbound`，禁止 `both`。`stand`/`gate`/`terminal`/`baggage_carousel` 由占用回写 |
+| Department | `department_id` | 科室目录 |
+| Team | `team_id` | 班组名册；挂科室，不是工单 assignee |
+| Equipment | `equipment_id` | 保障设备；挂科室 + EquipmentType |
+| EquipmentType | `equipment_type_id` | 设备种类；`requires_driver` 表达司机需求 |
+| Personnel | `user_id` | 仅个人账号的作业身份；岗位账号不生成 Personnel |
+| Qualification | `qualification_id` | 科室资质目录；发放在人员管理页 |
+| TaskType | `task_type_id` | 作业类型目录；`anchor` 为 `inbound` \| `outbound` \| `link` |
+| DispatchOrder | `dispatch_order_id` | 按 `TaskType.anchor` 挂进港 Flight、出港 Flight 或周转链；按命名槽指派人员/设备 |
+| Anomaly | `anomaly_id` | 运行信号；主体是 `subject_type` + `subject_id`（`flight_id` 可空） |
+| BusinessCase | `business_case_id` | 事项/案件；流程是属性而非独立 Workflow 对象 |
+
+监控行 `flight_monitor_rows` **不是**本体对象。热列表一格一行、进出港是列；详情再按 `inbound_flight_id` / `outbound_flight_id` 读写真。`row_id` 写入后不因建链/拆链改变。
+
+码表（`metadata_catalogs`）也不是一等对象；`EquipmentType` / `Qualification` / `TaskType` 仍是合同对象，不搬进通用码表。
 
 ---
 
@@ -48,6 +72,9 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 | 9 | 禁 AOC+TOC 双岗 | 规则纯函数；岗位分配侧 enforce |
 | 10 | 地服黑名单：改机号/正式位/正式口 | 权限码 + 路由 |
 | 12 | 机位建议仅 AOC 可接受；口建议仅 TOC | `accept_permission_for` |
+| 13 | `Flight.direction` 只能 inbound/outbound | `Flight::validate_direction_contract`；迁移 `155` |
+| 14 | 热列表/搜索/计数只读 `flight_monitor_rows` | `FlightService::list_flights` / `search`；仓储 SQL 不得 JOIN `flights`/`flight_legs` |
+| 15 | overlay 不能改代码核心字段类型 | `load_governed_schema_with_fields()`；`attribute_validation` |
 
 ---
 
@@ -91,6 +118,12 @@ Ontology 是一套对象和动作：资源对象由运行台写入，AI 通过�
 
 ```
 migrations/119_ontology_v1_core.sql
+migrations/144_create_metadata_catalogs.sql
+migrations/145_create_ontology_field_overlays.sql
+migrations/147_create_flight_monitor_rows.sql
+migrations/151_add_task_type_anchor.sql
+migrations/152_create_ontology_attribute_references.sql
+migrations/155_split_flight_identity.sql
 domain/models/ontology_v1.rs
 domain/models/ontology_v1_rules.rs
 domain/ontology/flight_ops_v1.rs
@@ -100,8 +133,14 @@ application/schemas/ontology_schemas.rs
 application/services/ontology_service/          运行资源写
 application/services/ontology_actions/          AI 只读 / 建议（每动作一个服务）
 application/services/domain_action_executor/    受控写 → 领域服务
+application/services/metadata_catalog_service.rs
+application/services/field_overlay_service.rs
+application/services/flight_monitor_row_service.rs
 api/routes/ontology.rs                          /api/v2/ontology
 api/routes/ai_ontology.rs                       /api/v2/ai/ontology
+api/routes/dispatch_resources/metadata_catalogs.rs
+api/routes/dispatch_resources/field_overlays.rs
+api/routes/flights/monitor_rows.rs
 server/di/flight.rs                             装配 OntologyService + OntologyActionServices
 ```
 
@@ -179,3 +218,17 @@ server/di/flight.rs                             装配 OntologyService + Ontolog
 `aip_ontology_actions` 覆盖。`load_governed_schema()` 是唯一能拿到完整 `OntologySchema` 的入口；
 配置中心通过 `PUT/DELETE /api/v2/ai/ontology/actions/overlay`（需 `ai:manage`，只认代码 schema 已知键）
 改启用 / 风险 / 审批，`generate` 与导出读同一函数，故配置中心改了审批、新提案立即同源生效。
+
+### 8.1 字段 overlay 与任务锚点
+
+对象字段可通过 `ontology_field_overlays` 扩展，但不能覆盖代码合同字段的类型；运行时 schema、AI
+校验和资源表单都只读取启用中的 overlay。`catalog_ref` 字段由码表服务提供选项，`object_ref` 由对象
+目录提供候选，停用字段不会进入写入校验。实例值进该对象行的 `attributes` JSONB；未知 key 或类型不对 → 400。
+`object_ref` 是业务外键（无物理 FK）：目标必须存在且未停用；停用/改码若仍被引用 → 409。
+
+码表种子含封闭有序的 `icao_size`（A–F）和开放的 `aircraft_type`（报文可 ingest upsert）。
+本期不扩 `anomaly_rules`，不把机型超限或组合机位占用写进规则引擎。
+
+`TaskType.anchor` 是作业绑定的业务锚点，取值严格为 `inbound`、`outbound` 或 `link`，与用于计算计划
+时间的 `generation_anchor_type` 不同。生成派工单时，`leg_scope` 必须与任务类型 anchor 一致；旧分类
+（arrival/departure/turnaround）仅在迁移和创建请求缺省时映射到上述三值。

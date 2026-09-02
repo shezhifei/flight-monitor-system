@@ -734,6 +734,7 @@ pub(super) fn order_to_response(o: &DispatchOrder) -> DispatchOrderResponse {
             .collect(),
         equipment_codes: o.equipment_list.iter().map(|e| e.code.clone()).collect(),
         notification_receipt_summary: HashMap::new(),
+        attributes: o.attributes.clone(),
     }
 }
 

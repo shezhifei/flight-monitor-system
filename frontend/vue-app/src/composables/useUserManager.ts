@@ -1,6 +1,7 @@
 import { computed, getCurrentInstance, onMounted, ref } from 'vue';
 import { useApi } from './useApi';
 import { useToast } from './useToast';
+import { useFieldOverlays } from './useFieldOverlays';
 
 export type UserSection = 'users' | 'roles' | 'permissions' | 'templates';
 
@@ -59,6 +60,7 @@ export interface ManagedUser {
   job_level?: number | null;
   job_title?: string;
   permission_version?: number;
+  attributes?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -83,6 +85,8 @@ export interface UserFormState {
   job_title: string;
   /** `personal` | `position`。创建后不可改。 */
   account_type: 'personal' | 'position';
+  /** Personnel runtime extension fields; never persisted on users table. */
+  attributes?: Record<string, unknown>;
 }
 
 export interface RoleFormState {
@@ -142,6 +146,7 @@ function emptyUserForm(): UserFormState {
     job_level: 1,
     job_title: '',
     account_type: 'personal',
+    attributes: {},
   };
 }
 
@@ -214,6 +219,8 @@ export function roleNamesOf(user: ManagedUser | null | undefined): string[] {
 export function useUserManager() {
   const api = useApi();
   const toast = useToast();
+  const fieldOverlays = useFieldOverlays();
+  const personnelFieldOverlays = fieldOverlays.forObject('Personnel');
 
   const activeSection = ref<UserSection>('users');
   const loading = ref(false);
@@ -447,6 +454,26 @@ export function useUserManager() {
       return false;
     }
     toast.showToast('success', '用户创建成功');
+    const envelope = res.data as Record<string, unknown> | null;
+    const created = envelope && envelope.data && typeof envelope.data === 'object'
+      ? envelope.data as Record<string, unknown>
+      : envelope;
+    const createdId = created && typeof created.id === 'string' ? created.id : null;
+    const hasPersonnelAttributes = data.account_type === 'personal' && Object.keys(data.attributes ?? {}).length > 0;
+    if (hasPersonnelAttributes && !createdId) {
+      toast.showToast('error', '用户已创建，但响应缺少用户 ID，无法保存人员扩展字段');
+      return false;
+    }
+    if (createdId && hasPersonnelAttributes) {
+      const runtimeRes = await api.patch<unknown>(
+        `/api/v2/dispatch/resources/personnel/${encodeURIComponent(createdId)}/attributes`,
+        { attributes: data.attributes ?? {} },
+      );
+      if (!runtimeRes.ok) {
+        toast.showToast('error', extractErrorMessage(runtimeRes.data, '人员扩展字段保存失败'));
+        return false;
+      }
+    }
     await fetchUsers();
     return true;
   }
@@ -458,6 +485,16 @@ export function useUserManager() {
     if (!res.ok) {
       toast.showToast('error', extractErrorMessage(res.data, '用户更新失败'));
       return false;
+    }
+    if (data.account_type !== 'position') {
+      const runtimeRes = await api.patch<unknown>(
+        `/api/v2/dispatch/resources/personnel/${encodeURIComponent(id)}/attributes`,
+        { attributes: data.attributes ?? {} },
+      );
+      if (!runtimeRes.ok) {
+        toast.showToast('error', extractErrorMessage(runtimeRes.data, '人员扩展字段保存失败'));
+        return false;
+      }
     }
     toast.showToast('success', '用户更新成功');
     await fetchUsers();
@@ -481,13 +518,13 @@ export function useUserManager() {
   async function openCreateUserModal(): Promise<void> {
     editingUser.value = null;
     userForm.value = emptyUserForm();
-    await Promise.all([ensureRolesLoaded(), fetchDepartmentSuggestions()]);
+    await Promise.all([ensureRolesLoaded(), fetchDepartmentSuggestions(), fieldOverlays.load('Personnel')]);
     showUserModal.value = true;
   }
 
   async function openEditUserModal(user: ManagedUser): Promise<void> {
     editingUser.value = user;
-    await Promise.all([ensureRolesLoaded(), fetchDepartmentSuggestions()]);
+    await Promise.all([ensureRolesLoaded(), fetchDepartmentSuggestions(), fieldOverlays.load('Personnel')]);
     userForm.value = {
       username: user.username ?? '',
       email: user.email ?? '',
@@ -499,9 +536,22 @@ export function useUserManager() {
       job_level: typeof user.job_level === 'number' ? user.job_level : 1,
       job_title: user.job_title ?? '',
       account_type: user.account_type === 'position' ? 'position' : 'personal',
+      attributes: {},
     };
     showUserModal.value = true;
     if (userForm.value.account_type === 'personal') {
+      const runtimeRes = await api.get<unknown>(
+        `/api/v2/dispatch/resources/personnel/${encodeURIComponent(user.id)}`,
+      );
+      if (runtimeRes.ok) {
+        const envelope = runtimeRes.data as Record<string, unknown> | null;
+        const runtime = envelope && envelope.data && typeof envelope.data === 'object'
+          ? envelope.data as Record<string, unknown>
+          : envelope;
+        if (runtime?.attributes && typeof runtime.attributes === 'object' && !Array.isArray(runtime.attributes)) {
+          userForm.value = { ...userForm.value, attributes: runtime.attributes as Record<string, unknown> };
+        }
+      }
       await loadUserQualifications(user);
     } else {
       clearQualificationState();
@@ -989,6 +1039,8 @@ export function useUserManager() {
     qualificationGrantForm,
     qualificationDepartmentId,
     qualificationHint,
+    personnelFieldOverlays,
+    fieldCatalogEntries: fieldOverlays.catalogEntries,
     savingGrant,
     levelsForGrantForm,
     createQualificationGrant,

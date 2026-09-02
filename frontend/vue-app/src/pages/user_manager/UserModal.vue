@@ -13,6 +13,8 @@ import SvgIcon from '@/components/ui/SvgIcon.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiModal from '@/components/ui/UiModal.vue';
 import QualificationGrantPanel from './QualificationGrantPanel.vue';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
+import type { FieldOverlay } from '@/composables/useFieldOverlays';
 
 const props = defineProps<{
   show: boolean;
@@ -27,6 +29,8 @@ const props = defineProps<{
   qualificationLevels?: QualificationLevelOption[];
   qualificationGrantForm?: QualificationGrantFormState;
   savingGrant?: boolean;
+  personnelFieldOverlays?: FieldOverlay[];
+  fieldCatalogEntries?: Record<string, Array<{ code: string; name: string }>>;
 }>();
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -222,6 +226,14 @@ function isRoleChecked(roleName: string): boolean {
         启用
       </label>
     </div>
+
+    <FieldOverlayForm
+      v-if="form.account_type === 'personal'"
+      :model-value="form.attributes ?? {}"
+      :overlays="props.personnelFieldOverlays ?? []"
+      :catalog-entries="props.fieldCatalogEntries ?? {}"
+      @update:model-value="emit('update:form', { ...form, attributes: $event })"
+    />
     <div class="form-group">
       <label>角色</label>
       <div v-if="roles.length === 0" class="role-empty">

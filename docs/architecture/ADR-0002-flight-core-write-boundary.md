@@ -46,11 +46,12 @@
 | 组合根装配 | `services/api-server/crates/server/src/di/` |
 | Outbox 行模型 | `services/api-server/crates/domain/src/events/`（`DomainEventOutboxRow`） |
 | Outbox 仓储 / 投递 | `pg_domain_event_outbox_repository`；`domain_event_*_service` / CDC relay（见 ADR-0003） |
-| AI 域动作映射 | ontology / `DomainActionExecutor.Flight.*`（如 `update_status`、`change_stand`、`add_note`） |
+| AI 域动作映射 | ontology / `DomainActionExecutor.Flight.*`（如 `update_status`、`add_note`）。机位受控写是 `StandOccupation.allocate` / `adjust` / `release`；`Flight.change_stand` 已废止 |
 
 ### 允许的外围（非真相源）
 
 - 热列表/读缓存失效：`FlightService::invalidate_hot_list`、cached repository 失效逻辑 — **仅失效，不定义状态**。
+- 监控宽表：`flight_monitor_rows` — 热路径读模型，由航班/链/占用写在同一 UnitOfWork 投影；不得反向写 `flights`，列表也不得 JOIN `flights` 拼行。
 - 运行时投影：`flight_runtime_projection_repository` — 读模型，不得反向写核心表。
 - SSE / 前端推送：订阅 outbox 或查询服务结果后推送，不在写事务内拼装前端 payload 作为持久真相。
 

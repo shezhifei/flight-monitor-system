@@ -302,6 +302,7 @@ fn event_generated_order() -> DispatchOrder {
         supervisor_notified: false,
         supervisor_notified_at: None,
         assignment_deadline: None,
+        attributes: serde_json::json!({}),
         completed_by: None,
         completion_notes: None,
         gate: None,

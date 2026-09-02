@@ -118,7 +118,6 @@ _OCCUPATION_STAND_SIM_ACTIONS: frozenset[str] = frozenset({
 #: entity_id prefix → registered read action + object id argument name.
 _ENTITY_PREFIX_MAP: dict[str, tuple[str, str]] = {
     "flight": ("flight.get_context", "flight_id"),
-    "flight_leg": ("flight_leg.get_context", "leg_id"),  # FlightLeg 不再使用但仍保留查询接口
     "stand": ("stand.get_context", "stand_id"),
     "stand_occupation": ("stand_occupation.get_context", "occupation_id"),
     "gate": ("gate.get_context", "gate_id"),
@@ -269,18 +268,11 @@ class OntologyTools:
         change = dict(proposed_change or {})
         action = str(change.get("action", "")).strip()
 
-        if (
-            change.get("new_stand_id")
-            or change.get("stand_code")
-            or change.get("target_gate")
-            or change.get("gate_code")
-            or action
-            in {
-                "StandOccupation.allocate",
-                "StandOccupation.adjust",
-                "GateAssignment.allocate",
-            }
-        ):
+        if action in {
+            "StandOccupation.allocate",
+            "StandOccupation.adjust",
+            "GateAssignment.allocate",
+        }:
             return await self._explain_stand_change(run_id=run_id, entity_type=entity_type, change=change)
 
         if change.get("flight_id"):

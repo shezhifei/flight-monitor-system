@@ -25,6 +25,44 @@ pub struct OntologyFieldDef {
     pub field_type: String,
     pub description: String,
     pub required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalog_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object_name_target: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list_visible: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filterable: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visible_when: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
+}
+
+impl Default for OntologyFieldDef {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            field_type: String::new(),
+            description: String::new(),
+            required: false,
+            catalog_code: None,
+            object_name_target: None,
+            list_visible: None,
+            filterable: None,
+            widget: None,
+            visible_when: None,
+            max_length: None,
+            min: None,
+            max: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

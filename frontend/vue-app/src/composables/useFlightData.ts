@@ -23,6 +23,7 @@ import {
   normalizeAirportContext,
   normalizeFlightId,
   preprocessFlightsBatch,
+  resolveDirectionalFlightId,
 } from './useFlightField';
 import {
   filterFlights,
@@ -258,6 +259,9 @@ export function useFlightData(initialOptions: UseFlightDataOptions = {}): UseFli
     const normalizedId = normalizeFlightId(flightId);
 
     const flight = findFlight(normalizedId);
+    // 拆表后过站行 = 链 id + 两班方向航班：单元格 PATCH 必须打在字段所属方向的
+    // 航班上，不能用监控行 row_id（后端拒绝旧聚合 id 的写）。
+    const patchTargetId = resolveDirectionalFlightId(flight, field) ?? normalizedId;
     let originalValue: unknown;
     let shouldRollback = false;
     let expectedVersion: number | null = null;
@@ -278,7 +282,7 @@ export function useFlightData(initialOptions: UseFlightDataOptions = {}): UseFli
     }
 
     try {
-      return await patchFlightField(normalizedId, field, value, {
+      return await patchFlightField(patchTargetId, field, value, {
         apiBase: auth.apiBase.value,
         authFetch: auth.fetch,
         expectedVersion,

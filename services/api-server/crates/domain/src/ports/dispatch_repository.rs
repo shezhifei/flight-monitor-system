@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 
 use crate::error::DomainError;
 use crate::models::dispatch::*;
+use crate::models::ontology_attribute_reference::OntologyAttributeReference;
 
 /// 部门仓储接口
 #[async_trait]
@@ -19,6 +20,13 @@ pub trait DepartmentRepository {
     async fn delete_permanently(&self, department_id: &str) -> Result<bool, DomainError>;
 }
 
+/// Transactional Department write port used to commit the owner row and its
+/// ontology attribute-reference projection together.
+#[async_trait]
+pub trait DepartmentTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, department: &Department) -> Result<Department, DomainError>;
+}
+
 /// 班组类型仓储接口
 #[async_trait]
 pub trait TeamTypeRepository {
@@ -29,6 +37,13 @@ pub trait TeamTypeRepository {
     async fn find_by_task_type(&self, task_type: &str) -> Result<Vec<TeamType>, DomainError>;
     /// 软删除/恢复班组类型（is_active）。返回更新后的实体，找不到时返回 None。
     async fn set_active(&self, id: &str, is_active: bool) -> Result<Option<TeamType>, DomainError>;
+}
+
+/// Transactional TeamType write port used to commit the owner row and its
+/// ontology attribute-reference projection together.
+#[async_trait]
+pub trait TeamTypeTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, team_type: &TeamType) -> Result<TeamType, DomainError>;
 }
 
 /// 设备类型仓储接口
@@ -44,6 +59,13 @@ pub trait EquipmentTypeRepository {
     ) -> Result<Vec<EquipmentType>, DomainError>;
     /// 软删除/恢复设备类型（is_active）。返回更新后的实体，找不到时返回 None。
     async fn set_active(&self, id: &str, is_active: bool) -> Result<Option<EquipmentType>, DomainError>;
+}
+
+/// Transactional EquipmentType write port used to commit the owner row and its
+/// ontology attribute-reference projection together.
+#[async_trait]
+pub trait EquipmentTypeTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, equipment_type: &EquipmentType) -> Result<EquipmentType, DomainError>;
 }
 
 /// 派工单仓储接口
@@ -201,6 +223,10 @@ pub struct CreateDispatchOrderCommand {
     pub log_action: String,
     pub log_actor_id: Option<String>,
     pub log_details: Option<serde_json::Value>,
+    /// Owner 的 object_ref 引用投影。`Some(refs)` 时在同一事务内替换
+    /// `ontology_attribute_references`；`None` 表示该写路径不携带扩展属性，
+    /// 不触碰引用索引。
+    pub attribute_references: Option<Vec<OntologyAttributeReference>>,
 }
 
 /// 班组仓储接口
@@ -226,6 +252,12 @@ pub trait TeamRepository {
     async fn update_status(&self, id: &str, status: &str) -> Result<bool, DomainError>;
 }
 
+/// Transactional Team write port for atomic owner/reference projection writes.
+#[async_trait]
+pub trait TeamTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, team: &Team) -> Result<Team, DomainError>;
+}
+
 /// 班组成员仓储接口
 #[async_trait]
 pub trait TeamMemberRepository {
@@ -242,6 +274,16 @@ pub trait DepartmentQualificationRepository {
         &self,
         catalog: &DepartmentQualificationCatalog,
     ) -> Result<DepartmentQualificationCatalog, DomainError>;
+    /// Resolve one catalog row by qualification business key (`qualification_code`)
+    /// or row id, across departments. Used by the shared object-reference
+    /// validator; returns the row regardless of active state so callers can
+    /// distinguish "不存在" from "已停用". Default: not resolvable.
+    async fn find_catalog_by_key(
+        &self,
+        _key: &str,
+    ) -> Result<Option<DepartmentQualificationCatalog>, DomainError> {
+        Ok(None)
+    }
     async fn list_catalogs(
         &self,
         department_id: &str,
@@ -257,6 +299,17 @@ pub trait DepartmentQualificationRepository {
         qualification_code: Option<&str>,
         include_inactive: bool,
     ) -> Result<Vec<DepartmentQualificationLevel>, DomainError>;
+}
+
+/// Transactional qualification-catalog write port used to commit the owner row
+/// and its ontology attribute-reference projection together.
+#[async_trait]
+pub trait DepartmentQualificationTransactionalRepository<Tx>: Send + Sync {
+    async fn save_catalog_in_tx(
+        &self,
+        tx: &mut Tx,
+        catalog: &DepartmentQualificationCatalog,
+    ) -> Result<DepartmentQualificationCatalog, DomainError>;
 }
 
 #[async_trait]
@@ -439,6 +492,13 @@ pub trait EquipmentRepository {
     async fn update_status(&self, id: &str, status: &str) -> Result<bool, DomainError>;
 }
 
+/// Transactional Equipment write port used to commit the owner row and its
+/// ontology attribute-reference projection together.
+#[async_trait]
+pub trait EquipmentTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, equipment: &Equipment) -> Result<Equipment, DomainError>;
+}
+
 /// 人员在岗运行时仓储接口（personnel_runtime）。
 ///
 /// 无行视为 `off_duty`：`update_status` / `update_position` 返回 `false` 表示目标
@@ -460,6 +520,13 @@ pub trait PersonnelRuntimeRepository {
         lng: f64,
         stand_id: Option<&str>,
     ) -> Result<bool, DomainError>;
+}
+
+/// Personnel runtime write port used when extensible attributes and their
+/// object-reference index must commit in the same UnitOfWork.
+#[async_trait]
+pub trait PersonnelRuntimeTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, runtime: &PersonnelRuntime) -> Result<(), DomainError>;
 }
 
 /// 目录设施 allocate 前校验的落点（PR3「allocate 校验楼成员」）。
@@ -513,6 +580,10 @@ pub trait TerminalRepository {
     // -- Terminal 成员关系（构成事实）--
     /// 按 id 取机位目录行（用于把 stand_id 映射到 code 以做占用守卫）。
     async fn find_stand_by_id(&self, stand_id: &str) -> Result<Option<Stand>, DomainError>;
+    /// Resolve a stand by its business code for object_ref validation.
+    async fn find_stand_by_code(&self, _code: &str) -> Result<Option<Stand>, DomainError> {
+        Ok(None)
+    }
     /// 机位目录行 upsert（`stands` 表）。新建必须随后 `add_stand` 挂楼。
     async fn save_stand(&self, stand: &Stand) -> Result<Stand, DomainError>;
     /// 软启停机位（is_active）。返回更新后的实体，找不到返回 None。
@@ -545,6 +616,36 @@ pub trait TerminalRepository {
     async fn carousel_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError>;
 }
 
+/// Transactional directory writes for Terminal/Stand/Gate/Carousel owner rows.
+/// Membership junction mutations remain explicit TerminalRepository operations;
+/// owner attributes and their reference projection are committed by the
+/// application writer in one UnitOfWork.
+#[async_trait]
+pub trait TerminalResourceTransactionalRepository<Tx>: Send + Sync {
+    async fn save_terminal_in_tx(&self, tx: &mut Tx, terminal: &Terminal) -> Result<Terminal, DomainError>;
+    async fn save_gate_in_tx(&self, tx: &mut Tx, gate: &Gate) -> Result<Gate, DomainError>;
+    async fn save_carousel_in_tx(&self, tx: &mut Tx, carousel: &BaggageCarousel) -> Result<BaggageCarousel, DomainError>;
+    async fn save_stand_in_tx(&self, tx: &mut Tx, stand: &Stand) -> Result<Stand, DomainError>;
+    async fn save_gate_with_terminal_in_tx(
+        &self,
+        tx: &mut Tx,
+        terminal_id: &str,
+        gate: &Gate,
+    ) -> Result<Gate, DomainError>;
+    async fn save_carousel_with_terminal_in_tx(
+        &self,
+        tx: &mut Tx,
+        terminal_id: &str,
+        carousel: &BaggageCarousel,
+    ) -> Result<BaggageCarousel, DomainError>;
+    async fn save_stand_with_terminal_in_tx(
+        &self,
+        tx: &mut Tx,
+        terminal_id: &str,
+        stand: &Stand,
+    ) -> Result<Stand, DomainError>;
+}
+
 /// 机位仓储接口
 #[async_trait]
 pub trait StandRepository {
@@ -572,6 +673,13 @@ pub trait TaskTypeRepository {
     async fn find_by_code(&self, code: &str) -> Result<Option<TaskType>, DomainError>;
     async fn find_all(&self, category: Option<&str>, limit: i64, offset: i64) -> Result<Vec<TaskType>, DomainError>;
     async fn save(&self, task_type: &TaskType) -> Result<TaskType, DomainError>;
+}
+
+/// Transactional TaskType write port used to commit the owner row and its
+/// ontology attribute-reference projection together.
+#[async_trait]
+pub trait TaskTypeTransactionalRepository<Tx>: Send + Sync {
+    async fn save_in_tx(&self, tx: &mut Tx, task_type: &TaskType) -> Result<TaskType, DomainError>;
 }
 
 /// 派工告警仓储接口

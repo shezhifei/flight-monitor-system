@@ -5,7 +5,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{MemberRole, Team, TeamMember, TeamStatus};
-use fms_domain::ports::dispatch_repository::TeamRepository;
+use fms_domain::ports::dispatch_repository::{TeamRepository, TeamTransactionalRepository};
 
 pub struct PgTeamRepository {
     pool: PgPool,
@@ -45,8 +45,8 @@ impl TeamRepository for PgTeamRepository {
             INSERT INTO teams (
                 id, name, department_id, code, leader_id,
                 current_status, current_position_lat, current_position_lng,
-                current_stand_id, last_position_update, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                current_stand_id, last_position_update, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
                 department_id = EXCLUDED.department_id,
@@ -58,6 +58,7 @@ impl TeamRepository for PgTeamRepository {
                 current_stand_id = EXCLUDED.current_stand_id,
                 last_position_update = EXCLUDED.last_position_update,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -72,6 +73,7 @@ impl TeamRepository for PgTeamRepository {
         .bind(&team.current_stand_id)
         .bind(team.last_position_update)
         .bind(team.is_active)
+        .bind(&team.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -87,7 +89,7 @@ impl TeamRepository for PgTeamRepository {
             SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
-                   current_stand_id, last_position_update, created_at, updated_at, is_active
+                   current_stand_id, last_position_update, created_at, updated_at, is_active, attributes
             FROM teams
             WHERE id = $1
             "#,
@@ -116,7 +118,7 @@ impl TeamRepository for PgTeamRepository {
             SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
-                   current_stand_id, last_position_update, created_at, updated_at, is_active
+                   current_stand_id, last_position_update, created_at, updated_at, is_active, attributes
             FROM teams
             WHERE code = $1
             "#,
@@ -139,7 +141,7 @@ impl TeamRepository for PgTeamRepository {
             SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
-                   current_stand_id, last_position_update, created_at, updated_at, is_active
+                   current_stand_id, last_position_update, created_at, updated_at, is_active, attributes
             FROM teams
             WHERE is_active = TRUE AND current_status = 'on_duty'
             "#,
@@ -174,7 +176,7 @@ impl TeamRepository for PgTeamRepository {
             SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
                    current_position_lat::double precision AS current_position_lat,
                    current_position_lng::double precision AS current_position_lng,
-                   current_stand_id, last_position_update, created_at, updated_at, is_active
+                   current_stand_id, last_position_update, created_at, updated_at, is_active, attributes
             FROM teams
             WHERE 1=1
             "#,
@@ -245,6 +247,69 @@ impl TeamRepository for PgTeamRepository {
     }
 }
 
+#[async_trait]
+impl<'tx> TeamTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgTeamRepository {
+    async fn save_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        team: &Team,
+    ) -> Result<Team, DomainError> {
+        sqlx::query(
+            r#"
+            INSERT INTO teams (
+                id, name, department_id, code, leader_id,
+                current_status, current_position_lat, current_position_lng,
+                current_stand_id, last_position_update, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                department_id = EXCLUDED.department_id,
+                code = EXCLUDED.code,
+                leader_id = EXCLUDED.leader_id,
+                current_status = EXCLUDED.current_status,
+                current_position_lat = EXCLUDED.current_position_lat,
+                current_position_lng = EXCLUDED.current_position_lng,
+                current_stand_id = EXCLUDED.current_stand_id,
+                last_position_update = EXCLUDED.last_position_update,
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
+                updated_at = CURRENT_TIMESTAMP
+            "#,
+        )
+        .bind(&team.id)
+        .bind(&team.name)
+        .bind(&team.department_id)
+        .bind(&team.code)
+        .bind(&team.leader_id)
+        .bind(team_status_value(team.current_status))
+        .bind(team.current_position_lat)
+        .bind(team.current_position_lng)
+        .bind(&team.current_stand_id)
+        .bind(team.last_position_update)
+        .bind(team.is_active)
+        .bind(&team.attributes)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        let row = sqlx::query(
+            r#"
+            SELECT id, name, department_id, team_type_id, code, leader_id, current_status,
+                   current_position_lat::double precision AS current_position_lat,
+                   current_position_lng::double precision AS current_position_lng,
+                   current_stand_id, last_position_update, created_at, updated_at, is_active, attributes
+            FROM teams WHERE id = $1
+            "#,
+        )
+        .bind(&team.id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?
+        .ok_or_else(|| DomainError::Internal("team transactional save returned no row".into()))?;
+        Ok(row_to_team(&row, Vec::new()))
+    }
+}
+
 fn row_to_team(row: &sqlx::postgres::PgRow, members: Vec<TeamMember>) -> Team {
     Team {
         id: row.get("id"),
@@ -263,6 +328,7 @@ fn row_to_team(row: &sqlx::postgres::PgRow, members: Vec<TeamMember>) -> Team {
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
         team_type: None,
         members,
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }
 

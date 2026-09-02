@@ -10,6 +10,7 @@ export interface QualificationCatalog {
   qualification_name: string;
   description?: string | null;
   is_active: boolean;
+  attributes?: Record<string, unknown>;
 }
 
 export interface QualificationLevel {
@@ -26,6 +27,7 @@ export interface QualificationFormData {
   qualification_code: string;
   qualification_name: string;
   description: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface QualificationLevelFormData {
@@ -48,6 +50,10 @@ function asString(value: unknown): string | null {
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return null;
+}
+
+function asAttributes(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? { ...(value as Record<string, unknown>) } : {};
 }
 
 function unwrap<T>(payload: unknown): T | null {
@@ -101,6 +107,7 @@ function catalogFromApi(raw: unknown): QualificationCatalog | null {
     qualification_name,
     description: asString(r.description),
     is_active: r.is_active !== false,
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -125,7 +132,7 @@ function levelFromApi(raw: unknown): QualificationLevel | null {
 }
 
 function emptyForm(): QualificationFormData {
-  return { qualification_code: '', qualification_name: '', description: '' };
+  return { qualification_code: '', qualification_name: '', description: '', attributes: {} };
 }
 
 function emptyLevelForm(): QualificationLevelFormData {
@@ -236,6 +243,7 @@ export function useQualificationCatalog() {
       qualification_name: data.qualification_name.trim(),
       description: data.description.trim() || null,
       is_active: existing?.is_active !== false,
+      ...(data.attributes && Object.keys(data.attributes).length > 0 ? { attributes: data.attributes } : {}),
     });
     if (ok) toast.showToast('success', existing ? '资质已更新' : '资质已创建');
     return ok;
@@ -247,6 +255,7 @@ export function useQualificationCatalog() {
       qualification_name: item.qualification_name,
       description: item.description ?? null,
       is_active: active,
+      ...(item.attributes && Object.keys(item.attributes).length > 0 ? { attributes: item.attributes } : {}),
     });
     if (ok) toast.showToast('success', active ? '资质已启用' : '资质已停用');
     return ok;

@@ -70,6 +70,8 @@ fn sample_anomaly() -> fms_domain::models::anomaly::Anomaly {
     let now: DateTime<Utc> = Utc::now();
     Anomaly {
         anomaly_id: "anomaly-1001".to_string(),
+        subject_type: "Flight".to_string(),
+        subject_id: "flight-2002".to_string(),
         flight_id: "flight-2002".to_string(),
         anomaly_type: AnomalyType::GateStandConflict,
         severity: AnomalySeverity::High,

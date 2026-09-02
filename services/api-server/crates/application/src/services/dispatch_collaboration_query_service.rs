@@ -13,7 +13,9 @@ use fms_domain::models::notification::Notification;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::dispatch_repository::DispatchOrderRepository;
 
-use crate::services::dispatch_query_service::dispatch_order_to_value_with_summary;
+use crate::services::dispatch_query_service::{
+    dispatch_order_to_value_with_summary, serialize_orders_with_receipt_summaries,
+};
 
 const MESSAGE_EVENT_TYPE: &str = "message_sent";
 
@@ -52,7 +54,7 @@ impl DispatchCollaborationQueryService {
             None => Vec::new(),
         };
 
-        let order_payload = self.serialize_orders_with_receipt_summaries(&orders).await?;
+        let order_payload = serialize_orders_with_receipt_summaries(self.collaboration_repo.as_ref(), &orders).await?;
         let notification_receipt_summary = self.collaboration_repo.summarize_receipts_for_flight(flight_id).await?;
 
         Ok(DispatchFlightCollaborationView {
@@ -189,20 +191,6 @@ impl DispatchCollaborationQueryService {
             }
             _ => Ok(None),
         }
-    }
-}
-
-impl DispatchCollaborationQueryService {
-    async fn serialize_orders_with_receipt_summaries(
-        &self,
-        orders: &[fms_domain::models::dispatch::DispatchOrder],
-    ) -> Result<Vec<Value>, DomainError> {
-        let mut payload = Vec::with_capacity(orders.len());
-        for order in orders {
-            let summary = self.collaboration_repo.summarize_receipts_for_order(&order.id).await?;
-            payload.push(dispatch_order_to_value_with_summary(order, Some(&summary)));
-        }
-        Ok(payload)
     }
 }
 

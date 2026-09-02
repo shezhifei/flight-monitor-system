@@ -12,6 +12,7 @@ use fms_domain::models::dispatch::*;
 use fms_domain::ports::dispatch_repository::{
     CreateDispatchOrderCommand, DispatchOrderRepository, DispatchOrderTransactionalRepository,
 };
+use crate::repositories::pg_ontology_attribute_reference_repository::PgOntologyAttributeReferenceRepository;
 
 pub struct PgDispatchOrderRepository {
     pool: PgPool,
@@ -74,7 +75,7 @@ impl PgDispatchOrderRepository {
                     assignment_deadline, completed_by, completion_notes,
                     created_at, updated_at,
                     completion_time_mode, completion_anchor_type, completion_anchor_time,
-                    completion_offset_minutes, completion_warning_lead_minutes
+                    completion_offset_minutes, completion_warning_lead_minutes, attributes
                 ) VALUES (
                     $1, $2, $3, $4,
                     $5,
@@ -99,7 +100,7 @@ impl PgDispatchOrderRepository {
                     $56, $57, $58,
                     $59, $60,
                     $61, $62, $63,
-                    $64, $65
+                    $64, $65, $66
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     stand_id = EXCLUDED.stand_id,
@@ -162,6 +163,7 @@ impl PgDispatchOrderRepository {
                     completion_anchor_time = EXCLUDED.completion_anchor_time,
                     completion_offset_minutes = EXCLUDED.completion_offset_minutes,
                     completion_warning_lead_minutes = EXCLUDED.completion_warning_lead_minutes,
+                    attributes = EXCLUDED.attributes,
                     created_at = COALESCE(dispatch_orders.created_at, EXCLUDED.created_at),
                     updated_at = EXCLUDED.updated_at
             "#,
@@ -235,6 +237,7 @@ impl PgDispatchOrderRepository {
         .bind(order.completion_anchor_time)
         .bind(order.completion_offset_minutes)
         .bind(order.completion_warning_lead_minutes)
+        .bind(&order.attributes)
         .execute(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
@@ -502,9 +505,21 @@ impl PgDispatchOrderRepository {
             log_action,
             log_actor_id,
             log_details,
+            attribute_references,
         } = command;
 
         Self::save_order_in_tx(tx, &order).await?;
+
+        // 派工单 owner 行与 object_ref 引用投影共用同一事务（M2 收口）。
+        if let Some(references) = attribute_references.as_deref() {
+            PgOntologyAttributeReferenceRepository::replace_owner_references_in_transaction(
+                tx,
+                "DispatchOrder",
+                &order.id,
+                references,
+            )
+            .await?;
+        }
 
         let active_user_ids = members.iter().map(|member| member.user_id.clone()).collect::<Vec<_>>();
         sqlx::query(
@@ -579,7 +594,7 @@ impl PgDispatchOrderRepository {
             LEFT JOIN LATERAL (
                 SELECT leg.flight_no
                 FROM flight_legs leg
-                WHERE leg.flight_id = d.flight_id
+                WHERE f.direction IS NULL AND leg.flight_id = d.flight_id
                 ORDER BY
                     CASE WHEN leg.leg_type = 'outbound' THEN 0 ELSE 1 END,
                     leg.updated_at DESC NULLS LAST,
@@ -1539,6 +1554,7 @@ fn row_to_order(row: &PgRow) -> DispatchOrder {
         supervisor_notified: row.get::<Option<bool>, _>("supervisor_notified").unwrap_or(false),
         supervisor_notified_at: row.get("supervisor_notified_at"),
         assignment_deadline: row.get("assignment_deadline"),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
         completed_by: row.get("completed_by"),
         completion_notes: row.get("completion_notes"),
         gate: row.try_get("gate").ok().flatten(),
@@ -1602,6 +1618,7 @@ fn row_to_equipment(row: &PgRow) -> Equipment {
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
         equipment_type: None,
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }
 

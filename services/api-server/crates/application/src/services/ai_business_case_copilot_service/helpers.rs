@@ -411,12 +411,12 @@ pub(super) fn match_flight(
     for leg_type in legs_to_try {
         let (leg_opt, reference_time) = if leg_type == "outbound" {
             (
-                &flight.outbound_leg,
+                flight.outbound_leg_view(),
                 flight.estimated_departure.or(flight.scheduled_departure),
             )
         } else {
             (
-                &flight.inbound_leg,
+                flight.inbound_leg_view(),
                 flight.estimated_arrival.or(flight.scheduled_arrival),
             )
         };

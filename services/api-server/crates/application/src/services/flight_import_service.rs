@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use async_trait::async_trait;
 
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -15,7 +16,13 @@ use crate::schemas::flight_import_schemas::{
 };
 use crate::schemas::flight_schemas::{FlightCreate, FlightLegPayload, FlightUpdate, NullableUpdate};
 use crate::services::flight_commands::{FlightCreateCommand, FlightUpdateCommand};
-use crate::types::ConcreteFlightService;
+use crate::types::{ConcreteFlightService, ConcreteMetadataCatalogService};
+use fms_domain::error::DomainError;
+use fms_domain::models::ontology_v1::{TurnaroundLink, TurnaroundLinkSource, TurnaroundLinkStatus};
+use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository;
+use fms_domain::ports::ontology_repository::TurnaroundLinkRepository;
+use fms_domain::models::value_objects::FlightId;
+use fms_domain::models::flight::Flight;
 
 const DEFAULT_STORAGE_ROOT: &str = "data/flight_imports";
 const DEFAULT_SOURCE_SYSTEM: &str = "payload_import";
@@ -44,9 +51,27 @@ impl std::error::Error for FlightImportError {}
 #[derive(Clone)]
 pub struct FlightImportService {
     flight_service: Arc<ConcreteFlightService>,
+    metadata_catalogs: Option<Arc<ConcreteMetadataCatalogService>>,
+    turnaround_link_repo: Option<Arc<dyn TurnaroundLinkRepository + Send + Sync>>,
+    monitor_row_repo: Option<Arc<dyn FlightMonitorRowRepository + Send + Sync>>,
+    pair_writer: Option<Arc<dyn FlightImportPairTransactionalWriter>>,
     storage_root: PathBuf,
     preview_ttl_hours: i64,
     source_system: String,
+}
+
+/// Atomic writer for a two-leg import. The implementation owns the UnitOfWork
+/// and typed transactional repositories; the import service only supplies the
+/// already validated directional flights and link aggregate.
+#[async_trait]
+pub trait FlightImportPairTransactionalWriter: Send + Sync {
+    async fn create_pair(
+        &self,
+        inbound: &Flight,
+        outbound: &Flight,
+        link: &TurnaroundLink,
+        actor_id: &str,
+    ) -> Result<(), DomainError>;
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -99,12 +124,217 @@ impl FlightImportService {
 
         let service = Self {
             flight_service,
+            metadata_catalogs: None,
+            turnaround_link_repo: None,
+            monitor_row_repo: None,
+            pair_writer: None,
             storage_root: PathBuf::from(storage_root),
             preview_ttl_hours,
             source_system,
         };
         let _ = service.ensure_storage_dirs();
         service
+    }
+
+    pub fn with_metadata_catalogs(mut self, catalogs: Arc<ConcreteMetadataCatalogService>) -> Self {
+        self.metadata_catalogs = Some(catalogs);
+        self
+    }
+
+    pub fn with_turnaround_link_repository(
+        mut self,
+        repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
+    ) -> Self {
+        self.turnaround_link_repo = Some(repo);
+        self
+    }
+
+    pub fn with_monitor_row_repository(
+        mut self,
+        repo: Arc<dyn FlightMonitorRowRepository + Send + Sync>,
+    ) -> Self {
+        self.monitor_row_repo = Some(repo);
+        self
+    }
+
+    pub fn with_pair_transactional_writer(
+        mut self,
+        writer: Arc<dyn FlightImportPairTransactionalWriter>,
+    ) -> Self {
+        self.pair_writer = Some(writer);
+        self
+    }
+
+    async fn ingest_aircraft_type(&self, raw: Option<&str>) {
+        let Some(raw) = raw.map(str::trim).filter(|s| !s.is_empty()) else {
+            return;
+        };
+        let Some(catalogs) = self.metadata_catalogs.as_ref() else {
+            return;
+        };
+        if let Err(err) = catalogs.ingest_aircraft_type(raw).await {
+            tracing::warn!(error = %err, aircraft_type = raw, "failed to upsert open aircraft_type catalog");
+        }
+    }
+
+    async fn create_single_flight(
+        &self,
+        normalized: &NormalizedFlightPayload,
+        actor_id: &str,
+    ) -> Result<Vec<String>, FlightImportError> {
+        let command = FlightCreateCommand::new(
+            normalized.to_create_payload(),
+            Some(actor_id.to_string()),
+        );
+        command
+            .validate()
+            .map_err(|error| FlightImportError::Validation(error.to_string()))?;
+        let created = self
+            .flight_service
+            .execute_create(command)
+            .await
+            .map_err(|error| FlightImportError::Internal(error.to_string()))?;
+        let flight_id = created
+            .flight_id
+            .ok_or_else(|| FlightImportError::Internal("创建航班未返回 flight_id".into()))?;
+        Ok(vec![flight_id])
+    }
+
+    async fn create_turnaround_pair(
+        &self,
+        normalized: &NormalizedFlightPayload,
+        actor_id: &str,
+    ) -> Result<Vec<String>, FlightImportError> {
+        let link_repo = self.turnaround_link_repo.as_ref().ok_or_else(|| {
+            FlightImportError::Conflict("导入双腿航班需要 TurnaroundLink repository".into())
+        })?;
+        let monitor_repo = self.monitor_row_repo.as_ref().ok_or_else(|| {
+            FlightImportError::Conflict("导入双腿航班需要监控宽表 repository".into())
+        })?;
+        let seed = normalized
+            .flight_id
+            .as_deref()
+            .or(normalized.flight_number.as_deref())
+            .unwrap_or("imported-flight");
+        let inbound_id = directional_import_id(seed, "inbound");
+        let outbound_id = directional_import_id(seed, "outbound");
+
+        // Deterministic IDs make a committed preview safely retryable.  If a
+        // previous attempt already created the pair and link, rebuild the
+        // monitor projection and return the existing IDs instead of treating
+        // the retry as a duplicate-flight failure.
+        let inbound_exists = self
+            .flight_service
+            .get_flight(&inbound_id)
+            .await
+            .map_err(|error| FlightImportError::Internal(error.to_string()))?
+            .is_some();
+        let outbound_exists = self
+            .flight_service
+            .get_flight(&outbound_id)
+            .await
+            .map_err(|error| FlightImportError::Internal(error.to_string()))?
+            .is_some();
+        if inbound_exists && outbound_exists {
+            if let Some(link) = link_repo
+                .find_active_by_inbound(&inbound_id)
+                .await
+                .map_err(|error| FlightImportError::Internal(error.to_string()))?
+            {
+                monitor_repo
+                    .merge_turnaround(&link.id, &inbound_id, &outbound_id)
+                    .await
+                    .map_err(|error| FlightImportError::Internal(error.to_string()))?;
+                return Ok(vec![inbound_id, outbound_id]);
+            }
+            return Err(FlightImportError::Conflict(
+                "导入双腿航班已存在但缺少有效 TurnaroundLink，拒绝重复创建".into(),
+            ));
+        }
+        if inbound_exists || outbound_exists {
+            return Err(FlightImportError::Conflict(
+                "导入双腿航班的 deterministic ID 已部分存在，需先人工核对后再重试".into(),
+            ));
+        }
+
+        let mut inbound_payload = normalized.to_create_payload();
+        inbound_payload.flight_id = Some(inbound_id.clone());
+        inbound_payload.direction = Some("inbound".into());
+        inbound_payload.flight_number = normalized
+            .inbound_leg
+            .as_ref()
+            .map(|leg| leg.flight_no.clone())
+            .or_else(|| normalized.flight_number.clone());
+        inbound_payload.inbound_leg = normalized.inbound_leg.clone();
+        inbound_payload.outbound_leg = None;
+
+        let mut outbound_payload = normalized.to_create_payload();
+        outbound_payload.flight_id = Some(outbound_id.clone());
+        outbound_payload.direction = Some("outbound".into());
+        outbound_payload.flight_number = normalized
+            .outbound_leg
+            .as_ref()
+            .map(|leg| leg.flight_no.clone())
+            .or_else(|| normalized.flight_number.clone());
+        outbound_payload.inbound_leg = None;
+        outbound_payload.outbound_leg = normalized.outbound_leg.clone();
+
+        let link_id = ulid::Ulid::new().to_string();
+        let now = Utc::now();
+        let link = TurnaroundLink {
+            id: link_id.clone(),
+            inbound_flight_id: FlightId(inbound_id.clone()),
+            outbound_flight_id: FlightId(outbound_id.clone()),
+            status: TurnaroundLinkStatus::Active,
+            source: TurnaroundLinkSource::Auto,
+            broken_reason: None,
+            created_by: Some(actor_id.to_string()),
+            created_at: now,
+            updated_at: now,
+        };
+
+        // Materialize both directional flights before any write. The
+        // transactional writer can then persist the two flights, link and
+        // monitor projection atomically in one UnitOfWork.
+        let inbound_payload_fallback = inbound_payload.clone();
+        let outbound_payload_fallback = outbound_payload.clone();
+        let inbound = self
+            .flight_service
+            .prepare_create(inbound_payload)
+            .await
+            .map_err(|error| FlightImportError::Validation(error.to_string()))?;
+        let outbound = self
+            .flight_service
+            .prepare_create(outbound_payload)
+            .await
+            .map_err(|error| FlightImportError::Validation(error.to_string()))?;
+
+        if let Some(writer) = self.pair_writer.as_ref() {
+            writer
+                .create_pair(&inbound, &outbound, &link, actor_id)
+                .await
+                .map_err(|error| FlightImportError::Internal(error.to_string()))?;
+        } else {
+            // Compatibility fallback for tests/legacy assemblies that have
+            // not wired the UnitOfWork writer yet. Production DI always sets
+            // `pair_writer`, so the normal path is atomic.
+            for payload in [inbound_payload_fallback, outbound_payload_fallback] {
+                let command = FlightCreateCommand::new(payload, Some(actor_id.to_string()));
+                self.flight_service
+                    .execute_create(command)
+                    .await
+                    .map_err(|error| FlightImportError::Internal(error.to_string()))?;
+            }
+            link_repo
+                .create(&link)
+                .await
+                .map_err(|error| FlightImportError::Internal(error.to_string()))?;
+            monitor_repo
+                .merge_turnaround(&link_id, &inbound_id, &outbound_id)
+                .await
+                .map_err(|error| FlightImportError::Internal(error.to_string()))?;
+        }
+        Ok(vec![inbound_id, outbound_id])
     }
 
     pub async fn create_preview_from_bytes(
@@ -216,27 +446,24 @@ impl FlightImportService {
                 }
                 "create" => {
                     let normalized = decode_normalized_flight(&committed_row.normalized_flight)?;
-                    let create_payload = normalized.to_create_payload();
-                    let command = FlightCreateCommand::new(create_payload, Some(actor_id.to_string()));
-                    if let Err(error) = command.validate() {
-                        failed_count += 1;
-                        let message = error.to_string();
-                        committed_row.errors.push(message.clone());
-                        errors.push(message);
+                    let result = if normalized.inbound_leg.is_some() && normalized.outbound_leg.is_some() {
+                        self.create_turnaround_pair(&normalized, actor_id).await
                     } else {
-                        match self.flight_service.execute_create(command).await {
-                            Ok(created) => {
-                                if let Some(flight_id) = created.flight_id {
-                                    flight_ids.push(flight_id.clone());
-                                    committed_row.matched_flight_id = Some(flight_id);
-                                }
+                        self.create_single_flight(&normalized, actor_id).await
+                    };
+                    match result {
+                        Ok(created_ids) => {
+                            self.ingest_aircraft_type(normalized.aircraft_type_detail.as_deref()).await;
+                            if let Some(first_id) = created_ids.first() {
+                                committed_row.matched_flight_id = Some(first_id.clone());
                             }
-                            Err(error) => {
-                                failed_count += 1;
-                                let message = error.to_string();
-                                committed_row.errors.push(message.clone());
-                                errors.push(message);
-                            }
+                            flight_ids.extend(created_ids);
+                        }
+                        Err(error) => {
+                            failed_count += 1;
+                            let message = error.to_string();
+                            committed_row.errors.push(message.clone());
+                            errors.push(message);
                         }
                     }
                 }
@@ -245,7 +472,44 @@ impl FlightImportService {
                         FlightImportError::Conflict("预览缺少 matched_flight_id，无法更新航班".to_string())
                     })?;
                     let normalized = decode_normalized_flight(&committed_row.normalized_flight)?;
-                    let update_payload = normalized.to_update_payload();
+                    let mut update_payload = normalized.to_update_payload();
+                    // Updates target an already-split flight.  Preserve the
+                    // identity boundary by ignoring the opposite leg from a
+                    // legacy import row; a row that only carries the
+                    // opposite side is rejected instead of silently writing
+                    // a no-op patch.
+                    if let Some(existing) = self
+                        .flight_service
+                        .get_flight(&flight_id)
+                        .await
+                        .map_err(|error| FlightImportError::Internal(error.to_string()))?
+                    {
+                        match existing.direction.as_deref() {
+                            Some("inbound") => {
+                                if normalized.inbound_leg.is_none() && normalized.outbound_leg.is_some() {
+                                    let message = "导入更新的航段方向与目标 inbound 航班不一致".to_string();
+                                    failed_count += 1;
+                                    committed_row.errors.push(message.clone());
+                                    errors.push(message);
+                                    result_rows.push(committed_row);
+                                    continue;
+                                }
+                                update_payload.outbound_leg = NullableUpdate::Unset;
+                            }
+                            Some("outbound") => {
+                                if normalized.outbound_leg.is_none() && normalized.inbound_leg.is_some() {
+                                    let message = "导入更新的航段方向与目标 outbound 航班不一致".to_string();
+                                    failed_count += 1;
+                                    committed_row.errors.push(message.clone());
+                                    errors.push(message);
+                                    result_rows.push(committed_row);
+                                    continue;
+                                }
+                                update_payload.inbound_leg = NullableUpdate::Unset;
+                            }
+                            _ => {}
+                        }
+                    }
                     match FlightUpdateCommand::build(flight_id.clone(), update_payload, Some(actor_id.to_string())) {
                         Err(error) => {
                             failed_count += 1;
@@ -255,6 +519,8 @@ impl FlightImportService {
                         }
                         Ok(command) => match self.flight_service.execute_update(command).await {
                             Ok(Some(updated)) => {
+                                self.ingest_aircraft_type(normalized.aircraft_type_detail.as_deref())
+                                    .await;
                                 if let Some(updated_id) = updated.flight_id {
                                     flight_ids.push(updated_id);
                                 } else {
@@ -501,6 +767,11 @@ impl NormalizedFlightPayload {
         FlightCreate {
             flight_id: self.flight_id.clone(),
             flight_number: self.flight_number.clone(),
+            direction: match (self.inbound_leg.is_some(), self.outbound_leg.is_some()) {
+                (true, false) => Some("inbound".to_string()),
+                (false, true) => Some("outbound".to_string()),
+                _ => None,
+            },
             airline_code: self.airline_code.clone(),
             registration: self.registration.clone(),
             aircraft_type_detail: self.aircraft_type_detail.clone(),
@@ -566,6 +837,11 @@ fn update_from_option<T>(value: Option<T>) -> NullableUpdate<T> {
         Some(value) => NullableUpdate::Set(value),
         None => NullableUpdate::Unset,
     }
+}
+
+fn directional_import_id(seed: &str, direction: &str) -> String {
+    let digest = Sha256::digest(format!("{seed}:{direction}:flight-v2").as_bytes());
+    format!("{digest:x}").chars().take(26).collect()
 }
 
 fn parse_rows(filename: &str, content: &[u8]) -> Result<Vec<HashMap<String, String>>, FlightImportError> {
@@ -976,7 +1252,7 @@ fn env_first(keys: &[&str]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_airport_context_payload, normalize_airport_aliases};
+    use super::{build_airport_context_payload, directional_import_id, normalize_airport_aliases};
 
     #[test]
     fn airport_context_payload_inserts_display_name_first_and_dedupes_aliases() {
@@ -996,6 +1272,16 @@ mod tests {
         let aliases = normalize_airport_aliases("  ", vec![" ".into(), "广州机场".into()]);
 
         assert_eq!(aliases, vec!["本站".to_string(), "广州机场".to_string()]);
+    }
+
+    #[test]
+    fn directional_import_ids_are_stable_and_distinct() {
+        let inbound = directional_import_id("import-row-42", "inbound");
+        let outbound = directional_import_id("import-row-42", "outbound");
+        assert_eq!(inbound.len(), 26);
+        assert_eq!(outbound.len(), 26);
+        assert_ne!(inbound, outbound);
+        assert_eq!(inbound, directional_import_id("import-row-42", "inbound"));
     }
 }
 

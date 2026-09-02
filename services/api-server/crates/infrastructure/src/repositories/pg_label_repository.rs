@@ -262,6 +262,32 @@ impl LabelRepository for PgLabelRepository {
             .await
             .map_err(|error| DomainError::Internal(error.to_string()))?;
 
+        // Directional flights are their own identity; keep leg-scoped labels
+        // on the flight row and reserve flight_legs for legacy aggregates.
+        let direction: Option<String> = sqlx::query_scalar(
+            "SELECT direction FROM flights WHERE flight_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(flight_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?
+        .flatten();
+        if direction.is_some() {
+            sqlx::query(
+                "UPDATE flights SET labels = CASE WHEN NOT labels @> $1::jsonb THEN labels || $1::jsonb ELSE labels END, is_vip = CASE WHEN $2 = 'vip' THEN TRUE ELSE is_vip END, updated_at = NOW() WHERE flight_id = $3 AND deleted_at IS NULL",
+            )
+            .bind(&label_json)
+            .bind(code)
+            .bind(flight_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|error| DomainError::Internal(error.to_string()))?;
+            tx.commit()
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
+            return Ok(());
+        }
+
         sqlx::query(
             r#"
             UPDATE flight_legs
@@ -303,6 +329,30 @@ impl LabelRepository for PgLabelRepository {
             .begin()
             .await
             .map_err(|error| DomainError::Internal(error.to_string()))?;
+
+        let direction: Option<String> = sqlx::query_scalar(
+            "SELECT direction FROM flights WHERE flight_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(flight_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?
+        .flatten();
+        if direction.is_some() {
+            sqlx::query(
+                "UPDATE flights SET labels = labels - $1, is_vip = CASE WHEN $2 = 'vip' THEN FALSE ELSE is_vip END, updated_at = NOW() WHERE flight_id = $3 AND deleted_at IS NULL",
+            )
+            .bind(code)
+            .bind(code)
+            .bind(flight_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|error| DomainError::Internal(error.to_string()))?;
+            tx.commit()
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?;
+            return Ok(());
+        }
 
         sqlx::query(
             r#"
@@ -354,13 +404,28 @@ impl LabelRepository for PgLabelRepository {
     }
 
     async fn get_leg_labels(&self, flight_id: &str, leg_type: &str) -> Result<Vec<String>, DomainError> {
-        let row =
+        let direction: Option<String> = sqlx::query_scalar(
+            "SELECT direction FROM flights WHERE flight_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(flight_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|error| DomainError::Internal(error.to_string()))?
+        .flatten();
+        let row = if direction.is_some() {
+            sqlx::query("SELECT labels FROM flights WHERE flight_id = $1 AND deleted_at IS NULL")
+                .bind(flight_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|error| DomainError::Internal(error.to_string()))?
+        } else {
             sqlx::query("SELECT labels FROM flight_legs WHERE flight_id = $1 AND leg_type = $2 AND deleted_at IS NULL")
                 .bind(flight_id)
                 .bind(leg_type)
                 .fetch_optional(&self.pool)
                 .await
-                .map_err(|error| DomainError::Internal(error.to_string()))?;
+                .map_err(|error| DomainError::Internal(error.to_string()))?
+        };
 
         match row {
             Some(row) => {

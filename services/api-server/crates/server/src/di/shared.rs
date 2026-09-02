@@ -56,6 +56,8 @@ use fms_infrastructure::repositories::pg_flight_archive_repository::PgFlightArch
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_flight_runtime_projection_repository::PgFlightRuntimeProjectionRepository;
 use fms_infrastructure::repositories::pg_label_repository::PgLabelRepository;
+use fms_infrastructure::repositories::pg_metadata_catalog_repository::PgMetadataCatalogRepository;
+use fms_infrastructure::repositories::pg_flight_monitor_row_repository::PgFlightMonitorRowRepository;
 use fms_infrastructure::repositories::pg_mobile_device_repository::PgMobileDeviceRepository;
 use fms_infrastructure::repositories::pg_mobile_upload_repository::PgMobileUploadRepository;
 use fms_infrastructure::repositories::pg_notification_repository::PgNotificationRepository;
@@ -122,6 +124,8 @@ pub(crate) struct SharedRepos {
     pub terminal_repo: Arc<PgTerminalRepository>,
     pub task_type_repo: Arc<PgTaskTypeRepository>,
     pub personnel_runtime_repo: Arc<PgPersonnelRuntimeRepository>,
+    pub metadata_catalog_repo: Arc<PgMetadataCatalogRepository>,
+    pub flight_monitor_row_repo: Arc<PgFlightMonitorRowRepository>,
     pub business_case_repo: Arc<PgBusinessCaseRepository>,
     pub flight_runtime_projection_repo: Arc<PgFlightRuntimeProjectionRepository>,
     pub business_case_type_repo: Arc<PgBusinessCaseTypeRepository>,
@@ -216,6 +220,8 @@ pub(crate) fn build_shared_repos(
     let terminal_repo = Arc::new(PgTerminalRepository::new(pool.clone()));
     let task_type_repo = Arc::new(PgTaskTypeRepository::new(pool.clone()));
     let personnel_runtime_repo = Arc::new(PgPersonnelRuntimeRepository::new(pool.clone()));
+    let metadata_catalog_repo = Arc::new(PgMetadataCatalogRepository::new(pool.clone()));
+    let flight_monitor_row_repo = Arc::new(PgFlightMonitorRowRepository::new(pool.clone()));
     let business_case_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
     let flight_runtime_projection_repo = Arc::new(PgFlightRuntimeProjectionRepository::new(pool.clone()));
     let business_case_type_repo = Arc::new(PgBusinessCaseTypeRepository::new(pool.clone()));
@@ -274,6 +280,8 @@ pub(crate) fn build_shared_repos(
         terminal_repo,
         task_type_repo,
         personnel_runtime_repo,
+        metadata_catalog_repo,
+        flight_monitor_row_repo,
         business_case_repo,
         flight_runtime_projection_repo,
         business_case_type_repo,
@@ -436,10 +444,10 @@ pub(crate) fn build_shared_services(repos: &SharedRepos, infra: &SharedInfra) ->
 
 /// 构建 Redis 连接池 Data 与 anti-replay nonce store Data。
 ///
-/// 当 `redis_required` 为真时使用 Redis 桶式 nonce store；否则回退到本地
-/// TTL store（容量与桶周期可由环境变量配置）。返回 `(redis_pool_data,
-/// anti_replay_store_data)`，二者均为 `Option<web::Data<_>>`，可直接填入
-/// `DiContainer` 对应字段。
+/// 默认：`redis_required` 为真时用 Redis 桶式 nonce store，否则用本地 TTL
+/// store。`ANTI_REPLAY_STORE=local|redis` 可强制覆盖（单实例宿主机压测用
+/// local，避免每请求 Redis RTT，仍校验签名与 nonce 唯一性）。返回
+/// `(redis_pool_data, anti_replay_store_data)`。
 pub(crate) fn build_redis_security_stores(
     redis_manager: &Option<Arc<fms_infrastructure::cache::RedisPool>>,
     redis_required: bool,
@@ -453,9 +461,19 @@ pub(crate) fn build_redis_security_stores(
         .as_ref()
         .map(|mgr| actix_web::web::Data::new(mgr.as_ref().clone()));
 
+    let store_mode = std::env::var("ANTI_REPLAY_STORE")
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    let use_redis_store = match store_mode.as_str() {
+        "local" => false,
+        "redis" => true,
+        _ => redis_required,
+    };
+
     let anti_replay_store_data: Option<
         actix_web::web::Data<Arc<dyn fms_domain::ports::nonce_replay_store::NonceReplayStore>>,
-    > = if redis_required {
+    > = if use_redis_store {
         redis_manager.as_ref().map(|mgr| {
             let pool = mgr.as_ref().clone();
             let store = fms_infrastructure::security::RedisBucketNonceStore::new(pool);

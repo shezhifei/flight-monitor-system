@@ -182,6 +182,7 @@ const isTableFullView = computed(() => p.viewMode.value === 'table' && !p.alertP
     :chat-group-id="p.chatFocusGroupId.value"
     :flight-insight-open="p.flightInsightOpen.value"
     :selected-flight-id="p.selectedFlightId.value"
+    :selected-flight-context-id="p.selectedFlightContextId.value"
     :selected-flight-no="p.selectedFlight.value?.flight_number ?? undefined"
     :flight-no-resolver="(flightId: string) => p.flightData.findFlightById(flightId)?.flight_number ?? null"
     :business-case-types="p.modals.eventCreationState.value.types"

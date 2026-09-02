@@ -96,12 +96,6 @@ CREATE TABLE IF NOT EXISTS flights (
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    aircraft_type_binary SMALLINT GENERATED ALWAYS AS (
-        CASE
-            WHEN aircraft_type_detail IN ('A330', 'A340', 'A350', 'A380', 'B747', 'B767', 'B777', 'B787') THEN 1
-            ELSE 0
-        END
-    ) STORED,
     cobt_time TIMESTAMPTZ,
     codt TIMESTAMPTZ,
     labels JSONB NOT NULL DEFAULT '[]'::jsonb
@@ -165,6 +159,22 @@ WHERE status NOT IN (7, 8, 9);
 -- 标签 GIN 索引 (优化标签筛选)
 CREATE INDEX IF NOT EXISTS idx_flights_labels
 ON flights USING GIN (labels);
+
+-- Ontology V1 directional flight identity (migration 155). Legacy aggregate
+-- rows remain only as soft-deleted audit records; active rows are inbound or
+-- outbound and never `both`.
+ALTER TABLE flights
+    ADD COLUMN IF NOT EXISTS direction VARCHAR(16),
+    ADD COLUMN IF NOT EXISTS flight_type VARCHAR(16),
+    ADD COLUMN IF NOT EXISTS mission SMALLINT,
+    ADD COLUMN IF NOT EXISTS origin_stations JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS destination_stations JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS stand_type VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE flights DROP CONSTRAINT IF EXISTS chk_flights_direction_contract;
+ALTER TABLE flights ADD CONSTRAINT chk_flights_direction_contract
+    CHECK (deleted_at IS NOT NULL OR direction IN ('inbound', 'outbound'));
 
 -- 触发器函数：自动更新 execution_date 和 workspace_date
 CREATE OR REPLACE FUNCTION update_flight_dates()
@@ -1676,6 +1686,7 @@ CREATE TABLE IF NOT EXISTS team_types (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
+    attributes JSONB NOT NULL DEFAULT '{}'::jsonb,
     UNIQUE(department_id, name)
 );
 
@@ -1692,12 +1703,155 @@ CREATE TABLE IF NOT EXISTS stands (
     position_lng DECIMAL(10, 7) NOT NULL,
     stand_type VARCHAR(20),
     size_category VARCHAR(10),
+    attributes JSONB NOT NULL DEFAULT '{}'::jsonb,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_stands_code ON stands(code);
 CREATE INDEX IF NOT EXISTS idx_stands_terminal ON stands(terminal);
+
+CREATE TABLE IF NOT EXISTS metadata_catalogs (
+    code VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    is_open BOOLEAN NOT NULL DEFAULT FALSE,
+    is_ordered BOOLEAN NOT NULL DEFAULT FALSE,
+    system_owned BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS metadata_catalog_entries (
+    catalog_code VARCHAR(64) NOT NULL,
+    code VARCHAR(64) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    rank INTEGER,
+    payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    source VARCHAR(16) NOT NULL DEFAULT 'manual',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (catalog_code, code),
+    CONSTRAINT chk_metadata_catalog_entries_source CHECK (source IN ('manual', 'ingest'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_metadata_catalog_entries_catalog_active
+    ON metadata_catalog_entries (catalog_code, is_active);
+
+INSERT INTO metadata_catalogs (code, name, description, is_open, is_ordered, system_owned)
+VALUES
+    ('icao_size', 'ICAO 机位等级', '封闭有序码表 A–F，用于机位最大可停比较。', FALSE, TRUE, TRUE),
+    ('aircraft_type', '机型', '开放码表。电报/导入未见过的机型字符串 upsert 一行，rank 可空。', TRUE, FALSE, TRUE)
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO metadata_catalog_entries (catalog_code, code, name, rank, source)
+VALUES
+    ('icao_size', 'A', 'A', 1, 'manual'),
+    ('icao_size', 'B', 'B', 2, 'manual'),
+    ('icao_size', 'C', 'C', 3, 'manual'),
+    ('icao_size', 'D', 'D', 4, 'manual'),
+    ('icao_size', 'E', 'E', 5, 'manual'),
+    ('icao_size', 'F', 'F', 6, 'manual')
+ON CONFLICT (catalog_code, code) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS ontology_field_overlays (
+    object_name VARCHAR(64) NOT NULL,
+    field_name VARCHAR(128) NOT NULL,
+    field_type VARCHAR(32) NOT NULL,
+    catalog_code VARCHAR(64),
+    object_name_target VARCHAR(64),
+    required BOOLEAN NOT NULL DEFAULT FALSE,
+    list_visible BOOLEAN NOT NULL DEFAULT FALSE,
+    filterable BOOLEAN NOT NULL DEFAULT FALSE,
+    widget VARCHAR(32),
+    description TEXT,
+    visible_when JSONB,
+    max_length INTEGER,
+    min_value DOUBLE PRECISION,
+    max_value DOUBLE PRECISION,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (object_name, field_name),
+    CONSTRAINT chk_ontology_field_overlay_type CHECK (
+        field_type IN ('string','number','boolean','datetime','catalog_ref','catalog_ref[]','object_ref','object_ref[]')
+    )
+);
+
+-- 切片 B：机位用途码表 + Stand 六项扩展字段 overlay（与 migrations/157 等价；
+-- 空库走 setup 不跑迁移也要有码表与 overlay。不复制 icao_size 种子）。
+INSERT INTO metadata_catalogs (code, name, description, is_open, is_ordered, system_owned)
+VALUES
+    ('stand_use', '机位用途', '封闭有序码表：近机位国内 / 近机位国际 / 远机位。远机位不得配对应登机口（visible_when）。', FALSE, TRUE, TRUE)
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO metadata_catalog_entries (catalog_code, code, name, rank, source)
+VALUES
+    ('stand_use', 'near_domestic', '近机位（国内）', 1, 'manual'),
+    ('stand_use', 'near_international', '近机位（国际）', 2, 'manual'),
+    ('stand_use', 'remote', '远机位', 3, 'manual')
+ON CONFLICT (catalog_code, code) DO NOTHING;
+
+INSERT INTO ontology_field_overlays
+    (object_name, field_name, field_type, catalog_code, object_name_target, description, visible_when)
+VALUES
+    ('Stand', 'max_size_category', 'catalog_ref', 'icao_size', NULL, '最大 ICAO 等级', NULL),
+    ('Stand', 'combined_stand', 'boolean', NULL, NULL, '是否组合机位', NULL),
+    ('Stand', 'stand_use', 'catalog_ref', 'stand_use', NULL, '机位用途', NULL),
+    ('Stand', 'composed_of', 'object_ref[]', NULL, 'Stand', '组成子机位',
+     '{"field": "combined_stand", "op": "eq", "value": true}'::jsonb),
+    ('Stand', 'corresponding_gate', 'object_ref', NULL, 'Gate', '对应登机口',
+     '{"field": "stand_use", "op": "neq", "value": "remote"}'::jsonb)
+ON CONFLICT (object_name, field_name) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS ontology_attribute_references (
+    id BIGSERIAL PRIMARY KEY,
+    owner_object_name VARCHAR(128) NOT NULL,
+    owner_object_id VARCHAR(128) NOT NULL,
+    field_name VARCHAR(128) NOT NULL,
+    target_object_name VARCHAR(128) NOT NULL,
+    target_key VARCHAR(128) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_ontology_attribute_references_active UNIQUE (owner_object_name, owner_object_id, field_name, target_object_name, target_key, is_active)
+);
+CREATE INDEX IF NOT EXISTS idx_ontology_attribute_references_target
+    ON ontology_attribute_references (target_object_name, target_key);
+CREATE INDEX IF NOT EXISTS idx_ontology_attribute_references_owner
+    ON ontology_attribute_references (owner_object_name, owner_object_id, field_name);
+
+CREATE TABLE IF NOT EXISTS flight_identity_split_report (
+    old_flight_id VARCHAR(26) PRIMARY KEY,
+    leg_count INTEGER NOT NULL,
+    inbound_leg_id VARCHAR(26),
+    outbound_leg_id VARCHAR(26),
+    action VARCHAR(32) NOT NULL,
+    error_reason TEXT,
+    generated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS flight_monitor_rows (
+    row_id VARCHAR(64) PRIMARY KEY,
+    link_id VARCHAR(64), kind VARCHAR(16) NOT NULL DEFAULT 'single',
+    inbound_flight_id VARCHAR(64), outbound_flight_id VARCHAR(64),
+    inbound_flight_no VARCHAR(64), outbound_flight_no VARCHAR(64),
+    inbound_scheduled_at TIMESTAMPTZ, outbound_scheduled_at TIMESTAMPTZ,
+    inbound_estimated_at TIMESTAMPTZ, outbound_estimated_at TIMESTAMPTZ,
+    inbound_actual_at TIMESTAMPTZ, outbound_actual_at TIMESTAMPTZ,
+    inbound_station_code VARCHAR(16), outbound_station_code VARCHAR(16),
+    inbound_is_vip BOOLEAN NOT NULL DEFAULT FALSE, outbound_is_vip BOOLEAN NOT NULL DEFAULT FALSE,
+    registration VARCHAR(32), aircraft_type VARCHAR(64), stand_code VARCHAR(32), gate_code VARCHAR(32),
+    terminal_code VARCHAR(32), baggage_carousel_code VARCHAR(32), status VARCHAR(32), workspace_date DATE,
+    sort_time TIMESTAMPTZ, has_open_anomaly BOOLEAN NOT NULL DEFAULT FALSE, version INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT chk_flight_monitor_rows_kind CHECK (kind IN ('turnaround', 'single'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_flight_monitor_rows_active_workspace_sort
+    ON flight_monitor_rows (is_active, workspace_date, sort_time DESC, row_id);
 
 -- 班组表
 CREATE TABLE IF NOT EXISTS teams (
@@ -1802,6 +1956,7 @@ CREATE TABLE IF NOT EXISTS task_types (
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(50),
+    anchor VARCHAR(16) NOT NULL DEFAULT 'link' CHECK (anchor IN ('inbound', 'outbound', 'link')),
     sequence_order INT,
     default_duration_minutes INT,
     trigger_offset_minutes INT DEFAULT 30,
@@ -1812,18 +1967,18 @@ CREATE TABLE IF NOT EXISTS task_types (
 );
 
 -- 预置作业类型
-INSERT INTO task_types (id, code, name, category, sequence_order, trigger_type, trigger_offset_minutes, default_duration_minutes) VALUES
-    ('step_001', 'wheel_chocks_on', '上轮挡', 'arrival', 1, 'after_arrival', 0, 2),
-    ('step_002', 'cabin_door_open', '开客舱门', 'arrival', 2, 'after_arrival', 2, 3),
-    ('step_003', 'deboarding', '旅客下机', 'arrival', 3, 'after_arrival', 5, 15),
-    ('step_004', 'cleaning', '客舱清洁', 'turnaround', 4, 'after_arrival', 20, 25),
-    ('step_005', 'catering', '配餐', 'turnaround', 5, 'before_etd', 60, 20),
-    ('step_006', 'boarding', '旅客登机', 'departure', 6, 'before_etd', 40, 25),
-    ('step_007', 'cargo_loading', '行李装载', 'departure', 7, 'before_etd', 30, 20),
-    ('step_008', 'cabin_door_close', '关客舱门', 'departure', 8, 'before_etd', 10, 3),
-    ('step_009', 'cargo_door_close', '关货舱门', 'departure', 9, 'before_etd', 8, 2),
-    ('step_010', 'pushback', '推出/牵引', 'departure', 10, 'before_etd', 5, 5),
-    ('step_011', 'wheel_chocks_off', '撤轮挡', 'departure', 11, 'before_etd', 3, 2)
+INSERT INTO task_types (id, code, name, category, anchor, sequence_order, trigger_type, trigger_offset_minutes, default_duration_minutes) VALUES
+    ('step_001', 'wheel_chocks_on', '上轮挡', 'arrival', 'inbound', 1, 'after_arrival', 0, 2),
+    ('step_002', 'cabin_door_open', '开客舱门', 'arrival', 'inbound', 2, 'after_arrival', 2, 3),
+    ('step_003', 'deboarding', '旅客下机', 'arrival', 'inbound', 3, 'after_arrival', 5, 15),
+    ('step_004', 'cleaning', '客舱清洁', 'turnaround', 'link', 4, 'after_arrival', 20, 25),
+    ('step_005', 'catering', '配餐', 'turnaround', 'link', 5, 'before_etd', 60, 20),
+    ('step_006', 'boarding', '旅客登机', 'departure', 'outbound', 6, 'before_etd', 40, 25),
+    ('step_007', 'cargo_loading', '行李装载', 'departure', 'outbound', 7, 'before_etd', 30, 20),
+    ('step_008', 'cabin_door_close', '关客舱门', 'departure', 'outbound', 8, 'before_etd', 10, 3),
+    ('step_009', 'cargo_door_close', '关货舱门', 'departure', 'outbound', 9, 'before_etd', 8, 2),
+    ('step_010', 'pushback', '推出/牵引', 'departure', 'outbound', 10, 'before_etd', 5, 5),
+    ('step_011', 'wheel_chocks_off', '撤轮挡', 'departure', 'outbound', 11, 'before_etd', 3, 2)
 ON CONFLICT (id) DO NOTHING;
 
 -- 派工单表
@@ -2356,7 +2511,9 @@ ON CONFLICT (rule_id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS anomalies (
     anomaly_id VARCHAR(26) PRIMARY KEY,
-    flight_id VARCHAR(26) NOT NULL REFERENCES flights(flight_id) ON DELETE CASCADE,
+    subject_type VARCHAR(64) NOT NULL DEFAULT 'Flight',
+    subject_id VARCHAR(64) NOT NULL,
+    flight_id VARCHAR(26),
     anomaly_type VARCHAR(64) NOT NULL,
     severity VARCHAR(16) NOT NULL DEFAULT 'medium',
     status VARCHAR(16) NOT NULL DEFAULT 'open',
@@ -2376,6 +2533,7 @@ CREATE TABLE IF NOT EXISTS anomalies (
 );
 
 CREATE INDEX IF NOT EXISTS idx_anomalies_flight_id ON anomalies(flight_id);
+CREATE INDEX IF NOT EXISTS idx_anomalies_subject ON anomalies(subject_type, subject_id);
 CREATE INDEX IF NOT EXISTS idx_anomalies_status_detected_at ON anomalies(status, detected_at DESC);
 CREATE INDEX IF NOT EXISTS idx_anomalies_type_detected_at ON anomalies(anomaly_type, detected_at DESC);
 CREATE INDEX IF NOT EXISTS idx_anomalies_rule_id ON anomalies(rule_id);
@@ -4434,3 +4592,115 @@ ALTER TABLE IF EXISTS event_driven_dispatch_generation_rules
     ADD COLUMN IF NOT EXISTS name VARCHAR(120) NOT NULL DEFAULT '',
     ADD COLUMN IF NOT EXISTS description TEXT,
     ADD COLUMN IF NOT EXISTS created_by VARCHAR(100);
+
+
+-- =====================================================
+-- 2026-08-28 identity/metadata alignment (migrations 134/137/149/156/154)
+-- 空库走本脚本不跑迁移链；此处补齐 149/156 给各对象加的 attributes 列、
+-- 154 的 flight_monitor_rows.is_active（上方建表已含）以及 setup 整表缺失的
+-- 航站目录三表（134）与 personnel_runtime（137）。不新增任何 REFERENCES
+-- （120 后约定；guard: tests/tools/test_no_new_foreign_keys.py）。
+-- =====================================================
+
+-- 航站目录三表 + 楼成员关系（列与 migration 134 + 149 的 attributes 一致）
+CREATE TABLE IF NOT EXISTS gates (
+    gate_id VARCHAR(64) PRIMARY KEY,
+    code VARCHAR(16) NOT NULL UNIQUE,
+    name VARCHAR(128),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    attributes JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_gates_code ON gates(code);
+CREATE INDEX IF NOT EXISTS idx_gates_active ON gates(is_active);
+
+CREATE TABLE IF NOT EXISTS baggage_carousels (
+    carousel_id VARCHAR(64) PRIMARY KEY,
+    code VARCHAR(16) NOT NULL UNIQUE,
+    name VARCHAR(128),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    attributes JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_baggage_carousels_code ON baggage_carousels(code);
+CREATE INDEX IF NOT EXISTS idx_baggage_carousels_active ON baggage_carousels(is_active);
+
+CREATE TABLE IF NOT EXISTS terminals (
+    terminal_id VARCHAR(64) PRIMARY KEY,
+    code VARCHAR(16) NOT NULL UNIQUE,
+    name VARCHAR(128) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    attributes JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_terminals_code ON terminals(code);
+CREATE INDEX IF NOT EXISTS idx_terminals_active ON terminals(is_active);
+
+CREATE TABLE IF NOT EXISTS terminal_stands (
+    terminal_id VARCHAR(64) NOT NULL,
+    stand_id VARCHAR(64) NOT NULL,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (terminal_id, stand_id),
+    UNIQUE(stand_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_terminal_stands_stand ON terminal_stands(stand_id);
+CREATE INDEX IF NOT EXISTS idx_terminal_stands_terminal ON terminal_stands(terminal_id);
+
+CREATE TABLE IF NOT EXISTS terminal_gates (
+    terminal_id VARCHAR(64) NOT NULL,
+    gate_id VARCHAR(64) NOT NULL,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (terminal_id, gate_id),
+    UNIQUE(gate_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_terminal_gates_gate ON terminal_gates(gate_id);
+CREATE INDEX IF NOT EXISTS idx_terminal_gates_terminal ON terminal_gates(terminal_id);
+
+CREATE TABLE IF NOT EXISTS terminal_carousels (
+    terminal_id VARCHAR(64) NOT NULL,
+    carousel_id VARCHAR(64) NOT NULL,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (terminal_id, carousel_id),
+    UNIQUE(carousel_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_terminal_carousels_carousel ON terminal_carousels(carousel_id);
+CREATE INDEX IF NOT EXISTS idx_terminal_carousels_terminal ON terminal_carousels(terminal_id);
+
+-- 人员在岗运行时（列与 migration 137 + 149 的 attributes 一致）
+CREATE TABLE IF NOT EXISTS personnel_runtime (
+    user_id VARCHAR(26) PRIMARY KEY,
+    current_status VARCHAR(20) NOT NULL DEFAULT 'off_duty'
+        CHECK (current_status IN ('on_duty', 'off_duty', 'break', 'on_leave')),
+    current_stand_id VARCHAR(64),
+    current_position_lat DECIMAL(10, 7),
+    current_position_lng DECIMAL(10, 7),
+    last_position_update TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(26),
+    attributes JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_personnel_runtime_status ON personnel_runtime(current_status);
+
+-- 149/156：各对象 attributes 列（表存在才加；幂等）
+ALTER TABLE IF EXISTS terminals ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS gates ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS baggage_carousels ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS equipment ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS equipment_types ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS teams ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS team_types ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS task_types ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS departments ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS dispatch_orders ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS department_qualification_catalog ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS personnel_runtime ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;

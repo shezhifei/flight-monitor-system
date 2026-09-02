@@ -84,8 +84,12 @@ impl PgFlightRepository {
         }
         let flight_ids = flights
             .iter()
+            .filter(|flight| flight.direction.is_none())
             .map(|flight| flight.flight_id.0.clone())
             .collect::<Vec<_>>();
+        if flight_ids.is_empty() {
+            return Ok(());
+        }
         let legs_map = self.load_legs_map(&flight_ids).await?;
         for flight in flights {
             if let Some((inbound, outbound)) = legs_map.get(&flight.flight_id.0) {
@@ -174,6 +178,50 @@ impl PgFlightRepository {
         Ok(())
     }
 
+    async fn persist_directional_leg_in_tx(
+        tx: &mut sqlx::Transaction<'_, Postgres>,
+        flight_id: &str,
+        leg: &FlightLeg,
+    ) -> Result<(), DomainError> {
+        let (origin_stations, destination_stations) = leg_station_payloads(leg);
+        let (scheduled_column, opposite_column) = match leg.leg_type {
+            LegType::Inbound => ("scheduled_arrival", "scheduled_departure"),
+            LegType::Outbound => ("scheduled_departure", "scheduled_arrival"),
+        };
+        let scheduled_time = leg.scheduled_time;
+        let mut builder = QueryBuilder::<Postgres>::new(
+            "UPDATE flights SET flight_number = ",
+        );
+        builder
+            .push_bind(&leg.flight_no)
+            .push(", flight_type = ")
+            .push_bind(flight_type_as_str(leg.flight_type))
+            .push(", mission = ")
+            .push_bind(Self::mission_db_code(leg.mission)?)
+            .push(", origin_stations = ")
+            .push_bind(origin_stations)
+            .push(", destination_stations = ")
+            .push_bind(destination_stations)
+            .push(", is_vip = ")
+            .push_bind(leg.is_vip)
+            .push(", stand_type = ")
+            .push_bind(&leg.stand_type)
+            .push(", ")
+            .push(scheduled_column)
+            .push(" = ")
+            .push_bind(scheduled_time)
+            .push(", ")
+            .push(opposite_column)
+            .push(" = NULL, updated_at = NOW() WHERE flight_id = ")
+            .push_bind(flight_id);
+        builder
+            .build()
+            .execute(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
+        Ok(())
+    }
+
     async fn delete_missing_legs_in_tx(
         tx: &mut sqlx::Transaction<'_, Postgres>,
         flight_id: &str,
@@ -241,7 +289,7 @@ impl PgFlightRepository {
                'is_vip', fl.is_vip, 'stand_type', fl.stand_type, \
                'scheduled_time', fl.scheduled_time \
              )) FILTER (WHERE fl.leg_type = 'outbound') AS outbound_legs \
-           FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
+           FROM flight_legs fl WHERE f.direction IS NULL AND fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
          ) legs_agg ON TRUE"
     }
 
@@ -291,9 +339,18 @@ impl PgFlightRepository {
     }
 
     async fn save_in_tx(tx: &mut Transaction<'_, Postgres>, flight: &Flight) -> Result<(), DomainError> {
+        flight
+            .validate_direction_contract()
+            .map_err(DomainError::ValidationError)?;
+        let directional_leg = flight.directional_leg();
+        let (origin_stations, destination_stations) = directional_leg
+            .map(leg_station_payloads)
+            .unwrap_or_else(|| (serde_json::json!([]), serde_json::json!([])));
         let result = sqlx::query(
             r#"INSERT INTO flights (
-                flight_id, airline_code, flight_number, registration,
+                flight_id, airline_code, flight_number, direction,
+                flight_type, mission, origin_stations, destination_stations,
+                is_vip, stand_type, registration,
                 aircraft_type_detail, status,
                 scheduled_departure, scheduled_arrival,
                 estimated_departure, estimated_arrival,
@@ -305,17 +362,23 @@ impl PgFlightRepository {
                 flight_remarks, load_planning_remarks,
                 aircraft_maintenance_remarks, aircraft_check_remarks
             ) VALUES (
-                $1, $2, $3, $4, $5, $6,
-                $7, $8, $9, $10, $11, $12,
-                $13, $14,
-                $15, $16, $17, $18, $19,
+                $1, $2, $3, $4, $5, $6, $7, $8,
+                $9, $10, $11, $12,
+                $13, $14, $15, $16, $17, $18, $19,
                 $20, $21, $22,
                 $23, $24, $25,
-                $26, $27, $28, $29
+                $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36
             )
             ON CONFLICT (flight_id) DO UPDATE SET
                 airline_code = EXCLUDED.airline_code,
                 flight_number = EXCLUDED.flight_number,
+                direction = EXCLUDED.direction,
+                flight_type = EXCLUDED.flight_type,
+                mission = EXCLUDED.mission,
+                origin_stations = EXCLUDED.origin_stations,
+                destination_stations = EXCLUDED.destination_stations,
+                is_vip = EXCLUDED.is_vip,
+                stand_type = EXCLUDED.stand_type,
                 registration = EXCLUDED.registration,
                 aircraft_type_detail = EXCLUDED.aircraft_type_detail,
                 status = EXCLUDED.status,
@@ -347,6 +410,13 @@ impl PgFlightRepository {
         .bind(&flight.flight_id.0)
         .bind(&flight.airline_code)
         .bind(flight.flight_number.as_ref().map(|n| &n.0))
+        .bind(&flight.direction)
+        .bind(directional_leg.map(|leg| flight_type_as_str(leg.flight_type)))
+        .bind(Self::mission_db_code(directional_leg.and_then(|leg| leg.mission))?)
+        .bind(origin_stations)
+        .bind(destination_stations)
+        .bind(directional_leg.map(|leg| leg.is_vip).unwrap_or(false))
+        .bind(directional_leg.and_then(|leg| leg.stand_type.as_ref()))
         .bind(&flight.registration)
         .bind(flight.aircraft_type_detail.as_ref().map(|a| &a.0))
         .bind(Self::flight_status_db_code(flight.status.code())?)
@@ -383,19 +453,23 @@ impl PgFlightRepository {
             ));
         }
 
-        if let Some(inbound_leg) = flight.inbound_leg.as_ref() {
-            Self::persist_leg_in_tx(tx, &flight.flight_id.0, inbound_leg).await?;
+        // Directional flights persist their leg payload in `flights` itself;
+        // only legacy aggregate rows continue using the compatibility table.
+        if flight.direction.is_none() {
+            if let Some(inbound_leg) = flight.inbound_leg.as_ref() {
+                Self::persist_leg_in_tx(tx, &flight.flight_id.0, inbound_leg).await?;
+            }
+            if let Some(outbound_leg) = flight.outbound_leg.as_ref() {
+                Self::persist_leg_in_tx(tx, &flight.flight_id.0, outbound_leg).await?;
+            }
+            Self::delete_missing_legs_in_tx(
+                tx,
+                &flight.flight_id.0,
+                flight.inbound_leg.is_some(),
+                flight.outbound_leg.is_some(),
+            )
+            .await?;
         }
-        if let Some(outbound_leg) = flight.outbound_leg.as_ref() {
-            Self::persist_leg_in_tx(tx, &flight.flight_id.0, outbound_leg).await?;
-        }
-        Self::delete_missing_legs_in_tx(
-            tx,
-            &flight.flight_id.0,
-            flight.inbound_leg.is_some(),
-            flight.outbound_leg.is_some(),
-        )
-        .await?;
 
         Ok(())
     }
@@ -406,6 +480,24 @@ impl PgFlightRepository {
         patch: &FlightUpdatePatch,
     ) -> Result<Option<Flight>, DomainError> {
         let expected_version = Self::required_expected_version(patch)?;
+        let direction = sqlx::query("SELECT direction FROM flights WHERE flight_id = $1 AND deleted_at IS NULL")
+            .bind(flight_id)
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?
+            .and_then(|row| row.try_get::<Option<String>, _>("direction").ok().flatten());
+        if let Some(direction) = direction.as_deref() {
+            if direction == "inbound" && patch.outbound_leg.is_touched() {
+                return Err(DomainError::ValidationError(
+                    "inbound Flight 不能写入 outbound_leg".into(),
+                ));
+            }
+            if direction == "outbound" && patch.inbound_leg.is_touched() {
+                return Err(DomainError::ValidationError(
+                    "outbound Flight 不能写入 inbound_leg".into(),
+                ));
+            }
+        }
         let mut builder = QueryBuilder::<Postgres>::new("UPDATE flights SET ");
         let mut first = true;
         macro_rules! push_set {
@@ -534,7 +626,15 @@ impl PgFlightRepository {
             PatchField::Unset => {}
         }
         match patch.direction.as_ref() {
-            PatchField::Set(value) => push_set!("direction", value),
+            PatchField::Set(value) => {
+                let normalized = value.trim().to_ascii_lowercase();
+                if !matches!(normalized.as_str(), "inbound" | "outbound") {
+                    return Err(DomainError::ValidationError(
+                        "direction 仅支持 inbound 或 outbound；both 已废弃".into(),
+                    ));
+                }
+                push_set!("direction", normalized);
+            }
             PatchField::Clear => push_set!("direction", Option::<String>::None),
             PatchField::Unset => {}
         }
@@ -556,37 +656,39 @@ impl PgFlightRepository {
             return Self::update_miss_result_in_tx(tx, flight_id, expected_version).await;
         }
 
-        match patch.inbound_leg.as_ref() {
-            PatchField::Set(inbound_leg) => {
-                Self::persist_leg_in_tx(tx, flight_id, inbound_leg).await?;
+        if direction.is_some() {
+            match direction.as_deref() {
+                Some("inbound") => match patch.inbound_leg.as_ref() {
+                    PatchField::Set(leg) => Self::persist_directional_leg_in_tx(tx, flight_id, leg).await?,
+                    PatchField::Clear => return Err(DomainError::ValidationError("方向航班不可清除唯一航段".into())),
+                    PatchField::Unset => {}
+                },
+                Some("outbound") => match patch.outbound_leg.as_ref() {
+                    PatchField::Set(leg) => Self::persist_directional_leg_in_tx(tx, flight_id, leg).await?,
+                    PatchField::Clear => return Err(DomainError::ValidationError("方向航班不可清除唯一航段".into())),
+                    PatchField::Unset => {}
+                },
+                _ => {}
             }
-            PatchField::Clear => {
-                sqlx::query(
-                    "UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() \
-                     WHERE flight_id = $1 AND leg_type = 'inbound' AND deleted_at IS NULL",
-                )
-                .bind(flight_id)
-                .execute(&mut **tx)
-                .await
-                .map_err(|e| DomainError::Internal(e.to_string()))?;
+        } else {
+            match patch.inbound_leg.as_ref() {
+                PatchField::Set(inbound_leg) => Self::persist_leg_in_tx(tx, flight_id, inbound_leg).await?,
+                PatchField::Clear => {
+                    sqlx::query("UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() WHERE flight_id = $1 AND leg_type = 'inbound' AND deleted_at IS NULL")
+                        .bind(flight_id).execute(&mut **tx).await
+                        .map_err(|e| DomainError::Internal(e.to_string()))?;
+                }
+                PatchField::Unset => {}
             }
-            PatchField::Unset => {}
-        }
-        match patch.outbound_leg.as_ref() {
-            PatchField::Set(outbound_leg) => {
-                Self::persist_leg_in_tx(tx, flight_id, outbound_leg).await?;
+            match patch.outbound_leg.as_ref() {
+                PatchField::Set(outbound_leg) => Self::persist_leg_in_tx(tx, flight_id, outbound_leg).await?,
+                PatchField::Clear => {
+                    sqlx::query("UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() WHERE flight_id = $1 AND leg_type = 'outbound' AND deleted_at IS NULL")
+                        .bind(flight_id).execute(&mut **tx).await
+                        .map_err(|e| DomainError::Internal(e.to_string()))?;
+                }
+                PatchField::Unset => {}
             }
-            PatchField::Clear => {
-                sqlx::query(
-                    "UPDATE flight_legs SET deleted_at = NOW(), updated_at = NOW() \
-                     WHERE flight_id = $1 AND leg_type = 'outbound' AND deleted_at IS NULL",
-                )
-                .bind(flight_id)
-                .execute(&mut **tx)
-                .await
-                .map_err(|e| DomainError::Internal(e.to_string()))?;
-            }
-            PatchField::Unset => {}
         }
 
         Self::find_by_id_in_tx(tx, flight_id).await
@@ -597,6 +699,12 @@ const FLIGHT_COLUMNS_WITH_ALIAS: &str = r#"
     f.flight_id AS flight_id,
     f.airline_code AS airline_code,
     f.flight_number AS flight_number,
+    f.flight_type AS flight_type,
+    f.mission AS mission,
+    f.origin_stations AS origin_stations,
+    f.destination_stations AS destination_stations,
+    f.is_vip AS is_vip,
+    f.stand_type AS stand_type,
     f.registration AS registration,
     f.aircraft_type_detail AS aircraft_type_detail,
     f.status AS status,
@@ -653,7 +761,7 @@ impl FlightRepository for PgFlightRepository {
                    'is_vip', fl.is_vip, 'stand_type', fl.stand_type, \
                    'scheduled_time', fl.scheduled_time \
                  )) FILTER (WHERE fl.leg_type = 'outbound') AS outbound_legs \
-               FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
+               FROM flight_legs fl WHERE f.direction IS NULL AND fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
              ) legs_agg ON TRUE \
              WHERE f.flight_id = $1 AND f.deleted_at IS NULL",
             Self::base_select()
@@ -726,7 +834,7 @@ impl FlightRepository for PgFlightRepository {
              'open_count', COALESCE(oa.open_count, 0), \
              'acknowledged_count', COALESCE(oa.ack_count, 0)\
              ) AS anomaly_summary FROM flights f \
-             LEFT JOIN flight_legs fl ON fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
+             LEFT JOIN flight_legs fl ON f.direction IS NULL AND fl.flight_id = f.flight_id AND fl.deleted_at IS NULL \
              LEFT JOIN LATERAL (\
                  SELECT COUNT(*) FILTER (WHERE a.status = 'open') AS open_count, \
                         COUNT(*) FILTER (WHERE a.status = 'acknowledged') AS ack_count \
@@ -817,7 +925,9 @@ impl FlightRepository for PgFlightRepository {
         // 1. Bulk upsert flights table
         let mut query_builder = QueryBuilder::<Postgres>::new(
             r#"INSERT INTO flights (
-                flight_id, airline_code, flight_number, registration,
+                flight_id, airline_code, flight_number, direction,
+                flight_type, mission, origin_stations, destination_stations,
+                is_vip, stand_type, registration,
                 aircraft_type_detail, status,
                 scheduled_departure, scheduled_arrival,
                 estimated_departure, estimated_arrival,
@@ -832,9 +942,20 @@ impl FlightRepository for PgFlightRepository {
         );
 
         query_builder.push_values(flights, |mut b, flight| {
+            let directional_leg = flight.directional_leg();
+            let (origin_stations, destination_stations) = directional_leg
+                .map(leg_station_payloads)
+                .unwrap_or_else(|| (serde_json::json!([]), serde_json::json!([])));
             b.push_bind(&flight.flight_id.0)
                 .push_bind(&flight.airline_code)
                 .push_bind(flight.flight_number.as_ref().map(|n| &n.0))
+                .push_bind(&flight.direction)
+                .push_bind(directional_leg.map(|leg| flight_type_as_str(leg.flight_type)))
+                .push_bind(Self::mission_db_code(directional_leg.and_then(|leg| leg.mission)).unwrap_or(None))
+                .push_bind(origin_stations)
+                .push_bind(destination_stations)
+                .push_bind(directional_leg.map(|leg| leg.is_vip).unwrap_or(false))
+                .push_bind(directional_leg.and_then(|leg| leg.stand_type.as_ref()))
                 .push_bind(&flight.registration)
                 .push_bind(flight.aircraft_type_detail.as_ref().map(|a| &a.0))
                 .push_bind(Self::flight_status_db_code(flight.status.code()).unwrap_or_else(|e| {
@@ -870,6 +991,13 @@ impl FlightRepository for PgFlightRepository {
             r#" ON CONFLICT (flight_id) DO UPDATE SET
                 airline_code = EXCLUDED.airline_code,
                 flight_number = EXCLUDED.flight_number,
+                direction = EXCLUDED.direction,
+                flight_type = EXCLUDED.flight_type,
+                mission = EXCLUDED.mission,
+                origin_stations = EXCLUDED.origin_stations,
+                destination_stations = EXCLUDED.destination_stations,
+                is_vip = EXCLUDED.is_vip,
+                stand_type = EXCLUDED.stand_type,
                 registration = EXCLUDED.registration,
                 aircraft_type_detail = EXCLUDED.aircraft_type_detail,
                 status = EXCLUDED.status,
@@ -907,6 +1035,9 @@ impl FlightRepository for PgFlightRepository {
         // 2. Collect and bulk upsert legs
         let mut legs: Vec<(&String, &FlightLeg)> = Vec::new();
         for flight in flights {
+            if flight.direction.is_some() {
+                continue;
+            }
             if let Some(ref inbound) = flight.inbound_leg {
                 legs.push((&flight.flight_id.0, inbound));
             }
@@ -1028,10 +1159,10 @@ impl FlightRepository for PgFlightRepository {
             builder.push("(");
             builder.push("f.flight_number ILIKE ");
             builder.push_bind(format!("%{flight_no}%"));
-            builder.push(" OR EXISTS (");
+            builder.push(" OR (f.direction IS NULL AND EXISTS (");
             builder.push("SELECT 1 FROM flight_legs fl WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND fl.flight_no ILIKE ");
             builder.push_bind(format!("%{flight_no}%"));
-            builder.push("))");
+            builder.push(")))");
         }
 
         if let Some(raw_status) = criteria
@@ -1056,10 +1187,11 @@ impl FlightRepository for PgFlightRepository {
             .filter(|value| !value.is_empty())
         {
             push_where(&mut builder);
-            builder.push("EXISTS (");
-            builder.push("SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.origin_stations) AS station WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND UPPER(COALESCE(station->>'code', '')) = ");
+            builder.push("(EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(f.origin_stations, '[]'::jsonb)) AS station WHERE UPPER(COALESCE(station->>'code', '')) = ");
             builder.push_bind(origin.to_uppercase());
-            builder.push(")");
+            builder.push(") OR (f.direction IS NULL AND EXISTS (SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.origin_stations) AS station WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND UPPER(COALESCE(station->>'code', '')) = ");
+            builder.push_bind(origin.to_uppercase());
+            builder.push(")))");
         }
 
         if let Some(destination) = criteria
@@ -1069,10 +1201,11 @@ impl FlightRepository for PgFlightRepository {
             .filter(|value| !value.is_empty())
         {
             push_where(&mut builder);
-            builder.push("EXISTS (");
-            builder.push("SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.destination_stations) AS station WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND UPPER(COALESCE(station->>'code', '')) = ");
+            builder.push("(EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(f.destination_stations, '[]'::jsonb)) AS station WHERE UPPER(COALESCE(station->>'code', '')) = ");
             builder.push_bind(destination.to_uppercase());
-            builder.push(")");
+            builder.push(") OR (f.direction IS NULL AND EXISTS (SELECT 1 FROM flight_legs fl CROSS JOIN LATERAL jsonb_array_elements(fl.destination_stations) AS station WHERE fl.flight_id = f.flight_id AND fl.deleted_at IS NULL AND UPPER(COALESCE(station->>'code', '')) = ");
+            builder.push_bind(destination.to_uppercase());
+            builder.push(")))");
         }
 
         if let Some(has_open_anomaly) = criteria.has_open_anomaly {
@@ -1153,6 +1286,23 @@ impl<'tx> FlightTransactionalRepository<Transaction<'tx, Postgres>> for PgFlight
 // ---------------------------------------------------------------------------
 
 fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
+    let direction: Option<String> = r.get("direction");
+    let mut inbound_leg = r
+        .try_get::<Option<serde_json::Value>, _>("inbound_legs")
+        .ok()
+        .flatten()
+        .and_then(json_leg_to_flight_leg);
+    let mut outbound_leg = r
+        .try_get::<Option<serde_json::Value>, _>("outbound_legs")
+        .ok()
+        .flatten()
+        .and_then(json_leg_to_flight_leg);
+    if direction.as_deref() == Some("inbound") && inbound_leg.is_none() {
+        inbound_leg = Some(row_to_directional_leg(r, LegType::Inbound));
+    }
+    if direction.as_deref() == Some("outbound") && outbound_leg.is_none() {
+        outbound_leg = Some(row_to_directional_leg(r, LegType::Outbound));
+    }
     let status_code = r
         .try_get::<i16, _>("status")
         .map(i32::from)
@@ -1188,16 +1338,8 @@ fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
         is_quick_turnaround: r.get("is_quick_turnaround"),
         is_commercial_signed: r.get("is_commercial_signed"),
         status: FlightStatus::from_code(status_code).unwrap_or(FlightStatus::Scheduled),
-        inbound_leg: r
-            .try_get::<Option<serde_json::Value>, _>("inbound_legs")
-            .ok()
-            .flatten()
-            .and_then(json_leg_to_flight_leg),
-        outbound_leg: r
-            .try_get::<Option<serde_json::Value>, _>("outbound_legs")
-            .ok()
-            .flatten()
-            .and_then(json_leg_to_flight_leg),
+         inbound_leg,
+         outbound_leg,
         anomaly_summary,
         created_at: r.get("created_at"),
         updated_at: r.get("updated_at"),
@@ -1216,13 +1358,55 @@ fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
         load_planning_remarks: r.get("load_planning_remarks"),
         aircraft_maintenance_remarks: r.get("aircraft_maintenance_remarks"),
         aircraft_check_remarks: r.get("aircraft_check_remarks"),
-        direction: r.get("direction"),
+         direction,
         flight_kind: r
             .get::<Option<String>, _>("flight_kind")
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| "passenger".to_string()),
         is_draft: r.get("is_draft"),
         divert: r.get("divert"),
+    }
+}
+
+fn row_to_directional_leg(row: &sqlx::postgres::PgRow, leg_type: LegType) -> FlightLeg {
+    let (origin_code, origin_name) = first_station(row, "origin_stations");
+    let (destination_code, destination_name) = first_station(row, "destination_stations");
+    let flight_type = match row
+        .try_get::<Option<String>, _>("flight_type")
+        .ok()
+        .flatten()
+        .as_deref()
+    {
+        Some("intl") => FlightTypeCode::Intl,
+        Some("region") => FlightTypeCode::Region,
+        _ => FlightTypeCode::Domestic,
+    };
+    let mission = row
+        .try_get::<Option<i16>, _>("mission")
+        .ok()
+        .flatten()
+        .map(i32::from)
+        .or_else(|| row.try_get::<Option<i32>, _>("mission").ok().flatten());
+    FlightLeg {
+        leg_type,
+        flight_no: row
+            .try_get::<Option<String>, _>("flight_number")
+            .ok()
+            .flatten()
+            .unwrap_or_default(),
+        flight_type,
+        mission,
+        origin_code,
+        destination_code,
+        origin_name,
+        destination_name,
+        is_vip: row.try_get("is_vip").unwrap_or(false),
+        stand_type: row.try_get("stand_type").ok().flatten(),
+        scheduled_time: if leg_type == LegType::Inbound {
+            row.try_get("scheduled_arrival").ok().flatten()
+        } else {
+            row.try_get("scheduled_departure").ok().flatten()
+        },
     }
 }
 

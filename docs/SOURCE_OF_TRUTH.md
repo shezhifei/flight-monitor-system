@@ -1,6 +1,6 @@
 # 文档事实来源
 
-文档基线：**2026-08-11**。改文档前先对这里列出的源码/脚本/配置，不要抄其他文档当真相。
+文档基线：**2026-08-28**。改文档前先对这里列出的源码/脚本/配置，不要抄其他文档当真相。
 
 ## 1. 默认 HTTP 后端
 
@@ -40,7 +40,8 @@
 | 统一入口 | `scripts/fms.ps1` |
 | Docker 标准 | `-Runtime docker` + `deploy/docker/docker-compose.distributed.yml` |
 | Docker 边缘 | `deploy/docker/docker-compose.edge.yml` |
-| Host Caddy | `scripts/host/start_caddy_http3_proxy.ps1` |
+| Host Caddy | `scripts/host/start_caddy_http3_proxy.ps1`；站点文件 `deploy/caddy/Caddyfile.host`，压测 `deploy/caddy/Caddyfile.host-perf` |
+| 宿主机压测 / PG 超参 | `scripts/perf/run_host_mixed_qps.ps1`、`scripts/perf/tune_postgres.py`；说明 `docs/operations/HOST_PERF.md` |
 | 双击入口 | `deploy/docker/Start-FlightMonitorDocker.bat` 等 |
 
 ## 4. Vault 与密钥
@@ -70,6 +71,7 @@
 | 差异审计（本地 ops） | `docs/operations/frontend-parity-audit.md` |
 | 视觉语言 | `docs/architecture/SIGNAL_SURFACE.md` |
 | 视觉标本 / token 真值 | `frontend/signal-surface-preview.html` |
+| 宿主机压测 | `docs/operations/HOST_PERF.md` |
 
 正式路径：`/frontend/<page>.html`。兼容：`/frontend/html/<page>.html`。  
 根路径 `/` 302 到正式 Vue 登录页 `/frontend/login.html`。
@@ -92,11 +94,33 @@
 | 事实 | 位置 |
 |---|---|
 | 迁移 | `migrations/*.sql` |
-| 当前最新 | `143_dispatch_drop_team_assignment.sql` |
+| 当前最新 | `158_idx_flight_monitor_rows_active_sort.sql` |
 | 空库自举 | `sqlx migrate run --source migrations` |
 | Outbox / CDC 设计 | `docs/architecture/ADR-0003-domain-event-outbox-cdc-relay.md` |
 
 `CREATE INDEX CONCURRENTLY`：独占迁移文件，首行 `-- no-transaction`。
+
+### 7.1 航班身份与对象元数据
+
+| 事实 | 位置 |
+|---|---|
+| 方向航班模型 | `services/api-server/crates/domain/src/models/flight.rs` |
+| 监控宽表（热列表/搜索/计数） | `migrations/147_create_flight_monitor_rows.sql`、`154_add_flight_monitor_row_lifecycle.sql`；服务 `application/src/services/flight_monitor_row_service.rs`；仓储 `infrastructure/src/repositories/pg_flight_monitor_row_repository.rs` |
+| 列表 HTTP | `GET /api/v2/flights`、`/search` 读宽表；直读 `GET /api/v2/flights/monitor-rows`（`api/src/routes/flights/list.rs`、`monitor_rows.rs`） |
+| 身份拆分迁移 | `migrations/153_flight_identity_split_report.sql`、`155_split_flight_identity.sql` |
+| 码表 | `migrations/144_create_metadata_catalogs.sql`；`application/src/services/metadata_catalog_service.rs`；`api/src/routes/dispatch_resources/metadata_catalogs.rs` |
+| 字段 overlay | `migrations/145_create_ontology_field_overlays.sql`；种子 `migrations/157_stand_use_catalog_and_stand_overlays.sql`（stand_use 码表 + Stand 六项）；`application/src/services/field_overlay_service.rs`；`api/src/routes/dispatch_resources/field_overlays.rs` |
+| 实例 `attributes` | `migrations/146_add_stand_attributes.sql`、`149_add_metadata_attributes_columns.sql`、`156_add_team_type_attributes.sql`；校验 `application/src/services/attribute_validation.rs` |
+| 引用索引（业务外键） | `migrations/152_create_ontology_attribute_references.sql` |
+| 任务锚点 | `migrations/151_add_task_type_anchor.sql`；`TaskType.anchor`：`inbound` \| `outbound` \| `link` |
+| 异常主体 | `migrations/150_anomaly_subject_reference.sql`（`subject_type` + `subject_id`；`flight_id` 可空） |
+
+约束：
+
+- `Flight.direction` 只能是 `inbound` 或 `outbound`，禁止 `both`。
+- 监控列表/搜索/计数不得 JOIN `flights` / `flight_legs`，不得把两班 Flight zip 成一行。
+- `flight_monitor_rows.row_id` 写入后不因建链/拆链改变。监控行不是 `flight-ops.v1` 对象。
+- overlay 不能造对象、造写真动作、改代码核心字段类型。码表只收「不是一等对象」的取值集合。
 
 ## 8. 消息与实时
 

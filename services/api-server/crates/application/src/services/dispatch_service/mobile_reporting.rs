@@ -252,6 +252,8 @@ impl DispatchService {
         let flight_id = order.flight_id.clone();
         let anomaly = Anomaly {
             anomaly_id: anomaly_id.clone(),
+            subject_type: "Flight".to_string(),
+            subject_id: flight_id.clone(),
             flight_id: flight_id.clone(),
             anomaly_type,
             severity,

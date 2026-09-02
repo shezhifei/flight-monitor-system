@@ -1,10 +1,10 @@
 use fms_domain::models::dispatch::{
     Department, DepartmentQualificationCatalog, DepartmentQualificationLevel, DepartmentRuleStatus,
     DepartmentTaskTypeRequirementVersion, DispatchPublicationState, Equipment, EquipmentStatus, EquipmentType,
-    FlightGenerationRule, GenerationAdjustmentRule, LegScope, MemberRole, PublishTriggerMode, QualificationGrant,
-    QualificationGrantStatus, ShiftInstance, ShiftTemplate, Stand, TaskType, TaskTypeCrewSlotRequirement,
-    TaskTypeEquipmentRequirement, Team, TeamMember, TeamStatus, TeamType, TemporaryTaskTemplate,
-    PersonnelStatus, TurnaroundConstraintMode, TurnaroundContinuityRule,
+    FlightGenerationRule, GenerationAdjustmentRule, LegScope, MemberRole, PersonnelStatus, PublishTriggerMode,
+    QualificationGrant, QualificationGrantStatus, ShiftInstance, ShiftTemplate, Stand, TaskType,
+    TaskTypeCrewSlotRequirement, TaskTypeEquipmentRequirement, Team, TeamMember, TeamStatus, TeamType,
+    TemporaryTaskTemplate, TurnaroundConstraintMode, TurnaroundContinuityRule,
 };
 use serde_json::Value;
 
@@ -28,6 +28,7 @@ pub fn to_department_response(department: Department) -> DepartmentResponse {
         created_at: department.created_at,
         updated_at: department.updated_at,
         is_active: department.is_active,
+        attributes: department.attributes,
     }
 }
 
@@ -43,6 +44,7 @@ pub fn to_team_type_response(team_type: TeamType) -> TeamTypeResponse {
         task_types: team_type.task_types,
         created_at: team_type.created_at,
         is_active: team_type.is_active,
+        attributes: team_type.attributes,
     }
 }
 
@@ -81,6 +83,7 @@ pub fn to_team_response(team: Team) -> TeamResponse {
         is_active: team.is_active,
         member_count: members.len() as i32,
         members: members.into_iter().map(to_member_response).collect(),
+        attributes: team.attributes,
     }
 }
 
@@ -95,6 +98,7 @@ pub fn to_equipment_type_response(item: EquipmentType) -> EquipmentTypeResponse 
         description: item.description,
         created_at: item.created_at,
         is_active: item.is_active,
+        attributes: item.attributes,
     }
 }
 
@@ -121,6 +125,7 @@ pub fn to_equipment_response(item: Equipment) -> EquipmentResponse {
         created_at: item.created_at,
         is_active: item.is_active,
         equipment_type_name,
+        attributes: item.attributes,
     }
 }
 
@@ -138,6 +143,7 @@ pub fn to_stand_response(item: Stand) -> StandResponse {
         stand_type: item.stand_type,
         size_category: item.size_category,
         is_active: item.is_active,
+        attributes: item.attributes,
     }
 }
 
@@ -148,12 +154,14 @@ pub fn to_task_type_response(item: TaskType) -> TaskTypeResponse {
         name: item.name,
         default_department_id: item.default_department_id,
         category: item.category,
+        anchor: item.anchor,
         sequence_order: item.sequence_order,
         default_duration_minutes: item.default_duration_minutes,
         trigger_offset_minutes: item.trigger_offset_minutes,
         trigger_type: item.trigger_type,
         description: item.description,
         is_active: item.is_active,
+        attributes: item.attributes,
     }
 }
 
@@ -169,6 +177,7 @@ pub fn to_department_qualification_response(
         is_active: item.is_active,
         created_at: item.created_at,
         updated_at: item.updated_at,
+        attributes: item.attributes,
     }
 }
 

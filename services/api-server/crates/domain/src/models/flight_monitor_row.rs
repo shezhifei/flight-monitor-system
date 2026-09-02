@@ -1,0 +1,35 @@
+use chrono::{DateTime, NaiveDate, Utc};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FlightMonitorRow {
+    pub row_id: String,
+    pub link_id: Option<String>,
+    pub kind: String,
+    pub inbound_flight_id: Option<String>,
+    pub outbound_flight_id: Option<String>,
+    pub inbound_flight_no: Option<String>,
+    pub outbound_flight_no: Option<String>,
+    pub inbound_scheduled_at: Option<DateTime<Utc>>,
+    pub outbound_scheduled_at: Option<DateTime<Utc>>,
+    pub inbound_estimated_at: Option<DateTime<Utc>>,
+    pub outbound_estimated_at: Option<DateTime<Utc>>,
+    pub inbound_actual_at: Option<DateTime<Utc>>,
+    pub outbound_actual_at: Option<DateTime<Utc>>,
+    pub inbound_station_code: Option<String>,
+    pub outbound_station_code: Option<String>,
+    pub inbound_is_vip: bool,
+    pub outbound_is_vip: bool,
+    pub registration: Option<String>,
+    pub aircraft_type: Option<String>,
+    pub stand_code: Option<String>,
+    pub gate_code: Option<String>,
+    pub terminal_code: Option<String>,
+    pub baggage_carousel_code: Option<String>,
+    pub status: Option<String>,
+    pub workspace_date: Option<NaiveDate>,
+    pub sort_time: Option<DateTime<Utc>>,
+    pub has_open_anomaly: bool,
+    pub version: i32,
+    pub updated_at: Option<DateTime<Utc>>,
+}

@@ -104,7 +104,9 @@ impl DispatchService {
                 .filter(|value| !value.is_empty())
                 .map(str::to_string)
                 .or_else(|| task_type.default_department_id.clone()),
-            leg_scope: "none".into(),
+            // F2：作业单绑定方向由 TaskType.anchor 决定，不再把进出港任务
+            // 聚合到无方向的兼容值。
+            leg_scope: task_type.anchor.clone(),
             generation_rule_id: None,
             generation_rule_version: None,
             generation_anchor_type: None,
@@ -133,6 +135,7 @@ impl DispatchService {
             supervisor_notified: false,
             supervisor_notified_at: None,
             assignment_deadline: None,
+            attributes: serde_json::json!({}),
             completed_by: None,
             completion_notes: None,
             gate: None,
@@ -427,6 +430,7 @@ impl DispatchService {
                 supervisor_notified: false,
                 supervisor_notified_at: None,
                 assignment_deadline: None,
+                attributes: serde_json::json!({}),
                 completed_by: None,
                 completion_notes: None,
                 gate: None,
@@ -616,6 +620,8 @@ impl DispatchService {
                 log_action: "draft_published".to_string(),
                 log_actor_id: Some(published_by.to_string()),
                 log_details: Some(json!({ "published_by": published_by })),
+                // 生成路径不改扩展属性；沿用现有引用投影。
+                attribute_references: None,
             });
             published_orders.push(order);
         }

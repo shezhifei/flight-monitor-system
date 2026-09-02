@@ -247,7 +247,7 @@ pub struct NewDispatchChatMessage {
     pub client_msg_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NotificationReceiptSummary {
     #[serde(default)]
     pub total_count: i64,

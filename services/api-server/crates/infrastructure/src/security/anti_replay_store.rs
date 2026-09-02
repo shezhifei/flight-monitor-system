@@ -1,7 +1,8 @@
 use async_trait::async_trait;
+use dashmap::DashMap;
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tokio::time::timeout;
@@ -262,29 +263,36 @@ impl fms_domain::ports::nonce_replay_store::NonceReplayStore for RedisBucketNonc
     }
 }
 
-#[derive(Clone)]
 struct LocalNonceBucket {
     nonces: HashSet<String>,
     expires_at: Instant,
 }
 
 pub struct LocalTtlNonceStore {
-    cache: Arc<RwLock<HashMap<String, LocalNonceBucket>>>,
+    cache: DashMap<String, LocalNonceBucket>,
     max_entries_per_bucket: usize,
     bucket_secs: i64,
+    inserts_since_cleanup: AtomicU64,
 }
 
 impl LocalTtlNonceStore {
     pub fn new(max_entries_per_bucket: usize, bucket_secs: i64) -> Self {
         Self {
-            cache: Arc::new(RwLock::new(HashMap::new())),
+            cache: DashMap::new(),
             max_entries_per_bucket,
             bucket_secs,
+            inserts_since_cleanup: AtomicU64::new(0),
         }
     }
 
     fn bucket_ttl_secs(&self, max_skew: i64) -> i64 {
         default_ttl(max_skew, self.bucket_secs)
+    }
+
+    fn maybe_cleanup(&self, now: Instant) {
+        if self.inserts_since_cleanup.fetch_add(1, Ordering::Relaxed) % 4096 == 0 {
+            self.cache.retain(|_, bucket| now < bucket.expires_at);
+        }
     }
 }
 
@@ -299,24 +307,23 @@ impl NonceReplayStore for LocalTtlNonceStore {
         let time_bucket = compute_time_bucket(timestamp, self.bucket_secs);
         let key = format!("{}:{}", session_hash, time_bucket);
         let ttl = Duration::from_secs(self.bucket_ttl_secs(120) as u64);
-
-        let mut cache = self.cache.write().await;
         let now = Instant::now();
-        cache.retain(|_, bucket| now < bucket.expires_at);
+        self.maybe_cleanup(now);
 
-        let bucket = cache.entry(key).or_insert_with(|| LocalNonceBucket {
+        let mut bucket = self.cache.entry(key).or_insert_with(|| LocalNonceBucket {
             nonces: HashSet::new(),
             expires_at: now + ttl,
         });
-
+        if now >= bucket.expires_at {
+            bucket.nonces.clear();
+            bucket.expires_at = now + ttl;
+        }
         if bucket.nonces.len() >= self.max_entries_per_bucket {
             return Err(NonceReplayStoreError::Internal("local nonce store bucket full".into()));
         }
-
         if !bucket.nonces.insert(nonce.to_string()) {
             return Ok(NonceReplayDecision::Replay);
         }
-
         Ok(NonceReplayDecision::FirstSeen)
     }
 }
@@ -420,5 +427,33 @@ mod tests {
         assert!(LUA_SADD_EXPIRE.contains("SADD"));
         assert!(LUA_SADD_EXPIRE.contains("EXPIRE"));
         assert!(!LUA_SADD_EXPIRE.contains("SET"));
+    }
+
+    #[tokio::test]
+    async fn local_store_records_unique_nonces_under_concurrency() {
+        let store = std::sync::Arc::new(LocalTtlNonceStore::new(100_000, 10));
+        let mut tasks = Vec::new();
+        for index in 0..256 {
+            let store = std::sync::Arc::clone(&store);
+            tasks.push(tokio::spawn(async move {
+                store
+                    .check_and_record("session-concurrent", 1_000, &format!("nonce-{index}"))
+                    .await
+                    .unwrap()
+            }));
+        }
+        let mut first_seen = 0;
+        for task in tasks {
+            match task.await.unwrap() {
+                NonceReplayDecision::FirstSeen => first_seen += 1,
+                NonceReplayDecision::Replay => panic!("unique nonce marked replay"),
+            }
+        }
+        assert_eq!(first_seen, 256);
+        let replay = store
+            .check_and_record("session-concurrent", 1_000, "nonce-0")
+            .await
+            .unwrap();
+        assert_eq!(replay, NonceReplayDecision::Replay);
     }
 }

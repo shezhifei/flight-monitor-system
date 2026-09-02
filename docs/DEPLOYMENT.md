@@ -1,6 +1,6 @@
 # 部署指南
 
-当前仓库的部署主文档。文档基线：**2026-08-11**。
+当前仓库的部署主文档。文档基线：**2026-08-28**。
 
 ## 0. Vault 基线
 
@@ -75,6 +75,8 @@
 ```
 
 Host 模式会启动本机辅助服务并运行 Rust API，适合本机联调和排障。它依赖本机 PostgreSQL、Rust toolchain，以及仓库内的 Vault、Redis 运行资产。
+
+混合读写压测、3GiB 内存档案与 Postgres 超参见 `docs/operations/HOST_PERF.md`。
 
 ### 1.3 Edge runtime
 
@@ -279,12 +281,13 @@ Vault runtime 文件：
 
 当前最新迁移：
 
-- `121_add_soft_delete_columns.sql`
+- `158_idx_flight_monitor_rows_active_sort.sql`
 
-引用完整性与删除策略（迁移 `120`/`121`）：
+引用完整性与删除策略（迁移 `120`/`121`，后续迁移继续遵守）：
 
 - `120_drop_all_foreign_keys.sql` 移除全部外键约束，引用完整性改由应用层逻辑保证，巡检兜底脚本：`scripts/database/check_referential_integrity.sql`（孤儿行 + 软删引用两类检查，建议纳入 nightly）。
 - `121_add_soft_delete_columns.sql` 为审计表新增 `deleted_at` 列（`users` 复用 `is_active`）；产品删除统一软删除，审计禁止物理删除业务数据。新增迁移不得重新引入 `FOREIGN KEY`/`REFERENCES`（回归测试 `tests/tools/test_no_new_foreign_keys.py`、`test_no_physical_delete.py` 守护）。
+- `144`–`158`：码表、字段 overlay、监控宽表 `flight_monitor_rows`、异常 `subject_type/subject_id`、`TaskType.anchor`、航班身份拆分（`flights.direction` 仅 `inbound`/`outbound`）、监控热路径部分索引。
 
 全新 Docker 启动会按镜像和初始化脚本准备当前基线。复用已有数据库卷时，按 `migrations/*.sql` 编号顺序补齐未应用迁移。Host 模式默认自动执行迁移（基线脚本 + `sqlx migrate run`）。
 

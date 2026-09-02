@@ -11,7 +11,9 @@ use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
     BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory,
 };
-use fms_domain::ports::dispatch_repository::{FacilityLocale, TerminalRepository};
+use fms_domain::ports::dispatch_repository::{
+    FacilityLocale, TerminalRepository, TerminalResourceTransactionalRepository,
+};
 
 pub struct PgTerminalRepository {
     pool: PgPool,
@@ -38,12 +40,13 @@ impl TerminalRepository for PgTerminalRepository {
         let id = opaque_id_or_ulid(terminal.terminal_id.clone());
         sqlx::query(
             r#"
-            INSERT INTO terminals (terminal_id, code, name, is_active)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO terminals (terminal_id, code, name, is_active, attributes)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (terminal_id) DO UPDATE SET
                 code = EXCLUDED.code,
                 name = EXCLUDED.name,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -51,6 +54,7 @@ impl TerminalRepository for PgTerminalRepository {
         .bind(&terminal.code)
         .bind(&terminal.name)
         .bind(terminal.is_active)
+        .bind(&terminal.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -63,7 +67,7 @@ impl TerminalRepository for PgTerminalRepository {
     async fn find_terminal_by_id(&self, terminal_id: &str) -> Result<Option<Terminal>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT terminal_id, code, name, is_active, created_at, updated_at
+            SELECT terminal_id, code, name, is_active, attributes, created_at, updated_at
             FROM terminals
             WHERE terminal_id = $1
             "#,
@@ -78,7 +82,7 @@ impl TerminalRepository for PgTerminalRepository {
     async fn find_terminal_by_code(&self, code: &str) -> Result<Option<Terminal>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT terminal_id, code, name, is_active, created_at, updated_at
+            SELECT terminal_id, code, name, is_active, attributes, created_at, updated_at
             FROM terminals
             WHERE code = $1
             "#,
@@ -92,9 +96,9 @@ impl TerminalRepository for PgTerminalRepository {
 
     async fn find_terminals(&self, include_inactive: bool) -> Result<Vec<Terminal>, DomainError> {
         let sql = if include_inactive {
-            "SELECT terminal_id, code, name, is_active, created_at, updated_at FROM terminals ORDER BY code"
+            "SELECT terminal_id, code, name, is_active, attributes, created_at, updated_at FROM terminals ORDER BY code"
         } else {
-            "SELECT terminal_id, code, name, is_active, created_at, updated_at FROM terminals \
+            "SELECT terminal_id, code, name, is_active, attributes, created_at, updated_at FROM terminals \
              WHERE is_active = TRUE ORDER BY code"
         };
         let rows = sqlx::query(sql)
@@ -124,12 +128,13 @@ impl TerminalRepository for PgTerminalRepository {
         let id = opaque_id_or_ulid(gate.gate_id.clone());
         sqlx::query(
             r#"
-            INSERT INTO gates (gate_id, code, name, is_active)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO gates (gate_id, code, name, is_active, attributes)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (gate_id) DO UPDATE SET
                 code = EXCLUDED.code,
                 name = EXCLUDED.name,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -137,6 +142,7 @@ impl TerminalRepository for PgTerminalRepository {
         .bind(&gate.code)
         .bind(&gate.name)
         .bind(gate.is_active)
+        .bind(&gate.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -149,7 +155,7 @@ impl TerminalRepository for PgTerminalRepository {
     async fn find_gate_by_id(&self, gate_id: &str) -> Result<Option<Gate>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT gate_id, code, name, is_active, created_at, updated_at
+            SELECT gate_id, code, name, is_active, attributes, created_at, updated_at
             FROM gates
             WHERE gate_id = $1
             "#,
@@ -164,7 +170,7 @@ impl TerminalRepository for PgTerminalRepository {
     async fn find_gate_by_code(&self, code: &str) -> Result<Option<Gate>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT gate_id, code, name, is_active, created_at, updated_at
+            SELECT gate_id, code, name, is_active, attributes, created_at, updated_at
             FROM gates
             WHERE code = $1
             "#,
@@ -194,12 +200,13 @@ impl TerminalRepository for PgTerminalRepository {
         let id = opaque_id_or_ulid(carousel.carousel_id.clone());
         sqlx::query(
             r#"
-            INSERT INTO baggage_carousels (carousel_id, code, name, is_active)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO baggage_carousels (carousel_id, code, name, is_active, attributes)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (carousel_id) DO UPDATE SET
                 code = EXCLUDED.code,
                 name = EXCLUDED.name,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -207,6 +214,7 @@ impl TerminalRepository for PgTerminalRepository {
         .bind(&carousel.code)
         .bind(&carousel.name)
         .bind(carousel.is_active)
+        .bind(&carousel.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -219,7 +227,7 @@ impl TerminalRepository for PgTerminalRepository {
     async fn find_carousel_by_id(&self, carousel_id: &str) -> Result<Option<BaggageCarousel>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT carousel_id, code, name, is_active, created_at, updated_at
+            SELECT carousel_id, code, name, is_active, attributes, created_at, updated_at
             FROM baggage_carousels
             WHERE carousel_id = $1
             "#,
@@ -234,7 +242,7 @@ impl TerminalRepository for PgTerminalRepository {
     async fn find_carousel_by_code(&self, code: &str) -> Result<Option<BaggageCarousel>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT carousel_id, code, name, is_active, created_at, updated_at
+            SELECT carousel_id, code, name, is_active, attributes, created_at, updated_at
             FROM baggage_carousels
             WHERE code = $1
             "#,
@@ -272,12 +280,23 @@ impl TerminalRepository for PgTerminalRepository {
             SELECT id, code, name, terminal, area,
                    position_lat::double precision AS position_lat,
                    position_lng::double precision AS position_lng,
-                   stand_type, size_category, is_active, created_at
+                   stand_type, size_category, is_active, attributes, created_at
             FROM stands
             WHERE id = $1
             "#,
         )
         .bind(stand_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(row.map(row_to_stand))
+    }
+
+    async fn find_stand_by_code(&self, code: &str) -> Result<Option<Stand>, DomainError> {
+        let row = sqlx::query(
+            "SELECT id, code, name, terminal, area, position_lat, position_lng, stand_type, size_category, is_active, attributes, created_at FROM stands WHERE code = $1 LIMIT 1",
+        )
+        .bind(code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -290,8 +309,8 @@ impl TerminalRepository for PgTerminalRepository {
             r#"
             INSERT INTO stands (
                 id, code, name, terminal, area, position_lat, position_lng,
-                stand_type, size_category, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                stand_type, size_category, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (id) DO UPDATE SET
                 code = EXCLUDED.code,
                 name = EXCLUDED.name,
@@ -301,7 +320,8 @@ impl TerminalRepository for PgTerminalRepository {
                 position_lng = EXCLUDED.position_lng,
                 stand_type = EXCLUDED.stand_type,
                 size_category = EXCLUDED.size_category,
-                is_active = EXCLUDED.is_active
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes
             "#,
         )
         .bind(&id)
@@ -314,6 +334,7 @@ impl TerminalRepository for PgTerminalRepository {
         .bind(&stand.stand_type)
         .bind(&stand.size_category)
         .bind(stand.is_active)
+        .bind(&stand.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -506,7 +527,7 @@ impl TerminalRepository for PgTerminalRepository {
             SELECT s.id, s.code, s.name, s.terminal, s.area,
                    s.position_lat::double precision AS position_lat,
                    s.position_lng::double precision AS position_lng,
-                   s.stand_type, s.size_category, s.is_active, s.created_at
+                   s.stand_type, s.size_category, s.is_active, s.attributes, s.created_at
             FROM terminal_stands ts
             JOIN stands s ON s.id = ts.stand_id
             WHERE ts.terminal_id = $1
@@ -521,7 +542,7 @@ impl TerminalRepository for PgTerminalRepository {
 
         let gate_rows = sqlx::query(
             r#"
-            SELECT g.gate_id, g.code, g.name, g.is_active, g.created_at, g.updated_at
+            SELECT g.gate_id, g.code, g.name, g.is_active, g.attributes, g.created_at, g.updated_at
             FROM terminal_gates tg
             JOIN gates g ON g.gate_id = tg.gate_id
             WHERE tg.terminal_id = $1
@@ -536,7 +557,7 @@ impl TerminalRepository for PgTerminalRepository {
 
         let carousel_rows = sqlx::query(
             r#"
-            SELECT c.carousel_id, c.code, c.name, c.is_active, c.created_at, c.updated_at
+            SELECT c.carousel_id, c.code, c.name, c.is_active, c.attributes, c.created_at, c.updated_at
             FROM terminal_carousels tc
             JOIN baggage_carousels c ON c.carousel_id = tc.carousel_id
             WHERE tc.terminal_id = $1
@@ -639,12 +660,197 @@ impl PgTerminalRepository {
     }
 }
 
+#[async_trait]
+impl<'tx> TerminalResourceTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
+    for PgTerminalRepository
+{
+    async fn save_terminal_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        terminal: &Terminal,
+    ) -> Result<Terminal, DomainError> {
+        let id = opaque_id_or_ulid(terminal.terminal_id.clone());
+        let row = sqlx::query(
+            r#"
+            INSERT INTO terminals (terminal_id, code, name, is_active, attributes)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (terminal_id) DO UPDATE SET
+                code = EXCLUDED.code, name = EXCLUDED.name,
+                is_active = EXCLUDED.is_active, attributes = EXCLUDED.attributes,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING terminal_id, code, name, is_active, attributes, created_at, updated_at
+            "#,
+        )
+        .bind(&id)
+        .bind(&terminal.code)
+        .bind(&terminal.name)
+        .bind(terminal.is_active)
+        .bind(&terminal.attributes)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(row_to_terminal(row))
+    }
+
+    async fn save_gate_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        gate: &Gate,
+    ) -> Result<Gate, DomainError> {
+        let id = opaque_id_or_ulid(gate.gate_id.clone());
+        let row = sqlx::query(
+            r#"
+            INSERT INTO gates (gate_id, code, name, is_active, attributes)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (gate_id) DO UPDATE SET
+                code = EXCLUDED.code, name = EXCLUDED.name,
+                is_active = EXCLUDED.is_active, attributes = EXCLUDED.attributes,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING gate_id, code, name, is_active, attributes, created_at, updated_at
+            "#,
+        )
+        .bind(&id)
+        .bind(&gate.code)
+        .bind(&gate.name)
+        .bind(gate.is_active)
+        .bind(&gate.attributes)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(row_to_gate(row))
+    }
+
+    async fn save_carousel_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        carousel: &BaggageCarousel,
+    ) -> Result<BaggageCarousel, DomainError> {
+        let id = opaque_id_or_ulid(carousel.carousel_id.clone());
+        let row = sqlx::query(
+            r#"
+            INSERT INTO baggage_carousels (carousel_id, code, name, is_active, attributes)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (carousel_id) DO UPDATE SET
+                code = EXCLUDED.code, name = EXCLUDED.name,
+                is_active = EXCLUDED.is_active, attributes = EXCLUDED.attributes,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING carousel_id, code, name, is_active, attributes, created_at, updated_at
+            "#,
+        )
+        .bind(&id)
+        .bind(&carousel.code)
+        .bind(&carousel.name)
+        .bind(carousel.is_active)
+        .bind(&carousel.attributes)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(row_to_carousel(row))
+    }
+
+    async fn save_stand_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        stand: &Stand,
+    ) -> Result<Stand, DomainError> {
+        let id = opaque_id_or_ulid(stand.id.clone());
+        let row = sqlx::query(
+            r#"
+            INSERT INTO stands (
+                id, code, name, terminal, area, position_lat, position_lng,
+                stand_type, size_category, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (id) DO UPDATE SET
+                code = EXCLUDED.code, name = EXCLUDED.name, terminal = EXCLUDED.terminal,
+                area = EXCLUDED.area, position_lat = EXCLUDED.position_lat,
+                position_lng = EXCLUDED.position_lng, stand_type = EXCLUDED.stand_type,
+                size_category = EXCLUDED.size_category, is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes
+            RETURNING id, code, name, terminal, area,
+                      position_lat::double precision AS position_lat,
+                      position_lng::double precision AS position_lng,
+                      stand_type, size_category, is_active, attributes, created_at
+            "#,
+        )
+        .bind(&id)
+        .bind(&stand.code)
+        .bind(&stand.name)
+        .bind(&stand.terminal)
+        .bind(&stand.area)
+        .bind(stand.position_lat)
+        .bind(stand.position_lng)
+        .bind(&stand.stand_type)
+        .bind(&stand.size_category)
+        .bind(stand.is_active)
+        .bind(&stand.attributes)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(row_to_stand(row))
+    }
+
+    async fn save_gate_with_terminal_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        terminal_id: &str,
+        gate: &Gate,
+    ) -> Result<Gate, DomainError> {
+        let saved = self.save_gate_in_tx(tx, gate).await?;
+        sqlx::query(
+            "INSERT INTO terminal_gates (terminal_id, gate_id) VALUES ($1, $2) ON CONFLICT (gate_id) DO NOTHING",
+        )
+        .bind(terminal_id)
+        .bind(&saved.gate_id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(saved)
+    }
+
+    async fn save_carousel_with_terminal_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        terminal_id: &str,
+        carousel: &BaggageCarousel,
+    ) -> Result<BaggageCarousel, DomainError> {
+        let saved = self.save_carousel_in_tx(tx, carousel).await?;
+        sqlx::query(
+            "INSERT INTO terminal_carousels (terminal_id, carousel_id) VALUES ($1, $2) ON CONFLICT (carousel_id) DO NOTHING",
+        )
+        .bind(terminal_id)
+        .bind(&saved.carousel_id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(saved)
+    }
+
+    async fn save_stand_with_terminal_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        terminal_id: &str,
+        stand: &Stand,
+    ) -> Result<Stand, DomainError> {
+        let saved = self.save_stand_in_tx(tx, stand).await?;
+        sqlx::query(
+            "INSERT INTO terminal_stands (terminal_id, stand_id) VALUES ($1, $2) ON CONFLICT (stand_id) DO NOTHING",
+        )
+        .bind(terminal_id)
+        .bind(&saved.id)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        Ok(saved)
+    }
+}
+
 fn row_to_terminal(row: sqlx::postgres::PgRow) -> Terminal {
     Terminal {
         terminal_id: row.get("terminal_id"),
         code: row.get("code"),
         name: row.get("name"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     }
@@ -656,6 +862,7 @@ fn row_to_gate(row: sqlx::postgres::PgRow) -> Gate {
         code: row.get("code"),
         name: row.get("name"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     }
@@ -667,6 +874,7 @@ fn row_to_carousel(row: sqlx::postgres::PgRow) -> BaggageCarousel {
         code: row.get("code"),
         name: row.get("name"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     }
@@ -684,6 +892,7 @@ fn row_to_stand(row: sqlx::postgres::PgRow) -> Stand {
         stand_type: row.get("stand_type"),
         size_category: row.get("size_category"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
         created_at: row.get("created_at"),
     }
 }

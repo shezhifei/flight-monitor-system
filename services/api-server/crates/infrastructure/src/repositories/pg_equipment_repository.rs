@@ -5,7 +5,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{Equipment, EquipmentStatus, EquipmentType};
-use fms_domain::ports::dispatch_repository::EquipmentRepository;
+use fms_domain::ports::dispatch_repository::{EquipmentRepository, EquipmentTransactionalRepository};
 
 pub struct PgEquipmentRepository {
     pool: PgPool,
@@ -27,12 +27,12 @@ impl EquipmentRepository for PgEquipmentRepository {
                 id, code, equipment_type_id, department_id, name, license_plate,
                 status, current_position_lat, current_position_lng, current_stand_id,
                 last_position_update, current_dispatch_id, last_maintenance_date,
-                next_maintenance_date, metadata, is_active
+                next_maintenance_date, metadata, is_active, attributes
             ) VALUES (
                 $1, $2, $3, $4, $5, $6,
                 $7, $8, $9, $10,
                 $11, $12, $13,
-                $14, $15, $16
+                $14, $15, $16, $17
             )
             ON CONFLICT (id) DO UPDATE SET
                 code = EXCLUDED.code,
@@ -50,6 +50,7 @@ impl EquipmentRepository for PgEquipmentRepository {
                 next_maintenance_date = EXCLUDED.next_maintenance_date,
                 metadata = EXCLUDED.metadata,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 updated_at = CURRENT_TIMESTAMP
             "#,
         )
@@ -75,6 +76,7 @@ impl EquipmentRepository for PgEquipmentRepository {
             meta_json
         })
         .bind(equipment.is_active)
+        .bind(&equipment.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -92,11 +94,11 @@ impl EquipmentRepository for PgEquipmentRepository {
                    e.current_position_lng::double precision AS current_position_lng,
                    e.current_stand_id, e.last_position_update, e.current_dispatch_id,
                    e.last_maintenance_date, e.next_maintenance_date, e.metadata,
-                   e.created_at, e.updated_at, e.is_active,
+                   e.created_at, e.updated_at, e.is_active, e.attributes,
                    et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
                    et.category AS equipment_type_category, et.requires_driver,
                    et.icon AS equipment_type_icon, et.description AS equipment_type_description,
-                   et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active
+                   et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active, et.attributes AS equipment_type_attributes
             FROM equipment e
             LEFT JOIN equipment_types et ON et.id = e.equipment_type_id
             WHERE e.id = $1
@@ -118,11 +120,11 @@ impl EquipmentRepository for PgEquipmentRepository {
                    e.current_position_lng::double precision AS current_position_lng,
                    e.current_stand_id, e.last_position_update, e.current_dispatch_id,
                    e.last_maintenance_date, e.next_maintenance_date, e.metadata,
-                   e.created_at, e.updated_at, e.is_active,
+                   e.created_at, e.updated_at, e.is_active, e.attributes,
                    et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
                    et.category AS equipment_type_category, et.requires_driver,
                    et.icon AS equipment_type_icon, et.description AS equipment_type_description,
-                   et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active
+                   et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active, et.attributes AS equipment_type_attributes
             FROM equipment e
             LEFT JOIN equipment_types et ON et.id = e.equipment_type_id
             WHERE e.code = $1
@@ -270,6 +272,97 @@ impl EquipmentRepository for PgEquipmentRepository {
     }
 }
 
+#[async_trait]
+impl<'tx> EquipmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
+    for PgEquipmentRepository
+{
+    async fn save_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        equipment: &Equipment,
+    ) -> Result<Equipment, DomainError> {
+        sqlx::query(
+            r#"
+            INSERT INTO equipment (
+                id, code, equipment_type_id, department_id, name, license_plate,
+                status, current_position_lat, current_position_lng, current_stand_id,
+                last_position_update, current_dispatch_id, last_maintenance_date,
+                next_maintenance_date, metadata, is_active, attributes
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6,
+                $7, $8, $9, $10,
+                $11, $12, $13,
+                $14, $15, $16, $17
+            )
+            ON CONFLICT (id) DO UPDATE SET
+                code = EXCLUDED.code,
+                equipment_type_id = EXCLUDED.equipment_type_id,
+                department_id = EXCLUDED.department_id,
+                name = EXCLUDED.name,
+                license_plate = EXCLUDED.license_plate,
+                status = EXCLUDED.status,
+                current_position_lat = EXCLUDED.current_position_lat,
+                current_position_lng = EXCLUDED.current_position_lng,
+                current_stand_id = EXCLUDED.current_stand_id,
+                last_position_update = EXCLUDED.last_position_update,
+                current_dispatch_id = EXCLUDED.current_dispatch_id,
+                last_maintenance_date = EXCLUDED.last_maintenance_date,
+                next_maintenance_date = EXCLUDED.next_maintenance_date,
+                metadata = EXCLUDED.metadata,
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
+                updated_at = CURRENT_TIMESTAMP
+            "#,
+        )
+        .bind(&equipment.id)
+        .bind(&equipment.code)
+        .bind(&equipment.equipment_type_id)
+        .bind(&equipment.department_id)
+        .bind(&equipment.name)
+        .bind(&equipment.license_plate)
+        .bind(equipment_status_value(equipment.status))
+        .bind(equipment.current_position_lat)
+        .bind(equipment.current_position_lng)
+        .bind(&equipment.current_stand_id)
+        .bind(equipment.last_position_update)
+        .bind(&equipment.current_dispatch_id)
+        .bind(equipment.last_maintenance_date)
+        .bind(equipment.next_maintenance_date)
+        .bind(equipment.metadata.as_ref().map(|m| serde_json::to_value(m).unwrap_or_default()))
+        .bind(equipment.is_active)
+        .bind(&equipment.attributes)
+        .execute(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        let row = sqlx::query(
+            r#"
+            SELECT e.id, e.code, e.equipment_type_id, e.department_id, e.name, e.license_plate, e.status,
+                   e.current_position_lat::double precision AS current_position_lat,
+                   e.current_position_lng::double precision AS current_position_lng,
+                   e.current_stand_id, e.last_position_update, e.current_dispatch_id,
+                   e.last_maintenance_date, e.next_maintenance_date, e.metadata,
+                   e.created_at, e.updated_at, e.is_active, e.attributes,
+                   et.id AS joined_equipment_type_id, et.name AS equipment_type_name, et.code AS equipment_type_code,
+                   et.category AS equipment_type_category, et.requires_driver,
+                   et.icon AS equipment_type_icon, et.description AS equipment_type_description,
+                   et.created_at AS equipment_type_created_at, et.is_active AS equipment_type_is_active,
+                   et.attributes AS equipment_type_attributes
+            FROM equipment e
+            LEFT JOIN equipment_types et ON et.id = e.equipment_type_id
+            WHERE e.id = $1
+            "#,
+        )
+        .bind(&equipment.id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?
+        .ok_or_else(|| DomainError::Internal("equipment transactional save returned no row".into()))?;
+
+        Ok(row_to_equipment(row))
+    }
+}
+
 fn row_to_equipment(row: sqlx::postgres::PgRow) -> Equipment {
     let equipment_type = row
         .get::<Option<String>, _>("joined_equipment_type_id")
@@ -284,6 +377,7 @@ fn row_to_equipment(row: sqlx::postgres::PgRow) -> Equipment {
             created_at: row.get("equipment_type_created_at"),
             is_active: row.get::<Option<bool>, _>("equipment_type_is_active").unwrap_or(true),
             task_types: Vec::new(),
+            attributes: row.try_get("equipment_type_attributes").unwrap_or_else(|_| serde_json::json!({})),
         });
 
     Equipment {
@@ -309,6 +403,7 @@ fn row_to_equipment(row: sqlx::postgres::PgRow) -> Equipment {
         updated_at: row.get("updated_at"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
         equipment_type,
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }
 

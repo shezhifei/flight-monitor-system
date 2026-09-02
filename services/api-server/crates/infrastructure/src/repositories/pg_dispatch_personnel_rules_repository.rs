@@ -13,8 +13,9 @@ use fms_domain::models::dispatch::{
     TurnaroundSlotPair,
 };
 use fms_domain::ports::dispatch_repository::{
-    DepartmentQualificationRepository, DepartmentTaskTypeRequirementRepository, FlightGenerationRuleRepository,
-    GenerationAdjustmentRuleRepository, QualificationGrantRepository, TemporaryTaskTemplateRepository,
+    DepartmentQualificationRepository, DepartmentQualificationTransactionalRepository,
+    DepartmentTaskTypeRequirementRepository, FlightGenerationRuleRepository, GenerationAdjustmentRuleRepository,
+    QualificationGrantRepository, TemporaryTaskTemplateRepository,
 };
 
 pub struct PgDepartmentQualificationRepository {
@@ -36,15 +37,16 @@ impl DepartmentQualificationRepository for PgDepartmentQualificationRepository {
         let row = sqlx::query(
             r#"
             INSERT INTO department_qualification_catalog (
-                id, department_id, qualification_code, qualification_name, description, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+                id, department_id, qualification_code, qualification_name, description, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (department_id, qualification_code) DO UPDATE SET
                 qualification_name = EXCLUDED.qualification_name,
                 description = EXCLUDED.description,
                 is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id, department_id, qualification_code, qualification_name, description,
-                      is_active, created_at, updated_at
+                      is_active, attributes, created_at, updated_at
             "#,
         )
         .bind(&catalog.id)
@@ -53,11 +55,33 @@ impl DepartmentQualificationRepository for PgDepartmentQualificationRepository {
         .bind(&catalog.qualification_name)
         .bind(&catalog.description)
         .bind(catalog.is_active)
+        .bind(&catalog.attributes)
         .fetch_one(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
 
         Ok(row_to_catalog(&row))
+    }
+
+    async fn find_catalog_by_key(
+        &self,
+        key: &str,
+    ) -> Result<Option<DepartmentQualificationCatalog>, DomainError> {
+        let row = sqlx::query(
+            r#"
+            SELECT id, department_id, qualification_code, qualification_name, description, is_active, attributes, created_at, updated_at
+            FROM department_qualification_catalog
+            WHERE qualification_code = $1 OR id = $1
+            ORDER BY is_active DESC, updated_at DESC NULLS LAST
+            LIMIT 1
+            "#,
+        )
+        .bind(key)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(row.as_ref().map(row_to_catalog))
     }
 
     async fn list_catalogs(
@@ -66,7 +90,7 @@ impl DepartmentQualificationRepository for PgDepartmentQualificationRepository {
         include_inactive: bool,
     ) -> Result<Vec<DepartmentQualificationCatalog>, DomainError> {
         let mut builder = QueryBuilder::<Postgres>::new(
-            "SELECT id, department_id, qualification_code, qualification_name, description, is_active, created_at, updated_at FROM department_qualification_catalog WHERE department_id = ",
+            "SELECT id, department_id, qualification_code, qualification_name, description, is_active, attributes, created_at, updated_at FROM department_qualification_catalog WHERE department_id = ",
         );
         builder.push_bind(department_id);
         if !include_inactive {
@@ -143,6 +167,45 @@ impl DepartmentQualificationRepository for PgDepartmentQualificationRepository {
             .map_err(|err| DomainError::Internal(err.to_string()))?;
 
         Ok(rows.iter().map(row_to_level).collect())
+    }
+}
+
+#[async_trait]
+impl<'tx> DepartmentQualificationTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
+    for PgDepartmentQualificationRepository
+{
+    async fn save_catalog_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
+        catalog: &DepartmentQualificationCatalog,
+    ) -> Result<DepartmentQualificationCatalog, DomainError> {
+        let row = sqlx::query(
+            r#"
+            INSERT INTO department_qualification_catalog (
+                id, department_id, qualification_code, qualification_name, description, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (department_id, qualification_code) DO UPDATE SET
+                qualification_name = EXCLUDED.qualification_name,
+                description = EXCLUDED.description,
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id, department_id, qualification_code, qualification_name, description,
+                      is_active, attributes, created_at, updated_at
+            "#,
+        )
+        .bind(&catalog.id)
+        .bind(&catalog.department_id)
+        .bind(&catalog.qualification_code)
+        .bind(&catalog.qualification_name)
+        .bind(&catalog.description)
+        .bind(catalog.is_active)
+        .bind(&catalog.attributes)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|err| DomainError::Internal(err.to_string()))?;
+
+        Ok(row_to_catalog(&row))
     }
 }
 
@@ -416,6 +479,7 @@ fn row_to_catalog(row: &sqlx::postgres::PgRow) -> DepartmentQualificationCatalog
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
     }
 }
 

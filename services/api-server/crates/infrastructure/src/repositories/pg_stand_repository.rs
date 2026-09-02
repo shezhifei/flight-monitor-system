@@ -24,8 +24,8 @@ impl StandRepository for PgStandRepository {
             r#"
             INSERT INTO stands (
                 id, code, name, terminal, area, position_lat, position_lng,
-                stand_type, size_category, is_active
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                stand_type, size_category, is_active, attributes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (id) DO UPDATE SET
                 code = EXCLUDED.code,
                 name = EXCLUDED.name,
@@ -35,7 +35,8 @@ impl StandRepository for PgStandRepository {
                 position_lng = EXCLUDED.position_lng,
                 stand_type = EXCLUDED.stand_type,
                 size_category = EXCLUDED.size_category,
-                is_active = EXCLUDED.is_active
+                is_active = EXCLUDED.is_active,
+                attributes = EXCLUDED.attributes
             "#,
         )
         .bind(&stand.id)
@@ -48,6 +49,7 @@ impl StandRepository for PgStandRepository {
         .bind(&stand.stand_type)
         .bind(&stand.size_category)
         .bind(stand.is_active)
+        .bind(&stand.attributes)
         .execute(&self.pool)
         .await
         .map_err(|err| DomainError::Internal(err.to_string()))?;
@@ -63,7 +65,7 @@ impl StandRepository for PgStandRepository {
             SELECT id, code, name, terminal, area,
                    position_lat::double precision AS position_lat,
                    position_lng::double precision AS position_lng,
-                   stand_type, size_category, is_active, created_at
+                   stand_type, size_category, is_active, attributes, created_at
             FROM stands
             WHERE id = $1
             "#,
@@ -82,7 +84,7 @@ impl StandRepository for PgStandRepository {
             SELECT id, code, name, terminal, area,
                    position_lat::double precision AS position_lat,
                    position_lng::double precision AS position_lng,
-                   stand_type, size_category, is_active, created_at
+                   stand_type, size_category, is_active, attributes, created_at
             FROM stands
             WHERE code = $1
             "#,
@@ -107,7 +109,7 @@ impl StandRepository for PgStandRepository {
             SELECT id, code, name, terminal, area,
                    position_lat::double precision AS position_lat,
                    position_lng::double precision AS position_lng,
-                   stand_type, size_category, is_active, created_at
+                   stand_type, size_category, is_active, attributes, created_at
             FROM stands
             WHERE 1=1
             "#,
@@ -162,6 +164,7 @@ fn row_to_stand(row: sqlx::postgres::PgRow) -> Stand {
         stand_type: row.get("stand_type"),
         size_category: row.get("size_category"),
         is_active: row.get::<Option<bool>, _>("is_active").unwrap_or(true),
+        attributes: row.try_get("attributes").unwrap_or_else(|_| serde_json::json!({})),
         created_at: row.get("created_at"),
     }
 }

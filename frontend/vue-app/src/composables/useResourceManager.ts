@@ -13,7 +13,8 @@ export type ResourceSection =
   | 'equipment-types'
   | 'departments'
   | 'qualifications'
-  | 'terminals';
+  | 'terminals'
+  | 'metadata-catalogs';
 
 export interface Team {
   id: string;
@@ -34,6 +35,7 @@ export interface Team {
   team_type_color?: string | null;
   /** Resolved client-side from departments */
   department_name?: string | null;
+  attributes?: Record<string, unknown>;
 }
 
 export interface Department {
@@ -45,6 +47,7 @@ export interface Department {
   is_active?: boolean;
   /** Resolved client-side from assignable users */
   manager_name?: string | null;
+  attributes?: Record<string, unknown>;
 }
 
 export interface TeamMember {
@@ -70,6 +73,7 @@ export interface TeamType {
   task_types?: string[];
   is_active?: boolean;
   team_count?: number;
+  attributes?: Record<string, unknown>;
 }
 
 export interface Equipment {
@@ -87,6 +91,7 @@ export interface Equipment {
   is_active?: boolean;
   /** Resolved client-side from departments */
   department_name?: string | null;
+  attributes?: Record<string, unknown>;
 }
 
 export interface EquipmentType {
@@ -99,6 +104,7 @@ export interface EquipmentType {
   description?: string | null;
   is_active?: boolean;
   equipment_count?: number;
+  attributes?: Record<string, unknown>;
 }
 
 export interface AssignableUser {
@@ -136,6 +142,7 @@ export interface TeamFormData {
   department_id: string;
   leader_id: string;
   current_status: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface EquipmentFormData {
@@ -146,6 +153,7 @@ export interface EquipmentFormData {
   license_plate: string;
   status: string;
   next_maintenance_date: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface DepartmentFormData {
@@ -153,6 +161,7 @@ export interface DepartmentFormData {
   code: string;
   description: string;
   manager_id: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface TeamTypeFormData {
@@ -163,6 +172,7 @@ export interface TeamTypeFormData {
   is_driver_type: boolean;
   task_types: string;
   description: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface EquipmentTypeFormData {
@@ -172,6 +182,7 @@ export interface EquipmentTypeFormData {
   requires_driver: boolean;
   icon: string;
   description: string;
+  attributes?: Record<string, unknown>;
 }
 
 export interface EquipmentStatusFormData {
@@ -214,6 +225,12 @@ function asStringArray(value: unknown): string[] {
   return value.map(v => asString(v)).filter((v): v is string => Boolean(v));
 }
 
+function asAttributes(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
 export function teamFromApi(raw: unknown): Team | null {
   const r = asRecord(raw);
   if (!r) return null;
@@ -232,6 +249,7 @@ export function teamFromApi(raw: unknown): Team | null {
     current_stand_id: asString(r.current_stand_id),
     member_count: asNumber(r.member_count) ?? 0,
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -241,6 +259,7 @@ export function teamToCreateApi(form: TeamFormData) {
     code: form.code.trim() || null,
     department_id: form.department_id.trim(),
     leader_id: form.leader_id.trim() || null,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -251,6 +270,7 @@ export function teamToUpdateApi(form: TeamFormData) {
     department_id: form.department_id.trim() || null,
     leader_id: form.leader_id.trim() || null,
     current_status: form.current_status.trim() || null,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -289,6 +309,7 @@ export function teamTypeFromApi(raw: unknown): TeamType | null {
     task_types: asStringArray(r.task_types),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
     team_count: asNumber(r.team_count),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -305,6 +326,7 @@ export function teamTypeToApi(form: TeamTypeFormData) {
     color: form.color.trim() || null,
     is_driver_type: form.is_driver_type,
     task_types,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -326,6 +348,7 @@ export function equipmentFromApi(raw: unknown): Equipment | null {
     current_stand_id: asString(r.current_stand_id),
     next_maintenance_date: asString(r.next_maintenance_date),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -337,6 +360,7 @@ export function equipmentToCreateApi(form: EquipmentFormData) {
     department_id: form.department_id.trim(),
     license_plate: form.license_plate.trim() || null,
     next_maintenance_date: form.next_maintenance_date.trim() || null,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -349,6 +373,7 @@ export function equipmentToUpdateApi(form: EquipmentFormData) {
     license_plate: form.license_plate.trim() || null,
     status: form.status.trim() || null,
     next_maintenance_date: form.next_maintenance_date.trim() || null,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -368,6 +393,7 @@ export function equipmentTypeFromApi(raw: unknown): EquipmentType | null {
     description: asString(r.description),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
     equipment_count: asNumber(r.equipment_count),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -379,6 +405,7 @@ export function equipmentTypeToApi(form: EquipmentTypeFormData) {
     requires_driver: form.requires_driver,
     icon: form.icon.trim() || null,
     description: form.description.trim() || null,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -395,6 +422,7 @@ export function departmentFromApi(raw: unknown): Department | null {
     description: asString(r.description),
     manager_id: asString(r.manager_id),
     is_active: r.is_active === undefined ? true : asBool(r.is_active),
+    attributes: asAttributes(r.attributes),
   };
 }
 
@@ -404,6 +432,7 @@ export function departmentToApi(form: DepartmentFormData) {
     code: form.code.trim() || null,
     description: form.description.trim() || null,
     manager_id: form.manager_id.trim() || null,
+    ...(form.attributes && Object.keys(form.attributes).length > 0 ? { attributes: form.attributes } : {}),
   };
 }
 
@@ -541,6 +570,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     department_id: '',
     leader_id: '',
     current_status: 'available',
+    attributes: {},
   });
   const equipmentForm = ref<EquipmentFormData>({
     code: '',
@@ -550,6 +580,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     license_plate: '',
     status: 'available',
     next_maintenance_date: '',
+    attributes: {},
   });
   const teamTypeForm = ref<TeamTypeFormData>({
     name: '',
@@ -559,6 +590,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     is_driver_type: false,
     task_types: '',
     description: '',
+    attributes: {},
   });
   const equipmentTypeForm = ref<EquipmentTypeFormData>({
     name: '',
@@ -567,6 +599,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     requires_driver: false,
     icon: '',
     description: '',
+    attributes: {},
   });
   const equipmentStatusForm = ref<EquipmentStatusFormData>({
     status: 'available',
@@ -577,6 +610,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
     code: '',
     description: '',
     manager_id: '',
+    attributes: {},
   });
 
   // team member drawer state
@@ -1203,8 +1237,9 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           department_id: item.department_id || '',
           leader_id: item.leader_id || '',
           current_status: item.current_status || 'available',
+          attributes: { ...(item.attributes ?? {}) },
         }
-      : { name: '', code: '', department_id: '', leader_id: '', current_status: 'available' };
+      : { name: '', code: '', department_id: '', leader_id: '', current_status: 'available', attributes: {} };
     modal.value = { kind: 'team', item };
     if (options.loadAssignableUsers !== false && assignableUsers.value.length === 0) {
       void fetchAssignableUsers();
@@ -1221,6 +1256,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           license_plate: item.license_plate || '',
           status: item.status || 'available',
           next_maintenance_date: item.next_maintenance_date || '',
+          attributes: { ...(item.attributes ?? {}) },
         }
       : {
           code: '',
@@ -1230,6 +1266,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           license_plate: '',
           status: 'available',
           next_maintenance_date: '',
+          attributes: {},
         };
     modal.value = { kind: 'equipment', item };
   }
@@ -1241,8 +1278,9 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           code: item.code || '',
           description: item.description || '',
           manager_id: item.manager_id || '',
+          attributes: { ...(item.attributes ?? {}) },
         }
-      : { name: '', code: '', description: '', manager_id: '' };
+      : { name: '', code: '', description: '', manager_id: '', attributes: {} };
     modal.value = { kind: 'department', item };
     if (options.loadAssignableUsers !== false && assignableUsers.value.length === 0) {
       void fetchAssignableUsers();
@@ -1259,6 +1297,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           is_driver_type: Boolean(item.is_driver_type),
           task_types: (item.task_types ?? []).join(', '),
           description: item.description || '',
+          attributes: { ...(item.attributes ?? {}) },
         }
       : {
           name: '',
@@ -1268,6 +1307,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           is_driver_type: false,
           task_types: '',
           description: '',
+          attributes: {},
         };
     modal.value = { kind: 'team-type', item };
   }
@@ -1281,6 +1321,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           requires_driver: Boolean(item.requires_driver),
           icon: item.icon || '',
           description: item.description || '',
+          attributes: { ...(item.attributes ?? {}) },
         }
       : {
           name: '',
@@ -1289,6 +1330,7 @@ export function useResourceManager(options: ResourceManagerOptions = {}) {
           requires_driver: false,
           icon: '',
           description: '',
+          attributes: {},
         };
     modal.value = { kind: 'equipment-type', item };
   }

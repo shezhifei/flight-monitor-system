@@ -64,12 +64,74 @@ pub async fn ensure_status_transition(
     Ok(())
 }
 
+/// Ensure a directional flight can only be patched through its canonical leg.
+/// Legacy aggregate rows (direction is null) retain the compatibility two-leg
+/// patch contract during the staged migration.
+pub async fn ensure_directional_leg_patch(
+    repo: &(dyn FlightRepository + Send + Sync),
+    flight_id: &str,
+    patch: &FlightUpdatePatch,
+) -> Result<(), DomainError> {
+    let Some(current) = repo.find_by_id(flight_id).await? else {
+        return Ok(());
+    };
+    match current.direction.as_deref() {
+        Some("inbound") if patch.outbound_leg.is_touched() => Err(DomainError::ValidationError(
+            "inbound 航班只能更新 inbound_leg；请通过 TurnaroundLink 管理出港航班".into(),
+        )),
+        Some("outbound") if patch.inbound_leg.is_touched() => Err(DomainError::ValidationError(
+            "outbound 航班只能更新 outbound_leg；请通过 TurnaroundLink 管理进港航班".into(),
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// Legacy aggregate IDs are no longer valid write targets after the identity
+/// split.  Keep reads compatible, but return an actionable migration error for
+/// any write so callers cannot accidentally recreate a two-leg aggregate.
+pub async fn reject_legacy_aggregate_write(
+    repo: &(dyn FlightRepository + Send + Sync),
+    flight_id: &str,
+) -> Result<(), DomainError> {
+    if let Some(current) = repo.find_by_id(flight_id).await? {
+        if current.is_legacy_aggregate() {
+            return Err(DomainError::Conflict(format!(
+                "航班 {flight_id} 是已拆分的旧双腿聚合 ID；请使用 inbound/outbound 航班 ID，通过 TurnaroundLink 关联"
+            )));
+        }
+    }
+    Ok(())
+}
+
 pub async fn validate_create_payload(
     repo: &(dyn FlightRepository + Send + Sync),
     mut dto: FlightCreate,
 ) -> Result<FlightCreate, DomainError> {
     validate_leg_payload(dto.inbound_leg.as_ref(), "inbound_leg", "inbound")?;
     validate_leg_payload(dto.outbound_leg.as_ref(), "outbound_leg", "outbound")?;
+    if dto.inbound_leg.is_some() && dto.outbound_leg.is_some() {
+        return Err(DomainError::ValidationError(
+            "一个 Flight 只能包含一个方向；进出港请分别创建并通过 TurnaroundLink 关联".into(),
+        ));
+    }
+    if let Some(direction) = dto.direction.as_deref() {
+        let normalized = direction.trim().to_ascii_lowercase();
+        if !matches!(normalized.as_str(), "inbound" | "outbound") {
+            return Err(DomainError::ValidationError(
+                "direction 仅支持 inbound 或 outbound".into(),
+            ));
+        }
+        if let Some(leg) = dto.inbound_leg.as_ref() {
+            if normalized != "inbound" || leg.leg_type.trim().to_ascii_lowercase() != "inbound" {
+                return Err(DomainError::ValidationError("direction 与 inbound_leg 不一致".into()));
+            }
+        }
+        if let Some(leg) = dto.outbound_leg.as_ref() {
+            if normalized != "outbound" || leg.leg_type.trim().to_ascii_lowercase() != "outbound" {
+                return Err(DomainError::ValidationError("direction 与 outbound_leg 不一致".into()));
+            }
+        }
+    }
 
     dto.flight_id = normalize_optional_string(dto.flight_id);
     if let Some(flight_id) = dto.flight_id.as_deref() {
@@ -95,6 +157,12 @@ pub fn validate_update_payload(dto: &FlightUpdate) -> Result<(), DomainError> {
         "inbound_leg",
         "inbound",
     )?;
+
+    if dto.direction.is_touched() {
+        return Err(DomainError::ValidationError(
+            "Flight.direction 是身份字段，创建后不可修改；需要换向请新建方向航班并维护 TurnaroundLink".into(),
+        ));
+    }
     validate_leg_payload(
         nullable_update_value(dto.outbound_leg.as_ref()),
         "outbound_leg",

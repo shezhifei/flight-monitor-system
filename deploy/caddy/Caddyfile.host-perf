@@ -1,0 +1,44 @@
+{
+	admin 127.0.0.1:2019
+
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+(fms_proxy) {
+	reverse_proxy {$FMS_CADDY_UPSTREAM} {
+		header_up X-Forwarded-Port {server_port}
+
+		transport http {
+			versions 1.1 2
+			keepalive 2m
+			keepalive_idle_conns 512
+			dial_timeout 5s
+			response_header_timeout 60s
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}
+
+{$FMS_CADDY_SITE_HOST}:{$FMS_CADDY_HTTPS_PORT} {
+	tls internal
+
+	log {
+		output discard
+	}
+
+	handle /api/* {
+		encode {
+			gzip 1
+			minimum_length 256
+		}
+		import fms_proxy
+	}
+
+	handle {
+		encode zstd gzip
+		import fms_proxy
+	}
+}

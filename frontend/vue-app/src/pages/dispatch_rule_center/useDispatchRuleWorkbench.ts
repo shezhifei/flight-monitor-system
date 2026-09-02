@@ -53,6 +53,7 @@ export interface ManualOrderDraft {
   leg_scope: string;
   manual_lock: boolean;
   remarks: string;
+  attributes: Record<string, unknown>;
 }
 
 function emptyBundle(): DepartmentRuleBundle {
@@ -83,6 +84,7 @@ function emptyManualOrderDraft(departmentId = ''): ManualOrderDraft {
     leg_scope: 'outbound',
     manual_lock: false,
     remarks: '',
+    attributes: {},
   };
 }
 
@@ -381,6 +383,7 @@ export function useDispatchRuleWorkbench(options: UseDispatchRuleWorkbenchOption
       leg_scope: draft.leg_scope,
       manual_lock: draft.manual_lock,
       remarks: draft.remarks || null,
+      attributes: draft.attributes,
     };
 
     saving.value = true;

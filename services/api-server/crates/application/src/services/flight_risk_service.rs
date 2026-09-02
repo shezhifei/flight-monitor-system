@@ -125,8 +125,12 @@ fn has_departure_delay(flight: &FlightResponse) -> bool {
 }
 
 fn is_vip_flight(flight: &FlightResponse) -> bool {
-    flight.inbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false)
-        || flight.outbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false)
+    match flight.direction.as_deref() {
+        Some("inbound") => flight.inbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false),
+        Some("outbound") => flight.outbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false),
+        _ => flight.inbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false)
+            || flight.outbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false),
+    }
 }
 
 fn has_open_business_case(flight: &FlightResponse) -> bool {
@@ -217,6 +221,11 @@ mod tests {
         let now = Utc::now();
         FlightResponse {
             flight_id: Some("flight-1".to_string()),
+        row_id: None,
+        link_id: None,
+        kind: None,
+        inbound_flight_id: None,
+        outbound_flight_id: None,
             flight_number: Some("CA1234".to_string()),
             airline_code: None,
             registration: None,

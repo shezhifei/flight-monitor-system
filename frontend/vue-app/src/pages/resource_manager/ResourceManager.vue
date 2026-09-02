@@ -13,14 +13,19 @@ import type { Department } from '@/composables/useResourceManager';
 import { useTerminalDirectory } from '@/composables/useTerminalDirectory';
 import type { BaggageCarousel, Gate, Stand, Terminal } from '@/composables/useTerminalDirectory';
 import { useQualificationCatalog } from '@/composables/useQualificationCatalog';
+import { useMetadataCatalog } from '@/composables/useMetadataCatalog';
+import { useFieldOverlays } from '@/composables/useFieldOverlays';
+import type { MetadataCatalog, MetadataCatalogEntry } from '@/composables/useMetadataCatalog';
 import type { QualificationCatalog } from '@/composables/useQualificationCatalog';
 import { hasUserPermission, useAuth } from '@/composables/useAuth';
 import TeamMemberDrawer from './TeamMemberDrawer.vue';
 import DepartmentsSection from './DepartmentsSection.vue';
 import QualificationsSection from './QualificationsSection.vue';
+import MetadataCatalogsSection from './MetadataCatalogsSection.vue';
 import TerminalDirectorySection from './TerminalDirectorySection.vue';
 import EquipmentTypeModal from './EquipmentTypeModal.vue';
 import EquipmentStatusModal from './EquipmentStatusModal.vue';
+import FieldOverlayForm from '@/components/FieldOverlayForm.vue';
 
 const auth = useAuth();
 const canManageTeams = computed(() => hasUserPermission(auth.getUser(), 'team:manage'));
@@ -29,6 +34,48 @@ const canManageDispatch = computed(() => hasUserPermission(auth.getUser(), 'disp
 const rm = useResourceManager({ loadAssignableUsers: canManageTeams.value });
 const td = useTerminalDirectory();
 const qc = useQualificationCatalog();
+const mc = useMetadataCatalog();
+const fo = useFieldOverlays();
+const standFieldOverlays = fo.forObject('Stand');
+const terminalFieldOverlays = fo.forObject('Terminal');
+const gateFieldOverlays = fo.forObject('Gate');
+const carouselFieldOverlays = fo.forObject('BaggageCarousel');
+const teamFieldOverlays = fo.forObject('Team');
+const equipmentFieldOverlays = fo.forObject('Equipment');
+const departmentFieldOverlays = fo.forObject('Department');
+const qualificationFieldOverlays = fo.forObject('Qualification');
+
+// The field-overlay renderer can use the already loaded object directories as
+// candidates for object_ref fields. Keep this mapping at the page boundary so
+// the generic form stays independent of resource APIs.
+const fieldReferenceEntries = computed(() => ({
+  Department: rm.rawDepartments.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  Team: rm.rawTeams.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  TeamType: rm.rawTeamTypes.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  Equipment: rm.rawEquipment.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  EquipmentType: rm.rawEquipmentTypes.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+  Personnel: rm.assignableUsers.value.map(item => ({ id: item.id, name: userLabel(item) })),
+  Terminal: td.terminals.value.map(item => ({ id: item.terminal_id, code: item.code, name: item.name })),
+  Gate: (td.directory.value?.gates ?? []).map(item => ({ id: item.gate_id, code: item.code, name: item.name })),
+  BaggageCarousel: (td.directory.value?.carousels ?? []).map(item => ({
+    id: item.carousel_id,
+    code: item.code,
+    name: item.name,
+  })),
+  Stand: td.allStands.value.map(item => ({ id: item.id, code: item.code, name: item.name })),
+}));
+
+watch(
+  () => rm.activeSection.value,
+  (section) => {
+    if (section === 'teams') void fo.load('Team');
+    if (section === 'equipment') void fo.load('Equipment');
+    if (section === 'equipment-types') void fo.load('EquipmentType');
+    if (section === 'departments') void fo.load('Department');
+    if (section === 'qualifications') void fo.load('Qualification');
+  },
+  { immediate: true },
+);
 
 function handleLogout() { auth.logout(); }
 
@@ -231,6 +278,25 @@ async function onSelectQualificationDepartment(id: string) {
   await qc.selectDepartment(id);
 }
 
+async function onSelectMetadataCatalog(code: string) {
+  await mc.selectCatalog(code);
+}
+
+async function onToggleMetadataCatalog(item: MetadataCatalog) {
+  if (!canManageDispatch.value) return;
+  if (item.system_owned) return;
+  const next = !item.is_active;
+  if (!window.confirm(`确认${next ? '启用' : '停用'}码表「${item.name}」吗？`)) return;
+  await mc.setCatalogActive(item, next);
+}
+
+async function onToggleMetadataEntry(item: MetadataCatalogEntry) {
+  if (!canManageDispatch.value) return;
+  const next = !item.is_active;
+  if (!window.confirm(`确认${next ? '启用' : '停用'}码表项「${item.code}」吗？`)) return;
+  await mc.setEntryActive(item, next);
+}
+
 async function onToggleQualificationActive(item: QualificationCatalog) {
   if (!canManageDispatch.value) return;
   const next = !item.is_active;
@@ -244,6 +310,27 @@ async function onToggleQualificationActive(item: QualificationCatalog) {
 watch(
   () => rm.activeSection.value,
   (section) => {
+    if (section === 'metadata-catalogs' && mc.catalogs.value.length === 0) {
+      void mc.loadCatalogs();
+    }
+    if (section === 'terminals') {
+      // 空间目录四个对象都用同一套 overlay 渲染器；切到该板块时一次装齐
+      // 字段定义 + 依赖码表，并预载全量机位（object_ref 候选）。
+      void Promise.all([
+        fo.load('Stand'),
+        fo.load('Terminal'),
+        fo.load('Gate'),
+        fo.load('BaggageCarousel'),
+      ]).then(() => {
+        const codes = new Set(
+          fo.fields.value
+            .filter((item) => ['Stand', 'Terminal', 'Gate', 'BaggageCarousel'].includes(item.object_name) && item.catalog_code)
+            .map((item) => item.catalog_code as string),
+        );
+        codes.forEach((code) => void fo.loadCatalog(code));
+      });
+      if (td.allStands.value.length === 0) void td.fetchAllStands();
+    }
     if (section === 'terminals' && td.terminals.value.length === 0) {
       void td.fetchTerminals();
     }
@@ -359,6 +446,15 @@ async function onDeactivateStand(s: Stand) {
           >
             <span class="nav-item-icon"><SvgIcon src="/frontend/icons/storage.svg" /></span>
             <span>空间目录</span>
+          </button>
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ active: rm.activeSection.value === 'metadata-catalogs' }"
+            @click="rm.switchSection('metadata-catalogs')"
+          >
+            <span class="nav-item-icon"><SvgIcon src="/frontend/icons/detail.svg" /></span>
+            <span>码表</span>
           </button>
         </div>
         <div class="nav-section">
@@ -874,12 +970,39 @@ async function onDeactivateStand(s: Stand) {
         :editing="editingDepartment"
         :form="rm.departmentForm.value"
         :manager-options="departmentManagerOptions"
+        :field-overlays="departmentFieldOverlays"
+        :field-catalog-entries="fo.catalogEntries.value"
+        :field-reference-entries="fieldReferenceEntries"
         @update:search="rm.departmentSearch.value = $event"
         @update:form="rm.departmentForm.value = $event"
         @open="rm.openDepartmentModal($event)"
         @close="rm.closeModal()"
         @save="onSaveDepartment"
         @toggle-active="onToggleDepartmentActive"
+      />
+
+      <MetadataCatalogsSection
+        :active="rm.activeSection.value === 'metadata-catalogs'"
+        :can-manage="canManageDispatch"
+        :catalogs="mc.catalogs.value"
+        :selected-code="mc.selectedCode.value"
+        :entries="mc.filteredEntries.value"
+        :search="mc.search.value"
+        :loading="mc.loading.value"
+        :saving="mc.saving.value"
+        :modal="mc.modal.value"
+        :catalog-form="mc.catalogForm.value"
+        :entry-form="mc.entryForm.value"
+        @update:selected-code="onSelectMetadataCatalog"
+        @update:search="mc.search.value = $event"
+        @update:catalog-form="mc.catalogForm.value = $event"
+        @update:entry-form="mc.entryForm.value = $event"
+        @open-catalog="mc.openCatalogModal($event)"
+        @open-entry="mc.openEntryModal($event)"
+        @close="mc.closeModal()"
+        @save="mc.saveCurrentModal()"
+        @toggle-catalog="onToggleMetadataCatalog"
+        @toggle-entry="onToggleMetadataEntry"
       />
 
       <!-- ========== Qualification Catalog Section ========== -->
@@ -896,6 +1019,9 @@ async function onDeactivateStand(s: Stand) {
         :level-form="qc.levelForm.value"
         :department-options="qualificationDepartmentOptions"
         :levels-for="qc.levelsFor"
+        :field-overlays="qualificationFieldOverlays"
+        :field-catalog-entries="fo.catalogEntries.value"
+        :field-reference-entries="fieldReferenceEntries"
         @update:selected-department-id="onSelectQualificationDepartment"
         @update:search="qc.search.value = $event"
         @update:form="qc.form.value = $event"
@@ -925,6 +1051,12 @@ async function onDeactivateStand(s: Stand) {
         :gate-form="td.gateForm.value"
         :carousel-form="td.carouselForm.value"
         :stand-form="td.standForm.value"
+        :terminal-field-overlays="terminalFieldOverlays"
+        :gate-field-overlays="gateFieldOverlays"
+        :carousel-field-overlays="carouselFieldOverlays"
+        :stand-field-overlays="standFieldOverlays"
+        :field-catalog-entries="fo.catalogEntries.value"
+        :field-reference-entries="fieldReferenceEntries"
         @update:terminal-search="td.terminalSearch.value = $event"
         @update:attach-stand-id="td.attachStandId.value = $event"
         @update:terminal-form="td.terminalForm.value = $event"
@@ -1001,6 +1133,13 @@ async function onDeactivateStand(s: Stand) {
           min-width="100%"
         />
       </div>
+      <FieldOverlayForm
+        :model-value="rm.teamForm.value.attributes ?? {}"
+        :overlays="teamFieldOverlays"
+        :catalog-entries="fo.catalogEntries.value"
+        :reference-entries="fieldReferenceEntries"
+        @update:model-value="rm.teamForm.value = { ...rm.teamForm.value, attributes: $event }"
+      />
       <template #footer>
         <UiButton size="md" @click="rm.closeModal()">
           取消
@@ -1077,6 +1216,13 @@ async function onDeactivateStand(s: Stand) {
         <label for="e-next">下次保养</label>
         <input id="e-next" v-model="rm.equipmentForm.value.next_maintenance_date" type="date">
       </div>
+      <FieldOverlayForm
+        :model-value="rm.equipmentForm.value.attributes ?? {}"
+        :overlays="equipmentFieldOverlays"
+        :catalog-entries="fo.catalogEntries.value"
+        :reference-entries="fieldReferenceEntries"
+        @update:model-value="rm.equipmentForm.value = { ...rm.equipmentForm.value, attributes: $event }"
+      />
       <template #footer>
         <UiButton size="md" @click="rm.closeModal()">
           取消
@@ -1097,6 +1243,9 @@ async function onDeactivateStand(s: Stand) {
       :editing="editingEquipmentType"
       :form="rm.equipmentTypeForm.value"
       :saving="rm.saving.value"
+      :field-overlays="fo.forObject('EquipmentType').value"
+      :field-catalog-entries="fo.catalogEntries.value"
+      :field-reference-entries="fieldReferenceEntries"
       @close="rm.closeModal()"
       @save="rm.saveCurrentModal()"
       @update:form="rm.equipmentTypeForm.value = $event"

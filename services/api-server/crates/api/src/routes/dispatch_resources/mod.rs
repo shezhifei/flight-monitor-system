@@ -10,10 +10,13 @@ use crate::middleware::jwt::JwtAuth;
 use fms_application::services::auth_service::AuthService;
 
 pub mod alerts;
+pub mod metadata_catalogs;
+pub mod field_overlays;
 pub mod analytics;
 pub mod departments;
 pub mod equipment;
 pub mod orders;
+pub mod personnel;
 pub mod rules;
 pub mod schedule;
 pub mod stands;
@@ -218,6 +221,46 @@ pub fn configure_dispatch_direct_routes(cfg: &mut web::ServiceConfig) {
             "/api/v2/dispatch/equipment-types/{equipment_type_id}",
             web::delete().to(equipment::delete_equipment_type),
         )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs",
+            web::get().to(metadata_catalogs::list_catalogs),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs",
+            web::post().to(metadata_catalogs::create_catalog),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}",
+            web::get().to(metadata_catalogs::get_catalog),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}",
+            web::patch().to(metadata_catalogs::update_catalog),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}/deactivate",
+            web::post().to(metadata_catalogs::deactivate_catalog),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}/activate",
+            web::post().to(metadata_catalogs::activate_catalog),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}/entries",
+            web::post().to(metadata_catalogs::create_entry),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}/entries/{entry_code}",
+            web::patch().to(metadata_catalogs::update_entry),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}/entries/{entry_code}/deactivate",
+            web::post().to(metadata_catalogs::deactivate_entry),
+        )
+        .route(
+            "/api/v2/dispatch/metadata-catalogs/{catalog_code}/entries/{entry_code}/activate",
+            web::post().to(metadata_catalogs::activate_entry),
+        )
         .route("/api/v2/dispatch/equipment", web::get().to(equipment::list_equipment))
         .route(
             "/api/v2/dispatch/equipment/{equipment_id}",
@@ -356,6 +399,11 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 "/teams/{team_id}/members/{user_id}",
                 web::delete().to(teams::remove_team_member),
             )
+            .route("/personnel/{user_id}", web::get().to(personnel::get_runtime))
+            .route(
+                "/personnel/{user_id}/attributes",
+                web::patch().to(personnel::update_attributes),
+            )
             .route("/equipment-types", web::get().to(equipment::list_equipment_types))
             .route("/equipment-types", web::post().to(equipment::create_equipment_type))
             .route(
@@ -365,6 +413,50 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route(
                 "/equipment-types/{equipment_type_id}",
                 web::delete().to(equipment::delete_equipment_type),
+            )
+            .route("/metadata-catalogs", web::get().to(metadata_catalogs::list_catalogs))
+            .route("/metadata-catalogs", web::post().to(metadata_catalogs::create_catalog))
+            .route(
+                "/metadata-catalogs/{catalog_code}",
+                web::get().to(metadata_catalogs::get_catalog),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}",
+                web::patch().to(metadata_catalogs::update_catalog),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}/deactivate",
+                web::post().to(metadata_catalogs::deactivate_catalog),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}/activate",
+                web::post().to(metadata_catalogs::activate_catalog),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}/entries",
+                web::post().to(metadata_catalogs::create_entry),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}/entries/{entry_code}",
+                web::patch().to(metadata_catalogs::update_entry),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}/entries/{entry_code}/deactivate",
+                web::post().to(metadata_catalogs::deactivate_entry),
+            )
+            .route(
+                "/metadata-catalogs/{catalog_code}/entries/{entry_code}/activate",
+                web::post().to(metadata_catalogs::activate_entry),
+            )
+            .route("/ontology-field-overlays", web::get().to(field_overlays::list))
+            .route("/ontology-field-overlays", web::put().to(field_overlays::save))
+            .route(
+                "/ontology-field-overlays/{object_name}/{field_name}/deactivate",
+                web::post().to(field_overlays::deactivate),
+            )
+            .route(
+                "/ontology-field-overlays/{object_name}/{field_name}/activate",
+                web::post().to(field_overlays::activate),
             )
             .route("/equipment", web::get().to(equipment::list_equipment))
             .route("/equipment/{equipment_id}", web::get().to(equipment::get_equipment))

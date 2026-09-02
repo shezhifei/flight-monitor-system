@@ -1,5 +1,7 @@
 //! 派工协作 / 聊天查询与写入仓储接口。
 
+use std::collections::HashMap;
+
 use crate::error::DomainError;
 use crate::models::dispatch_collaboration::{
     DispatchChatDispatcherCandidate, DispatchChatGroupList, DispatchChatGroupSummary, DispatchChatMember,
@@ -169,4 +171,20 @@ pub trait DispatchCollaborationRepository {
     async fn summarize_receipts_for_flight(&self, flight_id: &str) -> Result<NotificationReceiptSummary, DomainError>;
 
     async fn summarize_receipts_for_order(&self, order_id: &str) -> Result<NotificationReceiptSummary, DomainError>;
+
+    /// Batch receipt summaries for a page of orders. Default loops the single-order
+    /// query so test fakes keep compiling; production Postgres overrides this.
+    async fn summarize_receipts_for_orders(
+        &self,
+        order_ids: &[String],
+    ) -> Result<HashMap<String, NotificationReceiptSummary>, DomainError> {
+        let mut summaries = HashMap::with_capacity(order_ids.len());
+        for order_id in order_ids {
+            if order_id.trim().is_empty() {
+                continue;
+            }
+            summaries.insert(order_id.clone(), self.summarize_receipts_for_order(order_id).await?);
+        }
+        Ok(summaries)
+    }
 }
