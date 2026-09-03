@@ -21,7 +21,7 @@ async fn main() -> io::Result<()> {
     #[cfg(feature = "rocketmq-backend")]
     let transport = RocketMqTransport::from_env()
         .await
-        .map_err(|error| io::Error::new(io::ErrorKind::Other, error.to_string()))?;
+        .map_err(|error| io::Error::other(error.to_string()))?;
 
     #[cfg(not(feature = "rocketmq-backend"))]
     let transport = {

@@ -180,7 +180,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
@@ -279,7 +279,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
