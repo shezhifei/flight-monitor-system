@@ -58,11 +58,10 @@ mod tests {
     use serde::Deserialize;
     use serde_json::json;
     use std::fs;
-    use std::path::{Path, PathBuf};
     use std::process::Command;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::middleware::jwt::JwtSecret;
+    use crate::test_support::{repository_root, temp_json_path, workspace_python_executable};
 
     #[derive(Debug, Deserialize)]
     struct PythonRouteManifestEntry {
@@ -579,12 +578,12 @@ mod tests {
 
     fn load_python_canonical_manifest() -> Vec<PythonRouteManifestEntry> {
         let repo_root = repository_root();
-        let python_exe = repo_root.join(".venv").join("Scripts").join("python.exe");
+        let python_exe = workspace_python_executable();
         let script = repo_root
             .join("scripts")
             .join("tools")
             .join("export_python_canonical_route_manifest.py");
-        let output_path = temp_manifest_path();
+        let output_path = temp_json_path("python-route-manifest");
 
         let output = Command::new(&python_exe)
             .arg(&script)
@@ -626,23 +625,5 @@ mod tests {
         }
 
         result
-    }
-
-    fn repository_root() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .and_then(Path::parent)
-            .and_then(Path::parent)
-            .expect("repository root")
-            .to_path_buf()
-    }
-
-    fn temp_manifest_path() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time")
-            .as_nanos();
-        std::env::temp_dir().join(format!("python-route-manifest-{unique}.json"))
     }
 }

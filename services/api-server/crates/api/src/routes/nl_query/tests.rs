@@ -6,7 +6,7 @@ use crate::services::ai_runtime_client::AiRuntimeClient;
 use crate::test_support::{
     load_contract_field_manifest, load_shared_runtime_contract_fixture, repository_root, seed_ai_runtime_test_flights,
     start_fake_sidecar, start_fake_sidecar_delayed_sse, start_fake_sidecar_sse,
-    start_fake_sidecar_sse_for_stream_with_tools, start_fake_sidecar_sse_with_status,
+    start_fake_sidecar_sse_for_stream_with_tools, start_fake_sidecar_sse_with_status, workspace_python_executable,
 };
 use actix_web::{http::StatusCode, test, App};
 use fms_application::services::ai_action_proposal_service::AiActionProposalService;
@@ -2654,7 +2654,7 @@ async fn test_live_sidecar_smoke_ai_runtime_contract() {
         .port();
 
     let repo_root = repository_root();
-    let python_exe = repo_root.join(".venv").join("Scripts").join("python.exe");
+    let python_exe = workspace_python_executable();
     let entrypoint = repo_root.join("scripts").join("host").join("ai_sidecar_entrypoint.py");
 
     let mut child = Command::new(&python_exe)

@@ -9,6 +9,7 @@ ARG DEBIAN_MIRROR=deb.debian.org
 RUN sed -i "s/deb.debian.org/${DEBIAN_MIRROR}/g" /etc/apt/sources.list.d/debian.sources && \
     apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
+        curl \
         make \
         perl \
         pkg-config \
@@ -39,7 +40,7 @@ RUN mkdir -p crates/domain/src && echo "" > crates/domain/src/lib.rs \
     && mkdir -p crates/api/src && echo "" > crates/api/src/lib.rs \
     && mkdir -p crates/runtime/src && echo "" > crates/runtime/src/lib.rs \
     && mkdir -p crates/server/src && echo 'fn main() {}' > crates/server/src/main.rs \
-    && mkdir -p benches/src && echo "" > benches/src/lib.rs \
+    && mkdir -p benches/src \
     && echo 'fn main() {}' > benches/src/repository_benchmarks.rs \
     && echo 'fn main() {}' > benches/src/parsing_benchmarks.rs \
     && echo 'fn main() {}' > benches/src/simd_json_benchmarks.rs
@@ -51,7 +52,7 @@ COPY services/api-server/crates crates/
 COPY services/api-server/benches benches/
 
 # 触发重编译
-RUN touch crates/*/src/lib.rs crates/server/src/main.rs benches/src/lib.rs
+RUN touch crates/*/src/lib.rs crates/server/src/main.rs
 RUN cargo build --release
 
 # Stage 2: 运行（须与 rust:1-slim 构建阶段的 glibc 主版本一致；bookworm 过旧会报 GLIBC_2.38）

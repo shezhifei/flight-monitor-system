@@ -979,9 +979,8 @@ pub struct BrokerConfig {
 impl Default for BrokerConfig {
     fn default() -> Self {
         let broker_identity = BrokerIdentity::new();
-        let local_ip = local_ip_address::local_ip().unwrap();
-        let broker_ip1 = local_ip.to_string().into();
-        let broker_ip2 = Some(local_ip.to_string().into());
+        let broker_ip1 = defaults::broker_ip1();
+        let broker_ip2 = defaults::broker_ip2();
         let listen_port = 10911;
 
         BrokerConfig {

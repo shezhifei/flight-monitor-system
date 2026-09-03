@@ -114,7 +114,10 @@ def test_compose_validation_supplies_required_interpolation_environment():
 
     assert "FMS_RUNTIME_ENV_FILE: /dev/null" in compose_job
     assert "VAULT_RENDERED_ENV_FILE: /dev/null" in compose_job
-    assert "DB_REPLICATION_PASSWORD: rep_ci_password" in compose_job
+    assert (
+        "DB_REPLICATION_PASSWORD: ci_explicit_replication_password_not_for_prod"
+        in compose_job
+    )
 
 
 def test_integration_compose_binds_loopback_and_requires_passwords():

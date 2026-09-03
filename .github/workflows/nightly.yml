@@ -62,7 +62,7 @@ jobs:
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=postgres
           POSTGRES_DB=flight_monitor_dev
-          DB_REPLICATION_PASSWORD=rep_ci_password
+          DB_REPLICATION_PASSWORD=ci_explicit_replication_password_not_for_prod
           REDIS_PASSWORD=redis_ci_password
           TRUSTED_PROXY_CIDRS=127.0.0.1/32
           EOF
@@ -74,7 +74,7 @@ jobs:
           DB_PASSWORD: ci_explicit_db_password_not_for_prod
           TRUSTED_PROXY_CIDRS: 127.0.0.1/32
           DB_NAME: flight_monitor_dev
-          DB_REPLICATION_PASSWORD: rep_ci_password
+          DB_REPLICATION_PASSWORD: ci_explicit_replication_password_not_for_prod
           REDIS_PASSWORD: redis_ci_password
           FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
           VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
@@ -139,7 +139,7 @@ jobs:
           DB_PASSWORD: ci_explicit_db_password_not_for_prod
           TRUSTED_PROXY_CIDRS: 127.0.0.1/32
           DB_NAME: flight_monitor_dev
-          DB_REPLICATION_PASSWORD: rep_ci_password
+          DB_REPLICATION_PASSWORD: ci_explicit_replication_password_not_for_prod
           REDIS_PASSWORD: redis_ci_password
           FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
           VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
@@ -162,7 +162,7 @@ jobs:
           POSTGRES_USER=postgres
           POSTGRES_PASSWORD=postgres
           POSTGRES_DB=flight_monitor_dev
-          DB_REPLICATION_PASSWORD=rep_ci_password
+          DB_REPLICATION_PASSWORD=ci_explicit_replication_password_not_for_prod
           REDIS_PASSWORD=redis_ci_password
           TRUSTED_PROXY_CIDRS=127.0.0.1/32
           EOF
@@ -174,7 +174,7 @@ jobs:
           DB_PASSWORD: ci_explicit_db_password_not_for_prod
           TRUSTED_PROXY_CIDRS: 127.0.0.1/32
           DB_NAME: flight_monitor_dev
-          DB_REPLICATION_PASSWORD: rep_ci_password
+          DB_REPLICATION_PASSWORD: ci_explicit_replication_password_not_for_prod
           REDIS_PASSWORD: redis_ci_password
           FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
           VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
@@ -207,7 +207,7 @@ jobs:
           DB_PASSWORD: ci_explicit_db_password_not_for_prod
           TRUSTED_PROXY_CIDRS: 127.0.0.1/32
           DB_NAME: flight_monitor_dev
-          DB_REPLICATION_PASSWORD: rep_ci_password
+          DB_REPLICATION_PASSWORD: ci_explicit_replication_password_not_for_prod
           REDIS_PASSWORD: redis_ci_password
           FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env
           VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env

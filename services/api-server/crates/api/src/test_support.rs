@@ -41,7 +41,24 @@ pub(crate) fn repository_root() -> PathBuf {
 }
 
 pub(crate) fn workspace_python_executable() -> PathBuf {
-    repository_root().join(".venv").join("Scripts").join("python.exe")
+    if let Some(configured) = std::env::var_os("FMS_TEST_PYTHON") {
+        return PathBuf::from(configured);
+    }
+
+    let repo_root = repository_root();
+    let workspace_python = if cfg!(windows) {
+        repo_root.join(".venv").join("Scripts").join("python.exe")
+    } else {
+        repo_root.join(".venv").join("bin").join("python")
+    };
+
+    if workspace_python.is_file() {
+        workspace_python
+    } else if cfg!(windows) {
+        PathBuf::from("python")
+    } else {
+        PathBuf::from("python3")
+    }
 }
 
 pub(crate) fn temp_json_path(prefix: &str) -> PathBuf {
