@@ -761,7 +761,7 @@ async function refreshToken(options: { refreshSSE?: boolean } = {}): Promise<boo
 
   refreshPromise = (async () => {
     try {
-      const response = await globalThis.fetch(`${apiBase.value}/auth/refresh`, {
+      const response = await window.fetch(`${apiBase.value}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -1297,7 +1297,7 @@ async function performAuthenticatedFetch(
     headers: mergeHeaders(unsignedRequest.headers, antiReplayHeaders),
   });
 
-  const response = await globalThis.fetch(signedRequest);
+  const response = await window.fetch(signedRequest);
   // Login/register intentionally return 401 for bad credentials; do not treat as
   // session expiry or force a full logout redirect mid-form submission.
   const isCredentialChallenge = /\/api\/v2\/auth\/(login|register)(?:\?|$)/.test(urlObj.pathname);
@@ -1316,7 +1316,7 @@ async function performAuthenticatedFetch(
   const retryRequest = new Request(retryUnsignedRequest, {
     headers: mergeHeaders(retryUnsignedRequest.headers, retryAntiReplayHeaders),
   });
-  const retryResponse = await globalThis.fetch(retryRequest);
+  const retryResponse = await window.fetch(retryRequest);
 
   if (retryResponse.status === 401) {
     await logout();
