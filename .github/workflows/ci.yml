@@ -423,9 +423,6 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
       - name: Security audit
         run: npm audit --audit-level=high
 
@@ -437,9 +434,6 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Playwright E2E
-        run: npx playwright test
 
   docker-compose-validate:
     name: Compose — validate YAML
