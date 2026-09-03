@@ -1,27 +1,26 @@
 """asyncpg 原生 AI 配置存储。
 
 提供一个轻量、无第三方查询构建器依赖的 ``AIConfigStoreInterface`` 实现，直接使用
-``asyncpg`` 连接池读写 ``ai_entities`` 表（``config`` JSONB + ``config_revision``）。
+``asyncpg`` 连接池读取 ``ai_entities`` 表（``config`` JSONB + ``config_revision``）。
 
 设计要点：
 
 * **只读 / 写入策略来源**：``ai_entities.config`` 是实体策略的事实来源；本存储不触碰
   独立资产表（MCP server / skill registry / model catalog / cache metrics），那些由
-  各自的 repo 负责。
-* **加密边界**：API Key 通过 :class:`ConfigEncryptor` 加解密，明文绝不落库；解密结果
-  绝不携带 ``_key_*`` 内部元字段。
+  各自的 repo 负责。写路径（含默认与 pilot 实体播种）由 Rust api-server 统一持有
+  （ADR-0004），本存储不写 ``ai_entities``。
+* **加密边界**：API Key 通过 :class:`ConfigEncryptor` 解密；解密结果
+  绝不携带 ``_key_*`` 内部元字段。Rust 写入的 ``fernet_v1`` 密文与本组件格式一致。
 * **revision 语义**：``get`` 会把 ``config_revision`` 注入 ``config['_config_revision']``，
-  供 ``CapabilityResolver`` 生成每轮快照缓存键；``update`` 会自增 ``config_revision``，
-  使下游缓存自然失效。
-* **schema 归属**：表结构由 ``migrations/*.sql`` 负责，本存储不执行任何 DDL；仅在首次
-  访问时尽力（best-effort）幂等播种默认实体（``INSERT ... ON CONFLICT DO NOTHING``）。
+  供 ``CapabilityResolver`` 生成每轮快照缓存键。
+* **schema 归属**：表结构与种子数据均由 Rust 侧 / ``migrations/*.sql`` 负责，本存储
+  不执行任何 DDL 或写入。
 * **JSONB 解码**：asyncpg 默认把 JSONB 以字符串返回，统一用 ``json.loads`` 兼容
   dict / str 两种情况。
 """
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any
 
@@ -31,10 +30,7 @@ from src.infrastructure.logging.core import get_logger
 from .config.ai_config_crypto import ConfigEncryptor, get_config_encryptor
 from .config.cache_mixin import ConfigCacheMixin
 from .config.config_normalizer import normalize_config
-from .config_store import (
-    AIConfigStoreInterface,
-    build_seed_entity_configs,
-)
+from .config_store import AIConfigStoreInterface
 
 logger = get_logger(__name__)
 
@@ -70,58 +66,22 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         pool: Any,
         *,
         encryptor: ConfigEncryptor | None = None,
-        seed_on_start: bool = True,
     ) -> None:
         """初始化 asyncpg 配置存储。
 
         Args:
             pool: asyncpg 连接池（需支持 ``async with pool.acquire() as conn``）。
             encryptor: 可选的注入式加密器；缺省使用进程级共享实例。
-            seed_on_start: 是否在首次访问时幂等播种默认实体。
         """
         self._pool = pool
         self._encryptor = encryptor or get_config_encryptor()
-        self._seed_on_start = seed_on_start
-        self._seeded = False
         self._init_cache()
-        self._lock = asyncio.Lock()
         logger.info("AsyncpgAIConfigStore initialized")
-
-    # ------------------------------------------------------------------
-    # Seeding (best-effort, idempotent, no DDL)
-    # ------------------------------------------------------------------
-    async def _ensure_seeded(self) -> None:
-        if self._seeded or not self._seed_on_start:
-            self._seeded = True
-            return
-        async with self._lock:
-            if self._seeded:
-                return
-            try:
-                async with self._pool.acquire() as conn:
-                    for entity_id, seed_config in build_seed_entity_configs().items():
-                        encrypted = self._encryptor.encrypt_config(seed_config)
-                        await conn.execute(
-                            """
-                            INSERT INTO ai_entities (id, config)
-                            VALUES ($1, $2::jsonb)
-                            ON CONFLICT (id) DO NOTHING
-                            """,
-                            entity_id,
-                            json.dumps(encrypted),
-                        )
-            except POSTGRES_EXCEPTIONS as exc:  # pragma: no cover - depends on live DB
-                # Seeding is best-effort; schema is owned by migrations. A failure here
-                # (e.g. table absent in a half-migrated DB) must not break reads.
-                logger.warning("AsyncpgAIConfigStore seed skipped: %s", exc)
-            finally:
-                self._seeded = True
 
     # ------------------------------------------------------------------
     # AIConfigStoreInterface
     # ------------------------------------------------------------------
     async def get_all(self) -> dict[str, dict[str, Any]]:
-        await self._ensure_seeded()
         try:
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch("SELECT id, config, config_revision FROM ai_entities WHERE deleted_at IS NULL")
@@ -137,8 +97,6 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         return result
 
     async def get(self, entity_id: str) -> dict[str, Any] | None:
-        await self._ensure_seeded()
-
         if self._cache_valid(entity_id):
             return self._get_cached(entity_id)
 

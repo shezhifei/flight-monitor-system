@@ -82,6 +82,9 @@ rand = "0.8"
 lru = "0.12"
 sha2 = "0.10"
 hmac = "0.12"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+base64 = "0.22"
 hex = "0.4"
 ts-rs = { version = "9", features = ["chrono"] }
 async-trait = "0.1"

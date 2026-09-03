@@ -92,7 +92,7 @@ class TestAsyncpgConfigStore:
 
         # JSONB returned as a string (asyncpg default) with a non-trivial revision.
         row = {"config": json.dumps({"default_model": "gpt-4o"}), "config_revision": 7}
-        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)), seed_on_start=False)
+        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)))
 
         result = _run(store.get("default"))
         assert result is not None
@@ -104,7 +104,7 @@ class TestAsyncpgConfigStore:
         from src.infrastructure.ai.asyncpg_config_store import AsyncpgAIConfigStore
 
         row = {"config": {"default_model": "gpt-4o-mini"}, "config_revision": 1}
-        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)), seed_on_start=False)
+        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)))
         result = _run(store.get("default"))
         assert result["model_routing"]["default"] == "gpt-4o-mini"
         assert "default_model" not in result
@@ -112,7 +112,7 @@ class TestAsyncpgConfigStore:
     def test_get_missing_entity_returns_none(self):
         from src.infrastructure.ai.asyncpg_config_store import AsyncpgAIConfigStore
 
-        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=None)), seed_on_start=False)
+        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=None)))
         assert _run(store.get("missing")) is None
 
     def test_get_decrypts_base64_api_key(self):
@@ -125,7 +125,7 @@ class TestAsyncpgConfigStore:
             "_key_encoded": True,
         }
         row = {"config": json.dumps(stored), "config_revision": 2}
-        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)), seed_on_start=False)
+        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetchrow_result=row)))
         result = _run(store.get("default"))
         assert result["providers"]["default"]["api_key"] == "sk-secret"
         assert "api_key" not in result
@@ -138,7 +138,7 @@ class TestAsyncpgConfigStore:
             {"id": "default", "config": json.dumps({"a": 1}), "config_revision": 1},
             {"id": "pilot", "config": {"b": 2}, "config_revision": 5},
         ]
-        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetch_result=rows)), seed_on_start=False)
+        store = AsyncpgAIConfigStore(FakePool(FakeConn(fetch_result=rows)))
         result = _run(store.get_all())
         assert set(result.keys()) == {"default", "pilot"}
         assert result["pilot"]["_config_revision"] == 5

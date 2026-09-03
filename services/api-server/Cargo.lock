@@ -2089,11 +2089,14 @@ dependencies = [
 name = "fms-infrastructure"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "bb8",
  "bb8-redis",
  "bcrypt",
+ "cbc",
  "chrono",
  "config 0.14.1",
  "dashmap",
@@ -2102,6 +2105,7 @@ dependencies = [
  "fms-domain",
  "fms-runtime",
  "hex",
+ "hmac",
  "jsonwebtoken",
  "metrics 0.24.6",
  "parking_lot",

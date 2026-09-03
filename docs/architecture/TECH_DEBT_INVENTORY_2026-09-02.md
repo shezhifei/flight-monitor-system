@@ -144,6 +144,14 @@
 > - 验证：`py_compile` 3 文件通过；pytest 子集全绿（92 通过，删除 2 例死方法用例后复跑全绿）；
 >   grep 全 src 确认 `ai_entities` 仅剩种子写入。
 > - **遗留**：Rust 侧补 pilot 实体播种后，可再移除 Python 种子，达成完全单写者（后续项，不阻塞）。
+>
+> **✅ 遗留收口（2026-09-03 处置五批，含扩展-17）**：Rust 新增 `infrastructure/src/security/ai_config_crypto.rs`，
+> 逐字节复刻 Python ConfigEncryptor 的 Fernet v1 语义（直接 key / sha256 派生 key、insecure-dev base64 回退、
+> 解密失败置空串告警），并以 Python cryptography 48.0.0 真实密文向量做跨语言双向验证；`save` 写入前加密、
+> `row_to_record` 读出即解密（上层仍只见明文），含 api_key 且无密钥时 fail-closed 报错；`ensure_schema` 补
+> `todo_graph_pilot` 幂等播种后，Python 侧 `_ensure_seeded`/`build_seed_entity_configs` 等播种代码全部删除——
+> **`ai_entities` 达成完全单写者且加密策略统一**。存量明文行按 passthrough 兼容，下次 save 自动升级为加密。
+> 遗留跟进：Rust `save` 不自增 `config_revision` 列（本批次前已存在，影响 Python 侧快照缓存失效粒度）。
 
 ### D-32 ✅ 本地残留真实凭据（未入库，但一行命令可还原）
 
@@ -156,6 +164,7 @@
   若这些 key 在重建前后未轮换，**旧凭据仍然有效**。
 - **建议**：① 立即轮换该 key 及 `dev_root_ca.key` 签发的证书；② 将该 key 视为已泄露；
   ③ 把 `*.bak`、`data/` 下的敏感文件纳入 gitignore 白名单之外。
+- **🛠 部分处置（2026-09-03 五批，用户批准）**：`data/ai_config.bak` 已从本地删除，泄露面收敛；**key 与 dev CA 轮换仍须用户在服务商/CA 侧执行（代码库外动作）**。
 
 ### D-33 ⚠ 仓库体积负债（**原报告数据需修正**）
 
@@ -474,8 +483,8 @@
 
 | ID | 项 | 证据 |
 |---|---|---|
-| D-16 | `legacy-backend/` **22.9 万行 Python 冻结但未删除**（940 个 .py） | `.gitignore:144` 已忽略，`git ls-files` 返回 0；但仍占本地工作区，任何全局 grep / 重构都会撞到它，造成本地与 CI 的认知不一致 |
-| D-17 | `legacy/android-kotlin/` 65 个 Kotlin 文件已标注 archived，但无删除排期 | 包名 `com.flightmonitor.mobile`，含 AuthApi/DispatchApi/BusinessCaseApi 等，与 `mobile/flutter-app/` 对应 feature 模块重复。README 已标 "archived, read-only reference"，但仍占用仓库空间 |
+| D-16 | `legacy-backend/` **22.9 万行 Python 冻结但未删除**（940 个 .py） | `.gitignore:144` 已忽略，`git ls-files` 返回 0；但仍占本地工作区，任何全局 grep / 重构都会撞到它，造成本地与 CI 的认知不一致 | **🛠 已处置（2026-09-03 五批，用户批准）**：本地未跟踪目录已整体删除，工作区 grep 污染消除 |
+| D-17 | `legacy/android-kotlin/` 65 个 Kotlin 文件已标注 archived，但无删除排期 | 包名 `com.flightmonitor.mobile`，含 AuthApi/DispatchApi/BusinessCaseApi 等，与 `mobile/flutter-app/` 对应 feature 模块重复。README 已标 "archived, read-only reference"，但仍占用仓库空间 | **🛠 已处置（2026-09-03 五批，用户批准）**：`git rm` 移除 65 个入库文件并清除 11 个未跟踪残留；`test_deploy_security_guardrails.py` 的 4 个 Kotlin 守门替换为 `test_archived_android_kotlin_client_stays_gone` 防复活；`mobile-core/src/dto/mod.rs` 注释的真源引用改指后端 schemas |
 | D-18 | 文档 199 个 md 仅 50 个被跟踪；同主题多版本并存 | 性能报告 **7 份**；迁移文档 **5 份**；审计报告 **2 份**（06-14 / 06-21）。`docs/*.md`、`docs/plans/*`、`docs/operations/*` 为白名单制 |
 | D-19 | 3 个 PNG（1.07MB）已入库且存在于历史 | 提交 `d26e3a3` 引入；`.gitignore` 无 `*.png` 规则 |
 | D-20 | `certs/` 防护脆弱 | 仅 `.gitignore:151` `certs/*.key` 一条 glob 拦截，`.crt` 未拦、目录本身未 ignore；仓库内留有 CA 私钥 `dev_root_ca.key`。改名（如 `.key.pem`）即失效。**🛠 已修复（2026-09-02 处置批次）**：`.gitignore` 改为整目录 `certs/`（当时 `git ls-files certs/` 为空，无需取消跟踪），经 `git check-ignore -v` 验证 `.crt`/`.pem`/`.p12`/嵌套路径均命中。**CA 私钥轮换仍待运维执行（见 D-32）** |
@@ -690,7 +699,7 @@ grep -rhoP 'env::var\("\K[A-Z0-9_]+' services/api-server --include=*.rs | sort -
 | **D-03** | 85 个环境变量无文档 | 116 个 env key，仅 31 个在 .env.example | 配置错误 | P0 |
 | D-10 | deny.toml 路径不一致 | 可能未生效，供应链策略空转 | 依赖风险 | P1 |
 | D-20 | certs/ 防护脆弱 | 仅拦截 *.key，改名即失效 | CA 私钥泄露 | P1 |
-| 扩展-17 | AI 配置加密不一致 | Rust 写不加密（pg_ai_entity_config_repository.rs grep encrypt 零命中），Python 写才加密（ConfigEncryptor）。**更严重**：双写者加密策略不一致意味着跨写者读写会互相解不开 | 数据损坏 + 明文泄露 | P0 |
+| 扩展-17 | AI 配置加密不一致 | Rust 写不加密（pg_ai_entity_config_repository.rs grep encrypt 零命中），Python 写才加密（ConfigEncryptor）。**更严重**：双写者加密策略不一致意味着跨写者读写会互相解不开 | 数据损坏 + 明文泄露 | P0 **🛠 已修复（2026-09-03 五批）**：统一为 Fernet v1，Rust 写加密/读解密，跨语言向量双向验证 |
 | 扩展-18 | 配置形状收敛未完成 | tools vs tooling 模糊，未经浏览器验证 | 配置错误 | P2 |
 | 扩展-19 | 密钥轮转机制缺失 | 无过期策略、撤销流程、版本化 | 泄露后无法快速响应 | P2 |
 | 扩展-20 | 配置热更新边界不清晰 | 哪些需重启、哪些热生效未明确 | 运维误操作 | P2 |
