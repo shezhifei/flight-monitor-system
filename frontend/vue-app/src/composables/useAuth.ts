@@ -1147,13 +1147,40 @@ function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
   return merged;
 }
 
-async function sha256Hex(input: string | ArrayBuffer | Uint8Array): Promise<string> {
+function normalizeCryptoBytes(input: string | ArrayBuffer | Uint8Array): Uint8Array {
   const source = typeof input === 'string'
     ? new TextEncoder().encode(input)
     : input instanceof Uint8Array
       ? input
       : new Uint8Array(input);
-  const digestInput = source.slice().buffer;
+
+  // Vitest/jsdom and Node expose separate JS realms. Copying through the
+  // current realm avoids passing a foreign ArrayBuffer to WebCrypto.
+  const normalized = new Uint8Array(source.byteLength);
+  normalized.set(source);
+  return normalized;
+}
+
+function toCryptoInput(bytes: Uint8Array): ArrayBuffer {
+  // Node's WebCrypto validates BufferSource objects by realm. Buffer.from()
+  // creates a native Node buffer when available while remaining browser-safe.
+  const nodeBuffer = (globalThis as typeof globalThis & {
+    Buffer?: { from(value: Uint8Array): Uint8Array };
+  }).Buffer;
+  if (nodeBuffer?.from) {
+    // Keep the runtime Buffer (which Node WebCrypto accepts) while exposing a
+    // DOM-compatible type to TypeScript's stricter BufferSource definitions.
+    return nodeBuffer.from(bytes) as unknown as ArrayBuffer;
+  }
+
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer as ArrayBuffer;
+}
+
+async function sha256Hex(input: string | ArrayBuffer | Uint8Array): Promise<string> {
+  const source = normalizeCryptoBytes(input);
+  const digestInput = toCryptoInput(source);
   const subtle = globalThis.crypto?.subtle ?? window.crypto?.subtle;
   if (!subtle) {
     throw new Error('当前浏览器不支持 SHA-256 请求体摘要');
@@ -1229,9 +1256,11 @@ async function generateAntiReplayHeaders(
     const subtle = globalThis.crypto?.subtle ?? window.crypto?.subtle;
     if (subtle) {
       const encoder = new TextEncoder();
+      const secretBytes = normalizeCryptoBytes(encoder.encode(sessionSecret));
+      const payloadBytes = normalizeCryptoBytes(encoder.encode(payload));
       const cryptoKey = await subtle.importKey(
         'raw',
-        encoder.encode(sessionSecret),
+        toCryptoInput(secretBytes),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign'],
@@ -1240,7 +1269,7 @@ async function generateAntiReplayHeaders(
       const signatureBuffer = await subtle.sign(
         'HMAC',
         cryptoKey,
-        encoder.encode(payload),
+        toCryptoInput(payloadBytes),
       );
       
       const signatureHex = Array.from(new Uint8Array(signatureBuffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
