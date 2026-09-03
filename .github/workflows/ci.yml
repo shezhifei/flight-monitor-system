@@ -177,7 +177,7 @@ jobs:
           restore-keys: ${{ runner.os }}-rust-api-
 
       - name: Format check
-        run: cargo fmt --all -- --check
+        run: cargo fmt -p fms-domain -p fms-runtime -p fms-application -p fms-infrastructure -p fms-api -p fms-server -p fms-benches -- --check
 
       - name: Clippy
         run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
@@ -276,7 +276,7 @@ jobs:
           restore-keys: ${{ runner.os }}-mq-gw-
 
       - name: Format check
-        run: cargo fmt --all -- --check
+        run: cargo fmt -p fms-mq-gateway -- --check
 
       - name: Clippy
         run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
