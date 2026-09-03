@@ -1154,7 +1154,11 @@ async function sha256Hex(input: string | ArrayBuffer | Uint8Array): Promise<stri
       ? input
       : new Uint8Array(input);
   const digestInput = source.slice().buffer;
-  const digest = await window.crypto.subtle.digest('SHA-256', digestInput);
+  const subtle = globalThis.crypto?.subtle ?? window.crypto?.subtle;
+  if (!subtle) {
+    throw new Error('当前浏览器不支持 SHA-256 请求体摘要');
+  }
+  const digest = await subtle.digest('SHA-256', digestInput);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
@@ -1222,9 +1226,10 @@ async function generateAntiReplayHeaders(
   const payload = `${method.toUpperCase()}:${requestUri}:${timestamp}:${nonce}:${bodyHash}`;
   
   try {
-    if (window.crypto && window.crypto.subtle) {
+    const subtle = globalThis.crypto?.subtle ?? window.crypto?.subtle;
+    if (subtle) {
       const encoder = new TextEncoder();
-      const cryptoKey = await window.crypto.subtle.importKey(
+      const cryptoKey = await subtle.importKey(
         'raw',
         encoder.encode(sessionSecret),
         { name: 'HMAC', hash: 'SHA-256' },
@@ -1232,7 +1237,7 @@ async function generateAntiReplayHeaders(
         ['sign'],
       );
       
-      const signatureBuffer = await window.crypto.subtle.sign(
+      const signatureBuffer = await subtle.sign(
         'HMAC',
         cryptoKey,
         encoder.encode(payload),
