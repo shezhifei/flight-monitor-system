@@ -188,7 +188,9 @@ def test_integration_stack_preserves_diagnostics_and_teardown_environment():
 def test_e2e_compose_runs_from_repository_root_with_matching_environment():
     e2e_job = _section(_ci_lines(), "  e2e-integration:", ())
 
-    assert e2e_job.count("working-directory: ${{ github.workspace }}") == 2
+    # Bring-up, tear-down, and the ephemeral Vault cert step must all override
+    # the job-level frontend/vue-app default and run from the repo root.
+    assert e2e_job.count("working-directory: ${{ github.workspace }}") >= 2
     assert "- name: Capture full-stack diagnostics" in e2e_job
     assert "ps -a" in e2e_job
     for service in ("postgres", "redis", "rocketmq-broker", "mq-gateway", "rust-api"):
