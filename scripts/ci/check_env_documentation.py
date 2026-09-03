@@ -48,6 +48,8 @@ SKIP_DIR_NAMES = {"target", ".tmp", "node_modules", ".cargo", ".git", "dist"}
 # Keys that belong to the OS / toolchain rather than to this application.
 # They must not be pushed into .env.example.
 NON_APPLICATION_KEYS = {
+    # Test-only interpreter override used by Rust/Python parity exporters.
+    "FMS_TEST_PYTHON",
     "SystemRoot",
     "PATH",
     "HOME",
