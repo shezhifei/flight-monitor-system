@@ -9,6 +9,27 @@ use fms_infrastructure::observability::profiling_enabled;
 
 static CPU_PROFILE_LOCK: Mutex<()> = Mutex::new(());
 
+/// Serializes tests that collect real CPU profiles: the underlying sampler is
+/// process-wide and `collect_cpu_profile_blocking` rejects concurrent runs.
+#[cfg(all(test, unix))]
+pub(crate) static CPU_PROFILE_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+/// Burns CPU in a background thread so the profiler actually captures samples;
+/// a sleeping process collects none and the flamegraph would come back empty.
+#[cfg(all(test, unix))]
+pub(crate) fn burn_cpu_for(duration: Duration) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + duration;
+        let mut acc: u64 = 0;
+        while std::time::Instant::now() < deadline {
+            for value in 0..10_000u64 {
+                acc = acc.wrapping_mul(31).wrapping_add(value);
+            }
+        }
+        std::hint::black_box(acc);
+    })
+}
+
 pub struct CpuProfileArtifact {
     body: Vec<u8>,
     content_type: &'static str,
@@ -323,7 +344,10 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn collect_cpu_profile_returns_svg_not_a_placeholder() {
-        let artifact = super::collect_cpu_profile_blocking(Duration::ZERO).expect("profile");
+        let _serial = super::CPU_PROFILE_TEST_LOCK.lock().expect("cpu profile test lock");
+        let busy = super::burn_cpu_for(Duration::from_millis(400));
+        let artifact = super::collect_cpu_profile_blocking(Duration::from_millis(250)).expect("profile");
+        busy.join().expect("busy thread");
         let text = String::from_utf8_lossy(&artifact.body).to_ascii_lowercase();
         assert!(text.contains("<svg"), "expected flamegraph svg, got {text}");
         assert_eq!(artifact.content_type, "image/svg+xml");

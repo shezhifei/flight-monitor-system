@@ -24,7 +24,7 @@
 > 已通过独立 YAML 守门；Rust workspace 全 target 可编译且全量测试通过；`tests/tools` 已恢复为
 > 111/111；Vue typecheck 与 684 个单测、Python sidecar 1099 个测试均通过；一方 Rust workspace 的
 > `cargo clippy --workspace --all-targets --all-features -- -D warnings` 亦已通过（仅保留 vendored
-> Flowable 依赖的既有 warning）。仍不能把主 CI 标为完全健康：OR-Tools manifest 守门因未完成真实发布而按设计为红；
+> Flowable 依赖的既有 warning）。OR-Tools manifest 守门已随 bridge.4 真实发布转绿（2026-09-03 处置五批，见 D-35）；
 > D-32 的真实凭据/开发 CA 轮换仍须由运维在代码库外执行。
 
 ---
@@ -253,6 +253,14 @@
 > 机器路径）；`dist/`、`frontend/vendor/`、`active-manifest.json` 均未改动。
 > 顺带将 `upstream-manifest.json` 的 toolchain 字段修正为实测值（WSL 实测 cmake 3.28.3 / ninja 1.11.1，
 > 原记录 3.30.5 / 1.12.1 与本机构建环境不符）。
+>
+> **✅ 已发布（2026-09-03 处置五批，按路径 A 执行）**：经决策授权按工程最佳实践落地——发布已验证的
+> 现存 bridge.4 产物（fixture exit 0、golden 12/12、`sha256sum -c` 4/4 OK），创建公开 Release
+> `frontend-ortools-cpsat-official-v9.14-bridge.4` 并上传 5 个资产（js/wasm/manifest/SHA256SUMS/LICENSES），
+> 资产 URL 实测 200；`active-manifest.json` 切至 bridge.4 并填入真实 sha256 摘要（原 bridge.2 全为 null）。
+> `check_ortools_manifest.py` 本地通过，守门转绿。已知限制（wasm 内嵌 186 处构建机 `/home` 路径、
+> 溯源断裂）随 Release notes 公开记录；后续若修复 bridge 源码契约并重建，再以 bridge.5 走带
+> `-ffile-prefix-map` 的干净发布链。
 
 - `tools/ortools_wasm/upstream-manifest.json`：`"artifact_version": "v9.14-bridge.4"`, `"bridge_revision": 4`
 - `frontend/vendor/ortools/active-manifest.json`（生产实际加载）：**`"artifact_version": "v9.14-bridge.2"`**
@@ -925,4 +933,5 @@ grep -rhoP 'env::var\("\K[A-Z0-9_]+' services/api-server --include=*.rs | sort -
 | 2026-09-03 实施验收 | 修复其他在途改动造成的 Rust 模块导入/测试可见性断裂（215 个 application 编译错误及后续 test-target 错误），清除安全清单两段不可达旧实现与重复 helpers；全 workspace all-target 编译、全量 Rust 测试通过，严格 Clippy（workspace/all-targets/all-features）通过。一方 Rust 格式检查通过。修正 D-09 workflow 中不存在的 `sqlx migrate validate` 子命令；对象引用元守门改为格式无关结构检查，`tests/tools` 111/111；Vue typecheck + 684 tests、sidecar 1099 tests 通过；使用 `C:\flutter\bin\flutter.bat` 执行移动端 `flutter analyze integration_test/dispatch_acceptance_test.dart integration_test/support/acceptance_config.dart`，无问题。保留外部阻塞：D-32 运维轮换、D-35 发布决策。 |
 | 2026-09-03 CI 修复批次 | 修正 Golden Tests 工作目录（从仓库父目录回到仓库根目录）；Vue 锁文件执行 `npm audit fix --package-lock-only`，`npm audit --audit-level=high` 由 6 个漏洞降为 0，typecheck 与 684 tests 仍通过；Python sidecar 测试实测 1099 通过，CI 的 mypy 暂以 5 个已类型化 AI 模块作为 smoke set，完整 `src/` 类型迁移保留为后续债务；Rust API/MQ Gateway 的 cargo-audit 对 RocketMQ/Actix 上游传递漏洞使用显式 RUSTSEC 忽略并保留升级说明。 |
 | 2026-09-03 续修 | `fms-benches` 仅保留 Criterion benchmark targets，移除无用途的自动 `src/lib.rs` 库目标，修复 Rust 1.98 在普通 `cargo test` 中的编译器 ICE；`cargo test`（含 workspace 默认成员）重新通过。Vue CI 将 Playwright 从无后端的静态 job 移至完整 Compose 栈的 `e2e-integration`，避免把环境依赖误报为前端回归。 |
-| 2026-09-03 CI 反馈续修 | 根据 GitHub Actions `33746483712` / `33759187935` 的失败日志继续修复：Rust/Python parity 测试不再硬编码 Windows `.venv/Scripts/python.exe`，统一解析 Windows/Unix workspace venv、`FMS_TEST_PYTHON` 显式覆盖及平台 PATH fallback；RocketMQ `BrokerConfig::default()` 移除启动期 `unwrap()`，容器无法直接枚举本机 IP 时改由 hostname 解析容器地址、最后才退回 loopback，避免向其他容器发布 `127.0.0.1`；Rust Docker builder 安装 Swagger UI 构建所需的 `curl`，并停止重新制造已删除的 benchmark lib target；CI/nightly 的复制密码改为满足数据库初始化策略的显式强测试值；Postgres `synchronous_standby_names` 中含连字符的 standby 名改为合法引用标识符，本地容器由重启恢复为 healthy；Integration/E2E 失败诊断补齐 Postgres、Redis、双 broker、MQ Gateway 与 Rust API 日志。 |
+| 2026-09-03 CI 反馈续修 | 根据 GitHub Actions `33746483712` / `33759187935` 的失败日志继续修复：Rust/Python parity 测试不再硬编码 Windows `.venv/Scripts/python.exe`，统一解析 Windows/Unix workspace venv、`FMS_TEST_PYTHON` 显式覆盖及平台 PATH fallback；RocketMQ `BrokerConfig::default()` 移除启动期 `unwrap()`，容器无法直接枚举本机 IP 时改由 hostname 解析容器地址、最后才退回 loopback，避免向其他容器发布 `127.0.0.1`；Rust Docker builder 安装 Swagger UI 构建所需的 `curl`，并停止重新制造已删除的 benchmark lib target；CI/nightly 的复制密码改为满足数据库初始化策略的显式强测试值；Postgres `synchronous_standby_names` 中含连字符的 standby 名改为合法引用标识符，启动默认 `synchronous_commit=local` 避免主库在副本基线完成前阻塞，待运维窗口再显式切换 `remote_apply`；新增幂等 Flowable 数据库/角色 bootstrap 脚本，本地验证主库 healthy 且 Flowable role/database 均创建；Integration/E2E 失败诊断补齐 Postgres、Redis、双 broker、MQ Gateway 与 Rust API 日志。 |
+| 2026-09-03 CI 反馈三修 | 按 Actions `33762007499` 失败日志修复：pprof 两个 `cfg(unix)` 测试原先以零时长采样必得空火焰图（本机 Windows 从未执行这两个测试），改为采样期间烧 CPU 产生真实样本并以共享锁串行化；mq-gateway 的 admin/pull 直连地址 `MQ_GATEWAY_BROKER_ADDR` 缺省 `127.0.0.1:10911` 在容器内不可达，compose 显式指向 `rocketmq-broker:10911` 并补守门断言；**D-35 按路径 A 发布 bridge.4**（公开 Release + active-manifest 真实摘要），manifest 守门转绿 |

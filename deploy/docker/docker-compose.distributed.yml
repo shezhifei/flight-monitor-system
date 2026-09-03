@@ -57,11 +57,11 @@ services:
     image: postgres:16
     restart: unless-stopped
     env_file: *runtime-env-file
-    # synchronous_commit=remote_apply + synchronous_standby_names makes commits wait
-    # until postgres-standby (application_name=fm-pg-standby-01) has applied the WAL.
-    # NOTE: writes BLOCK if the standby is disconnected. For async HA (no blocking)
-    # switch to `synchronous_commit=on` and drop `synchronous_standby_names`.
-    command: ["postgres", "-c", "wal_level=logical", "-c", "flight_monitor.seed_default_admin=${SEED_DEFAULT_ADMIN:-false}", "-c", "flight_monitor.replication_password=${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4", "-c", "synchronous_commit=remote_apply", "-c", 'synchronous_standby_names="fm-pg-standby-01"']
+    # Bootstrap must not wait for a standby that cannot start until the primary
+    # has created its database and replication role. Deployments that require
+    # synchronous HA can explicitly set POSTGRES_SYNCHRONOUS_COMMIT=remote_apply
+    # after provisioning the standby; the self-booting default remains `local`.
+    command: ["postgres", "-c", "wal_level=logical", "-c", "flight_monitor.seed_default_admin=${SEED_DEFAULT_ADMIN:-false}", "-c", "flight_monitor.replication_password=${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4", "-c", "synchronous_commit=${POSTGRES_SYNCHRONOUS_COMMIT:-local}", "-c", 'synchronous_standby_names="fm-pg-standby-01"']
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../../scripts/database/setup_postgresql.sql:/docker-entrypoint-initdb.d/10-setup.sql:ro
@@ -291,6 +291,9 @@ services:
     environment:
       ROCKETMQ_NAME_SERVER_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
       NAMESRV_ADDR: "rocketmq-namesrv:9876;rocketmq-namesrv-2:9877"
+      # Admin/pull operations dial the broker directly; the code-level default
+      # (127.0.0.1:10911) is only reachable from the broker's own container.
+      MQ_GATEWAY_BROKER_ADDR: "rocketmq-broker:10911"
       MQ_GATEWAY_HOST: 0.0.0.0
       MQ_GATEWAY_PORT: "8097"
       MQ_GATEWAY_PRODUCER_GROUP: fms_mq_gateway

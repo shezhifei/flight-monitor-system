@@ -132,7 +132,11 @@ def test_integration_compose_binds_loopback_and_requires_passwords():
     assert "REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}" in integration
     assert "${DB_PASSWORD:-" not in integration
     assert "${REDIS_PASSWORD:-" not in integration
+    assert "synchronous_commit=${POSTGRES_SYNCHRONOUS_COMMIT:-local}" in distributed
     assert 'synchronous_standby_names="fm-pg-standby-01"' in distributed
+    # mq-gateway admin/pull calls dial the broker directly; without this the
+    # code default 127.0.0.1:10911 is unreachable from the gateway container.
+    assert 'MQ_GATEWAY_BROKER_ADDR: "rocketmq-broker:10911"' in distributed
 
     for mapping in (
         "127.0.0.1:5432:5432",
@@ -191,6 +195,27 @@ def test_e2e_compose_runs_from_repository_root_with_matching_environment():
         assert service in e2e_job
     assert e2e_job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") >= 3
     assert e2e_job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") >= 3
+    for key in (
+        "DB_PASSWORD",
+        "DB_REPLICATION_PASSWORD",
+        "DATABASE_URL",
+        "REDIS_PASSWORD",
+        "REDIS_URL",
+        "JWT_SECRET_KEY",
+        "JWT_AUDIENCE",
+        "WORKFLOW_INTERNAL_TOKEN",
+        "AI_CONFIG_ENCRYPTION_KEY",
+        "FLOWABLE_DB_PASSWORD",
+        "FLOWABLE_DATABASE_URL",
+        "CORS_ALLOWED_ORIGINS",
+    ):
+        assert f"{key}=" in e2e_job, f"E2E runtime env is missing {key}"
+
+    for relative_path in (
+        "scripts/database/bootstrap_flowable_database.sh",
+        "scripts/database/bootstrap_flowable_database.sql",
+    ):
+        assert (ROOT / relative_path).is_file(), f"missing Compose bind source: {relative_path}"
 
 
 def test_nightly_installs_mutation_tool_and_supplies_compose_environment():

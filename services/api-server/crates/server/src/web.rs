@@ -261,16 +261,23 @@ mod tests {
     #[cfg(unix)]
     async fn pprof_returns_svg_for_loopback_when_enabled() {
         let _guard = ENV_LOCK.lock().expect("env lock");
+        let _serial = crate::profiling::CPU_PROFILE_TEST_LOCK
+            .lock()
+            .expect("cpu profile test lock");
         std::env::set_var("ENABLE_PROFILING", "true");
         let app = test::init_service(App::new().route("/debug/pprof", web::get().to(handle_profiling))).await;
+        // The sampler only records on-CPU time; burn CPU so the profile window
+        // collects samples instead of returning an empty flamegraph.
+        let busy = crate::profiling::burn_cpu_for(std::time::Duration::from_millis(1200));
         let response = test::call_service(
             &app,
             test::TestRequest::get()
-                .uri("/debug/pprof?seconds=0")
+                .uri("/debug/pprof?seconds=1")
                 .peer_addr(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4321))
                 .to_request(),
         )
         .await;
+        busy.join().expect("busy thread");
         std::env::remove_var("ENABLE_PROFILING");
         assert_eq!(response.status(), StatusCode::OK);
         let body = test::read_body(response).await;
