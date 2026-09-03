@@ -84,9 +84,9 @@ class TestBudgetWithHardCapUnit:
     def test_template_budget_resolution(self):
         """resolve_budget_with_hard_cap returns correct values per task_type."""
         from src.infrastructure.ai.templates import (
-            QUERY_OPS_TEMPLATE,
             ANOMALY_OPS_TEMPLATE,
             DISPATCH_OPS_TEMPLATE,
+            QUERY_OPS_TEMPLATE,
             resolve_budget_with_hard_cap,
         )
 
@@ -132,6 +132,7 @@ class TestStreamingToolsBudgetInjection:
         template = QUERY_OPS_TEMPLATE  # Default 6, hard cap 8
 
         from src.infrastructure.ai.templates.base import resolve_budget_with_hard_cap
+
         effective = resolve_budget_with_hard_cap(entity_max_rounds, template, production_default_hard_cap=20)
 
         assert effective == 8, f"Expected 8 (template hard cap), got {effective}"
@@ -156,9 +157,10 @@ class TestStopConditions:
     @pytest.mark.asyncio
     async def test_no_tool_calls_stops_naturally(self):
         """If LLM returns no tool calls, loop breaks immediately."""
+        from unittest.mock import AsyncMock, MagicMock
+
         from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner
         from src.infrastructure.ai.openai_client import Message
-        from unittest.mock import AsyncMock, MagicMock
 
         gateway = MagicMock()
         gateway.config = MagicMock()
@@ -192,9 +194,10 @@ class TestStopConditions:
     @pytest.mark.asyncio
     async def test_consecutive_failures_stop_loop(self):
         """After consecutive_failure_threshold tool failures, loop stops."""
+        from unittest.mock import AsyncMock, MagicMock
+
         from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner
         from src.infrastructure.ai.openai_client import Message
-        from unittest.mock import AsyncMock, MagicMock
 
         gateway = MagicMock()
         gateway.config = MagicMock()
@@ -202,13 +205,15 @@ class TestStopConditions:
 
         # Mock stream that keeps producing tool calls
         mock_chunk = MagicMock()
-        mock_chunk.choices = [MagicMock(delta=MagicMock(tool_calls=[MagicMock(id="t1", function=MagicMock(name="bad_tool"))]))]
+        mock_chunk.choices = [
+            MagicMock(delta=MagicMock(tool_calls=[MagicMock(id="t1", function=MagicMock(name="bad_tool"))]))
+        ]
         mock_chunk.model = "gpt-4o"
-        
+
         async def async_iter():
             for _ in range(10):
                 yield mock_chunk
-        
+
         gateway.chat_completion = AsyncMock(return_value=async_iter())
 
         runner = LLMStreamRunner(gateway)
@@ -233,9 +238,10 @@ class TestStopConditions:
     @pytest.mark.asyncio
     async def test_max_tool_rounds_respected(self):
         """max_tool_rounds parameter is respected and enforces budget."""
+        from unittest.mock import AsyncMock, MagicMock
+
         from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner
         from src.infrastructure.ai.openai_client import Message
-        from unittest.mock import AsyncMock, MagicMock
 
         gateway = MagicMock()
         gateway.config = MagicMock()
@@ -243,13 +249,15 @@ class TestStopConditions:
 
         # Keep producing tool calls
         mock_chunk = MagicMock()
-        mock_chunk.choices = [MagicMock(delta=MagicMock(tool_calls=[MagicMock(id="t1", function=MagicMock(name="dummy"))]))]
+        mock_chunk.choices = [
+            MagicMock(delta=MagicMock(tool_calls=[MagicMock(id="t1", function=MagicMock(name="dummy"))]))
+        ]
         mock_chunk.model = "gpt-4o"
-        
+
         async def async_iter():
             for _ in range(100):
                 yield mock_chunk
-        
+
         gateway.chat_completion = AsyncMock(return_value=async_iter())
 
         runner = LLMStreamRunner(gateway)

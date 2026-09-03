@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 
-from src.infrastructure.ai.resume import RunCheckpoint, RunRestorer, CheckpointLoader
+from src.infrastructure.ai.resume import CheckpointLoader, RunCheckpoint, RunRestorer
 from src.infrastructure.ai.working_memory import (
     DEFAULT_SPILL_TOKEN_THRESHOLD,
     EVIDENCE_FILE,
@@ -159,9 +159,7 @@ class TestSerialization:
         wm.spill_tool_result(tool_name="list_flights", content="z" * 9000, object_id="F1234")
 
         # Persist into the checkpoint payload the way the runner emits it.
-        context_snapshot = json.loads(
-            json.dumps({"working_memory": wm.to_dict()}, ensure_ascii=False)
-        )
+        context_snapshot = json.loads(json.dumps({"working_memory": wm.to_dict()}, ensure_ascii=False))
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_b2",
             run_id="run_b2_11",

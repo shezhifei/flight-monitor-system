@@ -8,11 +8,9 @@ Task 13: MCP annotation interpretation must converge to a single helper.
 
 from __future__ import annotations
 
-import pytest
-
 from src.infrastructure.ai.mcp.annotations import (
-    normalize_mcp_tool_annotations,
     NormalizedMcpAnnotations,
+    normalize_mcp_tool_annotations,
 )
 
 

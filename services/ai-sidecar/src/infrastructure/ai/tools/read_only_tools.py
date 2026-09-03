@@ -22,7 +22,7 @@ from src.infrastructure.logging.core import get_logger
 logger = get_logger(__name__)
 
 
-class ReadOnlyBackendNotConfigured(RuntimeError):
+class ReadOnlyBackendNotConfigured(RuntimeError):  # noqa: N818 - public compatibility name
     """Raised when a read-only tool is executed without a wired backend."""
 
 
@@ -129,8 +129,7 @@ async def execute_read_only_tool(
     resolved_backend = backend if backend is not None else _READ_ONLY_BACKEND
     if resolved_backend is None:
         raise ReadOnlyBackendNotConfigured(
-            "READ_ONLY_BACKEND_NOT_CONFIGURED: no read-only backend is wired; "
-            "refusing to fabricate tool results"
+            "READ_ONLY_BACKEND_NOT_CONFIGURED: no read-only backend is wired; refusing to fabricate tool results"
         )
 
     try:

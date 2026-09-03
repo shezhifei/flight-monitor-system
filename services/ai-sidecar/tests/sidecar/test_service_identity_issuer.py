@@ -58,13 +58,9 @@ class TestIssueForPath:
         """Security constraint: token path must exactly match request path."""
         token = issuer.issue_for_path("/internal/ai/v1/jobs/lease")
         with pytest.raises(PathMismatchError):
-            decode_service_identity(
-                token, TEST_SECRET, "/internal/ai/v1/jobs/different"
-            )
+            decode_service_identity(token, TEST_SECRET, "/internal/ai/v1/jobs/different")
 
-    def test_different_paths_produce_different_tokens(
-        self, issuer: ServiceIdentityIssuer
-    ) -> None:
+    def test_different_paths_produce_different_tokens(self, issuer: ServiceIdentityIssuer) -> None:
         token1 = issuer.issue_for_path("/internal/ai/v1/jobs/lease")
         token2 = issuer.issue_for_path("/internal/ai/v1/jobs/abc/heartbeat")
         assert token1 != token2
@@ -111,15 +107,11 @@ class TestIssueForPath:
 class TestHeadersForPath:
     """Tests for ``ServiceIdentityIssuer.headers_for_path``."""
 
-    def test_returns_correct_header_name(
-        self, issuer: ServiceIdentityIssuer
-    ) -> None:
+    def test_returns_correct_header_name(self, issuer: ServiceIdentityIssuer) -> None:
         headers = issuer.headers_for_path("/test")
         assert SERVICE_IDENTITY_HEADER in headers
 
-    def test_header_value_is_valid_token(
-        self, issuer: ServiceIdentityIssuer
-    ) -> None:
+    def test_header_value_is_valid_token(self, issuer: ServiceIdentityIssuer) -> None:
         path = "/internal/ai/v1/jobs/lease"
         headers = issuer.headers_for_path(path)
         token = headers[SERVICE_IDENTITY_HEADER]

@@ -21,6 +21,11 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from test_skill_runtime_injection import (
+    FakeCapabilityResolver,
+    FakeEnvelope,
+    FakeResolvedConfig,
+)
 
 from src.infrastructure.ai.runtime_graph import _graph_build_system_prompt
 from src.infrastructure.ai.runtime_service import RuntimeService
@@ -29,12 +34,6 @@ from src.infrastructure.ai.templates import (
     ANOMALY_OPS_TEMPLATE,
     get_task_template,
     template_allows_tool,
-)
-
-from test_skill_runtime_injection import (
-    FakeCapabilityResolver,
-    FakeEnvelope,
-    FakeResolvedConfig,
 )
 
 
@@ -115,9 +114,7 @@ def test_write_actions_stay_visible_as_proposal_path() -> None:
 
 
 def test_triage_read_tools_pass_and_unknown_categories_fail_closed() -> None:
-    allows = lambda name, category: template_allows_tool(  # noqa: E731
-        ANOMALY_OPS_TEMPLATE, tool_name=name, tool_category=category
-    )
+    allows = lambda name, category: template_allows_tool(ANOMALY_OPS_TEMPLATE, tool_name=name, tool_category=category)
     assert allows("list_anomalies", "anomaly") is True
     assert allows("get_anomaly_stats", "anomaly") is True
     assert allows("flight_status_lookup", "flight") is True
@@ -174,12 +171,16 @@ def _make_capturing_runner(capture: dict[str, Any]) -> type:
 
             # Create minimal completed event - use .text for content
             result = type("obj", (object,), {"text": "OK", "model": "gpt-4o"})()
-            event = type("obj", (object,), {
-                "type": "completed",
-                "result": result,
-                "round_index": 0,
-            })()
-            
+            event = type(
+                "obj",
+                (object,),
+                {
+                    "type": "completed",
+                    "result": result,
+                    "round_index": 0,
+                },
+            )()
+
             yield event
 
     return _Runner
@@ -216,7 +217,7 @@ def test_anomaly_ops_run_keeps_proposal_tools_and_drops_out_of_scope() -> None:
         _FakeTool("create_todo", "todo"),  # out of scope for triage
     ]
     config.tool_policy = {"max_rounds": 5}  # B1 budget
-    
+
     capture: dict[str, Any] = {}
     svc = RuntimeService(
         capability_resolver=FakeCapabilityResolver(resolved_config=config),
@@ -226,13 +227,13 @@ def test_anomaly_ops_run_keeps_proposal_tools_and_drops_out_of_scope() -> None:
         events = _collect(svc, _envelope("anomaly_ops"))
 
     # Debug check
-    if 'runner' not in capture:
+    if "runner" not in capture:
         raise AssertionError("Mock runner was never instantiated!")
-    
+
     runner = capture["runner"]
     if runner.tools is None:
-        raise AssertionError(f"Mock runner.tools is None after stream_chat_with_tools call!")
-    
+        raise AssertionError("Mock runner.tools is None after stream_chat_with_tools call!")
+
     names = [t["function"]["name"] for t in runner.tools]
     # C1: anomaly_ops is plan-first — the plan-board tools are injected too.
     assert names == [

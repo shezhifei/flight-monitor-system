@@ -85,8 +85,7 @@ def tool_accuracy_outcome(
     threshold: float = DEFAULT_THRESHOLDS["tool_accuracy_min"],
 ) -> GateOutcome:
     value = (
-        sum(sample_tool_compliance(s.called_tools, s.allowed_tools, s.forbidden_tools) for s in samples)
-        / len(samples)
+        sum(sample_tool_compliance(s.called_tools, s.allowed_tools, s.forbidden_tools) for s in samples) / len(samples)
         if samples
         else 1.0
     )

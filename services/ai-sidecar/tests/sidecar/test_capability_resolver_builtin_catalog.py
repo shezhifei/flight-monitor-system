@@ -29,7 +29,6 @@ from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
     is_ontology_tool,
 )
-
 from tests.sidecar.tool_executor_test_support import (
     AuthorizedToolMqGate,
     FakeReadOnlyBackend,
@@ -62,9 +61,7 @@ class _FakeConfigStore:
 
 def _resolver() -> CapabilityResolver:
     return CapabilityResolver(
-        config_store=_FakeConfigStore(
-            {"tooling": {"allowed_tool_categories": ["flight", "query"]}}
-        ),
+        config_store=_FakeConfigStore({"tooling": {"allowed_tool_categories": ["flight", "query"]}}),
         builtin_tools=_builtin_tool_catalog(),
     )
 
@@ -115,9 +112,7 @@ def test_resolver_snapshot_contains_catalog_tools() -> None:
 
 def test_resolver_snapshot_contains_ontology_tools_when_category_allowed() -> None:
     resolver = CapabilityResolver(
-        config_store=_FakeConfigStore(
-            {"tooling": {"allowed_tool_categories": ["query", "ontology"]}}
-        ),
+        config_store=_FakeConfigStore({"tooling": {"allowed_tool_categories": ["query", "ontology"]}}),
         builtin_tools=_builtin_tool_catalog(),
     )
     snapshot = _run(resolver.resolve("test-entity"))

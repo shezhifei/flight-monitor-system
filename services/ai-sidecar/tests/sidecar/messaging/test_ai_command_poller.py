@@ -162,7 +162,7 @@ async def test_mark_failed_handles_empty_error_string() -> None:
 
     await poller.mark_failed("c-1", "")
 
-    query, args = conn.execute_calls[0]
+    _query, args = conn.execute_calls[0]
     assert args == ("c-1", "")
 
 

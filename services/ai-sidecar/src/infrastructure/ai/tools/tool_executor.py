@@ -957,8 +957,7 @@ class ToolExecutor:
                 tool_name=tool_name,
                 success=False,
                 error=(
-                    "ONTOLOGY_CLIENT_NOT_CONFIGURED: ontology action client is not wired; "
-                    "refusing to fabricate results"
+                    "ONTOLOGY_CLIENT_NOT_CONFIGURED: ontology action client is not wired; refusing to fabricate results"
                 ),
             )
         try:
@@ -1019,9 +1018,7 @@ class ToolExecutor:
                     # Simulate-before-proposal found hard constraint violations:
                     # surface the failure, never create a proposal.
                     violations = outcome.get("hard_constraint_violations") or []
-                    rule_ids = ", ".join(
-                        str(v.get("rule_id")) for v in violations if isinstance(v, dict)
-                    )
+                    rule_ids = ", ".join(str(v.get("rule_id")) for v in violations if isinstance(v, dict))
                     return ToolExecutionResult(
                         tool_call_id=tool_call_id,
                         tool_name=tool_name,
@@ -1109,10 +1106,7 @@ class ToolExecutor:
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
                 success=False,
-                error=(
-                    "INVALID_TOOL_ARGUMENTS: window_start and window_end are required "
-                    f"for {tool_name}"
-                ),
+                error=(f"INVALID_TOOL_ARGUMENTS: window_start and window_end are required for {tool_name}"),
             )
         strategy = arguments.get("strategy")
         strategy = str(strategy).strip() if strategy else None
@@ -1202,9 +1196,7 @@ class ToolExecutor:
             "arguments": resolved_params,
             "risk_level": "high",
             "confidence": 0.75,
-            "reasoning": (
-                f"LLM requested controlled write '{resolved_action}' via ontology.propose_action"
-            ),
+            "reasoning": (f"LLM requested controlled write '{resolved_action}' via ontology.propose_action"),
             "requires_approval": True,
             "execution_mode": "proposal_only",
             "source": "streaming_tool_execution",
@@ -1241,9 +1233,7 @@ class ToolExecutor:
             "arguments": arguments,
             "risk_level": "low",
             "confidence": 0.75,
-            "reasoning": (
-                f"LLM requested ontology tool '{tool_name}' but Rust required proposal_only path"
-            ),
+            "reasoning": (f"LLM requested ontology tool '{tool_name}' but Rust required proposal_only path"),
             "requires_approval": True,
             "source": "streaming_tool_execution",
             "run_id": run_id,
@@ -1340,7 +1330,9 @@ class ToolExecutor:
                     "proposal_count": result.proposal_count,
                 },
             )
-        except LLM_EXCEPTIONS + JSON_EXCEPTIONS as exc:  # subagent runs reuse the LLM/serialization failure surface (K5)
+        except (
+            LLM_EXCEPTIONS + JSON_EXCEPTIONS
+        ) as exc:  # subagent runs reuse the LLM/serialization failure surface (K5)
             return ToolExecutionResult(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,

@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # P2.5: SSE Allowlist Regression Tests
 # ---------------------------------------------------------------------------

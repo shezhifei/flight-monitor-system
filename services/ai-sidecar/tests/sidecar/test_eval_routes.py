@@ -56,8 +56,7 @@ class _FakeConn:
             }
         elif "INSERT INTO ai_eval_metrics_summary" in query:
             self._store.gates.append(
-                {"job_id": args[0], "metric_name": args[1], "value": args[2],
-                 "threshold": args[3], "status": args[4]}
+                {"job_id": args[0], "metric_name": args[1], "value": args[2], "threshold": args[3], "status": args[4]}
             )
         return "OK"
 

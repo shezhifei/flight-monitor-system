@@ -1,6 +1,8 @@
 """Verify PostgresAIConfigStore.get_all() propagates DB errors (no exception swallowing)."""
-import pytest
+
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 @pytest.mark.asyncio

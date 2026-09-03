@@ -180,9 +180,13 @@ class HandoffDelegateManager:
         if allowed_entity_ids is None or max_depth is None or max_concurrency is None:
             parent_policy = await self._resolve_parent_subagent_policy(parent_entity_id)
             if parent_policy:
-                allowed_entity_ids = allowed_entity_ids if allowed_entity_ids is not None else parent_policy.get("allowed_entity_ids")
+                allowed_entity_ids = (
+                    allowed_entity_ids if allowed_entity_ids is not None else parent_policy.get("allowed_entity_ids")
+                )
                 max_depth = max_depth if max_depth is not None else parent_policy.get("max_depth", 1)
-                max_concurrency = max_concurrency if max_concurrency is not None else parent_policy.get("max_concurrency", 2)
+                max_concurrency = (
+                    max_concurrency if max_concurrency is not None else parent_policy.get("max_concurrency", 2)
+                )
 
         logger.info(
             f"Delegating '{delegate_request.task_description[:50]}...' "

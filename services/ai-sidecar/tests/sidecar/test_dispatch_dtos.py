@@ -1,4 +1,4 @@
-from src.application.dto.dispatch_dtos import Department, Team, Equipment, Stand, DispatchOrder
+from src.application.dto.dispatch_dtos import Department, Equipment, Team
 
 
 def test_department_dto():

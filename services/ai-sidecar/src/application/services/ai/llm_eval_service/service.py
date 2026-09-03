@@ -28,6 +28,7 @@ from asyncpg import Connection
 
 try:
     from opentelemetry import metrics, trace
+
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
@@ -51,6 +52,7 @@ logger = get_logger(__name__)
 # Core Data Models
 # ============================================================================
 
+
 @dataclass
 class EvalJob:
     """评估作业定义。"""
@@ -58,7 +60,7 @@ class EvalJob:
     job_id: UUID = field(default_factory=uuid4)
     name: str = ""
     dataset_path: str = ""  # Path to JSONL test dataset
-    description: str = ""    # ADD THIS FIELD
+    description: str = ""  # ADD THIS FIELD
 
     status: str = "pending"  # pending | running | completed | failed
     progress_percent: float = 0.0
@@ -95,10 +97,10 @@ class EvalSpan:
 
     span_id: UUID = field(default_factory=uuid4)
     job_id: UUID | None = None  # ADD THIS FIELD
-    run_id: str = ""           # Unique run identifier
+    run_id: str = ""  # Unique run identifier
     parent_span_id: UUID | None = None
 
-    span_type: str = ""        # llm_call | tool_call | checkpoint | error
+    span_type: str = ""  # llm_call | tool_call | checkpoint | error
     start_time: float = 0.0
     end_time: float = 0.0
 
@@ -358,6 +360,7 @@ def build_eval_result_from_checkpoints(rows: list[dict[str, Any]]) -> EvalRunRes
 # Evaluation Service
 # ============================================================================
 
+
 class EvaluationService:
     """生产级评估服务，支持在线/离线两种模式。
 
@@ -434,9 +437,7 @@ class EvaluationService:
                 # Check if overall result passed or failed
                 if gate_summary.status == "fail":
                     failed_gates.append(gate_summary.metric_name)
-                    logger.warning(
-                        f"[Eval Service] Gate failed at run {job.completed_runs}/{job.total_runs}"
-                    )
+                    logger.warning(f"[Eval Service] Gate failed at run {job.completed_runs}/{job.total_runs}")
                 else:
                     passed_gates.append(gate_summary.metric_name)
 
@@ -481,11 +482,7 @@ class EvaluationService:
         task_type = test_case.get("task_type", "query_ops")
         entity_id = test_case.get("entity_id", "default")
 
-        with (
-            self._traces.start_as_current_span("eval.test_execution")
-            if self._traces is not None
-            else nullcontext()
-        ):
+        with self._traces.start_as_current_span("eval.test_execution") if self._traces is not None else nullcontext():
             # Execute agent against query through the injected runner.
             run_result = await self._run_agent_on_query(
                 user_query=user_query,
@@ -551,9 +548,7 @@ class EvaluationService:
         # 2. Ungrounded id gate (was hallucination_rate): extracted answer ids
         # must be backed by tool evidence — never a flight-number regex.
         ungrounded_rate = await self._calculate_hallucination_rate(span.result)
-        max_ungrounded = config.get(
-            "ungrounded_id_rate_max", config.get("hallucination_rate_max", 0.05)
-        )
+        max_ungrounded = config.get("ungrounded_id_rate_max", config.get("hallucination_rate_max", 0.05))
 
         gate_result = self._check_gate_for_maximum(
             "ungrounded_id_rate",
@@ -582,9 +577,7 @@ class EvaluationService:
 
         # 4. Average rounds target (should be <= template hard cap)
         total_rounds = span.metrics.get("total_tool_rounds", 0)
-        avg_rounds_target = config.get(
-            "avg_rounds_target", HARD_ROUND_CAPS.get(task_type, DEFAULT_ROUND_CAP)
-        )
+        avg_rounds_target = config.get("avg_rounds_target", HARD_ROUND_CAPS.get(task_type, DEFAULT_ROUND_CAP))
 
         gate_result = self._check_gate_for_maximum(
             "avg_rounds",
@@ -624,9 +617,7 @@ class EvaluationService:
             },
         )
 
-        logger.info(
-            f"[Eval Service] Gates evaluated: {len(passing)} passing, {len(failing)} failing"
-        )
+        logger.info(f"[Eval Service] Gates evaluated: {len(passing)} passing, {len(failing)} failing")
 
         return summary
 
@@ -720,7 +711,7 @@ class EvaluationService:
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                 """,
                 span.span_id,
-                span.job_id if hasattr(span, 'job_id') else None,
+                span.job_id if hasattr(span, "job_id") else None,
                 span.run_id,
                 span.parent_span_id,
                 span.span_type,
@@ -749,18 +740,18 @@ class EvaluationService:
 
             for row in rows:
                 gate = GateMetricsSummary(
-                    job_id=row['job_id'],
-                    metric_name=row['metric_name'],
-                    value=float(row['value']),
-                    threshold=float(row['threshold']),
-                    status=row['status'],
-                    details=row.get('details', {}),
-                    snapshot_at=row['snapshot_at'],
+                    job_id=row["job_id"],
+                    metric_name=row["metric_name"],
+                    value=float(row["value"]),
+                    threshold=float(row["threshold"]),
+                    status=row["status"],
+                    details=row.get("details", {}),
+                    snapshot_at=row["snapshot_at"],
                 )
 
-                if gate.status == 'pass':
+                if gate.status == "pass":
                     passing.append(gate)
-                elif gate.status in ('fail', 'error'):
+                elif gate.status in ("fail", "error"):
                     failing.append(gate)
                 else:
                     passing.append(gate)  # warn treated as pass for now
@@ -814,8 +805,7 @@ class EvaluationService:
         """
         if self._agent_runner is None:
             raise EvalRunnerUnavailableError(
-                "EvaluationService has no agent runner configured; "
-                "refusing to fabricate a successful eval result"
+                "EvaluationService has no agent runner configured; refusing to fabricate a successful eval result"
             )
         return await self._agent_runner.run(
             user_query=user_query,
@@ -832,14 +822,11 @@ class EvaluationService:
         """
         async with self._db_pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT checkpoint_type, snapshot FROM ai_run_checkpoints "
-                "WHERE run_id = $1 ORDER BY sequence_no",
+                "SELECT checkpoint_type, snapshot FROM ai_run_checkpoints WHERE run_id = $1 ORDER BY sequence_no",
                 run_id,
             )
         if not rows:
-            raise LookupError(
-                f"No checkpoints found for run {run_id}; refusing to fabricate an eval sample"
-            )
+            raise LookupError(f"No checkpoints found for run {run_id}; refusing to fabricate an eval sample")
         return build_eval_result_from_checkpoints([dict(row) for row in rows])
 
     # ------------------------------------------------------------------

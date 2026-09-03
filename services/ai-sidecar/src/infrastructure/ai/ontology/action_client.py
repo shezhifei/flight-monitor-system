@@ -99,8 +99,7 @@ class OntologyActionClient:
         if not resolved:
             raise OntologyActionClientError(
                 "no_rust_api_base_url",
-                "Rust API base URL is not configured "
-                "(set AI_INTERNAL_API_URL / RUST_API_BASE_URL / AI_API_BASE_URL)",
+                "Rust API base URL is not configured (set AI_INTERNAL_API_URL / RUST_API_BASE_URL / AI_API_BASE_URL)",
             )
         self._base_url = _validate_rust_api_url(resolved)
         self._issuer = issuer

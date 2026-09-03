@@ -32,9 +32,7 @@ logger = logging.getLogger(__name__)
 # BeforeTool/AfterTool row; after_completion allows replaying a finished run.
 RESUMABLE_CHECKPOINT_TYPES = ("before_tool", "after_tool", "after_completion")
 
-_CHECKPOINT_COLUMNS = (
-    "checkpoint_id, run_id, sequence_no, checkpoint_type, snapshot, created_at"
-)
+_CHECKPOINT_COLUMNS = "checkpoint_id, run_id, sequence_no, checkpoint_type, snapshot, created_at"
 
 
 @dataclass
@@ -96,7 +94,7 @@ def _decode_jsonb(value: Any) -> Any:
 
 def _row_to_checkpoint(row: Any) -> RunCheckpoint:
     """Map an ``ai_run_checkpoints`` row (asyncpg Record or dict) to a checkpoint."""
-    getter = row.get if hasattr(row.get, "__call__") else None
+    getter = row.get if callable(row.get) else None
     if getter is None:  # pragma: no cover - defensive
         raise TypeError(f"unsupported checkpoint row type: {type(row)!r}")
     snapshot = _decode_jsonb(getter("snapshot"))
@@ -208,8 +206,7 @@ class CheckpointLoader:
         """List all checkpoints for a run in sequence order."""
         logger.info(f"Listing checkpoints for run={run_id}")
         rows = await self._fetch(
-            f"SELECT {_CHECKPOINT_COLUMNS} FROM ai_run_checkpoints "
-            "WHERE run_id = $1 ORDER BY sequence_no",
+            f"SELECT {_CHECKPOINT_COLUMNS} FROM ai_run_checkpoints WHERE run_id = $1 ORDER BY sequence_no",
             run_id,
         )
         return [_row_to_checkpoint(row) for row in rows]
@@ -288,10 +285,12 @@ class RunRestorer:
                 name = result.get("tool_name") or result.get("tool_call_id") or "tool"
                 digest = json.dumps(result.get("result", result), ensure_ascii=False, default=str)[:300]
                 summary_lines.append(f"- {name}: {digest}")
-            context.restored_messages.append({
-                "role": "assistant",
-                "content": "\n".join(summary_lines),
-            })
+            context.restored_messages.append(
+                {
+                    "role": "assistant",
+                    "content": "\n".join(summary_lines),
+                }
+            )
 
         return context
 
@@ -404,9 +403,7 @@ class ResumeHandler:
 
         # B2: rebuild the workspace from the checkpoint snapshot; the runner
         # keeps spilling large tool results into it for the rest of the run.
-        working_memory = WorkingMemory.from_dict(
-            context.working_memory or context.checkpoint.context_snapshot
-        )
+        working_memory = WorkingMemory.from_dict(context.working_memory or context.checkpoint.context_snapshot)
         working_memory.run_id = context.run_id
 
         # Inject the restored transcript summary into the envelope.
@@ -474,8 +471,7 @@ class ResumeHandler:
         input_snapshot = await self._loader.load_run_input_snapshot(context.run_id)
         if not input_snapshot:
             raise RuntimeError(
-                f"Cannot resume run {context.run_id}: no run_input checkpoint "
-                "to rebuild the input envelope from"
+                f"Cannot resume run {context.run_id}: no run_input checkpoint to rebuild the input envelope from"
             )
         envelope = ContextEnvelope(**input_snapshot)
         envelope.run_id = context.run_id
@@ -483,14 +479,11 @@ class ResumeHandler:
         # A resumed run starts un-cancelled even if a stale flag was persisted.
         envelope.cancelled = False
 
-        working_memory = WorkingMemory.from_dict(
-            context.working_memory or context.checkpoint.context_snapshot
-        )
+        working_memory = WorkingMemory.from_dict(context.working_memory or context.checkpoint.context_snapshot)
         working_memory.run_id = context.run_id
 
         logger.info(
-            f"[D2] Resuming run {context.run_id} from checkpoint "
-            f"{context.checkpoint.checkpoint_id} via runtime service"
+            f"[D2] Resuming run {context.run_id} from checkpoint {context.checkpoint.checkpoint_id} via runtime service"
         )
         async for _event in runtime_service.stream_run_with_tools(
             envelope,
@@ -509,10 +502,10 @@ def build_resume_handler(
 
 __all__ = [
     "RESUMABLE_CHECKPOINT_TYPES",
-    "RunCheckpoint",
-    "ResumeContext",
     "CheckpointLoader",
-    "RunRestorer",
+    "ResumeContext",
     "ResumeHandler",
+    "RunCheckpoint",
+    "RunRestorer",
     "build_resume_handler",
 ]

@@ -95,10 +95,7 @@ def explain_tool_access(
                 "result": "deny" if acl_denied else "allow",
                 "rule": acl_rule,
                 "detail": acl_detail
-                or (
-                    f"Tool '{name}' passes entity tooling ACL "
-                    f"(denied_tools / allowed_tools / categories)"
-                ),
+                or (f"Tool '{name}' passes entity tooling ACL (denied_tools / allowed_tools / categories)"),
             }
         )
     else:
@@ -120,10 +117,7 @@ def explain_tool_access(
             {
                 "step": "template",
                 "result": "skipped",
-                "detail": (
-                    "No task_type provided or no matching template; "
-                    "template narrowing not applied"
-                ),
+                "detail": ("No task_type provided or no matching template; template narrowing not applied"),
             }
         )
     else:
@@ -132,14 +126,11 @@ def explain_tool_access(
             template_denied = True
             if name in template.denied_tools:
                 template_rule = "TEMPLATE_DENIED_TOOLS"
-                template_detail = (
-                    f"Task template '{template.task_type}' denies tool '{name}'"
-                )
+                template_detail = f"Task template '{template.task_type}' denies tool '{name}'"
             else:
                 template_rule = "TEMPLATE_CATEGORY_FILTER"
                 template_detail = (
-                    f"Task template '{template.task_type}' does not allow "
-                    f"category '{category or ''}' for tool '{name}'"
+                    f"Task template '{template.task_type}' does not allow category '{category or ''}' for tool '{name}'"
                 )
         checks.append(
             {
@@ -148,10 +139,7 @@ def explain_tool_access(
                 "task_type": template.task_type,
                 "requires_plan_first": bool(getattr(template, "requires_plan_first", False)),
                 "rule": template_rule,
-                "detail": template_detail
-                or (
-                    f"Task template '{template.task_type}' allows tool '{name}'"
-                ),
+                "detail": template_detail or (f"Task template '{template.task_type}' allows tool '{name}'"),
             }
         )
 
@@ -280,6 +268,6 @@ def _deny_payload(
 
 
 __all__ = [
-    "explain_tool_access",
     "explain_from_snapshot",
+    "explain_tool_access",
 ]

@@ -6,8 +6,9 @@ Tests verify that:
 3. No duplicate cache reads exist between route and method
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.infrastructure.ai.mcp.client_manager import McpClientManager
 
@@ -46,9 +47,9 @@ class TestReadResourceSecurityBoundary:
     async def test_read_resource_raises_when_resource_not_in_allowed_resources(self):
         """Resource URI not in binding's allowed_resources → error"""
         mock_repo = MagicMock()
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {"server_id": "server-1", "enabled": True, "allowed_resources": ["file:///allowed.txt"]}
-        ])
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[{"server_id": "server-1", "enabled": True, "allowed_resources": ["file:///allowed.txt"]}]
+        )
 
         mgr = McpClientManager(mcp_repo=mock_repo, cache_manager=None)
 
@@ -63,9 +64,9 @@ class TestReadResourceSecurityBoundary:
     async def test_read_resource_allows_resource_in_allowed_resources(self):
         """Resource URI in allowed_resources proceeds past ACL (will fail on connection)"""
         mock_repo = MagicMock()
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {"server_id": "server-1", "enabled": True, "allowed_resources": ["file:///allowed.txt"]}
-        ])
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[{"server_id": "server-1", "enabled": True, "allowed_resources": ["file:///allowed.txt"]}]
+        )
 
         mgr = McpClientManager(mcp_repo=mock_repo, cache_manager=None)
 
@@ -83,9 +84,9 @@ class TestReadResourceSecurityBoundary:
     async def test_read_resource_allows_when_allowed_resources_is_empty(self):
         """Empty allowed_resources means all resources allowed (backward compat)"""
         mock_repo = MagicMock()
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {"server_id": "server-1", "enabled": True, "allowed_resources": []}
-        ])
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[{"server_id": "server-1", "enabled": True, "allowed_resources": []}]
+        )
 
         mgr = McpClientManager(mcp_repo=mock_repo, cache_manager=None)
 
@@ -123,9 +124,9 @@ class TestReadResourceSecurityBoundary:
     async def test_read_resource_parses_json_allowed_resources(self):
         """allowed_resources may be a JSON string, must be parsed"""
         mock_repo = MagicMock()
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {"server_id": "server-1", "enabled": True, "allowed_resources": '["file:///ok.txt"]'}
-        ])
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[{"server_id": "server-1", "enabled": True, "allowed_resources": '["file:///ok.txt"]'}]
+        )
 
         mgr = McpClientManager(mcp_repo=mock_repo, cache_manager=None)
 
@@ -140,9 +141,9 @@ class TestReadResourceSecurityBoundary:
     async def test_read_resource_fails_closed_on_invalid_allowed_resources_json(self):
         """Invalid allowed_resources JSON must not be treated as unrestricted access."""
         mock_repo = MagicMock()
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {"server_id": "server-1", "enabled": True, "allowed_resources": "not-json"}
-        ])
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[{"server_id": "server-1", "enabled": True, "allowed_resources": "not-json"}]
+        )
         mock_cache = MagicMock()
         mock_cache.get_mcp_resource = AsyncMock()
 

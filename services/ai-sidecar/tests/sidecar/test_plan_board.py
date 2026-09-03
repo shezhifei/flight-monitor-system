@@ -382,17 +382,17 @@ class TestToolSchemas:
 # C1 integration: WorkingMemory plan state, template injection, plan-first hook
 # ============================================================================
 
-from unittest.mock import MagicMock  # noqa: E402
+from unittest.mock import MagicMock
 
-from src.infrastructure.ai.hooks.pipeline import HookContext, HookPipeline, PlanFirstHook  # noqa: E402
-from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner, StreamEvent  # noqa: E402
-from src.infrastructure.ai.tools.plan_tools import (  # noqa: E402
+from src.infrastructure.ai.hooks.pipeline import HookContext, HookPipeline, PlanFirstHook
+from src.infrastructure.ai.llm_stream_runner import LLMStreamRunner, StreamEvent
+from src.infrastructure.ai.tools.plan_tools import (
     PLAN_TOOL_NAMES,
     execute_plan_tool,
     is_plan_tool,
     plan_schemas_for_task_type,
 )
-from src.infrastructure.ai.working_memory import WorkingMemory  # noqa: E402
+from src.infrastructure.ai.working_memory import WorkingMemory
 
 
 class TestWorkingMemoryPlanIntegration:
@@ -627,21 +627,23 @@ class TestPlanFirstRunnerIntegration:
     async def test_update_plan_executes_against_working_memory(self):
         """A model-issued update_plan call writes plan.md without the executor."""
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            {
-                "tool_calls": [
-                    {
-                        "id": "t1",
-                        "function": {
-                            "name": "update_plan",
-                            "arguments": '{"plan_description": "Triage plan", "steps": [{"id": "s1", "description": "Gather facts"}]}',
-                        },
-                    }
-                ],
-                "text": "",
-            },
-            {"tool_calls": [], "text": "计划已建立"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                {
+                    "tool_calls": [
+                        {
+                            "id": "t1",
+                            "function": {
+                                "name": "update_plan",
+                                "arguments": '{"plan_description": "Triage plan", "steps": [{"id": "s1", "description": "Gather facts"}]}',
+                            },
+                        }
+                    ],
+                    "text": "",
+                },
+                {"tool_calls": [], "text": "计划已建立"},
+            ]
+        )
         executor = _FakeExecutor()
         runner._tool_executor = executor
         memory = WorkingMemory(run_id="plan-run-1")
@@ -672,36 +674,44 @@ class TestPlanFirstRunnerIntegration:
         pipeline.register_hook(PlanFirstHook())
 
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            # Round 1: model jumps straight to a proposal-class write.
-            {
-                "tool_calls": [
-                    {"id": "t1", "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'}}
-                ],
-                "text": "",
-            },
-            # Round 2: model complies and establishes the plan.
-            {
-                "tool_calls": [
-                    {
-                        "id": "t2",
-                        "function": {
-                            "name": "update_plan",
-                            "arguments": '{"plan_description": "Gate change plan", "steps": [{"id": "p1", "description": "Verify constraints"}]}',
-                        },
-                    }
-                ],
-                "text": "",
-            },
-            # Round 3: proposal tool is now allowed through the hook.
-            {
-                "tool_calls": [
-                    {"id": "t3", "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'}}
-                ],
-                "text": "",
-            },
-            {"tool_calls": [], "text": "已提交提案待审批"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                # Round 1: model jumps straight to a proposal-class write.
+                {
+                    "tool_calls": [
+                        {
+                            "id": "t1",
+                            "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'},
+                        }
+                    ],
+                    "text": "",
+                },
+                # Round 2: model complies and establishes the plan.
+                {
+                    "tool_calls": [
+                        {
+                            "id": "t2",
+                            "function": {
+                                "name": "update_plan",
+                                "arguments": '{"plan_description": "Gate change plan", "steps": [{"id": "p1", "description": "Verify constraints"}]}',
+                            },
+                        }
+                    ],
+                    "text": "",
+                },
+                # Round 3: proposal tool is now allowed through the hook.
+                {
+                    "tool_calls": [
+                        {
+                            "id": "t3",
+                            "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'},
+                        }
+                    ],
+                    "text": "",
+                },
+                {"tool_calls": [], "text": "已提交提案待审批"},
+            ]
+        )
         executor = _FakeExecutor()
         runner._tool_executor = executor
         memory = WorkingMemory(run_id="plan-run-2")

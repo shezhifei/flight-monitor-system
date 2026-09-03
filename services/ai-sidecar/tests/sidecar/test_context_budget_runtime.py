@@ -129,7 +129,7 @@ class TestApplyContextBudget:
     def test_sliding_window_strategy(self):
         rs = RuntimeService(context_budget_planner=ContextBudgetPlanner())
         messages = _multi_turn_messages(12)
-        new_messages, payload = _run(
+        _new_messages, payload = _run(
             rs._apply_context_budget(
                 messages=messages,
                 system_prompt_text=_LONG_SYSTEM,

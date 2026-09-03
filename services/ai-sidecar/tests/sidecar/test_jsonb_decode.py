@@ -7,8 +7,6 @@ which would weaken ACL enforcement.
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from src.infrastructure.ai.mcp_repository import _decode_row_jsonb
@@ -68,7 +66,7 @@ class TestDecodeJsonbOrRaise:
             decode_jsonb_or_raise("broken", "allowed_tools")
 
     def test_error_message_includes_original_error(self):
-        with pytest.raises(ValueError, match="JSONDecodeError|Expecting value"):
+        with pytest.raises(ValueError, match=r"JSONDecodeError|Expecting value"):
             decode_jsonb_or_raise("broken", "allowed_tools")
 
 

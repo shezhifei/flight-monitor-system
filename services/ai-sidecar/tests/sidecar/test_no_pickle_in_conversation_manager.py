@@ -1,4 +1,5 @@
 """验证 Redis conversation manager 不再使用 pickle。"""
+
 import inspect
 
 from src.infrastructure.ai.conversation_manager import manager as mgr_module

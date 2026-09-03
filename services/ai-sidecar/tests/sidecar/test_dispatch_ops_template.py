@@ -22,6 +22,11 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from test_skill_runtime_injection import (
+    FakeCapabilityResolver,
+    FakeEnvelope,
+    FakeResolvedConfig,
+)
 
 from src.infrastructure.ai.runtime_graph import _graph_build_system_prompt
 from src.infrastructure.ai.runtime_service import RuntimeService
@@ -34,12 +39,6 @@ from src.infrastructure.ai.templates import (
     template_allows_tool,
 )
 from src.infrastructure.ai.tools.tool_executor import WRITE_ACTION_TOOLS
-
-from test_skill_runtime_injection import (
-    FakeCapabilityResolver,
-    FakeEnvelope,
-    FakeResolvedConfig,
-)
 
 
 def _run(coro):
@@ -103,9 +102,7 @@ def test_proposal_path_write_actions_stay_visible() -> None:
 
 
 def test_situational_read_tools_pass_and_unknown_categories_fail_closed() -> None:
-    allows = lambda name, category: template_allows_tool(  # noqa: E731
-        DISPATCH_OPS_TEMPLATE, tool_name=name, tool_category=category
-    )
+    allows = lambda name, category: template_allows_tool(DISPATCH_OPS_TEMPLATE, tool_name=name, tool_category=category)
     assert allows("list_dispatch_orders", "dispatch_query") is True
     assert allows("flight_status_lookup", "flight") is True
     assert allows("count_flights_by_status", "query") is True
@@ -144,7 +141,9 @@ def test_graph_mirror_prompt_stays_in_sync() -> None:
 
 @dataclass
 class _FakeResult:
-    text: str = "当前有 3 个保障缺口。OR-Tools 候选方案 A/B 已生成，推荐方案 A（解释：……）。已提交高风险调整提案，等待审批。"
+    text: str = (
+        "当前有 3 个保障缺口。OR-Tools 候选方案 A/B 已生成，推荐方案 A（解释：……）。已提交高风险调整提案，等待审批。"
+    )
     model: str = "gpt-4o"
     usage: dict[str, Any] | None = None
 

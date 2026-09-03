@@ -24,6 +24,11 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from test_skill_runtime_injection import (
+    FakeCapabilityResolver,
+    FakeEnvelope,
+    FakeResolvedConfig,
+)
 
 from src.infrastructure.ai.config.config_normalizer import default_entity_document
 from src.infrastructure.ai.runtime_graph import _graph_build_system_prompt
@@ -35,12 +40,6 @@ from src.infrastructure.ai.templates import (
     template_allows_tool,
 )
 from src.infrastructure.ai.tools.tool_executor import WRITE_ACTION_TOOLS
-
-from test_skill_runtime_injection import (
-    FakeCapabilityResolver,
-    FakeEnvelope,
-    FakeResolvedConfig,
-)
 
 
 def _run(coro):
@@ -118,7 +117,7 @@ def test_graph_mirror_prompt_stays_in_sync() -> None:
 
 
 def test_template_allows_tool_semantics() -> None:
-    allows = lambda name, category=None: template_allows_tool(  # noqa: E731
+    allows = lambda name, category=None: template_allows_tool(
         QUERY_OPS_TEMPLATE, tool_name=name, tool_category=category
     )
 

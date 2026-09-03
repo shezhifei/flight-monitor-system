@@ -27,7 +27,6 @@ from src.application.services.ai.llm_eval_service import (
     RuntimeServiceEvalRunner,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fakes
 # ---------------------------------------------------------------------------
@@ -61,10 +60,10 @@ class _FakePool:
         pool = self
 
         class _Ctx:
-            async def __aenter__(self_inner):
+            async def __aenter__(self):
                 return _FakeConn(pool.store)
 
-            async def __aexit__(self_inner, *exc):
+            async def __aexit__(self, *exc):
                 return False
 
         return _Ctx()
@@ -100,14 +99,30 @@ def _result(**overrides: Any) -> EvalRunResult:
 def _dataset(tmp_path) -> str:
     path = tmp_path / "dataset.jsonl"
     lines = [
-        {"id": "query-delay-001", "task_type": "query_ops", "entity_id": "default",
-         "user_query": "今天延误超过30分钟的航班有哪些？",
-         "expected": {"allowed_tools": ["get_delayed_flights"], "forbidden_tools": ["sql_query_readonly"],
-                      "required_object_ids": [], "plan_required": False}},
-        {"id": "query-status-002", "task_type": "query_ops", "entity_id": "default",
-         "user_query": "航班CA1832现在的状态是什么？",
-         "expected": {"allowed_tools": ["ontology.lookup"], "forbidden_tools": ["sql_query_readonly"],
-                      "required_object_ids": [], "plan_required": False}},
+        {
+            "id": "query-delay-001",
+            "task_type": "query_ops",
+            "entity_id": "default",
+            "user_query": "今天延误超过30分钟的航班有哪些？",
+            "expected": {
+                "allowed_tools": ["get_delayed_flights"],
+                "forbidden_tools": ["sql_query_readonly"],
+                "required_object_ids": [],
+                "plan_required": False,
+            },
+        },
+        {
+            "id": "query-status-002",
+            "task_type": "query_ops",
+            "entity_id": "default",
+            "user_query": "航班CA1832现在的状态是什么？",
+            "expected": {
+                "allowed_tools": ["ontology.lookup"],
+                "forbidden_tools": ["sql_query_readonly"],
+                "required_object_ids": [],
+                "plan_required": False,
+            },
+        },
     ]
     path.write_text("\n".join(json.dumps(line, ensure_ascii=False) for line in lines), encoding="utf-8")
     return str(path)
@@ -188,9 +203,7 @@ async def test_missing_runner_fails_closed_instead_of_faking_success(tmp_path) -
 async def test_run_agent_on_query_never_returns_stub_success() -> None:
     service = EvaluationService(db_pool=_FakePool(), agent_runner=None)
     with pytest.raises(EvalRunnerUnavailableError):
-        await service._run_agent_on_query(
-            user_query="今天延误航班？", task_type="query_ops", entity_id="default"
-        )
+        await service._run_agent_on_query(user_query="今天延误航班？", task_type="query_ops", entity_id="default")
 
 
 # ---------------------------------------------------------------------------

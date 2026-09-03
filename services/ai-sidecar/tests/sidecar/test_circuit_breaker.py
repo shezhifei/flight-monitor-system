@@ -47,7 +47,7 @@ def test_half_open_recovery_probe_is_single_flight_across_threads() -> None:
         barrier.wait(timeout=5)
         try:
             return asyncio.run(breaker.execute(probe))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - test captures the raised error
             return exc
 
     with ThreadPoolExecutor(max_workers=worker_count) as executor:

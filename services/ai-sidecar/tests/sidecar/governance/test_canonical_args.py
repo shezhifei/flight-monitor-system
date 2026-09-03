@@ -26,10 +26,7 @@ LOCKED_INPUT = {
 
 def test_canonical_json_args_matches_python_reference() -> None:
     expected = (
-        '{"flight_id":"CA1234",'
-        '"metadata":{"airport":"PEK","gate":"B12"},'
-        '"status":"ON_TIME",'
-        '"tags":["priority","vip"]}'
+        '{"flight_id":"CA1234","metadata":{"airport":"PEK","gate":"B12"},"status":"ON_TIME","tags":["priority","vip"]}'
     )
     assert canonical_json_args(LOCKED_INPUT) == expected
     assert canonical_args_hash(LOCKED_INPUT) == LOCKED_VECTOR
@@ -40,9 +37,7 @@ def test_nested_object_keys_are_sorted_recursively() -> None:
         "outer": {"z": 1, "a": {"y": 2, "b": 3}},
         "first": "value",
     }
-    assert canonical_json_args(args) == (
-        '{"first":"value","outer":{"a":{"b":3,"y":2},"z":1}}'
-    )
+    assert canonical_json_args(args) == ('{"first":"value","outer":{"a":{"b":3,"y":2},"z":1}}')
 
 
 def test_array_order_is_preserved() -> None:
@@ -85,9 +80,7 @@ def test_idempotency_key_format_is_stable() -> None:
     assert key.startswith("run-1:0:call-1:flight_status_lookup:")
     suffix = key.rsplit(":", 1)[-1]
     assert len(suffix) == 64
-    assert suffix == hashlib.sha256(
-        canonical_json_args({"flight_id": "CA1234"}).encode("utf-8")
-    ).hexdigest()
+    assert suffix == hashlib.sha256(canonical_json_args({"flight_id": "CA1234"}).encode("utf-8")).hexdigest()
 
 
 def test_idempotency_key_is_stable_for_same_input() -> None:

@@ -37,10 +37,7 @@ from tests.sidecar.canonical_entrypoint import app
 
 @pytest.fixture(scope="module")
 def service_identity_environment() -> Any:
-    previous = {
-        key: os.environ.get(key)
-        for key in ("JWT_SECRET", "JWT_SECRET_KEY", "JWT_ALGORITHM", "JWT_PUBLIC_KEY")
-    }
+    previous = {key: os.environ.get(key) for key in ("JWT_SECRET", "JWT_SECRET_KEY", "JWT_ALGORITHM", "JWT_PUBLIC_KEY")}
     os.environ["JWT_SECRET"] = _TEST_JWT_SECRET
     os.environ.pop("JWT_SECRET_KEY", None)
     os.environ["JWT_ALGORITHM"] = "HS256"

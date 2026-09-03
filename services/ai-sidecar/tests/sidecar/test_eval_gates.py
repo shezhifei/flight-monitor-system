@@ -21,8 +21,8 @@ import pytest
 from src.application.services.ai.llm_eval_service.gates import (
     DEFAULT_THRESHOLDS,
     HARD_ROUND_CAPS,
-    GateSample,
     GateOutcome,
+    GateSample,
     average_rounds_outcome,
     evaluate_gates,
     plan_board_compliance_outcome,
@@ -61,10 +61,7 @@ def test_sample_tool_compliance_pass_and_fail() -> None:
     assert sample_tool_compliance(clean.called_tools, clean.allowed_tools, clean.forbidden_tools) == 1.0
 
     off_policy = _sample(called_tools=["ontology.lookup", "sql_query_readonly"])
-    assert (
-        sample_tool_compliance(off_policy.called_tools, off_policy.allowed_tools, off_policy.forbidden_tools)
-        == 0.0
-    )
+    assert sample_tool_compliance(off_policy.called_tools, off_policy.allowed_tools, off_policy.forbidden_tools) == 0.0
 
     unknown_tool = _sample(called_tools=["made_up_tool"])
     assert (
@@ -109,7 +106,7 @@ def test_sample_ungrounded_rate() -> None:
 
 def test_ungrounded_id_rate_outcome_exactly_at_threshold_passes() -> None:
     # 1 ungrounded id out of 20 → exactly 0.05, which passes a <= gate.
-    samples = [_sample(extracted_ids=["CA100%d" % i], evidence_object_ids=["CA100%d" % i]) for i in range(19)]
+    samples = [_sample(extracted_ids=[f"CA100{i}"], evidence_object_ids=[f"CA100{i}"]) for i in range(19)]
     samples.append(_sample(extracted_ids=["XX9999"], evidence_object_ids=["flight-1"]))
 
     outcome = ungrounded_id_rate_outcome(samples)

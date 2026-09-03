@@ -3,7 +3,7 @@
 Asserts:
 1. Initial instruction block shows only name + description
 2. Full content loaded on demand via load_skill tool
-3. Reference documents can be read via read_skill_reference tool  
+3. Reference documents can be read via read_skill_reference tool
 4. Tools are properly registered in capability resolver
 5. Scripts directory remains prohibited
 """
@@ -19,10 +19,10 @@ from src.infrastructure.ai.tools.skill_tools import (
     register_skills_tools,  # Import for registration test
 )
 
-
 # ============================================================================
 # Test Skill Metadata
 # ============================================================================
+
 
 class TestSkillMetadata:
     """Test skill metadata representation."""
@@ -34,7 +34,7 @@ class TestSkillMetadata:
             name="Flight Query",
             description="Query flight information and status",
         )
-        
+
         assert meta.skill_id == "test_skill"
         assert meta.name == "Flight Query"
         assert meta.description == "Query flight information and status"
@@ -46,9 +46,9 @@ class TestSkillMetadata:
             name="Flight Status Lookup",
             description="Get current status of any flight",
         )
-        
+
         short = meta.to_short_text()
-        
+
         assert "Flight Status Lookup" in short
         assert "Get current status of any flight" in short
 
@@ -56,6 +56,7 @@ class TestSkillMetadata:
 # ============================================================================
 # Test Skill Content
 # ============================================================================
+
 
 class TestSkillContent:
     """Test full skill content structure."""
@@ -67,9 +68,9 @@ class TestSkillContent:
             full_instructions="This is the main instruction set.",
             references=["Reference 1", "Reference 2"],
         )
-        
+
         total = content.total_length
-        
+
         assert isinstance(total, int)
         assert total > len("This is the main instruction set.")
 
@@ -78,6 +79,7 @@ class TestSkillContent:
 # Test Skill Progressive Discloser
 # ============================================================================
 
+
 class TestInitialInstructionBlock:
     """Test initial prompt generation."""
 
@@ -85,19 +87,19 @@ class TestInitialInstructionBlock:
     async def test_empty_list_returns_empty_string(self):
         """No skills returns empty block."""
         discloser = SkillProgressiveDiscloser()
-        
+
         result = discloser.generate_initial_instruction_block([])
-        
+
         assert result == ""
 
     @pytest.mark.asyncio
     async def test_unknown_skills_return_empty(self):
         """Unknown skills produce no output."""
         discloser = SkillProgressiveDiscloser()
-        
+
         # Unknown skill in cache returns empty
         result = discloser.generate_initial_instruction_block(["unknown_skill_123"])
-        
+
         # Should not crash, returns empty string
         assert result == ""
 
@@ -106,6 +108,7 @@ class TestInitialInstructionBlock:
 # Test Tool Loading
 # ============================================================================
 
+
 class TestLoadSkillTool:
     """Test load_skill functionality."""
 
@@ -113,23 +116,23 @@ class TestLoadSkillTool:
     async def test_load_nonexistent_skill_returns_none(self):
         """Loading unknown skill returns None gracefully."""
         discloser = SkillProgressiveDiscloser()
-        
+
         result = await discloser.load_full_skill("nonexistent")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_cache_prevents_duplicate_fetches(self):
         """Cached skills prevent redundant storage queries."""
         discloser = SkillProgressiveDiscloser()
-        
+
         # Mock: manually populate cache
         mock_content = SkillContent(
             skill_id="cached_test",
             full_instructions="Test content",
         )
         discloser._skills_cache["cached_test"] = mock_content
-        
+
         # Verify cache was pre-populated
         assert "cached_test" in discloser._skills_cache
 
@@ -138,15 +141,16 @@ class TestLoadSkillTool:
 # Test Tool Schemas
 # ============================================================================
 
+
 class TestToolSchemas:
     """Test that tools have correct schema structure."""
 
     def test_load_skill_schema_exists(self):
         """load_skill tool schema is valid."""
         schemas = SkillProgressiveDiscloser.SCHEMA_TOOLS
-        
+
         load_tool = next((t for t in schemas if t["function"]["name"] == "load_skill"), None)
-        
+
         assert load_tool is not None
         assert "parameters" in load_tool["function"]
         assert "skill_id" in load_tool["function"]["parameters"]["properties"]
@@ -167,15 +171,16 @@ class TestToolSchemas:
     async def test_schemas_included_in_registration(self):
         """Tools added to list when registered."""
         initial_tools = [{"existing": "tool"}]
-        
+
         result = await register_skills_tools(initial_tools.copy())
-        
+
         assert len(result) >= 3  # Original + 2 new tools
 
 
 # ============================================================================
 # Test Progressive Disclosure Pattern
 # ============================================================================
+
 
 class TestProgressiveDisclosurePattern:
     """Test the core progressive disclosure pattern."""
@@ -184,24 +189,24 @@ class TestProgressiveDisclosurePattern:
     async def test_metadata_before_content_pattern(self):
         """Verify pattern: metadata available before full content."""
         discloser = SkillProgressiveDiscloser()
-        
+
         # Can call get_metadata without loading full content
         meta = await discloser.get_skill_metadata("placeholder")
-        
+
         # Would return None for placeholder, but pattern holds
-        assert isinstance(meta, type(None)) or isinstance(meta, SkillMetadata)
+        assert isinstance(meta, (type(None), SkillMetadata))
 
     @pytest.mark.asyncio
     async def test_on_demand_loading_only_when_needed(self):
         """Full content only loaded when explicitly requested."""
         discloser = SkillProgressiveDiscloser()
-        
+
         # Start with empty cache
         assert len(discloser._skills_cache) == 0
-        
+
         # Only load when needed
         result = await discloser.load_full_skill("needed_skill")
-        
+
         # Now cache should have it (or be empty if not found)
         # Either way, loading happened once
 
@@ -209,6 +214,7 @@ class TestProgressiveDisclosurePattern:
 # ============================================================================
 # Test Constraint: No Script Execution
 # ============================================================================
+
 
 class TestScriptProhibition:
     """Verify scripts/ directory remains prohibited."""
@@ -238,19 +244,20 @@ class TestScriptProhibition:
             skill_id="test",
             full_instructions="print('hello')",  # Would be code if executed
         )
-        
+
         # If this were executed:
         # - It would raise error or modify state
         # - But we're just storing it as string
         assert isinstance(content.full_instructions, str)
         assert content.full_instructions == "print('hello')"
-        
+
         # No execution happens - it's data
 
 
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestSkillToolIntegration:
     """End-to-end integration tests."""
@@ -259,15 +266,15 @@ class TestSkillToolIntegration:
     async def test_full_workflow_placeholder(self):
         """Test placeholder workflow."""
         discloser = SkillProgressiveDiscloser()
-        
+
         # 1. Generate initial block (would show in prompt)
         initial = discloser.generate_initial_instruction_block([])
-        
+
         # 2. User requests more info
         loaded = await discloser.load_full_skill("some_skill")
-        
+
         # 3. Result is data, not execution
-        assert isinstance(loaded, type(None)) or isinstance(loaded, SkillContent)
+        assert isinstance(loaded, (type(None), SkillContent))
 
 
 # ============================================================================
@@ -515,9 +522,7 @@ class TestCapabilityResolverSkillSurface:
 
     @pytest.mark.asyncio
     async def test_skill_tools_respect_denied_tools_acl(self):
-        bindings = [
-            {"enabled": True, "binding_id": "b1", "skill_slug": "flight_query", "version": "1.2.0"}
-        ]
+        bindings = [{"enabled": True, "binding_id": "b1", "skill_slug": "flight_query", "version": "1.2.0"}]
         resolver = self._resolver(
             {
                 "skills": {"enabled": True},
@@ -535,6 +540,7 @@ class TestCapabilityResolverSkillSurface:
 # ============================================================================
 # Test Skill Tool Routing in the Runner (C3 follow-up)
 # ============================================================================
+
 
 class TestSkillToolRunnerRouting:
     """load_skill / read_skill_reference execute in-process, bypassing the executor."""

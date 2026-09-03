@@ -10,6 +10,7 @@ Task A4).
 from __future__ import annotations
 
 from src.infrastructure.ai.tools.tool_executor import WRITE_ACTION_TOOLS
+
 from .base import TaskTemplate
 
 QUERY_OPS_TEMPLATE = TaskTemplate(
@@ -29,10 +30,10 @@ QUERY_OPS_TEMPLATE = TaskTemplate(
         "  - Flight status evidence: max_age=30s\n"
         "  - Current stand/gate assignment evidence: max_age=10s\n"
         "  - Dispatch order evidence: max_age=60s\n"
-        "- **Reject stale data**: If evidence exceeds its freshness threshold, report \"数据过期，需要重新查询\" and retry the tool.\n"
+        '- **Reject stale data**: If evidence exceeds its freshness threshold, report "数据过期，需要重新查询" and retry the tool.\n'
         "- **Confidence scoring (P1-1-C)**:\n"
-        "  - If confidence < 0.7, return \"uncertain, need human review\" marker in answer.\n"
-        "  - List missing fields clearly: \"Missing required fields: {field1}, {field2}\".\n"
+        '  - If confidence < 0.7, return "uncertain, need human review" marker in answer.\n'
+        '  - List missing fields clearly: "Missing required fields: {field1}, {field2}".\n'
         "## Shadow Mode Constraints\n"
         "- Shadow runs are strictly read-only; never propose or execute write actions.\n"
         "- Answer within a linear tool chain (fanout depth 0); do not branch into parallel investigations.\n"

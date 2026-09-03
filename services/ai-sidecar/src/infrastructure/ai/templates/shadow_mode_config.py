@@ -32,11 +32,11 @@ REQUIRE_EVIDENCE_COVERAGE: bool = True
 #: production tool names; ``ontology.lookup`` dispatches on the entity
 #: namespace of its ``entity_id`` argument (``<prefix>:<object_id>``).
 TOOL_FRESHNESS_LIMITS: dict[str, int] = {
-    "ontology.lookup.flight": 30,   # flight status changes rapidly
-    "ontology.lookup.stand": 10,    # stand assignments are the most dynamic
+    "ontology.lookup.flight": 30,  # flight status changes rapidly
+    "ontology.lookup.stand": 10,  # stand assignments are the most dynamic
     "ontology.lookup.dispatch": 60,  # dispatch read-only
     "ontology.lookup.anomaly": 60,
-    "ontology.lookup": 30,           # fallback for unrecognized namespaces
+    "ontology.lookup": 30,  # fallback for unrecognized namespaces
     "flight_status_lookup": 30,
     "get_delayed_flights": 30,
     "dispatch.get_status": 60,
@@ -47,9 +47,7 @@ TOOL_FRESHNESS_LIMITS: dict[str, int] = {
 }
 
 
-def resolve_freshness_limit(
-    tool_name: str, tool_args: dict[str, Any] | None = None
-) -> int | None:
+def resolve_freshness_limit(tool_name: str, tool_args: dict[str, Any] | None = None) -> int | None:
     """Resolve the max evidence age for a tool call.
 
     Returns ``None`` for tools outside the governed set (plan / skill /
@@ -64,6 +62,7 @@ def resolve_freshness_limit(
             return TOOL_FRESHNESS_LIMITS[namespaced]
         return TOOL_FRESHNESS_LIMITS["ontology.lookup"]
     return TOOL_FRESHNESS_LIMITS.get(tool_name)
+
 
 HIGH_RISK_KEYWORDS: tuple[str, ...] = (
     "取消航班",

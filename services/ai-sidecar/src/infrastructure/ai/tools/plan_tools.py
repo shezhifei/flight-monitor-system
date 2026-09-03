@@ -13,7 +13,6 @@ Implementation focuses on sidecar tools; frontend integration is separate PR.
 
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -86,7 +85,7 @@ class PlanBoardTools:
     """
 
     # Tool schemas for register_tools()
-    UPDATE_PLAN_TOOL = {
+    UPDATE_PLAN_TOOL = {  # noqa: RUF012
         "type": "function",
         "function": {
             "name": "update_plan",
@@ -128,7 +127,7 @@ class PlanBoardTools:
         },
     }
 
-    COMPLETE_STEP_TOOL = {
+    COMPLETE_STEP_TOOL = {  # noqa: RUF012
         "type": "function",
         "function": {
             "name": "complete_plan_step",
@@ -156,7 +155,7 @@ class PlanBoardTools:
         },
     }
 
-    LIST_STEPS_TOOL = {
+    LIST_STEPS_TOOL = {  # noqa: RUF012
         "type": "function",
         "function": {
             "name": "list_plan_steps",
@@ -171,7 +170,7 @@ class PlanBoardTools:
         },
     }
 
-    SCHEMA_TOOLS = [UPDATE_PLAN_TOOL, COMPLETE_STEP_TOOL, LIST_STEPS_TOOL]
+    SCHEMA_TOOLS = [UPDATE_PLAN_TOOL, COMPLETE_STEP_TOOL, LIST_STEPS_TOOL]  # noqa: RUF012
 
     def __init__(self):
         # Legacy in-memory fallback, used only when no WorkingMemory workspace
@@ -452,8 +451,8 @@ async def register_plan_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any
 
 __all__ = [
     "PLAN_TOOL_NAMES",
-    "PlanBoardTools",
     "ExecutionPlan",
+    "PlanBoardTools",
     "PlanStep",
     "execute_plan_tool",
     "get_plan_board_tools",

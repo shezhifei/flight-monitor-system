@@ -105,7 +105,7 @@ async def _default_start_run(envelope: Any) -> None:
         pass
 
 
-def _default_resume_run_handler(pool: Any | None) -> "CommandHandler":
+def _default_resume_run_handler(pool: Any | None) -> CommandHandler:
     """Build the default ``resume_run`` handler (Task D2).
 
     Loads the checkpoint from ``ai_run_checkpoints`` via the shared pool,
@@ -360,10 +360,7 @@ async def build_mq_runtime_components(
                 tool_command_waiter=tool_command_waiter,
                 run_starter=_build_overrides.run_starter or _default_start_run,
                 tool_retry_handler=_build_overrides.tool_retry_handler,
-                run_resume_handler=(
-                    _build_overrides.run_resume_handler
-                    or _default_resume_run_handler(resolved_pool)
-                ),
+                run_resume_handler=(_build_overrides.run_resume_handler or _default_resume_run_handler(resolved_pool)),
                 heartbeat_interval_seconds=_resolve_heartbeat_interval(),
                 lease_ttl_seconds=DEFAULT_LEASE_TTL_SECONDS,
             )

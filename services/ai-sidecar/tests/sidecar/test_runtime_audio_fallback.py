@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pytest
 
@@ -21,7 +22,7 @@ from src.infrastructure.ai.runtime_service import RuntimeService
 class _FakeAudioClient:
     """Records construction args and returns a canned transcript."""
 
-    last_kwargs: dict = {}
+    last_kwargs: ClassVar[dict] = {}
 
     def __init__(self, **kwargs):
         type(self).last_kwargs = kwargs

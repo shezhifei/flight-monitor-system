@@ -72,7 +72,7 @@ class SkillProgressiveDiscloser:
     """
 
     # Tool schemas for register_skills_tools()
-    LOAD_SKILL_TOOL = {
+    LOAD_SKILL_TOOL = {  # noqa: RUF012
         "type": "function",
         "function": {
             "name": "load_skill",
@@ -94,7 +94,7 @@ class SkillProgressiveDiscloser:
         },
     }
 
-    READ_SKILL_REFERENCE_TOOL = {
+    READ_SKILL_REFERENCE_TOOL = {  # noqa: RUF012
         "type": "function",
         "function": {
             "name": "read_skill_reference",
@@ -121,7 +121,7 @@ class SkillProgressiveDiscloser:
         },
     }
 
-    SCHEMA_TOOLS = [LOAD_SKILL_TOOL, READ_SKILL_REFERENCE_TOOL]
+    SCHEMA_TOOLS = [LOAD_SKILL_TOOL, READ_SKILL_REFERENCE_TOOL]  # noqa: RUF012
 
     def __init__(self, skill_loader: Any | None = None):
         self._skill_loader = skill_loader

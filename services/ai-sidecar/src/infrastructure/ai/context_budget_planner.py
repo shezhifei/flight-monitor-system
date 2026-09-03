@@ -307,11 +307,7 @@ class ContextBudgetPlanner:
         ID 汇总成一条 system 消息插在 system 消息之后，保证压缩后
         航班号 / flight_id / 工单号 / anomaly id / proposal id 仍在 messages。
         """
-        visible_text = "\n".join(
-            msg.get("content", "")
-            for msg in messages
-            if isinstance(msg.get("content"), str)
-        )
+        visible_text = "\n".join(msg.get("content", "") for msg in messages if isinstance(msg.get("content"), str))
         missing = [pid for pid in dict.fromkeys(protected_ids) if pid and pid not in visible_text]
         if not missing:
             return messages

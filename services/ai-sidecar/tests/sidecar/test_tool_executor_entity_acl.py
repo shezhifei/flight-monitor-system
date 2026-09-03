@@ -6,11 +6,12 @@ Tests verify that:
 3. The is_tool_allowed function is shared as a single authority
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.infrastructure.ai.capability_resolver import is_tool_allowed
-from src.infrastructure.ai.tools.tool_executor import ToolExecutor, ToolExecutionResult
+from src.infrastructure.ai.tools.tool_executor import ToolExecutor
 
 
 class TestIsToolAllowedSingleAuthority:
@@ -172,24 +173,28 @@ class TestToolExecutorEntityAclEnforcement:
     async def test_mcp_execution_denies_category_not_allowed_by_binding(self):
         """Execution-time MCP ACL must enforce allowed_tool_categories, not only names."""
         mock_repo = MagicMock()
-        mock_repo.get_capabilities = AsyncMock(return_value={
-            "tools": [
+        mock_repo.get_capabilities = AsyncMock(
+            return_value={
+                "tools": [
+                    {
+                        "name": "write_action",
+                        "category": "write",
+                        "annotations": {"destructive": False},
+                    }
+                ]
+            }
+        )
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[
                 {
-                    "name": "write_action",
-                    "category": "write",
-                    "annotations": {"destructive": False},
+                    "server_id": "srv-1",
+                    "enabled": True,
+                    "allowed_tools": None,
+                    "denied_tools": [],
+                    "allowed_tool_categories": ["read"],
                 }
             ]
-        })
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {
-                "server_id": "srv-1",
-                "enabled": True,
-                "allowed_tools": None,
-                "denied_tools": [],
-                "allowed_tool_categories": ["read"],
-            }
-        ])
+        )
         executor = ToolExecutor(mcp_repo=mock_repo, mcp_client_manager=MagicMock())
         envelope = MagicMock()
         envelope.entity_id = "entity-1"
@@ -210,23 +215,27 @@ class TestToolExecutorEntityAclEnforcement:
     async def test_mcp_execution_fails_closed_on_invalid_binding_acl_json(self):
         """Invalid security-sensitive binding JSON must not become an empty allowlist."""
         mock_repo = MagicMock()
-        mock_repo.get_capabilities = AsyncMock(return_value={
-            "tools": [
+        mock_repo.get_capabilities = AsyncMock(
+            return_value={
+                "tools": [
+                    {
+                        "name": "dangerous_tool",
+                        "category": "write",
+                        "annotations": {"destructive": False},
+                    }
+                ]
+            }
+        )
+        mock_repo.find_bindings_by_entity = AsyncMock(
+            return_value=[
                 {
-                    "name": "dangerous_tool",
-                    "category": "write",
-                    "annotations": {"destructive": False},
+                    "server_id": "srv-1",
+                    "enabled": True,
+                    "allowed_tools": "not-json",
+                    "denied_tools": [],
                 }
             ]
-        })
-        mock_repo.find_bindings_by_entity = AsyncMock(return_value=[
-            {
-                "server_id": "srv-1",
-                "enabled": True,
-                "allowed_tools": "not-json",
-                "denied_tools": [],
-            }
-        ])
+        )
         executor = ToolExecutor(mcp_repo=mock_repo, mcp_client_manager=MagicMock())
         envelope = MagicMock()
         envelope.entity_id = "entity-1"

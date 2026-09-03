@@ -1,5 +1,5 @@
 """Verify that wildcard re-export compat modules have been removed."""
-import os
+
 from pathlib import Path
 
 SIDECAR_ROOT = Path(__file__).resolve().parents[2] / "src/application/services/ai"

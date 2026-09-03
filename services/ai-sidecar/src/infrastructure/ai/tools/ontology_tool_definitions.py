@@ -55,8 +55,7 @@ ONTOLOGY_EXPLAIN_CONSTRAINTS = BaseToolDefinition(
         "proposed_change": {
             "type": "object",
             "description": (
-                "Proposed change, e.g. {action: StandOccupation.allocate, stand_code: A12, "
-                "time_window: {start, end}}"
+                "Proposed change, e.g. {action: StandOccupation.allocate, stand_code: A12, time_window: {start, end}}"
             ),
         },
     },
@@ -76,8 +75,7 @@ ONTOLOGY_PROPOSE_ACTION = BaseToolDefinition(
         "action_name": {
             "type": "string",
             "description": (
-                "Registered action name from envelope.allowed_actions, "
-                "e.g. StandOccupation.allocate or Flight.add_note"
+                "Registered action name from envelope.allowed_actions, e.g. StandOccupation.allocate or Flight.add_note"
             ),
         },
         "parameters": {

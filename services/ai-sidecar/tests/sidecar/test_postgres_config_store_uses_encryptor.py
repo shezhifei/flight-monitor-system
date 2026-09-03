@@ -1,5 +1,7 @@
 """验证 PostgresAIConfigStore 使用 ConfigEncryptor 而非内联加密逻辑。"""
+
 import inspect
+
 from src.infrastructure.ai.postgres_config_store import PostgresAIConfigStore
 
 

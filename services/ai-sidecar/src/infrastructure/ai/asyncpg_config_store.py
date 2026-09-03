@@ -124,9 +124,7 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         await self._ensure_seeded()
         try:
             async with self._pool.acquire() as conn:
-                rows = await conn.fetch(
-                    "SELECT id, config, config_revision FROM ai_entities WHERE deleted_at IS NULL"
-                )
+                rows = await conn.fetch("SELECT id, config, config_revision FROM ai_entities WHERE deleted_at IS NULL")
         except POSTGRES_EXCEPTIONS as exc:
             logger.error("AsyncpgAIConfigStore.get_all failed: %s", exc)
             raise

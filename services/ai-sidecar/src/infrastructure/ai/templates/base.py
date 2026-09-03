@@ -104,7 +104,11 @@ def resolve_budget_with_hard_cap(
 
     # Entity config can raise up to its own hard cap, then we intersect with the template's hard cap
     # If entity value is lower than template default, use the template default (never go below)
-    candidate = max(entity_max_rounds or effective_default, effective_default) if entity_max_rounds is not None else effective_default
+    candidate = (
+        max(entity_max_rounds or effective_default, effective_default)
+        if entity_max_rounds is not None
+        else effective_default
+    )
     intersected = min(candidate, effective_hard_cap)
 
     # Final clamp with production hard cap

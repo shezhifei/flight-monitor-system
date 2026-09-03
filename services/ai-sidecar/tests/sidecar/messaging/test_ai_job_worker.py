@@ -11,7 +11,6 @@ Tests cover:
 from __future__ import annotations
 
 import asyncio
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -92,6 +91,7 @@ class TestAiJobWorkerConfig:
     def test_lease_path_is_classvar(self) -> None:
         """LEASE_PATH is a ClassVar, not an instance field."""
         import dataclasses
+
         fields = {f.name for f in dataclasses.fields(AiJobWorkerConfig)}
         assert "LEASE_PATH" not in fields
 
@@ -133,25 +133,23 @@ class TestBootstrapDegradeClosed:
         monkeypatch.setenv("JWT_SECRET", TEST_SECRET)
         assert build_ai_job_worker_from_env() is None
 
-    def test_returns_none_when_jwt_secret_missing(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_returns_none_when_jwt_secret_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("AI_INTERNAL_API_URL", "http://localhost:8080")
         for key in ("JWT_SECRET", "JWT_SECRET_KEY"):
             monkeypatch.delenv(key, raising=False)
         # Also need to clear the lru_cache on get_jwt_secret
         from src.infrastructure.ai.service_identity import get_jwt_secret
+
         get_jwt_secret.cache_clear()
         assert build_ai_job_worker_from_env() is None
         get_jwt_secret.cache_clear()
 
-    def test_returns_worker_when_configured(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_returns_worker_when_configured(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("AI_INTERNAL_API_URL", "http://localhost:8080")
         monkeypatch.setenv("JWT_SECRET", TEST_SECRET)
         monkeypatch.setenv("WORKER_ID", "test-worker")
         from src.infrastructure.ai.service_identity import get_jwt_secret
+
         get_jwt_secret.cache_clear()
         worker = build_ai_job_worker_from_env()
         assert worker is not None
@@ -159,13 +157,12 @@ class TestBootstrapDegradeClosed:
         assert worker.config.base_url == "http://localhost:8080"
         get_jwt_secret.cache_clear()
 
-    def test_singleton_caches_worker(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_singleton_caches_worker(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("AI_INTERNAL_API_URL", "http://localhost:8080")
         monkeypatch.setenv("JWT_SECRET", TEST_SECRET)
         monkeypatch.setenv("WORKER_ID", "test-worker")
         from src.infrastructure.ai.service_identity import get_jwt_secret
+
         get_jwt_secret.cache_clear()
         worker1 = build_ai_job_worker_from_env()
         worker2 = build_ai_job_worker_from_env()
@@ -177,48 +174,36 @@ class TestWorkerRequestHandling:
     """Tests for worker HTTP request and error handling logic."""
 
     @pytest.fixture()
-    def worker(
-        self, config: AiJobWorkerConfig, issuer: ServiceIdentityIssuer
-    ) -> AiJobWorker:
+    def worker(self, config: AiJobWorkerConfig, issuer: ServiceIdentityIssuer) -> AiJobWorker:
         return AiJobWorker(config, issuer)
 
     @pytest.mark.asyncio
-    async def test_complete_run_handles_409_as_success(
-        self, worker: AiJobWorker
-    ) -> None:
+    async def test_complete_run_handles_409_as_success(self, worker: AiJobWorker) -> None:
         """409 from complete_run means run is already terminal — treat as success."""
         mock_response = MagicMock()
         mock_response.status_code = 409
         mock_response.text = "already terminal"
         mock_response.content = b'{"error": "already terminal"}'
 
-        with patch.object(
-            worker._client, "request", new=AsyncMock(return_value=mock_response)
-        ):
+        with patch.object(worker._client, "request", new=AsyncMock(return_value=mock_response)):
             # Should not raise — 409 is handled internally
             await worker._complete_run("run-1", {"answer": "test"})
 
     @pytest.mark.asyncio
-    async def test_fail_run_handles_409_as_success(
-        self, worker: AiJobWorker
-    ) -> None:
+    async def test_fail_run_handles_409_as_success(self, worker: AiJobWorker) -> None:
         """409 from fail_run means run is already terminal — treat as success."""
         mock_response = MagicMock()
         mock_response.status_code = 409
         mock_response.text = "already terminal"
         mock_response.content = b'{"error": "already terminal"}'
 
-        with patch.object(
-            worker._client, "request", new=AsyncMock(return_value=mock_response)
-        ):
+        with patch.object(worker._client, "request", new=AsyncMock(return_value=mock_response)):
             await worker._fail_run("run-1", "ERROR", "test error")
 
     @pytest.mark.asyncio
     async def test_forward_event_swallows_errors(self, worker: AiJobWorker) -> None:
         """Event forwarding failures should not propagate (best-effort)."""
-        with patch.object(
-            worker, "_request", new=AsyncMock(side_effect=AiJobWorkerError("HTTP_500"))
-        ):
+        with patch.object(worker, "_request", new=AsyncMock(side_effect=AiJobWorkerError("HTTP_500"))):
             # Should not raise
             await worker._forward_event("run-1", "progress", {"step": "test"})
 
@@ -230,9 +215,7 @@ class TestWorkerRequestHandling:
         mock_response.content = b'{"success": true, "data": null}'
         mock_response.json.return_value = {"success": True, "data": None}
 
-        with patch.object(
-            worker._client, "request", new=AsyncMock(return_value=mock_response)
-        ):
+        with patch.object(worker._client, "request", new=AsyncMock(return_value=mock_response)):
             result = await worker._lease_one_job()
             assert result is None
 
@@ -244,9 +227,7 @@ class TestWorkerRequestHandling:
         mock_response.content = b'{"success": true, "data": {"job_id": "job-1"}}'
         mock_response.json.return_value = {"success": True, "data": job}
 
-        with patch.object(
-            worker._client, "request", new=AsyncMock(return_value=mock_response)
-        ):
+        with patch.object(worker._client, "request", new=AsyncMock(return_value=mock_response)):
             result = await worker._lease_one_job()
             assert result == job
 
@@ -257,9 +238,7 @@ class TestWorkerRequestHandling:
         shutdown.set()  # Pre-set shutdown
 
         # The loop should exit immediately without leasing
-        with patch.object(
-            worker, "_lease_one_job", new=AsyncMock()
-        ) as _mock_lease:
+        with patch.object(worker, "_lease_one_job", new=AsyncMock()) as _mock_lease:
             await worker.run(shutdown)
             # _lease_one_job should never be called because shutdown is already set
             _mock_lease.assert_not_called()

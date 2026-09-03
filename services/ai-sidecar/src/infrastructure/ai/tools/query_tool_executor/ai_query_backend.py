@@ -140,10 +140,7 @@ class AiQueryFlightRepository:
         scope: QueryScope = "active",
     ) -> dict[str, int]:
         where, params = self._build_where(criteria)
-        sql = (
-            f"SELECT status, COUNT(*)::int AS count FROM ai_query.v_flights {where} "
-            "GROUP BY status ORDER BY status"
-        )
+        sql = f"SELECT status, COUNT(*)::int AS count FROM ai_query.v_flights {where} GROUP BY status ORDER BY status"
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
         return {str(row["status"] or "unknown"): int(row["count"]) for row in rows}
@@ -230,9 +227,7 @@ class AiQueryFlightRepository:
         )
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
-        return [
-            {"bucket": _iso(row["bucket"]), "count": int(row["count"])} for row in rows
-        ]
+        return [{"bucket": _iso(row["bucket"]), "count": int(row["count"])} for row in rows]
 
 
 class AiQueryReadOnlyBackend:
@@ -258,9 +253,7 @@ class AiQueryReadOnlyBackend:
 
         result = await self._query_executor.execute_tool_call("read-only", tool_name, arguments)
         if result.status != ToolExecutionStatus.SUCCESS:
-            raise RuntimeError(
-                f"{tool_name} failed: {result.error_message or result.message or result.status}"
-            )
+            raise RuntimeError(f"{tool_name} failed: {result.error_message or result.message or result.status}")
         payload = dict(result.result or {})
         # Task H1: freshness is a runtime invariant — stamp the read time so
         # the PostToolUse freshness hook can verify evidence age.

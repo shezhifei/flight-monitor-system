@@ -47,8 +47,7 @@ def _conversation_with_ids(turns: int = 20) -> list[dict]:
             "content": (
                 "排查航班 F1234 与 F5678 的机位冲突，国内航班 CA1832 与四位数航班 8899，"
                 "flight_id 为 3f2a9c1e-8b4d-4a67-9e2f-1c0d5b7a8e91，"
-                "关联异常 ANOMALY-GT123，待审批提案 PROP-AB12，工单 ORDER-77。"
-                + "背景细节。" * 40
+                "关联异常 ANOMALY-GT123，待审批提案 PROP-AB12，工单 ORDER-77。" + "背景细节。" * 40
             ),
         }
     )
@@ -165,9 +164,12 @@ class TestRuntimeBudgetConsumesProtectedIds:
         rs = RuntimeService(context_budget_planner=ContextBudgetPlanner())
         raw = _conversation_with_ids()
         messages = [
-            Message(role=MessageRole.SYSTEM if m["role"] == "system" else (
-                MessageRole.USER if m["role"] == "user" else MessageRole.ASSISTANT
-            ), content=m["content"])
+            Message(
+                role=MessageRole.SYSTEM
+                if m["role"] == "system"
+                else (MessageRole.USER if m["role"] == "user" else MessageRole.ASSISTANT),
+                content=m["content"],
+            )
             for m in raw
         ]
 
@@ -183,9 +185,7 @@ class TestRuntimeBudgetConsumesProtectedIds:
         )
 
         assert payload is not None
-        text = "\n".join(
-            m.content for m in new_messages if isinstance(m.content, str)
-        )
+        text = "\n".join(m.content for m in new_messages if isinstance(m.content, str))
         for expected in _CRITICAL_IDS:
             assert expected in text, f"{expected} lost through runtime compression"
 
@@ -194,9 +194,12 @@ class TestRuntimeBudgetConsumesProtectedIds:
         rs = RuntimeService(context_budget_planner=ContextBudgetPlanner())
         raw = _conversation_with_ids()
         messages = [
-            Message(role=MessageRole.SYSTEM if m["role"] == "system" else (
-                MessageRole.USER if m["role"] == "user" else MessageRole.ASSISTANT
-            ), content=m["content"])
+            Message(
+                role=MessageRole.SYSTEM
+                if m["role"] == "system"
+                else (MessageRole.USER if m["role"] == "user" else MessageRole.ASSISTANT),
+                content=m["content"],
+            )
             for m in raw
         ]
 
@@ -211,8 +214,6 @@ class TestRuntimeBudgetConsumesProtectedIds:
         )
 
         assert payload is not None
-        text = "\n".join(
-            m.content for m in new_messages if isinstance(m.content, str)
-        )
+        text = "\n".join(m.content for m in new_messages if isinstance(m.content, str))
         for expected in _CRITICAL_IDS:
             assert expected in text

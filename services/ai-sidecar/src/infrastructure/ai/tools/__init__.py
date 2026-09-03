@@ -221,11 +221,11 @@ __all__ = [
     "get_flight_tools",
     "get_pending_action_store",
     "get_query_tools",
-    "is_ontology_tool",
     "get_report_tools",
     "get_sql_query_tools",
     "get_stand_tools",
     "get_team_tools",
     "get_tool_registry",
+    "is_ontology_tool",
     "set_pending_action_store",
 ]

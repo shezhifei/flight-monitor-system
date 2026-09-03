@@ -300,9 +300,7 @@ async def validate_entity_capabilities(request: Request, entity_id: str) -> JSON
             )
     except Exception as exc:
         logger.error("capability_validation_resolution_failed", exc_info=exc)
-        errors.append(
-            {"code": "CAPABILITY_RESOLUTION_FAILED", "message": "Resolution error", "severity": "error"}
-        )
+        errors.append({"code": "CAPABILITY_RESOLUTION_FAILED", "message": "Resolution error", "severity": "error"})
 
     return _ok({"valid": len(errors) == 0 or all(e.get("severity") == "warning" for e in errors), "errors": errors})
 

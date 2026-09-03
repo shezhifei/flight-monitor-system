@@ -57,11 +57,7 @@ async def db_pool():
     """
     import asyncpg
 
-    url = (
-        os.environ.get("TEST_DATABASE_URL")
-        or os.environ.get("DATABASE_URL")
-        or _default_test_database_url()
-    )
+    url = os.environ.get("TEST_DATABASE_URL") or os.environ.get("DATABASE_URL") or _default_test_database_url()
     try:
         pool = await asyncpg.create_pool(url, min_size=1, max_size=4)
     except Exception as exc:  # noqa: BLE001 - DB may be absent in CI
@@ -73,10 +69,7 @@ async def db_pool():
             if exists is None:
                 migration = _SIDECAR_MIGRATIONS_DIR / "123_ai_eval_jobs_persistent.sql"
                 await conn.execute(migration.read_text(encoding="utf-8"))
-            await conn.execute(
-                "TRUNCATE ai_eval_jobs, ai_eval_spans, ai_eval_metrics_summary "
-                "RESTART IDENTITY CASCADE"
-            )
+            await conn.execute("TRUNCATE ai_eval_jobs, ai_eval_spans, ai_eval_metrics_summary RESTART IDENTITY CASCADE")
         yield pool
     finally:
         await pool.close()

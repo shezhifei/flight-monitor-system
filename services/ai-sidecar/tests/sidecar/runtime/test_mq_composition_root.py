@@ -45,7 +45,6 @@ from src.infrastructure.ai.tools.mq_gate import (
     _read_requester,
 )
 from src.infrastructure.ai.tools.tool_executor import ToolExecutor
-
 from tests.sidecar.tool_executor_test_support import FakeReadOnlyBackend
 
 # ---------------------------------------------------------------------------

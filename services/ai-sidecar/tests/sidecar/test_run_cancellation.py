@@ -18,6 +18,11 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from test_skill_runtime_injection import (
+    FakeCapabilityResolver,
+    FakeEnvelope,
+    FakeResolvedConfig,
+)
 
 from src.infrastructure.ai.llm_stream_runner import (
     LLMStreamRunner,
@@ -25,12 +30,6 @@ from src.infrastructure.ai.llm_stream_runner import (
 )
 from src.infrastructure.ai.openai_client import Message
 from src.infrastructure.ai.runtime_service import RuntimeService
-
-from test_skill_runtime_injection import (
-    FakeCapabilityResolver,
-    FakeEnvelope,
-    FakeResolvedConfig,
-)
 
 
 def _mock_executor():
@@ -61,9 +60,7 @@ class TestRoundBoundaryStop:
             llm_calls[0] += 1
             run_result = kwargs.get("result")
             if run_result is not None:
-                run_result.tool_calls = [
-                    {"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}
-                ]
+                run_result.tool_calls = [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}]
                 run_result.text = ""
             yield StreamEvent(type="tool_call", tool_call={})
 
@@ -96,7 +93,7 @@ class TestRoundBoundaryStop:
 
         async def mock_impl(*args, **kwargs):  # pragma: no cover - must not run
             raise AssertionError("LLM must not be called for a cancelled run")
-            yield  # noqa: E501 - keep this an async generator
+            yield
 
         runner._stream_chat_impl = mock_impl
 

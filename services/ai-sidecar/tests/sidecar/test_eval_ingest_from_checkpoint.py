@@ -26,7 +26,6 @@ from src.application.services.ai.llm_eval_service.service import (
     build_eval_result_from_checkpoints,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -154,8 +153,13 @@ def test_completion_marks_success_and_answer_ids_extracted() -> None:
 def test_blocked_results_count_as_unauthorized_attempts() -> None:
     row = _after_tool_row(
         results=[
-            {"tool_call_id": "tc-1", "tool_name": "sql_query_readonly", "error": "blocked",
-             "blocked_by": "template", "rule": "QueryOpsDenySql"},
+            {
+                "tool_call_id": "tc-1",
+                "tool_name": "sql_query_readonly",
+                "error": "blocked",
+                "blocked_by": "template",
+                "rule": "QueryOpsDenySql",
+            },
             {"tool_call_id": "tc-2", "tool_name": "ontology.lookup", "result": {}},
         ],
     )
@@ -207,10 +211,10 @@ class _LedgerPool:
         pool = self
 
         class _Ctx:
-            async def __aenter__(self_inner):
+            async def __aenter__(self):
                 return _LedgerConn(pool.rows, pool.queries)
 
-            async def __aexit__(self_inner, *exc):
+            async def __aexit__(self, *exc):
                 return False
 
         return _Ctx()

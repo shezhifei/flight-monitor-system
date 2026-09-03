@@ -63,9 +63,7 @@ def test_templates_actually_mention_ontology_tools() -> None:
         "ontology.lookup",
         "ontology.explain_constraints",
     }
-    assert "ontology.propose_action" in _advertised_tool_names(
-        ANOMALY_OPS_TEMPLATE.system_prompt_addendum
-    )
+    assert "ontology.propose_action" in _advertised_tool_names(ANOMALY_OPS_TEMPLATE.system_prompt_addendum)
     assert _advertised_tool_names(DISPATCH_OPS_TEMPLATE.system_prompt_addendum) >= {
         "ontology.lookup",
         "ontology.explain_constraints",

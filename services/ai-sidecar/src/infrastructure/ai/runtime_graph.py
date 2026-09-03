@@ -474,9 +474,7 @@ class RuntimeGraphRunner:
         plus a fallback reason string.
         """
         started = time.monotonic()
-        intent = classify_intent(
-            envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
-        )
+        intent = classify_intent(envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None))
 
         if not _LANGGRAPH_AVAILABLE or not self.is_enabled():
             reason = "langgraph not installed" if not _LANGGRAPH_AVAILABLE else "AI_RUNTIME_USE_LANGGRAPH not enabled"
@@ -582,9 +580,7 @@ class RuntimeGraphRunner:
         started: float,
     ) -> tuple[RuntimeGraphResult, None]:
         resolved_llm = llm or self._resolve_llm()
-        intent = classify_intent(
-            envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
-        )
+        intent = classify_intent(envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None))
 
         state: RuntimeGraphState = {
             "run_id": envelope.run_id or "",
@@ -643,9 +639,7 @@ class RuntimeGraphRunner:
         started: float,
     ) -> RuntimeGraphResult:
         resolved_llm = llm or self._resolve_llm()
-        intent = classify_intent(
-            envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
-        )
+        intent = classify_intent(envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None))
         reasoning_steps = _graph_build_reasoning_steps(envelope, intent)
         evidence = _graph_build_evidence(envelope)
         proposals = _graph_build_proposals(envelope, intent)

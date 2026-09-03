@@ -1,10 +1,8 @@
 """Verify tool_executor does not contain 'For now' hardcoded defaults."""
+
 from pathlib import Path
 
-TOOL_EXECUTOR_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "src/infrastructure/ai/tools/tool_executor.py"
-)
+TOOL_EXECUTOR_PATH = Path(__file__).resolve().parents[2] / "src/infrastructure/ai/tools/tool_executor.py"
 
 
 def test_no_for_now_hardcoded_defaults():

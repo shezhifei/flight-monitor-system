@@ -16,13 +16,12 @@ Asserts:
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from src.infrastructure.ai.ontology.action_client import OntologyActionClientError
-from types import SimpleNamespace
-
 from src.infrastructure.ai.ontology_tools import UnregisteredActionError
 from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
@@ -50,15 +49,11 @@ class FakeOntologyTools:
         self._propose_result = propose_result
 
     async def lookup(self, *, run_id: str, entity_id: str, include_relations: bool = True) -> dict:
-        self.lookup_calls.append(
-            {"run_id": run_id, "entity_id": entity_id, "include_relations": include_relations}
-        )
+        self.lookup_calls.append({"run_id": run_id, "entity_id": entity_id, "include_relations": include_relations})
         return {"flight": {"flight_id": "F1"}, "evidence": {"source": "rust", "object_id": "F1"}}
 
     async def explain_constraints(self, *, run_id: str, entity_type: str, proposed_change: dict) -> dict:
-        self.explain_calls.append(
-            {"run_id": run_id, "entity_type": entity_type, "proposed_change": proposed_change}
-        )
+        self.explain_calls.append({"run_id": run_id, "entity_type": entity_type, "proposed_change": proposed_change})
         return {"violations": [], "evidence": {"source": "rust"}}
 
     async def propose_action(
@@ -128,9 +123,7 @@ async def test_lookup_routes_to_ontology_client() -> None:
         run_id="run_1",
     )
     assert result.success is True
-    assert fake.lookup_calls == [
-        {"run_id": "run_1", "entity_id": "flight:CA1598", "include_relations": True}
-    ]
+    assert fake.lookup_calls == [{"run_id": "run_1", "entity_id": "flight:CA1598", "include_relations": True}]
     assert result.result["evidence"]["source"] == "rust"
 
 
@@ -148,9 +141,7 @@ async def test_explain_constraints_routes_to_ontology_client() -> None:
         run_id="run_2",
     )
     assert result.success is True
-    assert fake.explain_calls == [
-        {"run_id": "run_2", "entity_type": "Flight", "proposed_change": change}
-    ]
+    assert fake.explain_calls == [{"run_id": "run_2", "entity_type": "Flight", "proposed_change": change}]
 
 
 @pytest.mark.asyncio

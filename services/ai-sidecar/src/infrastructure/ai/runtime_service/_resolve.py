@@ -137,9 +137,7 @@ class _ResolveMixin:
                     degraded=True,
                 )
 
-        intent = classify_intent(
-            envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None)
-        )
+        intent = classify_intent(envelope.task.user_message, task_type=getattr(envelope.task, "task_type", None))
         ctx = self._prepare_run_context(envelope, intent)
 
         llm = self._resolve_llm(resolved_config)

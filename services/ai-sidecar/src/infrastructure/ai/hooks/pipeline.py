@@ -3,7 +3,7 @@
 Asserts (docs/plans/2026-08-14-hybrid-agent-architecture.md, Task C2):
 
 1. Hook pipeline supports multiple phases: PreToolUse, PostToolUse, PreCompact, Stop.
-2. Builtin hooks include: lease management, schema validation, object existence check, 
+2. Builtin hooks include: lease management, schema validation, object existence check,
    result sanitization, ID preservation during compression.
 3. Hooks are pure synchronous functions (no shell execution).
 4. External custom hooks only allow sync pure functions or internal HTTP endpoints.
@@ -58,6 +58,7 @@ def extract_critical_ids(messages: list[dict[str, Any]] | None) -> list[str]:
 # Hook Phases and Types
 # ============================================================================
 
+
 @dataclass
 class HookContext:
     """Context shared across hook executions."""
@@ -96,7 +97,7 @@ class BaseHook(ABC):
     async def execute(self, ctx: HookContext) -> bool:
         """
         Execute the hook.
-        
+
         Returns:
             True if execution should continue, False to abort the flow.
         """
@@ -106,6 +107,7 @@ class BaseHook(ABC):
 # ============================================================================
 # Built-in Hooks
 # ============================================================================
+
 
 class LeaseCheckHook(BaseHook):
     """PreToolUse hook: fail-closed lease preflight for write actions.
@@ -156,7 +158,7 @@ class LeaseCheckHook(BaseHook):
 
 class SchemaValidationHook(BaseHook):
     """PreToolUse hook: validate tool arguments against schema.
-    
+
     Ensures tool arguments match expected parameters before execution.
     Prevents malformed calls from reaching the executor.
     """
@@ -183,7 +185,7 @@ class SchemaValidationHook(BaseHook):
 
 class ObjectExistenceCheckHook(BaseHook):
     """PreToolUse hook: verify objects exist before write operations.
-    
+
     For tools that modify entities (Flight, DispatchOrder, etc.),
     check that the target object exists before allowing modification.
     """
@@ -232,7 +234,7 @@ class ObjectExistenceCheckHook(BaseHook):
 
 class ResultSanitizationHook(BaseHook):
     """PostToolUse hook: sanitize tool results before returning.
-    
+
     Removes sensitive information and spills oversized payloads into the
     working-memory workspace (Task B2): the full result goes to
     ``evidence.json`` and the model only receives ``summary + pointer``
@@ -247,7 +249,7 @@ class ResultSanitizationHook(BaseHook):
         if not ctx.tool_result:
             return True
 
-        MAX_RESULT_SIZE = 10 * 1024  # 10KB limit for result content
+        MAX_RESULT_SIZE = 10 * 1024  # noqa: N806 - local policy constant
 
         try:
             result = ctx.tool_result
@@ -259,7 +261,9 @@ class ResultSanitizationHook(BaseHook):
                     tool_name=ctx.tool_name or "unknown_tool",
                     content=result["content"],
                 )
-                logger.warning(f"Result spilled to working memory for {ctx.tool_name} (exceeded {MAX_RESULT_SIZE} bytes)")
+                logger.warning(
+                    f"Result spilled to working memory for {ctx.tool_name} (exceeded {MAX_RESULT_SIZE} bytes)"
+                )
 
             # Remove sensitive fields (implement based on policy)
             self._remove_sensitive_data(result)
@@ -282,7 +286,7 @@ class ResultSanitizationHook(BaseHook):
 
     def _remove_sensitive_data(self, result: dict[str, Any]) -> None:
         """Remove or mask sensitive fields."""
-        SENSITIVE_FIELDS = ["password", "secret", "token", "api_key", "ssn"]
+        SENSITIVE_FIELDS = ["password", "secret", "token", "api_key", "ssn"]  # noqa: N806
 
         for key in list(result.keys()):
             if any(s in key.lower() for s in SENSITIVE_FIELDS):
@@ -390,14 +394,13 @@ class FreshnessCheckHook(BaseHook):
                 content=_json.dumps(payload, ensure_ascii=False),
             )
         logger.warning(
-            f"FreshnessCheckHook rewrote stale result for {tool_name} "
-            f"({detail}, max_age={max_age}), run={ctx.run_id}"
+            f"FreshnessCheckHook rewrote stale result for {tool_name} ({detail}, max_age={max_age}), run={ctx.run_id}"
         )
 
 
 class IDPreservationHook(BaseHook):
     """PreCompact hook: preserve critical IDs during context compression.
-    
+
     Ensures flight numbers, anomaly IDs, proposal IDs, and other
     critical identifiers survive context window compression.
     """
@@ -429,7 +432,7 @@ class IDPreservationHook(BaseHook):
 
 class NoPromisesHook(BaseHook):
     """Stop hook: prevent the LLM from making unauthorized promises.
-    
+
     Scans final answer for language that implies completed actions
     when none were actually executed. Blocks runs that claim
     "already updated gate assignment" without approval.
@@ -443,7 +446,7 @@ class NoPromisesHook(BaseHook):
         if not ctx.messages:
             return True
 
-        FINAL_ANSWER_PATTERNS = [
+        FINAL_ANSWER_PATTERNS = [  # noqa: N806
             r".*\u5df2.*[\u4e3a\u4f60][\u60a8]?[\u6539\u66f4\u8c03\u6574].*",  # "Already changed/adjusted"
             r".*(\u5b8c\u6210|\u5b8c\u6bd5).*[\u64cd\u4f5c\u4fee\u6539].*",  # "Completed operation"
             r".*(\u4e3a\u60a8)(\u751f\u6210\u4e86|\u521b\u5efa\u4e86|\u5b89\u6392\u4e86).*",  # "Generated/created/scheduled for you"
@@ -465,10 +468,9 @@ class NoPromisesHook(BaseHook):
 
             for pattern in FINAL_ANSWER_PATTERNS:
                 import re
+
                 if re.search(pattern, content):
-                    ctx.add_error(
-                        f"Detected unapproved action promise: {content[:100]}"
-                    )
+                    ctx.add_error(f"Detected unapproved action promise: {content[:100]}")
                     logger.warning(f"NoPromisesHook blocked: {content[:100]}")
                     return False
 
@@ -495,10 +497,7 @@ class EvidenceCoverageHook(BaseHook):
     (they still may not claim executed changes).
     """
 
-    DEGRADATION_TEMPLATE = (
-        "以下编号缺少工具证据，不能当作事实：{ids}。"
-        "请先通过查询工具获取实时数据，再给出结论。"
-    )
+    DEGRADATION_TEMPLATE = "以下编号缺少工具证据，不能当作事实：{ids}。请先通过查询工具获取实时数据，再给出结论。"
 
     @property
     def phase(self) -> str:
@@ -538,9 +537,7 @@ class EvidenceCoverageHook(BaseHook):
         from src.infrastructure.ai.monitoring.prometheus_exporter import inc_error
 
         inc_error("ungrounded")
-        logger.warning(
-            f"EvidenceCoverageHook degraded final answer (uncovered: {uncovered}), run={ctx.run_id}"
-        )
+        logger.warning(f"EvidenceCoverageHook degraded final answer (uncovered: {uncovered}), run={ctx.run_id}")
         return False
 
     @staticmethod
@@ -606,9 +603,7 @@ class PlanFirstHook(BaseHook):
         if not is_write_action_tool(tool_name):
             return True
 
-        has_plan = bool(
-            ctx.working_memory is not None and (ctx.working_memory.read_plan() or "").strip()
-        )
+        has_plan = bool(ctx.working_memory is not None and (ctx.working_memory.read_plan() or "").strip())
         if has_plan:
             return True
 
@@ -665,10 +660,7 @@ class SolverFirstHook(BaseHook):
         memory = ctx.working_memory
         if memory is None:
             return False
-        return any(
-            record.get("source") in SOLVER_GATE_SATISFYING_TOOLS
-            for record in memory.read_evidence()
-        )
+        return any(record.get("source") in SOLVER_GATE_SATISFYING_TOOLS for record in memory.read_evidence())
 
 
 class SolverGateEvidenceHook(BaseHook):
@@ -770,9 +762,7 @@ class OutputGuardrailHook(BaseHook):
                 return True
 
             tool_results = [
-                str(msg.get("content"))
-                for msg in ctx.messages
-                if msg.get("role") == "tool" and msg.get("content")
+                str(msg.get("content")) for msg in ctx.messages if msg.get("role") == "tool" and msg.get("content")
             ]
 
             # Writes are proposal-only in this runtime — the model never
@@ -794,6 +784,7 @@ class OutputGuardrailHook(BaseHook):
 # ============================================================================
 # Hook Pipeline
 # ============================================================================
+
 
 class HookPipeline:
     """Manages execution of hooks across phases."""
@@ -831,7 +822,7 @@ class HookPipeline:
 
     async def execute_all_phases(self, ctx: HookContext) -> bool:
         """Execute all phases in order."""
-        PHASE_ORDER = ["PreToolUse", "PostToolUse", "PreCompact", "Stop"]
+        PHASE_ORDER = ["PreToolUse", "PostToolUse", "PreCompact", "Stop"]  # noqa: N806
 
         for phase in PHASE_ORDER:
             if phase not in self._hooks_by_phase:
@@ -846,7 +837,7 @@ class HookPipeline:
 
 def is_read_only_tool(tool_name: str) -> bool:
     """Check if tool is read-only."""
-    READ_ONLY_PREFIXES = [
+    READ_ONLY_PREFIXES = [  # noqa: N806
         "list_",
         "get_",
         "search_",
@@ -864,6 +855,7 @@ def is_read_only_tool(tool_name: str) -> bool:
 # Default Built-in Hooks
 # ============================================================================
 
+
 def get_builtin_hooks() -> list[BaseHook]:
     """Get default set of built-in hooks.
 
@@ -873,18 +865,18 @@ def get_builtin_hooks() -> list[BaseHook]:
     guardrail.
     """
     return [
-        PlanFirstHook(),            # PreToolUse - plan-first enforcement (high-risk templates)
-        SolverFirstHook(),          # PreToolUse - solver-first gate (dispatch_ops, Task I2)
-        LeaseCheckHook(),           # PreToolUse - lease preflight (fail-closed)
-        SchemaValidationHook(),     # PreToolUse - argument validation
-        ObjectExistenceCheckHook(), # PreToolUse - entity existence (advisory)
-        ResultSanitizationHook(),   # PostToolUse - result clipping
-        FreshnessCheckHook(),       # PostToolUse - evidence freshness invariant (Task H1)
-        SolverGateEvidenceHook(),   # PostToolUse - solver gate evidence (Task I2, after freshness)
-        IDPreservationHook(),       # PreCompact - ID protection
-        NoPromisesHook(),           # Stop - anti-promises
-        EvidenceCoverageHook(),     # Stop - grounding degradation (Task H2)
-        OutputGuardrailHook(),      # Stop - output guardrail (leakage / flight consistency)
+        PlanFirstHook(),  # PreToolUse - plan-first enforcement (high-risk templates)
+        SolverFirstHook(),  # PreToolUse - solver-first gate (dispatch_ops, Task I2)
+        LeaseCheckHook(),  # PreToolUse - lease preflight (fail-closed)
+        SchemaValidationHook(),  # PreToolUse - argument validation
+        ObjectExistenceCheckHook(),  # PreToolUse - entity existence (advisory)
+        ResultSanitizationHook(),  # PostToolUse - result clipping
+        FreshnessCheckHook(),  # PostToolUse - evidence freshness invariant (Task H1)
+        SolverGateEvidenceHook(),  # PostToolUse - solver gate evidence (Task I2, after freshness)
+        IDPreservationHook(),  # PreCompact - ID protection
+        NoPromisesHook(),  # Stop - anti-promises
+        EvidenceCoverageHook(),  # Stop - grounding degradation (Task H2)
+        OutputGuardrailHook(),  # Stop - output guardrail (leakage / flight consistency)
     ]
 
 

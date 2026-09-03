@@ -287,7 +287,9 @@ async def test_client_error_surfaces_as_failed_result() -> None:
     class _Boom:
         async def replan_snapshot(self, **kwargs: Any) -> dict[str, Any]:
             raise SolverCandidateClientError(
-                "solver_snapshot_rejected", "denied", status_code=403,
+                "solver_snapshot_rejected",
+                "denied",
+                status_code=403,
                 error_code="TOOL_ACTOR_PERMISSION_DENIED",
             )
 

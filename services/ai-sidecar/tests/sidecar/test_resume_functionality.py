@@ -10,21 +10,23 @@ Asserts:
 
 from __future__ import annotations
 
-import pytest
+from typing import ClassVar
 from unittest.mock import AsyncMock, MagicMock
 
-from src.infrastructure.ai.resume import (
-    RunCheckpoint,
-    ResumeContext,
-    CheckpointLoader,
-    RunRestorer,
-    ResumeHandler,
-)
+import pytest
 
+from src.infrastructure.ai.resume import (
+    CheckpointLoader,
+    ResumeContext,
+    ResumeHandler,
+    RunCheckpoint,
+    RunRestorer,
+)
 
 # ============================================================================
 # Test RunCheckpoint Structure
 # ============================================================================
+
 
 class TestRunCheckpoint:
     """Test checkpoint data structure."""
@@ -38,22 +40,25 @@ class TestRunCheckpoint:
             round_index=2,
             created_at=1234567890.0,
         )
-        
+
         assert checkpoint.checkpoint_id == "chk_123"
         assert checkpoint.run_id == "run_456"
         assert checkpoint.checkpoint_type == "after_tool"
         assert checkpoint.round_index == 2
         assert checkpoint.created_at == 1234567890.0
 
-    @pytest.mark.parametrize("checkpoint_type,resumable", [
-        ("after_tool", True),
-        ("after_completion", True),
-        # Aligned with the Rust resume contract: latest_recoverable returns
-        # the newest BeforeTool/AfterTool row, so both must resume.
-        ("before_tool", True),
-        ("before_proposal_ingest", False),
-        ("invalid", False),
-    ])
+    @pytest.mark.parametrize(
+        "checkpoint_type,resumable",
+        [
+            ("after_tool", True),
+            ("after_completion", True),
+            # Aligned with the Rust resume contract: latest_recoverable returns
+            # the newest BeforeTool/AfterTool row, so both must resume.
+            ("before_tool", True),
+            ("before_proposal_ingest", False),
+            ("invalid", False),
+        ],
+    )
     def test_is_resumeable_property(self, checkpoint_type: str, resumable: bool):
         """Resumeable set matches the Rust resume route contract."""
         checkpoint = RunCheckpoint(
@@ -63,7 +68,7 @@ class TestRunCheckpoint:
             round_index=0,
             created_at=0.0,
         )
-        
+
         assert checkpoint.is_resumeable == resumable
 
     def test_empty_collections_initialized(self):
@@ -75,7 +80,7 @@ class TestRunCheckpoint:
             round_index=0,
             created_at=0.0,
         )
-        
+
         assert checkpoint.messages == []
         assert checkpoint.tool_call_results == []
         assert checkpoint.context_snapshot == {}
@@ -85,6 +90,7 @@ class TestRunCheckpoint:
 # ============================================================================
 # Test ResumeContext Structure
 # ============================================================================
+
 
 class TestResumeContext:
     """Test resume context structure."""
@@ -98,12 +104,12 @@ class TestResumeContext:
             round_index=1,
             created_at=0.0,
         )
-        
+
         context = ResumeContext(
             run_id="run_test",
             checkpoint=checkpoint,
         )
-        
+
         assert context.run_id == "run_test"
         assert context.checkpoint is checkpoint
         assert len(context.restored_messages) == 0
@@ -117,18 +123,18 @@ class TestResumeContext:
             round_index=0,
             created_at=0.0,
         )
-        
+
         context = ResumeContext(
             run_id="run_msg",
             checkpoint=checkpoint,
         )
-        
+
         # Modify original
         checkpoint.messages.append({"role": "user", "content": "test"})
-        
+
         # to_message_list should return copy
         messages = context.to_message_list()
-        
+
         # Should be same as checkpoint if no restored_messages set
         assert len(messages) == len(checkpoint.messages)
 
@@ -141,18 +147,19 @@ class TestResumeContext:
             round_index=0,
             created_at=0.0,
         )
-        
+
         context = ResumeContext(
             run_id="run_mem",
             checkpoint=checkpoint,
         )
-        
+
         assert context.working_memory == {}
 
 
 # ============================================================================
 # Test Checkpoint Loader
 # ============================================================================
+
 
 class TestCheckpointLoader:
     """Test checkpoint loading from storage."""
@@ -161,7 +168,7 @@ class TestCheckpointLoader:
         """Loader follows singleton pattern."""
         loader1 = CheckpointLoader.get_instance()
         loader2 = CheckpointLoader.get_instance()
-        
+
         assert loader1 is loader2
 
     @pytest.mark.asyncio
@@ -178,24 +185,25 @@ class TestCheckpointLoader:
     async def test_load_latest_checkpoint_no_checkpoints(self):
         """Returns None when no checkpoints exist."""
         loader = CheckpointLoader.get_instance()
-        
+
         result = await loader.load_latest_checkpoint("nonexistent_run")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_list_checkpoints_empty(self):
         """Returns empty list when no checkpoints."""
         loader = CheckpointLoader.get_instance()
-        
+
         checkpoints = await loader.list_checkpoints("run_xyz")
-        
+
         assert checkpoints == []
 
 
 # ============================================================================
 # Test Run Restorer
 # ============================================================================
+
 
 class TestRunRestorer:
     """Test state restoration from checkpoint."""
@@ -205,7 +213,7 @@ class TestRunRestorer:
         """Restoration creates ResumeContext."""
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
-        
+
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_restore",
             run_id="run_restore",
@@ -213,9 +221,9 @@ class TestRunRestorer:
             round_index=1,
             created_at=0.0,
         )
-        
+
         context = await restorer.restore_to_checkpoint(checkpoint)
-        
+
         assert context.run_id == "run_restore"
         assert context.checkpoint.checkpoint_id == "chk_restore"
         assert context.checkpoint.round_index == 1
@@ -225,7 +233,7 @@ class TestRunRestorer:
         """Restored checkpoint messages preserved in context."""
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
-        
+
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_msgs",
             run_id="run_msgs",
@@ -237,9 +245,9 @@ class TestRunRestorer:
                 {"role": "assistant", "content": "Hi there!"},
             ],
         )
-        
+
         context = await restorer.restore_to_checkpoint(checkpoint)
-        
+
         assert len(context.restored_messages) == 2
         assert context.restored_messages[0]["role"] == "user"
 
@@ -248,7 +256,7 @@ class TestRunRestorer:
         """Tool call results added as tool role messages."""
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
-        
+
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_tools",
             run_id="run_tools",
@@ -262,22 +270,22 @@ class TestRunRestorer:
                 },
             ],
         )
-        
+
         context = await restorer.restore_to_checkpoint(checkpoint)
-        
+
         # Should have at least one message
         assert len(context.restored_messages) >= 0
-        
+
         # Tool results would be converted to tool role messages
         tool_messages = [m for m in context.restored_messages if m.get("role") == "tool"]
         # Note: This may be empty if context.restored_messages already has content
-    
+
     @pytest.mark.asyncio
     async def test_restore_uses_context_snapshot_fallback(self):
         """Uses context snapshot when no messages in checkpoint."""
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
-        
+
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_snapshot",
             run_id="run_snapshot",
@@ -292,9 +300,9 @@ class TestRunRestorer:
                 "some_state": "value",
             },
         )
-        
+
         context = await restorer.restore_to_checkpoint(checkpoint)
-        
+
         # Should use fallback messages
         assert len(context.restored_messages) >= 1
 
@@ -303,7 +311,7 @@ class TestRunRestorer:
         """Checkpoint context merged into working memory."""
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
-        
+
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_wm",
             run_id="run_wm",
@@ -315,9 +323,9 @@ class TestRunRestorer:
                 "key2": {"nested": "value"},
             },
         )
-        
+
         context = await restorer.restore_to_checkpoint(checkpoint)
-        
+
         assert context.working_memory.get("key1") == "value1"
         assert context.working_memory.get("key2") == {"nested": "value"}
 
@@ -326,6 +334,7 @@ class TestRunRestorer:
 # Test Resume Handler
 # ============================================================================
 
+
 class TestResumeHandler:
     """Test resume command handling."""
 
@@ -333,7 +342,7 @@ class TestResumeHandler:
         """Handler accepts checkpoint loader."""
         loader = CheckpointLoader()
         handler = ResumeHandler(loader)
-        
+
         assert handler._loader is loader
 
     @pytest.mark.asyncio
@@ -341,10 +350,10 @@ class TestResumeHandler:
         """Requires checkpoint_id or run_id in payload."""
         loader = CheckpointLoader()
         handler = ResumeHandler(loader)
-        
+
         with pytest.raises(ValueError) as exc_info:
             await handler.handle_resume({"payload": {}})
-        
+
         assert "checkpoint_id" in str(exc_info.value) or "run_id" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -352,12 +361,10 @@ class TestResumeHandler:
         """Raises error when checkpoint doesn't exist."""
         loader = CheckpointLoader()
         handler = ResumeHandler(loader)
-        
+
         with pytest.raises(RuntimeError) as exc_info:
-            await handler.handle_resume({
-                "payload": {"checkpoint_id": "nonexistent"}
-            })
-        
+            await handler.handle_resume({"payload": {"checkpoint_id": "nonexistent"}})
+
         assert "No checkpoint found" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -366,7 +373,7 @@ class TestResumeHandler:
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
         handler = ResumeHandler(loader, restorer)
-        
+
         # Create non-resumeable checkpoint
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_nonresume",
@@ -375,15 +382,13 @@ class TestResumeHandler:
             round_index=0,
             created_at=0.0,
         )
-        
+
         # Mock loader to return our checkpoint
         loader.load_checkpoint = AsyncMock(return_value=checkpoint)
-        
+
         with pytest.raises(RuntimeError) as exc_info:
-            await handler.handle_resume({
-                "payload": {"checkpoint_id": "chk_nonresume"}
-            })
-        
+            await handler.handle_resume({"payload": {"checkpoint_id": "chk_nonresume"}})
+
         assert "not suitable for resume" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -392,7 +397,7 @@ class TestResumeHandler:
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
         handler = ResumeHandler(loader, restorer)
-        
+
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_success",
             run_id="run_success",
@@ -400,13 +405,11 @@ class TestResumeHandler:
             round_index=1,
             created_at=0.0,
         )
-        
+
         loader.load_checkpoint = AsyncMock(return_value=checkpoint)
-        
-        context = await handler.handle_resume({
-            "payload": {"checkpoint_id": "chk_success"}
-        })
-        
+
+        context = await handler.handle_resume({"payload": {"checkpoint_id": "chk_success"}})
+
         assert context.run_id == "run_success"
         assert context.checkpoint.checkpoint_id == "chk_success"
         assert context.checkpoint.round_index == 1
@@ -415,6 +418,7 @@ class TestResumeHandler:
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestResumeIntegration:
     """End-to-end integration tests."""
@@ -425,7 +429,7 @@ class TestResumeIntegration:
         loader = CheckpointLoader()
         restorer = RunRestorer(loader)
         handler = ResumeHandler(loader, restorer)
-        
+
         # Setup realistic checkpoint
         checkpoint = RunCheckpoint(
             checkpoint_id="chk_full",
@@ -449,20 +453,18 @@ class TestResumeIntegration:
                 "current_focus": "flight_lookup",
             },
         )
-        
+
         loader.load_checkpoint = AsyncMock(return_value=checkpoint)
-        
+
         # Execute resume
-        context = await handler.handle_resume({
-            "payload": {"checkpoint_id": "chk_full"}
-        })
-        
+        context = await handler.handle_resume({"payload": {"checkpoint_id": "chk_full"}})
+
         # Verify restoration
         assert context.run_id == "run_full"
         assert context.checkpoint.round_index == 2
         assert len(context.restored_messages) >= 3
         assert context.working_memory.get("plan_status") == "in_progress"
-        
+
         # Verify context is ready for LLMStreamRunner
         messages = context.to_message_list()
         assert len(messages) >= 3
@@ -472,15 +474,12 @@ class TestResumeIntegration:
 # Fixtures and Helpers
 # ============================================================================
 
-import time
-
-
 # ============================================================================
 # Task D2: real Postgres loading path (fake asyncpg pool)
 # ============================================================================
-
 import json as _json
-from datetime import datetime, timezone
+import time
+from datetime import UTC, datetime
 
 
 class _FakeAcquireCtx:
@@ -536,7 +535,7 @@ def _pg_row(
         "checkpoint_type": checkpoint_type,
         # asyncpg returns JSONB as str unless a codec is registered.
         "snapshot": _json.dumps(snapshot) if jsonb_as_str else snapshot,
-        "created_at": datetime(2026, 8, 14, tzinfo=timezone.utc),
+        "created_at": datetime(2026, 8, 14, tzinfo=UTC),
     }
 
 
@@ -604,9 +603,11 @@ class TestCheckpointLoaderPostgres:
             "context": {"objects": []},
             "task": {"task_type": "query_ops", "user_message": "查询 F1234"},
         }
-        conn = _FakeConn(fetchrow_rows=[
-            _pg_row(checkpoint_type="run_input", sequence_no=1, snapshot=envelope_snapshot),
-        ])
+        conn = _FakeConn(
+            fetchrow_rows=[
+                _pg_row(checkpoint_type="run_input", sequence_no=1, snapshot=envelope_snapshot),
+            ]
+        )
         loader = CheckpointLoader(pool=_FakePool(conn))
 
         snapshot = await loader.load_run_input_snapshot("run-1")
@@ -621,10 +622,11 @@ class TestCheckpointLoaderPostgres:
 # Task D2: resume continues through LLMStreamRunner / runtime service
 # ============================================================================
 
+
 class _FakeRunner:
     """Records the stream_chat_with_tools invocation and yields one event."""
 
-    instances: list["_FakeRunner"] = []
+    instances: ClassVar[list[_FakeRunner]] = []
 
     def __init__(self, client=None, tool_executor=None):
         self.client = client

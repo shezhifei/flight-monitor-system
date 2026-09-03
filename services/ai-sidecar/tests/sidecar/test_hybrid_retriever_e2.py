@@ -264,8 +264,7 @@ class TestKnowledgePersistence:
         ddl = (REPO_ROOT / "migrations" / "126_ai_knowledge_chunks.sql").read_text(encoding="utf-8")
 
         assert "CREATE TABLE IF NOT EXISTS ai_knowledge_chunks" in ddl
-        for column in ("id", "content", "metadata", "source_uri", "version",
-                       "created_at", "updated_at", "embedding"):
+        for column in ("id", "content", "metadata", "source_uri", "version", "created_at", "updated_at", "embedding"):
             assert column in ddl, f"migration 126 should define column '{column}'"
         # 全文检索索引与 K4 关键词路径配套
         assert "to_tsvector('simple', content)" in ddl

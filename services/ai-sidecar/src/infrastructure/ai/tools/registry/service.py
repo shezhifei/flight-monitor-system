@@ -843,9 +843,7 @@ class ToolRegistry:
             "applied_at": utc_now().isoformat(),
             "affected_rows": 0,
             "side_effects": [],
-            "error": execution_result.error_message
-            if execution_result.status != ToolExecutionStatus.SUCCESS
-            else None,
+            "error": execution_result.error_message if execution_result.status != ToolExecutionStatus.SUCCESS else None,
         }
         if isinstance(execution_result.result, dict):
             side_effects = execution_result.result.get("side_effects")
@@ -981,9 +979,7 @@ class ToolRegistry:
             "applied_at": utc_now().isoformat(),
             "affected_rows": 0,
             "side_effects": [],
-            "error": execution_result.error_message
-            if execution_result.status != ToolExecutionStatus.SUCCESS
-            else None,
+            "error": execution_result.error_message if execution_result.status != ToolExecutionStatus.SUCCESS else None,
             "modification": {
                 "original_arguments": original_args,
                 "modified_arguments": merged_args,

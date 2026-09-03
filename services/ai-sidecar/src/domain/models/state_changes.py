@@ -67,6 +67,3 @@ class FlightRemarksUpdatedChange(FlightStateChange):
     change_type: str = "remarks_updated_v2"
     field_name: str | None = None
     new_value: Any = None
-
-
-

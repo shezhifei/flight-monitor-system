@@ -9,18 +9,20 @@ from src.infrastructure.ai.subagents.handoff import (
     DelegateRequest,
     HandoffDelegateManager,
     HandoffRequest,
-    SubagentResult as HandoffSubagentResult,
     get_handoff_delegate_manager,
+)
+from src.infrastructure.ai.subagents.handoff import (
+    SubagentResult as HandoffSubagentResult,
 )
 
 __all__ = [
     "SUBAGENT_TOOL_SCHEMA",
-    "SubagentDispatcher",
-    "SubagentResult",
     # Handoff vs Delegate
     "DelegateRequest",
     "HandoffDelegateManager",
     "HandoffRequest",
     "HandoffSubagentResult",
+    "SubagentDispatcher",
+    "SubagentResult",
     "get_handoff_delegate_manager",
 ]

@@ -263,15 +263,11 @@ async def _write_soft_delete_audit(conn, entity_type: str, entity_id: str) -> No
     """写入一条软删除审计记录（best-effort，失败仅记日志不阻断主流程）。"""
     try:
         await conn.execute(
-            "INSERT INTO system_audit_logs (entity_type, entity_id, action, changes) "
-            "VALUES ($1, $2, $3, $4)",
+            "INSERT INTO system_audit_logs (entity_type, entity_id, action, changes) VALUES ($1, $2, $3, $4)",
             entity_type,
             str(entity_id),
             "soft_delete",
             '{"reason": "soft_delete"}',
         )
     except Exception as e:  # noqa: BLE001 - 审计失败不阻断主流程
-        logger.warning(
-            "写入软删除审计失败 entity_type=%s entity_id=%s: %s", entity_type, entity_id, e
-        )
-
+        logger.warning("写入软删除审计失败 entity_type=%s entity_id=%s: %s", entity_type, entity_id, e)

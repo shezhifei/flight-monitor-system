@@ -1,4 +1,5 @@
 """Regression tests for runtime_service split (TD-28)."""
+
 from __future__ import annotations
 
 import inspect

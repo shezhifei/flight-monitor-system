@@ -195,7 +195,11 @@ async def test_explain_deprecated_change_stand_key_fails_closed() -> None:
     result = await tools.explain_constraints(
         run_id="run_legacy",
         entity_type="Flight",
-        proposed_change={"action": "change_stand", "new_stand_id": "A12", "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"}},
+        proposed_change={
+            "action": "change_stand",
+            "new_stand_id": "A12",
+            "time_window": {"start": "2026-08-18T10:00:00Z", "end": "2026-08-18T12:00:00Z"},
+        },
     )
     assert result["violations"][0]["rule_id"] == "unsupported_constraint_mapping"
     assert client.read_calls == []

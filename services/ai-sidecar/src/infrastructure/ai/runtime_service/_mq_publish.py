@@ -108,7 +108,7 @@ async def _publish_checkpoint_mq(
 
     event_sequence = sequence_no
     if gate is not None:
-        try:
+        try:  # noqa: SIM105 - preserve best-effort async error handling
             event_sequence = await gate.next_event_sequence(run_id)
         except Exception:  # noqa: BLE001 - sequence source is best-effort
             pass
@@ -137,6 +137,7 @@ async def _publish_checkpoint_mq(
             await publisher.publish(envelope)
             try:
                 from src.infrastructure.common.prometheus_metrics import metrics as ai_metrics
+
                 ai_metrics.record_mq_publish_success("checkpoint")
             except Exception:  # noqa: BLE001
                 pass
@@ -144,16 +145,16 @@ async def _publish_checkpoint_mq(
         except Exception as exc:  # noqa: BLE001 - checkpoint loss degrades resume, not the run
             if attempt == max_retries - 1:
                 logger.warning(
-                    f"[D1] checkpoint publish failed after {max_retries} attempts "
-                    f"(run={run_id}, type={mq_type}): {exc}"
+                    f"[D1] checkpoint publish failed after {max_retries} attempts (run={run_id}, type={mq_type}): {exc}"
                 )
                 try:
                     from src.infrastructure.common.prometheus_metrics import metrics as ai_metrics
+
                     ai_metrics.record_mq_publish_failure("checkpoint", "retry_exhausted")
                 except Exception:  # noqa: BLE001
                     pass
                 return False
-            await asyncio.sleep((base_delay_ms * (2 ** attempt)) / 1000.0)
+            await asyncio.sleep((base_delay_ms * (2**attempt)) / 1000.0)
     return False
 
 
@@ -204,6 +205,7 @@ async def _publish_run_complete_mq(
             # P0-5-C: Record successful MQ publish
             try:
                 from src.infrastructure.common.prometheus_metrics import metrics as ai_metrics
+
                 ai_metrics.record_mq_publish_success("run.complete")
             except Exception:  # noqa: BLE001
                 pass  # Metrics are non-critical, don't fail on error
@@ -223,21 +225,19 @@ async def _publish_run_complete_mq(
                     # P0-5-C: Record failed MQ publish
                     try:
                         from src.infrastructure.common.prometheus_metrics import metrics as ai_metrics
-                        ai_metrics.record_mq_publish_failure(
-                            "run.complete",
-                            "retry_exhausted"
-                        )
+
+                        ai_metrics.record_mq_publish_failure("run.complete", "retry_exhausted")
                     except Exception:  # noqa: BLE001
                         pass
 
                     return False
 
             # Exponential backoff
-            delay_ms = base_delay_ms * (2 ** attempt)
+            delay_ms = base_delay_ms * (2**attempt)
             logger.warning(
                 f"[P0-5] MQ publish attempt {attempt + 1}/{max_retries} failed for run={run_id}, "
                 f"retrying in {delay_ms}ms...",
-                exc_info=True
+                exc_info=True,
             )
             await asyncio.sleep(delay_ms / 1000.0)
 
@@ -293,6 +293,7 @@ async def _publish_run_fail_mq(
             # P0-5-C: Record successful MQ publish
             try:
                 from src.infrastructure.common.prometheus_metrics import metrics as ai_metrics
+
                 ai_metrics.record_mq_publish_success("run.fail")
             except Exception:  # noqa: BLE001
                 pass  # Metrics are non-critical, don't fail on error
@@ -311,10 +312,10 @@ async def _publish_run_fail_mq(
                     return False
 
             # Exponential backoff
-            delay_ms = base_delay_ms * (2 ** attempt)
+            delay_ms = base_delay_ms * (2**attempt)
             logger.warning(
                 f"[P0-5] MQ publish attempt {attempt + 1}/{max_retries} failed for run={run_id}, "
                 f"retrying in {delay_ms}ms...",
-                exc_info=True
+                exc_info=True,
             )
             await asyncio.sleep(delay_ms / 1000.0)

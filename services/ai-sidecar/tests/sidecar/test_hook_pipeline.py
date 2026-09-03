@@ -28,6 +28,7 @@ from src.infrastructure.ai.hooks import (
 # Helper Hooks for Testing
 # ============================================================================
 
+
 class MockPreToolHook(BaseHook):
     """Mock PreToolUse hook."""
 
@@ -61,6 +62,7 @@ class MockPostToolHook(BaseHook):
 # ============================================================================
 # Test Hook Pipeline
 # ============================================================================
+
 
 class TestHookPipelineExecution:
     """Test the hook pipeline execution mechanism."""
@@ -118,9 +120,7 @@ class TestHookPipelineExecution:
         pipeline.register_hook(MockPostToolHook())
 
         # Execute all phases
-        result = await pipeline.execute_all_phases(
-            HookContext(phase="all", run_id="test-4")
-        )
+        result = await pipeline.execute_all_phases(HookContext(phase="all", run_id="test-4"))
 
         assert result is True
 
@@ -128,6 +128,7 @@ class TestHookPipelineExecution:
 # ============================================================================
 # Test Specific Hooks
 # ============================================================================
+
 
 class TestResultSanitizationHook:
     """Test result sanitization hook."""
@@ -267,6 +268,7 @@ class TestNoPromisesHook:
 # Test Utility Functions
 # ============================================================================
 
+
 class TestReadonlyDetection:
     """Test read-only tool detection."""
 
@@ -296,6 +298,7 @@ class TestReadonlyDetection:
 # ============================================================================
 # Test Builtin Pipeline
 # ============================================================================
+
 
 class TestBuiltinPipeline:
     """Test built-in hook pipeline construction."""
@@ -379,6 +382,7 @@ class TestBuiltinPipeline:
 # ============================================================================
 # Test Hook Context
 # ============================================================================
+
 
 class TestHookContext:
     """Test hook context management."""
@@ -506,10 +510,12 @@ class TestRunnerHookWiring:
         pipeline.register_hook(post)
 
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            {"tool_calls": [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}], "text": ""},
-            {"tool_calls": [], "text": "查询完成"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                {"tool_calls": [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}], "text": ""},
+                {"tool_calls": [], "text": "查询完成"},
+            ]
+        )
         executor = _FakeExecutor()
         runner._tool_executor = executor
 
@@ -531,15 +537,20 @@ class TestRunnerHookWiring:
         pipeline = build_default_pipeline()
 
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            {
-                "tool_calls": [
-                    {"id": "t1", "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'}}
-                ],
-                "text": "",
-            },
-            {"tool_calls": [], "text": "已改为提交提案"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                {
+                    "tool_calls": [
+                        {
+                            "id": "t1",
+                            "function": {"name": "assign_gate", "arguments": '{"flight_id": "F1234", "gate": "A12"}'},
+                        }
+                    ],
+                    "text": "",
+                },
+                {"tool_calls": [], "text": "已改为提交提案"},
+            ]
+        )
         executor = _FakeExecutor()
         runner._tool_executor = executor
 
@@ -563,12 +574,18 @@ class TestRunnerHookWiring:
         pipeline = build_default_pipeline()
 
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            {"tool_calls": [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}], "text": ""},
-            {"tool_calls": [], "text": "航班 F1234 准点"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                {"tool_calls": [{"id": "t1", "function": {"name": "list_flights", "arguments": "{}"}}], "text": ""},
+                {"tool_calls": [], "text": "航班 F1234 准点"},
+            ]
+        )
         executor = _FakeExecutor(
-            results=[ToolExecutionResult(tool_call_id="t1", tool_name="list_flights", success=True, result={"flights": ["F1234"]})]
+            results=[
+                ToolExecutionResult(
+                    tool_call_id="t1", tool_name="list_flights", success=True, result={"flights": ["F1234"]}
+                )
+            ]
         )
         runner._tool_executor = executor
 
@@ -585,9 +602,11 @@ class TestRunnerHookWiring:
         pipeline = build_default_pipeline()
 
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            {"tool_calls": [], "text": "我已经为您改机位到 A12"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                {"tool_calls": [], "text": "我已经为您改机位到 A12"},
+            ]
+        )
         runner._tool_executor = _FakeExecutor()
 
         events = await _collect_runner_events(runner, hook_pipeline=pipeline)
@@ -600,10 +619,12 @@ class TestRunnerHookWiring:
     async def test_no_pipeline_keeps_legacy_behaviour(self):
         """Without a pipeline the loop behaves exactly as before."""
         runner = LLMStreamRunner(client=MagicMock())
-        runner._stream_chat_impl = _scripted_impl([
-            {"tool_calls": [{"id": "t1", "function": {"name": "assign_gate", "arguments": "{}"}}], "text": ""},
-            {"tool_calls": [], "text": "done"},
-        ])
+        runner._stream_chat_impl = _scripted_impl(
+            [
+                {"tool_calls": [{"id": "t1", "function": {"name": "assign_gate", "arguments": "{}"}}], "text": ""},
+                {"tool_calls": [], "text": "done"},
+            ]
+        )
         executor = _FakeExecutor()
         runner._tool_executor = executor
 

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.infrastructure.ai.capability_resolver import CapabilityResolver
 from src.infrastructure.ai import capability_resolver as capability_resolver_mod
+from src.infrastructure.ai.capability_resolver import CapabilityResolver
 
 
 class _FakeMcpRepo:

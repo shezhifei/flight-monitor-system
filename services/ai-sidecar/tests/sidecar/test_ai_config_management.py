@@ -329,7 +329,7 @@ class FakeResolvedConfig:
 class FakeCapabilityResolver:
     """Fake capability resolver for testing."""
 
-    def __init__(self, should_fail: bool = False, fail_with: Exception = None):
+    def __init__(self, should_fail: bool = False, fail_with: Exception | None = None):
         self._should_fail = should_fail
         self._fail_with = fail_with
         self._last_input_modalities = None
@@ -1219,6 +1219,7 @@ class TestToolExecutorMcpExecution:
         from types import SimpleNamespace
 
         from src.infrastructure.ai.mcp.client_manager import McpClientManager, McpServerSession, McpToolInfo
+
         # Create a session with a side_effect tool
         session = McpServerSession(server_id="srv-a", transport="stdio", status="connected")
         session.tools = [
@@ -1276,6 +1277,7 @@ class TestToolExecutorMcpExecution:
 
         from src.infrastructure.ai.mcp.client_manager import McpClientManager, McpServerSession, McpToolInfo
         from src.infrastructure.ai.mcp.command_allowlist import reset_cache
+
         session = McpServerSession(server_id="srv-b", transport="stdio", status="connected")
         session.tools = [
             McpToolInfo(name="read_tool", description="", parameters={}, server_id="srv-b", side_effect=False),
@@ -1465,7 +1467,7 @@ class TestConfigRevision:
         finally:
             del modules["src.infrastructure.ai.config.config_normalizer"]
 
-    def test_resolver_falls_back_to_configRevision(self):
+    def test_resolver_falls_back_to_configRevision(self):  # noqa: N802 - compatibility fixture name
         from src.infrastructure.ai.capability_resolver import CapabilityResolver
 
         class FakeConfigStore:
@@ -1804,6 +1806,7 @@ class TestMcpCommandAllowlistSecurity:
         from types import SimpleNamespace
 
         from src.infrastructure.ai.mcp.command_allowlist import reset_cache
+
         repo = FakeMcpRepository()
         repo.sync_upsert_binding(
             "bind-bad",
@@ -2042,6 +2045,7 @@ class TestMcpCommandAllowlistSecurity:
         from types import SimpleNamespace
 
         from src.infrastructure.ai.mcp.command_allowlist import reset_cache
+
         repo = FakeMcpRepository()
         repo.sync_upsert_binding(
             "bind-safe",

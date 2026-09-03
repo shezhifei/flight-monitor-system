@@ -1,6 +1,7 @@
 import socket
 
 import pytest
+
 from src.infrastructure.ai.security.url_guard import (
     UnsafeUrlError,
     validate_internal_service_url,

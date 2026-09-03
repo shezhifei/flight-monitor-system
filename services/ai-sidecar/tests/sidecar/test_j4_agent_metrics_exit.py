@@ -79,9 +79,7 @@ async def test_cost_and_stop_counters_grow_in_fake_runner():
 
     prompt_price, completion_price = MODEL_PRICES_PER_1M["gpt-4o"]
     expected_cost = prompt_price * 1.0 + completion_price * 0.5
-    assert exporter.fms_ai_run_cost_usd.labels(**cost_labels)._value.get() == pytest.approx(
-        cost_before + expected_cost
-    )
+    assert exporter.fms_ai_run_cost_usd.labels(**cost_labels)._value.get() == pytest.approx(cost_before + expected_cost)
     assert exporter.fms_ai_run_stops_total.labels(reason="completed")._value.get() == stops_before + 1
     assert exporter.fms_ai_llm_calls_total.labels(**llm_labels)._value.get() == llm_before + 1
 
@@ -134,6 +132,4 @@ async def test_budget_exhausted_stop_reason_counted_in_fake_runner():
         saw_budget_exhausted = saw_budget_exhausted or event.type == "budget_exhausted"
 
     assert saw_budget_exhausted
-    assert (
-        exporter.fms_ai_run_stops_total.labels(reason="budget_exhausted")._value.get() == stops_before + 1
-    )
+    assert exporter.fms_ai_run_stops_total.labels(reason="budget_exhausted")._value.get() == stops_before + 1

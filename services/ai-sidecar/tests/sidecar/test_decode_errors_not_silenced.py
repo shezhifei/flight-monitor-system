@@ -4,6 +4,7 @@ Covers:
 - parse_tool_arguments raises ValueError on invalid JSON (not silent {})
 - ToolExecutor returns failed ToolExecutionResult for invalid JSON arguments
 """
+
 import json
 
 import pytest

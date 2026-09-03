@@ -223,14 +223,14 @@ class WorkingMemory:
             data = data["working_memory"]
         memory = cls(
             run_id=str(data.get("run_id", "")),
-            spill_token_threshold=int(data.get("spill_token_threshold", DEFAULT_SPILL_TOKEN_THRESHOLD) or DEFAULT_SPILL_TOKEN_THRESHOLD),
+            spill_token_threshold=int(
+                data.get("spill_token_threshold", DEFAULT_SPILL_TOKEN_THRESHOLD) or DEFAULT_SPILL_TOKEN_THRESHOLD
+            ),
         )
         memory._plan = str(data.get(PLAN_FILE, "") or "")
         memory._notes = str(data.get(NOTES_FILE, "") or "")
         memory._evidence = [
-            EvidenceRecord.from_dict(item)
-            for item in data.get(EVIDENCE_FILE, []) or []
-            if isinstance(item, dict)
+            EvidenceRecord.from_dict(item) for item in data.get(EVIDENCE_FILE, []) or [] if isinstance(item, dict)
         ]
         plan_state = data.get(PLAN_STATE_KEY)
         if isinstance(plan_state, dict):

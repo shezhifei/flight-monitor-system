@@ -182,7 +182,5 @@ def test_freshness_limits_are_keyed_by_real_tool_names() -> None:
         assert key in limits
     assert limits["ontology.lookup.flight"] == 30
     assert limits["ontology.lookup.stand"] == 10
-    assert shadow_mode_config.resolve_freshness_limit(
-        "ontology.lookup", {"entity_id": "dispatch:DO-1"}
-    ) == 60
+    assert shadow_mode_config.resolve_freshness_limit("ontology.lookup", {"entity_id": "dispatch:DO-1"}) == 60
     assert shadow_mode_config.resolve_freshness_limit("get_dispatch_by_flight") == 60

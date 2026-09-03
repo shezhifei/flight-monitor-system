@@ -18,14 +18,13 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-
-from src.infrastructure.ai.runtime_service import RuntimeService
-
 from test_skill_runtime_injection import (
     FakeCapabilityResolver,
     FakeEnvelope,
     FakeResolvedConfig,
 )
+
+from src.infrastructure.ai.runtime_service import RuntimeService
 
 
 @dataclass

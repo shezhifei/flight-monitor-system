@@ -183,9 +183,7 @@ class _StreamingToolsMixin:
             from src.infrastructure.ai.working_memory import WorkingMemory
 
             working_memory = (
-                resume_working_memory
-                if resume_working_memory is not None
-                else WorkingMemory(run_id=run_id)
+                resume_working_memory if resume_working_memory is not None else WorkingMemory(run_id=run_id)
             )
 
             # C2: per-run lifecycle hook pipeline (PreToolUse / PostToolUse /
@@ -339,9 +337,7 @@ class _StreamingToolsMixin:
             if task_template is not None and getattr(task_template, "requires_plan_first", False):
                 from src.infrastructure.ai.tools.plan_tools import plan_schemas_for_task_type
 
-                existing_tool_names = {
-                    (t.get("function") or {}).get("name") for t in tools if isinstance(t, dict)
-                }
+                existing_tool_names = {(t.get("function") or {}).get("name") for t in tools if isinstance(t, dict)}
                 for schema in plan_schemas_for_task_type(task_template.task_type):
                     if (schema.get("function") or {}).get("name") not in existing_tool_names:
                         tools.append(schema)
@@ -389,7 +385,9 @@ class _StreamingToolsMixin:
             #   3. Final clamp with production default (20)
             entity_max_rounds = resolved_config.tool_policy.get("max_rounds", 5)
             task_template = get_task_template(getattr(envelope.task, "task_type", None))
-            effective_max_tool_rounds = resolve_budget_with_hard_cap(entity_max_rounds, task_template, production_default_hard_cap=20)
+            effective_max_tool_rounds = resolve_budget_with_hard_cap(
+                entity_max_rounds, task_template, production_default_hard_cap=20
+            )
 
             # Note: the context cache write-through happens AFTER the model responds
             # (see the "completed" branch below) so the assistant turn is captured in

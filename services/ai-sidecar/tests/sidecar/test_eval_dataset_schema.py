@@ -52,7 +52,7 @@ def _assert_common_shape(samples: list[dict], fixture: Path, task_type: str) -> 
         assert isinstance(sample["entity_id"], str) and sample["entity_id"]
         assert isinstance(sample["user_query"], str) and sample["user_query"]
         expected = sample["expected"]
-        assert _EXPECTED_KEYS <= set(expected), f"{sample['id']}: missing expected keys"
+        assert set(expected) >= _EXPECTED_KEYS, f"{sample['id']}: missing expected keys"
         for key in ("allowed_tools", "forbidden_tools", "required_object_ids"):
             value = expected[key]
             assert isinstance(value, list) and all(isinstance(v, str) and v for v in value), (
@@ -74,8 +74,7 @@ def test_query_ops_fixture_schema() -> None:
             f"{sample['id']}: SQL must stay out of the query_ops face"
         )
         assert not any(
-            tool.endswith("change_stand") and not tool.startswith("ontology.")
-            for tool in expected["allowed_tools"]
+            tool.endswith("change_stand") and not tool.startswith("ontology.") for tool in expected["allowed_tools"]
         ), f"{sample['id']}: stand changes flow through ontology proposals only"
 
 
@@ -86,9 +85,9 @@ def test_dispatch_ops_fixture_schema() -> None:
         expected = sample["expected"]
         assert expected["plan_required"] is True, f"{sample['id']}: dispatch_ops is plan-first"
         assert "update_plan" in expected["allowed_tools"], f"{sample['id']}: plan board required"
-        assert {"ontology.propose_action", "dispatch.list_solver_candidates"} & set(
-            expected["allowed_tools"]
-        ), f"{sample['id']}: solver candidates or ontology proposals must be allowed"
+        assert {"ontology.propose_action", "dispatch.list_solver_candidates"} & set(expected["allowed_tools"]), (
+            f"{sample['id']}: solver candidates or ontology proposals must be allowed"
+        )
         assert {"apply_schedule", "replan-apply"} & set(expected["forbidden_tools"]), (
             f"{sample['id']}: local schedule application must be forbidden"
         )

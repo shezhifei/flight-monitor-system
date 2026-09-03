@@ -2,7 +2,6 @@
 
 import asyncio
 import hashlib
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -64,7 +63,7 @@ FEW_SHOT_CASES = """
 
 class SimpleKnowledgeBase:
     """知识库服务：通过 HybridRetriever 实现 PostgreSQL 混合检索 (关键词 + 向量)。
-    
+
     PageIndex 已弃用，HybridRetriever 提供：
     - PostgreSQL ts_vector 全文搜索
     - pgvector 向量相似度检索
@@ -92,7 +91,7 @@ class SimpleKnowledgeBase:
         self._index: list[dict[str, Any]] = []
         self._extract_errors: list[dict[str, str]] = []
         self._doc_registry: dict[str, dict[str, Any]] = {}
-        logger.info(f"[Advisor] SimpleKnowledgeBase initialized with HybridRetriever support")
+        logger.info("[Advisor] SimpleKnowledgeBase initialized with HybridRetriever support")
 
     def index_files(self) -> int:
         """构建文件索引；仅用于文档管理（不再用于检索）。"""
@@ -101,16 +100,16 @@ class SimpleKnowledgeBase:
         if not self.base_path.exists():
             logger.warning(f"知识库目录不存在：{self.base_path}")
             return 0
-    
+
         file_paths: list[Path] = [
             path
             for path in self.base_path.rglob("*")
             if path.is_file() and path.suffix.lower() in self.supported_extensions
         ]
         file_paths.sort(key=lambda path: str(path))
-    
+
         for file_path in file_paths:
-            ext = file_path.suffix.lower()
+            file_path.suffix.lower()
             path_str = str(file_path)
             content_hash = self._build_file_hash(file_path)
             entry: dict[str, Any] = {
@@ -120,16 +119,16 @@ class SimpleKnowledgeBase:
                 "extract_error": None,
                 "content_hash": content_hash,
             }
-    
+
             # Document registry kept for backward compatibility (not used by HybridRetriever)
             self._doc_registry[path_str] = {
                 "content_hash": content_hash,
                 "name": file_path.name,
                 "category": file_path.parent.name,
             }
-    
+
             self._index.append(entry)
-    
+
         logger.info(f"已索引 {len(self._index)} 个知识库文件 (仅供文档管理参考)")
         return len(self._index)
 
@@ -142,17 +141,17 @@ class SimpleKnowledgeBase:
         """
         safe_limit = max(1, int(max_results or 5))
         normalized_query = str(query or "").strip()
-        
+
         if not normalized_query:
             return []
-        
+
         if not self._db_pool:
             logger.warning("[Advisor] Database connection pool not available, fallback to body-text retrieval")
             body_hits = self._fallback_body_text_results(normalized_query, safe_limit)
             if body_hits:
                 return body_hits
             return self._fallback_filename_results(query=normalized_query, max_results=safe_limit)
-        
+
         try:
             from src.infrastructure.ai.hybrid_retriever import HybridRetriever
         except ImportError as exc:
@@ -161,9 +160,9 @@ class SimpleKnowledgeBase:
             if body_hits:
                 return body_hits
             return self._fallback_filename_results(query=normalized_query, max_results=safe_limit)
-        
+
         retriever = HybridRetriever(db_pool=self._db_pool)
-        
+
         try:
             scores = await retriever.search(
                 query=normalized_query,
@@ -171,7 +170,7 @@ class SimpleKnowledgeBase:
                 min_keyword_score=0.3,
                 min_vector_score=0.4,
             )
-            
+
             # Convert SearchScore to dict format expected by callers
             results = [
                 {
@@ -185,14 +184,14 @@ class SimpleKnowledgeBase:
                 }
                 for score in scores
             ]
-            
+
             if results:
                 logger.info(f"[Advisor] Retrieved {len(results)} chunks via HybridRetriever")
                 return results
-                
+
         except Exception as exc:  # noqa: BLE001
             logger.warning(f"[Advisor] HybridRetriever search failed: {exc}")
-        
+
         # Fallback to body-text matching, then filename matching.
         body_hits = self._fallback_body_text_results(normalized_query, safe_limit)
         if body_hits:
@@ -200,7 +199,7 @@ class SimpleKnowledgeBase:
         keywords = self._extract_keywords(normalized_query)
         if not keywords:
             keywords = [normalized_query.lower()] if normalized_query else []
-        
+
         return self._fallback_filename_results(keywords=keywords, max_results=safe_limit)
 
     def _fallback_body_text_results(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
@@ -212,16 +211,16 @@ class SimpleKnowledgeBase:
         """
         if not self._index:
             self.index_files()
-        
+
         keywords = self._extract_keywords(query)
         if not keywords:
             keywords = [str(query).strip().lower()] if str(query).strip() else []
         if not keywords:
             return []
-        
+
         text_exts = {".md", ".txt", ".csv", ".json", ".yaml", ".yml"}
         results: list[dict[str, Any]] = []
-        
+
         for item in self._index:
             path = Path(item.get("path", ""))
             if path.suffix.lower() not in text_exts:
@@ -245,29 +244,27 @@ class SimpleKnowledgeBase:
                 )
                 if len(results) >= max(1, int(max_results or 5)):
                     break
-        
+
         if results:
             logger.info(f"[Advisor] Body-text fallback matched {len(results)} documents")
         return results
 
-    
-
-
-
-    def _fallback_filename_results(self, query: str | None = None, keywords: list[str] | None = None, max_results: int = 5) -> list[dict[str, Any]]:
+    def _fallback_filename_results(
+        self, query: str | None = None, keywords: list[str] | None = None, max_results: int = 5
+    ) -> list[dict[str, Any]]:
         """Fallback to filename matching when HybridRetriever unavailable."""
         fallback_results: list[dict[str, Any]] = []
-            
+
         # Extract keywords from query if not provided
         if keywords is None:
             query_str = str(query or "").strip()
             keywords = self._extract_keywords(query_str) if query_str else []
             if not keywords and query_str:
                 keywords = [query_str.lower()]
-            
+
         if not keywords:
             return []
-            
+
         for item in self._index:
             name_lower = str(item.get("name", "")).lower()
             if any(keyword in name_lower for keyword in keywords if keyword):
@@ -283,7 +280,7 @@ class SimpleKnowledgeBase:
                 )
                 if len(fallback_results) >= max(1, int(max_results or 5)):
                     break
-            
+
         return fallback_results
 
     def _upsert_extract_error(self, path: str, error: str) -> None:

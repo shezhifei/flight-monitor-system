@@ -222,9 +222,7 @@ def test_to_dict_includes_governance() -> None:
 
 def test_canonical_args_hash_is_exposed_for_tool_call_idempotency() -> None:
     args = {"flight_id": "CA1234", "metadata": {"airport": "PEK"}}
-    assert canonical_json_args(args) == (
-        '{"flight_id":"CA1234","metadata":{"airport":"PEK"}}'
-    )
+    assert canonical_json_args(args) == ('{"flight_id":"CA1234","metadata":{"airport":"PEK"}}')
     assert len(canonical_args_hash(args)) == 64
 
 
@@ -240,9 +238,7 @@ async def test_builtin_builder_accepts_governance_override() -> None:
     builder = ToolRegistrySnapshotBuilder(
         builtin_tools=[{"name": "flight_status_lookup", "description": "d", "parameters": {}}]
     )
-    snapshot = await builder.build(
-        tooling_config={"enabled": True, "allowed_tool_sources": ["builtin"]}
-    )
+    snapshot = await builder.build(tooling_config={"enabled": True, "allowed_tool_sources": ["builtin"]})
     assert len(snapshot.tools) == 1
     assert snapshot.tools[0].governance is None
 
@@ -316,8 +312,7 @@ def test_is_public_l0_tool_rejects_pattern_based_matches() -> None:
         "find_security_audit",
     ]:
         assert not is_public_l0_tool(name), (
-            f"FAIL-CLOSED VIOLATION: {name} must NOT be public L0 "
-            f"(not in explicit allow-list)"
+            f"FAIL-CLOSED VIOLATION: {name} must NOT be public L0 (not in explicit allow-list)"
         )
 
     # Explicit allow-list tools must still be public L0
@@ -333,9 +328,7 @@ def test_is_public_l0_tool_rejects_pattern_based_matches() -> None:
         "web_search",
         "web_fetch",
     ]:
-        assert is_public_l0_tool(name), (
-            f"{name} must be public L0 (in explicit allow-list)"
-        )
+        assert is_public_l0_tool(name), f"{name} must be public L0 (in explicit allow-list)"
 
     # Write-action names must NOT be public L0 (verify they are not in
     # the explicit list — they would also fail the write-action guard
@@ -350,8 +343,7 @@ def test_is_public_l0_tool_rejects_pattern_based_matches() -> None:
         "assign_seat",
     ]:
         assert not is_public_l0_tool(name), (
-            f"FAIL-CLOSED VIOLATION: {name} must NOT be public L0 "
-            f"(not in explicit allow-list)"
+            f"FAIL-CLOSED VIOLATION: {name} must NOT be public L0 (not in explicit allow-list)"
         )
 
 
@@ -377,16 +369,7 @@ def test_python_public_l0_list_matches_rust_exactly() -> None:
 
     test_file = Path(__file__).resolve()
     repo_root = test_file.parents[5]
-    rust_file = (
-        repo_root
-        / "services"
-        / "api-server"
-        / "crates"
-        / "domain"
-        / "src"
-        / "models"
-        / "tool_governance.rs"
-    )
+    rust_file = repo_root / "services" / "api-server" / "crates" / "domain" / "src" / "models" / "tool_governance.rs"
 
     rust_source = rust_file.read_text(encoding="utf-8")
 

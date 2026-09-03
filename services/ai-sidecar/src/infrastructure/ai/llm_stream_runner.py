@@ -340,11 +340,11 @@ class LLMStreamRunner:
         executor = self._tool_executor or ToolExecutor()
 
         # C2: lifecycle hook context type, imported once when a pipeline is wired.
-        HookContext = None
+        HookContext = None  # noqa: N806
         if hook_pipeline is not None:
             from src.infrastructure.ai.hooks.pipeline import HookContext as _HookContext
 
-            HookContext = _HookContext
+            HookContext = _HookContext  # noqa: N806
 
         # Extract the set of tool names that were presented to the LLM.
         allowed_tool_names: set[str] | None = None
@@ -357,7 +357,7 @@ class LLMStreamRunner:
                     allowed_tool_names.add(name)
 
         # P0-6-A: Enforce global hard cap (never exceed 50 rounds regardless of template)
-        GLOBAL_MAX_TOOL_ROUNDS = 50
+        GLOBAL_MAX_TOOL_ROUNDS = 50  # noqa: N806
 
         current_messages = list(messages)
         last_round_index = 0
@@ -492,16 +492,11 @@ class LLMStreamRunner:
             from src.infrastructure.ai.tools.skill_tools import SKILL_TOOL_NAMES
 
             plan_calls = [pc for pc in calls_for_execution if is_plan_tool(pc.get("tool_name") or "")]
-            skill_calls = [
-                pc
-                for pc in calls_for_execution
-                if (pc.get("tool_name") or "") in SKILL_TOOL_NAMES
-            ]
+            skill_calls = [pc for pc in calls_for_execution if (pc.get("tool_name") or "") in SKILL_TOOL_NAMES]
             executor_calls = [
                 pc
                 for pc in calls_for_execution
-                if not is_plan_tool(pc.get("tool_name") or "")
-                and (pc.get("tool_name") or "") not in SKILL_TOOL_NAMES
+                if not is_plan_tool(pc.get("tool_name") or "") and (pc.get("tool_name") or "") not in SKILL_TOOL_NAMES
             ]
 
             # C3: load_skill / read_skill_reference are read-only local file
@@ -623,9 +618,7 @@ class LLMStreamRunner:
             if not any_success:
                 consecutive_failures += 1
                 if consecutive_failures >= consecutive_failure_threshold:
-                    logger.warning(
-                        f"Consecutive tool failures ({consecutive_failures}) exceeded threshold, stopping."
-                    )
+                    logger.warning(f"Consecutive tool failures ({consecutive_failures}) exceeded threshold, stopping.")
                     # J2: terminal stop reason feeds the FmsAiBudgetExhausted alert.
                     from src.infrastructure.ai.monitoring.prometheus_exporter import inc_run_stop
 
@@ -684,7 +677,9 @@ class LLMStreamRunner:
                     content = hook_content_override
                 else:
                     content = (
-                        json.dumps(exec_result.result) if exec_result.result is not None else f"Error: {exec_result.error}"
+                        json.dumps(exec_result.result)
+                        if exec_result.result is not None
+                        else f"Error: {exec_result.error}"
                     )
                 # B2: large results spill into the working-memory workspace; the
                 # model only receives summary + pointer (full text in evidence.json).
@@ -774,9 +769,7 @@ class LLMStreamRunner:
         # Tokens were already streamed, so a flagged answer is annotated with a
         # warning marker rather than suppressed.
         if hook_pipeline is not None:
-            stop_messages = [
-                m if isinstance(m, dict) else m.to_dict() for m in current_messages
-            ]
+            stop_messages = [m if isinstance(m, dict) else m.to_dict() for m in current_messages]
             if result is not None and result.text:
                 stop_messages.append({"role": "assistant", "content": result.text})
             stop_ctx = HookContext(

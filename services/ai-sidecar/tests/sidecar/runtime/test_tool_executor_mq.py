@@ -46,7 +46,6 @@ from src.infrastructure.ai.tools.tool_executor import (
     ToolExecutor,
 )
 from src.infrastructure.ai.tools.tool_registry_snapshot import ToolDefinition
-
 from tests.sidecar.tool_executor_test_support import FakeReadOnlyBackend
 
 # ---------------------------------------------------------------------------
@@ -183,7 +182,7 @@ def _build_gate(
     command_waiter = None
     if poller._queue or commands:
         command_waiter = ToolCommandWaiter()
-        for cmd in (poller._queue or commands or []):
+        for cmd in poller._queue or commands or []:
             tpk = cmd.get("tool_call_pk", "")
             if tpk:
                 command_waiter.notify(tpk, cmd)
@@ -191,9 +190,11 @@ def _build_gate(
         publisher=publisher,
         poller=poller,
         tool_definition_lookup=lookup,
-        tool_type_resolver=lambda name: "read_only"
-        if name in {"flight_status_lookup", "search_flights_advanced"}
-        else ("write_action" if name in WRITE_ACTION_TOOLS else "unknown"),
+        tool_type_resolver=lambda name: (
+            "read_only"
+            if name in {"flight_status_lookup", "search_flights_advanced"}
+            else ("write_action" if name in WRITE_ACTION_TOOLS else "unknown")
+        ),
         run_owner=run_owner,
         heartbeat_interval_seconds=heartbeat_interval,
         wait_poll_interval_seconds=wait_poll_interval,
@@ -302,9 +303,7 @@ async def test_protected_tool_publishes_requested_event_and_waits_for_lease() ->
     assert requested["payload"]["authorization_mode"] == "rust_pdp"
     assert requested["payload"]["tool_call_id"] == "call-1"
     assert requested["payload"]["tool_name"] == "add_flight_note"
-    assert requested["payload"]["args_hash"] == canonical_args_hash(
-        {"flight_id": "CA1234", "note_content": "n"}
-    )
+    assert requested["payload"]["args_hash"] == canonical_args_hash({"flight_id": "CA1234", "note_content": "n"})
     assert requested["payload"]["requester"]["user_id"] == "user-1"
 
 
@@ -701,9 +700,7 @@ async def test_per_run_event_sequence_increments_across_calls() -> None:
 
     sequences = [evt["event_sequence"] for evt in publisher.published if evt["event_type"] == "tool_call_requested"]
     assert sequences == [1, 3, 5]
-    result_sequences = [
-        evt["event_sequence"] for evt in publisher.published if evt["event_type"] == "tool_result"
-    ]
+    result_sequences = [evt["event_sequence"] for evt in publisher.published if evt["event_type"] == "tool_result"]
     assert result_sequences == [2, 4, 6]
 
 
