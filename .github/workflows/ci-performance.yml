@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -178,3 +179,42 @@ jobs:
         run: |
           echo "✅ No significant performance regression detected."
           echo "Recommendation: ${{ steps.validation.outputs.recommendation }}"
+
+  # ============================================================
+  # Job 4: Refresh the committed Criterion baseline (manual only)
+  # ============================================================
+  # The gate in ci.yml compares against benches/criterion-baseline, which was
+  # captured on a developer machine and is ~2x faster than shared runners, so
+  # every run reported a phantom BLOCKED regression. Run this dispatch job to
+  # recapture the estimates on CI hardware, download the artifact, and commit
+  # it over services/api-server/benches/criterion-baseline/.
+  refresh-criterion-baseline:
+    name: Refresh committed Criterion baseline (manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Run benchmarks to regenerate estimates
+        working-directory: services/api-server
+        run: cargo bench -p fms-benches --bench simd_json_benchmarks
+
+      - name: Package refreshed baseline
+        working-directory: services/api-server
+        run: |
+          mkdir -p refreshed-baseline
+          for estimates in target/criterion/*/new/estimates.json; do
+            name="$(basename "$(dirname "$(dirname "$estimates")")")"
+            mkdir -p "refreshed-baseline/$name/new"
+            cp "$estimates" "refreshed-baseline/$name/new/estimates.json"
+          done
+          find refreshed-baseline -type f
+
+      - name: Upload refreshed baseline
+        uses: actions/upload-artifact@v4
+        with:
+          name: criterion-baseline-refresh
+          path: services/api-server/refreshed-baseline/
+          if-no-files-found: error

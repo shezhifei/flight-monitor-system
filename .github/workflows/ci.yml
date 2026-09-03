@@ -584,6 +584,9 @@ jobs:
           EOF
 
       - name: Generate ephemeral Vault TLS certificate
+        # Job default is frontend/vue-app; the compose bind mounts resolve
+        # against the repository root, so generate from there explicitly.
+        working-directory: ${{ github.workspace }}
         run: |
           # deploy/vault/certs is git-ignored (never commit private keys), so the
           # CI checkout has no certificate and vault exits immediately. Mint a
