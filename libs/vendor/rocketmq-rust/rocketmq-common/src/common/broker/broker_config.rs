@@ -41,6 +41,20 @@ pub static NAMESRV_ADDR: std::sync::LazyLock<Option<String>> =
 /// Default value functions for Serde deserialization
 mod defaults {
     use super::*;
+    use std::net::IpAddr;
+    use std::net::ToSocketAddrs;
+
+    fn detected_local_ip() -> Option<IpAddr> {
+        local_ip_address::local_ip().ok().or_else(|| {
+            let hostname = hostname::get().ok()?;
+            let address = format!("{}:0", hostname.to_string_lossy());
+            address
+                .to_socket_addrs()
+                .ok()?
+                .map(|socket| socket.ip())
+                .find(|ip| !ip.is_loopback())
+        })
+    }
 
     // BrokerIdentity defaults
     pub fn broker_name() -> CheetahString {
@@ -73,17 +87,14 @@ mod defaults {
     }
 
     pub fn broker_ip1() -> CheetahString {
-        match local_ip_address::local_ip() {
-            Ok(local_ip) => local_ip.to_string().into(),
-            Err(_) => "127.0.0.1".to_string().into(),
+        match detected_local_ip() {
+            Some(local_ip) => local_ip.to_string().into(),
+            None => "127.0.0.1".to_string().into(),
         }
     }
 
     pub fn broker_ip2() -> Option<CheetahString> {
-        match local_ip_address::local_ip() {
-            Ok(local_ip) => Some(local_ip.to_string().into()),
-            Err(_) => None,
-        }
+        detected_local_ip().map(|local_ip| local_ip.to_string().into())
     }
 
     pub fn listen_port() -> u32 {

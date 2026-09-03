@@ -158,7 +158,14 @@ def test_integration_stack_preserves_diagnostics_and_teardown_environment():
     assert "- name: Capture integration stack diagnostics" in integration_job
     assert "docker compose -f deploy/docker/docker-compose.distributed.yml" in integration_job
     assert "ps -a" in integration_job
-    for service in ("rocketmq-namesrv", "rocketmq-namesrv-2", "rocketmq-broker", "mq-gateway"):
+    for service in (
+        "postgres",
+        "redis",
+        "rocketmq-namesrv",
+        "rocketmq-namesrv-2",
+        "rocketmq-broker",
+        "mq-gateway",
+    ):
         assert service in integration_job
     assert integration_job.count("FMS_RUNTIME_ENV_FILE: /dev/null") == 3
     assert integration_job.count("VAULT_RENDERED_ENV_FILE: /dev/null") == 3
@@ -174,8 +181,12 @@ def test_e2e_compose_runs_from_repository_root_with_matching_environment():
     e2e_job = _section(_ci_lines(), "  e2e-integration:", ())
 
     assert e2e_job.count("working-directory: ${{ github.workspace }}") == 2
-    assert e2e_job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
-    assert e2e_job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") == 2
+    assert "- name: Capture full-stack diagnostics" in e2e_job
+    assert "ps -a" in e2e_job
+    for service in ("postgres", "redis", "rocketmq-broker", "mq-gateway", "rust-api"):
+        assert service in e2e_job
+    assert e2e_job.count("FMS_RUNTIME_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") >= 3
+    assert e2e_job.count("VAULT_RENDERED_ENV_FILE: ${{ github.workspace }}/ci_runtime.env") >= 3
 
 
 def test_nightly_installs_mutation_tool_and_supplies_compose_environment():
