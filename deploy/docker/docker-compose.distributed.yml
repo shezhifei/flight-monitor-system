@@ -394,6 +394,13 @@ services:
     user: "0:0"
     cap_add:
       - IPC_LOCK
+    # su-exec drops capabilities when switching to the vault user, so CAP_IPC_LOCK
+    # alone does not survive entrypoint; raise RLIMIT_MEMLOCK or mlock fails on
+    # hosts whose default memlock limit is small (e.g. GitHub Actions runners).
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     environment:
       VAULT_LOCAL_CONFIG: ""
       VAULT_RAFT_NODE_ID: vault-node-1
@@ -429,6 +436,10 @@ services:
     user: "0:0"
     cap_add:
       - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     environment:
       VAULT_LOCAL_CONFIG: ""
       VAULT_RAFT_NODE_ID: vault-node-2

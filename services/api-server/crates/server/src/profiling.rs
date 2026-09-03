@@ -30,6 +30,26 @@ pub(crate) fn burn_cpu_for(duration: Duration) -> std::thread::JoinHandle<()> {
     })
 }
 
+/// The first profile collected in a process can come back empty while the
+/// sampler finishes initializing; run and discard a warm-up profile so the
+/// asserted one always reflects a warmed-up sampler. Callers must hold
+/// `CPU_PROFILE_TEST_LOCK`.
+#[cfg(all(test, unix))]
+pub(crate) fn warm_up_cpu_profiler() {
+    let busy = burn_cpu_for(Duration::from_millis(400));
+    let _ = collect_cpu_profile_blocking(Duration::from_millis(300));
+    busy.join().expect("busy thread");
+}
+
+/// Acquires the shared profile-test lock, ignoring poisoning so one panicked
+/// test does not mask the other's failure output.
+#[cfg(all(test, unix))]
+pub(crate) fn lock_cpu_profile_tests() -> std::sync::MutexGuard<'static, ()> {
+    CPU_PROFILE_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 pub struct CpuProfileArtifact {
     body: Vec<u8>,
     content_type: &'static str,
@@ -344,9 +364,10 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn collect_cpu_profile_returns_svg_not_a_placeholder() {
-        let _serial = super::CPU_PROFILE_TEST_LOCK.lock().expect("cpu profile test lock");
-        let busy = super::burn_cpu_for(Duration::from_millis(400));
-        let artifact = super::collect_cpu_profile_blocking(Duration::from_millis(250)).expect("profile");
+        let _serial = super::lock_cpu_profile_tests();
+        super::warm_up_cpu_profiler();
+        let busy = super::burn_cpu_for(Duration::from_millis(600));
+        let artifact = super::collect_cpu_profile_blocking(Duration::from_millis(400)).expect("profile");
         busy.join().expect("busy thread");
         let text = String::from_utf8_lossy(&artifact.body).to_ascii_lowercase();
         assert!(text.contains("<svg"), "expected flamegraph svg, got {text}");
