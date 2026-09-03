@@ -49,6 +49,10 @@ describe('useAuth cookie-backed session restore', () => {
   it('fails closed when the HttpOnly refresh cookie cannot restore a session', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
     vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window, 'fetch', {
+      configurable: true,
+      value: fetchMock,
+    });
 
     await expect(auth.restoreSession()).resolves.toBe(false);
 
@@ -92,6 +96,10 @@ describe('useAuth cookie-backed session restore', () => {
       return new Response(null, { status: 599 });
     });
     vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window, 'fetch', {
+      configurable: true,
+      value: fetchMock,
+    });
 
     await expect(auth.restoreSession()).resolves.toBe(true);
 

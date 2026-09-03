@@ -65,7 +65,12 @@ describe('useAuth getEventSource', () => {
       value: globalThis.sessionStorage,
     });
     vi.stubGlobal('EventSource', MockEventSource);
-    vi.stubGlobal('fetch', vi.fn());
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window, 'fetch', {
+      configurable: true,
+      value: fetchMock,
+    });
   });
 
   it('does not append bearer tokens to the SSE URL by default', () => {
@@ -100,6 +105,10 @@ describe('useAuth getEventSource', () => {
         headers: { 'content-type': 'text/event-stream' },
       });
     }));
+    Object.defineProperty(window, 'fetch', {
+      configurable: true,
+      value: globalThis.fetch,
+    });
 
     const auth = useAuth();
     auth.saveToken({
@@ -129,6 +138,10 @@ describe('useAuth getEventSource', () => {
   it('rejects authenticated fetches to cross-origin URLs before adding auth headers', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window, 'fetch', {
+      configurable: true,
+      value: fetchMock,
+    });
 
     const auth = useAuth();
 
