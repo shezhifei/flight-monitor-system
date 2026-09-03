@@ -217,6 +217,11 @@ def test_e2e_compose_runs_from_repository_root_with_matching_environment():
     ):
         assert (ROOT / relative_path).is_file(), f"missing Compose bind source: {relative_path}"
 
+    # deploy/vault/certs is git-ignored, so without an ephemeral certificate the
+    # vault container exits immediately and `--wait` fails the whole E2E stack.
+    assert "Generate ephemeral Vault TLS certificate" in e2e_job
+    assert "deploy/vault/certs/vault.key" in e2e_job
+
 
 def test_nightly_installs_mutation_tool_and_supplies_compose_environment():
     nightly_lines = _nightly_lines()

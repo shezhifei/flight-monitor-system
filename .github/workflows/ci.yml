@@ -583,6 +583,18 @@ jobs:
           TRUSTED_PROXY_CIDRS=127.0.0.1/32
           EOF
 
+      - name: Generate ephemeral Vault TLS certificate
+        run: |
+          # deploy/vault/certs is git-ignored (never commit private keys), so the
+          # CI checkout has no certificate and vault exits immediately. Mint a
+          # throwaway self-signed cert for the lifetime of this job only.
+          mkdir -p deploy/vault/certs
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout deploy/vault/certs/vault.key \
+            -out deploy/vault/certs/vault.crt \
+            -days 1 -subj "/CN=vault" \
+            -addext "subjectAltName=DNS:vault,DNS:vault-02,DNS:localhost,IP:127.0.0.1"
+
       - name: Bring up full stack (integration override exposes rust-api on :18443)
         working-directory: ${{ github.workspace }}
         run: |
@@ -611,7 +623,7 @@ jobs:
           docker compose -f "${{ github.workspace }}/deploy/docker/docker-compose.distributed.yml" \
             -f "${{ github.workspace }}/deploy/docker/docker-compose.integration.yml" logs --no-color \
             postgres postgres-standby redis rocketmq-namesrv rocketmq-namesrv-2 \
-            rocketmq-broker rocketmq-broker-2 mq-gateway rust-api
+            rocketmq-broker rocketmq-broker-2 mq-gateway rust-api vault vault-02
         env:
           DB_USER: postgres
           DB_PASSWORD: ci_explicit_db_password_not_for_prod
