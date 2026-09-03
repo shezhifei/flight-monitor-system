@@ -124,11 +124,15 @@ def test_integration_compose_binds_loopback_and_requires_passwords():
     integration = (ROOT / "deploy/docker/docker-compose.integration.yml").read_text(
         encoding="utf-8"
     )
+    distributed = (
+        ROOT / "deploy/docker/docker-compose.distributed.yml"
+    ).read_text(encoding="utf-8")
 
     assert "POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}" in integration
     assert "REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}" in integration
     assert "${DB_PASSWORD:-" not in integration
     assert "${REDIS_PASSWORD:-" not in integration
+    assert 'synchronous_standby_names="fm-pg-standby-01"' in distributed
 
     for mapping in (
         "127.0.0.1:5432:5432",

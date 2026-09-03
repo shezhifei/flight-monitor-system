@@ -61,7 +61,7 @@ services:
     # until postgres-standby (application_name=fm-pg-standby-01) has applied the WAL.
     # NOTE: writes BLOCK if the standby is disconnected. For async HA (no blocking)
     # switch to `synchronous_commit=on` and drop `synchronous_standby_names`.
-    command: ["postgres", "-c", "wal_level=logical", "-c", "flight_monitor.seed_default_admin=${SEED_DEFAULT_ADMIN:-false}", "-c", "flight_monitor.replication_password=${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4", "-c", "synchronous_commit=remote_apply", "-c", "synchronous_standby_names=fm-pg-standby-01"]
+    command: ["postgres", "-c", "wal_level=logical", "-c", "flight_monitor.seed_default_admin=${SEED_DEFAULT_ADMIN:-false}", "-c", "flight_monitor.replication_password=${DB_REPLICATION_PASSWORD:?DB_REPLICATION_PASSWORD is required}", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4", "-c", "synchronous_commit=remote_apply", "-c", 'synchronous_standby_names="fm-pg-standby-01"']
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../../scripts/database/setup_postgresql.sql:/docker-entrypoint-initdb.d/10-setup.sql:ro
