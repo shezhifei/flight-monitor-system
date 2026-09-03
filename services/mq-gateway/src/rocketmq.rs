@@ -174,10 +174,12 @@ async fn ensure_topics(namesrv_addr: &str) -> Result<(), TransportError> {
     admin.set_inner(admin_inner);
     admin.start().await.map_err(map_unavailable)?;
     for topic in &topics {
-        let mut topic_config = TopicConfig::default();
-        topic_config.topic_name = Some(topic.as_str().into());
-        topic_config.read_queue_nums = 8;
-        topic_config.write_queue_nums = 8;
+        let topic_config = TopicConfig {
+            topic_name: Some(topic.as_str().into()),
+            read_queue_nums: 8,
+            write_queue_nums: 8,
+            ..TopicConfig::default()
+        };
         admin
             .create_and_update_topic_config(broker_addr.as_str().into(), topic_config)
             .await

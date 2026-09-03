@@ -61,7 +61,7 @@ impl MessageTransport for InMemoryTransport {
         request: ValidatedReceiveRequest,
     ) -> Result<Vec<ReceivedMessage>, TransportError> {
         let mut state = self.state.lock().await;
-        let drained: VecDeque<StoredMessage> = state.messages.drain(..).collect();
+        let drained: VecDeque<StoredMessage> = std::mem::take(&mut state.messages);
         let mut selected = Vec::with_capacity(request.batch_size);
         let mut retained = VecDeque::with_capacity(drained.len());
 
