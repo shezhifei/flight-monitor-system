@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import re
+import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,31 +50,22 @@ def test_setup_postgresql_ai_query_ro_has_no_password_literal():
     assert "ai_query_ro_dev_change_me" not in setup_sql
     assert "PASSWORD 'ai_query_ro" not in setup_sql
 
-def test_android_token_storage_fails_closed_no_plaintext_fallback():
-    """TokenStorage must never fall back to plaintext SharedPreferences."""
-    path = ROOT / "legacy/android-kotlin/app/src/main/java/com/flightmonitor/mobile/session/TokenStorage.kt"
-    text = path.read_text(encoding="utf-8")
-    assert "EncryptedSharedPreferences" in text
-    assert "SecureTokenStorageException" in text
-    assert "wipeLegacyPlaintextTokens" in text
-    # Fail-closed: throw on crypto failure, never open MODE_PRIVATE for active storage.
-    assert "refusing plaintext fallback" in text or "refuse plaintext" in text.lower()
-    assert "using private prefs" not in text
-    # Must not assign getSharedPreferences(...MODE_PRIVATE) as the live store return path
-    # (legacy wipe may still open it solely to clear).
-    assert "throw SecureTokenStorageException" in text
-    assert "PREFS_NAME_LEGACY_PLAINTEXT" in text or "mobile_auth_tokens" in text
+def test_archived_android_kotlin_client_stays_gone():
+    """D-17: the archived Kotlin client was deleted from the repository.
 
-def test_android_token_storage_wipe_checks_commit_and_fails_closed():
-    path = ROOT / "legacy/android-kotlin/app/src/main/java/com/flightmonitor/mobile/session/TokenStorage.kt"
-    text = path.read_text(encoding="utf-8")
-    assert "wipeLegacyPlaintextTokens" in text
-    assert ".commit()" in text
-    assert "hadSecrets" in text or "hadData" in text or "all.isNotEmpty()" in text
-    assert "SecureTokenStorageException" in text
-    # Must not swallow clear failure with only Log.w and continue
-    assert "Failed clearing legacy plaintext prefs content" not in text
-    assert "throw SecureTokenStorageException" in text
+    The Flutter app (mobile/flutter-app) is the only supported mobile client;
+    the legacy Kotlin sources must not be reintroduced.
+    """
+    legacy_dir = ROOT / "legacy/android-kotlin"
+    assert not legacy_dir.exists(), "legacy/android-kotlin must remain deleted"
+    tracked = subprocess.run(
+        ["git", "ls-files", "legacy/android-kotlin"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert not tracked, f"legacy/android-kotlin files reintroduced: {tracked[:200]}"
 
 PRODUCTION_COMPOSE_WITH_RUST_API = (
     ROOT / "deploy/docker/docker-compose.distributed.yml",
@@ -121,38 +113,6 @@ def test_management_routes_do_not_echo_exceptions_on_500():
         start = max(0, m.start() - 80)
         chunk = text[start : m.end() + 40]
         assert "500" not in chunk, f"str(exc) near 500: {chunk!r}"
-
-def test_android_targets_api_35_or_higher():
-    """Play requires ordinary apps to target Android 15 / API 35+ (2026-07)."""
-    gradle = (ROOT / "legacy/android-kotlin/app/build.gradle.kts").read_text(encoding="utf-8")
-    m_compile = re.search(r"compileSdk\s*=\s*(\d+)", gradle)
-    m_target = re.search(r"targetSdk\s*=\s*(\d+)", gradle)
-    assert m_compile and m_target, "compileSdk/targetSdk missing from app build.gradle.kts"
-    assert int(m_compile.group(1)) >= 35
-    assert int(m_target.group(1)) >= 35
-
-def test_android_readme_matches_api_35_no_stale_sdk_docs():
-    """Archived Kotlin app: build.gradle.kts stays truthful; README must declare the archive.
-
-    The Kotlin client was archived to legacy/android-kotlin (bdb0832); its README
-    no longer documents SDK versions, but it must still identify the app as
-    archived and point at the active client so nobody ships the legacy app.
-    """
-    readme = (ROOT / "legacy/android-kotlin/README.md").read_text(encoding="utf-8")
-    gradle = (ROOT / "legacy/android-kotlin/app/build.gradle.kts").read_text(encoding="utf-8")
-    m_compile = re.search(r"compileSdk\s*=\s*(\d+)", gradle)
-    m_target = re.search(r"targetSdk\s*=\s*(\d+)", gradle)
-    m_min = re.search(r"minSdk\s*=\s*(\d+)", gradle)
-    assert m_compile and m_target and m_min
-    assert int(m_compile.group(1)) >= 35
-    assert int(m_target.group(1)) >= 35
-    assert int(m_min.group(1)) >= 23
-    lowered = readme.lower()
-    assert "archived" in lowered, "legacy android README must declare the archive"
-    assert "mobile/flutter-app" in readme or "mobile/core" in readme, (
-        "legacy android README must point at the active client"
-    )
-
 
 def test_removed_aip_module_stays_gone():
     """K1: the AIP parallel stack was deleted (W2-2); guardrails must not resurrect it."""

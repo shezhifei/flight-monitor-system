@@ -1,8 +1,7 @@
 //! Wire DTOs for every mobile domain.
 //!
-//! Field authority: archived Kotlin models under
-//! `legacy/android-kotlin/` (read-only reference), cross-checked against
-//! the backend schemas in `services/api-server/crates/application/src/schemas/`.
+//! Field authority: the backend schemas in
+//! `services/api-server/crates/application/src/schemas/`.
 //! All structs use `snake_case` field names; `Option` mirrors Kotlin
 //! nullability.
 
