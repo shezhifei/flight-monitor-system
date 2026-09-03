@@ -3,6 +3,7 @@ name = "fms-benches"
 version.workspace = true
 edition.workspace = true
 publish = false
+license = "Apache-2.0"
 
 [dependencies]
 criterion = "0.5"
