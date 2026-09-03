@@ -14,7 +14,6 @@ from src.infrastructure.database.query_builder import (
     ComparisonOperator,
     QueryBuilder,
 )
-from src.infrastructure.database.soft_delete_audit import record_soft_delete
 from src.infrastructure.logging.core import get_logger
 
 from .config.ai_config_crypto import ConfigEncryptor, get_config_encryptor
@@ -22,7 +21,6 @@ from .config.cache_mixin import ConfigCacheMixin
 from .config.config_normalizer import normalize_config
 from .config_store import (
     AIConfigStoreInterface,
-    build_default_entity_config,
 )
 
 logger = get_logger(__name__)
@@ -123,60 +121,6 @@ class PostgresAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         except POSTGRES_EXCEPTIONS as e:
             logger.error(f"获取 AI 配置 '{entity_id}' 失败: {e}")
             return None
-
-    async def update(self, entity_id: str, config: dict[str, Any]) -> dict[str, Any]:
-        """更新实体配置"""
-        await self._ensure_initialized()
-        # 先获取现有配置
-        current_config = await self.get(entity_id)
-        if current_config is None:
-            current_config = build_default_entity_config()
-
-        for key, value in config.items():
-            if value is not None:
-                current_config[key] = value
-
-        current_config = normalize_config(current_config)
-        encrypted_config = self._encryptor.encrypt_config(current_config)
-
-        try:
-            async with self._db_connection.connection_context() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute(
-                        """
-                        INSERT INTO ai_entities (id, config, updated_at)
-                        VALUES (%s, %s, CURRENT_TIMESTAMP)
-                        ON CONFLICT (id) DO UPDATE
-                        SET config = EXCLUDED.config, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
-                    """,
-                        (entity_id, json.dumps(encrypted_config)),
-                    )
-                await conn.connection.commit()
-                self._invalidate_cache(entity_id)
-                return current_config
-        except Exception as e:
-            logger.error(f"更新 AI 配置 '{entity_id}' 失败: {e}")
-            raise
-
-    async def delete(self, entity_id: str) -> bool:
-        """删除实体配置（审计要求软删除：仅标记 deleted_at，行保留）"""
-        await self._ensure_initialized()
-        try:
-            async with self._db_connection.connection_context() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute(
-                        "UPDATE ai_entities SET deleted_at = NOW(), updated_at = NOW() "
-                        "WHERE id = %s AND deleted_at IS NULL",
-                        (entity_id,),
-                    )
-                    rowcount = cursor.rowcount
-                    if rowcount > 0:
-                        await record_soft_delete(cursor, "ai_entity", entity_id)
-                await conn.connection.commit()
-                return rowcount > 0
-        except POSTGRES_EXCEPTIONS as e:
-            logger.error(f"删除 AI 配置 '{entity_id}' 失败: {e}")
-            return False
 
     async def reload(self) -> None:
         """重新加载配置（对于 DB 存储，此操作为空）"""

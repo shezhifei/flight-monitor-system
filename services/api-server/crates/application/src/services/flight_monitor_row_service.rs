@@ -52,18 +52,26 @@ impl<R: FlightMonitorRowRepository + ?Sized> FlightMonitorRowService<R> {
             .into(),
             inbound_flight_id: inbound.map(|_| flight.flight_id.to_string()),
             outbound_flight_id: outbound.map(|_| flight.flight_id.to_string()),
-            inbound_flight_no: inbound
-                .map(|l| l.flight_no.clone())
-                .or_else(|| (flight.direction.as_deref() == Some("inbound")).then(|| flight.flight_number.as_ref().map(ToString::to_string)).flatten()),
-            outbound_flight_no: outbound
-                .map(|l| l.flight_no.clone())
-                .or_else(|| (flight.direction.as_deref() == Some("outbound")).then(|| flight.flight_number.as_ref().map(ToString::to_string)).flatten()),
-            inbound_scheduled_at: inbound.and_then(|l| l.scheduled_time).or_else(|| is_inbound.then_some(flight.scheduled_arrival).flatten()),
-            outbound_scheduled_at: outbound.and_then(|l| l.scheduled_time).or_else(|| is_outbound.then_some(flight.scheduled_departure).flatten()),
-            inbound_estimated_at: is_outbound.then_some(None).unwrap_or(flight.estimated_arrival),
-            outbound_estimated_at: is_inbound.then_some(None).unwrap_or(flight.estimated_departure),
-            inbound_actual_at: is_outbound.then_some(None).unwrap_or(flight.actual_arrival),
-            outbound_actual_at: is_inbound.then_some(None).unwrap_or(flight.actual_departure),
+            inbound_flight_no: inbound.map(|l| l.flight_no.clone()).or_else(|| {
+                (flight.direction.as_deref() == Some("inbound"))
+                    .then(|| flight.flight_number.as_ref().map(ToString::to_string))
+                    .flatten()
+            }),
+            outbound_flight_no: outbound.map(|l| l.flight_no.clone()).or_else(|| {
+                (flight.direction.as_deref() == Some("outbound"))
+                    .then(|| flight.flight_number.as_ref().map(ToString::to_string))
+                    .flatten()
+            }),
+            inbound_scheduled_at: inbound
+                .and_then(|l| l.scheduled_time)
+                .or_else(|| is_inbound.then_some(flight.scheduled_arrival).flatten()),
+            outbound_scheduled_at: outbound
+                .and_then(|l| l.scheduled_time)
+                .or_else(|| is_outbound.then_some(flight.scheduled_departure).flatten()),
+            inbound_estimated_at: if is_outbound { None } else { flight.estimated_arrival },
+            outbound_estimated_at: if is_inbound { None } else { flight.estimated_departure },
+            inbound_actual_at: if is_outbound { None } else { flight.actual_arrival },
+            outbound_actual_at: if is_inbound { None } else { flight.actual_departure },
             inbound_station_code: inbound.and_then(|l| l.destination_code.clone()),
             outbound_station_code: outbound.and_then(|l| l.origin_code.clone()),
             inbound_is_vip: inbound.map(|l| l.is_vip).unwrap_or(false),
@@ -282,7 +290,7 @@ mod tests {
 
     #[test]
     fn single_outbound_row_keeps_row_id_and_direction() {
-        let mut row = FlightMonitorRow {
+        let row = FlightMonitorRow {
             row_id: "OUT-1".into(),
             link_id: None,
             kind: "single".into(),

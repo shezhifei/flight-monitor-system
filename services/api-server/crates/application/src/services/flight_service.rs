@@ -58,7 +58,7 @@ fn should_emit_perf_trace(counter: &AtomicU64) -> bool {
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value > 0)
         .unwrap_or(1000);
-    counter.fetch_add(1, Ordering::Relaxed) % sample_rate == 0
+    counter.fetch_add(1, Ordering::Relaxed).is_multiple_of(sample_rate)
 }
 
 impl FlightService {
@@ -194,7 +194,7 @@ impl FlightService {
             if hot_path {
                 *self.hot_list.write().await = Some(response.clone());
             }
-            return Ok(response);
+            Ok(response)
         }
     }
 
@@ -233,7 +233,9 @@ impl FlightService {
             None => {
                 self.repo.save(&flight).await?;
                 let repo = self.monitor_rows.as_ref().ok_or_else(|| {
-                    DomainError::Internal("flight_monitor_rows repository is required for non-transactional flight writes".into())
+                    DomainError::Internal(
+                        "flight_monitor_rows repository is required for non-transactional flight writes".into(),
+                    )
                 })?;
                 repo.upsert(
                     &FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::project_from_flight(
@@ -274,7 +276,9 @@ impl FlightService {
                 let flight = self.repo.update_partial(flight_id, &patch).await?;
                 if let Some(ref flight) = flight {
                     let repo = self.monitor_rows.as_ref().ok_or_else(|| {
-                        DomainError::Internal("flight_monitor_rows repository is required for non-transactional flight writes".into())
+                        DomainError::Internal(
+                            "flight_monitor_rows repository is required for non-transactional flight writes".into(),
+                        )
                     })?;
                     repo.upsert(
                         &FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::project_from_flight(
@@ -337,7 +341,9 @@ impl FlightService {
                 let flight = self.repo.update_partial(flight_id, &patch).await?;
                 if let Some(ref flight) = flight {
                     let repo = self.monitor_rows.as_ref().ok_or_else(|| {
-                        DomainError::Internal("flight_monitor_rows repository is required for non-transactional flight writes".into())
+                        DomainError::Internal(
+                            "flight_monitor_rows repository is required for non-transactional flight writes".into(),
+                        )
                     })?;
                     repo.upsert(
                         &FlightMonitorRowService::<dyn FlightMonitorRowRepository + Send + Sync>::project_from_flight(

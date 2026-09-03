@@ -85,8 +85,6 @@ fn get_outbox_writer_status() -> Result<Option<String>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use actix_web::test;
 
     #[actix_web::test]
     async fn test_runtime_health_healthy() {

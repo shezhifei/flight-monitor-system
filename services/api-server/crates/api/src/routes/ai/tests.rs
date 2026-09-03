@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::module_inception)]
     use actix_web::body::to_bytes;
     use actix_web::http::StatusCode;
     use actix_web::{web, App};

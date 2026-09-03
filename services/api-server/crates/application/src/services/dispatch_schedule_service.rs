@@ -335,7 +335,7 @@ where
         .collect()
 }
 
-fn parse_resource_type<'a>(value: &'a str) -> Result<&'a str, DomainError> {
+fn parse_resource_type(value: &str) -> Result<&str, DomainError> {
     match value.trim() {
         "team" | "equipment" | "employee" => Ok(value.trim()),
         other => Err(DomainError::ValidationError(format!("不支持的资源类型: {other}"))),
@@ -387,6 +387,6 @@ fn normalize_optional_string(value: Option<String>) -> Option<String> {
     })
 }
 
-fn normalize_optional_ref<'a>(value: Option<&'a str>) -> Option<&'a str> {
-    value.and_then(|item| if item.trim().is_empty() { None } else { Some(item) })
+fn normalize_optional_ref(value: Option<&str>) -> Option<&str> {
+    value.filter(|&item| !item.trim().is_empty())
 }

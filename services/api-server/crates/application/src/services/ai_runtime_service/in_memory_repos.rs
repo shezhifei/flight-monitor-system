@@ -54,7 +54,7 @@ impl InMemoryToolCallRepository {
     }
 
     fn find_mut<'a>(
-        rows: &'a mut Vec<AiToolCallRecord>,
+        rows: &'a mut [AiToolCallRecord],
         tool_call_pk: &str,
     ) -> Result<&'a mut AiToolCallRecord, AiExecutionRepositoryError> {
         rows.iter_mut()

@@ -541,6 +541,12 @@ pub struct StandConflictOutput {
     pub execution_time_ms: u64,
 }
 
+impl Default for StandConflictOutput {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StandConflictOutput {
     pub fn new() -> Self {
         Self {
@@ -581,6 +587,12 @@ pub struct AnomalyTriageOutput {
     pub reasoning: String,
     pub confidence: MicroModelConfidence,
     pub execution_time_ms: u64,
+}
+
+impl Default for AnomalyTriageOutput {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AnomalyTriageOutput {

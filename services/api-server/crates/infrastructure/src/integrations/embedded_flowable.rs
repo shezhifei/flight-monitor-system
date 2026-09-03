@@ -5,13 +5,15 @@
 //! （flowable-persistence/src/adapters/sqlx_executor.rs），在任意
 //! tokio 上下文调用均安全。本适配器统一用 spawn_blocking 包裹，
 //! 避免阻塞 actix worker 线程。
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 
 use async_trait::async_trait;
 use flowable_engine::engine::process_engine::ProcessEngine;
 use flowable_engine::error::FlowableError;
 use flowable_engine::service::config::{EngineDatabaseKind, ProcessEngineConfiguration};
 use fms_domain::ports::flowable_gateway::{FlowableGateway, FlowableGatewayError};
+use fms_runtime::environment::{current, RuntimeEnvironment};
 
 mod history;
 mod repository;
@@ -29,24 +31,31 @@ const ENGINE_NAME: &str = "fms-embedded-flowable";
 
 impl EmbeddedFlowableEngine {
     /// 从环境变量构造。
-    ///
-    /// - `FLOWABLE_DATABASE_URL` 非空 → PostgreSQL 后端（生产），
-    ///   引擎构造时自动建/补 ACT_* 表（to_persistence_config 内建
-    ///   SchemaMode::True，无需额外配置）。
-    /// - 为空 → 内存后端（测试/开发，数据不落盘）。
     pub fn try_new_from_env() -> Result<Self, FlowableGatewayError> {
-        let url = std::env::var("FLOWABLE_DATABASE_URL")
-            .ok()
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty());
+        Self::build(current(), database_url())
+    }
+
+    /// 后端裁决：环境 + 库配置 → 引擎或错误，不读进程环境，便于确定性地测出 fail-closed 分支。
+    ///
+    /// - 有库配置 → PostgreSQL 后端（生产），引擎构造时自动建/补 ACT_* 表
+    ///   （to_persistence_config 内建 SchemaMode::True，无需额外配置）。
+    /// - 缺库配置 + production → 拒绝启动。降级成内存后端会让进程「启动成功、接口正常」
+    ///   而流程数据只存在内存里，重启即丢，属于必须消除的假成功路径。
+    /// - 缺库配置 + 开发/测试 → 内存后端。
+    fn build(environment: RuntimeEnvironment, url: Option<String>) -> Result<Self, FlowableGatewayError> {
         let engine = match url {
-            // 不用 ProcessEngineConfiguration::default() 构造内存引擎：
-            // default() 会读 FLOWABLE_TEST_ENGINE_DATABASE_URL 环境变量，
-            // new_with_memory_backend 完全绕开该干扰。
             None => {
+                if environment.is_production() {
+                    return Err(FlowableGatewayError::Upstream(
+                        "FLOWABLE_DATABASE_URL 未设置：production 环境拒绝使用内存后端启动（流程数据不落库，重启即丢）"
+                            .to_string(),
+                    ));
+                }
                 tracing::warn!(
                     "FLOWABLE_DATABASE_URL 未设置，嵌入式 Flowable 引擎使用内存后端——流程数据不落库，仅限测试/开发"
                 );
+                // 不走 ProcessEngineConfiguration::default()：default() 会读
+                // FLOWABLE_TEST_ENGINE_DATABASE_URL，new_with_memory_backend 绕开该干扰。
                 ProcessEngine::new_with_memory_backend(ENGINE_NAME.to_string())
             }
             Some(url) => {
@@ -74,18 +83,49 @@ impl EmbeddedFlowableEngine {
     }
 }
 
+fn database_url() -> Option<String> {
+    std::env::var("FLOWABLE_DATABASE_URL")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+const DEFAULT_ENGINE_TIMEOUT_SECS: u64 = 30;
+
+fn parse_engine_timeout(raw: Option<&str>) -> Duration {
+    Duration::from_secs(
+        raw.and_then(|value| value.trim().parse::<u64>().ok())
+            .filter(|&value| value > 0)
+            .unwrap_or(DEFAULT_ENGINE_TIMEOUT_SECS),
+    )
+}
+
+fn engine_timeout() -> Duration {
+    static TIMEOUT: OnceLock<Duration> = OnceLock::new();
+    *TIMEOUT.get_or_init(|| parse_engine_timeout(std::env::var("FLOWABLE_ENGINE_TIMEOUT_SECS").ok().as_deref()))
+}
+
 /// 在阻塞线程池上执行引擎调用，统一错误映射。
 ///
 /// 自由函数形式：`FlowableGateway` 的 impl 块必须整体位于
 /// `embedded_flowable.rs`（Rust 不允许一个 trait 的实现拆散到多个
 /// impl 块），各方法组实现为子模块里的自由函数并复用本辅助。
+///
+/// 超时只解除调用方的等待并给出明确错误，不会回收阻塞线程本身：
+/// `spawn_blocking` 里的引擎调用仍会跑到结束，因此预算要按「最慢正常
+/// 查询 + 余量」设置，不能压到毫秒级。
 pub(crate) async fn run_on_engine<T, F>(engine: Arc<ProcessEngine>, f: F) -> Result<T, FlowableGatewayError>
 where
     T: Send + 'static,
     F: FnOnce(&ProcessEngine) -> Result<T, FlowableError> + Send + 'static,
 {
-    tokio::task::spawn_blocking(move || f(&engine))
+    let budget = engine_timeout();
+    let joined = tokio::time::timeout(budget, tokio::task::spawn_blocking(move || f(&engine)))
         .await
+        .map_err(|_| {
+            FlowableGatewayError::Upstream(format!("flowable engine call timed out after {}s", budget.as_secs()))
+        })?;
+    joined
         .map_err(|join_error| FlowableGatewayError::Upstream(format!("flowable engine task panicked: {join_error}")))?
         .map_err(|error: FlowableError| FlowableGatewayError::Upstream(error.to_string()))
 }

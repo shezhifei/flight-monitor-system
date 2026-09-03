@@ -430,7 +430,7 @@ async fn batch_timeline_appends_manual_batch_edit_events_with_jwt_actor() {
 
     // latest_snapshots (last-write-wins) must surface the earlier correction.
     let snaps = PgFlightTimelineEventRepository::new(pool.clone())
-        .latest_snapshots(&[f1.clone()])
+        .latest_snapshots(std::slice::from_ref(&f1))
         .await
         .expect("latest snapshots");
     let current = snaps.get(&f1).and_then(|m| m.get("start_boarding_time")).copied();

@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统运维 - 监控控制台</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <script src="/frontend/js/auth.js"></script>
+    <link rel="stylesheet" href="/frontend/css/page-tabs.css">
+    <style>
+        :root {
+            --bg-body: #1e1e1e;
+            --bg-panel: #252526;
+            --bg-header: #333333;
+            --text-main: #e0e0e0;
+            --text-dim: #a0a0a0;
+            --border-color: #3e3e42;
+            --accent-blue: #007acc;
+            --system-green: #4caf50;
+            --system-red: #f44336;
+            --system-orange: #ff9800;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: "Segoe UI", -apple-system, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            /* Dashboard style */
+        }
+
+        /* --- Compact Navbar --- */
+        .navbar {
+            height: 40px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .back-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        /* --- Dashboard Grid --- */
+        .dashboard-container {
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            padding: 8px;
+            gap: 8px;
+            height: calc(100vh - 40px);
+            box-sizing: border-box;
+        }
+
+        /* Top Bar: Status + Metrics */
+        .top-bar {
+            display: flex;
+            gap: 8px;
+            height: 80px;
+        }
+
+        .status-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            flex: 1;
+        }
+
+        .metrics-strip {
+            display: flex;
+            flex: 3;
+            gap: 8px;
+        }
+
+        .metric-box {
+            flex: 1;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 16px;
+        }
+
+        .m-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .m-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            font-family: 'Segoe UI', monospace;
+        }
+
+        /* Main Content Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 350px 1fr;
+            /* Fixed width for controls, flex for logs */
+            gap: 8px;
+            overflow: hidden;
+        }
+
+        .col-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-flex {
+            flex: 1;
+        }
+
+        /* Fill remaining space */
+
+        .panel-header {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .data-list {
+            padding: 8px 12px;
+            overflow-y: auto;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            color: var(--text-dim);
+        }
+
+        .value {
+            color: var(--text-main);
+            font-family: monospace;
+        }
+
+        /* Perf Bars */
+        .bar-bg {
+            width: 80px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            transition: width 0.3s;
+        }
+
+        /* Logs specific */
+        .log-container {
+            flex: 1;
+            background: #101010;
+            padding: 8px;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            overflow-y: auto;
+            color: #d4d4d4;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 8px;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .l-time {
+            color: #569cd6;
+            min-width: 70px;
+        }
+
+        .l-tag {
+            font-weight: bold;
+            min-width: 50px;
+        }
+
+        .l-msg {
+            color: #ce9178;
+            word-break: break-all;
+        }
+
+        .tag-low {
+            color: var(--system-green);
+        }
+
+        .tag-medium {
+            color: var(--system-orange);
+        }
+
+        .tag-high {
+            color: var(--system-red);
+        }
+
+        /* Utility */
+        h1 {
+            font-size: 18px;
+            margin: 0;
+            color: #fff;
+        }
+
+        p {
+            margin: 4px 0 0 0;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .status-orb {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: grey;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+
+            .col-logs {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+            <a href="/frontend/html/dashboard.html" title="返回工作台"
+                style="display:flex;align-items:center;text-decoration:none;color:inherit;">
+                <div class="logo">系统管理</div>
+            </a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <!-- Status Card -->
+            <div class="status-card">
+                <div>
+                    <h1 id="pageTitle">系统整体状态</h1>
+                    <p>最后更新: <span id="lastUpdated">--:--:--</span> · 状态广播: 5s · 异常推送: 实时</p>
+                </div>
+                <div style="display:flex;align-items:center;">
+                    <div class="status-orb" id="statusOrb"></div>
+                    <span id="statusText" style="font-weight:600;font-size:14px;">正在评估...</span>
+                </div>
+            </div>
+
+            <!-- Metrics Strip -->
+            <div class="metrics-strip">
+                <div class="metric-box">
+                    <div class="m-label">航班存储总量</div>
+                    <div class="m-value" id="countFlights">-</div>
+                </div>
+                <div class="metric-box">
+                    <div class="m-label">活跃并发连接(SSE)</div>
+                    <div class="m-value" id="countSSE">-</div>
+                </div>
+                <div class="metric-box">
+                    <div class="m-label">当日捕获异常</div>
+                    <div class="m-value" id="countErrors" style="color:var(--system-orange)">-</div>
+                </div>
+                <div class="metric-box">
+                    <div class="m-label">接口平均响应</div>
+                    <div class="m-value" id="responseTime">- ms</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Column 1: Services -->
+            <div class="col-panel">
+                <div class="panel">
+                    <div class="panel-header">SSE 实时推流网关</div>
+                    <div class="data-list">
+                        <div class="data-row"><span class="label">客户端连接总数</span><span class="value"
+                                id="sseTotal">-</span></div>
+                        <div class="data-row"><span class="label">航班详情订阅流</span><span class="value"
+                                id="sseFlights">-</span></div>
+                        <div class="data-row"><span class="label">全局状态订阅流</span><span class="value"
+                                id="sseStatus">-</span></div>
+                        <div class="data-row"><span class="label">Gateway 运行状态</span><span class="value"
+                                id="sseState">-</span></div>
+                    </div>
+                </div>
+                <div class="panel panel-flex">
+                    <div class="panel-header">核心基础设施</div>
+                    <div class="data-list">
+                        <div class="data-row"><span class="label">API Server</span><span class="value"
+                                id="infraApi">-</span></div>
+                        <div class="data-row"><span class="label">Postgres 数据库</span><span class="value"
+                                id="infraPostgres">-</span></div>
+                        <div class="data-row"><span class="label">Redis 缓存层</span><span class="value"
+                                id="infraRedis">-</span></div>
+                        <div class="data-row"><span class="label">Auth 鉴权服务</span><span class="value"
+                                id="infraAuth">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Performance (Full Height) -->
+            <div class="col-panel">
+                <div class="panel panel-flex">
+                    <div class="panel-header">
+                        性能指标监控
+                        <span id="perfTimestamp" style="font-weight:normal;opacity:0.6">-</span>
+                    </div>
+                    <div class="data-list">
+                        <div class="data-row">
+                            <span class="label">DB 连接池使用率</span>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div class="bar-bg">
+                                    <div id="dbPoolBar" class="bar-fill" style="width:0%"></div>
+                                </div>
+                                <span class="value" id="dbPoolPct">-</span>
+                            </div>
+                        </div>
+                        <div class="data-row"><span class="label">Redis 延迟</span><span class="value" id="redisLatency">-
+                                ms</span></div>
+                        <div class="data-row"><span class="label">请求 P99 延迟</span><span class="value" id="requestP99">-
+                                ms</span></div>
+                        <div class="data-row">
+                            <span class="label">SSE 连接数</span>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div class="bar-bg">
+                                    <div id="sseBar" class="bar-fill" style="width:0%;background:var(--system-green)">
+                                    </div>
+                                </div>
+                                <span class="value" id="sseConnPct">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Logs (Full Height) -->
+            <div class="col-panel">
+                <div class="panel panel-flex">
+                    <div class="panel-header">
+                        <span>异常监控中心 (REAL-TIME LOGS) · <span id="logRealtimeLag">SSE 延迟 -- ms</span></span>
+                        <button onclick="clearErrors()"
+                            style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:10px;">清空</button>
+                    </div>
+                    <div class="log-container" id="logConsole">
+                        <div class="log-line"><span class="l-time">[SYS]</span><span>控制台已就绪...</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = `${window.location.origin}/api/v2`;
+
+        // 使用 auth.js 提供的 checkAndRenew 和 fetch，支持自动刷新 Token
+        const fetchWithAuth = Auth.fetch;
+        const SSE_CONFIG = {
+            watchdogMs: 25000,
+            watchdogTickMs: 5000,
+            reconnectBaseMs: 1500,
+            reconnectMaxMs: 15000
+        };
+
+        let statusEventSource = null;
+        let sseWatchdogTimer = null;
+        let sseReconnectTimer = null;
+        let sseLastMessageAt = 0;
+        let sseReconnectAttempt = 0;
+        let ssePageSuspended = false;
+        const LOG_CONFIG = {
+            maxLines: 300,
+            targetLatencyMs: 200
+        };
+        const realtimeLogState = {
+            items: [],
+            ids: new Set(),
+            lastLagMs: null
+        };
+
+        // 废弃轮询模式的 refreshData
+        // async function refreshData() { ... }
+
+        function renderHero(data) {
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('zh-CN');
+            const orb = document.getElementById('statusOrb');
+            const text = document.getElementById('statusText');
+            const status = String(data.status || 'unknown').toLowerCase();
+
+            let label = '状态未知';
+            let colorVar = '--system-orange';
+            if (status === 'healthy') {
+                label = '系统正常运行';
+                colorVar = '--system-green';
+            } else if (status === 'degraded') {
+                label = '部分服务降级';
+                colorVar = '--system-orange';
+            } else if (status === 'down' || status === 'error' || status === 'unhealthy') {
+                label = '系统服务异常';
+                colorVar = '--system-red';
+            }
+
+            text.textContent = label;
+            orb.style.background = `var(${colorVar})`;
+            orb.style.boxShadow = `0 0 8px var(${colorVar})`;
+            text.style.color = `var(${colorVar})`;
+        }
+
+        function renderMetrics(data, latency) {
+            document.getElementById('countFlights').textContent = data.database?.flights ?? 0;
+            document.getElementById('countSSE').textContent = data.buffer_status?.total_connections ?? 0;
+            const errorsCount = Number(data.errors_count ?? 0);
+            const errorEl = document.getElementById('countErrors');
+            errorEl.textContent = errorsCount;
+            errorEl.style.color = errorsCount > 0 ? 'var(--system-orange)' : 'var(--system-green)';
+
+            if (latency && latency !== '-') {
+                document.getElementById('responseTime').textContent = `${latency}`;
+            }
+        }
+
+        function renderSSE(sse) {
+            sse = sse || {};
+            document.getElementById('sseTotal').textContent = sse.total_connections ?? 0;
+            document.getElementById('sseFlights').textContent = sse.topics?.flight_updates ?? 0;
+            document.getElementById('sseStatus').textContent = sse.topics?.global_status ?? sse.topics?.status_changes ?? 0;
+            const stateEl = document.getElementById('sseState');
+            stateEl.textContent = (sse.status || 'unknown').toUpperCase();
+            stateEl.style.color = sse.status === 'active' ? 'var(--accent-blue)' : 'var(--system-orange)';
+        }
+
+        function serviceColorByStatus(status) {
+            const normalized = String(status || 'unknown').toLowerCase();
+            if (['healthy', 'online', 'connected', 'active', 'running', 'ok'].includes(normalized)) {
+                return 'var(--system-green)';
+            }
+            if (['degraded', 'fallback', 'warning', 'warn', 'unknown'].includes(normalized)) {
+                return 'var(--system-orange)';
+            }
+            return 'var(--system-red)';
+        }
+
+        function formatUptime(seconds) {
+            if (!Number.isFinite(Number(seconds)) || Number(seconds) <= 0) {
+                return '-';
+            }
+
+            let remaining = Math.floor(Number(seconds));
+            const hours = Math.floor(remaining / 3600);
+            remaining -= hours * 3600;
+            const minutes = Math.floor(remaining / 60);
+            const secs = remaining - minutes * 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            }
+            if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            }
+            return `${secs}s`;
+        }
+
+        function renderInfrastructure(services, runtime) {
+            const api = services?.api_server || {};
+            const postgres = services?.postgres || {};
+            const redis = services?.redis || {};
+            const auth = services?.auth || {};
+
+            const setLine = (id, text, status) => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    return;
+                }
+                element.textContent = text || '-';
+                element.style.color = serviceColorByStatus(status);
+            };
+
+            const uptimeSeconds = runtime?.uptime_seconds ?? api?.uptime_seconds ?? 0;
+            const apiText = `${api.detail || '在线'}${uptimeSeconds > 0 ? ` · 运行 ${formatUptime(uptimeSeconds)}` : ''}`;
+            setLine('infraApi', apiText, api.status || 'unknown');
+
+            setLine('infraPostgres', postgres.detail || '-', postgres.status || 'unknown');
+            setLine('infraRedis', redis.detail || '-', redis.status || 'unknown');
+            setLine('infraAuth', auth.detail || '-', auth.status || 'unknown');
+        }
+
+        function toLogKey(item) {
+            return item.error_id || `${item.timestamp || ''}|${item.error_type || ''}|${item.message || ''}`;
+        }
+
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeLogItem(raw) {
+            const item = raw || {};
+            return {
+                error_id: item.error_id || null,
+                timestamp: item.timestamp || item.emitted_at || new Date().toISOString(),
+                error_type: item.error_type || 'ERR',
+                severity: String(item.severity || 'medium').toLowerCase(),
+                message: item.message || item.error_message || '未知错误',
+                emitted_at_ms: Number(item.emitted_at_ms || 0) || null
+            };
+        }
+
+        function renderConsoleFromState() {
+            const consoleEl = document.getElementById('logConsole');
+            if (!consoleEl) {
+                return;
+            }
+
+            if (realtimeLogState.items.length === 0) {
+                consoleEl.innerHTML = '<div class="log-line"><span class="l-time">[INFO]</span><span>暂无活跃的系统错误记录。</span></div>';
+                return;
+            }
+
+            consoleEl.innerHTML = realtimeLogState.items.map((e) => `
+                <div class="log-line">
+                    <span class="l-time">[${new Date(e.timestamp).toLocaleTimeString('zh-CN')}]</span>
+                    <span class="l-tag tag-${e.severity}">${escapeHtml((e.error_type || 'ERR').substring(0, 4))}</span>
+                    <span class="l-msg">${escapeHtml(e.message)}</span>
+                </div>
+            `).join('');
+        }
+
+        function updateRealtimeLag(emittedAtMs) {
+            const lagEl = document.getElementById('logRealtimeLag');
+            if (!lagEl || !Number.isFinite(Number(emittedAtMs))) {
+                return;
+            }
+
+            const lagMs = Math.max(0, Date.now() - Number(emittedAtMs));
+            realtimeLogState.lastLagMs = lagMs;
+            lagEl.textContent = `SSE 延迟 ${lagMs} ms`;
+
+            if (lagMs <= LOG_CONFIG.targetLatencyMs) {
+                lagEl.style.color = 'var(--system-green)';
+            } else if (lagMs <= LOG_CONFIG.targetLatencyMs * 2) {
+                lagEl.style.color = 'var(--system-orange)';
+            } else {
+                lagEl.style.color = 'var(--system-red)';
+            }
+        }
+
+        function renderConsole(errors) {
+            const safeErrors = Array.isArray(errors) ? errors : [];
+            const nextItems = [];
+            const nextIds = new Set();
+
+            for (const raw of safeErrors) {
+                const item = normalizeLogItem(raw);
+                const key = toLogKey(item);
+                if (nextIds.has(key)) {
+                    continue;
+                }
+                nextIds.add(key);
+                nextItems.push(item);
+                if (nextItems.length >= LOG_CONFIG.maxLines) {
+                    break;
+                }
+            }
+
+            realtimeLogState.items = nextItems;
+            realtimeLogState.ids = nextIds;
+            renderConsoleFromState();
+        }
+
+        function appendRealtimeError(rawError, shouldRender = true) {
+            const item = normalizeLogItem(rawError);
+            const key = toLogKey(item);
+            if (realtimeLogState.ids.has(key)) {
+                return;
+            }
+
+            realtimeLogState.ids.add(key);
+            realtimeLogState.items.unshift(item);
+
+            while (realtimeLogState.items.length > LOG_CONFIG.maxLines) {
+                const removed = realtimeLogState.items.pop();
+                if (removed) {
+                    realtimeLogState.ids.delete(toLogKey(removed));
+                }
+            }
+
+            if (shouldRender) {
+                renderConsoleFromState();
+            }
+            if (item.emitted_at_ms) {
+                updateRealtimeLag(item.emitted_at_ms);
+            }
+        }
+
+        function mergeConsoleSnapshot(errors) {
+            const safeErrors = Array.isArray(errors) ? errors : [];
+            if (safeErrors.length === 0) {
+                realtimeLogState.items = [];
+                realtimeLogState.ids.clear();
+                renderConsoleFromState();
+                return;
+            }
+
+            if (realtimeLogState.items.length === 0) {
+                renderConsole(safeErrors);
+                return;
+            }
+
+            for (let i = safeErrors.length - 1; i >= 0; i -= 1) {
+                appendRealtimeError(safeErrors[i], false);
+            }
+            renderConsoleFromState();
+        }
+
+        function handleRealtimeErrorPayload(payload) {
+            if (!payload || typeof payload !== 'object') {
+                return;
+            }
+
+            const errorEvent = payload.error_event || payload;
+            if (!errorEvent || typeof errorEvent !== 'object') {
+                return;
+            }
+
+            appendRealtimeError(errorEvent);
+
+            const emittedAtMs = Number(errorEvent.emitted_at_ms || payload.emitted_at_ms || 0);
+            if (Number.isFinite(emittedAtMs) && emittedAtMs > 0) {
+                updateRealtimeLag(emittedAtMs);
+            }
+
+            const errorsCount = Number(payload.errors_count);
+            if (Number.isFinite(errorsCount)) {
+                const errorEl = document.getElementById('countErrors');
+                if (errorEl) {
+                    errorEl.textContent = errorsCount;
+                    errorEl.style.color = errorsCount > 0 ? 'var(--system-orange)' : 'var(--system-green)';
+                }
+            }
+        }
+
+        function applyStatusSnapshot(data, latencyLabel = '-') {
+            if (!data) {
+                return;
+            }
+
+            renderHero(data);
+            renderMetrics(data, latencyLabel);
+            renderSSE(data.buffer_status);
+            renderInfrastructure(data.services, data.runtime);
+            mergeConsoleSnapshot(data.recent_errors || []);
+        }
+
+        async function fetchHealthSnapshot() {
+            const start = performance.now();
+            const response = await fetchWithAuth(`${API_BASE}/health`);
+            if (!response || !response.ok) {
+                throw new Error(`health snapshot failed: ${response ? response.status : 'no-response'}`);
+            }
+
+            const data = await response.json();
+            const latency = `${Math.round(performance.now() - start)} ms`;
+            applyStatusSnapshot(data, latency);
+            return data;
+        }
+
+        async function fetchPerformance() {
+            const response = await fetchWithAuth(`${API_BASE}/health/performance`);
+            if (!response || !response.ok) {
+                throw new Error(`performance fetch failed: ${response ? response.status : 'no-response'}`);
+            }
+
+            const payload = await response.json();
+            if (payload && payload.data) {
+                renderPerformance(payload.data);
+            }
+        }
+
+        async function clearErrors() {
+            try {
+                const resp = await fetchWithAuth(`${API_BASE}/health/errors/clear`, { method: 'POST' });
+                if (resp && resp.ok) {
+                    await fetchHealthSnapshot();
+                }
+            } catch (error) {
+                console.error('Failed to clear errors:', error);
+            }
+        }
+
+        // 废弃轮询模式的 refreshPerformance
+        // async function refreshPerformance() { ... }
+
+        function renderPerformance(perf) {
+            const dbPool = perf.db_pool || {};
+            const dbPct = dbPool.usage_pct || 0;
+            document.getElementById('dbPoolBar').style.width = `${dbPct}%`;
+            document.getElementById('dbPoolBar').style.background = dbPct > 80 ? 'var(--system-red)' : 'var(--accent-blue)';
+            document.getElementById('dbPoolPct').textContent = `${dbPct}%`;
+
+            const redis = perf.redis || {};
+            document.getElementById('redisLatency').textContent = redis.connected ? `${redis.latency_ms} ms` : '已断开';
+            document.getElementById('redisLatency').style.color = redis.connected ? 'var(--system-green)' : 'var(--system-red)';
+
+            const req = perf.requests || {};
+            document.getElementById('requestP99').textContent = `${req.p99 || 0} ms`;
+            document.getElementById('responseTime').textContent = req.count > 0 ? `${req.avg || 0} ms` : '-';
+
+            const sse = perf.sse || {};
+            const ssePct = sse.usage_pct || 0;
+            document.getElementById('sseBar').style.width = `${ssePct}%`;
+            document.getElementById('sseConnPct').textContent = `${ssePct}%`;
+
+            document.getElementById('perfTimestamp').textContent = new Date().toLocaleTimeString('zh-CN');
+        }
+
+        function updateConnectionBadge(label, colorVar) {
+            const orb = document.getElementById('statusOrb');
+            const text = document.getElementById('statusText');
+            if (!orb || !text) {
+                return;
+            }
+
+            text.textContent = label;
+            text.style.color = `var(${colorVar})`;
+            orb.style.background = `var(${colorVar})`;
+            orb.style.boxShadow = `0 0 8px var(${colorVar})`;
+        }
+
+        function parseSsePayload(rawPayload) {
+            if (typeof rawPayload !== 'string') {
+                return null;
+            }
+
+            const text = rawPayload.trim();
+            if (!text) {
+                return null;
+            }
+
+            if (text.startsWith('data:') || text.startsWith('event:')) {
+                const lines = text.split(/\r?\n/);
+                const dataLines = lines
+                    .filter((line) => line.startsWith('data:'))
+                    .map((line) => {
+                        let cleaned = line;
+                        while (cleaned.startsWith('data:')) {
+                            cleaned = cleaned.replace(/^data:\s*/, '');
+                        }
+                        return cleaned;
+                    });
+
+                if (dataLines.length === 0) {
+                    return null;
+                }
+
+                return JSON.parse(dataLines.join('\n').trim());
+            }
+
+            return JSON.parse(text);
+        }
+
+        function handleStatusPayload(rawPayload) {
+            try {
+                const data = parseSsePayload(rawPayload);
+                if (!data || typeof data !== 'object') {
+                    return;
+                }
+
+                const messageType = String(data.message_type || '').toLowerCase();
+                if (messageType === 'error_log') {
+                    sseLastMessageAt = Date.now();
+                    handleRealtimeErrorPayload(data);
+                    return;
+                }
+
+                // 忽略非状态消息（例如心跳）
+                if (!Object.prototype.hasOwnProperty.call(data, 'status') &&
+                    !Object.prototype.hasOwnProperty.call(data, 'errors_count') &&
+                    !Object.prototype.hasOwnProperty.call(data, 'database')) {
+                    return;
+                }
+
+                sseLastMessageAt = Date.now();
+                applyStatusSnapshot(data, '-');
+                if (data.performance) {
+                    renderPerformance(data.performance);
+                }
+
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('zh-CN');
+            } catch (err) {
+                console.error('Error parsing SSE data:', err, rawPayload);
+            }
+        }
+
+        function clearSSEWatchdog() {
+            if (sseWatchdogTimer) {
+                clearInterval(sseWatchdogTimer);
+                sseWatchdogTimer = null;
+            }
+        }
+
+        function startSSEWatchdog() {
+            clearSSEWatchdog();
+            sseWatchdogTimer = setInterval(() => {
+                if (!statusEventSource) {
+                    return;
+                }
+
+                const silentFor = Date.now() - sseLastMessageAt;
+                if (silentFor > SSE_CONFIG.watchdogMs) {
+                    console.warn(`SSE watchdog timeout (${silentFor}ms), reconnecting...`);
+                    scheduleSSEReconnect('watchdog-timeout');
+                }
+            }, SSE_CONFIG.watchdogTickMs);
+        }
+
+        function closeSSEConnection() {
+            clearSSEWatchdog();
+            if (statusEventSource) {
+                statusEventSource.close();
+                statusEventSource = null;
+            }
+        }
+
+        async function reconnectSSE(options = {}) {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+
+            if (typeof Auth.requireAuthAsync === 'function') {
+                const authenticated = await Auth.requireAuthAsync();
+                if (!authenticated) {
+                    return;
+                }
+            }
+
+            if (options.forceRefreshToken && typeof Auth.invalidateSSEToken === 'function') {
+                Auth.invalidateSSEToken();
+            }
+
+            if (typeof Auth.refreshSSEToken === 'function') {
+                try {
+                    await Auth.refreshSSEToken(Boolean(options.forceRefreshToken));
+                } catch (_error) {
+                    // Auth.getEventSource falls back to the main token when needed
+                }
+            } else if (options.forceRefreshToken && typeof Auth.refreshToken === 'function') {
+                await Auth.refreshToken();
+            }
+
+            initSSE();
+        }
+
+        function scheduleSSEReconnect(reason = 'unknown') {
+            if (sseReconnectTimer) {
+                return;
+            }
+
+            closeSSEConnection();
+            updateConnectionBadge('连接中断，重连中...', '--system-orange');
+
+            const delay = Math.min(
+                SSE_CONFIG.reconnectBaseMs * (2 ** sseReconnectAttempt),
+                SSE_CONFIG.reconnectMaxMs
+            );
+            sseReconnectAttempt = Math.min(sseReconnectAttempt + 1, 8);
+
+            console.warn(`Scheduling SSE reconnect (${reason}) in ${delay}ms`);
+            sseReconnectTimer = setTimeout(async () => {
+                sseReconnectTimer = null;
+                if (document.visibilityState === 'hidden') {
+                    updateConnectionBadge('页面挂起，等待恢复...', '--system-orange');
+                    return;
+                }
+                await reconnectSSE({ forceRefreshToken: true });
+            }, delay);
+        }
+
+        // 初始化 SSE 连接（带握手、心跳与重连）
+        function initSSE() {
+            const sseUrl = `${API_BASE}/health/stream/status`;
+
+            if (sseReconnectTimer) {
+                clearTimeout(sseReconnectTimer);
+                sseReconnectTimer = null;
+            }
+
+            closeSSEConnection();
+            statusEventSource = Auth.getEventSource(sseUrl);
+            sseLastMessageAt = Date.now();
+            startSSEWatchdog();
+
+            console.log('Connecting to SSE:', sseUrl);
+
+            statusEventSource.onopen = () => {
+                console.log('SSE transport connected');
+                sseReconnectAttempt = 0;
+                sseLastMessageAt = Date.now();
+                updateConnectionBadge('实时监控已连接', '--system-green');
+            };
+
+            // 默认消息通道（无 event 字段）
+            statusEventSource.onmessage = (e) => {
+                handleStatusPayload(e.data);
+            };
+
+            // 握手事件
+            statusEventSource.addEventListener('connected', (e) => {
+                sseLastMessageAt = Date.now();
+                updateConnectionBadge('实时监控已连接', '--system-green');
+                console.log('SSE handshake:', e.data);
+            });
+
+            // 心跳事件
+            statusEventSource.addEventListener('heartbeat', () => {
+                sseLastMessageAt = Date.now();
+            });
+
+            // 业务状态事件
+            statusEventSource.addEventListener('system_status', (e) => {
+                handleStatusPayload(e.data);
+            });
+
+            // 实时异常事件
+            statusEventSource.addEventListener('error_log', (e) => {
+                try {
+                    const payload = parseSsePayload(e.data);
+                    if (payload && typeof payload === 'object') {
+                        sseLastMessageAt = Date.now();
+                        handleRealtimeErrorPayload(payload);
+                    }
+                } catch (err) {
+                    console.error('Error parsing realtime error event:', err);
+                }
+            });
+
+            statusEventSource.onerror = (err) => {
+                console.error('SSE error:', err);
+                scheduleSSEReconnect('event-source-error');
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 强制登录检查：如未登录或 Token 过期，尝试刷新后再决定是否跳转登录页
+            const authenticated = await Auth.requireAuthAsync();
+            if (!authenticated) {
+                return;
+            }
+
+            // 首次加载先拉取快照，避免等待 SSE 首帧导致空白
+            try {
+                await fetchHealthSnapshot();
+                await fetchPerformance();
+            } catch (error) {
+                console.error('Failed to load initial status snapshot:', error);
+            }
+
+            // 启动 SSE
+            await reconnectSSE({ forceRefreshToken: true });
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (sseReconnectTimer) {
+                clearTimeout(sseReconnectTimer);
+                sseReconnectTimer = null;
+            }
+            closeSSEConnection();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                ssePageSuspended = true;
+                if (sseReconnectTimer) {
+                    clearTimeout(sseReconnectTimer);
+                    sseReconnectTimer = null;
+                }
+                closeSSEConnection();
+                updateConnectionBadge('页面挂起，等待恢复...', '--system-orange');
+                return;
+            }
+
+            if (!ssePageSuspended) {
+                return;
+            }
+
+            ssePageSuspended = false;
+            sseReconnectAttempt = 0;
+            void reconnectSSE({ forceRefreshToken: true });
+        });
+
+        window.addEventListener('online', () => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+            ssePageSuspended = false;
+            sseReconnectAttempt = 0;
+            void reconnectSSE({ forceRefreshToken: true });
+        });
+    </script>
+</body>
+
+</html>

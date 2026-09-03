@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统实验室 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/admin-layout.css">
+    <link rel="stylesheet" href="/frontend/css/admin-page.css">
+    <link rel="stylesheet" href="/frontend/css/apple-theme.css">
+    <script src="/frontend/js/auth.js"></script>
+    <style>
+        /* --- Local Overrides & Specific Styles --- */
+
+        /* Banner within Main Content */
+        .warning-banner {
+            background: linear-gradient(135deg, rgba(255, 243, 205, 0.9) 0%, rgba(255, 230, 168, 0.9) 100%);
+            color: #856404;
+            padding: 12px 32px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Search Input Fix */
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 60px !important;
+            /* Force padding */
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--system-blue);
+            box-shadow: 0 0 0 3px var(--system-blue-subtle);
+        }
+
+        .search-group {
+            position: relative;
+            width: 320px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Content Area Layout */
+        .flags-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .flag-group {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .flag-item {
+            display: grid;
+            grid-template-columns: 1fr 240px;
+            gap: 24px;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            transition: background 0.15s;
+        }
+
+        .flag-item:last-child {
+            border-bottom: none;
+        }
+
+        .flag-item:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .flag-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .flag-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Controls */
+        .input-ios {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            font-size: 13px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s;
+        }
+
+        .input-ios:focus {
+            background: #fff;
+            border-color: var(--system-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--system-blue-subtle);
+        }
+
+        .select-ios {
+            appearance: none;
+            background: rgba(255, 255, 255, 0.8) url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 12px center;
+            background-size: 10px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 8px 32px 8px 12px;
+            font-size: 13px;
+            color: var(--text-primary);
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: toastSlideIn 0.3s ease-out;
+            border-left: 4px solid var(--system-green);
+            font-size: 14px;
+            color: var(--text-primary);
+            min-width: 280px;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .btn-restart {
+            background: var(--system-blue);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        .svg-icon {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+        }
+
+        .svg-icon-sm {
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        .svg-icon-lg {
+            width: 32px;
+            height: 32px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <a href="/frontend/html/dashboard.html" title="返回工作台">
+                        <img src="/frontend/icons/fast.svg" class="svg-icon">
+                        <span>系统管理</span>
+                    </a>
+                </div>
+                <div class="sidebar-subtitle">系统实验室配置入口，按分类维护系统级参数。</div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">配置分类</div>
+                    <div id="nav-list" class="sidebar-section-stack">
+                        <!-- Nav generated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">Administrator</div>
+                    </div>
+                </div>
+                <div class="sidebar-footer-actions">
+                    <button class="logout-btn" onclick="logout()" title="退出登录">
+                        <img src="/frontend/icons/logout.svg" class="svg-icon-sm">
+                    </button>
+                    <a href="/frontend/html/dashboard.html" class="nav-item sidebar-home-link">
+                        <span class="nav-item-icon"><img src="/frontend/icons/home.svg" class="svg-icon"></span>
+                        <span>返回工作台</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <div class="content-heading">
+                    <div class="content-title" id="pageTitle">配置中心</div>
+                    <div class="content-subtitle">集中查看与调整系统配置项，按分类快速切换并搜索关键参数。</div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="exportConfig()">
+                        <img src="/frontend/icons/upload.svg" class="svg-icon-sm" style="vertical-align: -2px;"> 导出配置
+                    </button>
+                </div>
+            </div>
+
+            <div class="warning-banner">
+                <img src="/frontend/icons/forbidden.svg" class="svg-icon">
+                <strong>实验性功能：</strong> 修改系统配置可能影响稳定性，请谨慎操作。
+            </div>
+
+            <div class="content-body">
+                <div class="section-toolbar">
+                    <div class="search-group">
+                        <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"
+                                style="width:16px;height:16px;"></span>
+                        <input type="text" class="search-input" id="search-box" placeholder="搜索配置项 (Key or Name)..."
+                            oninput="handleSearch()">
+                    </div>
+                </div>
+
+                <div class="flags-container" id="content-area">
+                    <div id="flags-list">
+                        <div style="text-align: center; padding: 80px;">
+                            <div class="spinner"></div>
+                            <p style="margin-top:16px;color:var(--text-secondary)">正在加载系统配置...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        let allFlags = [];
+        let currentCategory = 'all';
+        const API_BASE = `${window.location.origin}/api/v2/system`;
+
+        const categoryMeta = {
+            'all': { icon: '<img src="/frontend/icons/search.svg" class="svg-icon">', name: '全部配置' },
+            'app': { icon: '<img src="/frontend/icons/plane.svg" class="svg-icon">', name: '应用设置' },
+            'api': { icon: '<img src="/frontend/icons/connection.svg" class="svg-icon">', name: 'API 接口' },
+            'database': { icon: '<img src="/frontend/icons/storage.svg" class="svg-icon">', name: '数据库' },
+            'cache': { icon: '<img src="/frontend/icons/fast.svg" class="svg-icon">', name: '缓存策略' },
+            'monitoring': { icon: '<img src="/frontend/icons/bar_chart.svg" class="svg-icon">', name: '监控告警' },
+            'scheduler': { icon: '<img src="/frontend/icons/clock.svg" class="svg-icon">', name: '任务调度' },
+            'todo': { icon: '<img src="/frontend/icons/ok.svg" class="svg-icon">', name: '待办系统' },
+            'ai': { icon: '<img src="/frontend/icons/ai.svg" class="svg-icon">', name: 'AI 模型' },
+            'general': { icon: '<img src="/frontend/icons/settings.svg" class="svg-icon">', name: '通用设置' }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!(await Auth.requireAuthAsync())) return;
+
+            // Get user info from storage (Auth.js saves this)
+            try {
+                const response = await Auth.fetch('/api/v2/auth/me');
+                if (response.ok) {
+                    const u = await response.json();
+                    document.getElementById('userName').textContent = u.username || 'Admin';
+                    document.getElementById('userAvatar').textContent = (u.username || 'A')[0].toUpperCase();
+                    document.getElementById('userRole').textContent = u.is_admin ? '系统管理员' : '普通用户';
+                }
+            } catch (error) {
+                console.warn('Failed to fetch user', error);
+            }
+            loadFlags();
+        });
+
+        function logout() {
+            Auth.logout();
+        }
+
+        async function loadFlags() {
+            try {
+                const res = await Auth.fetch(`${API_BASE}/flags`);
+                const data = await res.json();
+                if (data.success) {
+                    allFlags = data.data.flags;
+                    initSidebar();
+                    renderContent();
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('flags-list').innerHTML =
+                    `<div class="empty-state">
+                        <div class="empty-state-icon"><img src="/frontend/icons/fail.svg" class="svg-icon-lg"></div>
+                        <div class="empty-state-title">无法连接服务器</div>
+                        <p>请检查网络连接或后端服务状态</p>
+                    </div>`;
+            }
+        }
+
+        function initSidebar() {
+            const counts = { 'all': allFlags.length };
+            allFlags.forEach(f => {
+                const cat = f.category || 'general';
+                counts[cat] = (counts[cat] || 0) + 1;
+            });
+
+            const categories = ['all', 'app', 'api', 'database', 'cache', 'ai', 'monitoring', 'scheduler', 'todo', 'general'];
+            const validCats = categories.filter(c => c === 'all' || counts[c] > 0);
+
+            const html = validCats.map(cat => {
+                const meta = categoryMeta[cat] || { icon: '<img src="/frontend/icons/folder.svg" class="svg-icon">', name: cat };
+                const count = counts[cat] || 0;
+                return `
+                    <div class="nav-item ${cat === currentCategory ? 'active' : ''}" 
+                         onclick="switchCategory('${cat}')">
+                        <span class="nav-item-icon">${meta.icon}</span>
+                        <span>${meta.name}</span>
+                        <span style="margin-left:auto; font-size:11px; opacity:0.6; background:rgba(0,0,0,0.05); padding:2px 6px; border-radius:10px">${count}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('nav-list').innerHTML = html;
+        }
+
+        function switchCategory(cat) {
+            currentCategory = cat;
+            document.getElementById('search-box').value = '';
+
+            // Update Active State
+            document.querySelectorAll('#nav-list .nav-item').forEach(el => el.classList.remove('active'));
+            // Simply re-render sidebar to highlight correct item (lazy but effective for small list)
+            initSidebar();
+
+            renderContent();
+
+            // Update Title
+            const meta = categoryMeta[cat] || { name: '配置列表' };
+            document.getElementById('pageTitle').textContent = meta.name;
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('search-box').value.toLowerCase();
+            if (query && currentCategory !== 'all') {
+                currentCategory = 'all';
+                initSidebar();
+                document.getElementById('pageTitle').textContent = '搜索结果';
+            } else if (!query) {
+                document.getElementById('pageTitle').textContent = '全部配置';
+            }
+            renderContent(query);
+        }
+
+        function renderContent(searchQuery = '') {
+            const container = document.getElementById('flags-list');
+            let filtered = allFlags;
+
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(f => (f.category || 'general') === currentCategory);
+            }
+
+            if (searchQuery) {
+                filtered = filtered.filter(f =>
+                    f.label.toLowerCase().includes(searchQuery) ||
+                    f.path.toLowerCase().includes(searchQuery) ||
+                    f.description.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><img src="/frontend/icons/search.svg" class="svg-icon-lg"></div>
+                        <div class="empty-state-title">没有找到相关配置</div>
+                        <p>尝试更换关键词或切换分类</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="flag-group">
+                    ${filtered.map(renderFlagItem).join('')}
+                </div>
+            `;
+        }
+
+        function renderFlagItem(flag) {
+            let control = '';
+
+            if (flag.type === 'boolean') {
+                control = `
+                    <select class="select-ios" onchange="updateFlag('${flag.path}', this.value === 'true')">
+                        <option value="true" ${flag.value === true ? 'selected' : ''}>已启用 (Enabled)</option>
+                        <option value="false" ${flag.value === false ? 'selected' : ''}>已禁用 (Disabled)</option>
+                    </select>
+                `;
+            } else if (flag.type === 'integer' || flag.type === 'float') {
+                control = `
+                    <input type="number" class="input-ios" 
+                           value="${flag.value ?? ''}" 
+                           onchange="updateFlag('${flag.path}', Number(this.value))">
+                `;
+            } else if (flag.type === 'list') {
+                // Simple read-only representation for list currently
+                control = `<div style="font-size:12px;color:#86868b;text-align:right; padding:8px;">${flag.value?.join(', ') || 'Empty List'}</div>`;
+            } else {
+                const isSensitive = flag.path.includes('key') || flag.path.includes('password') || flag.path.includes('secret');
+                control = `
+                    <input type="${isSensitive ? 'password' : 'text'}" class="input-ios" 
+                           value="${isSensitive ? '' : (flag.value || '')}" 
+                           placeholder="${isSensitive ? '••••••••' : '请输入值...'}"
+                           onchange="updateFlag('${flag.path}', this.value)">
+                `;
+            }
+
+            return `
+                <div class="flag-item">
+                    <div class="flag-info">
+                        <div class="flag-title">${flag.label}</div>
+                        <div class="flag-desc">${flag.description}</div>
+                         <div style="margin-top:4px; font-family:'SF Mono', monospace; font-size:11px; color:var(--text-tertiary); opacity:0.6">${flag.path}</div>
+                    </div>
+                    <div class="flag-control">
+                        ${control}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateFlag(path, value) {
+            try {
+                const res = await Auth.fetch(`${API_BASE}/flags`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path, value })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showToast('配置已更新', result.data?.needs_restart);
+                    // Update local data ref
+                    const idx = allFlags.findIndex(f => f.path === path);
+                    if (idx !== -1) allFlags[idx].value = value;
+                } else {
+                    showToast('更新失败: ' + result.message);
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('网络请求失败');
+            }
+        }
+
+        function exportConfig() {
+            window.open(`${API_BASE}/flags/export`, '_blank');
+        }
+
+        function showToast(msg, needsRestart = false) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <span>${msg}</span>
+                ${needsRestart ? '<button class="btn-restart" onclick="location.reload()">重启生效</button>' : ''}
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

@@ -5,12 +5,12 @@ use actix_web::{
     dev::{forward_ready, Payload, Service, ServiceRequest, ServiceResponse, Transform},
     web, Error, HttpMessage,
 };
+use dashmap::DashMap;
 use fms_domain::ports::nonce_replay_store::{NonceReplayDecision, NonceReplayStore, NonceReplayStoreError};
 use futures_util::future::{ready, LocalBoxFuture, Ready};
 use futures_util::StreamExt;
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
-use dashmap::DashMap;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -36,7 +36,7 @@ fn should_emit_perf_trace(counter: &AtomicU64) -> bool {
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value > 0)
         .unwrap_or(1000);
-    counter.fetch_add(1, Ordering::Relaxed) % sample_rate == 0
+    counter.fetch_add(1, Ordering::Relaxed).is_multiple_of(sample_rate)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -216,6 +216,12 @@ pub struct AntiReplay {
     policy: AntiReplayPolicy,
 }
 
+impl Default for AntiReplay {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AntiReplay {
     pub fn new() -> Self {
         Self {
@@ -378,9 +384,11 @@ where
             let method_str = req.method().as_str().to_string();
 
             let actual_body_hash = if is_get_head {
-                if req.headers().get(header::CONTENT_LENGTH).map_or(false, |v| {
-                    v.to_str().ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0) > 0
-                }) {
+                if req
+                    .headers()
+                    .get(header::CONTENT_LENGTH)
+                    .is_some_and(|v| v.to_str().ok().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0) > 0)
+                {
                     return Err(ApiError::BadRequest(
                         "GET request body is not allowed for anti-replay protected requests".into(),
                     )

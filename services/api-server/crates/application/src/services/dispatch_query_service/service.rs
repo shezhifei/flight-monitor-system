@@ -5,7 +5,6 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::DispatchOrder;
-use fms_domain::models::dispatch_collaboration::NotificationReceiptSummary;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::dispatch_repository::DispatchOrderRepository;
 use serde_json::{json, Value};

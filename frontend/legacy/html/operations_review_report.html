@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运行复盘与报表 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="/frontend/js/auth.js"></script>
+    <link rel="stylesheet" href="/frontend/css/workspace_unified_theme.css?v=3">
+</head>
+
+<body class="workspace-page operations-review-page">
+    <div class="page">
+        <header class="utility-bar">
+            <div class="utility-main">
+                <a href="/frontend/html/dashboard.html" class="home-link" title="返回工作台">
+                    <img src="/frontend/icons/home.svg" class="svg-icon" style="width:18px;height:18px;" alt="返回">
+                </a>
+                <span class="page-title">运行复盘</span>
+                <nav class="utility-nav" aria-label="分析导航">
+                    <a href="/frontend/html/kpi_dashboard.html">KPI</a>
+                    <a class="active" href="/frontend/html/operations_review_report.html">复盘</a>
+                </nav>
+            </div>
+            <div class="utility-actions">
+                <button id="refreshAllBtn" class="btn primary">刷新全部</button>
+                <button id="logoutBtn" class="btn">退出登录</button>
+            </div>
+        </header>
+
+        <section class="ops-top-grid">
+            <article class="panel replay-panel">
+                <div class="section-headline">
+                    <h2 class="section-title">回放控制台</h2>
+                    <span class="section-meta" id="replayMetaText">未加载</span>
+                </div>
+                <div class="controls-row">
+                    <select id="lookbackHoursSelect" aria-label="回放窗口">
+                        <option value="1">最近 1 小时</option>
+                        <option value="3">最近 3 小时</option>
+                        <option value="6" selected>最近 6 小时</option>
+                        <option value="12">最近 12 小时</option>
+                        <option value="24">最近 24 小时</option>
+                    </select>
+                    <select id="playbackSpeedSelect" aria-label="回放速度">
+                        <option value="1" selected>1x</option>
+                        <option value="2">2x</option>
+                        <option value="4">4x</option>
+                        <option value="8">8x</option>
+                    </select>
+                    <button id="reloadReplayBtn" class="btn primary">拉取事件</button>
+                    <button id="playBtn" class="btn">播放</button>
+                    <button id="pauseBtn" class="btn">暂停</button>
+                    <button id="stepBtn" class="btn">下一步</button>
+                </div>
+                <input class="replay-slider" id="replaySlider" type="range" min="0" max="0" value="0">
+                <div class="summary-grid">
+                    <div class="summary-item"><span class="summary-label">回放事件总数</span><span class="summary-value"
+                            id="summaryEventTotal">-</span></div>
+                    <div class="summary-item"><span class="summary-label">航班更新事件</span><span class="summary-value"
+                            id="summaryFlightEvents">-</span></div>
+                    <div class="summary-item"><span class="summary-label">异常事件</span><span class="summary-value"
+                            id="summaryAnomalyEvents">-</span></div>
+                    <div class="summary-item"><span class="summary-label">调度冲突</span><span class="summary-value"
+                            id="summaryDispatchConflicts">-</span></div>
+                </div>
+            </article>
+
+            <article class="panel baseline-panel">
+                <div class="section-headline">
+                    <h2 class="section-title">基线偏离诊断</h2>
+                    <span class="section-meta" id="baselineCompareMeta">选择日期与天气类别</span>
+                </div>
+                <div class="panel-controls baseline-controls">
+                    <input id="baselineDate" type="date" aria-label="目标日期">
+                    <select id="weatherCategory" aria-label="天气类别">
+                        <option value="normal">晴好</option>
+                        <option value="rain">雨天</option>
+                        <option value="storm">暴风雨</option>
+                        <option value="snow">雪天</option>
+                    </select>
+                    <button id="loadBaselineBtn" class="btn primary">加载图表</button>
+                </div>
+                <div id="baselineChart"></div>
+                <div id="baselineAlerts" class="inline-alert"></div>
+            </article>
+        </section>
+
+        <section class="ops-main-grid">
+            <article class="panel events-panel">
+                <div class="section-headline">
+                    <h2 class="section-title">事件链路调查</h2>
+                    <span class="section-meta">列表与详情联动</span>
+                </div>
+                <div class="event-split-layout">
+                    <div class="list" id="replayEventList"></div>
+                    <div class="detail-box">
+                        <div class="row-head">
+                            <strong id="eventDetailTitle" class="detail-title">当前事件</strong>
+                            <span class="chip info" id="eventDetailTag">INFO</span>
+                        </div>
+                        <div class="status-line detail-sub" id="eventDetailSub">-</div>
+                        <pre class="detail-json" id="eventDetailJson">{}</pre>
+                    </div>
+                </div>
+            </article>
+
+            <div class="ops-right-stack">
+                <article class="panel compare-panel">
+                    <div class="section-headline">
+                        <h2 class="section-title">KPI 对比</h2>
+                        <span class="section-meta" id="kpiCompareMeta">-</span>
+                    </div>
+                    <div class="panel-controls panel-controls-grid-two">
+                        <input id="baseStartDate" type="date" aria-label="基线开始日期" title="基线开始时间">
+                        <input id="baseEndDate" type="date" aria-label="基线结束日期" title="基线结束时间">
+                        <input id="compareStartDate" type="date" aria-label="对比开始日期" title="对比开始时间">
+                        <input id="compareEndDate" type="date" aria-label="对比结束日期" title="对比结束时间">
+                        <button id="loadKpiCompareBtn" class="btn primary grid-span-two">对比</button>
+                    </div>
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>指标</th>
+                                <th>基线</th>
+                                <th>对比</th>
+                                <th>变化</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpiCompareRows"></tbody>
+                    </table>
+                    <div class="section-headline section-subhead">
+                        <h3 class="section-title">趋势与异常叠加</h3>
+                        <span class="section-meta" id="trendMeta">-</span>
+                    </div>
+                    <div class="trend-list" id="trendOverlayList"></div>
+                </article>
+
+                <article class="panel report-panel">
+                    <div class="section-headline">
+                        <h2 class="section-title">AI 复盘报告</h2>
+                        <span class="section-meta" id="reportMeta">尚未生成</span>
+                    </div>
+                    <div class="panel-controls report-controls">
+                        <button id="generateReportBtn" class="btn primary">生成报告</button>
+                        <button id="exportMarkdownBtn" class="btn">导出 MD</button>
+                        <button id="exportJsonBtn" class="btn">导出 JSON</button>
+                    </div>
+                    <pre class="report-output" id="reportOutput">点击"生成报告"开始输出...</pre>
+                </article>
+            </div>
+        </section>
+    </div>
+
+    <script src="/frontend/js/operations_review_report.js"></script>
+</body>
+
+</html>

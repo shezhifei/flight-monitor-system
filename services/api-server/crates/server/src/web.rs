@@ -192,6 +192,7 @@ pub fn configure_app(cfg: &mut web::ServiceConfig, di: &DiContainer) {
 }
 
 #[cfg(test)]
+#[allow(clippy::await_holding_lock)]
 mod tests {
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::sync::Mutex;

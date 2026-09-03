@@ -114,13 +114,9 @@ fn source_team_name_for_user(order: &DispatchOrder, user_id: &str) -> Option<Str
         .and_then(|obj| obj.get("members"))
         .and_then(Value::as_array)
         .and_then(|members| {
-            members.iter().find(|member| {
-                member
-                    .get("user_id")
-                    .and_then(Value::as_str)
-                    .map(str::trim)
-                    == Some(user_id)
-            })
+            members
+                .iter()
+                .find(|member| member.get("user_id").and_then(Value::as_str).map(str::trim) == Some(user_id))
         })
         .and_then(|member| {
             member

@@ -163,14 +163,12 @@ async fn seed_facility_locale<S: AsRef<str>>(pool: &PgPool, terminal_code: &str,
                 .execute(pool)
                 .await
                 .expect("seed gate (PR3 locale)");
-                sqlx::query(
-                    "INSERT INTO terminal_gates (terminal_id, gate_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                )
-                .bind(terminal_code)
-                .bind(code)
-                .execute(pool)
-                .await
-                .expect("seed terminal_gates (PR3 locale)");
+                sqlx::query("INSERT INTO terminal_gates (terminal_id, gate_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+                    .bind(terminal_code)
+                    .bind(code)
+                    .execute(pool)
+                    .await
+                    .expect("seed terminal_gates (PR3 locale)");
             }
             "carousel" => {
                 sqlx::query(
@@ -634,10 +632,7 @@ async fn stand_and_gate_adjust_and_release() {
         )
         .await
         .expect("release stand");
-    assert_eq!(
-        format!("{:?}", released.status).to_lowercase().contains("released"),
-        true
-    );
+    assert!(format!("{:?}", released.status).to_lowercase().contains("released"));
 
     let gate = svc
         .allocate_gate(

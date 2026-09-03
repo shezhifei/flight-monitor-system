@@ -30,7 +30,11 @@ def test_ci_targets_repository_base_branch():
 
 
 def test_ci_runs_architecture_boundary_guards():
-    rust_job = _section(_ci_lines(), "  rust-api:", ("  mq-gateway:", "  python-sidecar:", "  architecture-docs:", "  vue-frontend:"))
+    rust_job = _section(
+        _ci_lines(),
+        "  rust-api:",
+        ("  mq-gateway:", "  python-sidecar:", "  repository-meta-tests:", "  vue-frontend:"),
+    )
 
     assert "working-directory: services/api-server" in rust_job
     assert "- name: Architecture boundary guard" in rust_job
@@ -38,20 +42,71 @@ def test_ci_runs_architecture_boundary_guards():
     assert "cargo test -p fms-application --test application_boundary_inventory" in rust_job
 
 
-def test_ci_runs_architecture_docs_consistency_tests():
-    docs_job = _section(_ci_lines(), "  architecture-docs:", ("  vue-frontend:", "  docker-compose-validate:"))
+def test_ci_runs_every_repository_meta_test():
+    """D-24: collect tests/tools wholesale, never an enumerated subset."""
 
-    assert "actions/setup-python@v5" in docs_job
-    assert "python-version: \"3.12\"" in docs_job
-    assert "- name: Install dependencies" in docs_job
-    assert "python -m pip install pytest" in docs_job
-    assert "- name: Test architecture docs" in docs_job
-    assert "tests/tools/test_architecture_docs_consistency.py" in docs_job
-    assert "tests/tools/test_docs_no_stale_references.py" in docs_job
-    assert "tests/tools/test_ci_architecture_guardrails.py" in docs_job
-    assert "tests/tools/test_schema_baseline_consistency.py" in docs_job
-    assert "tests/tools/test_observability_alerting_config.py" in docs_job
-    assert "tests/tools/test_deploy_security_guardrails.py" in docs_job
+    meta_job = _section(
+        _ci_lines(),
+        "  repository-meta-tests:",
+        ("  vue-frontend:", "  docker-compose-validate:"),
+    )
+
+    assert "actions/setup-python@v5" in meta_job
+    assert "python-version: \"3.12\"" in meta_job
+    assert "- name: Install dependencies" in meta_job
+    assert "python -m pip install pytest" in meta_job
+    assert "python -m pytest tests/tools -q" in meta_job
+
+    # Drift guard: an enumerated subset is how 10 of 20 meta-tests silently
+    # stopped running. Individual module paths must never reappear in ci.yml.
+    ci_text = CI.read_text(encoding="utf-8")
+    for path in sorted((ROOT / "tests" / "tools").glob("test_*.py")):
+        assert f"tests/tools/{path.name}" not in ci_text, (
+            f"ci.yml enumerates {path.name} again; the job must collect "
+            "tests/tools as a directory"
+        )
+
+
+def test_ci_blocks_before_docker_on_workflow_yaml_and_config_drift():
+    """D-27 / D-03 / D-35 / D-09 guards must exist and stay Docker-free."""
+
+    lines = _ci_lines()
+    workflow_lint = _section(lines, "  workflow-lint:", ("  env-documentation:",))
+    assert "python scripts/ci/check_workflow_yaml.py" in workflow_lint
+    assert "docker" not in workflow_lint.lower()
+
+    env_docs = _section(lines, "  env-documentation:", ("  ortools-release-consistency:",))
+    assert "python scripts/ci/check_env_documentation.py" in env_docs
+
+    ortools = _section(lines, "  ortools-release-consistency:", ("  migrations-clean-install:",))
+    assert "python scripts/ci/check_ortools_manifest.py" in ortools
+
+    migrations = _section(lines, "  migrations-clean-install:", ("  rust-api:",))
+    assert "sqlx migrate run" in migrations
+    assert "image: postgres:16" in migrations
+
+
+def test_cargo_deny_uses_the_root_policy_explicitly():
+    """D-10: deny.toml exists only at the repo root, and the deny step runs
+    with working-directory services/api-server."""
+
+    rust_job = _section(_ci_lines(), "  rust-api:", ("  mq-gateway:",))
+    assert "cargo deny --config ../../deny.toml check" in rust_job
+    assert "run: cargo deny check" not in rust_job
+
+
+def test_ci_has_no_soft_failed_jobs():
+    """D-26: an ungated `continue-on-error` at job level makes the whole
+    pipeline decorative -- failures report green. Nightly best-effort jobs are
+    allowed to soft-fail; the merge-blocking CI is not."""
+
+    ci_text = CI.read_text(encoding="utf-8")
+    offenders = [
+        line
+        for line in ci_text.splitlines()
+        if line.strip().startswith("continue-on-error")
+    ]
+    assert not offenders, f"ci.yml must not soft-fail any job: {offenders}"
 
 
 def test_compose_validation_supplies_required_interpolation_environment():

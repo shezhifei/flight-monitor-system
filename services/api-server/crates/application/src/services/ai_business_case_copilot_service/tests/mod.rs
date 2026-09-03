@@ -720,7 +720,7 @@ impl AiCopilotBusinessCaseBatchRepository for FakeAiCopilotBusinessCaseBatchRepo
             })
             .cloned()
             .collect::<Vec<_>>();
-        items.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        items.sort_by_key(|item| std::cmp::Reverse(item.updated_at));
         Ok(items
             .into_iter()
             .skip(offset.max(0) as usize)
@@ -774,7 +774,7 @@ impl AiCopilotBusinessCaseBatchRepository for FakeAiCopilotBusinessCaseBatchRepo
             .filter(|batch| batch.updated_at <= stale_before)
             .map(|batch| (batch.batch_id.clone(), batch.updated_at))
             .collect::<Vec<_>>();
-        batch_ids.sort_by(|a, b| a.1.cmp(&b.1));
+        batch_ids.sort_by_key(|a| a.1);
         batch_ids.truncate(limit.clamp(1, 200) as usize);
 
         let mut recovered = Vec::with_capacity(batch_ids.len());
@@ -870,7 +870,7 @@ impl AiCopilotBusinessCaseBatchRepository for FakeAiCopilotBusinessCaseBatchRepo
             }
         }
 
-        recent_errors.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        recent_errors.sort_by_key(|item| std::cmp::Reverse(item.updated_at));
         recent_errors.truncate(recent_error_limit.clamp(1, 50) as usize);
 
         Ok(AiCopilotOperationalMetrics {
@@ -1026,7 +1026,7 @@ impl AiCopilotBusinessCaseBatchRepository for FakeAiCopilotBusinessCaseBatchRepo
                 {
                     continue;
                 }
-                let delay_seconds = 60_i64 * 2_i64.pow(batch.commit_attempts.max(0).min(5) as u32);
+                let delay_seconds = 60_i64 * 2_i64.pow(batch.commit_attempts.clamp(0, 5) as u32);
                 batch.commit_attempts += 1;
                 batch.commit_next_recovery_at = Some(now + Duration::seconds(delay_seconds.min(3600)));
                 batch.updated_at = now;

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <!-- 样式主入口（已统一导入 variables/base/layout/components/tables/theme） -->
+    <link rel="stylesheet" href="/frontend/css/main.css?v=35">
+    <script src="/frontend/vendor/js/echarts.min.js"></script>
+    <script src="/frontend/js/auth.js?v=15"></script>
+    <script src="/frontend/js/sse_hub.js"></script>
+    
+    
+    <script src="/frontend/js/business_timeline.js?v=15"></script>
+</head>
+
+<body class="flight-monitor-page">
+
+    <!-- Global loading overlay ( accessibility friendly ) -->
+    <div id="globalLoader" class="loader-overlay" aria-label="数据加载中" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+    </div>
+    <!-- ARIA live announcer for dynamic updates -->
+    <div id="ariaAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="container">
+        <div class="flight-list-panel" role="region" aria-label="实时航班列表" tabindex="0">
+            <div class="flight-workbar" data-role="flight-workbar">
+                <div class="panel-title flight-panel-title">
+                    <div class="flight-panel-title-group">
+                        <a class="flight-home-link" href="/frontend/html/dashboard.html" title="返回工作台">
+                            <img src="/frontend/icons/home.svg" class="svg-icon" alt="" aria-hidden="true">
+                        </a>
+                        <div class="flight-panel-heading">
+                            <div class="flight-panel-eyebrow">航班监控</div>
+                            <div class="flight-panel-title-text">实时航班状态</div>
+                        </div>
+                    </div>
+                    <div class="flight-panel-meta">
+                        <div class="flight-connection-pill connection-status connecting" id="connectionStatusPill">实时连接中</div>
+                        <div class="last-updated" id="lastUpdated">最后更新: --:--:--</div>
+                        <button class="refresh-btn flight-refresh-btn" id="refreshBtn" aria-label="刷新航班数据">刷新数据</button>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <div class="search-controls">
+                        <div class="view-switcher" role="group" aria-label="视图切换">
+                            <div class="view-glider" id="viewGlider"></div>
+                            <button class="view-btn active" id="viewCardBtn" aria-label="卡片视图" title="卡片视图">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M2 3.5C2 2.67157 2.67157 2 3.5 2H12.5C13.3284 2 14 2.67157 14 3.5V5H2V3.5Z"
+                                        opacity="0.5" />
+                                    <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor"
+                                        stroke-width="1.5" fill="none" />
+                                    <line x1="2" y1="6" x2="14" y2="6" stroke="currentColor" stroke-width="1.5" />
+                                    <line x1="6" y1="6" x2="6" y2="14" stroke="currentColor" stroke-width="1.5" />
+                                </svg>
+                            </button>
+                            <button class="view-btn" id="viewTableBtn" aria-label="表格视图" title="表格视图">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path
+                                        d="M2 3.5C2 2.67157 2.67157 2 3.5 2H12.5C13.3284 2 14 2.67157 14 3.5V5.5H2V3.5ZM2 6.5H14V12.5C14 13.3284 13.3284 14 12.5 14H3.5C2.67157 14 2 13.3284 2 12.5V6.5Z"
+                                        opacity="0.5" />
+                                    <path d="M2 3.5C2 2.67157 2.67157 2 3.5 2H12.5C13.3284 2 14 2.67157 14 3.5V5H2V3.5Z" />
+                                    <rect x="2" y="6" width="12" height="8" rx="1" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="search-input-wrapper">
+                            <input type="text" id="searchInput" placeholder="搜索航班号、目的地、状态等..." aria-label="搜索航班"
+                                aria-describedby="searchOptions">
+                            <button class="search-clear-btn" id="clearSearchBtn" aria-label="清除搜索" style="display: none;">
+                                <svg width="14" height="14" viewBox="0 0 14 14">
+                                    <circle cx="7" cy="7" r="7" fill="#8E8E93" />
+                                    <path d="M4.5 4.5L9.5 9.5M9.5 4.5L4.5 9.5" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </button>
+                            <button class="search-options-toggle" id="searchOptionsToggle" aria-label="展开搜索选项"
+                                aria-expanded="false" aria-controls="searchOptionsPanel">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <button id="searchBtn" aria-label="执行搜索">搜索</button>
+                        <button id="businessFilterToggle" class="search-filter-toggle" aria-label="展开筛选"
+                            aria-expanded="false" aria-controls="businessFilterBar" title="筛选">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                <path
+                                    d="M2 3C2 2.72386 2.22386 2.5 2.5 2.5H11.5C11.7761 2.5 12 2.72386 12 3C12 3.12224 11.9553 3.24027 11.8745 3.33195L8.5 7.16667V10.7C8.5 10.8894 8.39299 11.0626 8.22361 11.1472L6.22361 12.1472C5.89112 12.3134 5.5 12.0716 5.5 11.7V7.16667L2.12553 3.33195C2.04473 3.24027 2 3.12224 2 3Z"
+                                    fill="currentColor" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flight-toolbar-actions">
+                        <span class="flight-filter-status" id="flightResultPill" aria-live="polite">当前显示 0/0</span>
+                        <button type="button" class="flight-text-btn" id="focusSelectedFlightBtn">定位选中航班</button>
+                        <button type="button" class="flight-text-btn" id="clearAllFiltersBtn">清空筛选</button>
+                    </div>
+                <div class="search-options-panel" id="searchOptionsPanel">
+                    <div class="search-options" id="searchOptions" role="group" aria-label="搜索选项">
+                        <div class="search-option">
+                            <input type="checkbox" id="searchFlightNo" checked aria-label="按航班号搜索">
+                            <label for="searchFlightNo">航班号</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchDestination" checked aria-label="按目的地搜索">
+                            <label for="searchDestination">目的地</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchDestinationName" checked aria-label="按目的地名称搜索">
+                            <label for="searchDestinationName">目的地名称</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchOrigin" checked aria-label="按出发地搜索">
+                            <label for="searchOrigin">出发地</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchOriginName" checked aria-label="按出发地名称搜索">
+                            <label for="searchOriginName">出发地名称</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchStatus" checked aria-label="按状态搜索">
+                            <label for="searchStatus">状态</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchAircraftType" checked aria-label="按机型搜索">
+                            <label for="searchAircraftType">机型</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchStand" checked aria-label="按机位搜索">
+                            <label for="searchStand">机位</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchGate" checked aria-label="按登机口搜索">
+                            <label for="searchGate">登机口</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchMission" checked aria-label="按任务类型搜索">
+                            <label for="searchMission">任务类型</label>
+                        </div>
+                        <div class="search-option">
+                            <input type="checkbox" id="searchFlightType" checked aria-label="按航班类型搜索">
+                            <label for="searchFlightType">航班类型</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="business-filter-bar" id="businessFilterBar" role="group" aria-label="业务筛选">
+                    <div class="business-filter-grid">
+                        <div class="business-filter-item">
+                            <label for="anomalyFilter">异常 <span class="business-filter-count" id="anomalyFilterCount">0</span></label>
+                            <select id="anomalyFilter" aria-label="按异常筛选">
+                                <option value="all" selected>全部</option>
+                                <option value="only">仅异常</option>
+                            </select>
+                        </div>
+                        <div class="business-filter-item">
+                            <label for="delayFilter">延误 <span class="business-filter-count" id="delayFilterCount">0</span></label>
+                            <select id="delayFilter" aria-label="按延误筛选">
+                                <option value="all" selected>全部</option>
+                                <option value="only">仅延误</option>
+                            </select>
+                        </div>
+                        <div class="business-filter-item">
+                            <label for="vipFilter">VIP <span class="business-filter-count" id="vipFilterCount">0</span></label>
+                            <select id="vipFilter" aria-label="按VIP筛选">
+                                <option value="all" selected>全部</option>
+                                <option value="only">仅VIP</option>
+                            </select>
+                        </div>
+                        <div class="business-filter-item">
+                            <label for="quickTurnFilter">快速过站 <span class="business-filter-count" id="quickTurnFilterCount">0</span></label>
+                            <select id="quickTurnFilter" aria-label="按快速过站筛选">
+                                <option value="all" selected>全部</option>
+                                <option value="only">仅快速过站</option>
+                            </select>
+                        </div>
+
+                        <div class="business-filter-item">
+                            <label for="aircraftBodyFilter">机型</label>
+                            <select id="aircraftBodyFilter" aria-label="按机型筛选">
+                                <option value="all" selected>全部</option>
+                                <option value="wide">宽体机</option>
+                                <option value="narrow">窄体机</option>
+                            </select>
+                        </div>
+                        <div class="business-filter-item">
+                            <label for="commercialSignedFilter">签约</label>
+                            <select id="commercialSignedFilter" aria-label="按签约状态筛选">
+                                <option value="all">全部</option>
+                                <option value="yes" selected>已签约</option>
+                                <option value="no">未签约</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="business-filter-meta">
+                        <button class="business-filter-reset-btn" id="resetBusinessFiltersBtn"
+                            aria-label="恢复默认筛选">恢复默认</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+            <div id="flightList" role="list" aria-label="航班列表" aria-busy="false" class="card-layout-view">
+                <!-- Flight items will be populated here by JavaScript -->
+            </div>
+            <div id="alertPoolContainer" class="alert-pool-container" style="display: none;" role="list"
+                aria-label="告警航班池">
+                <div class="alert-pool-header"
+                    style="padding: 10px 16px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px;">
+                    <h3 style="margin: 0; font-size: 14px; color: var(--system-red);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                            style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M12 2L1 21h22M12 6l7.53 13H4.47M11 10v4h2v-4m-2 6v2h2v-2"></path>
+                        </svg>异常告警池 <span id="alertCountBadge" class="info-badge"
+                            style="background: rgba(220,38,38,0.1); color: var(--system-red); border-radius: 10px; padding: 2px 6px; font-size: 12px; margin-left: 6px;">0</span>
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                        仅显示存在保障超时、机位冲突或其他异常状态的航班，按严重程度排序。</p>
+                </div>
+                <div id="alertFlightList" class="card-layout-view">
+                    <!-- Alert flight items will be populated here by JavaScript -->
+                </div>
+            </div>
+            <div id="flightTableContainer" class="flight-table-container" style="display: none;" role="grid"
+                aria-label="航班表格">
+                <div class="table-header-controls" style="display: none;">
+                </div>
+                <div class="table-scroll-wrapper">
+                    <table id="flightTable">
+                        <caption class="sr-only">航班实时监控表格，支持按列查看与导航</caption>
+                        <thead>
+                            <!-- Dynamic headers -->
+                        </thead>
+                        <tbody id="flightTableBody">
+                            <!-- Flight rows -->
+                        </tbody>
+                    </table>
+                </div>
+                <p class="table-scroll-hint" id="tableScrollHint" aria-hidden="true">左右滑动可查看更多列</p>
+            </div>
+        </div>
+
+        <div class="resizer" id="resizer" title="拖动调整面板大小"></div>
+
+        <div class="flight-detail-panel" role="region" aria-label="航班详情" tabindex="0">
+            <div class="detail-panel-shell">
+                <div class="panel-title detail-panel-title">
+                    <div class="detail-panel-heading">
+                        <span>航班详情</span>
+                        <button type="button" class="detail-drawer-close" id="closeDetailDrawerBtn" aria-label="关闭详情面板">收起</button>
+                    </div>
+                    <div class="edit-controls" id="editControls" role="group" aria-label="编辑控件">
+                        <button class="btn btn-ai" id="aiDiagnoseBtn" type="button" onclick="diagnoseSelectedFlight()"
+                            aria-label="AI诊断当前航班">AI诊断</button>
+                        <button class="btn-edit" id="editBtn" onclick="startEdit()" aria-label="编辑航班信息">编辑</button>
+                        <button class="btn-save" id="saveBtn" onclick="saveFlight()" style="display: none;"
+                            aria-label="保存航班信息">保存</button>
+                        <button class="btn-cancel" id="cancelBtn" onclick="cancelEdit()" style="display: none;"
+                            aria-label="取消编辑">取消</button>
+                    </div>
+                </div>
+            </div>
+            <div id="flightDetail" aria-live="polite">
+                <div class="no-selection">请选择一个航班查看详细信息</div>
+                <!-- Flight details and events will be populated here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Event Creation Modal -->
+    <div id="eventCreationModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="eventCreationTitle"
+        hidden aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="eventCreationTitle">创建新业务事项</h2>
+                <button type="button" class="close close-modal close-modal-compact"
+                    aria-label="关闭创建业务事项弹窗">&times;</button>
+            </div>
+            <form id="eventCreationForm">
+                <div class="event-form-grid">
+                    <div class="form-group">
+                        <label for="eventType">事项类型:</label>
+                        <select id="eventType" required>
+                            <option value="">请选择事项类型</option>
+                            <!-- 由 JS 从 GET /flowable/case-types 动态加载 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventStatus">事项状态:</label>
+                        <select id="eventStatus" required>
+                            <option value="INITIAL">初始</option>
+                            <option value="PENDING">待处理</option>
+                            <option value="PROCESSING">处理中</option>
+                            <option value="SUCCESS">成功</option>
+                            <option value="COMPLETED">已完成</option>
+                            <option value="FAILED">失败</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" id="triggerReasonGroup" style="display: none;">
+                    <label for="triggerReason">触发原因:</label>
+                    <input type="text" id="triggerReason" placeholder="如: 发现违禁品">
+                </div>
+                <div class="form-group">
+                    <label for="eventDescription" id="eventDescriptionLabel">事项描述:</label>
+                    <textarea id="eventDescription" placeholder="请输入事项描述" required></textarea>
+                </div>
+                <div class="event-form-grid">
+                    <div class="form-group">
+                        <label for="boundFlightSelection">航班号绑定:</label>
+                        <select id="boundFlightSelection" required>
+                            <option value="">请选择绑定航班号</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="event-form-grid">
+                    <div class="form-group">
+                        <label for="stand_no">机位号:</label>
+                        <input type="text" id="stand_no" placeholder="请输入机位号">
+                    </div>
+                    <div class="form-group">
+                        <label for="gate_no">登机口:</label>
+                        <input type="text" id="gate_no" placeholder="请输入登机口">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelEventBtn">取消</button>
+                    <button type="submit" class="btn btn-primary" id="submitEventBtn">创建业务事项</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Column Configuration Modal -->
+    <div id="columnConfigModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="columnConfigTitle" hidden
+        aria-hidden="true">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2 id="columnConfigTitle">列配置</h2>
+                <button type="button" class="close close-modal close-modal-compact" id="closeColumnConfig"
+                    aria-label="关闭列配置弹窗">&times;</button>
+            </div>
+            <div class="column-config-list" id="columnConfigList">
+                <!-- Javascript will populate this -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="resetColumnsBtn">重置默认</button>
+                <button class="btn btn-primary" id="saveColumnsBtn">应用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Badge Stack -->
+    <div id="floatingBadgeStack" class="floating-badge-stack" aria-label="快捷操作">
+        <button id="updateBadge" type="button" aria-controls="updatePanel" aria-expanded="false" aria-label="打开更新消息面板">
+            <img src="/frontend/icons/connection.svg" alt="" aria-hidden="true"
+                style="width:16px;height:16px;filter:brightness(0) invert(1);">
+            <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;white-space:nowrap;">消息 <span
+                    id="updateCount">0</span></span>
+        </button>
+        <button id="openAnomalyBadgeBtn" type="button" hidden aria-controls="alertPoolContainer" aria-label="打开异常告警视图">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 1.6 1.2 13.8c-.22.4.07.9.53.9h12.54c.46 0 .75-.5.53-.9L8 1.6Z"></path>
+                <path d="M8 5.1c.39 0 .7.31.7.7v3.2a.7.7 0 0 1-1.4 0V5.8c0-.39.31-.7.7-.7Z" fill="#fff"></path>
+                <circle cx="8" cy="11.7" r="0.9" fill="#fff"></circle>
+            </svg>
+            <span class="anomaly-fab-text">异常 <span id="openAnomalyBadgeCount">0</span></span>
+        </button>
+        <button id="openFlightChatBadgeBtn" class="flight-chat-fab" type="button" aria-controls="flightChatModal"
+            style="display:none;" aria-haspopup="dialog" aria-label="打开航班 AI 对话">
+            <img src="/frontend/icons/ai.svg" alt="" aria-hidden="true">
+            <span class="flight-chat-fab-text">AI 对话</span>
+        </button>
+        <button id="openDispatchChatBadgeBtn" class="dispatch-chat-fab" type="button" aria-controls="dispatchChatModal"
+            aria-haspopup="dialog" aria-label="打开航班保障群聊">
+            <img src="/frontend/icons/messages.svg" alt="" aria-hidden="true">
+            <span class="dispatch-chat-fab-text">航班群聊</span>
+        </button>
+        <button id="dispatchNotifyBadgeBtn" class="dispatch-notify-fab" type="button" aria-controls="dispatchNotifyModal"
+            aria-haspopup="dialog" aria-label="打开调度通知中心">
+            <img src="/frontend/icons/messages.svg" alt="" aria-hidden="true">
+            <span class="dispatch-notify-fab-text">调度通知</span>
+        </button>
+    </div>
+
+    <!-- Update Message Panel -->
+    <div id="updatePanel" role="dialog" aria-modal="false" aria-labelledby="updatePanelTitle" hidden>
+        <div class="update-panel-header">
+            <span id="updatePanelTitle" class="update-panel-title"><img src="/frontend/icons/connection.svg"
+                    class="svg-icon" alt="" aria-hidden="true">更新消息</span>
+            <button type="button" class="update-panel-close" id="closeUpdatePanelBtn"
+                aria-label="关闭更新消息面板">&times;</button>
+        </div>
+        <div id="updatePanelContent" class="update-panel-content">
+            <div class="update-panel-empty">暂无更新消息</div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="timeContextMenu" class="context-menu">
+        <div class="context-menu-item" id="ctxModify">
+            <span class="icon"><img src="/frontend/icons/edit.svg" class="svg-icon-sm" alt="" aria-hidden="true"></span>
+            修改
+        </div>
+        <div class="context-menu-item danger" id="ctxRevoke">
+            <span class="icon"><img src="/frontend/icons/cancel.svg" class="svg-icon-sm" alt=""
+                    aria-hidden="true"></span> 撤销
+        </div>
+    </div>
+
+    <!-- Header Context Menu -->
+    <div id="headerContextMenu" class="context-menu">
+        <div class="context-menu-item" id="ctxConfigColumns">
+            <span class="icon"><img src="/frontend/icons/settings.svg" class="svg-icon-sm" alt=""
+                    aria-hidden="true"></span> 配置列...
+        </div>
+    </div>
+
+    <!-- Remark Edit Modal -->
+    <div id="remarkEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="remarkEditTitle"
+        hidden aria-hidden="true" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
+        <div class="modal-container"
+            style="background: var(--bg-card); padding: 20px; border-radius: 12px; width: 400px; box-shadow: var(--shadow-xl);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <h3 id="remarkEditTitle" style="margin: 0; font-size: 18px;">编辑备注</h3>
+                <button type="button" class="close-modal close-modal-compact" onclick="closeRemarkModal()"
+                    aria-label="关闭备注编辑弹窗"><img src="/frontend/icons/cancel.svg" class="svg-icon-sm" alt=""
+                        aria-hidden="true"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="remarkInput" class="form-control" rows="5"
+                    style="width: 100%; border: 1px solid var(--border-light); border-radius: 8px; padding: 12px; font-family: inherit; font-size: 14px; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary);"></textarea>
+                <div class="modal-actions"
+                    style="margin-top: 20px; text-align: right; gap: 10px; display: flex; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRemarkModal()"
+                        style="padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border-light); background: transparent; cursor: pointer;">取消</button>
+                    <button class="btn btn-primary" id="saveRemarkBtn"
+                        style="padding: 6px 16px; border-radius: 6px; border: none; background: var(--system-blue); color: white; cursor: pointer;">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Edit Modal -->
+    <div id="timeEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="timeModalTitle"
+        hidden aria-hidden="true" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
+        <div class="modal-container"
+            style="background: var(--bg-card); padding: 20px; border-radius: 12px; width: 350px; box-shadow: var(--shadow-xl);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <h3 id="timeModalTitle" style="margin: 0; font-size: 18px;">修改时间</h3>
+                <button type="button" class="close-modal close-modal-compact" onclick="closeTimeModal()"
+                    aria-label="关闭时间编辑弹窗"><img src="/frontend/icons/cancel.svg" class="svg-icon-sm" alt=""
+                        aria-hidden="true"></button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label
+                        style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px;">选择新时间</label>
+                    <input type="datetime-local" id="timeInput" class="form-control"
+                        style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-family: inherit;">
+                </div>
+                <div class="modal-actions"
+                    style="margin-top: 20px; text-align: right; gap: 10px; display: flex; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeTimeModal()"
+                        style="padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border-light); cursor: pointer;">取消</button>
+                    <button class="btn btn-primary" id="saveTimeBtn"
+                        style="padding: 6px 16px; border-radius: 6px; border: none; background: var(--system-blue); color: white; cursor: pointer;">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dispatchChatModal" class="modal-overlay dispatch-chat-modal" role="dialog" aria-modal="true"
+        aria-labelledby="dispatchChatTitle" hidden aria-hidden="true" style="display: none;">
+        <div class="modal-container dispatch-chat-dialog">
+            <div class="dispatch-chat-header">
+                <div class="dispatch-chat-title-wrap">
+                    <h3 id="dispatchChatTitle">航班保障群聊</h3>
+                    <p class="dispatch-chat-meta" data-chat-role="entryMeta">未指定航班，可查看当前账号可访问的群聊。</p>
+                </div>
+                <button type="button" class="close-modal close-modal-compact" id="dispatchChatCloseBtn"
+                    aria-label="关闭航班保障群聊">&times;</button>
+            </div>
+
+            <div class="dispatch-chat-layout">
+                <section class="dispatch-chat-group-panel" aria-label="群列表">
+                    <div class="dispatch-chat-group-panel-head">
+                        <span>群列表</span>
+                        <span class="dispatch-chat-group-meta" data-chat-role="groupMeta">0 个群</span>
+                    </div>
+                    <div class="dispatch-chat-group-list" data-chat-role="groupList"></div>
+                </section>
+
+                <section class="dispatch-chat-message-panel" aria-label="群消息">
+                    <div class="dispatch-chat-message-head">
+                        <div>
+                            <p class="dispatch-chat-title" data-chat-role="activeTitle">请选择群组</p>
+                            <p class="dispatch-chat-subtitle" data-chat-role="activeSubtitle">仅成员可见</p>
+                        </div>
+                        <span class="dispatch-chat-archive-pill" data-chat-role="archivePill" hidden>已归档</span>
+                    </div>
+
+                    <div class="dispatch-chat-message-list" data-chat-role="messageList" tabindex="0"></div>
+                    <div class="dispatch-chat-empty-tip" data-chat-role="emptyTip">选择左侧群组开始沟通</div>
+
+                    <div class="dispatch-chat-composer" data-chat-role="composer">
+                        <label class="dispatch-chat-at-all" for="dispatchChatAtAllToggle">
+                            <input id="dispatchChatAtAllToggle" data-chat-role="atAllToggle" type="checkbox">
+                            @全体
+                        </label>
+                        <textarea data-chat-role="input" maxlength="2000"
+                            placeholder="输入消息，Enter 发送，Ctrl+Enter 换行"></textarea>
+                        <div class="dispatch-chat-composer-actions">
+                            <span class="dispatch-chat-count" data-chat-role="inputCount">0/2000</span>
+                            <button class="btn btn-primary dispatch-chat-send-btn" data-chat-role="sendBtn"
+                                type="button">发送</button>
+                        </div>
+                        <p class="dispatch-chat-readonly-tip" data-chat-role="readonlyTip" hidden>该群已归档，只读不可发送。</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div id="flight-ai-root" data-ai-entry="flight_monitor_ai"></div>
+    <script src="/frontend/js/dispatch_chat_panel.js?v=1"></script>
+    <!-- 重构的拆分层 -->
+    <script src="/frontend/js/flight_monitor/data.js?v=2"></script>
+    <script src="/frontend/js/flight_monitor/stream.js?v=3"></script>
+    <script src="/frontend/js/flight_monitor/render.js"></script>
+    <script src="/frontend/js/flight_monitor.js?v=58"></script>
+    <script src="/frontend/js/ai_entry_loader.js"></script>
+</body>
+
+</html>

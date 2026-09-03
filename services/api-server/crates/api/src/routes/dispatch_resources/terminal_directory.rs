@@ -200,7 +200,10 @@ pub async fn add_stand_member(
     claims.ensure_permission("dispatch:manage")?;
     let (terminal_id, stand_id) = path.into_inner();
     svc.add_stand_member(&terminal_id, &stand_id).await?;
-    Ok(ok_resp(&req, serde_json::json!({ "terminal_id": terminal_id, "stand_id": stand_id })))
+    Ok(ok_resp(
+        &req,
+        serde_json::json!({ "terminal_id": terminal_id, "stand_id": stand_id }),
+    ))
 }
 
 /// 从楼里移出机位；有未结束占用 → 409。
@@ -225,7 +228,10 @@ pub async fn add_gate_member(
     claims.ensure_permission("dispatch:manage")?;
     let (terminal_id, gate_id) = path.into_inner();
     svc.add_gate_member(&terminal_id, &gate_id).await?;
-    Ok(ok_resp(&req, serde_json::json!({ "terminal_id": terminal_id, "gate_id": gate_id })))
+    Ok(ok_resp(
+        &req,
+        serde_json::json!({ "terminal_id": terminal_id, "gate_id": gate_id }),
+    ))
 }
 
 pub async fn remove_gate_member(
@@ -249,7 +255,10 @@ pub async fn add_carousel_member(
     claims.ensure_permission("dispatch:manage")?;
     let (terminal_id, carousel_id) = path.into_inner();
     svc.add_carousel_member(&terminal_id, &carousel_id).await?;
-    Ok(ok_resp(&req, serde_json::json!({ "terminal_id": terminal_id, "carousel_id": carousel_id })))
+    Ok(ok_resp(
+        &req,
+        serde_json::json!({ "terminal_id": terminal_id, "carousel_id": carousel_id }),
+    ))
 }
 
 pub async fn remove_carousel_member(

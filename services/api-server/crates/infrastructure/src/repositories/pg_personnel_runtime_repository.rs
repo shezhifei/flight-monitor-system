@@ -77,12 +77,7 @@ impl PersonnelRuntimeRepository for PgPersonnelRuntimeRepository {
         Ok(row.map(|row| row_to_personnel_runtime(&row)))
     }
 
-    async fn update_status(
-        &self,
-        user_id: &str,
-        status: &str,
-        updated_by: Option<&str>,
-    ) -> Result<bool, DomainError> {
+    async fn update_status(&self, user_id: &str, status: &str, updated_by: Option<&str>) -> Result<bool, DomainError> {
         let result = sqlx::query(
             r#"
             UPDATE personnel_runtime

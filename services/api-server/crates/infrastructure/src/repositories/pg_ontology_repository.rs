@@ -15,8 +15,8 @@ use fms_domain::models::ontology_v1::{
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::ontology_repository::{
     AircraftRepository, CarouselAssignmentRepository, CarouselCreateOutcome, GateAssignmentRepository,
-    GateCreateOutcome, OntologyTransactionalRepository, ResourceAdjustmentSuggestionRepository,
-    StandCreateOutcome, StandOccupationRepository, TurnaroundLinkRepository,
+    GateCreateOutcome, OntologyTransactionalRepository, ResourceAdjustmentSuggestionRepository, StandCreateOutcome,
+    StandOccupationRepository, TurnaroundLinkRepository,
 };
 
 // ---------------------------------------------------------------------------
@@ -316,7 +316,10 @@ impl<'tx> OntologyTransactionalRepository<Transaction<'tx, Postgres>> for PgAirc
         .fetch_all(&mut **tx)
         .await
         .map_err(|e| DomainError::Internal(e.to_string()))?;
-        Ok(rows.iter().flat_map(|r| r.try_get::<String, _>("carousel_code")).collect())
+        Ok(rows
+            .iter()
+            .flat_map(|r| r.try_get::<String, _>("carousel_code"))
+            .collect())
     }
 
     async fn create_link_in_tx(
@@ -900,14 +903,13 @@ impl CarouselAssignmentRepository for PgCarouselAssignmentRepository {
     }
 
     async fn list_by_flight(&self, flight_id: &str, limit: i64) -> Result<Vec<CarouselAssignment>, DomainError> {
-        let rows = sqlx::query(
-            "SELECT * FROM carousel_assignments WHERE flight_id=$1 ORDER BY starts_at DESC LIMIT $2",
-        )
-        .bind(flight_id)
-        .bind(limit)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+        let rows =
+            sqlx::query("SELECT * FROM carousel_assignments WHERE flight_id=$1 ORDER BY starts_at DESC LIMIT $2")
+                .bind(flight_id)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| DomainError::Internal(e.to_string()))?;
         Ok(rows.iter().map(row_to_carousel).collect())
     }
 }

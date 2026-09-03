@@ -15,18 +15,13 @@ pub enum LegType {
 }
 
 /// 航班类型代码 (domestic / intl / region)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum FlightTypeCode {
+    #[default]
     Domestic,
     Intl,
     Region,
-}
-
-impl Default for FlightTypeCode {
-    fn default() -> Self {
-        Self::Domestic
-    }
 }
 
 /// 航班航段 — 一个方向的进港或出港航段

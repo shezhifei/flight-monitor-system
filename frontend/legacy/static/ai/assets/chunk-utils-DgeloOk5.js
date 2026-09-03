@@ -1,0 +1,1 @@
+function r(n="req"){return window.crypto&&typeof window.crypto.randomUUID=="function"?`${n}_${window.crypto.randomUUID()}`:`${n}_${Date.now()}_${Math.random().toString(36).slice(2,10)}`}function e(n){if(!n)return"";const t=new Date(n);return Number.isNaN(t.getTime())?n:t.toLocaleString()}export{r as c,e as n};

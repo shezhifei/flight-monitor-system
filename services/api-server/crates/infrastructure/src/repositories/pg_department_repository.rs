@@ -159,9 +159,7 @@ impl DepartmentRepository for PgDepartmentRepository {
 }
 
 #[async_trait]
-impl<'tx> DepartmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
-    for PgDepartmentRepository
-{
+impl<'tx> DepartmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgDepartmentRepository {
     async fn save_in_tx(
         &self,
         tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,

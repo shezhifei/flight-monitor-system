@@ -382,14 +382,13 @@ fn normalize_dispatch_chat_message(message: &SseMessage) -> Option<NormalizedSse
         .get("type")
         .and_then(Value::as_str)
         .map(str::trim)
-        .map(|value| match value {
+        .and_then(|value| match value {
             "dispatch_chat_message" => Some("chat_message"),
             "dispatch_chat_group_upserted" => Some("chat_group_upserted"),
             "dispatch_chat_group_archived" => Some("chat_group_archived"),
             "dispatch_chat_read_synced" => Some("chat_read_synced"),
             _ => None,
-        })
-        .flatten();
+        });
 
     if let Some(event) = mapped_event {
         normalized.event = event.to_string();

@@ -3,6 +3,8 @@ pub mod ai_execution_control_service;
 pub mod compensation_planner;
 pub mod controlplane_metrics;
 mod helpers;
+/// 内存测试替身。生产构建不编译。
+#[cfg(any(test, feature = "test-support"))]
 pub mod in_memory_repos;
 pub mod recovery_orchestrator;
 pub mod rollback_service;

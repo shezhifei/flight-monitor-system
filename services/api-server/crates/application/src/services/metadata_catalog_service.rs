@@ -136,7 +136,7 @@ where
         self.repo
             .set_catalog_active(&catalog.code, is_active)
             .await?
-            .ok_or_else(|| DomainError::NotFound {
+            .ok_or(DomainError::NotFound {
                 entity_type: "metadata_catalog",
                 id: catalog.code,
             })
@@ -185,14 +185,14 @@ where
     ) -> Result<MetadataCatalogEntry, DomainError> {
         let catalog = self.require_catalog(catalog_code).await?;
         let entry_code = normalize_entry_code(code).map_err(DomainError::ValidationError)?;
-        let mut entry = self
-            .repo
-            .find_entry(&catalog.code, &entry_code)
-            .await?
-            .ok_or_else(|| DomainError::NotFound {
-                entity_type: "metadata_catalog_entry",
-                id: format!("{}.{entry_code}", catalog.code),
-            })?;
+        let mut entry =
+            self.repo
+                .find_entry(&catalog.code, &entry_code)
+                .await?
+                .ok_or_else(|| DomainError::NotFound {
+                    entity_type: "metadata_catalog_entry",
+                    id: format!("{}.{entry_code}", catalog.code),
+                })?;
         if let Some(name) = payload.name {
             let name = name.trim().to_string();
             if name.is_empty() {
@@ -241,12 +241,9 @@ where
 
     async fn require_catalog(&self, code: &str) -> Result<MetadataCatalog, DomainError> {
         let code = normalize_catalog_code(code).map_err(DomainError::ValidationError)?;
-        self.repo
-            .find_catalog(&code)
-            .await?
-            .ok_or_else(|| DomainError::NotFound {
-                entity_type: "metadata_catalog",
-                id: code,
-            })
+        self.repo.find_catalog(&code).await?.ok_or(DomainError::NotFound {
+            entity_type: "metadata_catalog",
+            id: code,
+        })
     }
 }

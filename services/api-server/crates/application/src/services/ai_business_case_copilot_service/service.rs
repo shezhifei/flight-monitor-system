@@ -2,18 +2,15 @@
 //! impl live here; supporting types are split into sibling modules
 //! (`schemas`, `access`, `config`).
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
-use chrono::{DateTime, Duration, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::{Duration, Utc};
 use serde_json::{json, Value};
 
 use fms_domain::error::DomainError;
-use fms_domain::models::ai_copilot::{AiCopilotBatchStatus, AiCopilotBusinessCaseBatch, AiCopilotOperationalMetrics};
-use fms_domain::models::business_case::{FlightBusinessCase, VisibilityScope};
-use fms_domain::models::flight::Flight;
-use fms_domain::models::value_objects::FlightStatus;
+use fms_domain::models::ai_copilot::{AiCopilotBatchStatus, AiCopilotBusinessCaseBatch};
+use fms_domain::models::business_case::VisibilityScope;
 use fms_domain::ports::ai_copilot_repository::{AiCopilotBusinessCaseBatchRepository, BeginCommitResult};
 use fms_domain::ports::flight_repository::FlightRepository;
 
@@ -22,26 +19,18 @@ use crate::services::business_case_service::BusinessCaseServiceOps;
 use crate::services::business_case_workflow_service::{BusinessCaseWorkflowBatchItem, WorkflowActor};
 use crate::types::{ConcreteBusinessCaseTypeService, ConcreteBusinessCaseWorkflowService, ConcreteFlightService};
 
-use super::access::{normalize_actor_key, AiCopilotBatchAccess};
+use super::access::AiCopilotBatchAccess;
 use super::config::{
-    apply_case_properties_ai_copilot_config, apply_field_hint, apply_legacy_ai_extraction_config,
-    derive_ai_extraction_config_from_case_properties, normalize_business_case_ai_extraction_config,
-    normalize_optional_string, parse_ai_extraction_config, parse_case_properties, string_vec_from_json, AiFieldConfig,
-    AiFlightMatchingConfig, AiLegBindingConfig, BusinessCaseAiExtractionConfig, BusinessCaseProperties,
-    CaseBindingPolicy, CaseDuplicatePolicy, CaseFlightMatchPolicy, CasePropertiesAiCopilotConfig,
-    CopilotCaseTypeCatalogEntry, PreparedCommitAction,
+    normalize_business_case_ai_extraction_config, parse_case_properties, CopilotCaseTypeCatalogEntry,
+    PreparedCommitAction,
 };
 use super::schemas::{
-    AiCopilotApprovedAction, AiCopilotBatchListResponse, AiCopilotBatchStatusResponse, AiCopilotCaseTypeDiagnostic,
-    AiCopilotCommitRecoveryError, AiCopilotCommitRecoverySummary, AiCopilotCommitRequest, AiCopilotCommitResponse,
-    AiCopilotDraftAction, AiCopilotDraftDiagnosticResponse, AiCopilotDraftRequest, AiCopilotDraftResponse,
-    AiCopilotFailedBatchResolutionAction, AiCopilotFailedBatchResolutionRequest, AiCopilotMatchedFlight,
-    AiCopilotNotificationGroup, AiCopilotOperationalMetricsResponse, AiCopilotWorkflowDispatchRetryError,
-    AiCopilotWorkflowDispatchRetrySummary, LlmDraftAction, LlmDraftPayload, StoredWorkflowDispatchItem,
-    StoredWorkflowDispatchRequest,
+    AiCopilotBatchStatusResponse, AiCopilotCaseTypeDiagnostic, AiCopilotCommitRecoveryError,
+    AiCopilotCommitRecoverySummary, AiCopilotCommitRequest, AiCopilotCommitResponse, AiCopilotNotificationGroup,
+    AiCopilotWorkflowDispatchRetryError, AiCopilotWorkflowDispatchRetrySummary,
 };
 
-pub(crate) use super::helpers::*;
+pub(super) use super::helpers::*;
 
 const WORKFLOW_DISPATCH_PENDING_STALE_AFTER_SECONDS: i64 = 15 * 60;
 const COMMIT_RECOVERY_INITIAL_DELAY_SECONDS: i64 = 120;

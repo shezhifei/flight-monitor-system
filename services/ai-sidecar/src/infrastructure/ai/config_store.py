@@ -27,16 +27,7 @@ class AIConfigStoreInterface(ABC):
         """获取指定实体的配置"""
         pass
 
-    @abstractmethod
-    async def update(self, entity_id: str, config: dict[str, Any]) -> dict[str, Any]:
-        """更新实体配置"""
-        pass
-
-    @abstractmethod
-    async def delete(self, entity_id: str) -> bool:
-        """删除实体配置"""
-        pass
-
+    # ai_entities 的写路径由 Rust 侧统一持有（ADR-0004）；Python 侧只读，防双写分叉。
     @abstractmethod
     async def reload(self) -> None:
         """重新加载配置"""

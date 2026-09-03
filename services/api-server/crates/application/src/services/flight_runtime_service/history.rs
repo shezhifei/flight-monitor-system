@@ -98,7 +98,7 @@ impl FlightRuntimeService {
         };
         let mut merged_timeline = business_case_timeline.clone();
         merged_timeline.extend(flight_change_timeline.clone());
-        merged_timeline.sort_by(|left, right| timestamp_from_value(left).cmp(&timestamp_from_value(right)));
+        merged_timeline.sort_by_key(timestamp_from_value);
         let markdown = build_journey_markdown(
             flight_id,
             flight.flight_number.as_deref(),
@@ -186,7 +186,7 @@ impl FlightRuntimeService {
 
 fn build_history_timeline(history: &[Value]) -> Vec<Value> {
     let mut items = history.iter().filter_map(normalize_history_record).collect::<Vec<_>>();
-    items.sort_by(|left, right| timestamp_from_value(left).cmp(&timestamp_from_value(right)));
+    items.sort_by_key(timestamp_from_value);
     items
 }
 
@@ -314,7 +314,7 @@ fn build_business_case_timeline(
             }
         }
     }
-    timeline.sort_by(|left, right| timestamp_from_value(left).cmp(&timestamp_from_value(right)));
+    timeline.sort_by_key(timestamp_from_value);
     timeline
 }
 
@@ -327,7 +327,7 @@ fn build_history_markdown(
     timeline: &[Value],
 ) -> String {
     let mut lines = vec![
-        format!("# 航班动态/历史报表"),
+        "# 航班动态/历史报表".to_string(),
         format!("- 航班ID: {flight_id}"),
         format!("- 航班号: {}", flight_no.unwrap_or("未知")),
         format!(

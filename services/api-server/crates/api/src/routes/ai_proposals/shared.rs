@@ -5,7 +5,7 @@
 pub(crate) use crate::error::ApiError;
 pub(crate) use crate::middleware::jwt::JwtAuth;
 pub(crate) use crate::middleware::permissions::PermissionCheck;
-pub(crate) use actix_web::{web, HttpResponse};
+pub(crate) use actix_web::HttpResponse;
 pub(crate) use fms_application::services::ai_action_proposal_service::{
     AiActionProposalError, AiActionProposalService, ApproveProposalRequest, ExecuteProposalRequest,
     GenerateProposalRequest, RejectProposalRequest, ValidateProposalRequest,

@@ -37,20 +37,10 @@ fn preferred_frontend_release_dir() -> Option<PathBuf> {
     first_matching_path(frontend_release_dir_candidates(), |path| path.exists())
 }
 
-fn legacy_frontend_archive_dir() -> PathBuf {
-    project_root()
-        .join("frontend")
-        .join("backup")
-        .join("legacy-frontend-archive")
-}
-
+// Tracked subset of the retired legacy frontend; the backup/ archive stays
+// history-only and must never serve production traffic.
 fn legacy_frontend_root_dir() -> PathBuf {
-    let legacy_archive = legacy_frontend_archive_dir();
-    if legacy_archive.exists() {
-        legacy_archive
-    } else {
-        frontend_dir()
-    }
+    frontend_dir().join("legacy")
 }
 
 fn pics_dir() -> PathBuf {
@@ -192,7 +182,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     mount_files_if_dir_exists(cfg, "/frontend/css", &legacy_frontend_root.join("css"));
     mount_files_if_dir_exists(cfg, "/frontend/static/ai", &ai_static_dir());
     mount_files_if_dir_exists(cfg, "/frontend/static", &legacy_frontend_root.join("static"));
-    mount_files_if_dir_exists(cfg, "/frontend/vendor", &legacy_frontend_root.join("vendor"));
+    mount_files_if_dir_exists(cfg, "/frontend/vendor", &frontend_dir().join("vendor"));
     mount_files_if_dir_exists(cfg, "/frontend/wasm_src", &legacy_frontend_root.join("wasm_src"));
 
     mount_files_if_dir_exists(cfg, "/static/ai", &ai_static_dir());
@@ -207,8 +197,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 #[cfg(test)]
 mod tests {
     use super::{
-        ai_static_dir, first_matching_path, frontend_dir, frontend_release_dir_candidates, legacy_frontend_archive_dir,
-        legacy_frontend_root_dir, project_root, resolve_frontend_subdir, resolve_release_file,
+        ai_static_dir, first_matching_path, frontend_dir, frontend_release_dir_candidates, legacy_frontend_root_dir,
+        project_root, resolve_frontend_subdir, resolve_release_file,
     };
     use std::collections::HashSet;
     use std::path::{Path, PathBuf};
@@ -218,10 +208,7 @@ mod tests {
         let root = project_root();
         assert!(root.ends_with(Path::new("flight-monitor-system")));
         assert_eq!(frontend_dir(), root.join("frontend"));
-        assert_eq!(
-            legacy_frontend_archive_dir(),
-            root.join("frontend").join("backup").join("legacy-frontend-archive")
-        );
+        assert_eq!(legacy_frontend_root_dir(), root.join("frontend").join("legacy"));
         assert_eq!(
             frontend_release_dir_candidates(),
             [
@@ -262,7 +249,7 @@ mod tests {
         let root = project_root();
         let preferred_release = root.join("frontend").join("vue-app").join("dist");
         let fallback_release = root.join("frontend").join("dist");
-        let legacy_root = root.join("frontend").join("backup").join("legacy-frontend-archive");
+        let legacy_root = root.join("frontend").join("legacy");
         let existing_roots = HashSet::from([preferred_release.clone(), fallback_release]);
         let existing_dirs = HashSet::from([legacy_root.join("icons")]);
 

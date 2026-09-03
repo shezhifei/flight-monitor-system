@@ -158,17 +158,12 @@ fn default_scheduled() -> Option<String> {
 // 更新 (全部 Option)
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum NullableUpdate<T> {
+    #[default]
     Unset,
     Clear,
     Set(T),
-}
-
-impl<T> Default for NullableUpdate<T> {
-    fn default() -> Self {
-        Self::Unset
-    }
 }
 
 impl<T> NullableUpdate<T> {
@@ -568,10 +563,7 @@ impl FlightBatchEditableField {
 
     /// Sync-locked fields require admin or `*` permission (same policy as single-flight PATCH).
     pub fn is_sync_locked(self) -> bool {
-        matches!(
-            self,
-            Self::ScheduledDeparture | Self::ScheduledArrival | Self::CobtTime
-        )
+        matches!(self, Self::ScheduledDeparture | Self::ScheduledArrival | Self::CobtTime)
     }
 
     /// Default leg_type for timeline milestones (aligned with frontend DISPATCH_TIMELINE_FIELD_META).

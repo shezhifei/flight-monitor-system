@@ -16,9 +16,7 @@ pub(crate) use crate::middleware::jwt::JwtAuth;
 pub(crate) use crate::request_context::{
     build_ip_subnet_hash, build_user_agent_hash, extract_client_ip, extract_user_agent,
 };
-pub(crate) use crate::routes::auth::shared::{
-    attach_token_response_cookies, parse_client_surface,
-};
+pub(crate) use crate::routes::auth::shared::{attach_token_response_cookies, parse_client_surface};
 
 pub(crate) async fn occupy(
     svc: web::Data<Arc<AuthService>>,
@@ -68,10 +66,7 @@ pub(crate) async fn occupy(
     }
 }
 
-pub(crate) async fn list_seats(
-    svc: web::Data<Arc<AuthService>>,
-    claims: JwtAuth,
-) -> Result<HttpResponse, ApiError> {
+pub(crate) async fn list_seats(svc: web::Data<Arc<AuthService>>, claims: JwtAuth) -> Result<HttpResponse, ApiError> {
     let _person = claims
         .0
         .sub
@@ -85,8 +80,5 @@ pub(crate) async fn list_seats(
 /// 配置占席路由
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/api/v2/seats").route(web::get().to(list_seats)));
-    cfg.service(
-        web::scope("/api/v2/seats")
-            .route("/{position_id}/occupy", web::post().to(occupy)),
-    );
+    cfg.service(web::scope("/api/v2/seats").route("/{position_id}/occupy", web::post().to(occupy)));
 }

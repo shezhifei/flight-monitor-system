@@ -105,10 +105,7 @@ impl AiProposalIngestService {
             Some(repository) => match repository.load_action_overlays().await {
                 Ok(overlays) => overlays,
                 Err(error) => {
-                    tracing::warn!(
-                        "failed to load AI ontology overlays for proposal ingest: {}",
-                        error
-                    );
+                    tracing::warn!("failed to load AI ontology overlays for proposal ingest: {}", error);
                     Vec::new()
                 }
             },
@@ -177,5 +174,3 @@ pub struct IngestResult {
     pub answer: String,
     pub evidence_count: usize,
 }
-
-

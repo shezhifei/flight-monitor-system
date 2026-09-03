@@ -7,7 +7,7 @@
 pub(crate) use crate::error::ApiError;
 pub(crate) use crate::middleware::jwt::JwtAuth;
 pub(crate) use crate::middleware::permissions::PermissionCheck;
-pub(crate) use actix_web::{web, HttpResponse};
+pub(crate) use actix_web::HttpResponse;
 pub(crate) use fms_application::schemas::micro_model_schemas::MicroModelExecuteResponse;
 pub(crate) use fms_application::services::micro_model_executor::MicroModelExecutor;
 pub(crate) use fms_domain::models::micro_model::MicroModelRegistry;

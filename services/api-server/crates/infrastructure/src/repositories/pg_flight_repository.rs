@@ -41,7 +41,7 @@ fn should_emit_perf_trace(counter: &AtomicU64) -> bool {
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value > 0)
         .unwrap_or(1000);
-    counter.fetch_add(1, Ordering::Relaxed) % sample_rate == 0
+    counter.fetch_add(1, Ordering::Relaxed).is_multiple_of(sample_rate)
 }
 
 impl PgFlightRepository {
@@ -189,9 +189,7 @@ impl PgFlightRepository {
             LegType::Outbound => ("scheduled_departure", "scheduled_arrival"),
         };
         let scheduled_time = leg.scheduled_time;
-        let mut builder = QueryBuilder::<Postgres>::new(
-            "UPDATE flights SET flight_number = ",
-        );
+        let mut builder = QueryBuilder::<Postgres>::new("UPDATE flights SET flight_number = ");
         builder
             .push_bind(&leg.flight_no)
             .push(", flight_type = ")
@@ -1338,8 +1336,8 @@ fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
         is_quick_turnaround: r.get("is_quick_turnaround"),
         is_commercial_signed: r.get("is_commercial_signed"),
         status: FlightStatus::from_code(status_code).unwrap_or(FlightStatus::Scheduled),
-         inbound_leg,
-         outbound_leg,
+        inbound_leg,
+        outbound_leg,
         anomaly_summary,
         created_at: r.get("created_at"),
         updated_at: r.get("updated_at"),
@@ -1358,7 +1356,7 @@ fn row_to_flight(r: &sqlx::postgres::PgRow) -> Flight {
         load_planning_remarks: r.get("load_planning_remarks"),
         aircraft_maintenance_remarks: r.get("aircraft_maintenance_remarks"),
         aircraft_check_remarks: r.get("aircraft_check_remarks"),
-         direction,
+        direction,
         flight_kind: r
             .get::<Option<String>, _>("flight_kind")
             .filter(|value| !value.is_empty())

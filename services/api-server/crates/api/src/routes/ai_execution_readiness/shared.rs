@@ -35,7 +35,7 @@ pub(crate) async fn get_execution_readiness_metrics(
         .ensure_permission("system.config_read")
         .or_else(|_| claims.ensure_permission("ai.execution.readiness"))?;
 
-    let snapshot = service.snapshot().await.map_err(|e| ApiError::Internal(e))?;
+    let snapshot = service.snapshot().await.map_err(ApiError::Internal)?;
 
     Ok(HttpResponse::Ok().json(snapshot))
 }

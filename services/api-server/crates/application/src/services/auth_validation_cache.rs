@@ -32,6 +32,12 @@ pub struct AuthValidationCache {
     claims_ttl: Duration,
 }
 
+impl Default for AuthValidationCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthValidationCache {
     pub fn new() -> Self {
         let freshness_ttl_ms: u64 = std::env::var("AUTH_FRESHNESS_CACHE_TTL_MS")

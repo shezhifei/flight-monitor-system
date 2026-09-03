@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::DispatchOrder;
 use fms_domain::models::dispatch_collaboration::NotificationReceiptSummary;
@@ -6,8 +5,8 @@ use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationR
 use serde_json::{json, Value};
 
 use super::helpers::{
-    dispatch_order_member_to_value, dispatch_type_value, driver_assignee_type_value,
-    lock_level_value, non_empty_object_string, null_if_blank_with_default, order_status_value, resolve_effective_times,
+    dispatch_order_member_to_value, dispatch_type_value, driver_assignee_type_value, lock_level_value,
+    non_empty_object_string, null_if_blank_with_default, order_status_value, resolve_effective_times,
     resolve_notification_receipt_summary, resolve_order_department, roster_team_projection, schedule_source_value,
 };
 

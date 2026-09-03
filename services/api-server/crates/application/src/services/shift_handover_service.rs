@@ -8,8 +8,8 @@ use std::collections::HashSet;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::DispatchOrderStatus;
-use fms_domain::models::user::ACCOUNT_TYPE_PERSONAL;
 use fms_domain::models::shift_handover::{ShiftHandover, ShiftHandoverItem};
+use fms_domain::models::user::ACCOUNT_TYPE_PERSONAL;
 use fms_domain::ports::shift_handover_repository::ShiftHandoverRepository;
 
 use crate::services::auth_service::AuthService;
@@ -63,6 +63,7 @@ impl ShiftHandoverService {
         self
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         &self,
         position_user_id: &str,
@@ -109,7 +110,10 @@ impl ShiftHandoverService {
         ensure_personal(auth, normalized_from).await?;
         ensure_personal(auth, normalized_to).await?;
         // 创建/submit：JWT（actor）必须是当前占该席的个人。
-        if !auth.is_current_seat_occupant(normalized_position, actor_user_id).await? {
+        if !auth
+            .is_current_seat_occupant(normalized_position, actor_user_id)
+            .await?
+        {
             return Err(DomainError::PermissionDenied(
                 "only the current seat occupant can start this handover".into(),
             ));
@@ -304,9 +308,10 @@ impl ShiftHandoverService {
         }
 
         // 该单必须绑定岗位；complete 核接班人密码后调同一 OccupySeat 切占用。
-        let position_user_id = handover.position_user_id.clone().ok_or_else(|| {
-            DomainError::Conflict("handover is not bound to a position seat".into())
-        })?;
+        let position_user_id = handover
+            .position_user_id
+            .clone()
+            .ok_or_else(|| DomainError::Conflict("handover is not bound to a position seat".into()))?;
         let auth = self
             .auth
             .as_ref()
@@ -504,7 +509,9 @@ async fn ensure_personal(auth: &AuthService, user_id: &str) -> Result<(), Domain
         return Err(DomainError::ValidationError(format!("交接人 {user_id} 不存在")));
     };
     if user.account_type != ACCOUNT_TYPE_PERSONAL {
-        return Err(DomainError::ValidationError(format!("{user_id} 是岗位账号，交接双方必须是个人账号")));
+        return Err(DomainError::ValidationError(format!(
+            "{user_id} 是岗位账号，交接双方必须是个人账号"
+        )));
     }
     Ok(())
 }

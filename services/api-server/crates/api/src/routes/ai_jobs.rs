@@ -24,6 +24,7 @@ struct CreateJobRequest {
     task_type: String,
     payload: Value,
     #[serde(default)]
+    #[allow(dead_code)]
     timeout_ms: Option<i64>,
 }
 

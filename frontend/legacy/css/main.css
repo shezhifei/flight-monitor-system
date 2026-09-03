@@ -1,0 +1,538 @@
+/* --- Main CSS Entry Point --- */
+/* Import all CSS modules in the correct order */
+
+/* 1. Variables - Must be loaded first */
+@import url('variables.css?v=1');
+
+/* 2. Base styles - Global resets and typography */
+@import url('base.css?v=1');
+
+/* 3. Layout - Main layout structure */
+@import url('layout.css?v=1');
+
+/* 4. Components - All UI components */
+@import url('components.css?v=5');
+
+/* 5. Tables - Data table styles */
+@import url('tables.css?v=1');
+
+/* 6. Theme - Apple design system enhancements */
+@import url('apple-theme.css?v=1');
+
+/* --- SVG Icon Utility Classes --- */
+.svg-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    flex-shrink: 0;
+}
+
+.svg-icon-sm {
+    width: 14px;
+    height: 14px;
+}
+
+.svg-icon-md {
+    width: 18px;
+    height: 18px;
+}
+
+.svg-icon-lg {
+    width: 24px;
+    height: 24px;
+}
+
+/* --- Additional Global Styles --- */
+
+/* Global loading overlay for async requests */
+.loader-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+}
+
+.loader-overlay.active {
+    display: flex;
+}
+
+.loader-overlay .spinner {
+    width: 48px;
+    height: 48px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Utility: screen reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Floating update badge and panel */
+.floating-badge-stack {
+    position: fixed;
+    right: 5px;
+    bottom: 57px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    width: max-content;
+    z-index: 9999;
+}
+
+#updateBadge {
+    position: relative;
+    order: 4;
+    width: 148px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(141, 146, 155, 0.96) 0%, rgba(110, 116, 126, 0.96) 100%);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(52, 58, 69, 0.2);
+    z-index: 9999;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transform-origin: right center;
+}
+
+#openAnomalyBadgeBtn {
+    position: relative;
+    order: 0;
+    width: 148px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: linear-gradient(160deg, rgba(220, 38, 38, 0.96) 0%, rgba(234, 88, 12, 0.96) 68%, rgba(185, 28, 28, 0.96) 100%);
+    color: #ffffff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(127, 29, 29, 0.24);
+    z-index: 9999;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    transform-origin: right center;
+}
+
+#openAnomalyBadgeBtn[hidden] {
+    display: none !important;
+}
+
+#openAnomalyBadgeBtn[data-severity="high"] {
+    background: linear-gradient(160deg, rgba(234, 88, 12, 0.96) 0%, rgba(249, 115, 22, 0.96) 70%, rgba(194, 65, 12, 0.96) 100%);
+}
+
+#openAnomalyBadgeBtn[data-severity="medium"],
+#openAnomalyBadgeBtn[data-severity="low"] {
+    background: linear-gradient(160deg, rgba(217, 119, 6, 0.96) 0%, rgba(245, 158, 11, 0.96) 70%, rgba(180, 83, 9, 0.96) 100%);
+}
+
+#openAnomalyBadgeBtn:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 18px 30px rgba(127, 29, 29, 0.28);
+    filter: brightness(1.03);
+}
+
+#openAnomalyBadgeBtn:focus-visible {
+    outline: 3px solid rgba(248, 113, 113, 0.42);
+    outline-offset: 2px;
+}
+
+.anomaly-fab-text {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+#openAnomalyBadgeCount {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1;
+    margin-left: 2px;
+}
+
+#updateBadge:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 18px 32px rgba(52, 58, 69, 0.28);
+    filter: brightness(1.02);
+}
+
+#updateBadge:focus-visible {
+    outline: 3px solid rgba(0, 122, 255, 0.45);
+    outline-offset: 2px;
+}
+
+#updateCount {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1;
+    margin-top: -1px;
+}
+
+#updatePanel {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    width: min(380px, calc(100vw - 24px * 2));
+    max-height: 400px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+#updatePanel[hidden] {
+    display: none;
+}
+
+.update-panel-header {
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.update-panel-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: #1d1d1f;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.update-panel-close {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 22px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+.update-panel-close:focus-visible {
+    outline: 2px solid rgba(0, 122, 255, 0.35);
+    outline-offset: 2px;
+}
+
+.update-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 16px;
+    max-height: 340px;
+}
+
+.update-panel-empty {
+    text-align: center;
+    color: #666;
+    padding: 16px;
+    font-size: 14px;
+}
+
+.connection-status {
+    margin-right: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.connection-status.connecting {
+    color: #8a6d3b;
+    background: #fff6db;
+    border-color: #ffe8a3;
+}
+
+.connection-status.online {
+    color: #1f6f43;
+    background: #e8f8ee;
+    border-color: #c8efd7;
+}
+
+.connection-status.reconnecting,
+.connection-status.offline {
+    color: #8a1f2b;
+    background: #fdecef;
+    border-color: #f9d0d8;
+}
+
+.global-toast-container {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 8px;
+    z-index: 10010;
+    pointer-events: none;
+}
+
+.global-toast {
+    position: relative;
+    max-width: min(560px, calc(100vw - 32px));
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    color: #ffffff;
+    background: rgba(28, 28, 30, 0.92);
+    pointer-events: auto;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.global-toast.toast-enter {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.global-toast.toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.global-toast.toast-exit {
+    opacity: 0;
+    transform: translateY(-15px);
+}
+
+.global-toast.success {
+    background: rgba(29, 135, 76, 0.95);
+}
+
+.global-toast.error {
+    background: rgba(173, 34, 50, 0.95);
+}
+
+/* Keep React AI float entry above legacy floating badges when zones overlap. */
+.flight-monitor-page .ant-float-btn {
+    z-index: 10020;
+    right: 5px !important;
+    bottom: 5px !important;
+    inset-inline-end: 5px !important;
+    inset-block-end: 5px !important;
+    width: 148px !important;
+    height: 48px !important;
+    border-radius: 999px !important;
+}
+
+.flight-monitor-page .ant-float-btn .ant-float-btn-body {
+    width: 148px !important;
+    height: 48px !important;
+    border-radius: 999px !important;
+    box-shadow: 0 8px 20px rgba(0, 78, 168, 0.2);
+}
+
+.flight-monitor-page .ant-float-btn .ant-float-btn-content {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    width: 100%;
+    height: 100%;
+}
+
+.flight-monitor-page .ant-float-btn .ant-float-btn-description {
+    margin: 0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+/* Mobile table hint */
+.table-scroll-hint {
+    display: none;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 6px 8px 10px;
+}
+
+@media (max-width: 768px) {
+    .table-scroll-hint {
+        display: block;
+    }
+
+    .floating-badge-stack {
+        right: 16px;
+        bottom: 64px;
+    }
+
+    #updateBadge {
+        width: 120px;
+        height: 44px;
+    }
+
+    #openAnomalyBadgeBtn {
+        width: 120px;
+        height: 44px;
+    }
+
+    #updatePanel {
+        right: 12px;
+        bottom: 72px;
+        width: calc(100vw - 24px);
+    }
+
+    .flight-monitor-page .ant-float-btn {
+        right: 16px !important;
+        inset-inline-end: 16px !important;
+    }
+}
+
+/* Ensure proper layering of styles */
+.flight-list-panel {
+    z-index: 1;
+}
+
+.flight-detail-panel {
+    z-index: 0;
+}
+
+/* Fix for potential CSS conflicts */
+.modal {
+    z-index: 1000;
+}
+
+.error-panel {
+    z-index: 1001;
+}
+
+.error-badge {
+    z-index: 1002;
+}
+
+/* Flight monitor page: remove bottom gray strip */
+.flight-monitor-page .flight-list-panel {
+    padding-bottom: 0;
+}
+
+.flight-monitor-page .flight-detail-panel {
+    padding-bottom: 10px;
+}
+
+.flight-monitor-page #flightList,
+.flight-monitor-page #alertFlightList {
+    padding-bottom: 0;
+}
+
+/* Ensure proper stacking context */
+.container {
+    position: relative;
+    isolation: isolate;
+}
+
+/* Performance optimizations */
+.flight-item,
+.event-item,
+.btn,
+.modal-content {
+    will-change: transform;
+}
+
+/* Remove will-change after animations complete */
+.flight-item:not(:hover),
+.event-item:not(:hover),
+.btn:not(:hover) {
+    will-change: auto;
+}
+
+/* Ensure smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+
+    .flight-list-panel,
+    .flight-detail-panel {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Fix for high DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
+    .flight-item,
+    .modal-content,
+    .btn {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+    /* Variables will be overridden by a future dark theme */
+}
+
+/* Print styles */
+@media print {
+
+    .search-container,
+    .edit-controls,
+    .error-panel,
+    .error-badge,
+    .modal {
+        display: none !important;
+    }
+
+    .flight-list-panel,
+    .flight-detail-panel {
+        overflow: visible;
+        height: auto;
+    }
+
+    .container {
+        flex-direction: column;
+        height: auto;
+    }
+}

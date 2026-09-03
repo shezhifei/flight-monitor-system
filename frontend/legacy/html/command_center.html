@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>指挥中心大屏 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/workspace_unified_theme.css?v=4">
+    <link rel="stylesheet" href="/frontend/css/command_center_dashboard.css?v=2">
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/js/sse_hub.js"></script>
+    <script src="/frontend/js/components/toast.js"></script>
+    <script src="/frontend/js/components/loading.js"></script>
+    <script src="/frontend/js/components/empty_error.js"></script>
+    <script src="/frontend/js/components/header.js"></script>
+    <script src="/frontend/js/components/breadcrumb.js"></script>
+    <script src="/frontend/vendor/js/echarts.min.js"></script>
+    
+    
+</head>
+
+<body class="workspace-page data-hub-page command-center-page">
+    <div class="screen data-hub-shell">
+        <div id="header-host"></div>
+        <div id="breadcrumb-host"></div>
+
+        <section class="panel dashboard-ribbon command-ops-bar command-judgement-bar">
+            <div class="dashboard-ribbon-copy command-ribbon-copy">
+                <span class="section-eyebrow">实时决策</span>
+                <h2 class="dashboard-ribbon-title">先判断是否失稳，再锁定未来 60 分钟动作对象</h2>
+            </div>
+            <div class="dashboard-ribbon-actions metric-controls">
+                <select id="windowHoursSelect" aria-label="窗口时长">
+                    <option value="2">未来 2h</option>
+                    <option value="6" selected>未来 6h</option>
+                    <option value="12">未来 12h</option>
+                </select>
+                <select id="refreshIntervalSelect" aria-label="刷新间隔">
+                    <option value="15000" selected>15s 刷新</option>
+                    <option value="30000">30s 刷新</option>
+                    <option value="60000">60s 刷新</option>
+                </select>
+                <button class="btn primary" id="refreshNowBtn">刷新</button>
+                <button class="btn" id="toggleRefreshBtn">暂停</button>
+                <button class="btn" id="clearEventsBtn">清空证据流</button>
+                <button class="btn" id="fullScreenBtn">全屏</button>
+            </div>
+            <div class="command-verdict-strip">
+                <span class="decision-severity-chip is-info" id="opsVerdictChip">等待判断</span>
+                <div class="command-verdict-copy">
+                    <strong class="command-verdict-title" id="opsVerdictTitle">正在汇总运行态势...</strong>
+                    <p class="command-verdict-detail" id="opsVerdictDetail">刷新后将根据异常、高风险离港、派工阻塞和系统健康状态生成运行结论。</p>
+                </div>
+                <div class="command-verdict-side">
+                    <span class="command-verdict-window" id="opsVerdictMeta">等待窗口判断</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="metric-grid command-kpi-grid command-stat-strip">
+            <article class="metric-card hero-metric stat-critical">
+                <div class="metric-label">待决策对象</div>
+                <div class="metric-value" id="metricDecisionCount">-</div>
+                <div class="metric-sub" id="metricDecisionCountSub">P1 / P2 等待计算</div>
+            </article>
+            <article class="metric-card hero-metric">
+                <div class="metric-label">60 分钟高风险离港</div>
+                <div class="metric-value" id="metricRiskFlights">-</div>
+                <div class="metric-sub" id="metricRiskFlightsSub">未来窗口等待计算</div>
+            </article>
+            <article class="metric-card hero-metric">
+                <div class="metric-label">未闭环异常</div>
+                <div class="metric-value" id="metricOpenAnomalies">-</div>
+                <div class="metric-sub" id="metricOpenAnomaliesSub">高优先级等待计算</div>
+            </article>
+            <article class="metric-card hero-metric">
+                <div class="metric-label">调度阻塞</div>
+                <div class="metric-value" id="metricDispatchBlockers">-</div>
+                <div class="metric-sub" id="metricDispatchBlockersSub">冲突 / 待派工等待计算</div>
+            </article>
+            <article class="metric-card hero-metric">
+                <div class="metric-label">延误压力</div>
+                <div class="metric-value" id="metricDelayPressure">-</div>
+                <div class="metric-sub" id="metricDelayPressureSub">履约率等待更新</div>
+            </article>
+        </section>
+
+        <section class="command-board">
+            <article class="panel compact-panel command-action-panel spotlight-panel">
+                <div class="section-headline">
+                    <div class="section-heading-block">
+                        <h3 class="section-title">行动优先队列</h3>
+                    </div>
+                    <span class="section-meta" id="decisionQueueMeta">按行动紧迫度排序</span>
+                </div>
+                <div class="priority-list decision-queue-list" id="decisionQueueList"></div>
+            </article>
+
+            <aside class="command-context-column">
+                <article class="panel compact-panel command-window-panel hero-panel">
+                    <div class="section-headline">
+                        <div class="section-heading-block">
+                            <h3 class="section-title">未来窗口离港压力</h3>
+                        </div>
+                        <span class="section-meta" id="windowPressureMeta">未来窗口</span>
+                    </div>
+                    <div class="distribution-strip" id="windowPressureList" style="min-height:200px"></div>
+                </article>
+
+                <article class="panel compact-panel heatmap-panel">
+                    <div class="section-headline">
+                        <div class="section-heading-block">
+                            <h3 class="section-title">异常热区</h3>
+                        </div>
+                        <span class="section-meta" id="riskHeatmapMeta">按机位区间统计</span>
+                    </div>
+                    <div class="heatmap-box" id="standHeatmapChart" style="min-height:180px"></div>
+                </article>
+
+                <article class="panel compact-panel dispatch-panel">
+                    <div class="section-headline">
+                        <div class="section-heading-block">
+                            <h3 class="section-title">调度负载断面</h3>
+                        </div>
+                        <span class="section-meta" id="dispatchWindowMeta">调度窗口</span>
+                    </div>
+                    <div class="distribution-strip" id="dispatchSummaryList" style="min-height:180px"></div>
+                </article>
+
+                <article class="panel compact-panel terminal-panel">
+                    <div class="section-headline">
+                        <div class="section-heading-block">
+                            <h3 class="section-title">航站楼压力</h3>
+                        </div>
+                        <span class="section-meta" id="terminalLoadMeta">按航班数统计</span>
+                    </div>
+                    <div class="distribution-strip" id="terminalLoadList" style="min-height:180px"></div>
+                </article>
+            </aside>
+        </section>
+
+        <section class="panel evidence-panel command-evidence-panel">
+            <div class="section-headline">
+                <div class="section-heading-block">
+                    <h3 class="section-title">实时证据流</h3>
+                </div>
+                <span class="section-meta" id="eventFeedMeta">最多保留 120 条</span>
+            </div>
+            <div class="event-timeline" id="eventFeedList"></div>
+        </section>
+
+        <footer class="footer command-footer">
+            <span id="footerWindowText">窗口: -</span>
+            <span id="metricLastRefresh">--</span>
+            <span id="metricAutoRefreshSub">自动刷新开启</span>
+            <span id="metricSystemHealth">--</span>
+            <span id="metricSystemHealthSub">健康状态</span>
+            <span id="footerNoticeText">说明: 当前版本使用系统内置接口，外部接口已暂缓。</span>
+        </footer>
+    </div>
+
+    <script src="/frontend/js/command_center_screen.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自然语言查询 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/js/components/header.js"></script>
+    <script src="/frontend/js/components/breadcrumb.js"></script>
+</head>
+
+<body>
+    <div id="header-host"></div>
+    <div id="breadcrumb-host"></div>
+    <div id="ai-react-root" data-ai-entry="nl_query"></div>
+    <script>
+        (function () {
+            function renderShellNavigation() {
+                if (window.Header && typeof window.Header.render === 'function') {
+                    window.Header.render('#header-host', {
+                        title: '自然语言查询',
+                        showBack: true,
+                        backHref: '/frontend/html/dashboard.html',
+                        subtitle: 'Natural Language Query'
+                    });
+                }
+                if (window.Breadcrumb && typeof window.Breadcrumb.render === 'function') {
+                    window.Breadcrumb.render('#breadcrumb-host', [
+                        { label: '工作台', href: '/frontend/html/dashboard.html' },
+                        { label: '自然语言查询', current: true }
+                    ]);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', renderShellNavigation);
+            } else {
+                renderShellNavigation();
+            }
+        })();
+    </script>
+    <script src="/frontend/js/ai_entry_loader.js"></script>
+</body>
+
+</html>

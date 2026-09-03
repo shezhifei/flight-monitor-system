@@ -246,7 +246,7 @@ impl AnomalyService {
             }
         };
 
-        anomalies.sort_by(|left, right| right.detected_at.cmp(&left.detected_at));
+        anomalies.sort_by_key(|left| std::cmp::Reverse(left.detected_at));
         Ok(anomalies)
     }
 
@@ -662,9 +662,7 @@ fn build_gate_stand_conflict_anomaly(
         }
     }
 
-    let Some((other_flight_number, resource_type, resource_value, window_minutes)) = best_conflict else {
-        return None;
-    };
+    let (other_flight_number, resource_type, resource_value, window_minutes) = best_conflict?;
 
     let flight_number = flight_number(flight);
     let mut context_data = HashMap::new();

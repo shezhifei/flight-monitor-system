@@ -43,12 +43,8 @@ impl DispatchService {
             attributes,
         } = dto;
 
-        let attributes = validate_attributes(
-            "DispatchOrder",
-            attributes,
-            self.order.field_overlay_repo.as_ref(),
-        )
-        .await?;
+        let attributes =
+            validate_attributes("DispatchOrder", attributes, self.order.field_overlay_repo.as_ref()).await?;
         if let Some(validator) = self.order.object_reference_validator.as_ref() {
             validator.validate("DispatchOrder", &attributes).await?;
         }
@@ -180,7 +176,7 @@ impl DispatchService {
             DispatchOrderStatus::Pending
         };
 
-        let mut workflow_context = serde_json::Value::Object(serde_json::Map::from_iter(workflow_context.into_iter()));
+        let mut workflow_context = serde_json::Value::Object(serde_json::Map::from_iter(workflow_context));
         if let Some(location) = Self::normalize_optional_string(location) {
             workflow_context["manual_location"] = json!(location);
         }
@@ -194,7 +190,7 @@ impl DispatchService {
             workflow_context["temporary_task_template_code"] = json!(template_code);
         }
 
-        let task_crew = serde_json::Value::Object(serde_json::Map::from_iter(task_crew.into_iter()));
+        let task_crew = serde_json::Value::Object(serde_json::Map::from_iter(task_crew));
 
         let mut order = DispatchOrder {
             id: order_id.clone(),

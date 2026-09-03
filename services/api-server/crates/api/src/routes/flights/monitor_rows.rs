@@ -58,9 +58,7 @@ pub async fn list(
         "error": null,
         "request_id": req.headers().get("x-request-id").and_then(|value| value.to_str().ok()),
     });
-    let body = web::Bytes::from(
-        serde_json::to_vec(&payload).map_err(|error| ApiError::Internal(error.to_string()))?,
-    );
+    let body = web::Bytes::from(serde_json::to_vec(&payload).map_err(|error| ApiError::Internal(error.to_string()))?);
     if use_cache {
         MONITOR_ROWS_CACHE.store(body.clone());
     }

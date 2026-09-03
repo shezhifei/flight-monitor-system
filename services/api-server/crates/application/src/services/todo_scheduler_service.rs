@@ -317,7 +317,7 @@ impl TodoSchedulerService {
         }
 
         let repo = self.repo.clone();
-        stream::iter(todos.into_iter())
+        stream::iter(todos)
             .for_each_concurrent(self.save_concurrency, move |todo| {
                 let repo = repo.clone();
                 async move {
@@ -339,7 +339,7 @@ impl TodoSchedulerService {
             .sse_publisher
             .clone()
             .map(|p| p as Arc<dyn TodoSchedulerSsePublisher>);
-        stream::iter(side_effects.into_iter())
+        stream::iter(side_effects)
             .for_each_concurrent(self.side_effect_concurrency, move |effect| {
                 let notification_service = notification_service.clone();
                 let sse_publisher = sse_publisher.clone();
@@ -711,7 +711,7 @@ mod tests {
                 .filter(|notification| !unread_only || !notification.is_read)
                 .cloned()
                 .collect::<Vec<_>>();
-            items.sort_by(|left, right| left.created_at.cmp(&right.created_at));
+            items.sort_by_key(|left| left.created_at);
             Ok(items
                 .into_iter()
                 .skip(offset.max(0) as usize)

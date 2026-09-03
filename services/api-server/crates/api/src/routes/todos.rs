@@ -211,6 +211,7 @@ pub struct AgentContextMetricsQuery {
     #[serde(default = "default_min_samples")]
     min_samples: i64,
     #[serde(default = "default_legacy_hit_ratio_threshold")]
+    #[allow(dead_code)]
     legacy_hit_ratio_threshold: f64,
     #[serde(default = "default_compat_fallback_ratio_threshold")]
     compat_fallback_ratio_threshold: f64,

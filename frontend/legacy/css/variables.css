@@ -1,0 +1,200 @@
+/* --- Apple Design System & Variables --- */
+@font-face {
+    font-family: 'MiSans';
+    src: url('/frontend/fonts/MiSansVF.ttf') format('truetype');
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+:root {
+    /* System Colors (macOS/iOS inspired) */
+    --system-blue: #007AFF;
+    --system-blue-hover: #0062cc;
+    --system-blue-subtle: rgba(0, 122, 255, 0.1);
+    --system-purple: #AF52DE;
+    --system-green: #34C759;
+    --system-orange: #FF9500;
+    --system-red: #FF3B30;
+    --system-gray: #8E8E93;
+    --system-gray2: #AEAEB2;
+    --system-gray6: #F2F2F7;
+    /* Sidebar Background */
+
+    /* Backgrounds & Surfaces */
+    --bg-app: #FFFFFF;
+    --bg-sidebar: #F5F5F7;
+    /* macOS Sidebar gray */
+    --bg-card: #FFFFFF;
+    --bg-input: rgba(118, 118, 128, 0.12);
+    --bg-modal: rgba(255, 255, 255, 0.8);
+
+    /* Text Colors */
+    --text-primary: #1D1D1F;
+    --text-secondary: #5f6368;
+    --text-tertiary: #8b9097;
+
+    /* Borders & Shadows */
+    --border-light: rgba(0, 0, 0, 0.08);
+    --border-focus: rgba(0, 122, 255, 0.5);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+    /* Status Colors (Pastel) */
+    --status-bg-scheduled: #E3F2FD;
+    --status-text-scheduled: #007AFF;
+    --status-bg-boarding: #FFF4E5;
+    --status-text-boarding: #FF9500;
+    --status-bg-departed: #E8F5E9;
+    --status-text-departed: #34C759;
+    --status-bg-delayed: #FFEBEE;
+    --status-text-delayed: #FF3B30;
+    --status-bg-ended: #F2F2F7;
+    --status-text-ended: #8E8E93;
+
+    /* Legacy Colors (for compatibility) */
+    --primary-color: var(--system-blue);
+    --primary-hover: var(--system-blue-hover);
+    --primary-light: var(--system-blue-subtle);
+    --secondary-color: #5856D6;
+    --success-color: var(--system-green);
+    --warning-color: var(--system-orange);
+    --danger-color: var(--system-red);
+    --info-color: #5AC8FA;
+
+    /* Neutral Colors */
+    --background-color: var(--bg-sidebar);
+    --surface-color: var(--bg-card);
+    --border-color: var(--border-light);
+    --shadow-light: rgba(0, 0, 0, 0.05);
+    --shadow-medium: rgba(0, 0, 0, 0.1);
+    --shadow-heavy: rgba(0, 0, 0, 0.15);
+
+    /* Legacy Status Colors */
+    --status-scheduled: var(--status-bg-scheduled);
+    --status-scheduled-text: var(--status-text-scheduled);
+    --status-boarding: var(--status-bg-boarding);
+    --status-boarding-text: var(--status-text-boarding);
+    --status-departed: var(--status-bg-departed);
+    --status-departed-text: var(--status-text-departed);
+    --status-delayed: var(--status-bg-delayed);
+    --status-delayed-text: var(--status-text-delayed);
+    --status-boarding-ended: var(--status-bg-ended);
+    --status-boarding-ended-text: var(--status-text-ended);
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Responsive Breakpoint Registry */
+    --breakpoint-compact: 600px;
+    --breakpoint-tablet: 768px;
+    --breakpoint-panel-collapse: 1024px;
+    --breakpoint-dashboard-stack: 1200px;
+
+    /* Layout responsive state tokens */
+    --layout-detail-dashboard-columns: 380px 1fr;
+    --layout-detail-dashboard-rows: auto auto 1fr;
+    --layout-ops-card-height: 100%;
+    --layout-detail-panel-position: relative;
+    --layout-detail-panel-inset: auto;
+    --layout-detail-panel-height: 100%;
+    --layout-detail-panel-border-top: 0;
+    --layout-detail-panel-border-right: none;
+    --layout-detail-panel-transform: none;
+    --layout-detail-panel-open-transform: none;
+    --layout-detail-panel-transition: none;
+    --layout-detail-panel-shadow: none;
+    --layout-detail-panel-z-index: auto;
+    --layout-resizer-display: block;
+    --layout-detail-drawer-close-display: none;
+    --layout-flight-list-panel-padding: 0 1rem 1rem;
+    --layout-flight-workbar-padding-top: 8px;
+    --layout-flight-panel-title-direction: row;
+    --layout-flight-panel-title-align: flex-start;
+    --layout-detail-panel-title-direction: row;
+    --layout-detail-panel-title-align: center;
+    --layout-flight-panel-meta-justify: flex-end;
+    --layout-form-row-direction: row;
+    --layout-event-form-grid-columns: 1fr 1fr;
+    --layout-modal-content-width: 500px;
+    --layout-modal-content-margin: 5% auto;
+
+    /* Border Radius */
+    --radius-s: 8px;
+    --radius-m: 12px;
+    --radius-l: 18px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* Transitions */
+    --transition-fast: 0.15s ease-in-out;
+    --transition-normal: 0.3s ease-in-out;
+    --transition-slow: 0.5s ease-in-out;
+
+    /* Dimensions */
+    --sidebar-width: 420px;
+
+    /* Typography - Font Weights (MiSans VF) */
+    --fw-thin: 250;
+    --fw-regular: 400;
+    --fw-medium: 550;
+    --fw-semibold: 650;
+    --fw-bold: 750;
+    --fw-heavy: 850;
+}
+
+/*
+ * Native CSS cannot reuse custom properties directly inside media queries.
+ * Keep breakpoint values registered above and emit layout state tokens here so
+ * layout.css can inherit a single responsive source without changing behavior.
+ */
+@media (max-width: 1200px) {
+    :root {
+        --layout-detail-dashboard-columns: 1fr;
+        --layout-detail-dashboard-rows: auto 1fr;
+        --layout-ops-card-height: 600px;
+    }
+}
+
+@media (max-width: 1024px) {
+    :root {
+        --layout-detail-panel-position: fixed;
+        --layout-detail-panel-inset: auto 0 0 0;
+        --layout-detail-panel-height: min(78vh, 720px);
+        --layout-detail-panel-border-top: 1px solid var(--border-color);
+        --layout-detail-panel-transform: translateY(calc(100% - 60px));
+        --layout-detail-panel-open-transform: translateY(0);
+        --layout-detail-panel-transition: transform 0.28s ease, box-shadow 0.24s ease;
+        --layout-detail-panel-shadow: 0 -12px 28px rgba(15, 23, 42, 0.12);
+        --layout-detail-panel-z-index: 35;
+        --layout-resizer-display: none;
+        --layout-detail-drawer-close-display: inline-flex;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --layout-flight-list-panel-padding: 0 0.75rem 0.75rem;
+        --layout-flight-workbar-padding-top: 12px;
+        --layout-flight-panel-title-direction: column;
+        --layout-flight-panel-title-align: stretch;
+        --layout-detail-panel-title-direction: column;
+        --layout-detail-panel-title-align: stretch;
+        --layout-flight-panel-meta-justify: flex-start;
+        --layout-form-row-direction: column;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --layout-event-form-grid-columns: 1fr;
+        --layout-modal-content-width: 95%;
+        --layout-modal-content-margin: 10% auto;
+    }
+}

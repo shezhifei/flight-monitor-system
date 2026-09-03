@@ -187,7 +187,7 @@ impl AiJobTimeoutReaperService {
     /// - If `attempt_count >= max_attempts`: mark the job as timed out,
     ///   fail any active run, and emit an `ai_job.timed_out` outbox event.
     async fn scan(&self) -> ReaperScanReport {
-        let now = Utc::now();
+        let _now = Utc::now();
         let mut report = ReaperScanReport::default();
 
         let expired = match self.job_service.list_expired_leases(self.config.scan_limit).await {

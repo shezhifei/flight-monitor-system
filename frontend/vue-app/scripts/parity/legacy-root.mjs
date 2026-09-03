@@ -43,8 +43,7 @@ const defaultLegacyRoot = path.resolve(
   '..',
   '..',
   '..',
-  'backup',
-  'legacy-frontend-archive',
+  'legacy',
 );
 
 export class LegacyRootValidationError extends Error {

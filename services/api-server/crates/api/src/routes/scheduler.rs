@@ -50,7 +50,7 @@ async fn get_scheduler_status(
     let task_status_map = snapshot
         .tasks
         .iter()
-        .map(|task| (task.name.clone(), task.status.clone()))
+        .map(|task| (task.name.clone(), task.status))
         .collect::<std::collections::HashMap<_, _>>();
 
     let scheduler_running = snapshot.running;
@@ -86,7 +86,7 @@ async fn trigger_scheduler_check(
     let result_map = trigger_result
         .results
         .iter()
-        .map(|item| (item.name.clone(), item.status.clone()))
+        .map(|item| (item.name.clone(), item.status))
         .collect::<std::collections::HashMap<_, _>>();
 
     Ok(HttpResponse::Ok().json(json!({

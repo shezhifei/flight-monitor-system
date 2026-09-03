@@ -122,7 +122,7 @@ impl InMemorySessionRuntimeRepository {
     }
 
     fn fallback_ttl_seconds(&self) -> i64 {
-        self.online_ttl_seconds.min(FALLBACK_ONLINE_TTL).max(1)
+        self.online_ttl_seconds.clamp(1, FALLBACK_ONLINE_TTL)
     }
 
     async fn mark_redis_success(&self) {

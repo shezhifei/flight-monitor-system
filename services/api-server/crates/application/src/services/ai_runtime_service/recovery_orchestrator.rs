@@ -717,8 +717,8 @@ mod tests {
     };
     use chrono::Duration as ChronoDuration;
     use fms_domain::models::ai_execution::{
-        AiRuntimeCommandRecord, AiRuntimeCommandStatus, AiRuntimeCommandType, AiToolCallRecord, AiToolCallResult,
-        AiToolCallStatus, AiToolCallType,
+        AiRuntimeCommandRecord, AiRuntimeCommandStatus, AiRuntimeCommandType, AiToolCallRecord, AiToolCallStatus,
+        AiToolCallType,
     };
     use fms_domain::ports::ai_execution_repository::{AiRuntimeCommandRepository, AiToolCallRepository};
     use serde_json::json;

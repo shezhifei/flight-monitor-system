@@ -1,8 +1,7 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use serde_json::{json, Value};
 
 use fms_domain::error::DomainError;
-use fms_domain::models::anomaly::*;
 use fms_domain::models::dispatch::*;
 
 use crate::schemas::dispatch_schemas::*;
@@ -642,10 +641,7 @@ impl DispatchService {
                     member_repo.save(&m).await?;
                 }
                 None => {
-                    if !Self::should_auto_create_checkin_member(
-                        order.individual_user_id.as_deref(),
-                        actor_id,
-                    ) {
+                    if !Self::should_auto_create_checkin_member(order.individual_user_id.as_deref(), actor_id) {
                         return Err(DomainError::NotFound {
                             entity_type: "DispatchOrderMember",
                             id: format!("{order_id}:{actor_id}"),
@@ -867,13 +863,10 @@ impl DispatchService {
         let recorded_at = dto.recorded_at;
         let recorded_at_display = recorded_at.as_ref().map(|value| value.to_rfc3339());
         let now = recorded_at.unwrap_or_else(Utc::now);
-        let mut auto_completed = false;
-        let mut travel_info = None;
-
-        {
+        let (travel_info, auto_completed) = {
             let member_repo = self.order.member_repo.as_ref();
             let existing = member_repo.find_by_order_and_user(order_id, actor_id).await?;
-            match existing {
+            let travel_info = match existing {
                 Some(mut m) => {
                     if m.check_out_time.is_some() {
                         return Ok(serde_json::json!({
@@ -887,7 +880,7 @@ impl DispatchService {
                     }
                     m.check_out_time = Some(now);
                     member_repo.save(&m).await?;
-                    travel_info = self.record_travel_time_on_checkout(actor_id, &order, &m).await;
+                    self.record_travel_time_on_checkout(actor_id, &order, &m).await
                 }
                 None => {
                     return Err(DomainError::NotFound {
@@ -895,13 +888,14 @@ impl DispatchService {
                         id: format!("{order_id}:{actor_id}"),
                     });
                 }
-            }
+            };
 
             let all_members = member_repo.find_by_order(order_id).await?;
-            auto_completed = self
+            let auto_completed = self
                 .try_auto_complete_on_all_checkout(order_id, actor_id, &all_members)
                 .await;
-        }
+            (travel_info, auto_completed)
+        };
 
         let checkout_note = dto.note.clone();
         let inserted = match client_action_id {

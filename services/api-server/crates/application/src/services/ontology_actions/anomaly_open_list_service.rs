@@ -30,7 +30,7 @@ impl AnomalyOpenListService {
         for status in [AnomalyStatus::Open, AnomalyStatus::Acknowledged] {
             unresolved.extend(self.anomaly_repo.find_by_status(status).await.map_err(repo_err)?);
         }
-        unresolved.sort_by(|a, b| b.detected_at.cmp(&a.detected_at));
+        unresolved.sort_by_key(|a| std::cmp::Reverse(a.detected_at));
 
         let mut summary = json!({"critical": 0, "high": 0, "medium": 0, "low": 0});
         for anomaly in &unresolved {

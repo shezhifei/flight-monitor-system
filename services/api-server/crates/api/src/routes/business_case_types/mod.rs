@@ -1,6 +1,5 @@
 use actix_web::web;
 pub mod shared;
-pub(crate) use shared::*;
 
 #[cfg(test)]
 mod tests;

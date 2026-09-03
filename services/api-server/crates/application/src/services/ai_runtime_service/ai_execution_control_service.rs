@@ -33,18 +33,22 @@ use super::controlplane_metrics::{
     observe_controlplane, ControlPlaneTimer, OP_CHECKPOINT, OP_COMMAND_ENQUEUE, OP_LEASE,
 };
 
+#[cfg(test)]
+use fms_domain::ai_runtime_event::ToolAuthorizationMode;
 use fms_domain::ai_runtime_event::{
     AiRuntimeEventEnvelope, CheckpointPayload, HeartbeatPayload, RunCompletePayload, RunFailPayload,
-    ToolAuthorizationMode, ToolCallRequestedPayload, ToolExecutionStatus, ToolResultPayload,
+    ToolCallRequestedPayload, ToolExecutionStatus, ToolResultPayload,
 };
 use fms_domain::models::ai_execution::{
     AiRunCheckpointRecord, AiRunCheckpointType, AiRuntimeCommandRecord, AiRuntimeCommandStatus, AiRuntimeCommandType,
     AiToolCallError, AiToolCallRecord, AiToolCallResult, AiToolCallStatus, AiToolCallType,
 };
-use fms_domain::models::tool_authorization::{
-    ObjectPolicyDecision, ToolAuthorizationContext, ToolAuthorizationDecision,
-};
-use fms_domain::models::tool_governance::{ResolvedToolGovernance, RustToolGovernanceResolver};
+#[cfg(test)]
+use fms_domain::models::tool_authorization::ToolAuthorizationContext;
+use fms_domain::models::tool_authorization::ToolAuthorizationDecision;
+#[cfg(test)]
+use fms_domain::models::tool_governance::ResolvedToolGovernance;
+use fms_domain::models::tool_governance::RustToolGovernanceResolver;
 use fms_domain::ports::ai_auth_context_loader::RunAuthorizationContextLoader;
 use fms_domain::ports::ai_execution_repository::{
     assert_checkpoint_size_within_budget, AiExecutionRepositoryError, AiRunCheckpointRepository,
@@ -1617,7 +1621,7 @@ mod tests {
             "job-1",
             0,
             sequence_no,
-            &format!("{run_id}:0:{checkpoint_id}"),
+            format!("{run_id}:0:{checkpoint_id}"),
             json!({
                 "checkpoint_id": checkpoint_id,
                 "sequence_no": sequence_no,

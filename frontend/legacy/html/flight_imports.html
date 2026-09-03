@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>航班导入 - 系统管理</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/admin-layout.css">
+    <link rel="stylesheet" href="/frontend/css/admin-page.css">
+    <link rel="stylesheet" href="/frontend/css/apple-theme.css">
+    <script src="/frontend/js/auth.js"></script>
+    <style>
+        .import-shell { max-width: 1240px; margin: 0 auto; width: 100%; }
+        .hero, .panel { background: rgba(255,255,255,0.78); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.45); border-radius: 18px; box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05); }
+        .hero { padding: 24px 28px; margin-bottom: 24px; }
+        .hero h1 { margin: 0 0 6px; font-size: 26px; color: #0f172a; }
+        .hero p { margin: 0; color: #64748b; line-height: 1.6; }
+        .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+        .panel { padding: 20px 22px; }
+        .panel h2 { margin: 0 0 14px; font-size: 16px; color: #0f172a; }
+        .muted { color: #64748b; font-size: 13px; }
+        .upload-box { border: 1px dashed #cbd5e1; border-radius: 14px; padding: 18px; background: rgba(248,250,252,0.7); }
+        .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+        .btn-primary, .btn-secondary { border: none; border-radius: 12px; padding: 10px 16px; cursor: pointer; font-weight: 600; }
+        .btn-primary { background: #0f766e; color: #fff; }
+        .btn-secondary { background: #e2e8f0; color: #0f172a; }
+        .btn-primary[disabled], .btn-secondary[disabled] { opacity: 0.5; cursor: not-allowed; }
+        .meta-list, .summary-grid { display: grid; gap: 10px; }
+        .meta-item, .summary-card { padding: 12px 14px; border-radius: 12px; background: rgba(248,250,252,0.9); border: 1px solid #e2e8f0; }
+        .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
+        .summary-card strong { display: block; font-size: 22px; color: #0f172a; }
+        .summary-card span { font-size: 12px; color: #64748b; text-transform: uppercase; }
+        .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .badge-create { background: #dcfce7; color: #166534; }
+        .badge-update { background: #dbeafe; color: #1d4ed8; }
+        .badge-skip { background: #fef3c7; color: #92400e; }
+        .row-card { border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 14px; background: #fff; }
+        .row-head { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+        .kv .meta-item { min-height: 84px; }
+        .code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+        .list { margin: 8px 0 0; padding-left: 18px; color: #334155; }
+        .list li { margin: 4px 0; }
+        @media (max-width: 1080px) { .grid, .summary-grid, .kv { grid-template-columns: 1fr; } }
+    </style>
+</head>
+
+<body>
+    <div class="admin-container">
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <a href="/frontend/html/dashboard.html">
+                        <img src="/frontend/icons/fast.svg" class="svg-icon">
+                        <span>系统管理</span>
+                    </a>
+                </div>
+                <div class="sidebar-subtitle">导入 PAYLOAD 文件并在提交前完成预览校验。</div>
+            </div>
+
+            <div class="sidebar-nav">
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">加载中...</div>
+                        <div class="user-role" id="userRole">系统管理员</div>
+                    </div>
+                </div>
+                <div class="sidebar-footer-actions">
+                    <button class="logout-btn" onclick="logout()" title="退出登录">
+                        <img src="/frontend/icons/logout.svg" class="svg-icon-sm">
+                    </button>
+                    <a href="/frontend/html/dashboard.html" class="nav-item sidebar-home-link">
+                        <span class="nav-item-icon"><img src="/frontend/icons/home.svg" class="svg-icon"></span>
+                        <span>返回工作台</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <div class="content-heading">
+                    <div class="content-title">航班导入</div>
+                    <div class="content-subtitle">上传航班文件，先预览快照与错误，再人工确认导入。</div>
+                </div>
+                <div class="header-actions"></div>
+            </header>
+            <div class="content-body">
+                <div class="import-shell">
+                    <section class="hero">
+                        <h1>PAYLOAD 文件导入</h1>
+                        <p>工作流固定为上传解析预览、人工确认导入。预览会冻结快照；有错误的整批文件不能提交。机位仅保留最新单值。</p>
+                    </section>
+
+                    <div class="grid">
+                        <section class="panel">
+                            <h2>上传与提交</h2>
+                            <div class="upload-box">
+                                <input id="fileInput" type="file" accept=".txt,.json">
+                                <div class="actions">
+                                    <button class="btn btn-primary" id="previewBtn">上传并预览</button>
+                                    <button class="btn btn-secondary" id="commitBtn" disabled>确认导入</button>
+                                </div>
+                            </div>
+                            <div class="meta-list" style="margin-top:16px;">
+                                <div class="meta-item"><div class="muted">当前预览 ID</div><div id="previewId" class="code">-</div></div>
+                                <div class="meta-item"><div class="muted">机场上下文</div><div id="airportContext" class="code">-</div></div>
+                                <div class="meta-item"><div class="muted">状态</div><div id="previewStatus" class="code">-</div></div>
+                            </div>
+                        </section>
+
+                        <section class="panel">
+                            <h2>预览摘要</h2>
+                            <div id="summaryGrid" class="summary-grid"></div>
+                            <div class="meta-list">
+                                <div class="meta-item"><div class="muted">源文件</div><div id="sourceFile" class="code">-</div></div>
+                                <div class="meta-item"><div class="muted">字段映射</div><div id="fieldMapping" class="code">-</div></div>
+                                <div class="meta-item"><div class="muted">全局错误</div><div id="globalErrors" class="code">-</div></div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <section class="panel" style="margin-top:20px;">
+                        <h2>行级预览</h2>
+                        <div id="rowsContainer" class="muted">尚未生成预览。</div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = `${window.location.origin}/api/v2/system`;
+        let currentPreview = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!(await Auth.requireAuthAsync())) return;
+            try {
+                const response = await Auth.fetch('/api/v2/auth/me');
+                if (response.ok) {
+                    const user = await response.json();
+                    document.getElementById('userName').textContent = user.username || '管理员';
+                    document.getElementById('userAvatar').textContent = (user.username || 'A')[0].toUpperCase();
+                    document.getElementById('userRole').textContent = user.is_admin ? '系统管理员' : '普通用户';
+                }
+            } catch (error) {
+                console.warn('Failed to fetch user', error);
+            }
+            document.getElementById('previewBtn').addEventListener('click', uploadPreview);
+            document.getElementById('commitBtn').addEventListener('click', commitPreview);
+            const params = new URLSearchParams(window.location.search);
+            const previewId = params.get('preview_id');
+            if (previewId) await loadImportSnapshot(previewId);
+        });
+
+        function logout() {
+            Auth.logout();
+        }
+
+        async function uploadPreview() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return alert('请选择 PAYLOAD.txt 或 json 文件');
+            const form = new FormData();
+            form.append('file', file);
+            const res = await Auth.fetch(`${API_BASE}/flight-imports/preview`, { method: 'POST', body: form });
+            const payload = await res.json();
+            if (!res.ok) return alert(payload.detail || '预览失败');
+            currentPreview = payload;
+            history.replaceState({}, '', `?preview_id=${encodeURIComponent(payload.preview_id)}`);
+            renderPreview(payload);
+        }
+
+        async function loadImportSnapshot(previewId) {
+            const preview = await fetchImportJson(`${API_BASE}/flight-imports/${encodeURIComponent(previewId)}`, '读取预览失败');
+            if (!preview) return;
+
+            if (preview.status === 'committed' || preview.status === 'failed') {
+                const result = await fetchImportJson(
+                    `${API_BASE}/flight-imports/${encodeURIComponent(previewId)}/result`,
+                    '读取导入结果失败',
+                    false,
+                );
+                currentPreview = result || preview;
+                renderPreview(currentPreview);
+                return;
+            }
+
+            currentPreview = preview;
+            renderPreview(preview);
+        }
+
+        async function commitPreview() {
+            if (!currentPreview?.preview_id) return;
+            const res = await Auth.fetch(`${API_BASE}/flight-imports/${encodeURIComponent(currentPreview.preview_id)}/commit`, { method: 'POST' });
+            const payload = await res.json();
+            if (!res.ok) return alert(payload.detail || '导入失败');
+            currentPreview = payload;
+            renderPreview(payload);
+        }
+
+        async function fetchImportJson(url, fallbackMessage, showAlert = true) {
+            const res = await Auth.fetch(url);
+            const payload = await res.json();
+            if (!res.ok) {
+                if (showAlert) alert(payload.detail || fallbackMessage);
+                return null;
+            }
+            return payload;
+        }
+
+        function renderPreview(payload) {
+            document.getElementById('previewId').textContent = payload.preview_id || '-';
+            document.getElementById('airportContext').textContent = JSON.stringify(payload.airport_context || {}, null, 2);
+            document.getElementById('previewStatus').textContent = payload.status || '-';
+            document.getElementById('sourceFile').textContent = JSON.stringify(payload.source_file || {}, null, 2);
+            document.getElementById('fieldMapping').textContent = JSON.stringify(payload.field_mapping || {}, null, 2);
+            document.getElementById('globalErrors').textContent = (payload.errors || []).length ? JSON.stringify(payload.errors, null, 2) : '无';
+            document.getElementById('commitBtn').disabled = !(payload.status === 'previewed' && (payload.summary?.invalid_rows || 0) === 0);
+
+            const summary = payload.summary || {};
+            document.getElementById('summaryGrid').innerHTML = [
+                summaryCard('总行数', summary.total_rows),
+                summaryCard('有效', summary.valid_rows),
+                summaryCard('新建', summary.create_count),
+                summaryCard('更新', summary.update_count),
+                summaryCard('跳过', summary.skip_count),
+                summaryCard('失败', summary.failed_count || 0),
+                summaryCard('警告', summary.warning_count),
+                summaryCard('错误', summary.error_count),
+            ].join('');
+
+            const rows = Array.isArray(payload.rows) ? payload.rows : [];
+            document.getElementById('rowsContainer').innerHTML = rows.length ? rows.map(renderRow).join('') : '暂无行级数据。';
+        }
+
+        function summaryCard(label, value) {
+            return `<div class="summary-card"><span>${label}</span><strong>${value ?? 0}</strong></div>`;
+        }
+
+        function renderRow(row) {
+            const badgeClass = row.action === 'create' ? 'badge-create' : row.action === 'update' ? 'badge-update' : 'badge-skip';
+            const actionLabel = row.action === 'create' ? '新建' : row.action === 'update' ? '更新' : '跳过';
+            return `
+                <article class="row-card">
+                    <div class="row-head">
+                        <div>
+                            <div><strong>${escapeHtml(row.source_row_key || '-')}</strong></div>
+                            <div class="muted">匹配策略: ${escapeHtml(localizeMatchStrategy(row.match_strategy))} · 已匹配航班: ${escapeHtml(row.matched_flight_id || '-')}</div>
+                        </div>
+                        <span class="badge ${badgeClass}">${escapeHtml(actionLabel)}</span>
+                    </div>
+                    <div class="kv">
+                        <div class="meta-item"><div class="muted">原始值</div><div class="code">${escapeHtml(JSON.stringify(row.raw_values || {}, null, 2))}</div></div>
+                        <div class="meta-item"><div class="muted">归一化航班</div><div class="code">${escapeHtml(JSON.stringify(row.normalized_flight || {}, null, 2))}</div></div>
+                        <div class="meta-item"><div class="muted">落库附加信息</div><div class="code">${escapeHtml(JSON.stringify({ business_date: row.business_date, natural_key: row.natural_key, timeline_events: (row.timeline_events || []).length, source_ids: row.source_ids || {} }, null, 2))}</div></div>
+                    </div>
+                    ${renderMessages('预警', row.warnings)}
+                    ${renderMessages('错误', row.errors)}
+                </article>
+            `;
+        }
+
+        function renderMessages(title, items) {
+            const list = Array.isArray(items) ? items : [];
+            if (!list.length) return '';
+            return `<div><div class="muted">${title}</div><ul class="list">${list.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>`;
+        }
+
+        function localizeMatchStrategy(value) {
+            const mapping = {
+                'identity_binding': '稳定 ID',
+                'natural_key:inbound': '自然键: 进港',
+                'natural_key:outbound': '自然键: 出港',
+                'natural_key:inbound_outbound': '自然键: 进出港',
+                'none': '无',
+            };
+            return mapping[value || 'none'] || value || '无';
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+</body>
+
+</html>

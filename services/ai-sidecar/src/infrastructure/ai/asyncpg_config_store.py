@@ -33,7 +33,6 @@ from .config.cache_mixin import ConfigCacheMixin
 from .config.config_normalizer import normalize_config
 from .config_store import (
     AIConfigStoreInterface,
-    build_default_entity_config,
     build_seed_entity_configs,
 )
 
@@ -163,79 +162,6 @@ class AsyncpgAIConfigStore(AIConfigStoreInterface, ConfigCacheMixin):
         decrypted = normalize_config(self._encryptor.decrypt_config(config))
         self._set_cached(entity_id, decrypted)
         return decrypted
-
-    async def update(self, entity_id: str, config: dict[str, Any]) -> dict[str, Any]:
-        await self._ensure_seeded()
-
-        current_config = await self.get(entity_id)
-        if current_config is None:
-            current_config = build_default_entity_config()
-
-        for key, value in config.items():
-            if value is not None:
-                current_config[key] = value
-
-        current_config = normalize_config(current_config)
-        current_config.pop("_config_revision", None)
-        encrypted_config = self._encryptor.encrypt_config(current_config)
-
-        try:
-            async with self._pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    INSERT INTO ai_entities (id, config, config_version, config_revision, updated_at)
-                    VALUES ($1, $2::jsonb, 2, 1, CURRENT_TIMESTAMP)
-                    ON CONFLICT (id) DO UPDATE
-                    SET config = EXCLUDED.config,
-                        config_revision = ai_entities.config_revision + 1,
-                        deleted_at = NULL,
-                        updated_at = CURRENT_TIMESTAMP
-                    """,
-                    entity_id,
-                    json.dumps(encrypted_config),
-                )
-        except Exception as exc:
-            logger.error("AsyncpgAIConfigStore.update('%s') failed: %s", entity_id, exc)
-            raise
-
-        self._invalidate_cache(entity_id)
-        return current_config
-
-    async def delete(self, entity_id: str) -> bool:
-        await self._ensure_seeded()
-        try:
-            async with self._pool.acquire() as conn:
-                # 审计要求软删除：仅标记 deleted_at，行保留
-                status = await conn.execute(
-                    "UPDATE ai_entities SET deleted_at = NOW(), updated_at = NOW() "
-                    "WHERE id = $1 AND deleted_at IS NULL",
-                    entity_id,
-                )
-                # asyncpg execute() returns a command tag like "UPDATE 1".
-                try:
-                    deleted = int(str(status).rsplit(" ", 1)[-1]) > 0
-                except (ValueError, IndexError):
-                    deleted = False
-                if deleted:
-                    try:
-                        await conn.execute(
-                            "INSERT INTO system_audit_logs (entity_type, entity_id, action, changes) "
-                            "VALUES ($1, $2, $3, $4)",
-                            "ai_entity",
-                            entity_id,
-                            "soft_delete",
-                            '{"reason": "soft_delete"}',
-                        )
-                    except Exception as audit_exc:  # noqa: BLE001 - 审计失败不阻断主流程
-                        logger.warning(
-                            "写入软删除审计失败 entity_id=%s: %s", entity_id, audit_exc
-                        )
-        except POSTGRES_EXCEPTIONS as exc:
-            logger.error("AsyncpgAIConfigStore.delete('%s') failed: %s", entity_id, exc)
-            return False
-
-        self._invalidate_cache(entity_id)
-        return deleted
 
     async def reload(self) -> None:
         """Clear the in-memory read cache; DB remains the source of truth."""

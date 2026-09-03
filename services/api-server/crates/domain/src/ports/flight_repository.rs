@@ -10,17 +10,12 @@ use crate::models::flight::Flight;
 use crate::models::flight_leg::FlightLeg;
 use crate::models::value_objects::{AircraftType, FlightStatus, GateNumber, StandNumber};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum PatchField<T> {
+    #[default]
     Unset,
     Clear,
     Set(T),
-}
-
-impl<T> Default for PatchField<T> {
-    fn default() -> Self {
-        Self::Unset
-    }
 }
 
 impl<T> PatchField<T> {

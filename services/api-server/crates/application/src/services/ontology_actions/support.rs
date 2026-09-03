@@ -6,7 +6,6 @@ use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use super::error::OntologyActionError;
 
 pub const CANDIDATE_STANDS_SCANNED: i64 = 20;
-pub const CANDIDATE_TEAMS_SCANNED: i64 = 20;
 pub const SEARCH_LIMIT_MAX: i64 = 200;
 pub const SEARCH_LIMIT_DEFAULT: i64 = 50;
 pub const ANOMALY_LIMIT_DEFAULT: i64 = 50;
@@ -68,6 +67,7 @@ fn suggestion_evidence() -> Value {
 }
 
 /// Proposal payload for an advisory action. Nothing is persisted or executed here.
+#[allow(clippy::too_many_arguments)]
 pub fn suggestion_envelope(
     object_type: &str,
     object_id: &str,

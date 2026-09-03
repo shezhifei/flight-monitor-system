@@ -173,7 +173,7 @@ impl dispatch_repository::StandRepository for UnwiredRepository {
     async fn find_all(&self, _: Option<&str>, _: bool, _: i64, _: i64) -> Result<Vec<dispatch::Stand>, DomainError> {
         Err(unwired("StandRepository::find_all"))
     }
-    async fn is_active(&self, id_or_code: &str) -> Result<bool, DomainError> {
+    async fn is_active(&self, _id_or_code: &str) -> Result<bool, DomainError> {
         Err(unwired("StandRepository::is_active"))
     }
 }
@@ -249,21 +249,10 @@ impl dispatch_repository::PersonnelRuntimeRepository for UnwiredRepository {
     async fn find_by_user(&self, _: &str) -> Result<Option<dispatch::PersonnelRuntime>, DomainError> {
         Err(unwired("PersonnelRuntimeRepository::find_by_user"))
     }
-    async fn update_status(
-        &self,
-        _: &str,
-        _: &str,
-        _: Option<&str>,
-    ) -> Result<bool, DomainError> {
+    async fn update_status(&self, _: &str, _: &str, _: Option<&str>) -> Result<bool, DomainError> {
         Err(unwired("PersonnelRuntimeRepository::update_status"))
     }
-    async fn update_position(
-        &self,
-        _: &str,
-        _: f64,
-        _: f64,
-        _: Option<&str>,
-    ) -> Result<bool, DomainError> {
+    async fn update_position(&self, _: &str, _: f64, _: f64, _: Option<&str>) -> Result<bool, DomainError> {
         Err(unwired("PersonnelRuntimeRepository::update_position"))
     }
 }

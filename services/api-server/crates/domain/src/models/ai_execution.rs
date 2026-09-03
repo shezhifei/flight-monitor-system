@@ -67,6 +67,7 @@ impl AiToolCallStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "requested" => Some(Self::Requested),
@@ -123,6 +124,7 @@ impl AiToolCallType {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "builtin" => Some(Self::Builtin),
@@ -224,6 +226,7 @@ impl AiRuntimeCommandType {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "start_run" => Some(Self::StartRun),
@@ -264,6 +267,7 @@ impl AiRuntimeCommandStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "pending" => Some(Self::Pending),
@@ -354,6 +358,7 @@ impl AiRunCheckpointType {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "run_input" => Some(Self::RunInput),
@@ -394,6 +399,7 @@ impl AiRunCheckpointStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "persisted" => Some(Self::Persisted),
@@ -466,6 +472,7 @@ impl AiCompensationStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "planned" => Some(Self::Planned),
@@ -519,6 +526,7 @@ impl AiCompensationMode {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "inverse_action" => Some(Self::InverseAction),

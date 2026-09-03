@@ -8,9 +8,7 @@ use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 
 use fms_domain::error::DomainError;
-use fms_domain::models::dispatch::{
-    BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory,
-};
+use fms_domain::models::dispatch::{BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory};
 use fms_domain::ports::dispatch_repository::{
     FacilityLocale, TerminalRepository, TerminalResourceTransactionalRepository,
 };
@@ -109,14 +107,13 @@ impl TerminalRepository for PgTerminalRepository {
     }
 
     async fn set_terminal_active(&self, terminal_id: &str, is_active: bool) -> Result<Option<Terminal>, DomainError> {
-        let result = sqlx::query(
-            "UPDATE terminals SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE terminal_id = $2",
-        )
-        .bind(is_active)
-        .bind(terminal_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|err| DomainError::Internal(err.to_string()))?;
+        let result =
+            sqlx::query("UPDATE terminals SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE terminal_id = $2")
+                .bind(is_active)
+                .bind(terminal_id)
+                .execute(&self.pool)
+                .await
+                .map_err(|err| DomainError::Internal(err.to_string()))?;
         if result.rows_affected() == 0 {
             return Ok(None);
         }
@@ -581,27 +578,13 @@ impl TerminalRepository for PgTerminalRepository {
     // ----------------------------------------- allocate 前校验落点（PR3）--
 
     async fn stand_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError> {
-        self.locale_by_code(
-            "stands",
-            "id",
-            "is_active",
-            "terminal_stands",
-            "stand_id",
-            code,
-        )
-        .await
+        self.locale_by_code("stands", "id", "is_active", "terminal_stands", "stand_id", code)
+            .await
     }
 
     async fn gate_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError> {
-        self.locale_by_code(
-            "gates",
-            "gate_id",
-            "is_active",
-            "terminal_gates",
-            "gate_id",
-            code,
-        )
-        .await
+        self.locale_by_code("gates", "gate_id", "is_active", "terminal_gates", "gate_id", code)
+            .await
     }
 
     async fn carousel_locale_by_code(&self, code: &str) -> Result<FacilityLocale, DomainError> {
@@ -661,9 +644,7 @@ impl PgTerminalRepository {
 }
 
 #[async_trait]
-impl<'tx> TerminalResourceTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
-    for PgTerminalRepository
-{
+impl<'tx> TerminalResourceTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgTerminalRepository {
     async fn save_terminal_in_tx(
         &self,
         tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,

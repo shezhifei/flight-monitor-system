@@ -7,7 +7,6 @@ use fms_application::services::ai_context_service::AiContextService;
 use fms_application::services::ai_job_service::AiJobService;
 use fms_application::services::ai_output_validator::AiOutputValidator;
 use fms_application::services::ai_proposal_ingest_service::AiProposalIngestService;
-use fms_application::services::authorization_service::AuthorizationService;
 use fms_application::services::flight_service::FlightService;
 use serde_json::json;
 
@@ -145,8 +144,7 @@ async fn test_complete_run_on_succeeded_returns_409() {
     let job_service = ai_job_service_for_pool(&pool);
     let flight_repo = Arc::new(fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository::new(pool));
     let flight_service = Arc::new(FlightService::new(flight_repo));
-    let auth_service = Arc::new(AuthorizationService);
-    let context_service = Arc::new(AiContextService::new(flight_service, auth_service));
+    let context_service = Arc::new(AiContextService::new(flight_service));
     let validator = Arc::new(AiOutputValidator::new(
         fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema(),
     ));
@@ -195,8 +193,7 @@ async fn test_complete_run_on_failed_terminal_returns_409() {
     let job_service = ai_job_service_for_pool(&pool);
     let flight_repo = Arc::new(fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository::new(pool));
     let flight_service = Arc::new(FlightService::new(flight_repo));
-    let auth_service = Arc::new(AuthorizationService);
-    let context_service = Arc::new(AiContextService::new(flight_service, auth_service));
+    let context_service = Arc::new(AiContextService::new(flight_service));
     let validator = Arc::new(AiOutputValidator::new(
         fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema(),
     ));
@@ -245,8 +242,7 @@ async fn test_complete_run_on_cancelled_returns_409() {
     let job_service = ai_job_service_for_pool(&pool);
     let flight_repo = Arc::new(fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository::new(pool));
     let flight_service = Arc::new(FlightService::new(flight_repo));
-    let auth_service = Arc::new(AuthorizationService);
-    let context_service = Arc::new(AiContextService::new(flight_service, auth_service));
+    let context_service = Arc::new(AiContextService::new(flight_service));
     let validator = Arc::new(AiOutputValidator::new(
         fms_domain::ontology::flight_ops_v1::build_flight_ops_v1_schema(),
     ));

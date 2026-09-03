@@ -316,6 +316,7 @@ BEGIN
             ('event_stream_versions'),
             ('workflow_dispatch_mappings'),
             ('dispatch_alerts'),
+            ('dispatch_lock_rules'),
             ('dispatch_collaboration_events'),
             ('dispatch_chat_groups'),
             ('flight_custom_field_archive'),
@@ -357,7 +358,8 @@ BEGIN
               'flight_sync_bindings', 'flight_identity_bindings', 'flight_aircraft_sequences',
               'flight_state_changes', 'flight_business_cases', 'business_case_workflow_runs',
               'snapshots', 'event_stream_versions', 'workflow_dispatch_mappings',
-              'dispatch_alerts', 'dispatch_collaboration_events', 'dispatch_chat_groups',
+              'dispatch_alerts', 'dispatch_lock_rules', 'dispatch_collaboration_events',
+              'dispatch_chat_groups',
               'flight_custom_field_archive', 'flight_runtime_list_projection',
               'resource_adjustment_suggestions', 'notifications'
           )
@@ -405,7 +407,7 @@ BEGIN
             ('flight_aircraft_sequences'), ('flight_state_changes'),
             ('flight_business_cases'), ('business_case_workflow_runs'),
             ('snapshots'), ('event_stream_versions'), ('workflow_dispatch_mappings'),
-            ('dispatch_alerts'), ('dispatch_collaboration_events'),
+            ('dispatch_alerts'), ('dispatch_lock_rules'), ('dispatch_collaboration_events'),
             ('dispatch_chat_groups'), ('flight_custom_field_archive'),
             ('flight_runtime_list_projection'), ('resource_adjustment_suggestions'),
             ('notifications')

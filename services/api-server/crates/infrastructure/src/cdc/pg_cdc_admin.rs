@@ -102,16 +102,6 @@ impl PgCdcAdmin {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn type_exists() {
-        let _ = std::any::type_name::<PgCdcAdmin>();
-    }
-}
-
 #[async_trait]
 impl CdcAdminPort for PgCdcAdmin {
     async fn ensure_publication_exists(&self, publication_name: &str) -> Result<(), DomainError> {
@@ -120,5 +110,15 @@ impl CdcAdminPort for PgCdcAdmin {
 
     async fn ensure_replication_slot(&self, slot_name: &str, expected_database: &str) -> Result<(), DomainError> {
         PgCdcAdmin::ensure_replication_slot(self, slot_name, expected_database).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn type_exists() {
+        let _ = std::any::type_name::<PgCdcAdmin>();
     }
 }

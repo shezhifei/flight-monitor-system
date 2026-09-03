@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标签管理 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/js/components/header.js"></script>
+    <script src="/frontend/js/components/breadcrumb.js"></script>
+    <link rel="stylesheet" crossorigin href="/frontend/assets/label_manager-DT-ZFJuv.css">
+</head>
+
+<body>
+    <div id="header-host"></div>
+    <div id="breadcrumb-host"></div>
+    <div id="app"></div>
+    <script>
+        (function () {
+            function renderShellNavigation() {
+                if (window.Header && typeof window.Header.render === 'function') {
+                    window.Header.render('#header-host', {
+                        title: '标签管理',
+                        showBack: true,
+                        backHref: '/frontend/html/dashboard.html',
+                        subtitle: 'Label Manager'
+                    });
+                }
+                if (window.Breadcrumb && typeof window.Breadcrumb.render === 'function') {
+                    window.Breadcrumb.render('#breadcrumb-host', [
+                        { label: '工作台', href: '/frontend/html/dashboard.html' },
+                        { label: '标签管理', current: true }
+                    ]);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', renderShellNavigation);
+            } else {
+                renderShellNavigation();
+            }
+        })();
+    </script>
+    <script type="module" crossorigin src="/frontend/assets/label_manager-CmYjAVmh.js"></script>
+</body>
+
+</html>

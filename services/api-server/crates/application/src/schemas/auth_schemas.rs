@@ -176,10 +176,6 @@ pub struct UserResponse {
     pub current_occupant_user_id: Option<String>,
 }
 
-fn default_login_enabled() -> bool {
-    true
-}
-
 // ---------------------------------------------------------------------------
 // 角色 & 权限
 // ---------------------------------------------------------------------------

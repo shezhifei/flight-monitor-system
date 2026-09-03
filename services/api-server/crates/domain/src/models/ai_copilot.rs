@@ -117,6 +117,7 @@ impl AiCopilotBatchStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(value: &str) -> Self {
         match value.trim().to_ascii_lowercase().as_str() {
             "committing" => Self::Committing,

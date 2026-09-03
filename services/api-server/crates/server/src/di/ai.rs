@@ -49,7 +49,6 @@ use fms_application::services::ai_runtime_service::tool_authorization_service::{
     StaticFeatureFlagSource, ToolAuthorizationService,
 };
 use fms_application::services::ai_runtime_service::AiRuntimeService;
-use fms_application::services::authorization_service::AuthorizationService;
 use fms_application::services::business_case_service::BusinessCaseWriter;
 use fms_application::services::dispatch_service::writer::DispatchOrderWriter;
 use fms_application::services::domain_action_executor::{DomainActionExecution, DomainActionExecutor};
@@ -68,7 +67,7 @@ use fms_domain::ports::ai_proposal_repository::AiProposalRepository;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository,
     DispatchOrderRepository, DispatchOrderTransactionalRepository, EquipmentRepository, PersonnelRuntimeRepository,
-    QualificationGrantRepository, StandRepository, TeamRepository,
+    QualificationGrantRepository, StandRepository,
 };
 use fms_domain::ports::user_repository::UserRepository;
 
@@ -175,7 +174,6 @@ pub(crate) fn build_ai_services(
                         + Send
                         + Sync,
                 >,
-            repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
             repos.qualification_grant_repo.clone() as Arc<dyn QualificationGrantRepository + Send + Sync>,
             repos.qualification_repo.clone() as Arc<dyn DepartmentQualificationRepository + Send + Sync>,
             repos.personnel_runtime_repo.clone() as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
@@ -278,9 +276,8 @@ pub(crate) fn build_ai_services(
         ai_run_event_repo.clone(),
     ));
 
-    let authorization_svc = Arc::new(AuthorizationService);
     let ai_context_svc = Arc::new(
-        AiContextService::new(flight.flight_svc.clone(), authorization_svc)
+        AiContextService::new(flight.flight_svc.clone())
             .with_dispatch_query_service(dispatch.dispatch_query_svc.clone())
             .with_anomaly_service(dispatch.anomaly_svc.clone())
             .with_business_case_service(business_case.business_case_svc.clone())

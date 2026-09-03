@@ -1,6 +1,7 @@
 use super::batch::build_copilot_service;
 use super::*;
 
+#[tokio::test]
 async fn test_draft_catalog_includes_common_for_normal_user_with_read_permission() {
     let fake_repo = FakeBusinessCaseTypeRepo::default();
 

@@ -336,14 +336,13 @@ fn derived_test_only_set_covers_every_cfg_test_route_file() {
     }
 }
 
+/// D-30：守门范围曾只有 `src/routes`，`src/services`（scheduler_runtime_service、
+/// python_sidecar_proxy 等）完全不受约束。delivery 层的 routes / services
+/// 都不得直连基础设施仓库或裸 SQL。
 #[test]
-fn routes_do_not_depend_on_infrastructure_repositories_or_raw_sql() {
-    let routes_dir = crate_root().join("src").join("routes");
-    let mut files = Vec::new();
-    collect_rs_files(&routes_dir, &mut files);
-
-    // 测试专属文件从 `#[cfg(test)] mod <name>;` 声明推导，不再手工维护文件名白名单。
-    let test_only_files = collect_cfg_test_module_files(&routes_dir);
+fn delivery_layer_directories_do_not_depend_on_infrastructure_repositories_or_raw_sql() {
+    let src_dir = crate_root().join("src");
+    let scan_roots = [src_dir.join("routes"), src_dir.join("services")];
 
     let forbidden_patterns = [
         "fms_infrastructure::repositories",
@@ -355,24 +354,35 @@ fn routes_do_not_depend_on_infrastructure_repositories_or_raw_sql() {
     ];
 
     let mut violations = Vec::new();
-    for file in files {
-        if test_only_files.contains(&file) {
+    for scan_root in scan_roots {
+        if !scan_root.is_dir() {
             continue;
         }
-        let rel = file.strip_prefix(&routes_dir).expect("file under routes");
+        let mut files = Vec::new();
+        collect_rs_files(&scan_root, &mut files);
 
-        let source = fs::read_to_string(&file).expect("read rust source");
-        let production_source = strip_test_modules(&source);
-        for pattern in forbidden_patterns {
-            if production_source.contains(pattern) {
-                violations.push(format!("{} contains `{}`", rel.display(), pattern));
+        // 测试专属文件从 `#[cfg(test)] mod <name>;` 声明推导，不再手工维护文件名白名单。
+        let test_only_files = collect_cfg_test_module_files(&scan_root);
+
+        for file in files {
+            if test_only_files.contains(&file) {
+                continue;
+            }
+            let rel = file.strip_prefix(&src_dir).expect("file under src");
+
+            let source = fs::read_to_string(&file).expect("read rust source");
+            let production_source = strip_test_modules(&source);
+            for pattern in forbidden_patterns {
+                if production_source.contains(pattern) {
+                    violations.push(format!("{} contains `{}`", rel.display(), pattern));
+                }
             }
         }
     }
 
     assert!(
         violations.is_empty(),
-        "route layer boundary violations:\n{}",
+        "delivery layer boundary violations:\n{}",
         violations.join("\n")
     );
 }

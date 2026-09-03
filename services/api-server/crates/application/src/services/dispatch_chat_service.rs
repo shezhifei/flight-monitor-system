@@ -1063,17 +1063,16 @@ impl DispatchChatService {
         {
             let is_reopened_arrival = is_arrival_flight(flight.as_ref())
                 && !self.all_orders_terminal_for_flight(&normalized_flight_id).await?;
-            if is_reopened_arrival {
-                if self
+            if is_reopened_arrival
+                && self
                     .collaboration_repo
                     .clear_group_deprecation(&group.group_id, DEPRECATION_REASON_ARRIVAL_GUARANTEE_COMPLETED)
                     .await?
                     .is_some()
-                {
-                    return Ok(Some(DispatchChatLifecycleChange::Upserted {
-                        group_id: group.group_id,
-                    }));
-                }
+            {
+                return Ok(Some(DispatchChatLifecycleChange::Upserted {
+                    group_id: group.group_id,
+                }));
             }
         }
 
@@ -1295,7 +1294,7 @@ impl DispatchChatService {
     ) -> Result<Option<DispatchChatLifecycleChange>, DispatchChatError> {
         let archived_groups = self
             .collaboration_repo
-            .archive_groups_batch(&[group.group_id.clone()])
+            .archive_groups_batch(std::slice::from_ref(&group.group_id))
             .await?;
         let Some(updated_group) = archived_groups.into_iter().next() else {
             return Ok(None);

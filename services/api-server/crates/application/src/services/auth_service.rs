@@ -501,7 +501,11 @@ impl AuthService {
         }
         // 个人：是否被某岗占用。
         if let Some(position) = self.user_repo.find_position_occupied_by(&user.id).await? {
-            let pos_label = position.display_name.as_deref().unwrap_or(&position.username).to_string();
+            let pos_label = position
+                .display_name
+                .as_deref()
+                .unwrap_or(&position.username)
+                .to_string();
             return Err(DomainError::Conflict(format!(
                 "个人「{label}」当前占用岗位「{pos_label}」的席位，请先交接或解锁再停用"
             )));
@@ -525,15 +529,11 @@ impl AuthService {
         // 岗位账号：禁 is_admin，login_enabled 恒 false（由登录侧强制个人）。
         if user.is_position() {
             if dto.is_admin == Some(true) {
-                return Err(DomainError::ValidationError(
-                    "岗位账号不允许设置 is_admin".into(),
-                ));
+                return Err(DomainError::ValidationError("岗位账号不允许设置 is_admin".into()));
             }
             if let Some(jt) = dto.job_title.as_deref() {
                 if user.job_title.as_deref() != Some(jt) {
-                    return Err(DomainError::ValidationError(
-                        "岗位账号不允许设置 job_title".into(),
-                    ));
+                    return Err(DomainError::ValidationError("岗位账号不允许设置 job_title".into()));
                 }
             }
         }
@@ -1902,9 +1902,10 @@ mod tests {
     impl SeatUserRepo {
         fn find(&self, id: Option<&str>, username: Option<&str>) -> Option<User> {
             let users = self.users.lock().expect("lock");
-            users.iter().cloned().find(|u| {
-                id.is_some_and(|i| u.id == i) || username.is_some_and(|name| u.username == name)
-            })
+            users
+                .iter()
+                .find(|&u| id.is_some_and(|i| u.id == i) || username.is_some_and(|name| u.username == name))
+                .cloned()
         }
     }
 
@@ -1926,8 +1927,8 @@ mod tests {
             let users = self.users.lock().expect("lock");
             Ok(users
                 .iter()
-                .cloned()
-                .find(|u| u.is_position() && u.current_occupant_user_id.as_deref() == Some(personal_user_id)))
+                .find(|&u| u.is_position() && u.current_occupant_user_id.as_deref() == Some(personal_user_id))
+                .cloned())
         }
         async fn find_all(&self, _limit: i64, _offset: i64) -> Result<Vec<User>, DomainError> {
             Ok(vec![])
@@ -1948,7 +1949,7 @@ mod tests {
                 .iter()
                 .position(|u| u.id == user.id)
                 .ok_or_else(|| DomainError::NotFound {
-                    entity_type: "user".into(),
+                    entity_type: "user",
                     id: user.id.clone(),
                 })?;
             users[idx] = user.clone();
@@ -2065,10 +2066,7 @@ mod tests {
 
     #[async_trait::async_trait]
     impl FlowableGateway for StubFlowableGateway {
-        async fn get_tasks(
-            &self,
-            _filters: &[(&str, String)],
-        ) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
+        async fn get_tasks(&self, _filters: &[(&str, String)]) -> Result<Vec<serde_json::Value>, FlowableGatewayError> {
             Ok(self.tasks.clone())
         }
         async fn get_process_definitions(
@@ -2106,11 +2104,7 @@ mod tests {
         ) -> Result<serde_json::Value, FlowableGatewayError> {
             Ok(serde_json::json!({}))
         }
-        async fn delete_deployment(
-            &self,
-            _deployment_id: &str,
-            _cascade: bool,
-        ) -> Result<bool, FlowableGatewayError> {
+        async fn delete_deployment(&self, _deployment_id: &str, _cascade: bool) -> Result<bool, FlowableGatewayError> {
             Ok(false)
         }
         async fn start_process_instance(
@@ -2214,9 +2208,7 @@ mod tests {
             .expect("occupy must succeed");
         assert!(!token.access_token.is_empty());
 
-        let updated = repo
-            .find(Some("seat-1"), None)
-            .expect("seat must exist after update");
+        let updated = repo.find(Some("seat-1"), None).expect("seat must exist after update");
         assert_eq!(updated.current_occupant_user_id.as_deref(), Some("user-1"));
         assert!(repo.update_calls.load(Ordering::SeqCst) >= 1);
     }
@@ -2232,10 +2224,7 @@ mod tests {
             .await
             .expect_err("wrong password must fail");
         assert!(matches!(err, DomainError::Unauthorized(_)));
-        assert_eq!(
-            repo.find(Some("seat-1"), None).unwrap().current_occupant_user_id,
-            None
-        );
+        assert_eq!(repo.find(Some("seat-1"), None).unwrap().current_occupant_user_id, None);
         assert_eq!(repo.update_calls.load(Ordering::SeqCst), 0);
     }
 
@@ -2271,7 +2260,8 @@ mod tests {
         seat.current_occupant_user_id = Some("user-1".into());
         // 前端应请求个人；若传入的是岗位 username，应被拒。
         let other_seat = seat_account("seat-2", "gate-02", true);
-        let (service, _repo) = build_seat_service(vec![seat, other_seat, personal_account("user-1", "alice", "SecPass1")]);
+        let (service, _repo) =
+            build_seat_service(vec![seat, other_seat, personal_account("user-1", "alice", "SecPass1")]);
 
         // username=gate-02 是岗位账号，login_enabled=false → 拒。
         let err = service
@@ -2302,7 +2292,10 @@ mod tests {
         // 现占用人 == JWT sub → true。
         assert!(service.is_current_seat_occupant("seat-1", "user-1").await.unwrap());
         // 非占用人 → false。
-        assert!(!service.is_current_seat_occupant("seat-1", "other-person").await.unwrap());
+        assert!(!service
+            .is_current_seat_occupant("seat-1", "other-person")
+            .await
+            .unwrap());
 
         // 换人到 user-2（另一人已经接管该席），user-1 现查变 false。
         let mut new_occupant = seat_account("seat-1", "gate-01", true);
@@ -2323,7 +2316,10 @@ mod tests {
         assert!(!service.is_current_seat_occupant("seat-1", "user-1").await.unwrap());
         assert!(!service.is_current_seat_occupant("seat-2", "user-1").await.unwrap());
         assert!(!service.is_current_seat_occupant("user-1", "user-1").await.unwrap());
-        assert!(!service.is_current_seat_occupant("missing-seat", "user-1").await.unwrap());
+        assert!(!service
+            .is_current_seat_occupant("missing-seat", "user-1")
+            .await
+            .unwrap());
         assert!(!service.is_current_seat_occupant("seat-1", "  ").await.unwrap());
     }
 
@@ -2346,7 +2342,7 @@ mod tests {
             .await
             .expect_err("occupied personal must not be deactivated");
         assert!(matches!(err, DomainError::Conflict(msg) if msg.contains("占用岗位")));
-        assert_eq!(repo.find(Some("user-1"), None).unwrap().is_active, true);
+        assert!(repo.find(Some("user-1"), None).unwrap().is_active);
     }
 
     #[tokio::test]
@@ -2360,7 +2356,7 @@ mod tests {
             .expect("free personal can be deactivated")
             .expect("user exists");
         assert!(!updated.is_active);
-        assert_eq!(repo.find(Some("user-1"), None).unwrap().is_active, false);
+        assert!(!repo.find(Some("user-1"), None).unwrap().is_active);
     }
 
     #[tokio::test]
@@ -2403,6 +2399,6 @@ mod tests {
             .expect("dependency-free position can be deactivated")
             .expect("user exists");
         assert!(!updated.is_active);
-        assert_eq!(repo.find(Some("seat-1"), None).unwrap().is_active, false);
+        assert!(!repo.find(Some("seat-1"), None).unwrap().is_active);
     }
 }

@@ -14,9 +14,16 @@ fn bench_anomaly_repository_queries(c: &mut Criterion) {
     // Pure query-construction benchmark (always runs, no DB required). This
     // mirrors the `find_by_id` query in
     // `crates/infrastructure/src/repositories/pg_anomaly_repository.rs`.
+    //
+    // `sqlx::query::<DB>` infers `DB` from the call site. These two cases never
+    // touch a Postgres executor, so `DB` is only pinned by the explicit
+    // turbofish — without it the build breaks under `--all-features`, where
+    // workspace feature unification pulls `sqlx-sqlite` in alongside
+    // `sqlx-postgres` and leaves two candidate `Encode`/`Type` impls for `&str`.
     group.bench_function("find_by_id_build_query", |b| {
         b.iter(|| {
-            let q = sqlx::query("SELECT * FROM anomalies WHERE anomaly_id = $1").bind(black_box("anomaly-1001"));
+            let q = sqlx::query::<sqlx::Postgres>("SELECT * FROM anomalies WHERE anomaly_id = $1")
+                .bind(black_box("anomaly-1001"));
             black_box(q)
         })
     });
@@ -25,8 +32,9 @@ fn bench_anomaly_repository_queries(c: &mut Criterion) {
     // (`find_by_flight`).
     group.bench_function("find_by_flight_build_query", |b| {
         b.iter(|| {
-            let q = sqlx::query("SELECT * FROM anomalies WHERE flight_id = $1 ORDER BY detected_at DESC")
-                .bind(black_box("flight-2002"));
+            let q =
+                sqlx::query::<sqlx::Postgres>("SELECT * FROM anomalies WHERE flight_id = $1 ORDER BY detected_at DESC")
+                    .bind(black_box("flight-2002"));
             black_box(q)
         })
     });

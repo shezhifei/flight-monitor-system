@@ -685,10 +685,7 @@ impl DefaultMQProducerImpl {
             }
         }
         self.validate_name_server_setting()?;
-        Err(mq_client_err!(format!(
-            "No route info for this topic, {}",
-            msg.topic()
-        )))
+        Err(mq_client_err!(format!("No route info for this topic, {}", msg.topic())))
     }
 
     #[inline]

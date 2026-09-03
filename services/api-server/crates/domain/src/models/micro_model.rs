@@ -10,8 +10,9 @@ use std::collections::HashMap;
 // MicroModelCategory — 微模型分类
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MicroModelCategory {
+    #[default]
     RiskAnalysis = 0,
     Optimization = 1,
     Triage = 2,
@@ -49,18 +50,13 @@ impl MicroModelCategory {
     }
 }
 
-impl Default for MicroModelCategory {
-    fn default() -> Self {
-        Self::RiskAnalysis
-    }
-}
-
 // ---------------------------------------------------------------------------
 // ExecutionMode — 执行模式
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ExecutionMode {
+    #[default]
     RustDeterministic = 0,
     PythonLLM = 1,
     HybridSolver = 2,
@@ -82,12 +78,6 @@ impl ExecutionMode {
             "hybrid_solver" | "hybrid" | "solver" => Some(Self::HybridSolver),
             _ => None,
         }
-    }
-}
-
-impl Default for ExecutionMode {
-    fn default() -> Self {
-        Self::RustDeterministic
     }
 }
 
@@ -652,7 +642,7 @@ mod tests {
     #[test]
     fn default_registry_has_builtin_models() {
         let reg = MicroModelRegistry::with_default_models();
-        assert!(reg.list_all().len() > 0);
+        assert!(!reg.list_all().is_empty());
     }
 
     #[test]

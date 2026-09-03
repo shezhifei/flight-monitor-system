@@ -150,7 +150,9 @@ pub async fn add_team_member(
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("team:manage")?;
     let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
-    let saved = svc.add_team_member(&path.into_inner(), body.into_inner(), actor_id).await?;
+    let saved = svc
+        .add_team_member(&path.into_inner(), body.into_inner(), actor_id)
+        .await?;
     Ok(created_resp(&req, to_member_response(saved)))
 }
 

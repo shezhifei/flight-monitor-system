@@ -132,6 +132,7 @@ pub fn update_changed_fields(dto: &fms_application::schemas::flight_schemas::Fli
     fields
 }
 
+#[allow(dead_code)]
 pub fn flight_update_patch_payload<S: AsRef<str>>(flight: &FlightResponse, changed_fields: &[S]) -> Value {
     let mut patch = Map::new();
     patch.insert("flight_id".to_string(), json!(flight.flight_id));
@@ -187,6 +188,7 @@ pub fn flight_update_patch_payload<S: AsRef<str>>(flight: &FlightResponse, chang
     Value::Object(patch)
 }
 
+#[allow(dead_code)]
 pub fn dispatch_timeline_patch_payload(
     flight: Option<&FlightResponse>,
     event: &DispatchTimelineEventResponse,
@@ -214,6 +216,7 @@ pub fn dispatch_timeline_patch_payload(
     Value::Object(patch)
 }
 
+#[allow(dead_code)]
 pub fn dispatch_timeline_flight_updated_payload(
     flight_id: &str,
     patch: Value,

@@ -10,7 +10,9 @@ use tracing::info;
 
 use crate::di::types::*;
 use fms_api::services::runtime_error_monitor::{set_global_runtime_error_monitor, RuntimeErrorMonitor};
-use fms_api::services::scheduler_runtime_service::{DbPoolStatsSource, SchedulerRuntimeService};
+use fms_api::services::scheduler_runtime_service::{
+    DbPoolStatsSource, RedisLatency, RedisLatencySource, SchedulerRuntimeService,
+};
 
 /// sqlx 连接池的指标适配器：把 pool.size()/num_idle() 桥接到 api 层端口。
 struct PgPoolStats(sqlx::PgPool);
@@ -21,6 +23,28 @@ impl DbPoolStatsSource for PgPoolStats {
     }
     fn pool_num_idle(&self) -> u32 {
         self.0.num_idle() as u32
+    }
+}
+
+/// Redis 时延适配器：把一次「池内 PING」桥接到 api 层端口。
+///
+/// `None` 表示本进程未配置 Redis，直接报告未连接——不再像旧的 env 探测那样
+/// 每次健康轮询都新建一条裸连接。
+struct RedisPoolLatency(Option<Arc<fms_infrastructure::cache::RedisPool>>);
+
+#[async_trait::async_trait]
+impl RedisLatencySource for RedisPoolLatency {
+    async fn measure(&self) -> RedisLatency {
+        let Some(pool) = self.0.as_ref() else {
+            return RedisLatency::disconnected();
+        };
+        match fms_infrastructure::cache::measure_ping_latency(pool).await {
+            Some(latency_ms) => RedisLatency {
+                connected: true,
+                latency_ms,
+            },
+            None => RedisLatency::disconnected(),
+        }
     }
 }
 
@@ -70,9 +94,12 @@ use crate::di::shared::{SharedInfra, SharedRepos, SharedServices};
 
 pub(crate) struct ObservabilityServices {
     pub scheduler_runtime_svc: Arc<SchedulerRuntimeService>,
+    #[allow(dead_code)]
     pub domain_event_relay_svc: Arc<dyn DomainEventRelay>,
     pub domain_event_cdc_svc: Arc<DomainEventCdcRelayService<PgUnitOfWork>>,
+    #[allow(dead_code)]
     pub domain_event_subscriber_svc: Arc<DomainEventSubscriberService>,
+    #[allow(dead_code)]
     pub cache_invalidation_subscriber_svc: Arc<CacheInvalidationSubscriberService>,
     pub cache_invalidation_svc: Arc<CacheInvalidationService>,
     pub kpi_aggregation_svc: Arc<KpiAggregationService>,
@@ -84,6 +111,7 @@ pub(crate) struct ObservabilityServices {
     pub flowable_draft_svc: Arc<FlowableDraftService>,
     pub workflow_form_svc: Arc<WorkflowFormService>,
     pub dashboard_workbench_svc: Arc<ConcreteDashboardWorkbenchService>,
+    #[allow(dead_code)]
     pub domain_event_outbox_repo: Arc<dyn DomainEventOutboxRepository + Send + Sync>,
     pub background_jobs_enabled: bool,
 }
@@ -92,6 +120,7 @@ pub(crate) struct ObservabilityServices {
 pub(crate) async fn build_observability_services(
     repos: &SharedRepos,
     infra: &SharedInfra,
+    redis_manager: &Option<Arc<fms_infrastructure::cache::RedisPool>>,
     shared: &SharedServices,
     auth: &AuthServices,
     flight: &FlightServices,
@@ -290,6 +319,7 @@ pub(crate) async fn build_observability_services(
 
     let scheduler_runtime_svc = SchedulerRuntimeService::new(
         Arc::new(PgPoolStats(pool.clone())) as Arc<dyn DbPoolStatsSource>,
+        Arc::new(RedisPoolLatency(redis_manager.clone())) as Arc<dyn RedisLatencySource>,
         Arc::new(PgFlightSyncRepository::new(pool.clone())),
         infra.sse_hub.clone(),
         runtime_error_monitor.clone(),

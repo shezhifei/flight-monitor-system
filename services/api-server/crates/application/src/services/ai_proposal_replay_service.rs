@@ -57,6 +57,12 @@ pub struct AiProposalReplayService {
     ontology_repository: Option<Arc<dyn AiOntologyRepository + Send + Sync>>,
 }
 
+impl Default for AiProposalReplayService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AiProposalReplayService {
     pub fn new() -> Self {
         Self {
@@ -155,10 +161,7 @@ impl AiProposalReplayService {
                         ReplayCheck {
                             name: "ontology".to_string(),
                             passed: true,
-                            message: format!(
-                                "action '{}' found on object '{}'",
-                                input.action_name, input.object_type
-                            ),
+                            message: format!("action '{}' found on object '{}'", input.action_name, input.object_type),
                         },
                         Some(action_def.clone()),
                     ),
@@ -216,7 +219,7 @@ impl AiProposalReplayService {
         let mut missing = Vec::new();
         let mut type_errors = Vec::new();
 
-        for (_param_name, param) in &action.parameters {
+        for param in action.parameters.values() {
             if param.required && !args_obj.contains_key(&param.name) {
                 missing.push(param.name.clone());
             }
@@ -334,7 +337,7 @@ impl AiProposalReplayService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fms_domain::models::ai_ontology::OntologyActionDef;
+
     use fms_domain::ontology::governed::ActionOverlay;
     use fms_domain::ports::ai_ontology_repository::{AiOntologyRepository, AiOntologyRepositoryError};
 

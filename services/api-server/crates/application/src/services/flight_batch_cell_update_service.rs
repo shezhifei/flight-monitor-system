@@ -390,14 +390,14 @@ impl<U: UnitOfWork> FlightBatchCellUpdateService<U> {
             None => Value::Null,
         };
         if !values_equal_for_field(field, expected_value, &current_value) {
-            return Err(ApplyError::Conflict(FlightBatchCellConflictItem {
+            return Err(ApplyError::Conflict(Box::new(FlightBatchCellConflictItem {
                 flight_id: target.flight_id.clone(),
                 reason: "value_mismatch".to_string(),
                 expected_version: target.expected_version,
                 current_version: Some(current_version),
                 expected_value: Some(expected_value.clone()),
                 current_value: Some(current_value),
-            }));
+            })));
         }
 
         // Client recorded_by is intentionally ignored; only JWT actor is stored.
@@ -431,14 +431,14 @@ impl<U: UnitOfWork> FlightBatchCellUpdateService<U> {
             let same_field = existing.milestone_code == field.as_str();
             let same_time = existing.occurred_at.timestamp() == occurred_at.timestamp();
             if !same_field || !same_time {
-                return Err(ApplyError::Conflict(FlightBatchCellConflictItem {
+                return Err(ApplyError::Conflict(Box::new(FlightBatchCellConflictItem {
                     flight_id: target.flight_id.clone(),
                     reason: "idempotency_conflict".to_string(),
                     expected_version: None,
                     current_version: Some(current_version),
                     expected_value: Some(json!(occurred_at)),
                     current_value: Some(json!(existing.occurred_at)),
-                }));
+                })));
             }
         }
 
@@ -523,7 +523,7 @@ enum ParsedBatchValue {
 }
 
 enum ApplyError {
-    Conflict(FlightBatchCellConflictItem),
+    Conflict(Box<FlightBatchCellConflictItem>),
     NotFound(String),
     Validation(String),
     Internal(String),
@@ -537,14 +537,14 @@ fn map_update_error(flight_id: &str, expected_version: i32) -> impl Fn(DomainErr
                 .split("current ")
                 .nth(1)
                 .and_then(|s| s.trim().parse::<i32>().ok());
-            ApplyError::Conflict(FlightBatchCellConflictItem {
+            ApplyError::Conflict(Box::new(FlightBatchCellConflictItem {
                 flight_id: flight_id.to_string(),
                 reason: "version_mismatch".to_string(),
                 expected_version: Some(expected_version),
                 current_version,
                 expected_value: None,
                 current_value: None,
-            })
+            }))
         }
         DomainError::ValidationError(message) => ApplyError::Validation(message),
         DomainError::NotFound { .. } => ApplyError::NotFound(flight_id.to_string()),

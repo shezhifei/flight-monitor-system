@@ -136,7 +136,7 @@ impl AuthorizationService {
         claims.is_admin.unwrap_or(false) || Self::has_direct_permission(claims, "*")
     }
 
-    pub fn department_id<'a>(claims: &'a TokenData) -> Option<&'a str> {
+    pub fn department_id(claims: &TokenData) -> Option<&str> {
         claims
             .department_id
             .as_deref()
@@ -144,7 +144,7 @@ impl AuthorizationService {
             .filter(|value| !value.is_empty())
     }
 
-    pub fn department_name<'a>(claims: &'a TokenData) -> Option<&'a str> {
+    pub fn department_name(claims: &TokenData) -> Option<&str> {
         claims
             .department
             .as_deref()
@@ -395,7 +395,10 @@ mod tests {
         assert!(admin.contains(&"DispatchOrder.recommend_replan".to_string()));
         assert!(admin.contains(&"DispatchOrder.assign_slot".to_string()));
         assert!(!admin.contains(&"Stand.reserve".to_string()), "Stand.reserve 已废止");
-        assert!(!admin.contains(&"Flight.change_stand".to_string()), "Flight.change_stand 已废止");
+        assert!(
+            !admin.contains(&"Flight.change_stand".to_string()),
+            "Flight.change_stand 已废止"
+        );
         assert!(!admin.contains(&"Todo.create".to_string()), "Todo 已退出合同");
         // schema 声明 Terminal 成员动作为 ontology:manage；dispatch:manage 仍作别名。
         let resource_mgr = svc
@@ -410,8 +413,14 @@ mod tests {
             "Terminal.add_carousel",
             "Terminal.remove_carousel",
         ] {
-            assert!(resource_mgr.contains(&action.to_string()), "ontology:manage 应含 {action}");
-            assert!(!flight_read.contains(&action.to_string()), "flight:read 不应含 {action}");
+            assert!(
+                resource_mgr.contains(&action.to_string()),
+                "ontology:manage 应含 {action}"
+            );
+            assert!(
+                !flight_read.contains(&action.to_string()),
+                "flight:read 不应含 {action}"
+            );
         }
         let dispatch_mgr = svc
             .get_allowed_ai_actions("dispatch_mgr", &["dispatch:manage".to_string()])

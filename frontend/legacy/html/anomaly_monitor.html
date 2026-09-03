@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>异常监控中心 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/workspace_unified_theme.css?v=3">
+    <script src="/frontend/js/auth.js"></script>
+</head>
+
+<body class="workspace-page anomaly-monitor-page">
+    <div class="page">
+        <header class="utility-bar">
+            <div class="utility-main">
+                <a href="/frontend/html/dashboard.html" class="home-link" title="返回工作台">
+                    <img src="/frontend/icons/home.svg" class="svg-icon" style="width:18px;height:18px;" alt="返回">
+                </a>
+                <span class="page-title">异常监控中心</span>
+                <span class="utility-note">自动检测与闭环处置</span>
+            </div>
+            <div class="utility-actions">
+                <span class="stream-chip connecting" id="streamState">流状态: 连接中</span>
+                <button class="btn primary" id="refreshButton">刷新</button>
+                <button class="btn" id="logoutButton">退出</button>
+            </div>
+        </header>
+
+        <section class="anomaly-grid">
+            <aside class="panel filter-panel">
+                <h2 class="section-title">筛选条件</h2>
+                <div class="filter-form">
+                    <label class="filter-field">
+                        <span class="field-label">状态</span>
+                        <select id="statusFilter">
+                            <option value="">全部状态</option>
+                            <option value="open">待处理</option>
+                            <option value="acknowledged">已确认</option>
+                            <option value="resolved">已解决</option>
+                        </select>
+                    </label>
+                    <label class="filter-field">
+                        <span class="field-label">类型</span>
+                        <select id="typeFilter">
+                            <option value="">全部类型</option>
+                            <option value="service_node_timeout">节点超时</option>
+                            <option value="gate_stand_conflict">机位冲突</option>
+                            <option value="kpi_degradation">KPI退化</option>
+                            <option value="ai_risk">AI风险</option>
+                            <option value="dispatch_issue">调度异常</option>
+                        </select>
+                    </label>
+                    <label class="filter-field">
+                        <span class="field-label">数量</span>
+                        <select id="limitFilter">
+                            <option value="50">50 条</option>
+                            <option value="100" selected>100 条</option>
+                            <option value="200">200 条</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="meta-line" id="updatedAt">最近更新: --</div>
+            </aside>
+
+            <section class="panel records-panel">
+                <div class="metrics-strip" id="statsGrid">
+                    <div class="metric-item"><span class="metric-label">总数</span><span class="metric-value"
+                            id="stat-total">-</span></div>
+                    <div class="metric-item"><span class="metric-label">Open</span><span class="metric-value"
+                            id="stat-open">-</span></div>
+                    <div class="metric-item"><span class="metric-label">已确认</span><span class="metric-value"
+                            id="stat-ack">-</span></div>
+                    <div class="metric-item"><span class="metric-label">已解决</span><span class="metric-value"
+                            id="stat-resolved">-</span></div>
+                    <div class="metric-item"><span class="metric-label">严重级别</span><span class="metric-value"
+                            id="stat-critical">-</span></div>
+                    <div class="metric-item"><span class="metric-label">已升级</span><span class="metric-value"
+                            id="stat-escalated">-</span></div>
+                </div>
+
+                <div class="section-headline">
+                    <h2 class="section-title">异常队列</h2>
+                    <span class="section-meta">按检测时间倒序，支持状态闭环处理</span>
+                </div>
+
+                <div class="records-table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>检测时间</th>
+                                <th>航班</th>
+                                <th>类型</th>
+                                <th>严重级别</th>
+                                <th>状态</th>
+                                <th>升级等级</th>
+                                <th>标题</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                    <div class="empty" id="emptyState" style="display:none;">未查询到异常记录</div>
+                </div>
+            </section>
+        </section>
+    </div>
+    <script>
+        const API_BASE = `${window.location.origin}/api/v2/anomalies`;
+        const AUTH_BASE = `${window.location.origin}/api/v2/auth`;
+
+        let eventSource = null;
+        let refreshTimer = null;
+
+        const STATUS_LABELS = { open: '待处理', acknowledged: '已确认', resolved: '已解决' };
+        const TYPE_LABELS = {
+            service_node_timeout: '节点超时', gate_stand_conflict: '机位冲突',
+            kpi_degradation: 'KPI退化', ai_risk: 'AI风险', dispatch_issue: '调度异常'
+        };
+        let canManageAnomalies = false;
+
+        function hasPermission(user, permission) {
+            return Array.isArray(user?.permissions) && user.permissions.includes(permission);
+        }
+
+        function formatAnomalyFlightNo(item) {
+            const ctx = item.context_data || {};
+            const inbound = (ctx.inbound_leg && ctx.inbound_leg.flight_no) || '';
+            const outbound = (ctx.outbound_leg && ctx.outbound_leg.flight_no) || '';
+            if (inbound && outbound) return inbound + '|' + outbound;
+            if (inbound) return inbound + '|-';
+            if (outbound) return '-|' + outbound;
+            return ctx.flight_number || item.flight_id || '-';
+        }
+
+        async function init() {
+            const ok = await Auth.requireAuthAsync();
+            if (!ok) {
+                return;
+            }
+
+            bindEvents();
+            await loadUser();
+            await reloadAll();
+            connectStream();
+        }
+
+        function bindEvents() {
+            document.getElementById("refreshButton").addEventListener("click", reloadAll);
+            document.getElementById("logoutButton").addEventListener("click", () => Auth.logout());
+            document.getElementById("statusFilter").addEventListener("change", loadAnomalies);
+            document.getElementById("typeFilter").addEventListener("change", loadAnomalies);
+            document.getElementById("limitFilter").addEventListener("change", loadAnomalies);
+        }
+
+        async function loadUser() {
+            try {
+                const response = await Auth.fetch(`${AUTH_BASE}/me`);
+                if (!response.ok) {
+                    throw new Error("load user failed");
+                }
+                const user = await response.json();
+                canManageAnomalies = Boolean(user?.is_admin || hasPermission(user, "flight:manage"));
+            } catch (_error) {
+                window.location.href = "/frontend/html/login.html";
+            }
+        }
+
+        async function reloadAll() {
+            await Promise.all([loadStats(), loadAnomalies()]);
+        }
+
+        async function loadStats() {
+            const response = await Auth.fetch(`${API_BASE}/stats`);
+            if (!response.ok) {
+                return;
+            }
+            const payload = await response.json();
+            const data = payload && Object.prototype.hasOwnProperty.call(payload, "data")
+                ? (payload.data || {})
+                : (payload || {});
+            document.getElementById("stat-total").textContent = data.total ?? 0;
+            document.getElementById("stat-open").textContent = data.open ?? 0;
+            document.getElementById("stat-ack").textContent = data.acknowledged ?? 0;
+            document.getElementById("stat-resolved").textContent = data.resolved ?? 0;
+            document.getElementById("stat-critical").textContent = data.critical ?? 0;
+            document.getElementById("stat-escalated").textContent = data.escalated ?? 0;
+        }
+
+        async function loadAnomalies() {
+            const status = document.getElementById("statusFilter").value;
+            const type = document.getElementById("typeFilter").value;
+            const limit = document.getElementById("limitFilter").value;
+
+            const params = new URLSearchParams({ limit });
+            if (status) {
+                params.set("status", status);
+            }
+            if (type) {
+                params.set("anomaly_type", type);
+            }
+
+            const response = await Auth.fetch(`${API_BASE}?${params.toString()}`);
+            if (!response.ok) {
+                return;
+            }
+
+            const payload = await response.json();
+            const data = payload && Object.prototype.hasOwnProperty.call(payload, "data")
+                ? (payload.data || {})
+                : (payload || {});
+            renderRows(data.items || []);
+            document.getElementById("updatedAt").textContent = `最近更新: ${new Date().toLocaleTimeString()}`;
+        }
+
+        function renderRows(items) {
+            const tableBody = document.getElementById("tableBody");
+            const emptyState = document.getElementById("emptyState");
+            tableBody.innerHTML = "";
+
+            if (!items.length) {
+                emptyState.style.display = "block";
+                return;
+            }
+
+            emptyState.style.display = "none";
+            items.forEach((item) => {
+                const tr = document.createElement("tr");
+                const actionHtml = canManageAnomalies
+                    ? `
+                        <div class="actions">
+                            <button class="btn warn" data-action="ack" data-id="${item.anomaly_id}" ${item.status === "resolved" ? "disabled" : ""}>确认</button>
+                            <button class="btn primary" data-action="resolve" data-id="${item.anomaly_id}" ${item.status === "resolved" ? "disabled" : ""}>解决</button>
+                        </div>
+                    `
+                    : '<span class="section-meta">只读</span>';
+                tr.innerHTML = `
+                    <td>${formatTime(item.detected_at)}</td>
+                    <td title="${escapeHtml(item.flight_id || '')}">${escapeHtml(formatAnomalyFlightNo(item))}</td>
+                    <td>${escapeHtml(TYPE_LABELS[item.anomaly_type] || item.anomaly_type || "-")}</td>
+                    <td><span class="badge severity-${escapeHtml(item.severity || "medium")}">${escapeHtml(item.severity || "-")}</span></td>
+                    <td><span class="badge status-${escapeHtml(item.status || "open")}">${escapeHtml(STATUS_LABELS[item.status] || item.status || "-")}</span></td>
+                    <td>L${Number(item.escalation_level || 0)}</td>
+                    <td>${escapeHtml(item.title || "-")}</td>
+                    <td>${actionHtml}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            tableBody.querySelectorAll("button[data-action]").forEach((button) => {
+                button.addEventListener("click", async () => {
+                    const id = button.getAttribute("data-id");
+                    const action = button.getAttribute("data-action");
+                    if (action === "ack") {
+                        await postAction(`${API_BASE}/${id}/acknowledge`, { note: "前端确认" });
+                    } else {
+                        await postAction(`${API_BASE}/${id}/resolve`, { note: "前端解决", resolve_todo: true });
+                    }
+                    await reloadAll();
+                });
+            });
+        }
+
+        async function postAction(url, body) {
+            const response = await Auth.fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                console.error("Action failed", text);
+            }
+        }
+
+        function closeStream() {
+            if (!eventSource) {
+                return;
+            }
+            try {
+                eventSource.close();
+            } catch (_error) {
+                // ignore close errors
+            }
+            eventSource = null;
+        }
+
+        async function reconnectStream(options = {}) {
+            if (document.visibilityState === "hidden") {
+                return;
+            }
+            if (typeof Auth === "undefined" || typeof Auth.getEventSource !== "function") {
+                return;
+            }
+            if (typeof Auth.requireAuthAsync === "function") {
+                const ok = await Auth.requireAuthAsync();
+                if (!ok) {
+                    return;
+                }
+            }
+            if (options.forceRefreshToken && typeof Auth.invalidateSSEToken === "function") {
+                Auth.invalidateSSEToken();
+            }
+            if (typeof Auth.refreshSSEToken === "function") {
+                try {
+                    await Auth.refreshSSEToken(Boolean(options.forceRefreshToken));
+                } catch (_error) {
+                    // fallback token path is handled in Auth.getEventSource
+                }
+            }
+            connectStream();
+        }
+
+        function connectStream() {
+            closeStream();
+
+            if (typeof Auth === "undefined" || typeof Auth.getEventSource !== "function") {
+                return;
+            }
+
+            eventSource = Auth.getEventSource(`${API_BASE}/stream`, {
+                clientScope: "anomaly-monitor",
+            });
+            setStreamState("在线");
+
+            eventSource.addEventListener("initial", (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    if (payload && Array.isArray(payload.items)) {
+                        renderRows(payload.items);
+                    }
+                } catch (error) {
+                    console.warn("initial event parse failed", error);
+                }
+            });
+
+            eventSource.onmessage = () => {
+                scheduleRefresh();
+            };
+
+            eventSource.onerror = () => {
+                setStreamState("重连中");
+                scheduleRefresh();
+            };
+        }
+
+        function scheduleRefresh() {
+            if (refreshTimer) {
+                clearTimeout(refreshTimer);
+            }
+            refreshTimer = setTimeout(() => {
+                reloadAll();
+            }, 500);
+        }
+
+        function setStreamState(text) {
+            document.getElementById("streamState").textContent = `流状态: ${text}`;
+        }
+
+        function formatTime(value) {
+            if (!value) {
+                return "-";
+            }
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) {
+                return value;
+            }
+            return d.toLocaleString();
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        window.addEventListener("beforeunload", () => {
+            closeStream();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") {
+                closeStream();
+                setStreamState("页面挂起");
+                return;
+            }
+            void reconnectStream({ forceRefreshToken: true });
+        });
+
+        window.addEventListener("online", () => {
+            if (document.visibilityState === "hidden") {
+                return;
+            }
+            void reconnectStream({ forceRefreshToken: true });
+        });
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+
+</html>

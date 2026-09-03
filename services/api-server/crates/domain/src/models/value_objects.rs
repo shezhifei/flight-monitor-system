@@ -64,9 +64,10 @@ impl fmt::Display for FlightType {
 // ---------------------------------------------------------------------------
 
 /// 航班状态枚举 (使用数字存储)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FlightStatus {
     /// 计划中 (0)
+    #[default]
     Scheduled = 0,
     /// 前站起飞 (1)
     PrevDeparted = 1,

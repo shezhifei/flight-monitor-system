@@ -191,7 +191,7 @@ impl BusinessCaseWorkflowService {
         self.continue_dispatch_tasks_inner(
             &run.process_instance_id,
             start.process_definition_id.as_deref(),
-            Some(&definition),
+            Some(definition),
             true,
         )
         .await?;

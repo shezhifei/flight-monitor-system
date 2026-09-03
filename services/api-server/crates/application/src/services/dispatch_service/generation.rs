@@ -1,17 +1,9 @@
-use chrono::{DateTime, Duration, Utc};
-use serde_json::{json, Value};
-use std::collections::{HashMap, HashSet};
-use std::time::Instant;
+use serde_json::Value;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
-use fms_domain::models::flight::Flight;
-use fms_domain::models::flight_leg::FlightTypeCode;
 
-use crate::schemas::dispatch_schemas::*;
-
-use super::helpers;
-use super::{DispatchService, GeneratedFlightDispatchRequest, PreparedWindowOrder, ReplanExecutionResult, NULL_VALUE};
+use super::DispatchService;
 
 impl super::EventRuleOrderGateway for DispatchService {
     fn find_adjustable_orders_for_event<'a>(

@@ -23,7 +23,11 @@ def _sha256(path: Path) -> str:
 
 
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def build_release_manifest(
@@ -58,7 +62,9 @@ def build_release_manifest(
         checksum_lines.append(f"{manifest['files'][file_name]['sha256']}  {file_name}")
     checksum_lines.append(f"{_sha256(manifest_path)}  manifest.json")
     checksums_path = output_dir / "SHA256SUMS"
-    checksums_path.write_text("\n".join(checksum_lines) + "\n", encoding="utf-8")
+    checksums_path.write_text(
+        "\n".join(checksum_lines) + "\n", encoding="utf-8", newline="\n"
+    )
     _write_json(manifest_path, manifest)
     return manifest
 

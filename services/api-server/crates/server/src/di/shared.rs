@@ -53,11 +53,11 @@ use fms_infrastructure::repositories::pg_domain_event_outbox_repository::PgDomai
 use fms_infrastructure::repositories::pg_equipment_repository::PgEquipmentRepository;
 use fms_infrastructure::repositories::pg_equipment_type_repository::PgEquipmentTypeRepository;
 use fms_infrastructure::repositories::pg_flight_archive_repository::PgFlightArchiveRepository;
+use fms_infrastructure::repositories::pg_flight_monitor_row_repository::PgFlightMonitorRowRepository;
 use fms_infrastructure::repositories::pg_flight_repository::PgFlightRepository;
 use fms_infrastructure::repositories::pg_flight_runtime_projection_repository::PgFlightRuntimeProjectionRepository;
 use fms_infrastructure::repositories::pg_label_repository::PgLabelRepository;
 use fms_infrastructure::repositories::pg_metadata_catalog_repository::PgMetadataCatalogRepository;
-use fms_infrastructure::repositories::pg_flight_monitor_row_repository::PgFlightMonitorRowRepository;
 use fms_infrastructure::repositories::pg_mobile_device_repository::PgMobileDeviceRepository;
 use fms_infrastructure::repositories::pg_mobile_upload_repository::PgMobileUploadRepository;
 use fms_infrastructure::repositories::pg_notification_repository::PgNotificationRepository;
@@ -70,10 +70,10 @@ use fms_infrastructure::repositories::pg_role_repository::PgRoleRepository;
 use fms_infrastructure::repositories::pg_shift_handover_repository::PgShiftHandoverRepository;
 use fms_infrastructure::repositories::pg_stand_repository::PgStandRepository;
 use fms_infrastructure::repositories::pg_task_type_repository::PgTaskTypeRepository;
-use fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository;
 use fms_infrastructure::repositories::pg_team_member_repository::PgTeamMemberRepository;
 use fms_infrastructure::repositories::pg_team_repository::PgTeamRepository;
 use fms_infrastructure::repositories::pg_team_type_repository::PgTeamTypeRepository;
+use fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository;
 use fms_infrastructure::repositories::pg_todo_agent_context_repository::PgTodoAgentContextRepository;
 use fms_infrastructure::repositories::pg_todo_repository::PgTodoRepository;
 use fms_infrastructure::repositories::pg_user_repository::PgUserRepository;
@@ -94,6 +94,7 @@ pub(crate) struct SharedRepos {
     pub label_repo: Arc<PgLabelRepository>,
     pub flight_archive_repo: Arc<PgFlightArchiveRepository>,
     pub user_repo: Arc<PgUserRepository>,
+    #[allow(dead_code)]
     pub role_repo: Arc<PgRoleRepository>,
     pub permission_repo: Arc<PgPermissionRepository>,
     pub todo_repo: Arc<PgTodoRepository>,

@@ -1,12 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use tokio::sync::RwLock;
 
 use fms_domain::error::DomainError;
-#[cfg(test)]
-use fms_domain::models::ai_entity_config::AiEntityConfigRecord;
 use fms_domain::ports::ai_entity_config_repository::AiEntityConfigRepository;
 
 use crate::schemas::ai_schemas::{

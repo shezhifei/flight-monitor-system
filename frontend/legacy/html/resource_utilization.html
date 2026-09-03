@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资源利用率概览 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/vendor/js/echarts.min.js"></script>
+    <link rel="stylesheet" href="/frontend/css/workspace_unified_theme.css?v=4">
+    <link rel="stylesheet" href="/frontend/css/resource_utilization_dashboard.css?v=2">
+</head>
+<body class="workspace-page data-hub-page resource-utilization-page">
+    <div class="page data-hub-shell">
+        <header class="utility-bar dashboard-topbar">
+            <div class="utility-main">
+                <a href="/frontend/html/dashboard.html" class="home-link" title="返回工作台">
+                    <img src="/frontend/icons/home.svg" class="svg-icon" style="width:18px;height:18px;" alt="返回">
+                </a>
+                <div class="dashboard-title-block">
+                    <span class="page-kicker">Bottleneck Board</span>
+                    <span class="page-title">资源利用率</span>
+                    <span class="utility-note">面向资源调度、保障经理与排班负责人的瓶颈判断台</span>
+                </div>
+                <nav class="utility-nav" aria-label="资源导航">
+                    <a href="/frontend/html/dispatch_board.html">甘特调度</a>
+                    <a class="active" href="/frontend/html/resource_utilization.html">资源利用率</a>
+                </nav>
+            </div>
+            <div class="utility-actions">
+                <span class="state-chip" id="lastUpdated">等待刷新...</span>
+                <button id="refreshBtn" class="btn primary" type="button">刷新</button>
+                <button id="logoutBtn" class="btn" type="button">退出登录</button>
+            </div>
+        </header>
+
+        <section class="panel dashboard-ribbon resource-ribbon resource-bottleneck-banner">
+            <div class="dashboard-ribbon-copy">
+                <span class="section-eyebrow">资源瓶颈台</span>
+                <h2 class="dashboard-ribbon-title" id="resourceHeadlineLead">资源瓶颈台</h2>
+            </div>
+            <div class="dashboard-ribbon-actions resource-ribbon-notes">
+                <span class="state-chip accent" id="resourceStateChip">等待快照</span>
+                <span class="meta-chip" id="resourceCadenceChip">复查节奏 --</span>
+            </div>
+        </section>
+
+        <section class="panel resource-metrics resource-hero-strip">
+            <article class="metric-item hero-metric metric-strong bottleneck-hero">
+                <span class="metric-label">当前瓶颈</span>
+                <span class="metric-value" id="metricBottleneckDimension">-</span>
+                <span class="metric-sub" id="metricBottleneckSub">等待统一判断</span>
+            </article>
+            <article class="metric-item hero-metric">
+                <span class="metric-label">峰值占用</span>
+                <span class="metric-value" id="metricPeakRate">-</span>
+                <span class="metric-sub" id="metricPeakSub">等待峰值对象</span>
+            </article>
+            <article class="metric-item hero-metric">
+                <span class="metric-label">超阈值对象</span>
+                <span class="metric-value" id="metricOverloaded">-</span>
+                <span class="metric-sub" id="metricOverloadedSub">80% 以上对象数</span>
+            </article>
+            <article class="metric-item hero-metric">
+                <span class="metric-label">系统余量</span>
+                <span class="metric-value" id="metricHeadroom">-</span>
+                <span class="metric-sub" id="metricHeadroomSub">按主瓶颈平均值估算</span>
+            </article>
+        </section>
+
+        <section class="resource-board">
+            <div class="resource-main-stage">
+                <article class="panel bottleneck-ladder-panel spotlight-panel">
+                    <div class="section-headline">
+                        <div class="section-heading-block">
+                            <h2 class="section-title">对象排序</h2>
+                        </div>
+                        <span class="section-meta" id="leaderboardMeta">等待资源快照</span>
+                    </div>
+                    <div class="bottleneck-ladder" id="bottleneckLeaderboard"></div>
+                </article>
+
+                <div class="resource-diagnostic-grid">
+                    <article class="panel dimension-panel">
+                        <div class="section-headline">
+                            <div class="section-heading-block">
+                            <h2 class="section-title">维度对比</h2>
+                            </div>
+                            <span class="section-meta" id="dimensionPanelMeta">统一口径</span>
+                        </div>
+                        <div class="dimension-card-grid" id="dimensionComparisonList"></div>
+                        <div id="dimensionRadarChart" style="width:100%;min-height:240px"></div>
+                    </article>
+
+                    <article class="panel pattern-panel">
+                        <div class="section-headline">
+                            <div class="section-heading-block">
+                            <h2 class="section-title">瓶颈形态</h2>
+                            </div>
+                            <span class="section-meta" id="patternPanelMeta">等待研判</span>
+                        </div>
+                        <div class="distribution-strip pattern-strip" id="pressurePatternList"></div>
+                        <div id="patternBarChart" style="width:100%;min-height:200px"></div>
+                    </article>
+                </div>
+            </div>
+
+            <aside class="panel insight-panel resource-risk-sidebar">
+                <div class="section-headline">
+                    <div class="section-heading-block">
+                        <h2 class="section-title">判断与动作</h2>
+                    </div>
+                    <span class="section-meta" id="resourceSidebarMeta">统一判断</span>
+                </div>
+                <div class="resource-insight-stack">
+                    <section class="resource-insight-group">
+                        <h3 class="resource-insight-title">当前最需处理</h3>
+                        <div class="insight-callout resource-callout">
+                            <strong id="resourceRiskLead">等待资源快照...</strong>
+                            <p id="resourceRiskSupport">刷新后将根据峰值、超阈值数量和扩散程度给出判断。</p>
+                        </div>
+                    </section>
+
+                    <section class="resource-insight-group">
+                        <h3 class="resource-insight-title">立即动作</h3>
+                        <div class="distribution-strip" id="actionSummaryList"></div>
+                    </section>
+
+                    <section class="resource-insight-group">
+                        <h3 class="resource-insight-title">复查节奏</h3>
+                        <div class="cadence-list" id="cadenceList"></div>
+                    </section>
+
+                    <section class="resource-insight-group">
+                        <h3 class="resource-insight-title">负载口径</h3>
+                        <div class="threshold-list">
+                            <div class="threshold-item"><span class="threshold-dot low"></span><span class="threshold-label">0%-29%</span><span class="threshold-desc">低负荷，可延后关注</span></div>
+                            <div class="threshold-item"><span class="threshold-dot medium"></span><span class="threshold-label">30%-59%</span><span class="threshold-desc">可承载，保持巡检</span></div>
+                            <div class="threshold-item"><span class="threshold-dot high"></span><span class="threshold-label">60%-79%</span><span class="threshold-desc">进入紧张区，准备调整</span></div>
+                            <div class="threshold-item"><span class="threshold-dot critical"></span><span class="threshold-label">80%-100%</span><span class="threshold-desc">拥塞风险，优先处置</span></div>
+                        </div>
+                    </section>
+                </div>
+            </aside>
+        </section>
+    </div>
+    <script>
+        (function () {
+            'use strict';
+
+            const BOTTLENECK_THRESHOLD = 80;
+            const WATCH_THRESHOLD = 60;
+            const CADENCE_OPTIONS = [
+                { label: '15 分钟', note: '系统性吃紧或峰值 >= 95%' },
+                { label: '30 分钟', note: '已出现超阈值对象，需滚动复查' },
+                { label: '60 分钟', note: '未超阈值，仅保持巡检' },
+            ];
+
+            /* ---- ECharts shared theme ---- */
+            const DH = {
+                text: '#8298b5', textBright: '#e8f0fa',
+                accent: '#4db8ff', ok: '#2ec47e', warn: '#f0a030', crit: '#ef5350',
+                grid: 'rgba(100,140,190,0.08)', axis: 'rgba(100,140,190,0.2)',
+                tooltip: { backgroundColor: 'rgba(8,16,28,0.92)', borderColor: 'rgba(100,140,190,0.2)', textStyle: { color: '#e8f0fa', fontSize: 12 } },
+            };
+            const _resCharts = {};
+            function ensureChart(id) {
+                if (_resCharts[id]) return _resCharts[id];
+                const el = document.getElementById(id);
+                if (!el) return null;
+                const c = echarts.init(el, null, { renderer: 'canvas' });
+                _resCharts[id] = c;
+                return c;
+            }
+            window.addEventListener('resize', () => Object.values(_resCharts).forEach(c => c.resize()));
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                const ok = await Auth.requireAuthAsync();
+                if (!ok) {
+                    return;
+                }
+
+                document.getElementById('refreshBtn')?.addEventListener('click', loadAll);
+                document.getElementById('logoutBtn')?.addEventListener('click', () => Auth.logout());
+                await loadAll();
+            });
+
+            async function loadAll() {
+                setLoading(true);
+                try {
+                    const [summaryRes, standsRes, teamsRes, equipmentRes] = await Promise.all([
+                        safeFetch('/api/v2/dispatch/analytics/resource-utilization/summary'),
+                        safeFetch('/api/v2/dispatch/analytics/resource-utilization/stands'),
+                        safeFetch('/api/v2/dispatch/analytics/resource-utilization/teams'),
+                        safeFetch('/api/v2/dispatch/analytics/resource-utilization/equipment'),
+                    ]);
+
+                    const summary = summaryRes || {};
+                    const stands = Array.isArray(standsRes) ? standsRes : [];
+                    const teams = Array.isArray(teamsRes) ? teamsRes : [];
+                    const equipment = Array.isArray(equipmentRes) ? equipmentRes : [];
+                    const model = buildDashboardModel(summary, stands, teams, equipment);
+
+                    renderHeadline(model);
+                    renderHeroMetrics(model);
+                    renderLeaderboard(model);
+                    renderDimensionComparison(model);
+                    renderPatternBoard(model);
+                    renderSidebar(model);
+                    setLastUpdated();
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            function buildDashboardModel(summary, stands, teams, equipment) {
+                const dimensions = [
+                    buildDimensionModel('机位', 'stand', stands, 'stand_code', summary.stand_utilization_rate, summary.stand_count),
+                    buildDimensionModel('班组', 'team', teams, 'team_id', summary.team_utilization_rate, summary.team_count),
+                    buildDimensionModel('设备', 'equipment', equipment, 'equipment_name', summary.equipment_utilization_rate, summary.equipment_count),
+                ].sort((left, right) => right.priority - left.priority);
+
+                const allEntries = dimensions
+                    .flatMap((dimension) => dimension.entries.map((entry) => ({
+                        ...entry,
+                        dimensionName: dimension.name,
+                        dimensionAverage: dimension.avgRate,
+                        dimensionPattern: dimension.pattern,
+                    })))
+                    .sort((left, right) => right.priority - left.priority);
+
+                const lead = dimensions[0] || emptyDimension('机位', 'stand');
+                const secondary = dimensions[1] || emptyDimension('班组', 'team');
+                const totalObjects = dimensions.reduce((sum, dimension) => sum + dimension.total, 0);
+                const overloadedTotal = dimensions.reduce((sum, dimension) => sum + dimension.overloaded, 0);
+                const watchTotal = dimensions.reduce((sum, dimension) => sum + dimension.watchCount, 0);
+                const peakEntry = allEntries[0] || null;
+                const cadence = resolveCadence(lead);
+                const state = buildStateDescriptor(lead, overloadedTotal);
+
+                return {
+                    dimensions,
+                    lead,
+                    secondary,
+                    allEntries,
+                    peakEntry,
+                    totalObjects,
+                    overloadedTotal,
+                    watchTotal,
+                    cadence,
+                    state,
+                };
+            }
+
+            function buildDimensionModel(name, key, items, labelKey, summaryRate, summaryCount) {
+                const list = Array.isArray(items) ? items : [];
+                const entries = list
+                    .map((item) => {
+                        const rate = toIntPercent(item.utilization_rate);
+                        const label = normalizeLabel(item[labelKey] || item.equipment_name || item.resource_name || '未知');
+                        return {
+                            dimensionKey: key,
+                            dimensionName: name,
+                            label,
+                            rate,
+                            headroom: Math.max(0, 100 - rate),
+                            severity: classifySeverity(rate),
+                            priority: rate + (rate >= BOTTLENECK_THRESHOLD ? 45 : rate >= WATCH_THRESHOLD ? 18 : 0),
+                        };
+                    })
+                    .sort((left, right) => right.rate - left.rate);
+
+                const total = Number(summaryCount || list.length || 0);
+                const fallbackAverage = list.length
+                    ? Math.round(list.reduce((sum, item) => sum + (Number(item.utilization_rate) || 0), 0) / list.length * 100)
+                    : 0;
+                const avgRate = Number.isFinite(Number(summaryRate)) ? Math.round(Number(summaryRate) * 100) : fallbackAverage;
+                const peakEntry = entries[0] || null;
+                const overloaded = entries.filter((entry) => entry.rate >= BOTTLENECK_THRESHOLD).length;
+                const watchCount = entries.filter((entry) => entry.rate >= WATCH_THRESHOLD).length;
+                const overloadRatio = total > 0 ? Math.round((overloaded / total) * 100) : 0;
+                const topThreeShare = computeTopThreeShare(entries);
+                const pattern = classifyPattern(avgRate, overloaded, total, peakEntry ? peakEntry.rate : 0);
+                const peakGap = peakEntry ? Math.max(0, peakEntry.rate - avgRate) : 0;
+                const priority = overloadRatio * 2 + avgRate + (peakEntry ? peakEntry.rate : 0) + peakGap;
+
+                return {
+                    name,
+                    key,
+                    total,
+                    avgRate,
+                    peakEntry,
+                    peakRate: peakEntry ? peakEntry.rate : 0,
+                    peakLabel: peakEntry ? peakEntry.label : '暂无对象',
+                    overloaded,
+                    watchCount,
+                    overloadRatio,
+                    headroom: Math.max(0, 100 - avgRate),
+                    topThreeShare,
+                    peakGap,
+                    pattern,
+                    entries,
+                    priority,
+                };
+            }
+
+            function emptyDimension(name, key) {
+                return {
+                    name,
+                    key,
+                    total: 0,
+                    avgRate: 0,
+                    peakEntry: null,
+                    peakRate: 0,
+                    peakLabel: '暂无对象',
+                    overloaded: 0,
+                    watchCount: 0,
+                    overloadRatio: 0,
+                    headroom: 100,
+                    topThreeShare: 0,
+                    peakGap: 0,
+                    pattern: 'stable',
+                    entries: [],
+                    priority: 0,
+                };
+            }
+
+            function computeTopThreeShare(entries) {
+                if (!entries.length) {
+                    return 0;
+                }
+                const totalRate = entries.reduce((sum, entry) => sum + entry.rate, 0);
+                if (totalRate <= 0) {
+                    return 0;
+                }
+                const topRate = entries.slice(0, 3).reduce((sum, entry) => sum + entry.rate, 0);
+                return Math.round((topRate / totalRate) * 100);
+            }
+
+            function classifyPattern(avgRate, overloaded, total, peakRate) {
+                if (!total) {
+                    return 'stable';
+                }
+                if (overloaded === 0 && avgRate < WATCH_THRESHOLD) {
+                    return 'stable';
+                }
+                if ((overloaded / total) >= 0.35 || avgRate >= 72) {
+                    return 'systemic';
+                }
+                if (overloaded <= 2 && peakRate >= 85 && (peakRate - avgRate) >= 18) {
+                    return 'localized';
+                }
+                return 'spreading';
+            }
+
+            function buildStateDescriptor(lead, overloadedTotal) {
+                if (!lead.total) {
+                    return { label: '等待快照', className: 'is-neutral' };
+                }
+                if (lead.pattern === 'systemic' || lead.peakRate >= 95) {
+                    return { label: '系统性拥塞', className: 'is-critical' };
+                }
+                if (overloadedTotal > 0 || lead.pattern === 'spreading') {
+                    return { label: '局部拥塞扩散中', className: 'is-warn' };
+                }
+                return { label: '可承载', className: 'is-stable' };
+            }
+
+            function resolveCadence(lead) {
+                if (!lead.total) {
+                    return 30;
+                }
+                if (lead.pattern === 'systemic' || lead.peakRate >= 95) {
+                    return 15;
+                }
+                if (lead.overloaded > 0 || lead.pattern === 'spreading') {
+                    return 30;
+                }
+                return 60;
+            }
+
+            function renderHeadline(model) {
+                const lead = model.lead;
+                const stateChip = document.getElementById('resourceStateChip');
+                const cadenceChip = document.getElementById('resourceCadenceChip');
+
+                if (stateChip) {
+                    stateChip.textContent = model.state.label;
+                    stateChip.classList.remove('is-critical', 'is-warn', 'is-stable', 'is-neutral');
+                    stateChip.classList.add(model.state.className);
+                }
+                if (cadenceChip) {
+                    cadenceChip.textContent = `复查节奏 ${model.cadence} 分钟`;
+                }
+
+                if (!lead.total) {
+                    setText('resourceHeadlineLead', '资源瓶颈台');
+                    return;
+                }
+
+                setText('resourceHeadlineLead', `主瓶颈: ${lead.name} | ${describePatternLabel(lead.pattern)} | 均值 ${lead.avgRate}% | 峰值 ${lead.peakRate}%`);
+            }
+
+            function renderHeroMetrics(model) {
+                const lead = model.lead;
+                const peak = model.peakEntry;
+                setText('metricBottleneckDimension', lead.total ? lead.name : '-');
+                setText('metricBottleneckSub', lead.total ? `${describePatternLabel(lead.pattern)} | 超阈值 ${lead.overloaded} / ${lead.total}` : '等待统一判断');
+                setText('metricPeakRate', peak ? `${peak.rate}%` : '-');
+                setText('metricPeakSub', peak ? `${peak.dimensionName} ${peak.label}` : '等待峰值对象');
+                setText('metricOverloaded', model.totalObjects ? `${model.overloadedTotal}` : '-');
+                setText('metricOverloadedSub', model.totalObjects ? `全域 ${model.overloadedTotal} / ${model.totalObjects} 个对象超 80%` : '80% 以上对象数');
+                setText('metricHeadroom', lead.total ? `${lead.headroom}%` : '-');
+                setText('metricHeadroomSub', lead.total ? `${lead.name}平均余量 | 关注 ${model.watchTotal} 个紧张对象` : '按主瓶颈平均值估算');
+            }
+
+            function renderLeaderboard(model) {
+                const container = document.getElementById('bottleneckLeaderboard');
+                if (!container) {
+                    return;
+                }
+
+                if (!model.allEntries.length) {
+                    setText('leaderboardMeta', '暂无对象数据');
+                    container.innerHTML = '<div class="empty chart-empty">暂无资源对象数据</div>';
+                    return;
+                }
+
+                const topItems = model.allEntries.slice(0, 10);
+                setText('leaderboardMeta', `对象 ${model.totalObjects} | 超阈值 ${model.overloadedTotal} | 紧张区 ${model.watchTotal}`);
+
+                container.innerHTML = topItems.map((entry, index) => `
+                    <div class="bottleneck-row severity-${escapeHtml(entry.severity)}">
+                        <span class="bottleneck-rank">${String(index + 1).padStart(2, '0')}</span>
+                        <div class="bottleneck-main">
+                            <div class="bottleneck-title-line">
+                                <strong class="bottleneck-title">${escapeHtml(entry.label)}</strong>
+                                <span class="chip ${escapeHtml(entry.severity)}">${escapeHtml(entry.dimensionName)}</span>
+                            </div>
+                            <div class="bottleneck-meta">${escapeHtml(describeEntryMeta(entry))}</div>
+                        </div>
+                        <div class="bottleneck-side">
+                            <span class="bottleneck-rate">${entry.rate}%</span>
+                            <span class="bottleneck-headroom">余量 ${entry.headroom}%</span>
+                        </div>
+                        <div class="distribution-meter"><span style="width:${Math.max(entry.rate, 6)}%"></span></div>
+                    </div>
+                `).join('');
+            }
+
+            function describeEntryMeta(entry) {
+                const statusText = entry.rate >= BOTTLENECK_THRESHOLD
+                    ? '已超阈值'
+                    : entry.rate >= WATCH_THRESHOLD
+                        ? '进入紧张区'
+                        : '仍有缓冲';
+                return `${entry.dimensionName}均值 ${entry.dimensionAverage}% | ${describePatternLabel(entry.dimensionPattern)} | ${statusText}`;
+            }
+
+            function renderDimensionComparison(model) {
+                const container = document.getElementById('dimensionComparisonList');
+                if (!container) {
+                    return;
+                }
+
+                if (!model.dimensions.some((dimension) => dimension.total > 0)) {
+                    setText('dimensionPanelMeta', '暂无维度数据');
+                    container.innerHTML = '<div class="empty chart-empty">暂无维度快照</div>';
+                    return;
+                }
+
+                setText('dimensionPanelMeta', `主瓶颈 ${model.lead.name} | 次级 ${model.secondary.total ? model.secondary.name : '无'}`);
+                container.innerHTML = model.dimensions.map((dimension) => `
+                    <article class="dimension-card pattern-${escapeHtml(dimension.pattern)}">
+                        <div class="dimension-card-head">
+                            <div>
+                                <span class="dimension-label">${escapeHtml(dimension.name)}</span>
+                                <strong class="dimension-value">${dimension.avgRate}%</strong>
+                            </div>
+                            <span class="chip ${escapeHtml(classifySeverity(dimension.peakRate))}">${escapeHtml(describePatternLabel(dimension.pattern))}</span>
+                        </div>
+                        <div class="dimension-card-body">
+                            <div class="dimension-stat-row">
+                                <span>峰值对象</span>
+                                <strong>${escapeHtml(dimension.peakLabel)}</strong>
+                            </div>
+                            <div class="dimension-stat-row">
+                                <span>峰值占用</span>
+                                <strong>${dimension.peakRate}%</strong>
+                            </div>
+                            <div class="dimension-stat-row">
+                                <span>超 80%</span>
+                                <strong>${dimension.overloaded} / ${dimension.total}</strong>
+                            </div>
+                            <div class="dimension-meter"><span style="width:${Math.max(dimension.avgRate, 6)}%"></span></div>
+                        </div>
+                    </article>
+                `).join('');
+
+                /* ---- ECharts: radar chart for 3 dimensions ---- */
+                const radarChart = ensureChart('dimensionRadarChart');
+                if (radarChart) {
+                    radarChart.hideLoading();
+                    const dims = model.dimensions;
+                    radarChart.setOption({
+                        tooltip: { ...DH.tooltip },
+                        radar: {
+                            indicator: dims.map(d => ({ name: d.name, max: 100 })),
+                            shape: 'polygon',
+                            splitNumber: 4,
+                            axisName: { color: DH.textBright, fontSize: 11 },
+                            splitLine: { lineStyle: { color: DH.grid } },
+                            splitArea: { areaStyle: { color: ['rgba(77,184,255,0.02)', 'rgba(77,184,255,0.05)'] } },
+                            axisLine: { lineStyle: { color: DH.axis } },
+                        },
+                        series: [
+                            {
+                                type: 'radar',
+                                data: [
+                                    {
+                                        name: '平均利用率',
+                                        value: dims.map(d => d.avgRate),
+                                        areaStyle: { color: 'rgba(77,184,255,0.18)' },
+                                        lineStyle: { color: DH.accent, width: 2 },
+                                        itemStyle: { color: DH.accent },
+                                    },
+                                    {
+                                        name: '峰值占用',
+                                        value: dims.map(d => d.peakRate),
+                                        areaStyle: { color: 'rgba(240,160,48,0.12)' },
+                                        lineStyle: { color: DH.warn, width: 2, type: 'dashed' },
+                                        itemStyle: { color: DH.warn },
+                                    },
+                                ],
+                            },
+                        ],
+                        legend: { data: ['平均利用率', '峰值占用'], bottom: 0, textStyle: { color: DH.text, fontSize: 10 }, itemWidth: 10, itemHeight: 10 },
+                    }, true);
+                }
+            }
+
+            function renderPatternBoard(model) {
+                const container = document.getElementById('pressurePatternList');
+                if (!container) {
+                    return;
+                }
+
+                if (!model.lead.total) {
+                    setText('patternPanelMeta', '暂无研判');
+                    container.innerHTML = '<div class="empty chart-empty">等待统一判断</div>';
+                    return;
+                }
+
+                setText('patternPanelMeta', `${model.lead.name} ${describePatternLabel(model.lead.pattern)} | Top3 集中度 ${model.lead.topThreeShare}%`);
+                const items = [
+                    {
+                        label: '主瓶颈形态',
+                        value: describePatternLabel(model.lead.pattern),
+                        note: `${model.lead.name}均值 ${model.lead.avgRate}% ，峰值 ${model.lead.peakRate}%`,
+                        ratio: Math.max(model.lead.avgRate, 12),
+                    },
+                    {
+                        label: '集中度',
+                        value: `Top3 ${model.lead.topThreeShare}%`,
+                        note: `${model.lead.name}头部对象占该维度总压力的 ${model.lead.topThreeShare}%`,
+                        ratio: Math.max(model.lead.topThreeShare, 12),
+                    },
+                    {
+                        label: '次级拖累',
+                        value: model.secondary.total ? model.secondary.name : '无',
+                        note: model.secondary.total ? `峰值 ${model.secondary.peakLabel} ${model.secondary.peakRate}%` : '当前没有次级压力维度',
+                        ratio: Math.max(model.secondary.total ? model.secondary.peakRate : 0, 12),
+                    },
+                ];
+
+                container.innerHTML = items.map((item) => `
+                    <div class="distribution-segment">
+                        <div>
+                            <strong>${escapeHtml(item.label)}</strong>
+                            <span class="distribution-caption">${escapeHtml(item.note)}</span>
+                        </div>
+                        <span>${escapeHtml(item.value)}</span>
+                        <div class="distribution-meter"><span style="width:${item.ratio}%"></span></div>
+                    </div>
+                `).join('');
+
+                /* ---- ECharts: pattern bar chart ---- */
+                const barChart = ensureChart('patternBarChart');
+                if (barChart) {
+                    barChart.hideLoading();
+                    const colorMap = { '主瓶颈形态': DH.crit, '集中度': DH.warn, '次级拖累': DH.accent };
+                    barChart.setOption({
+                        grid: { top: 8, right: 40, bottom: 4, left: 80 },
+                        tooltip: { ...DH.tooltip, trigger: 'axis' },
+                        xAxis: { type: 'value', max: 100, show: false },
+                        yAxis: { type: 'category', data: items.map(i => i.label), axisLine: { show: false }, axisLabel: { color: DH.text, fontSize: 10 }, axisTick: { show: false }, inverse: true },
+                        series: [{
+                            type: 'bar', barMaxWidth: 14,
+                            data: items.map(i => ({
+                                value: i.ratio,
+                                itemStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                        { offset: 0, color: colorMap[i.label] || DH.accent },
+                                        { offset: 1, color: (colorMap[i.label] || DH.accent) + '44' }
+                                    ]),
+                                    borderRadius: [0, 3, 3, 0]
+                                }
+                            })),
+                            label: { show: true, position: 'right', color: DH.textBright, fontSize: 11, formatter: '{c}%' }
+                        }]
+                    }, true);
+                }
+            }
+
+            function renderSidebar(model) {
+                renderDecisionCallout(model);
+                renderActionList(model);
+                renderCadenceList(model);
+            }
+
+            function renderDecisionCallout(model) {
+                const lead = model.lead;
+                setText('resourceSidebarMeta', lead.total ? `当前主瓶颈 ${lead.name}` : '统一判断');
+
+                if (!lead.total) {
+                    setText('resourceRiskLead', '等待资源快照...');
+                    setText('resourceRiskSupport', '刷新后将根据峰值、超阈值数量和扩散程度给出判断。');
+                    return;
+                }
+
+                setText('resourceRiskLead', `${lead.name}需要优先处理，当前判断为${describePatternLabel(lead.pattern)}。`);
+                setText(
+                    'resourceRiskSupport',
+                    `${lead.name}峰值对象 ${lead.peakLabel} ${lead.peakRate}% ，超 80% 对象 ${lead.overloaded} 个。${buildDecisionSupport(model)}`
+                );
+            }
+
+            function buildDecisionSupport(model) {
+                if (model.lead.pattern === 'systemic') {
+                    return '这不是单点问题，优先处理同维度整体负荷。';
+                }
+                if (model.lead.pattern === 'localized') {
+                    return '优先释放榜首对象，再观察是否继续外溢。';
+                }
+                if (model.lead.pattern === 'spreading') {
+                    return '主瓶颈开始向次级对象扩散，不能只盯一个点。';
+                }
+                return '当前整体仍可承载，以巡检为主。';
+            }
+
+            function renderActionList(model) {
+                const container = document.getElementById('actionSummaryList');
+                if (!container) {
+                    return;
+                }
+
+                if (!model.lead.total) {
+                    container.innerHTML = '<div class="empty chart-empty">暂无动作建议</div>';
+                    return;
+                }
+
+                const actions = buildActionItems(model);
+                container.innerHTML = actions.map((item) => `
+                    <div class="distribution-segment">
+                        <div>
+                            <strong>${escapeHtml(item.label)}</strong>
+                            <span class="distribution-caption">${escapeHtml(item.note)}</span>
+                        </div>
+                        <span>${escapeHtml(item.value)}</span>
+                        <div class="distribution-meter"><span style="width:${Math.max(item.ratio, 10)}%"></span></div>
+                    </div>
+                `).join('');
+            }
+
+            function buildActionItems(model) {
+                const items = [
+                    {
+                        label: `先处理 ${model.lead.name}`,
+                        value: model.lead.peakLabel,
+                        note: `峰值对象 ${model.lead.peakRate}% ，优先释放主瓶颈`,
+                        ratio: model.lead.peakRate,
+                    },
+                ];
+
+                if (model.secondary.total) {
+                    items.push({
+                        label: `同步盯防 ${model.secondary.name}`,
+                        value: `${model.secondary.peakRate}%`,
+                        note: `${model.secondary.peakLabel} 已成为次级拖累`,
+                        ratio: model.secondary.peakRate,
+                    });
+                }
+
+                items.push({
+                    label: '维持复查节奏',
+                    value: `${model.cadence} 分钟`,
+                    note: model.cadence === 15
+                        ? '高压状态下用短周期滚动复核'
+                        : model.cadence === 30
+                            ? '出现超阈值对象，维持半小时复核'
+                            : '当前以例行巡检为主',
+                    ratio: model.cadence === 15 ? 88 : model.cadence === 30 ? 58 : 32,
+                });
+
+                return items;
+            }
+
+            function renderCadenceList(model) {
+                const container = document.getElementById('cadenceList');
+                if (!container) {
+                    return;
+                }
+
+                container.innerHTML = CADENCE_OPTIONS.map((option) => {
+                    const active = `${model.cadence} 分钟` === option.label;
+                    return `
+                        <div class="cadence-item${active ? ' is-active' : ''}">
+                            <strong>${option.label}</strong>
+                            <span>${option.note}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            async function safeFetch(url) {
+                try {
+                    const response = await Auth.fetch(url);
+                    if (!response.ok) {
+                        return null;
+                    }
+                    const json = await response.json();
+                    return json && json.data !== undefined ? json.data : json;
+                } catch {
+                    return null;
+                }
+            }
+
+            function setLoading(loading) {
+                const btn = document.getElementById('refreshBtn');
+                if (!btn) {
+                    return;
+                }
+                btn.disabled = loading;
+                btn.classList.toggle('is-loading', loading);
+                btn.textContent = loading ? '刷新中...' : '刷新';
+            }
+
+            function setLastUpdated() {
+                const now = new Date();
+                setText('lastUpdated', `更新时间 ${now.toLocaleString('zh-CN', { hour12: false })}`);
+            }
+
+            function classifySeverity(rate) {
+                if (rate >= BOTTLENECK_THRESHOLD) {
+                    return 'critical';
+                }
+                if (rate >= WATCH_THRESHOLD) {
+                    return 'warn';
+                }
+                return 'info';
+            }
+
+            function describePatternLabel(pattern) {
+                if (pattern === 'systemic') {
+                    return '系统性吃紧';
+                }
+                if (pattern === 'localized') {
+                    return '局部拥塞';
+                }
+                if (pattern === 'spreading') {
+                    return '扩散中';
+                }
+                return '可承载';
+            }
+
+            function normalizeLabel(value) {
+                return String(value || '').trim() || '未知';
+            }
+
+            function toIntPercent(value) {
+                const number = Number(value);
+                if (!Number.isFinite(number)) {
+                    return 0;
+                }
+                return Math.max(0, Math.min(100, Math.round(number * 100)));
+            }
+
+            function setText(id, value) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            }
+
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+        })();
+    </script>
+</body>
+</html>
+

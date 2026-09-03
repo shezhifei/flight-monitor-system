@@ -6,17 +6,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum VisibilityScope {
+    #[default]
     Common,
     Department,
-}
-
-impl Default for VisibilityScope {
-    fn default() -> Self {
-        Self::Common
-    }
 }
 
 impl VisibilityScope {

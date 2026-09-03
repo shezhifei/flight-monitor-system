@@ -14,7 +14,7 @@ import { FRONTEND_ENTRY_REGISTRY } from '../../../ai-react/src/lib/shell/entryRe
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '../../../..');
-const legacyHtmlPrefix = 'frontend/backup/legacy-frontend-archive/html/';
+const legacyHtmlPrefix = 'frontend/legacy/html/';
 
 function repoPath(relativePath: string): string {
   return join(repoRoot, relativePath);

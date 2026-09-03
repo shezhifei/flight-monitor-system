@@ -10,6 +10,10 @@ use crate::schemas::dispatch_schemas::{
     DepartmentTaskTypeRequirementPublishRequest, DispatchRulePreviewRequest, FlightGenerationRuleCreate,
     GenerationAdjustmentRuleCreate, QualificationGrantCreate, TemporaryTaskTemplateCreate,
 };
+use crate::services::attribute_validation::collect_attribute_references;
+use crate::services::attribute_validation::validate_attributes;
+use crate::services::attribute_validation::ObjectReferenceValidator;
+use crate::services::qualification_writer::QualificationAttributeTransactionalWriter;
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
     validate_completion_warning_lead_minutes, DepartmentQualificationCatalog, DepartmentQualificationLevel,
@@ -24,10 +28,6 @@ use fms_domain::ports::dispatch_repository::{
     TemporaryTaskTemplateRepository,
 };
 use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
-use crate::services::attribute_validation::collect_attribute_references;
-use crate::services::attribute_validation::validate_attributes;
-use crate::services::attribute_validation::ObjectReferenceValidator;
-use crate::services::qualification_writer::QualificationAttributeTransactionalWriter;
 
 pub struct DispatchRuleService {
     department_repo: Arc<dyn DepartmentRepository + Send + Sync>,
@@ -66,26 +66,17 @@ impl DispatchRuleService {
         }
     }
 
-    pub fn with_field_overlay_repository(
-        mut self,
-        repo: Arc<dyn FieldOverlayRepository + Send + Sync>,
-    ) -> Self {
+    pub fn with_field_overlay_repository(mut self, repo: Arc<dyn FieldOverlayRepository + Send + Sync>) -> Self {
         self.field_overlay_repo = Some(repo);
         self
     }
 
-    pub fn with_object_reference_validator(
-        mut self,
-        validator: Arc<dyn ObjectReferenceValidator>,
-    ) -> Self {
+    pub fn with_object_reference_validator(mut self, validator: Arc<dyn ObjectReferenceValidator>) -> Self {
         self.object_reference_validator = Some(validator);
         self
     }
 
-    pub fn with_qualification_writer(
-        mut self,
-        writer: Arc<dyn QualificationAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_qualification_writer(mut self, writer: Arc<dyn QualificationAttributeTransactionalWriter>) -> Self {
         self.qualification_writer = Some(writer);
         self
     }
@@ -96,12 +87,8 @@ impl DispatchRuleService {
         payload: DepartmentQualificationCatalogCreate,
     ) -> Result<DepartmentQualificationCatalog, DomainError> {
         self.ensure_department(department_id).await?;
-        let attributes = validate_attributes(
-            "Qualification",
-            payload.attributes,
-            self.field_overlay_repo.as_ref(),
-        )
-        .await?;
+        let attributes =
+            validate_attributes("Qualification", payload.attributes, self.field_overlay_repo.as_ref()).await?;
         if let Some(validator) = self.object_reference_validator.as_ref() {
             validator.validate("Qualification", &attributes).await?;
         }
@@ -628,10 +615,10 @@ impl DispatchRuleService {
             .as_ref()
             .is_some_and(|rule| rule.status != DepartmentRuleStatus::Draft);
         let item = GenerationAdjustmentRule {
-            id: if creates_new_version || requested_rule_id.is_none() {
+            id: if creates_new_version {
                 ulid::Ulid::new().to_string()
             } else {
-                requested_rule_id.expect("existing draft id")
+                requested_rule_id.unwrap_or_else(|| ulid::Ulid::new().to_string())
             },
             department_id: department_id.to_string(),
             task_type: task_type.clone(),
@@ -1044,8 +1031,8 @@ fn normalize_duration_by_crew_size(value: Option<Value>) -> Result<Option<Value>
     Ok(Some(Value::Object(normalized)))
 }
 
-fn normalize_optional_ref<'a>(value: Option<&'a str>) -> Option<&'a str> {
-    value.and_then(|item| if item.trim().is_empty() { None } else { Some(item) })
+fn normalize_optional_ref(value: Option<&str>) -> Option<&str> {
+    value.filter(|&item| !item.trim().is_empty())
 }
 
 fn normalize_string_list(values: Vec<String>) -> Vec<String> {

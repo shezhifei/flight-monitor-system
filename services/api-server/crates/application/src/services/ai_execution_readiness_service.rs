@@ -135,12 +135,6 @@ impl AiExecutionReadinessService {
         }
     }
 
-    fn is_truthy(value: Option<&str>) -> bool {
-        value
-            .map(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
-            .unwrap_or(false)
-    }
-
     async fn check_feature_flags(&self) -> AiExecutionReadinessCheck {
         let execution_allowlist = ExecutionAllowlist::parse(
             self.read_env("FMS_AI_PROPOSAL_EXECUTION_ENABLED")
@@ -292,7 +286,7 @@ impl AiExecutionReadinessService {
         let sidecar_write_mode = self.read_env("FMS_AI_SIDECAR_WRITE_MODE").await;
         if let Some(mode) = sidecar_write_mode {
             let mode_lower = mode.trim().to_ascii_lowercase();
-            if mode_lower != "disabled" && mode_lower != "" && mode_lower != "0" {
+            if mode_lower != "disabled" && !mode_lower.is_empty() && mode_lower != "0" {
                 return AiExecutionReadinessCheck::fail(
                     "sidecar_write_boundary",
                     format!("FMS_AI_SIDECAR_WRITE_MODE='{mode}' is not disabled"),

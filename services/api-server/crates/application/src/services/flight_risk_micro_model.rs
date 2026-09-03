@@ -46,12 +46,12 @@ impl FlightRiskMicroModel {
             confidence_reasons.push(format!("risk ceiling set to {:?}", ceiling));
         }
 
-        let data_completeness = estimate_data_completeness(&input, &now);
+        let data_completeness = estimate_data_completeness(input, &now);
         if data_completeness < 0.5 {
             confidence_reasons.push("flight data may be incomplete".to_string());
         }
 
-        let data_freshness_score = estimate_data_freshness(&input, &now);
+        let data_freshness_score = estimate_data_freshness(input, &now);
         if data_freshness_score < 0.7 {
             confidence_reasons.push("flight data may be stale".to_string());
         }
@@ -247,7 +247,7 @@ impl FlightRiskMicroModel {
             reasons: confidence_reasons_internal,
         };
 
-        let proposals = self.generate_proposals(flight, &output, &input);
+        let proposals = self.generate_proposals(flight, &output, input);
         output.proposals = proposals;
 
         if !input.include_weather {
@@ -281,7 +281,7 @@ impl FlightRiskMicroModel {
                         "suggest_stand_adjustment",
                         format!(
                             "Critical risk flight {} at stand {} requires stand capacity review",
-                            flight.flight_number.as_deref().unwrap_or(&flight_id),
+                            flight.flight_number.as_deref().unwrap_or(flight_id),
                             stand
                         ),
                     )
@@ -298,7 +298,7 @@ impl FlightRiskMicroModel {
                     "escalate",
                     format!(
                         "Escalate critical risk flight {} to supervisor attention",
-                        flight.flight_number.as_deref().unwrap_or(&flight_id)
+                        flight.flight_number.as_deref().unwrap_or(flight_id)
                     ),
                 )
                 .with_object_id(flight_id.clone())
@@ -316,7 +316,7 @@ impl FlightRiskMicroModel {
                     "acknowledge",
                     format!(
                         "Flight {} has {} open anomaly(s) requiring review",
-                        flight.flight_number.as_deref().unwrap_or(&flight_id),
+                        flight.flight_number.as_deref().unwrap_or(flight_id),
                         anomaly_count
                     ),
                 )
@@ -333,7 +333,7 @@ impl FlightRiskMicroModel {
                     "add_note",
                     format!(
                         "Inform stakeholders about departure delay for flight {}",
-                        flight.flight_number.as_deref().unwrap_or(&flight_id)
+                        flight.flight_number.as_deref().unwrap_or(flight_id)
                     ),
                 )
                 .with_object_id(flight_id.clone())
@@ -397,8 +397,10 @@ fn is_vip_flight(flight: &FlightResponse) -> bool {
     match flight.direction.as_deref() {
         Some("inbound") => flight.inbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false),
         Some("outbound") => flight.outbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false),
-        _ => flight.inbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false)
-            || flight.outbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false),
+        _ => {
+            flight.inbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false)
+                || flight.outbound_leg.as_ref().map(|leg| leg.is_vip).unwrap_or(false)
+        }
     }
 }
 

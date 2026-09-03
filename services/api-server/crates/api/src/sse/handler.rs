@@ -386,7 +386,7 @@ fn normalize_topics(raw: Option<&str>) -> Result<Vec<String>, String> {
             continue;
         }
 
-        let is_static = STATIC_TOPICS.iter().any(|t| *t == topic);
+        let is_static = STATIC_TOPICS.contains(&topic);
         let is_prefix = PREFIX_TOPICS.iter().any(|prefix| topic.starts_with(*prefix));
 
         if !is_static && !is_prefix {

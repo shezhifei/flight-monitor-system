@@ -101,6 +101,7 @@ impl AiJobStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "pending" => Some(Self::Pending),
@@ -173,6 +174,7 @@ impl AiRunStatus {
         }
     }
 
+    #[expect(clippy::should_implement_trait)] // Option 语义解析器；FromStr 要求 Result，改 trait 属 API 重设计
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "pending" => Some(Self::Pending),

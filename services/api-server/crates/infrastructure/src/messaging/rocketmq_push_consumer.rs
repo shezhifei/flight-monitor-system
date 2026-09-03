@@ -13,10 +13,12 @@ use serde_json::Value;
 
 use crate::messaging::{MessageHandler, MessageQueueError, PushConsumer, SubscriberMessage};
 
+type Subscription = (String, String, Option<String>, Arc<dyn MessageHandler>);
+
 pub struct RocketMqPushConsumer {
     name_server_addr: String,
     inner: Mutex<Vec<DefaultMQPushConsumer>>,
-    handlers: Mutex<Vec<(String, String, Option<String>, Arc<dyn MessageHandler>)>>,
+    handlers: Mutex<Vec<Subscription>>,
 }
 
 impl RocketMqPushConsumer {

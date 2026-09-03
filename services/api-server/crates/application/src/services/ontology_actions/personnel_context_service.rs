@@ -5,9 +5,7 @@ use serde_json::{json, Value};
 use chrono::Utc;
 
 use fms_domain::models::dispatch::PersonnelStatus;
-use fms_domain::ports::dispatch_repository::{
-    PersonnelRuntimeRepository, QualificationGrantRepository,
-};
+use fms_domain::ports::dispatch_repository::{PersonnelRuntimeRepository, QualificationGrantRepository};
 use fms_domain::ports::user_repository::UserRepository;
 
 use super::error::{repo_err, OntologyActionError};

@@ -463,10 +463,7 @@ impl RollbackService {
                 receipt.object_type, receipt.action_name
             ))
         })?;
-        action_def
-            .compensation
-            .clone()
-            .ok_or_else(|| RollbackError::Irreversible)
+        action_def.compensation.clone().ok_or(RollbackError::Irreversible)
     }
 
     /// Approve a compensation plan. The caller is the rollback

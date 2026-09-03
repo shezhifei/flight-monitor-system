@@ -2,7 +2,7 @@
 //! 共享辅助函数在 `tests` 模块（`build_executor` / 种子函数）。
 
 use super::tests::{build_executor, create_pool, has_pool, insert_test_flight};
-use super::{DomainActionError};
+use super::DomainActionError;
 use serde_json::{json, Value};
 
 // ---------------------------------------------------------------------------
@@ -63,7 +63,13 @@ async fn test_terminal_add_stand_success() {
 
     let executor = build_executor(pool.clone()).await;
     let res = executor
-        .execute_approved_action("Terminal", "TM_EXEC_T", "add_stand", &json!({"stand_id": "ST_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Terminal",
+            "TM_EXEC_T",
+            "add_stand",
+            &json!({"stand_id": "ST_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(res.is_ok(), "expected Ok, got {:?}", res);
 
@@ -84,14 +90,22 @@ async fn test_terminal_remove_stand_success() {
     }
     let pool = create_pool().await;
     seed_terminal_member_fixtures(&pool).await;
-    sqlx::query("INSERT INTO terminal_stands (terminal_id, stand_id) VALUES ('TM_EXEC_T', 'ST_EXEC_1') ON CONFLICT DO NOTHING")
-        .execute(&pool)
-        .await
-        .expect("link stand");
+    sqlx::query(
+        "INSERT INTO terminal_stands (terminal_id, stand_id) VALUES ('TM_EXEC_T', 'ST_EXEC_1') ON CONFLICT DO NOTHING",
+    )
+    .execute(&pool)
+    .await
+    .expect("link stand");
 
     let executor = build_executor(pool.clone()).await;
     let res = executor
-        .execute_approved_action("Terminal", "TM_EXEC_T", "remove_stand", &json!({"stand_id": "ST_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Terminal",
+            "TM_EXEC_T",
+            "remove_stand",
+            &json!({"stand_id": "ST_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(res.is_ok(), "expected Ok, got {:?}", res);
 
@@ -111,10 +125,12 @@ async fn test_terminal_remove_stand_conflict_on_active_occupation() {
     }
     let pool = create_pool().await;
     seed_terminal_member_fixtures(&pool).await;
-    sqlx::query("INSERT INTO terminal_stands (terminal_id, stand_id) VALUES ('TM_EXEC_T', 'ST_EXEC_1') ON CONFLICT DO NOTHING")
-        .execute(&pool)
-        .await
-        .expect("link stand");
+    sqlx::query(
+        "INSERT INTO terminal_stands (terminal_id, stand_id) VALUES ('TM_EXEC_T', 'ST_EXEC_1') ON CONFLICT DO NOTHING",
+    )
+    .execute(&pool)
+    .await
+    .expect("link stand");
     insert_test_flight(&pool, "FL_EXEC_OCC").await;
     // stand_occupations.registration 外键到 aircraft，先补一行测试飞机。
     sqlx::query("INSERT INTO aircraft (registration) VALUES ('B-EXEC-OCC') ON CONFLICT (registration) DO NOTHING")
@@ -132,7 +148,13 @@ async fn test_terminal_remove_stand_conflict_on_active_occupation() {
 
     let executor = build_executor(pool.clone()).await;
     let res = executor
-        .execute_approved_action("Terminal", "TM_EXEC_T", "remove_stand", &json!({"stand_id": "ST_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Terminal",
+            "TM_EXEC_T",
+            "remove_stand",
+            &json!({"stand_id": "ST_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(
         matches!(res, Err(DomainActionError::Execution(ref msg)) if msg.contains("conflict")),
@@ -159,7 +181,14 @@ async fn test_terminal_member_actions_validation() {
     }
     let executor = build_executor(create_pool().await).await;
     // 缺成员 id，在触碰 DB 前即被参数校验拦截。
-    for action in ["add_stand", "remove_stand", "add_gate", "remove_gate", "add_carousel", "remove_carousel"] {
+    for action in [
+        "add_stand",
+        "remove_stand",
+        "add_gate",
+        "remove_gate",
+        "add_carousel",
+        "remove_carousel",
+    ] {
         let res = executor
             .execute_approved_action("Terminal", "TM_EXEC_T", action, &json!({}), "tester")
             .await;
@@ -204,16 +233,34 @@ async fn test_terminal_gate_carousel_member_roundtrip() {
     let executor = build_executor(pool.clone()).await;
 
     let res = executor
-        .execute_approved_action("Terminal", "TM_EXEC_T", "add_gate", &json!({"gate_id": "GT_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Terminal",
+            "TM_EXEC_T",
+            "add_gate",
+            &json!({"gate_id": "GT_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(res.is_ok(), "add_gate expected Ok, got {:?}", res);
     let res = executor
-        .execute_approved_action("Terminal", "TM_EXEC_T", "add_carousel", &json!({"carousel_id": "CR_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Terminal",
+            "TM_EXEC_T",
+            "add_carousel",
+            &json!({"carousel_id": "CR_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(res.is_ok(), "add_carousel expected Ok, got {:?}", res);
 
     let res = executor
-        .execute_approved_action("Terminal", "TM_EXEC_T", "remove_gate", &json!({"gate_id": "GT_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Terminal",
+            "TM_EXEC_T",
+            "remove_gate",
+            &json!({"gate_id": "GT_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(res.is_ok(), "remove_gate expected Ok, got {:?}", res);
     let res = executor
@@ -321,7 +368,11 @@ async fn test_equipment_assign_validation() {
             "tester",
         )
         .await;
-    assert!(matches!(res, Err(DomainActionError::Validation(_))), "missing slot_code must be Validation, got {:?}", res);
+    assert!(
+        matches!(res, Err(DomainActionError::Validation(_))),
+        "missing slot_code must be Validation, got {:?}",
+        res
+    );
 }
 
 #[tokio::test]
@@ -370,7 +421,11 @@ async fn test_equipment_assign_and_release_success() {
             .fetch_one(&pool)
             .await
             .expect("fetch equipment dispatch");
-    assert_eq!(current_dispatch.as_deref(), Some("DP_EXEC_EQ"), "assign must claim the equipment row");
+    assert_eq!(
+        current_dispatch.as_deref(),
+        Some("DP_EXEC_EQ"),
+        "assign must claim the equipment row"
+    );
     let status: String = sqlx::query_scalar("SELECT status FROM equipment WHERE id = 'EQ_EXEC_1'")
         .fetch_one(&pool)
         .await
@@ -398,7 +453,13 @@ async fn test_equipment_assign_and_release_success() {
 
     // release 不传 dispatch_order_id：按 equipment.current_dispatch_id 反查工单。
     let res = executor
-        .execute_approved_action("Equipment", "EQ_EXEC_1", "release", &json!({"equipment_id": "EQ_EXEC_1"}), "tester")
+        .execute_approved_action(
+            "Equipment",
+            "EQ_EXEC_1",
+            "release",
+            &json!({"equipment_id": "EQ_EXEC_1"}),
+            "tester",
+        )
         .await;
     assert!(res.is_ok(), "release expected Ok, got {:?}", res);
 
@@ -434,7 +495,13 @@ async fn test_equipment_release_without_assignment_validation() {
     seed_equipment_slot_fixtures(&pool, "DP_EXEC_EQ2", "EQ_EXEC_2", "EQX2").await;
     let executor = build_executor(pool).await;
     let res = executor
-        .execute_approved_action("Equipment", "EQ_EXEC_2", "release", &json!({"equipment_id": "EQ_EXEC_2"}), "tester")
+        .execute_approved_action(
+            "Equipment",
+            "EQ_EXEC_2",
+            "release",
+            &json!({"equipment_id": "EQ_EXEC_2"}),
+            "tester",
+        )
         .await;
     assert!(matches!(res, Err(DomainActionError::Validation(_))), "got {:?}", res);
 }

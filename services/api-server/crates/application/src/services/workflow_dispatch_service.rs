@@ -9,7 +9,7 @@ use tracing::warn;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::{
-    AssigneeType, DispatchLockLevel, DispatchOrder, DispatchOrderStatus, DispatchType, ScheduleSource,
+    DispatchLockLevel, DispatchOrder, DispatchOrderStatus, DispatchType, ScheduleSource,
 };
 use fms_domain::models::session_runtime::OnlineSessionStatus;
 use fms_domain::models::user::User;
@@ -438,7 +438,7 @@ impl<
         self.order_repo
             .find_by_id(&order.id, true, None)
             .await?
-            .ok_or_else(|| DomainError::NotFound {
+            .ok_or(DomainError::NotFound {
                 entity_type: "DispatchOrder",
                 id: order.id,
             })
@@ -655,7 +655,7 @@ impl<
         let users = self.find_active_department_users(department).await?;
         Ok(users
             .into_iter()
-            .filter(|user| is_supervisor(user))
+            .filter(is_supervisor)
             .map(|user| SupervisorCandidate { id: user.id })
             .collect())
     }
@@ -797,7 +797,7 @@ fn build_workflow_context(
     target_job_title: Option<String>,
     required_people: i32,
 ) -> serde_json::Value {
-    let mut context = serde_json::Map::from_iter(payload.context.clone().into_iter());
+    let mut context = serde_json::Map::from_iter(payload.context.clone());
     context.insert("stand_id".to_string(), option_to_value(payload.stand_id.clone()));
     context.insert(
         "priority".to_string(),

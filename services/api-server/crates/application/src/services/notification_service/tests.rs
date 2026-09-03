@@ -977,6 +977,9 @@ async fn unread_count_reuses_ttl_cache_until_mark_all_read() {
     assert_eq!(*repo.count_unread_calls.lock().expect("lock count"), 1);
 
     service.mark_all_read("user_001").await.expect("mark all");
-    let _ = service.get_unread_count("user_001").await.expect("count after invalidate");
+    let _ = service
+        .get_unread_count("user_001")
+        .await
+        .expect("count after invalidate");
     assert_eq!(*repo.count_unread_calls.lock().expect("lock count"), 2);
 }

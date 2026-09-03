@@ -784,26 +784,26 @@ fn extract_envelope_entity_id(envelope: &Value) -> Option<&str> {
 }
 
 fn derive_run_input_summary(run: &AiRun, input_envelope: &Value) -> RunInputCheckpointSummary {
-    let mut summary = RunInputCheckpointSummary::default();
-    summary.governance_hash = short_hash(&format!(
-        "{}|{}|{}",
-        run.job_id,
-        run.runtime_engine,
-        run.model_id.clone().unwrap_or_default()
-    ));
-    summary.tool_schema_hash = short_hash(&format!(
-        "{}:tools:{}",
-        run.job_id,
-        input_envelope.get("tools").map(|t| t.to_string()).unwrap_or_default()
-    ));
-    summary.model_id = run.model_id.clone();
-    summary.prompt_cache_key_hash = short_hash(
-        input_envelope
-            .get("prompt_cache_key")
-            .and_then(|v| v.as_str())
-            .unwrap_or(""),
-    );
-    summary
+    RunInputCheckpointSummary {
+        governance_hash: short_hash(&format!(
+            "{}|{}|{}",
+            run.job_id,
+            run.runtime_engine,
+            run.model_id.clone().unwrap_or_default()
+        )),
+        tool_schema_hash: short_hash(&format!(
+            "{}:tools:{}",
+            run.job_id,
+            input_envelope.get("tools").map(|t| t.to_string()).unwrap_or_default()
+        )),
+        model_id: run.model_id.clone(),
+        prompt_cache_key_hash: short_hash(
+            input_envelope
+                .get("prompt_cache_key")
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        ),
+    }
 }
 
 fn short_hash(input: &str) -> String {

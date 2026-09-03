@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourceManagerPath = resolve(
   __dirname,
-  '../../../backup/legacy-frontend-archive/html/resource_manager.html',
+  '../../../legacy/html/resource_manager.html',
 );
 
 interface LegacyWindow {

@@ -63,10 +63,7 @@ impl DepartmentQualificationRepository for PgDepartmentQualificationRepository {
         Ok(row_to_catalog(&row))
     }
 
-    async fn find_catalog_by_key(
-        &self,
-        key: &str,
-    ) -> Result<Option<DepartmentQualificationCatalog>, DomainError> {
+    async fn find_catalog_by_key(&self, key: &str) -> Result<Option<DepartmentQualificationCatalog>, DomainError> {
         let row = sqlx::query(
             r#"
             SELECT id, department_id, qualification_code, qualification_name, description, is_active, attributes, created_at, updated_at

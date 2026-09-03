@@ -3,7 +3,6 @@ use encoding_rs::GBK;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
 use quick_xml::Reader as XmlReader;
-use roxmltree::Document as XmlDocument;
 use std::io::{Cursor, Read};
 use std::path::Path;
 use zip::ZipArchive;

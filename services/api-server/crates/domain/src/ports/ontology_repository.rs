@@ -194,6 +194,8 @@ pub enum CarouselCreateOutcome {
 ///
 /// 以客户端 `client_action_id` 做幂等去重：首次落库返回 `Inserted`，
 /// 重复 token 返回 `Deduplicated(既有行)`（PR3 Open Questions §2）。
+// 瞬态结果枚举：StandOccupation 体积大但存活期极短；Box 化会改变公共 API。
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum StandCreateOutcome {
     Inserted,
@@ -271,11 +273,7 @@ pub trait OntologyTransactionalRepository<Tx>: Send + Sync {
 
     /// 事务内列出某航段所有 active 转盘的 code（用于重算展示列 `baggage_carousel`）。
     /// 必须在同一事务内读取，否则看不到本事务刚插入的分配。
-    async fn list_active_carousel_codes_in_tx(
-        &self,
-        tx: &mut Tx,
-        flight_id: &str,
-    ) -> Result<Vec<String>, DomainError>;
+    async fn list_active_carousel_codes_in_tx(&self, tx: &mut Tx, flight_id: &str) -> Result<Vec<String>, DomainError>;
 
     /// 建链接（自动/手工）
     async fn create_link_in_tx(&self, tx: &mut Tx, link: &TurnaroundLink) -> Result<(), DomainError>;

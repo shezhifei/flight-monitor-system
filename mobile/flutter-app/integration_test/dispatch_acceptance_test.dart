@@ -13,10 +13,17 @@ import 'package:flight_monitor/bridge/api/dispatch.dart';
 import 'package:flight_monitor/bridge/api/session.dart';
 import 'package:flight_monitor/bridge/frb_generated.dart';
 
+import 'support/acceptance_config.dart';
+
 /// 真机对拍：派工主链路 + token 恢复 + 列表/工作台/门禁/心跳。
 ///
-/// 后端：宿主机 API（`--dart-define=FMS_TEST_BASE_URL`，默认
-/// `http://10.0.2.2:8000`）。账号 admin/admin123。
+/// 手动验收，不在 CI 运行（`.github/workflows/mobile.yml` 仅跑 flutter
+/// test/analyze/build）：需真机 + 活后端，按验收 runbook 手动执行。
+///
+/// 后端与账号一律来自 `--dart-define`（见
+/// `integration_test/support/acceptance_config.dart`）：
+/// `FMS_TEST_BASE_URL`（默认 `http://10.0.2.2:8000`）、`FMS_TEST_USERNAME`、
+/// `FMS_TEST_PASSWORD`（默认沿用本地 seed 账号，便于离线复跑）。
 ///
 /// 动作链顺序：后端 `mobile_lifecycle.rs` 规定 checkout 只允许
 /// InProgress/Assigned，complete 要求 InProgress 且对已 Completed 幂等，
@@ -27,10 +34,7 @@ import 'package:flight_monitor/bridge/frb_generated.dart';
 /// 工单选择：登录后从 my/assigned 按状态优先级挑一张可继续推进的工单，
 /// 只执行剩余动作（重跑幂等）。
 
-const String kBaseUrl = String.fromEnvironment(
-  'FMS_TEST_BASE_URL',
-  defaultValue: 'http://10.0.2.2:8000',
-);
+const String kBaseUrl = kAcceptanceBaseUrl;
 
 /// 门禁复验用工单（completed 仍可拉 checklist）。
 const String kChecklistOrderId = '01KMAYZNHHWTYCSPSG9VPB4XCS';
@@ -210,12 +214,14 @@ Future<void> runRemainingChain(String orderId, String status) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  debugPrint(describeAcceptanceTarget());
+
   testWidgets('主链路对拍：登录→派工动作链全 Sent', (tester) async {
     await ensureRust();
     await initCoreForTest();
 
     // 登录 + bundle 留存（供后续 token 恢复用例）。
-    await login(username: 'admin', password: 'admin123');
+    await login(username: kAcceptanceUsername, password: kAcceptancePassword);
     savedBundle = await currentTokenBundle();
     expect(savedBundle, isNotNull, reason: '登录后应能取到 TokenBundle');
     expect(savedBundle!.sessionSecret, isNotEmpty,
@@ -251,7 +257,7 @@ void main() {
   testWidgets('列表/工作台/门禁/心跳全部走通', (tester) async {
     await ensureRust();
     await initCoreForTest();
-    await login(username: 'admin', password: 'admin123');
+    await login(username: kAcceptanceUsername, password: kAcceptancePassword);
 
     // Bug A 复验：my/assigned 真实拉取列表（DispatchScreen 列表数据源，
     // 修复前 404 等于页面列表是坏的）。

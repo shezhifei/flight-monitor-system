@@ -85,12 +85,8 @@ pub(crate) fn merge_cancel_request(
     query: Option<web::Query<DispatchOrderCancelQuery>>,
     body: Option<web::Json<DispatchOrderCancelRequest>>,
 ) -> DispatchOrderCancelRequest {
-    let mut dto = body
-        .map(web::Json::into_inner)
-        .unwrap_or_else(DispatchOrderCancelRequest::default);
-    let query = query
-        .map(web::Query::into_inner)
-        .unwrap_or_else(DispatchOrderCancelQuery::default);
+    let mut dto = body.map(web::Json::into_inner).unwrap_or_default();
+    let query = query.map(web::Query::into_inner).unwrap_or_default();
 
     if dto.reason.as_deref().map(str::trim).unwrap_or_default().is_empty() {
         dto.reason = query.reason;

@@ -143,8 +143,6 @@ pub async fn activate_entry(
     path: web::Path<CatalogEntryPath>,
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("dispatch:manage")?;
-    let saved = svc
-        .set_entry_active(&path.catalog_code, &path.entry_code, true)
-        .await?;
+    let saved = svc.set_entry_active(&path.catalog_code, &path.entry_code, true).await?;
     Ok(ok_resp(&req, saved))
 }

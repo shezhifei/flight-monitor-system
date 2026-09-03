@@ -5,14 +5,10 @@ use std::time::Instant;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
-use fms_domain::models::flight::Flight;
-use fms_domain::models::flight_leg::FlightTypeCode;
 use fms_domain::ports::dispatch_repository::CreateDispatchOrderCommand;
 
-use crate::schemas::dispatch_schemas::*;
-
 use super::helpers;
-use super::{DispatchService, GeneratedFlightDispatchRequest, PreparedWindowOrder, ReplanExecutionResult, NULL_VALUE};
+use super::DispatchService;
 
 fn ensure_publishable_draft_state(
     order_id: &str,
@@ -910,6 +906,7 @@ impl DispatchService {
     }
 
     /// 全局最优批量派工的 Rust 近似实现
+    #[allow(clippy::too_many_arguments)]
     pub async fn optimal_batch_dispatch(
         &self,
         flight_id: Option<&str>,
@@ -936,174 +933,169 @@ impl DispatchService {
             .filter(|value| !value.is_empty())
             .map(str::to_string)
             .collect::<HashSet<_>>();
-        match scope.trim() {
-            "window" => {
-                let window_start = window_start.ok_or_else(|| {
-                    DomainError::BusinessRuleViolation("window scope 需要 window_start/window_end".to_string())
-                })?;
-                let window_end = window_end.ok_or_else(|| {
-                    DomainError::BusinessRuleViolation("window scope 需要 window_start/window_end".to_string())
-                })?;
-                if window_end <= window_start {
-                    return Err(DomainError::BusinessRuleViolation(
-                        "window_end 必须晚于 window_start".to_string(),
-                    ));
-                }
-                let auto_freeze_before = Utc::now() + Duration::minutes(15);
+        if scope.trim() == "window" {
+            let window_start = window_start.ok_or_else(|| {
+                DomainError::BusinessRuleViolation("window scope 需要 window_start/window_end".to_string())
+            })?;
+            let window_end = window_end.ok_or_else(|| {
+                DomainError::BusinessRuleViolation("window scope 需要 window_start/window_end".to_string())
+            })?;
+            if window_end <= window_start {
+                return Err(DomainError::BusinessRuleViolation(
+                    "window_end 必须晚于 window_start".to_string(),
+                ));
+            }
+            let auto_freeze_before = Utc::now() + Duration::minutes(15);
 
-                let orders = self
-                    .order
-                    .order_repo
-                    .find_orders_in_window(
-                        window_start,
-                        window_end,
-                        &["pending", "assigned", "in_progress"],
-                        None,
-                        None,
-                        terminal,
-                        false,
+            let orders = self
+                .order
+                .order_repo
+                .find_orders_in_window(
+                    window_start,
+                    window_end,
+                    &["pending", "assigned", "in_progress"],
+                    None,
+                    None,
+                    terminal,
+                    false,
+                )
+                .await?;
+
+            let mut frozen_order_ids = Vec::new();
+            let mut frozen_orders = Vec::new();
+            let mut candidate_orders = Vec::new();
+            for order in &orders {
+                let order_id = order.id.trim();
+                if order_id.is_empty() {
+                    continue;
+                }
+                let is_frozen = explicit_frozen_ids.contains(order_id)
+                    || matches!(
+                        order.status,
+                        DispatchOrderStatus::InProgress
+                            | DispatchOrderStatus::Completed
+                            | DispatchOrderStatus::Cancelled
                     )
+                    || matches!(
+                        order.lock_level,
+                        DispatchLockLevel::Frozen | DispatchLockLevel::ManualLock
+                    )
+                    || order
+                        .planned_start_time
+                        .map(|planned_start_time| planned_start_time <= auto_freeze_before)
+                        .unwrap_or(false);
+                if is_frozen {
+                    frozen_order_ids.push(order_id.to_string());
+                    frozen_orders.push(order.clone());
+                } else {
+                    candidate_orders.push(order.clone());
+                }
+            }
+
+            let mut task_errors = serde_json::Map::new();
+            let mut prepared_orders = Vec::new();
+            for order in candidate_orders {
+                match self
+                    .prepare_window_candidate_order(&order, terminal, window_start)
+                    .await
+                {
+                    Ok(prepared) => prepared_orders.push(prepared),
+                    Err(DomainError::ValidationError(message)) | Err(DomainError::BusinessRuleViolation(message)) => {
+                        task_errors.insert(order.id.clone(), json!(message));
+                    }
+                    Err(error) => return Err(error),
+                }
+            }
+            prepared_orders.sort_by(|left, right| {
+                let (left_start, _) = Self::window_task_interval(&left.order, window_start);
+                let (right_start, _) = Self::window_task_interval(&right.order, window_start);
+                left_start
+                    .cmp(&right_start)
+                    .then_with(|| left.order.id.cmp(&right.order.id))
+            });
+
+            let mut bookings = HashMap::<String, Vec<(DateTime<Utc>, DateTime<Utc>)>>::new();
+            for frozen_order in &frozen_orders {
+                let (frozen_start, frozen_end) = Self::window_task_interval(frozen_order, window_start);
+                for user_id in Self::order_member_user_ids(frozen_order) {
+                    bookings.entry(user_id).or_default().push((frozen_start, frozen_end));
+                }
+            }
+            let mut order_rows = Vec::new();
+            let mut assigned_count = 0i64;
+            let mut unassigned_tasks = Vec::new();
+
+            for prepared in prepared_orders {
+                let (planned_start_time, planned_end_time) = Self::window_task_interval(&prepared.order, window_start);
+                let Some((assignment, assigned_user_ids, schedule_source, travel_time, total_distance_meters)) =
+                    self.assign_window_task(&prepared, &bookings, window_start).await?
+                else {
+                    unassigned_tasks.push(prepared.order.id.clone());
+                    continue;
+                };
+
+                let mut order = prepared.order.clone();
+                Self::apply_assignment_json(&mut order, Some(&assignment));
+                if matches!(order.status, DispatchOrderStatus::Pending) {
+                    order.status = DispatchOrderStatus::Assigned;
+                }
+                order.dispatched_at = order.dispatched_at.or(Some(Utc::now()));
+                order.dispatch_type = DispatchType::Auto;
+                order.schedule_source = schedule_source;
+                order.updated_at = Some(Utc::now());
+                self.order.order_repo.save(&order).await?;
+                self.sync_assignment_members(&order, &assignment).await?;
+                self.order
+                    .order_repo
+                    .replace_order_equipment_assignments(&order.id, &Self::assignment_equipment_ids(&assignment))
                     .await?;
 
-                let mut frozen_order_ids = Vec::new();
-                let mut frozen_orders = Vec::new();
-                let mut candidate_orders = Vec::new();
-                for order in &orders {
-                    let order_id = order.id.trim();
-                    if order_id.is_empty() {
-                        continue;
-                    }
-                    let is_frozen = explicit_frozen_ids.contains(order_id)
-                        || matches!(
-                            order.status,
-                            DispatchOrderStatus::InProgress
-                                | DispatchOrderStatus::Completed
-                                | DispatchOrderStatus::Cancelled
-                        )
-                        || matches!(
-                            order.lock_level,
-                            DispatchLockLevel::Frozen | DispatchLockLevel::ManualLock
-                        )
-                        || order
-                            .planned_start_time
-                            .map(|planned_start_time| planned_start_time <= auto_freeze_before)
-                            .unwrap_or(false);
-                    if is_frozen {
-                        frozen_order_ids.push(order_id.to_string());
-                        frozen_orders.push(order.clone());
-                    } else {
-                        candidate_orders.push(order.clone());
-                    }
+                for user_id in assigned_user_ids {
+                    bookings
+                        .entry(user_id)
+                        .or_default()
+                        .push((planned_start_time, planned_end_time));
                 }
-
-                let mut task_errors = serde_json::Map::new();
-                let mut prepared_orders = Vec::new();
-                for order in candidate_orders {
-                    match self
-                        .prepare_window_candidate_order(&order, terminal, window_start)
-                        .await
-                    {
-                        Ok(prepared) => prepared_orders.push(prepared),
-                        Err(DomainError::ValidationError(message))
-                        | Err(DomainError::BusinessRuleViolation(message)) => {
-                            task_errors.insert(order.id.clone(), json!(message));
-                        }
-                        Err(error) => return Err(error),
-                    }
-                }
-                prepared_orders.sort_by(|left, right| {
-                    let (left_start, _) = Self::window_task_interval(&left.order, window_start);
-                    let (right_start, _) = Self::window_task_interval(&right.order, window_start);
-                    left_start
-                        .cmp(&right_start)
-                        .then_with(|| left.order.id.cmp(&right.order.id))
-                });
-
-                let mut bookings = HashMap::<String, Vec<(DateTime<Utc>, DateTime<Utc>)>>::new();
-                for frozen_order in &frozen_orders {
-                    let (frozen_start, frozen_end) = Self::window_task_interval(frozen_order, window_start);
-                    for user_id in Self::order_member_user_ids(frozen_order) {
-                        bookings.entry(user_id).or_default().push((frozen_start, frozen_end));
-                    }
-                }
-                let mut order_rows = Vec::new();
-                let mut assigned_count = 0i64;
-                let mut unassigned_tasks = Vec::new();
-
-                for prepared in prepared_orders {
-                    let (planned_start_time, planned_end_time) =
-                        Self::window_task_interval(&prepared.order, window_start);
-                    let Some((assignment, assigned_user_ids, schedule_source, travel_time, total_distance_meters)) =
-                        self.assign_window_task(&prepared, &bookings, window_start).await?
-                    else {
-                        unassigned_tasks.push(prepared.order.id.clone());
-                        continue;
-                    };
-
-                    let mut order = prepared.order.clone();
-                    Self::apply_assignment_json(&mut order, Some(&assignment));
-                    if matches!(order.status, DispatchOrderStatus::Pending) {
-                        order.status = DispatchOrderStatus::Assigned;
-                    }
-                    order.dispatched_at = order.dispatched_at.or(Some(Utc::now()));
-                    order.dispatch_type = DispatchType::Auto;
-                    order.schedule_source = schedule_source;
-                    order.updated_at = Some(Utc::now());
-                    self.order.order_repo.save(&order).await?;
-                    self.sync_assignment_members(&order, &assignment).await?;
-                    self.order
-                        .order_repo
-                        .replace_order_equipment_assignments(&order.id, &Self::assignment_equipment_ids(&assignment))
-                        .await?;
-
-                    for user_id in assigned_user_ids {
-                        bookings
-                            .entry(user_id)
-                            .or_default()
-                            .push((planned_start_time, planned_end_time));
-                    }
-                    assigned_count += 1;
-                    order_rows.push(json!({
-                        "dispatch_order_id": order.id,
-                        "task_crew": order.task_crew,
-                        "equipment_assignment": order.equipment_assignment,
-                        "department_rule_version": order.department_rule_version,
-                        "crew_requirement_snapshot": order.crew_requirement_snapshot,
-                        "qualification_gap": order.qualification_gap,
-                        "equipment_gap": order.equipment_gap,
-                        "travel_time": travel_time,
-                        "total_distance_meters": total_distance_meters,
-                        "status": helpers::optimal_order_status(&order),
-                        "schedule_source": Self::schedule_source_text(order.schedule_source),
-                        "availability_reason": order.availability_reason,
-                        "score_breakdown": order.score_breakdown,
-                    }));
-                }
-
-                frozen_order_ids.sort();
-                frozen_order_ids.dedup();
-                unassigned_tasks.extend(task_errors.keys().cloned());
-                unassigned_tasks.sort();
-                unassigned_tasks.dedup();
-
-                return Ok(json!({
-                    "success": true,
-                    "scope": "window",
-                    "lock_policy": response_lock_policy,
-                    "is_optimal": unassigned_tasks.is_empty() && task_errors.is_empty(),
-                    "total_cost": (unassigned_tasks.len() as f64) * 1_000_000_000.0,
-                    "solver_time_ms": started_at.elapsed().as_secs_f64() * 1000.0,
-                    "assigned_count": assigned_count,
-                    "unassigned_count": unassigned_tasks.len(),
-                    "unassigned_tasks": unassigned_tasks,
-                    "task_errors": Value::Object(task_errors),
-                    "frozen_order_ids": frozen_order_ids,
-                    "orders": order_rows,
-                    "window_start": window_start.to_rfc3339(),
-                    "window_end": window_end.to_rfc3339(),
+                assigned_count += 1;
+                order_rows.push(json!({
+                    "dispatch_order_id": order.id,
+                    "task_crew": order.task_crew,
+                    "equipment_assignment": order.equipment_assignment,
+                    "department_rule_version": order.department_rule_version,
+                    "crew_requirement_snapshot": order.crew_requirement_snapshot,
+                    "qualification_gap": order.qualification_gap,
+                    "equipment_gap": order.equipment_gap,
+                    "travel_time": travel_time,
+                    "total_distance_meters": total_distance_meters,
+                    "status": helpers::optimal_order_status(&order),
+                    "schedule_source": Self::schedule_source_text(order.schedule_source),
+                    "availability_reason": order.availability_reason,
+                    "score_breakdown": order.score_breakdown,
                 }));
             }
-            _ => {}
+
+            frozen_order_ids.sort();
+            frozen_order_ids.dedup();
+            unassigned_tasks.extend(task_errors.keys().cloned());
+            unassigned_tasks.sort();
+            unassigned_tasks.dedup();
+
+            return Ok(json!({
+                "success": true,
+                "scope": "window",
+                "lock_policy": response_lock_policy,
+                "is_optimal": unassigned_tasks.is_empty() && task_errors.is_empty(),
+                "total_cost": (unassigned_tasks.len() as f64) * 1_000_000_000.0,
+                "solver_time_ms": started_at.elapsed().as_secs_f64() * 1000.0,
+                "assigned_count": assigned_count,
+                "unassigned_count": unassigned_tasks.len(),
+                "unassigned_tasks": unassigned_tasks,
+                "task_errors": Value::Object(task_errors),
+                "frozen_order_ids": frozen_order_ids,
+                "orders": order_rows,
+                "window_start": window_start.to_rfc3339(),
+                "window_end": window_end.to_rfc3339(),
+            }));
         }
 
         let flight_id = flight_id

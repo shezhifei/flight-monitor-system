@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use serde::Deserialize;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tokio::task::JoinHandle;
 
 use crate::schemas::llm_eval_schemas::EvalRunOptionsRequest;

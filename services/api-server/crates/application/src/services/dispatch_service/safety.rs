@@ -308,10 +308,7 @@ impl DispatchService {
             .iter()
             .filter(|item| item.get("source_type").and_then(Value::as_str) == Some("dispatch_soft_followup"))
             .count();
-        let items = items
-            .into_iter()
-            .take(limit.max(1).min(200) as usize)
-            .collect::<Vec<_>>();
+        let items = items.into_iter().take(limit.clamp(1, 200) as usize).collect::<Vec<_>>();
         Ok(json!({
             "generated_at": Utc::now(),
             "assignee": assignee.map(str::trim).filter(|value| !value.is_empty()),
@@ -371,44 +368,10 @@ impl DispatchService {
                 id: order_id.to_string(),
             })?;
 
-        {
-            let checklist_repo = self.resources.checklist_repo.as_ref();
-            let template = checklist_repo.get_template(&order.task_type).await?;
-            let records = checklist_repo.list_records(order_id).await?;
-            return Self::build_checklist_status(order_id, &order.task_type, template.as_ref(), &records);
-        }
-
-        let logs = self.order.order_repo.list_logs(order_id, 200).await?;
-        let checklist_items: Vec<&serde_json::Value> = logs
-            .iter()
-            .filter(|log| {
-                log.get("action")
-                    .and_then(|v| v.as_str())
-                    .map(|a| a == "safety_checklist_item")
-                    .unwrap_or(false)
-            })
-            .collect();
-
-        let total = checklist_items.len() as f64;
-        let checked = checklist_items
-            .iter()
-            .filter(|log| {
-                log.get("details")
-                    .and_then(|d| d.get("result"))
-                    .and_then(|r| r.as_str())
-                    .map(|r| r == "pass" || r == "ok")
-                    .unwrap_or(false)
-            })
-            .count() as f64;
-        let progress = if total > 0.0 { checked / total } else { 0.0 };
-
-        Ok(serde_json::json!({
-            "order_id": order_id,
-            "items": checklist_items,
-            "progress": progress,
-            "total": total as i64,
-            "checked": checked as i64,
-        }))
+        let checklist_repo = self.resources.checklist_repo.as_ref();
+        let template = checklist_repo.get_template(&order.task_type).await?;
+        let records = checklist_repo.list_records(order_id).await?;
+        Self::build_checklist_status(order_id, &order.task_type, template.as_ref(), &records)
     }
 
     /// 更新安全检查清单模板
@@ -459,79 +422,43 @@ impl DispatchService {
             }
         }
 
-        {
-            let checklist_repo = self.resources.checklist_repo.as_ref();
-            let empty_array = serde_json::Value::Array(vec![]);
-            let zero = serde_json::Value::from(0);
-            let true_val = serde_json::Value::Bool(true);
-            let false_val = serde_json::Value::Bool(false);
-            let mut results = Vec::new();
-            for (order_id, task_type) in &normalized_items {
-                let template = checklist_repo.get_template(task_type).await?;
-                let records = checklist_repo.list_records(order_id).await?;
-                let status = Self::build_checklist_status(order_id, task_type, template.as_ref(), &records)?;
-                let pending_required_count = status
-                    .get("pending_required_items")
-                    .and_then(|v| v.as_array())
-                    .map(|items| items.len())
-                    .unwrap_or(0);
-                let failed_required_count = status
-                    .get("failed_required_items")
-                    .and_then(|v| v.as_array())
-                    .map(|items| items.len())
-                    .unwrap_or(0);
-
-                results.push(serde_json::json!({
-                    "dispatch_order_id": order_id,
-                    "task_type": task_type,
-                    "enforced": status.get("enforced").unwrap_or(&false_val),
-                    "ready": status.get("ready").unwrap_or(&true_val),
-                    "required_total": status.get("required_total").unwrap_or(&zero),
-                    "completed_required": status.get("completed_required").unwrap_or(&zero),
-                    "pending_required_count": pending_required_count,
-                    "failed_required_count": failed_required_count,
-                    "template_version": status.get("template_version").unwrap_or(&NULL_VALUE),
-                    "blocking_issues": status.get("blocking_issues").unwrap_or(&empty_array),
-                    "soft_missing_count": status.get("soft_missing_count").unwrap_or(&zero),
-                    "can_soft_complete": status.get("can_soft_complete").unwrap_or(&true_val),
-                    "routine_total": status.get("routine_total").unwrap_or(&zero),
-                    "completed_routine": status.get("completed_routine").unwrap_or(&zero),
-                }));
-            }
-
-            return Ok(serde_json::json!({
-                "items": results,
-                "total": normalized_items.len(),
-            }));
-        }
-
+        let checklist_repo = self.resources.checklist_repo.as_ref();
+        let empty_array = serde_json::Value::Array(vec![]);
+        let zero = serde_json::Value::from(0);
+        let true_val = serde_json::Value::Bool(true);
+        let false_val = serde_json::Value::Bool(false);
         let mut results = Vec::new();
         for (order_id, task_type) in &normalized_items {
-            match self.get_order_safety_checklist(order_id).await {
-                Ok(checklist) => {
-                    let total = checklist.get("total").and_then(|v| v.as_i64()).unwrap_or(0);
-                    let checked = checklist.get("checked").and_then(|v| v.as_i64()).unwrap_or(0);
-                    let progress = checklist.get("progress").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                    results.push(serde_json::json!({
-                        "dispatch_order_id": order_id,
-                        "task_type": task_type,
-                        "progress": progress,
-                        "total_items": total,
-                        "checked_items": checked,
-                        "can_complete": total > 0 && checked >= total,
-                    }));
-                }
-                Err(_) => {
-                    results.push(serde_json::json!({
-                        "dispatch_order_id": order_id,
-                        "task_type": task_type,
-                        "progress": 0.0,
-                        "total_items": 0,
-                        "checked_items": 0,
-                        "can_complete": false,
-                    }));
-                }
-            }
+            let template = checklist_repo.get_template(task_type).await?;
+            let records = checklist_repo.list_records(order_id).await?;
+            let status = Self::build_checklist_status(order_id, task_type, template.as_ref(), &records)?;
+            let pending_required_count = status
+                .get("pending_required_items")
+                .and_then(|v| v.as_array())
+                .map(|items| items.len())
+                .unwrap_or(0);
+            let failed_required_count = status
+                .get("failed_required_items")
+                .and_then(|v| v.as_array())
+                .map(|items| items.len())
+                .unwrap_or(0);
+
+            results.push(serde_json::json!({
+                "dispatch_order_id": order_id,
+                "task_type": task_type,
+                "enforced": status.get("enforced").unwrap_or(&false_val),
+                "ready": status.get("ready").unwrap_or(&true_val),
+                "required_total": status.get("required_total").unwrap_or(&zero),
+                "completed_required": status.get("completed_required").unwrap_or(&zero),
+                "pending_required_count": pending_required_count,
+                "failed_required_count": failed_required_count,
+                "template_version": status.get("template_version").unwrap_or(&NULL_VALUE),
+                "blocking_issues": status.get("blocking_issues").unwrap_or(&empty_array),
+                "soft_missing_count": status.get("soft_missing_count").unwrap_or(&zero),
+                "can_soft_complete": status.get("can_soft_complete").unwrap_or(&true_val),
+                "routine_total": status.get("routine_total").unwrap_or(&zero),
+                "completed_routine": status.get("completed_routine").unwrap_or(&zero),
+            }));
         }
 
         Ok(serde_json::json!({

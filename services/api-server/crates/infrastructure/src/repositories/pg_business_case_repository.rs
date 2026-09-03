@@ -1295,9 +1295,7 @@ fn business_case_log_to_text_array(log: &[serde_json::Value]) -> Vec<String> {
 
 fn business_case_log_from_text_array(log: Vec<String>) -> Vec<serde_json::Value> {
     log.into_iter()
-        .map(|entry| {
-            serde_json::from_str::<serde_json::Value>(&entry).unwrap_or_else(|_| serde_json::Value::String(entry))
-        })
+        .map(|entry| serde_json::from_str::<serde_json::Value>(&entry).unwrap_or(serde_json::Value::String(entry)))
         .collect()
 }
 

@@ -92,7 +92,12 @@ impl Config {
                 "--anti-replay-secret" => config.anti_replay_secret = Some(value),
                 "--flight-id" => config.flight_ids.push(value),
                 "--flight-ids" => {
-                    config.flight_ids.extend(value.split(',').map(|item| item.trim().to_string()).filter(|item| !item.is_empty()));
+                    config.flight_ids.extend(
+                        value
+                            .split(',')
+                            .map(|item| item.trim().to_string())
+                            .filter(|item| !item.is_empty()),
+                    );
                 }
                 "--concurrency" => config.concurrency = parse_arg(&arg, &value),
                 "--duration-sec" => config.duration_secs = parse_arg(&arg, &value),
@@ -134,12 +139,40 @@ fn builtin_scenario() -> ScenarioFile {
     ScenarioFile {
         name: "airport_ops".to_string(),
         endpoints: vec![
-            ep("flights_list", "GET", "/api/v2/flights?page=1&page_size=20", 48, true, None),
-            ep("monitor_rows", "GET", "/api/v2/flights/monitor-rows?page=1&page_size=20", 10, true, None),
+            ep(
+                "flights_list",
+                "GET",
+                "/api/v2/flights?page=1&page_size=20",
+                48,
+                true,
+                None,
+            ),
+            ep(
+                "monitor_rows",
+                "GET",
+                "/api/v2/flights/monitor-rows?page=1&page_size=20",
+                10,
+                true,
+                None,
+            ),
             ep("auth_me", "GET", "/api/v2/auth/me", 8, true, None),
-            ep("notifications_unread", "GET", "/api/v2/notifications/unread-count", 8, true, None),
+            ep(
+                "notifications_unread",
+                "GET",
+                "/api/v2/notifications/unread-count",
+                8,
+                true,
+                None,
+            ),
             ep("todos_list", "GET", "/api/v2/todos?page=1&size=20", 6, true, None),
-            ep("dispatch_orders", "GET", "/api/v2/dispatch-orders?page=1&page_size=20", 5, true, None),
+            ep(
+                "dispatch_orders",
+                "GET",
+                "/api/v2/dispatch-orders?page=1&page_size=20",
+                5,
+                true,
+                None,
+            ),
             ep("health_ping", "GET", "/api/v2/health/ping", 5, false, None),
             ep(
                 "todo_create",
@@ -231,7 +264,7 @@ struct EndpointSummary {
 async fn main() {
     let config = Config::from_args();
     let scenario = load_scenario(config.scenario_path.as_deref());
-    let mut endpoints: Vec<EndpointRuntime> = scenario
+    let endpoints: Vec<EndpointRuntime> = scenario
         .endpoints
         .into_iter()
         .filter(|endpoint| endpoint.weight > 0)
@@ -241,7 +274,8 @@ async fn main() {
                 std::process::exit(2);
             });
             EndpointRuntime {
-                needs_flight: endpoint.path.contains("{flight_id}") || endpoint.body.as_deref().unwrap_or("").contains("{flight_id}"),
+                needs_flight: endpoint.path.contains("{flight_id}")
+                    || endpoint.body.as_deref().unwrap_or("").contains("{flight_id}"),
                 name: endpoint.name,
                 method,
                 path: endpoint.path,
@@ -352,7 +386,10 @@ async fn main() {
                     String::new()
                 };
                 let path = substitute(&endpoint.path, seq, &flight_id);
-                let body = endpoint.body.as_ref().map(|template| substitute(template, seq, &flight_id));
+                let body = endpoint
+                    .body
+                    .as_ref()
+                    .map(|template| substitute(template, seq, &flight_id));
                 let url = format!("{base_url}{path}");
                 let request_started = Instant::now();
                 let mut request = client.request(endpoint.method.clone(), &url);

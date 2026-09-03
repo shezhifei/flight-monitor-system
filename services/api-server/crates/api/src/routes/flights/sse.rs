@@ -11,6 +11,7 @@ use tokio::sync::broadcast;
 
 use crate::sse::hub::{SseHub, SseMessage};
 
+#[allow(dead_code)]
 pub async fn broadcast_flight_event(hub: &Arc<SseHub>, event: &str, payload: Value, status_changed: bool) {
     if status_changed {
         let _ = hub.broadcast_event("flights", Some(event), payload.clone()).await;
@@ -109,6 +110,7 @@ pub fn websocket_payload(message: &SseMessage, fallback_event: &str) -> Option<(
     Some((event_type, payload, payload_json))
 }
 
+#[allow(dead_code)]
 pub fn sse_payload_bytes(event: &str, data: &str) -> web::Bytes {
     let mut payload = Vec::with_capacity("event: \ndata: \n\n".len() + event.len() + data.len());
     payload.extend_from_slice(b"event: ");
@@ -119,6 +121,7 @@ pub fn sse_payload_bytes(event: &str, data: &str) -> web::Bytes {
     web::Bytes::from(payload)
 }
 
+#[allow(dead_code)]
 pub fn heartbeat_sse_payload_bytes() -> web::Bytes {
     let timestamp = unix_timestamp_value();
     let timestamp = timestamp.to_string();

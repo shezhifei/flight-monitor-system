@@ -579,7 +579,7 @@ fn sort_and_limit_updates(items: Vec<Value>, limit: usize) -> Vec<Value> {
         dedup.entry(key).or_insert(item);
     }
     let mut values = dedup.into_values().collect::<Vec<_>>();
-    values.sort_by(|left, right| timestamp_from_value(right).cmp(&timestamp_from_value(left)));
+    values.sort_by_key(|left| std::cmp::Reverse(timestamp_from_value(left)));
     if limit == usize::MAX {
         return values;
     }

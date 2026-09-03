@@ -2,9 +2,9 @@ use std::sync::atomic::Ordering;
 
 use serde_json::{json, Map, Value};
 
-use super::case_loader::{round_f64, value_f64, value_str};
+use super::case_loader::round_f64;
 use super::service::LLMEvalService;
-use super::types::{EvalCaseDefinition, EvalJob, EvalProfileSnapshot};
+use super::types::{EvalCaseDefinition, EvalJob};
 
 impl LLMEvalService {
     pub(crate) fn job_snapshot(&self, job: &EvalJob, include_profiles: bool) -> Value {

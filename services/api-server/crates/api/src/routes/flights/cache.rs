@@ -37,7 +37,7 @@ pub fn should_emit_perf_trace(counter: &AtomicU64) -> bool {
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value > 0)
         .unwrap_or(1000);
-    counter.fetch_add(1, Ordering::Relaxed) % sample_rate == 0
+    counter.fetch_add(1, Ordering::Relaxed).is_multiple_of(sample_rate)
 }
 
 pub fn request_wants_protobuf(req: &HttpRequest) -> bool {
@@ -65,6 +65,7 @@ pub fn invalidate_flight_list_response_cache_now() {
     FLIGHT_LIST_RESPONSE_CACHE.store(None);
 }
 
+#[allow(dead_code)]
 pub async fn invalidate_flight_list_response_and_publish(
     cache_invalidation: Option<&fms_application::services::cache_invalidation_service::CacheInvalidationService>,
     flight_id: Option<&str>,
@@ -117,6 +118,7 @@ pub fn json_body_response(body: web::Bytes) -> HttpResponse {
         .body(body)
 }
 
+#[allow(dead_code)]
 pub fn trace_counter() -> &'static AtomicU64 {
     &FLIGHT_LIST_TRACE_COUNTER
 }

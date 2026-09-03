@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>派工资源管理 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/admin-layout.css">
+    <link rel="stylesheet" href="/frontend/css/admin-page.css">
+    <script src="/frontend/js/auth.js"></script>
+    <style>
+        /* --- 页面特定样式 --- */
+        .section-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-content.active {
+            display: flex;
+        }
+
+        .section-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* 增加选择器权重以确保覆盖，兼容所有 Tab */
+        .search-group,
+        .filter-group .search-group {
+            position: relative;
+            width: 320px !important;
+            min-width: 320px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .search-icon,
+        .filter-group .search-icon {
+            position: absolute;
+            left: 14px !important;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100 !important;
+        }
+
+        .search-icon .svg-icon,
+        .filter-group .search-icon .svg-icon {
+            width: 18px !important;
+            height: 18px !important;
+            opacity: 0.5;
+        }
+
+        .search-group:focus-within .search-icon .svg-icon {
+            opacity: 0.9;
+            color: var(--system-blue);
+        }
+
+        .search-input,
+        .filter-group .search-input {
+            width: 100%;
+            padding: 9px 14px 9px 48px !important;
+            border: 1px solid var(--border-light, #e5e5e5);
+            border-radius: 8px;
+            font-size: 13px;
+            background: #F5F7FA !important;
+            /* 默认浅灰色背景 */
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-tertiary, #999);
+        }
+
+        .search-input:hover {
+            border-color: var(--border-medium, #c8c8cc);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: #fff !important;
+            /* 聚焦时变白 */
+            border-color: var(--system-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .filter-select {
+            padding: 9px 28px 9px 12px;
+            border: 1px solid var(--border-light, #e5e5e5);
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fff;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        .filter-select:hover {
+            border-color: var(--border-medium, #c8c8cc);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--system-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #fff;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value.blue {
+            color: var(--system-blue);
+        }
+
+        .stat-value.green {
+            color: var(--system-green);
+        }
+
+        .stat-value.orange {
+            color: var(--system-orange);
+        }
+
+        .stat-value.red {
+            color: var(--system-red);
+        }
+
+        /* SVG 图标统一样式 */
+        .svg-icon {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+        }
+
+        .svg-icon-sm {
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        .svg-icon-lg {
+            width: 32px;
+            height: 32px;
+            vertical-align: middle;
+        }
+
+        /* 表格 */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            flex: 1;
+        }
+
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-container th,
+        .table-container td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .table-container th {
+            background: var(--system-gray6);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .table-container tr:hover {
+            background: rgba(0, 122, 255, 0.03);
+        }
+
+        /* 状态徽章 */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-on-duty,
+        .badge-available {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--system-green);
+        }
+
+        .badge-off-duty,
+        .badge-retired {
+            background: rgba(142, 142, 147, 0.15);
+            color: var(--system-gray);
+        }
+
+        .badge-break,
+        .badge-maintenance {
+            background: rgba(255, 149, 0, 0.15);
+            color: var(--system-orange);
+        }
+
+        .badge-in-use {
+            background: rgba(0, 122, 255, 0.15);
+            color: var(--system-blue);
+        }
+
+        .badge-info {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--system-blue);
+        }
+
+        /* 班组类型颜色指示 */
+        .team-type-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* 设备图标 */
+        .equipment-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--system-gray6);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 12px;
+        }
+
+        .equipment-info {
+            display: flex;
+            align-items: center;
+        }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--system-blue);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #0066cc;
+        }
+
+        .btn-secondary {
+            background: rgba(60, 60, 67, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-icon {
+            padding: 6px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 12px 0;
+        }
+
+        .pagination-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 模态框 */
+        :root {
+            --modal-drawer-width: 520px;
+            --modal-drawer-shadow: -14px 0 28px rgba(15, 23, 42, 0.16);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            display: none;
+            z-index: 2000;
+            box-sizing: border-box;
+            padding: 0;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-end;
+        }
+
+        .modal-overlay>.modal {
+            display: block;
+            position: absolute;
+            z-index: 1;
+            left: auto;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            inset: auto;
+            margin: 0;
+            height: 100vh;
+            min-height: 0;
+            backdrop-filter: none;
+            background: #fff;
+            border-radius: 0;
+            border-left: 1px solid var(--border-light);
+            width: min(var(--modal-drawer-width), 100vw);
+            max-width: 100vw;
+            max-height: 100vh;
+            overflow: hidden;
+            box-shadow: var(--modal-drawer-shadow);
+            animation: modalIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 1024px) {
+            .modal-overlay>.modal {
+                width: 100vw;
+                border-left: none;
+            }
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: translateX(42px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 24px;
+            flex: 1;
+            min-height: 0;
+            max-height: none;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-light);
+            background: var(--system-gray6);
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--system-blue);
+            box-shadow: 0 0 0 3px var(--system-blue-subtle);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-light);
+            border-top-color: var(--system-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 标准 Admin 布局容器 -->
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="/frontend/icons/plane.svg" class="svg-icon">
+                    <span>航班监控系统</span>
+                </div>
+                <div class="sidebar-subtitle">派工资源与班组设备配置统一入口。</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">班组</div>
+                    <a href="#" class="nav-item active" data-section="teams">
+                        <span class="nav-item-icon"><img src="/frontend/icons/users.svg" class="svg-icon"></span>
+                        <span>班组管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="team-types">
+                        <span class="nav-item-icon"><img src="/frontend/icons/detail.svg" class="svg-icon"></span>
+                        <span>班组类型</span>
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">设备</div>
+                    <a href="#" class="nav-item" data-section="equipment">
+                        <span class="nav-item-icon"><img src="/frontend/icons/plane.svg" class="svg-icon"></span>
+                        <span>设备管理</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="equipment-types">
+                        <span class="nav-item-icon"><img src="/frontend/icons/settings.svg" class="svg-icon"></span>
+                        <span>设备类型</span>
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">系统</div>
+                    <a href="/frontend/html/user_manager.html" class="nav-item">
+                        <span class="nav-item-icon"><img src="/frontend/icons/users.svg" class="svg-icon"></span>
+                        <span>用户管理</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">加载中...</div>
+                        <div class="user-role" id="userRole">管理员</div>
+                    </div>
+                </div>
+                <div class="sidebar-footer-actions">
+                    <button class="logout-btn" onclick="logout()" title="退出">
+                        <img src="/frontend/icons/logout.svg" class="svg-icon-sm">
+                    </button>
+                    <a href="/frontend/html/dashboard.html" class="nav-item sidebar-home-link">
+                        <span class="nav-item-icon"><img src="/frontend/icons/home.svg" class="svg-icon"></span>
+                        <span>返回工作台</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- ========== 班组管理 ========== -->
+            <section id="teams-section" class="section-content active">
+                <div class="content-header">
+                    <div class="content-heading">
+                        <div class="content-title">班组管理</div>
+                        <div class="content-subtitle">维护班组、成员状态与当前作业位置。</div>
+                    </div>
+                    <div class="header-actions">
+                        <span class="content-meta">管理所有班组及其成员</span>
+                    </div>
+                </div>
+
+                <div class="content-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">班组总数</div>
+                            <div class="stat-value blue" id="team-stat-total">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">在岗班组</div>
+                            <div class="stat-value green" id="team-stat-on-duty">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">班组成员</div>
+                            <div class="stat-value orange" id="team-stat-members">-</div>
+                        </div>
+                    </div>
+
+                    <div class="section-toolbar">
+                        <div class="filter-group">
+                            <div class="search-group">
+                                <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"></span>
+                                <input type="text" id="team-search" class="search-input" placeholder="搜索班组...">
+                            </div>
+                            <select id="team-filter-type" class="filter-select">
+                                <option value="">全部类型</option>
+                            </select>
+                            <select id="team-filter-status" class="filter-select">
+                                <option value="">全部状态</option>
+                                <option value="on_duty">在岗</option>
+                                <option value="off_duty">离岗</option>
+                                <option value="break">休息</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="showCreateTeamModal()">
+                            <span><img src="/frontend/icons/add.svg" class="svg-icon-sm"></span> 新建班组
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>班组名称</th>
+                                    <th>类型</th>
+                                    <th>班组长</th>
+                                    <th>成员</th>
+                                    <th>状态</th>
+                                    <th>当前位置</th>
+                                    <th style="text-align: right;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teams-table-body">
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <div class="loading-spinner"></div>
+                                        <p>加载中...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <div class="pagination-info" id="teams-pagination-info">显示 0 条</div>
+                        <div class="pagination-controls">
+                            <button class="btn btn-secondary btn-sm" id="team-btn-prev" disabled>上一页</button>
+                            <button class="btn btn-secondary btn-sm" id="team-btn-next" disabled>下一页</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========== 班组类型 ========== -->
+            <section id="team-types-section" class="section-content">
+                <div class="content-header">
+                    <div class="content-heading">
+                        <div class="content-title">班组类型</div>
+                        <div class="content-subtitle">定义班组类型及其支持的保障作业能力。</div>
+                    </div>
+                    <div class="header-actions">
+                        <span class="content-meta">管理班组类型及其可保障的作业类型</span>
+                    </div>
+                </div>
+
+                <div class="content-body">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"></span>
+                            <input type="text" id="team-type-search" class="search-input" placeholder="搜索类型...">
+                        </div>
+                        <button class="btn btn-primary" onclick="showCreateTeamTypeModal()">
+                            <span><img src="/frontend/icons/add.svg" class="svg-icon-sm"></span> 新建类型
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>类型名称</th>
+                                    <th>代码</th>
+                                    <th>可作业类型</th>
+                                    <th>班组数量</th>
+                                    <th style="text-align: right;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="team-types-table-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">
+                                        <div class="loading-spinner"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========== 设备管理 ========== -->
+            <section id="equipment-section" class="section-content">
+                <div class="content-header">
+                    <div class="content-heading">
+                        <div class="content-title">设备管理</div>
+                        <div class="content-subtitle">统一管理机坪保障设备、状态与当前位置。</div>
+                    </div>
+                    <div class="header-actions">
+                        <span class="content-meta">管理所有机坪保障设备</span>
+                    </div>
+                </div>
+
+                <div class="content-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">设备总数</div>
+                            <div class="stat-value blue" id="equip-stat-total">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">可用设备</div>
+                            <div class="stat-value green" id="equip-stat-available">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">使用中</div>
+                            <div class="stat-value orange" id="equip-stat-in-use">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">维护中</div>
+                            <div class="stat-value red" id="equip-stat-maintenance">-</div>
+                        </div>
+                    </div>
+
+                    <div class="section-toolbar">
+                        <div class="filter-group">
+                            <div class="search-group">
+                                <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"></span>
+                                <input type="text" id="equipment-search" class="search-input" placeholder="搜索设备编号...">
+                            </div>
+                            <select id="equip-filter-type" class="filter-select">
+                                <option value="">全部类型</option>
+                            </select>
+                            <select id="equip-filter-status" class="filter-select">
+                                <option value="">全部状态</option>
+                                <option value="available">可用</option>
+                                <option value="in_use">使用中</option>
+                                <option value="maintenance">维护中</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="showCreateEquipmentModal()">
+                            <span><img src="/frontend/icons/add.svg" class="svg-icon-sm"></span> 添加设备
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>设备</th>
+                                    <th>类型</th>
+                                    <th>车牌号</th>
+                                    <th>状态</th>
+                                    <th>当前位置</th>
+                                    <th>下次保养</th>
+                                    <th style="text-align: right;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="equipment-table-body">
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <div class="loading-spinner"></div>
+                                        <p>加载中...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <div class="pagination-info" id="equipment-pagination-info">显示 0 条</div>
+                        <div class="pagination-controls">
+                            <button class="btn btn-secondary btn-sm" id="equip-btn-prev" disabled>上一页</button>
+                            <button class="btn btn-secondary btn-sm" id="equip-btn-next" disabled>下一页</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========== 设备类型 ========== -->
+            <section id="equipment-types-section" class="section-content">
+                <div class="content-header">
+                    <div class="content-heading">
+                        <div class="content-title">设备类型</div>
+                        <div class="content-subtitle">配置设备类型及其需求能力、编码与规格。</div>
+                    </div>
+                    <div class="header-actions">
+                        <span class="content-meta">管理设备类型及其需求配置</span>
+                    </div>
+                </div>
+
+                <div class="content-body">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"></span>
+                            <input type="text" id="equip-type-search" class="search-input" placeholder="搜索类型...">
+                        </div>
+                        <button class="btn btn-primary" onclick="showCreateEquipTypeModal()">
+                            <span><img src="/frontend/icons/add.svg" class="svg-icon-sm"></span> 新建类型
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>类型名称</th>
+                                    <th>代码</th>
+                                    <th>分类</th>
+                                    <th>需要司机</th>
+                                    <th>设备数量</th>
+                                    <th style="text-align: right;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="equip-types-table-body">
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        <div class="loading-spinner"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ========== 班组模态框 ========== -->
+    <div class="modal-overlay" id="team-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="team-modal-title">新建班组</h2>
+                <button class="modal-close" onclick="closeTeamModal()"><img src="/frontend/icons/cancel.svg"
+                        style="width:16px;height:16px;"></button>
+            </div>
+            <div class="modal-body">
+                <form id="team-form">
+                    <input type="hidden" id="team-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">班组名称 *</label>
+                            <input type="text" id="team-name" class="form-input" required placeholder="如: A组">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">班组代码</label>
+                            <input type="text" id="team-code" class="form-input" placeholder="如: TEAM-A">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">班组类型 *</label>
+                            <select id="team-type-id" class="form-select" required>
+                                <option value="">请选择类型</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">航站楼</label>
+                            <select id="team-terminal" class="form-select">
+                                <option value="">全部</option>
+                                <option value="T1">T1</option>
+                                <option value="T2">T2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">班组长</label>
+                        <select id="team-leader-id" class="form-select">
+                            <option value="">请选择班组长</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTeamModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTeam()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成员管理模态框 -->
+    <div class="modal-overlay" id="members-modal">
+        <div class="modal" style="max-width: 640px;">
+            <div class="modal-header">
+                <h2 class="modal-title">成员管理 - <span id="members-team-name"></span></h2>
+                <button class="modal-close" onclick="closeMembersModal()"><img src="/frontend/icons/cancel.svg"
+                        style="width:16px;height:16px;"></button>
+            </div>
+            <div class="modal-body">
+                <div class="section-toolbar" style="margin-bottom: 16px;">
+                    <select id="add-member-select" class="form-select" style="flex: 1;">
+                        <option value="">选择用户添加...</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="addMember()">添加</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>角色</th>
+                                <th>可驾驶</th>
+                                <th style="text-align: right;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="members-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeMembersModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 设备模态框 ========== -->
+    <div class="modal-overlay" id="equipment-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="equipment-modal-title">添加设备</h2>
+                <button class="modal-close" onclick="closeEquipmentModal()"><img src="/frontend/icons/cancel.svg"
+                        style="width:16px;height:16px;"></button>
+            </div>
+            <div class="modal-body">
+                <form id="equipment-form">
+                    <input type="hidden" id="equipment-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">设备编号 *</label>
+                            <input type="text" id="equipment-code" class="form-input" required placeholder="如: TUG-001">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">设备名称</label>
+                            <input type="text" id="equipment-name" class="form-input" placeholder="可选">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">设备类型 *</label>
+                            <select id="equipment-type-id" class="form-select" required>
+                                <option value="">请选择类型</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">车牌号</label>
+                            <input type="text" id="equipment-plate" class="form-input" placeholder="如: 粤A12345">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">航站楼</label>
+                            <select id="equipment-terminal" class="form-select">
+                                <option value="">全部</option>
+                                <option value="T1">T1</option>
+                                <option value="T2">T2</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">状态</label>
+                            <select id="equipment-status" class="form-select">
+                                <option value="available">可用</option>
+                                <option value="maintenance">维护中</option>
+                                <option value="retired">已报废</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">下次保养日期</label>
+                        <input type="date" id="equipment-next-maintenance" class="form-input">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEquipmentModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveEquipment()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 班组类型模态框 ========== -->
+    <div class="modal-overlay" id="team-type-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">新建班组类型</h2>
+                <button class="modal-close" onclick="closeTeamTypeModal()"><img src="/frontend/icons/cancel.svg"
+                        style="width:16px;height:16px;"></button>
+            </div>
+            <div class="modal-body">
+                <form id="team-type-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">类型名称 *</label>
+                            <input type="text" id="team-type-name" class="form-input" required placeholder="如: 机务班组">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">类型代码</label>
+                            <input type="text" id="team-type-code" class="form-input" placeholder="如: MX">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">标识颜色</label>
+                            <input type="color" id="team-type-color" class="form-input" value="#007AFF">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">可作业类型</label>
+                            <input type="text" id="team-type-task-types" class="form-input" placeholder="英文逗号分隔，如 boarding,cleaning">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" id="team-type-is-driver-type">
+                            该类型可作为设备司机班组
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <textarea id="team-type-description" class="form-input" rows="3" placeholder="填写类型说明、适用场景或管理备注"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTeamTypeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTeamType()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 设备类型模态框 ========== -->
+    <div class="modal-overlay" id="equip-type-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">新建设备类型</h2>
+                <button class="modal-close" onclick="closeEquipmentTypeModal()"><img src="/frontend/icons/cancel.svg"
+                        style="width:16px;height:16px;"></button>
+            </div>
+            <div class="modal-body">
+                <form id="equip-type-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">类型名称 *</label>
+                            <input type="text" id="equip-type-name" class="form-input" required placeholder="如: 牵引车">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">类型代码</label>
+                            <input type="text" id="equip-type-code" class="form-input" placeholder="如: TUG">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">分类</label>
+                            <select id="equip-type-category" class="form-select">
+                                <option value="">未分类</option>
+                                <option value="vehicle">车辆</option>
+                                <option value="loader">装卸设备</option>
+                                <option value="support">保障设备</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">图标标识</label>
+                            <input type="text" id="equip-type-icon" class="form-input" placeholder="可选，如 vehicle">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" id="equip-type-requires-driver">
+                            需要司机班组
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">默认司机班组类型</label>
+                        <select id="equip-type-driver-team-type-id" class="form-select">
+                            <option value="">不指定</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <textarea id="equip-type-description" class="form-input" rows="3" placeholder="填写设备类型说明、需求能力或管理备注"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEquipmentTypeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveEquipmentType()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 全局状态
+        // ============================================
+        let teams = [];
+        let teamTypes = [];
+        let equipmentList = [];
+        let equipmentTypes = [];
+        let assignableUsers = [];
+        let currentTeamId = null;
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(value);
+            return div.innerHTML;
+        }
+
+        function escapeJsSingleQuoted(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/\r/g, '\\r')
+                .replace(/\n/g, '\\n');
+        }
+
+        function safeBadgeColor(value) {
+            const color = String(value || '').trim();
+            if (/^#[0-9a-fA-F]{3,8}$/.test(color)) return color;
+            return '#007AFF';
+        }
+
+        // ============================================
+        // 初始化
+        // ============================================
+
+        // 验证用户身份
+        async function checkAuth() {
+            const ok = await Auth.requireAuthAsync();
+            if (!ok) return null;
+            try {
+                const response = await Auth.fetch('/api/v2/auth/me');
+                if (response.ok) return await response.json();
+            } catch (e) {
+                console.error('Auth check error:', e);
+            }
+            return null;
+        }
+        document.addEventListener('DOMContentLoaded', async function () {
+            // 先绑定事件，确保即使 API 失败也能切换Tab
+            setupEventListeners();
+
+            const user = await checkAuth();
+            if (!user) {
+                window.location.href = '/frontend/html/login.html';
+                return;
+            }
+            document.getElementById('userName').textContent = user.username;
+            document.getElementById('userAvatar').textContent = (user.username || 'A').charAt(0).toUpperCase();
+            const userRoleEl = document.getElementById('userRole');
+            if (userRoleEl) {
+                userRoleEl.textContent = user.is_admin ? '系统管理员' : '普通用户';
+            }
+
+            // 加载所有数据
+            try {
+                await Promise.all([
+                    loadTeamTypes(),
+                    loadEquipmentTypes(),
+                    loadAssignableUsers()
+                ]);
+                await Promise.all([
+                    loadTeams(),
+                    loadEquipment()
+                ]);
+            } catch (error) {
+                console.error('初始化数据加载失败:', error);
+            }
+        });
+
+        function setupEventListeners() {
+            // 侧边栏导航
+            document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const section = e.currentTarget.dataset.section;
+                    switchSection(section);
+                });
+            });
+
+            // 班组搜索和筛选
+            document.getElementById('team-search').addEventListener('input', debounce(loadTeams, 300));
+            document.getElementById('team-filter-type').addEventListener('change', loadTeams);
+            document.getElementById('team-filter-status').addEventListener('change', loadTeams);
+
+            // 设备搜索和筛选
+            document.getElementById('equipment-search').addEventListener('input', debounce(loadEquipment, 300));
+            document.getElementById('equip-filter-type').addEventListener('change', loadEquipment);
+            document.getElementById('equip-filter-status').addEventListener('change', loadEquipment);
+        }
+
+        function switchSection(section) {
+            document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(`${section}-section`).classList.add('active');
+            document.querySelector(`.nav-item[data-section="${section}"]`).classList.add('active');
+
+            // 按需加载类型表格
+            if (section === 'team-types') loadTeamTypesTable();
+            if (section === 'equipment-types') loadEquipmentTypesTable();
+        }
+
+        // ============================================
+        // API 调用
+        // ============================================
+        const DISPATCH_RESOURCE_API_BASE = '/api/v2/dispatch';
+
+        async function apiCall(url, options = {}) {
+            const response = await Auth.fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            if (response.status === 401) {
+                Auth.logout();
+                throw new Error('登录已过期');
+            }
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || '请求失败');
+            }
+            const payload = await response.json();
+            if (payload && typeof payload === 'object' && 'success' in payload && 'data' in payload) {
+                return payload.data;
+            }
+            return payload;
+        }
+
+        // ============================================
+        // 班组操作
+        // ============================================
+        async function loadTeams() {
+            try {
+                const search = document.getElementById('team-search').value;
+                const typeId = document.getElementById('team-filter-type').value;
+                const statusFilter = document.getElementById('team-filter-status').value;
+
+                let url = `${DISPATCH_RESOURCE_API_BASE}/teams?include_inactive=false`;
+                if (typeId) url += `&team_type_id=${typeId}`;
+
+                teams = await apiCall(url);
+
+                if (search) {
+                    teams = teams.filter(t =>
+                        t.name.toLowerCase().includes(search.toLowerCase()) ||
+                        (t.code && t.code.toLowerCase().includes(search.toLowerCase()))
+                    );
+                }
+                if (statusFilter) {
+                    teams = teams.filter(t => t.current_status === statusFilter);
+                }
+
+                renderTeamsTable();
+                updateTeamStats();
+            } catch (error) {
+                console.error('加载班组失败:', error);
+                showToast('加载班组失败', 'error');
+            }
+        }
+
+        async function loadTeamTypes() {
+            try {
+                teamTypes = await apiCall(`${DISPATCH_RESOURCE_API_BASE}/team-types`);
+                const filterSelect = document.getElementById('team-filter-type');
+                const formSelect = document.getElementById('team-type-id');
+                const driverTeamTypeSelect = document.getElementById('equip-type-driver-team-type-id');
+
+                filterSelect.innerHTML = '<option value="">全部类型</option>';
+                formSelect.innerHTML = '<option value="">请选择类型</option>';
+                if (driverTeamTypeSelect) {
+                    driverTeamTypeSelect.innerHTML = '<option value="">不指定</option>';
+                }
+
+                teamTypes.forEach(t => {
+                    const filterOption = document.createElement('option');
+                    filterOption.value = t.id || '';
+                    filterOption.textContent = t.name || '';
+                    filterSelect.appendChild(filterOption);
+
+                    const formOption = document.createElement('option');
+                    formOption.value = t.id || '';
+                    formOption.textContent = t.name || '';
+                    formSelect.appendChild(formOption);
+
+                    if (driverTeamTypeSelect) {
+                        const driverOption = document.createElement('option');
+                        driverOption.value = t.id || '';
+                        driverOption.textContent = t.name || '';
+                        driverTeamTypeSelect.appendChild(driverOption);
+                    }
+                });
+            } catch (error) {
+                console.error('加载班组类型失败:', error);
+            }
+        }
+
+        function getUserDisplayName(user) {
+            return user.display_name || user.full_name || user.username || user.email || user.id || '未知用户';
+        }
+
+        function populateUserSelects(excludedUserIds = []) {
+            const leaderSelect = document.getElementById('team-leader-id');
+            const memberSelect = document.getElementById('add-member-select');
+            const excludedSet = new Set(excludedUserIds);
+
+            leaderSelect.innerHTML = '<option value="">请选择班组长</option>';
+            memberSelect.innerHTML = '<option value="">选择用户添加...</option>';
+
+            assignableUsers.forEach(user => {
+                if (!user?.id) return;
+                const label = getUserDisplayName(user);
+
+                const leaderOption = document.createElement('option');
+                leaderOption.value = user.id;
+                leaderOption.textContent = label;
+                leaderSelect.appendChild(leaderOption);
+
+                if (!excludedSet.has(user.id)) {
+                    const memberOption = document.createElement('option');
+                    memberOption.value = user.id;
+                    memberOption.textContent = label;
+                    memberSelect.appendChild(memberOption);
+                }
+            });
+        }
+
+        async function loadAssignableUsers() {
+            try {
+                const payload = await apiCall('/api/v2/auth/users');
+                const items = Array.isArray(payload) ? payload : (Array.isArray(payload?.items) ? payload.items : []);
+                assignableUsers = items.filter(user => user && user.id && user.is_active !== false);
+            } catch (error) {
+                console.error('加载用户列表失败:', error);
+                assignableUsers = [];
+            }
+            populateUserSelects();
+        }
+
+        function renderTeamsTable() {
+            const tbody = document.getElementById('teams-table-body');
+
+            if (teams.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="empty-state-icon"><img src="/frontend/icons/users.svg" class="svg-icon-lg" style="opacity:0.3;"></div><p>暂无班组数据</p></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = teams.map(team => {
+                const teamType = teamTypes.find(t => t.id === team.team_type_id);
+                const statusClass = team.current_status === 'on_duty' ? 'badge-on-duty' :
+                    team.current_status === 'break' ? 'badge-break' : 'badge-off-duty';
+                const statusText = team.current_status === 'on_duty' ? '在岗' :
+                    team.current_status === 'break' ? '休息' : '离岗';
+                const safeTeamId = escapeJsSingleQuoted(team.id);
+                const safeTeamName = escapeHtml(team.name || '-');
+                const safeTeamCode = escapeHtml(team.code || '');
+                const safeTeamTypeName = escapeHtml(teamType?.name || '');
+                const safeTeamTypeColor = safeBadgeColor(teamType?.color);
+                const safeLeaderName = escapeHtml(team.leader_name || '-');
+                const safeCurrentStandId = escapeHtml(team.current_stand_id || '-');
+
+                return `
+                    <tr>
+                        <td><strong>${safeTeamName}</strong>${team.code ? `<br><small style="color:var(--text-secondary)">${safeTeamCode}</small>` : ''}</td>
+                        <td>${teamType ? `<span class="team-type-dot" style="background:${safeTeamTypeColor}"></span>${safeTeamTypeName}` : '-'}</td>
+                        <td>${safeLeaderName}</td>
+                        <td><span class="badge badge-info">${team.member_count || 0} 人</span></td>
+                        <td><span class="badge ${statusClass}">${statusText}</span></td>
+                        <td>${safeCurrentStandId}</td>
+                        <td style="text-align:right;">
+                            <button class="btn-icon" onclick="showMembersModal('${safeTeamId}')" title="成员管理"><img src="/frontend/icons/users.svg" class="svg-icon-sm"></button>
+                            <button class="btn-icon" onclick="editTeam('${safeTeamId}')" title="编辑"><img src="/frontend/icons/edit.svg" class="svg-icon-sm"></button>
+                            <button class="btn-icon" onclick="deleteTeam('${safeTeamId}')" title="删除"><img src="/frontend/icons/delete.svg" class="svg-icon-sm"></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateTeamStats() {
+            document.getElementById('team-stat-total').textContent = teams.length;
+            document.getElementById('team-stat-on-duty').textContent = teams.filter(t => t.current_status === 'on_duty').length;
+            document.getElementById('team-stat-members').textContent = teams.reduce((sum, t) => sum + (t.member_count || 0), 0);
+        }
+
+        // 班组模态框
+        function showCreateTeamModal() {
+            document.getElementById('team-modal-title').textContent = '新建班组';
+            document.getElementById('team-form').reset();
+            document.getElementById('team-id').value = '';
+            document.getElementById('team-modal').classList.add('show');
+        }
+
+        function closeTeamModal() {
+            document.getElementById('team-modal').classList.remove('show');
+        }
+
+        function editTeam(id) {
+            const team = teams.find(t => t.id === id);
+            if (!team) return;
+
+            document.getElementById('team-modal-title').textContent = '编辑班组';
+            document.getElementById('team-id').value = team.id;
+            document.getElementById('team-name').value = team.name;
+            document.getElementById('team-code').value = team.code || '';
+            document.getElementById('team-type-id').value = team.team_type_id || '';
+            document.getElementById('team-terminal').value = team.terminal || '';
+            document.getElementById('team-leader-id').value = team.leader_id || '';
+
+            document.getElementById('team-modal').classList.add('show');
+        }
+
+        async function saveTeam() {
+            const id = document.getElementById('team-id').value;
+            const data = {
+                name: document.getElementById('team-name').value,
+                code: document.getElementById('team-code').value || null,
+                team_type_id: document.getElementById('team-type-id').value,
+                terminal: document.getElementById('team-terminal').value || null,
+                leader_id: document.getElementById('team-leader-id').value || null
+            };
+
+            try {
+                if (id) {
+                    await apiCall(`${DISPATCH_RESOURCE_API_BASE}/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+                    showToast('班组已更新');
+                } else {
+                    await apiCall(`${DISPATCH_RESOURCE_API_BASE}/teams`, { method: 'POST', body: JSON.stringify(data) });
+                    showToast('班组已创建');
+                }
+                closeTeamModal();
+                await loadTeams();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteTeam(id) {
+            if (!confirm('确定要删除此班组吗？')) return;
+            try {
+                await apiCall(`${DISPATCH_RESOURCE_API_BASE}/teams/${id}`, { method: 'DELETE' });
+                showToast('班组已删除');
+                await loadTeams();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // 成员管理
+        async function showMembersModal(teamId) {
+            currentTeamId = teamId;
+            const team = teams.find(t => t.id === teamId);
+            document.getElementById('members-team-name').textContent = team?.name || '';
+            await loadMembers();
+            document.getElementById('members-modal').classList.add('show');
+        }
+
+        function closeMembersModal() {
+            document.getElementById('members-modal').classList.remove('show');
+            currentTeamId = null;
+        }
+
+        async function loadMembers() {
+            if (!currentTeamId) return;
+            try {
+                const members = await apiCall(`${DISPATCH_RESOURCE_API_BASE}/teams/${currentTeamId}/members`);
+                const tbody = document.getElementById('members-table-body');
+
+                if (members.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无成员</td></tr>';
+                    populateUserSelects();
+                    return;
+                }
+
+                tbody.innerHTML = members.map(m => `
+                    <tr>
+                        <td>${escapeHtml(m.user_display_name || m.username || m.user_id)}</td>
+                        <td>${m.role === 'leader' ? '<img src="/frontend/icons/crown.svg" class="svg-icon-sm" style="margin-right:4px;"> 班组长' : '成员'}</td>
+                        <td>${m.can_drive ? '<img src="/frontend/icons/ok.svg" class="svg-icon-sm">' : '<img src="/frontend/icons/fail.svg" class="svg-icon-sm">'}</td>
+                        <td style="text-align:right;"><button class="btn-icon" onclick="removeMember('${escapeJsSingleQuoted(m.user_id)}')" title="移除"><img src="/frontend/icons/delete.svg" class="svg-icon-sm"></button></td>
+                    </tr>
+                `).join('');
+                populateUserSelects(members.map(m => m.user_id).filter(Boolean));
+            } catch (error) {
+                console.error('加载成员失败:', error);
+            }
+        }
+
+        async function addMember() {
+            const userId = document.getElementById('add-member-select').value;
+            if (!userId || !currentTeamId) return;
+            try {
+                await apiCall(`${DISPATCH_RESOURCE_API_BASE}/teams/${currentTeamId}/members`, {
+                    method: 'POST',
+                    body: JSON.stringify({ user_id: userId, role: 'member' })
+                });
+                showToast('成员已添加');
+                await loadMembers();
+                await loadTeams();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function removeMember(userId) {
+            if (!confirm('确定要移除此成员吗？') || !currentTeamId) return;
+            try {
+                await apiCall(`${DISPATCH_RESOURCE_API_BASE}/teams/${currentTeamId}/members/${userId}`, { method: 'DELETE' });
+                showToast('成员已移除');
+                await loadMembers();
+                await loadTeams();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // 班组类型表格
+        async function loadTeamTypesTable() {
+            try {
+                const types = await apiCall(`${DISPATCH_RESOURCE_API_BASE}/team-types`);
+                const tbody = document.getElementById('team-types-table-body');
+
+                if (!types.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无班组类型</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = types.map(t => `
+                    <tr>
+                        <td><span class="team-type-dot" style="background:${safeBadgeColor(t.color)}"></span>${escapeHtml(t.name || '-')}</td>
+                        <td>${escapeHtml(t.code || '-')}</td>
+                        <td>${escapeHtml(t.task_types?.join(', ') || '-')}</td>
+                        <td>-</td>
+                        <td style="text-align:right;"><button class="btn-icon" title="编辑"><img src="/frontend/icons/edit.svg" class="svg-icon-sm"></button></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('加载类型失败:', error);
+            }
+        }
+
+        function parseCommaSeparatedList(value) {
+            return String(value || '')
+                .split(',')
+                .map(item => item.trim())
+                .filter(Boolean);
+        }
+
+        function nullableInputValue(id) {
+            const value = document.getElementById(id).value.trim();
+            return value || null;
+        }
+
+        function showCreateTeamTypeModal() {
+            document.getElementById('team-type-form').reset();
+            document.getElementById('team-type-color').value = '#007AFF';
+            document.getElementById('team-type-modal').classList.add('show');
+        }
+
+        function closeTeamTypeModal() {
+            document.getElementById('team-type-modal').classList.remove('show');
+        }
+
+        async function saveTeamType() {
+            const name = document.getElementById('team-type-name').value.trim();
+            if (!name) {
+                showToast('请填写班组类型名称', 'warning');
+                return;
+            }
+
+            const data = {
+                name,
+                code: nullableInputValue('team-type-code'),
+                color: nullableInputValue('team-type-color'),
+                task_types: parseCommaSeparatedList(document.getElementById('team-type-task-types').value),
+                description: nullableInputValue('team-type-description'),
+                is_driver_type: document.getElementById('team-type-is-driver-type').checked
+            };
+
+            try {
+                await apiCall(`${DISPATCH_RESOURCE_API_BASE}/team-types`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showToast('班组类型已创建');
+                closeTeamTypeModal();
+                await loadTeamTypes();
+                if (document.getElementById('team-types-section').classList.contains('active')) {
+                    await loadTeamTypesTable();
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // 设备操作
+        // ============================================
+        async function loadEquipment() {
+            try {
+                const search = document.getElementById('equipment-search').value;
+                const typeId = document.getElementById('equip-filter-type').value;
+                const status = document.getElementById('equip-filter-status').value;
+
+                let url = `${DISPATCH_RESOURCE_API_BASE}/equipment?`;
+                if (typeId) url += `equipment_type_id=${typeId}&`;
+                if (status) url += `status=${status}&`;
+
+                equipmentList = await apiCall(url);
+
+                if (search) {
+                    equipmentList = equipmentList.filter(e =>
+                        e.code.toLowerCase().includes(search.toLowerCase()) ||
+                        (e.name && e.name.toLowerCase().includes(search.toLowerCase()))
+                    );
+                }
+
+                renderEquipmentTable();
+                updateEquipmentStats();
+            } catch (error) {
+                console.error('加载设备失败:', error);
+                showToast('加载设备失败', 'error');
+            }
+        }
+
+        async function loadEquipmentTypes() {
+            try {
+                equipmentTypes = await apiCall(`${DISPATCH_RESOURCE_API_BASE}/equipment-types`);
+                const filterSelect = document.getElementById('equip-filter-type');
+                const formSelect = document.getElementById('equipment-type-id');
+
+                filterSelect.innerHTML = '<option value="">全部类型</option>';
+                formSelect.innerHTML = '<option value="">请选择类型</option>';
+
+                equipmentTypes.forEach(t => {
+                    const filterOption = document.createElement('option');
+                    filterOption.value = t.id || '';
+                    filterOption.textContent = t.name || '';
+                    filterSelect.appendChild(filterOption);
+
+                    const formOption = document.createElement('option');
+                    formOption.value = t.id || '';
+                    formOption.textContent = t.name || '';
+                    formSelect.appendChild(formOption);
+                });
+            } catch (error) {
+                console.error('加载设备类型失败:', error);
+            }
+        }
+
+        function renderEquipmentTable() {
+            const tbody = document.getElementById('equipment-table-body');
+
+            if (equipmentList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="empty-state-icon"><img src="/frontend/icons/plane.svg" class="svg-icon-lg" style="opacity:0.3;"></div><p>暂无设备数据</p></td></tr>`;
+                return;
+            }
+
+            const statusMap = {
+                'available': { class: 'badge-available', text: '可用' },
+                'in_use': { class: 'badge-in-use', text: '使用中' },
+                'maintenance': { class: 'badge-maintenance', text: '维护中' },
+                'retired': { class: 'badge-retired', text: '已报废' }
+            };
+
+            const iconMap = {
+                'vehicle': '<img src="/frontend/icons/plane.svg" class="svg-icon">',
+                'loader': '<img src="/frontend/icons/detail.svg" class="svg-icon">',
+                'support': '<img src="/frontend/icons/settings.svg" class="svg-icon">'
+            };
+
+            tbody.innerHTML = equipmentList.map(eq => {
+                const type = equipmentTypes.find(t => t.id === eq.equipment_type_id);
+                const status = statusMap[eq.status] || { class: 'badge-available', text: eq.status };
+                const icon = iconMap[type?.category] || '<img src="/frontend/icons/detail.svg" class="svg-icon">';
+                const safeEquipmentId = escapeJsSingleQuoted(eq.id);
+                const safeCode = escapeHtml(eq.code || '-');
+                const safeName = escapeHtml(eq.name || '');
+                const safeTypeName = escapeHtml(type?.name || '-');
+                const safeLicense = escapeHtml(eq.license_plate || '-');
+                const safeStandId = escapeHtml(eq.current_stand_id || '-');
+                const safeNextMaintenance = escapeHtml(eq.next_maintenance_date || '-');
+                const safeStatusText = escapeHtml(status.text || '');
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="equipment-info">
+                                <div class="equipment-icon">${icon}</div>
+                                <div>
+                                    <strong>${safeCode}</strong>
+                                    ${eq.name ? `<br><small style="color:var(--text-secondary)">${safeName}</small>` : ''}
+                                </div>
+                            </div>
+                        </td>
+                        <td>${safeTypeName}</td>
+                        <td>${safeLicense}</td>
+                        <td><span class="badge ${status.class}">${safeStatusText}</span></td>
+                        <td>${safeStandId}</td>
+                        <td>${safeNextMaintenance}</td>
+                        <td style="text-align:right;">
+                            <button class="btn-icon" onclick="editEquipment('${safeEquipmentId}')" title="编辑"><img src="/frontend/icons/edit.svg" class="svg-icon-sm"></button>
+                            <button class="btn-icon" onclick="updateEquipmentStatus('${safeEquipmentId}')" title="更新状态"><img src="/frontend/icons/refresh.svg" class="svg-icon-sm"></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateEquipmentStats() {
+            document.getElementById('equip-stat-total').textContent = equipmentList.length;
+            document.getElementById('equip-stat-available').textContent = equipmentList.filter(e => e.status === 'available').length;
+            document.getElementById('equip-stat-in-use').textContent = equipmentList.filter(e => e.status === 'in_use').length;
+            document.getElementById('equip-stat-maintenance').textContent = equipmentList.filter(e => e.status === 'maintenance').length;
+        }
+
+        // 设备模态框
+        function showCreateEquipmentModal() {
+            document.getElementById('equipment-modal-title').textContent = '添加设备';
+            document.getElementById('equipment-form').reset();
+            document.getElementById('equipment-id').value = '';
+            document.getElementById('equipment-modal').classList.add('show');
+        }
+
+        function closeEquipmentModal() {
+            document.getElementById('equipment-modal').classList.remove('show');
+        }
+
+        function editEquipment(id) {
+            const eq = equipmentList.find(e => e.id === id);
+            if (!eq) return;
+
+            document.getElementById('equipment-modal-title').textContent = '编辑设备';
+            document.getElementById('equipment-id').value = eq.id;
+            document.getElementById('equipment-code').value = eq.code;
+            document.getElementById('equipment-name').value = eq.name || '';
+            document.getElementById('equipment-type-id').value = eq.equipment_type_id || '';
+            document.getElementById('equipment-plate').value = eq.license_plate || '';
+            document.getElementById('equipment-terminal').value = eq.terminal || '';
+            document.getElementById('equipment-status').value = eq.status || 'available';
+            document.getElementById('equipment-next-maintenance').value = eq.next_maintenance_date || '';
+
+            document.getElementById('equipment-modal').classList.add('show');
+        }
+
+        async function saveEquipment() {
+            const id = document.getElementById('equipment-id').value;
+            const data = {
+                code: document.getElementById('equipment-code').value,
+                name: document.getElementById('equipment-name').value || null,
+                equipment_type_id: document.getElementById('equipment-type-id').value,
+                license_plate: document.getElementById('equipment-plate').value || null,
+                terminal: document.getElementById('equipment-terminal').value || null,
+                status: document.getElementById('equipment-status').value,
+                next_maintenance_date: document.getElementById('equipment-next-maintenance').value || null
+            };
+
+            try {
+                if (id) {
+                    await apiCall(`${DISPATCH_RESOURCE_API_BASE}/equipment/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+                    showToast('设备已更新');
+                } else {
+                    await apiCall(`${DISPATCH_RESOURCE_API_BASE}/equipment`, { method: 'POST', body: JSON.stringify(data) });
+                    showToast('设备已添加');
+                }
+                closeEquipmentModal();
+                await loadEquipment();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function updateEquipmentStatus(id) {
+            const newStatus = prompt('请输入新状态 (available/in_use/maintenance):');
+            if (!newStatus || !['available', 'in_use', 'maintenance'].includes(newStatus)) return;
+
+            try {
+                await apiCall(`${DISPATCH_RESOURCE_API_BASE}/equipment/${id}/status?status=${encodeURIComponent(newStatus)}`, { method: 'PUT' });
+                showToast('状态已更新');
+                await loadEquipment();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // 设备类型表格
+        async function loadEquipmentTypesTable() {
+            try {
+                const types = await apiCall(`${DISPATCH_RESOURCE_API_BASE}/equipment-types`);
+                const tbody = document.getElementById('equip-types-table-body');
+
+                if (!types.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">暂无设备类型</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = types.map(t => `
+                    <tr>
+                        <td>${escapeHtml(t.name || '-')}</td>
+                        <td>${escapeHtml(t.code || '-')}</td>
+                        <td>${escapeHtml(t.category || '-')}</td>
+                        <td>${t.requires_driver ? '<img src="/frontend/icons/ok.svg" class="svg-icon-sm"> 是' : '<img src="/frontend/icons/fail.svg" class="svg-icon-sm"> 否'}</td>
+                        <td>-</td>
+                        <td style="text-align:right;"><button class="btn-icon" title="编辑"><img src="/frontend/icons/edit.svg" class="svg-icon-sm"></button></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('加载类型失败:', error);
+            }
+        }
+
+        function showCreateEquipTypeModal() {
+            document.getElementById('equip-type-form').reset();
+            document.getElementById('equip-type-modal').classList.add('show');
+        }
+
+        function closeEquipmentTypeModal() {
+            document.getElementById('equip-type-modal').classList.remove('show');
+        }
+
+        async function saveEquipmentType() {
+            const name = document.getElementById('equip-type-name').value.trim();
+            if (!name) {
+                showToast('请填写设备类型名称', 'warning');
+                return;
+            }
+
+            const data = {
+                name,
+                code: nullableInputValue('equip-type-code'),
+                category: nullableInputValue('equip-type-category'),
+                requires_driver: document.getElementById('equip-type-requires-driver').checked,
+                driver_team_type_id: nullableInputValue('equip-type-driver-team-type-id'),
+                icon: nullableInputValue('equip-type-icon'),
+                description: nullableInputValue('equip-type-description')
+            };
+
+            try {
+                await apiCall(`${DISPATCH_RESOURCE_API_BASE}/equipment-types`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showToast('设备类型已创建');
+                closeEquipmentTypeModal();
+                await loadEquipmentTypes();
+                if (document.getElementById('equipment-types-section').classList.contains('active')) {
+                    await loadEquipmentTypesTable();
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ============================================
+        // 工具函数
+        // ============================================
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function getToastBackground(type) {
+            const colors = {
+                success: 'var(--system-green)',
+                error: 'var(--system-red)',
+                warning: 'var(--system-orange)',
+                info: 'var(--system-blue)'
+            };
+            return colors[type] || colors.success;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${getToastBackground(type)};
+                color: #fff;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 9999;
+                animation: fadeIn 0.3s;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+    </script>
+</body>
+
+</html>

@@ -143,33 +143,6 @@ class TestAsyncpgConfigStore:
         assert set(result.keys()) == {"default", "pilot"}
         assert result["pilot"]["_config_revision"] == 5
 
-    def test_delete_parses_command_tag(self):
-        from src.infrastructure.ai.asyncpg_config_store import AsyncpgAIConfigStore
-
-        store_hit = AsyncpgAIConfigStore(FakePool(FakeConn(execute_result="DELETE 1")), seed_on_start=False)
-        assert _run(store_hit.delete("default")) is True
-
-        store_miss = AsyncpgAIConfigStore(FakePool(FakeConn(execute_result="DELETE 0")), seed_on_start=False)
-        assert _run(store_miss.delete("nope")) is False
-
-    def test_update_merges_and_strips_revision_marker(self):
-        from src.infrastructure.ai.asyncpg_config_store import AsyncpgAIConfigStore
-
-        existing = {"config": json.dumps({"default_model": "old", "base_url": "u"}), "config_revision": 3}
-        conn = FakeConn(fetchrow_result=existing, execute_result="INSERT 0 1")
-        store = AsyncpgAIConfigStore(FakePool(conn), seed_on_start=False)
-
-        merged = _run(store.update("default", {"default_model": "new", "_config_revision": 99}))
-        assert merged["model_routing"]["default"] == "new"
-        assert merged["providers"]["default"]["base_url"] == "u"
-        assert "default_model" not in merged
-        assert "base_url" not in merged
-        # Transient revision marker must not be persisted.
-        assert "_config_revision" not in merged
-        # The persisted JSON payload (2nd execute arg) must not carry the marker.
-        persisted = json.loads(conn.execute_calls[-1][1][1])
-        assert "_config_revision" not in persisted
-
 
 # ---------------------------------------------------------------------------
 # build_and_register_runtime

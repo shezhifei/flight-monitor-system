@@ -6,8 +6,8 @@ use serde_json::{json, Value};
 
 use super::helpers::{
     build_employee_view_items, build_equipment_view_items, build_flight_items, build_flight_summary_items,
-    build_status_counts, build_status_orders, layout_dynamic_tracks, layout_fixed_lanes,
-    normalize_order_for_timeline, resolve_window, serialize_lane, serialize_timeline_item,
+    build_status_counts, build_status_orders, layout_dynamic_tracks, layout_fixed_lanes, normalize_order_for_timeline,
+    resolve_window, serialize_lane, serialize_timeline_item,
 };
 use super::service::DispatchQueryService;
 

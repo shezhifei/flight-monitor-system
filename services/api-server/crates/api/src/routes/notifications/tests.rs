@@ -1,6 +1,7 @@
 use super::*;
 use chrono::Utc;
 use fms_application::schemas::auth_schemas::TokenData;
+use fms_application::services::notification_service::NoCollaborationEvents;
 use fms_application::test_support::notification_service_without_side_channels;
 use fms_application::types::{NoopNotificationMetricsRecorder, NoopNotificationReceiptGroupSync};
 use fms_domain::error::DomainError;

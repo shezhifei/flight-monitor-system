@@ -155,8 +155,11 @@ pub struct DiContainer {
     pub ai_context_svc: Arc<AiContextService>,
     pub ai_control_svc: Arc<AiExecutionControlService>,
     pub ai_rollback_svc: Arc<RollbackService>,
+    #[allow(dead_code)]
     pub ai_recovery_orchestrator: Arc<RecoveryOrchestrator>,
+    #[allow(dead_code)]
     pub ai_event_consumer: Arc<AiEventConsumer>,
+    #[allow(dead_code)]
     pub ai_job_timeout_reaper: Arc<AiJobTimeoutReaperService>,
     pub ai_run_auth_loader: Arc<dyn RunAuthorizationContextLoader + Send + Sync>,
 
@@ -216,6 +219,7 @@ pub async fn build_di_container(
     let observability = observability::build_observability_services(
         &repos,
         &infra,
+        &redis_manager,
         &shared_svc,
         &auth,
         &flight,

@@ -84,81 +84,6 @@ fn default_flight_kind() -> String {
     "passenger".to_string()
 }
 
-#[cfg(test)]
-mod identity_tests {
-    use super::{Flight, FlightStatus};
-    use crate::models::flight_leg::{FlightLeg, LegType};
-    use std::collections::HashMap;
-
-    fn flight(direction: Option<&str>) -> Flight {
-        Flight {
-            flight_id: "f1".into(), airline_code: None, flight_number: None,
-            registration: None, aircraft_type_detail: None, stand: None, gate: None,
-            terminal: None, position: None, baggage_carousel: None,
-            scheduled_departure: None, scheduled_arrival: None, estimated_departure: None,
-            estimated_arrival: None, actual_departure: None, actual_arrival: None,
-            cobt_time: None, codt: None, has_boarding_restriction: false,
-            is_quick_turnaround: false, is_commercial_signed: true,
-            status: FlightStatus::Scheduled, inbound_leg: None, outbound_leg: None,
-            anomaly_summary: HashMap::new(), direction: direction.map(str::to_string),
-            flight_kind: "passenger".into(), is_draft: false, divert: false,
-            created_at: chrono::Utc::now(), updated_at: chrono::Utc::now(), version: 0,
-            labels: vec![], flight_remarks: None, load_planning_remarks: None,
-            aircraft_maintenance_remarks: None, aircraft_check_remarks: None,
-        }
-    }
-
-    #[test]
-    fn direction_contract_rejects_legacy_both() {
-        assert!(flight(Some("inbound")).validate_direction_contract().is_ok());
-        assert!(flight(Some("both")).validate_direction_contract().is_err());
-        assert!(flight(Some("sideways")).validate_direction_contract().is_err());
-    }
-
-    #[test]
-    fn directional_identity_ignores_opposite_compatibility_leg() {
-        let mut value = flight(Some("outbound"));
-        value.inbound_leg = Some(FlightLeg {
-            leg_type: LegType::Inbound,
-            flight_no: "IN-LEGACY".into(),
-            flight_type: Default::default(),
-            mission: None,
-            origin_code: Some("OLD-ORIGIN".into()),
-            destination_code: Some("OLD-DEST".into()),
-            origin_name: None,
-            destination_name: None,
-            is_vip: false,
-            stand_type: None,
-            scheduled_time: None,
-        });
-        value.outbound_leg = Some(FlightLeg {
-            leg_type: LegType::Outbound,
-            flight_no: "OUT-CANONICAL".into(),
-            flight_type: Default::default(),
-            mission: None,
-            origin_code: Some("CANONICAL-ORIGIN".into()),
-            destination_code: Some("CANONICAL-DEST".into()),
-            origin_name: None,
-            destination_name: None,
-            is_vip: false,
-            stand_type: None,
-            scheduled_time: None,
-        });
-
-        assert_eq!(value.get_flight_numbers(), vec!["OUT-CANONICAL"]);
-        assert_eq!(value.get_origin_codes(), vec!["CANONICAL-ORIGIN"]);
-        assert!(value.is_departure_flight());
-        assert!(!value.is_arrival_flight());
-        assert!(!value.is_turnaround_flight());
-    }
-}
-
-impl Default for FlightStatus {
-    fn default() -> Self {
-        Self::Scheduled
-    }
-}
-
 impl Flight {
     /// Validate the post-migration identity contract. Existing rows may still
     /// have a null direction during the staged F3 rollout, but new writes may
@@ -284,7 +209,11 @@ impl Flight {
     pub fn get_flight_numbers(&self) -> Vec<String> {
         if let Some(leg) = self.directional_leg() {
             let number = leg.flight_no.trim();
-            return if number.is_empty() { Vec::new() } else { vec![number.to_string()] };
+            return if number.is_empty() {
+                Vec::new()
+            } else {
+                vec![number.to_string()]
+            };
         }
         [&self.outbound_leg, &self.inbound_leg]
             .iter()
@@ -295,5 +224,98 @@ impl Flight {
                     .map(String::from)
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::{Flight, FlightStatus};
+    use crate::models::flight_leg::{FlightLeg, LegType};
+    use std::collections::HashMap;
+
+    fn flight(direction: Option<&str>) -> Flight {
+        Flight {
+            flight_id: "f1".into(),
+            airline_code: None,
+            flight_number: None,
+            registration: None,
+            aircraft_type_detail: None,
+            stand: None,
+            gate: None,
+            terminal: None,
+            position: None,
+            baggage_carousel: None,
+            scheduled_departure: None,
+            scheduled_arrival: None,
+            estimated_departure: None,
+            estimated_arrival: None,
+            actual_departure: None,
+            actual_arrival: None,
+            cobt_time: None,
+            codt: None,
+            has_boarding_restriction: false,
+            is_quick_turnaround: false,
+            is_commercial_signed: true,
+            status: FlightStatus::Scheduled,
+            inbound_leg: None,
+            outbound_leg: None,
+            anomaly_summary: HashMap::new(),
+            direction: direction.map(str::to_string),
+            flight_kind: "passenger".into(),
+            is_draft: false,
+            divert: false,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            version: 0,
+            labels: vec![],
+            flight_remarks: None,
+            load_planning_remarks: None,
+            aircraft_maintenance_remarks: None,
+            aircraft_check_remarks: None,
+        }
+    }
+
+    #[test]
+    fn direction_contract_rejects_legacy_both() {
+        assert!(flight(Some("inbound")).validate_direction_contract().is_ok());
+        assert!(flight(Some("both")).validate_direction_contract().is_err());
+        assert!(flight(Some("sideways")).validate_direction_contract().is_err());
+    }
+
+    #[test]
+    fn directional_identity_ignores_opposite_compatibility_leg() {
+        let mut value = flight(Some("outbound"));
+        value.inbound_leg = Some(FlightLeg {
+            leg_type: LegType::Inbound,
+            flight_no: "IN-LEGACY".into(),
+            flight_type: Default::default(),
+            mission: None,
+            origin_code: Some("OLD-ORIGIN".into()),
+            destination_code: Some("OLD-DEST".into()),
+            origin_name: None,
+            destination_name: None,
+            is_vip: false,
+            stand_type: None,
+            scheduled_time: None,
+        });
+        value.outbound_leg = Some(FlightLeg {
+            leg_type: LegType::Outbound,
+            flight_no: "OUT-CANONICAL".into(),
+            flight_type: Default::default(),
+            mission: None,
+            origin_code: Some("CANONICAL-ORIGIN".into()),
+            destination_code: Some("CANONICAL-DEST".into()),
+            origin_name: None,
+            destination_name: None,
+            is_vip: false,
+            stand_type: None,
+            scheduled_time: None,
+        });
+
+        assert_eq!(value.get_flight_numbers(), vec!["OUT-CANONICAL"]);
+        assert_eq!(value.get_origin_codes(), vec!["CANONICAL-ORIGIN"]);
+        assert!(value.is_departure_flight());
+        assert!(!value.is_arrival_flight());
+        assert!(!value.is_turnaround_flight());
     }
 }

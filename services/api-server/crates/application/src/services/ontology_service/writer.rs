@@ -9,14 +9,16 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use fms_domain::models::ontology_v1::{CarouselAssignment, GateAssignment, ResourceAdjustmentSuggestion, StandOccupation, TurnaroundLink};
+use fms_domain::models::ontology_v1::{
+    CarouselAssignment, GateAssignment, ResourceAdjustmentSuggestion, StandOccupation, TurnaroundLink,
+};
 use fms_domain::models::ontology_v1_rules::enforce_link_health;
 use fms_domain::models::value_objects::{FlightId, GateNumber, StandNumber};
 use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
+use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowTransactionalRepository;
 use fms_domain::ports::flight_repository::{
     FlightRepository, FlightTransactionalRepository, FlightUpdatePatch, PatchField,
 };
-use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowTransactionalRepository;
 use fms_domain::ports::ontology_repository::{
     CarouselCreateOutcome, GateCreateOutcome, OntologyTransactionalRepository, StandCreateOutcome,
     TurnaroundLinkRepository,
@@ -35,16 +37,10 @@ use super::error::OntologyError;
 pub trait OntologyTransactions: Send + Sync {
     /// Create a turnaround link and merge its monitor rows atomically. The
     /// inbound row_id is retained; the outbound single-sided row is retired.
-    async fn create_turnaround_link_tx(
-        &self,
-        link: &TurnaroundLink,
-    ) -> Result<(), OntologyError>;
+    async fn create_turnaround_link_tx(&self, link: &TurnaroundLink) -> Result<(), OntologyError>;
 
     /// Break a turnaround link and split its monitor rows atomically.
-    async fn break_turnaround_link_tx(
-        &self,
-        link: &TurnaroundLink,
-    ) -> Result<(), OntologyError>;
+    async fn break_turnaround_link_tx(&self, link: &TurnaroundLink) -> Result<(), OntologyError>;
 
     /// §7 ReassignAircraft：同事务内写机号、确保 Aircraft、维护周转链接健康、过期旧建议。
     async fn reassign_aircraft(
@@ -98,18 +94,10 @@ pub trait OntologyTransactions: Send + Sync {
 
     /// 释放机位占用事务段：release + 同航班展示列清空 `stand`/`terminal`。
     /// 返回被释放的占用。
-    async fn release_stand_tx(
-        &self,
-        occupation_id: &str,
-        released_by: &str,
-    ) -> Result<StandOccupation, OntologyError>;
+    async fn release_stand_tx(&self, occupation_id: &str, released_by: &str) -> Result<StandOccupation, OntologyError>;
 
     /// 释放登机口事务段：release + 同航班展示列清空 `gate`。返回被释放的分配。
-    async fn release_gate_tx(
-        &self,
-        assignment_id: &str,
-        released_by: &str,
-    ) -> Result<GateAssignment, OntologyError>;
+    async fn release_gate_tx(&self, assignment_id: &str, released_by: &str) -> Result<GateAssignment, OntologyError>;
 
     /// 分配登机口事务段。返回幂等结果：`Inserted` 或 `Deduplicated(既有行)`。
     async fn allocate_gate_tx(
@@ -138,18 +126,10 @@ pub trait OntologyTransactions: Send + Sync {
     ) -> Result<CarouselCreateOutcome, OntologyError>;
 
     /// 调整转盘分配事务段（改转盘/时段）+ 重算展示列。
-    async fn adjust_carousel_tx(
-        &self,
-        updated: &CarouselAssignment,
-        actor_id: &str,
-    ) -> Result<(), OntologyError>;
+    async fn adjust_carousel_tx(&self, updated: &CarouselAssignment, actor_id: &str) -> Result<(), OntologyError>;
 
     /// 释放转盘分配事务段 + 重算展示列（可能清空）。返回被释放的分配。
-    async fn release_carousel_tx(
-        &self,
-        id: &str,
-        released_by: &str,
-    ) -> Result<CarouselAssignment, OntologyError>;
+    async fn release_carousel_tx(&self, id: &str, released_by: &str) -> Result<CarouselAssignment, OntologyError>;
 
     /// 新建建议事务段：旧 pending 过期 + 落新建议。
     async fn create_suggestion_tx(
@@ -253,10 +233,7 @@ impl<U: UnitOfWork> OntologyWriter<U> {
         flight_id: &str,
         actor_id: &str,
     ) -> Result<(), OntologyError> {
-        let codes = self
-            .ontology_tx
-            .list_active_carousel_codes_in_tx(tx, flight_id)
-            .await?;
+        let codes = self.ontology_tx.list_active_carousel_codes_in_tx(tx, flight_id).await?;
         let flight = self
             .flight_repo
             .find_by_id(flight_id)
@@ -293,7 +270,11 @@ impl<U: UnitOfWork> OntologyWriter<U> {
 #[async_trait::async_trait]
 impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
     async fn create_turnaround_link_tx(&self, link: &TurnaroundLink) -> Result<(), OntologyError> {
-        let mut tx = self.uow.begin().await.map_err(|e| OntologyError::internal(e.to_string()))?;
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.create_link_in_tx(&mut tx, link).await?;
         if let Some(monitor) = &self.monitor_row_tx {
             monitor
@@ -301,11 +282,18 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                 .await
                 .map_err(OntologyError::from)?;
         }
-        self.uow.commit(tx).await.map_err(|e| OntologyError::internal(e.to_string()))
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))
     }
 
     async fn break_turnaround_link_tx(&self, link: &TurnaroundLink) -> Result<(), OntologyError> {
-        let mut tx = self.uow.begin().await.map_err(|e| OntologyError::internal(e.to_string()))?;
+        let mut tx = self
+            .uow
+            .begin()
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.update_link_in_tx(&mut tx, link).await?;
         if let Some(monitor) = &self.monitor_row_tx {
             monitor
@@ -313,7 +301,10 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
                 .await
                 .map_err(OntologyError::from)?;
         }
-        self.uow.commit(tx).await.map_err(|e| OntologyError::internal(e.to_string()))
+        self.uow
+            .commit(tx)
+            .await
+            .map_err(|e| OntologyError::internal(e.to_string()))
     }
 
     async fn reassign_aircraft(
@@ -659,11 +650,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         Ok(())
     }
 
-    async fn release_stand_tx(
-        &self,
-        occupation_id: &str,
-        released_by: &str,
-    ) -> Result<StandOccupation, OntologyError> {
+    async fn release_stand_tx(&self, occupation_id: &str, released_by: &str) -> Result<StandOccupation, OntologyError> {
         let mut tx = self
             .uow
             .begin()
@@ -692,11 +679,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         Ok(occupation)
     }
 
-    async fn release_gate_tx(
-        &self,
-        assignment_id: &str,
-        released_by: &str,
-    ) -> Result<GateAssignment, OntologyError> {
+    async fn release_gate_tx(&self, assignment_id: &str, released_by: &str) -> Result<GateAssignment, OntologyError> {
         let mut tx = self
             .uow
             .begin()
@@ -803,7 +786,8 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         let outcome = self.ontology_tx.create_carousel_in_tx(&mut tx, assignment).await?;
         if matches!(outcome, CarouselCreateOutcome::Inserted) {
             if let Some(flight_id) = &assignment.flight_id {
-                self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, actor_id).await?;
+                self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, actor_id)
+                    .await?;
             }
         }
         self.uow
@@ -813,11 +797,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         Ok(outcome)
     }
 
-    async fn adjust_carousel_tx(
-        &self,
-        updated: &CarouselAssignment,
-        actor_id: &str,
-    ) -> Result<(), OntologyError> {
+    async fn adjust_carousel_tx(&self, updated: &CarouselAssignment, actor_id: &str) -> Result<(), OntologyError> {
         let mut tx = self
             .uow
             .begin()
@@ -825,7 +805,8 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .map_err(|e| OntologyError::internal(e.to_string()))?;
         self.ontology_tx.update_carousel_in_tx(&mut tx, updated).await?;
         if let Some(flight_id) = &updated.flight_id {
-            self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, actor_id).await?;
+            self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, actor_id)
+                .await?;
         }
         self.uow
             .commit(tx)
@@ -834,11 +815,7 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
         Ok(())
     }
 
-    async fn release_carousel_tx(
-        &self,
-        id: &str,
-        released_by: &str,
-    ) -> Result<CarouselAssignment, OntologyError> {
+    async fn release_carousel_tx(&self, id: &str, released_by: &str) -> Result<CarouselAssignment, OntologyError> {
         let mut tx = self
             .uow
             .begin()
@@ -850,7 +827,8 @@ impl<U: UnitOfWork> OntologyTransactions for OntologyWriter<U> {
             .await?
             .ok_or_else(|| OntologyError::not_found(format!("active carousel assignment {id}")))?;
         if let Some(flight_id) = &assignment.flight_id {
-            self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, released_by).await?;
+            self.sync_carousel_display_in_tx(&mut tx, &flight_id.0, released_by)
+                .await?;
         }
         self.uow
             .commit(tx)

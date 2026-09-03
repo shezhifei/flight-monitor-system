@@ -1,10 +1,7 @@
-use futures_util::StreamExt;
-use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use roxmltree::Document as XmlDocument;
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 
-use super::error::FlowableDraftServiceError;
 use super::stream::FlowableDraftAssistantStreamEvent;
 
 #[derive(Debug, Clone)]

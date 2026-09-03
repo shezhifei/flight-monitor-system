@@ -24,8 +24,8 @@ use crate::services::flight_domain_events::{
     build_created_payload, build_deleted_payload, write_flight_outbox_event, write_flight_update_outbox_events,
     FLIGHT_AGGREGATE_TYPE, FLIGHT_CREATED_EVENT, FLIGHT_DELETED_EVENT,
 };
-use crate::services::flight_mappers::{to_response, update_patch_from_dto};
 use crate::services::flight_import_service::FlightImportPairTransactionalWriter;
+use crate::services::flight_mappers::{to_response, update_patch_from_dto};
 
 pub struct FlightWriter<Tx> {
     repo: Arc<dyn FlightRepository + Send + Sync>,

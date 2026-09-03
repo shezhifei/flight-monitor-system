@@ -1,0 +1,153 @@
+/* 极简哑光黑 (Executive Matte Black) 设计系统 */
+/* 适用于纯数据大屏页面 (Command Center, KPI, Resource, Ai Monitor, Ops Report) */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    /* 深夜基调 (Atmosphere) */
+    --mb-bg-screen: #111111;       /* 终极死寂黑 */
+    --mb-bg-card: #1A1A1A;         /* 实心暗炭灰面板，无透光 */
+    --mb-bg-card-hover: #222222;
+    
+    /* 线条分割 (Structural Lines) */
+    --mb-border: #333333;          /* 极细边界，不反射 */
+    --mb-border-light: #444444;
+    
+    /* 消光数据色 (Matte Data Accents) */
+    --mb-data-indigo: #4F46E5;     /* 沉稳深靛蓝，替代刺眼蓝 */
+    --mb-data-emerald: #10B981;    /* 暗翡色，替代亮度绿 */
+    --mb-data-crimson: #E11D48;    /* 暗红，报警专用 */
+    --mb-data-amber: #F59E0B;      /* 哑光琥珀 */
+    --mb-data-steel: #64748B;      /* 莫兰迪钢灰 */
+
+    /* 文字色板 (Typography Colors) */
+    --mb-text-dominant: #FFFFFF;   /* 高对比主标题、巨型数字 */
+    --mb-text-primary: #E5E7EB;    /* 标准字体 */
+    --mb-text-muted: #9CA3AF;      /* 坐标轴、注释文字 */
+    --mb-text-dimmed: #6B7280;     /* 极弱灰 */
+
+    /* 字体群 (Font Stacks) */
+    --mb-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mb-font-mono: 'Fira Code', 'Courier New', Courier, monospace;
+
+    /* 空间与结构 (Space & Structure) */
+    --mb-radius-card: 0px;         /* 强制直角，重剑无锋 */
+    --mb-radius-btn: 2px;
+    --mb-spacing-base: 8px;
+    
+    /* 全局防光特效 (Shadow Removal) */
+    --mb-shadow-none: none !important;
+}
+
+/* 全局基底注入 */
+body.matte-black-theme {
+    background-color: var(--mb-bg-screen);
+    color: var(--mb-text-primary);
+    font-family: var(--mb-font-sans);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 核心容器标准 */
+.mb-dashboard-container {
+    padding: calc(var(--mb-spacing-base) * 3);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* 卡片标准 */
+.mb-card {
+    background-color: var(--mb-bg-card);
+    border: 1px solid var(--mb-border);
+    border-radius: var(--mb-radius-card);
+    padding: calc(var(--mb-spacing-base) * 3);
+    box-shadow: var(--mb-shadow-none); /* 强制剥除所有发光和悬浮 */
+    display: flex;
+    flex-direction: column;
+}
+
+/* 文字强印规范 */
+.mb-title {
+    color: var(--mb-text-dominant);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 calc(var(--mb-spacing-base) * 2) 0;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+/* 巨型数字规范 (Fira Code) */
+.mb-metric-value {
+    font-family: var(--mb-font-mono);
+    color: var(--mb-text-dominant);
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1;
+    margin: calc(var(--mb-spacing-base) * 1) 0;
+}
+
+.mb-metric-label {
+    color: var(--mb-text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* 骨架屏加载 (Skeleton)替代烂俗 Spinner */
+.mb-skeleton {
+    background: linear-gradient(90deg, #1A1A1A 25%, #222222 50%, #1A1A1A 75%);
+    background-size: 200% 100%;
+    animation: mb-skeleton-loading 2s infinite ease-in-out;
+    border-radius: var(--mb-radius-btn);
+}
+
+@keyframes mb-skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 顶部导航标准 */
+.mb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: calc(var(--mb-spacing-base) * 2);
+    border-bottom: 1px solid var(--mb-border);
+    margin-bottom: calc(var(--mb-spacing-base) * 3);
+}
+
+.mb-header-title {
+    font-size: 1.25rem;
+    color: var(--mb-text-dominant);
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+/* 强制覆盖 ECharts DOM 不可抛出多余边界 */
+.mb-chart-container {
+    flex-grow: 1;
+    width: 100%;
+    position: relative;
+}
+
+/* 消除滚动条干扰 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--mb-bg-screen); 
+}
+::-webkit-scrollbar-thumb {
+    background: var(--mb-border-light); 
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--mb-text-dimmed); 
+}

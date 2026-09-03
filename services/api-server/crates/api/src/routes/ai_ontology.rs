@@ -6,8 +6,8 @@ use chrono::Utc;
 use fms_application::services::ontology_actions::{
     advisory_action_permission, read_action_permission, OntologyActionError, OntologyActionServices,
 };
-use fms_domain::ontology::governed::{load_governed_schema, load_governed_schema_with_fields};
 use fms_application::types::ConcreteFieldOverlayService;
+use fms_domain::ontology::governed::{load_governed_schema, load_governed_schema_with_fields};
 use fms_domain::ontology::schema_export::{build_schema_export, OntologySchemaExport};
 use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
 use serde::Deserialize;
@@ -250,8 +250,7 @@ fn resolve_overlay_repo(
     action: &str,
 ) -> Result<Arc<dyn AiOntologyRepository + Send + Sync>, ApiError> {
     repo.map(|data| data.get_ref().clone())
-        .ok_or_else(|| ApiError::Internal(format!("ontology overlay write ({action}) requires a repository"))
-    )
+        .ok_or_else(|| ApiError::Internal(format!("ontology overlay write ({action}) requires a repository")))
 }
 
 async fn put_action_overlay(
@@ -270,9 +269,10 @@ async fn put_action_overlay(
 
     // fail-closed：只允许覆盖代码 schema 已知键，不能凭空新增对象/动作。
     let schema = load_governed_schema(&[]);
-    let obj_def = schema.objects.get(object).ok_or_else(|| {
-        ApiError::NotFound(format!("object type '{object}' not in flight-ops.v1 base schema"))
-    })?;
+    let obj_def = schema
+        .objects
+        .get(object)
+        .ok_or_else(|| ApiError::NotFound(format!("object type '{object}' not in flight-ops.v1 base schema")))?;
     if !obj_def.actions.contains_key(action) {
         return Err(ApiError::NotFound(format!(
             "action '{object}.{action}' not in flight-ops.v1 base schema"
@@ -280,13 +280,10 @@ async fn put_action_overlay(
     }
 
     let risk = match &body.risk_level {
-        Some(raw) => fms_domain::models::ai_proposal::RiskLevel::from_str_loose(raw).ok_or_else(|| {
-            ApiError::BadRequest(format!("unknown risk_level: {raw}"))
-        })?,
-        None => fms_domain::models::ai_proposal::RiskLevel::from_str_loose(
-            &obj_def.actions[action].risk_level,
-        )
-        .unwrap_or_default(),
+        Some(raw) => fms_domain::models::ai_proposal::RiskLevel::from_str_loose(raw)
+            .ok_or_else(|| ApiError::BadRequest(format!("unknown risk_level: {raw}")))?,
+        None => fms_domain::models::ai_proposal::RiskLevel::from_str_loose(&obj_def.actions[action].risk_level)
+            .unwrap_or_default(),
     };
 
     let overlay = fms_domain::ontology::governed::ActionOverlay {

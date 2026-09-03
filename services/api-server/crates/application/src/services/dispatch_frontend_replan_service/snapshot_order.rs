@@ -528,7 +528,7 @@ mod tests {
         let mut newer = generation_rule(Some(45));
         newer.id = "rule-2".to_string();
         newer.version_no = 2;
-        let rules = vec![generation_rule(Some(10)), newer];
+        let rules = [generation_rule(Some(10)), newer];
         let index = GenerationRuleIndex::from_rules(rules.iter());
 
         assert_eq!(
@@ -548,7 +548,7 @@ mod tests {
         let mut newer = generation_rule(Some(45));
         newer.id = "rule-2".to_string();
         newer.version_no = 2;
-        let rules = vec![generation_rule(Some(10)), newer];
+        let rules = [generation_rule(Some(10)), newer];
         let index = GenerationRuleIndex::from_rules(rules.iter());
 
         assert_eq!(
@@ -571,7 +571,7 @@ mod tests {
         draft.id = "rule-2".to_string();
         draft.version_no = 9;
         draft.status = DepartmentRuleStatus::Draft;
-        let index = GenerationRuleIndex::from_rules(vec![generation_rule(Some(40)), draft].iter());
+        let index = GenerationRuleIndex::from_rules([generation_rule(Some(40)), draft].iter());
 
         assert_eq!(index.flex_for(&order), Some(40));
     }

@@ -525,7 +525,7 @@ mod tests {
                 .configure(super::dispatch::configure)
                 .configure(super::dispatch_resources::configure)
                 .configure(super::dispatch_resources::configure_dispatch_direct_routes)
-            .configure(super::dispatch_resources::configure_terminal_directory_routes)
+                .configure(super::dispatch_resources::configure_terminal_directory_routes)
                 .configure(super::dispatch_collaboration::configure)
                 .configure(super::notifications::configure)
                 .configure(super::business_cases::configure)
@@ -614,7 +614,7 @@ mod tests {
 
         while let Some(ch) = chars.next() {
             if ch == '{' {
-                while let Some(inner) = chars.next() {
+                for inner in chars.by_ref() {
                     if inner == '}' {
                         break;
                     }

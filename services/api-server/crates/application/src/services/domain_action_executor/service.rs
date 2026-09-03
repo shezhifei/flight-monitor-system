@@ -4,18 +4,17 @@ use std::sync::Arc;
 
 use crate::schemas::dispatch_schemas::{PositionUpdate, TeamMemberAdd};
 use crate::schemas::ontology_schemas::{
-    AdjustGateRequest, AdjustStandRequest, AllocateCarouselRequest, AllocateGateRequest, AllocateStandRequest,
-    ReleaseResourceRequest,
+    AdjustStandRequest, AllocateCarouselRequest, AllocateGateRequest, AllocateStandRequest, ReleaseResourceRequest,
 };
 use crate::services::business_case_service::{BusinessCaseTerminalUpdatePayload, BusinessCaseWriter};
-use crate::services::dispatch_resource_service::DispatchResourceService;
 use crate::services::dispatch_service::writer::DispatchOrderWriter;
 use crate::services::dispatch_service::DispatchService;
 use crate::services::flight_domain_events::write_flight_outbox_event;
 use crate::services::flight_writer::FlightWriter;
 use crate::services::ontology_service::{OntologyError, OntologyService};
 use crate::types::{
-    ConcreteBusinessCaseService, ConcreteDispatchResourceService, ConcreteFlightService, ConcreteTerminalResourceService,
+    ConcreteBusinessCaseService, ConcreteDispatchResourceService, ConcreteFlightService,
+    ConcreteTerminalResourceService,
 };
 use fms_domain::ontology::schema_export::FLIGHT_OPS_ONTOLOGY_VERSION;
 use fms_domain::ports::anomaly_repository::AnomalyTransactionalRepository;
@@ -55,6 +54,7 @@ pub struct DomainActionExecutor<U: UnitOfWork> {
 }
 
 impl<U: UnitOfWork> DomainActionExecutor<U> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         flight_service: Arc<ConcreteFlightService>,
         flight_writer: Arc<FlightWriter<U::Tx>>,
@@ -148,7 +148,9 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                             self.dispatch_service.send_publication_notifications(&order).await;
                         }
                     }
-                    "DispatchOrder.assign_slot" | "DispatchOrder.unassign_slot" | "DispatchOrder.add_slot"
+                    "DispatchOrder.assign_slot"
+                    | "DispatchOrder.unassign_slot"
+                    | "DispatchOrder.add_slot"
                     | "DispatchOrder.remove_slot" => {
                         self.dispatch_service.sync_dispatch_chat_for_order(object_id).await;
                     }
@@ -199,7 +201,7 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
         &self,
         tx: &mut U::Tx,
         action_key: &str,
-        object_type: &str,
+        _object_type: &str,
         object_id: &str,
         arguments: &Value,
         executor_id: &str,
@@ -655,7 +657,15 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                         .collect();
                     for uid in desired.iter().filter(|uid| !current.contains(*uid)) {
                         self.dispatch_resource_svc
-                            .add_team_member(team_id, TeamMemberAdd { user_id: (*uid).clone(), role: "member".into(), can_drive: false }, executor_id)
+                            .add_team_member(
+                                team_id,
+                                TeamMemberAdd {
+                                    user_id: (*uid).clone(),
+                                    role: "member".into(),
+                                    can_drive: false,
+                                },
+                                executor_id,
+                            )
                             .await
                             .map_err(map_service_error)?;
                     }
@@ -677,7 +687,14 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 let team_id = required_string(arguments, &["team_id"], "team_id")?;
                 let (lat, lng) = parse_lat_lng(arguments)?;
                 self.dispatch_resource_svc
-                    .update_team_position(team_id, PositionUpdate { lat, lng, stand_id: None })
+                    .update_team_position(
+                        team_id,
+                        PositionUpdate {
+                            lat,
+                            lng,
+                            stand_id: None,
+                        },
+                    )
                     .await
                     .map_err(map_service_error)?;
                 Ok(serde_json::json!({ "success": true, "team_id": team_id }))
@@ -687,7 +704,15 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 let user_id = required_string(arguments, &["user_id"], "user_id")?;
                 let member = self
                     .dispatch_resource_svc
-                    .add_team_member(team_id, TeamMemberAdd { user_id: user_id.to_string(), role: "member".into(), can_drive: false }, executor_id)
+                    .add_team_member(
+                        team_id,
+                        TeamMemberAdd {
+                            user_id: user_id.to_string(),
+                            role: "member".into(),
+                            can_drive: false,
+                        },
+                        executor_id,
+                    )
                     .await
                     .map_err(map_service_error)?;
                 Ok(serde_json::json!({ "success": true, "team_id": team_id, "member_user_id": member.user_id }))
@@ -714,7 +739,14 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 let equipment_id = required_string(arguments, &["equipment_id"], "equipment_id")?;
                 let (lat, lng) = parse_lat_lng(arguments)?;
                 self.dispatch_resource_svc
-                    .update_equipment_position(equipment_id, PositionUpdate { lat, lng, stand_id: None })
+                    .update_equipment_position(
+                        equipment_id,
+                        PositionUpdate {
+                            lat,
+                            lng,
+                            stand_id: None,
+                        },
+                    )
                     .await
                     .map_err(map_service_error)?;
                 Ok(serde_json::json!({ "success": true, "equipment_id": equipment_id }))
@@ -755,7 +787,13 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 };
                 let order = self
                     .dispatch_writer
-                    .release_equipment_slot_in_tx(tx, &dispatch_order_id, slot_code.as_deref(), equipment_id, executor_id)
+                    .release_equipment_slot_in_tx(
+                        tx,
+                        &dispatch_order_id,
+                        slot_code.as_deref(),
+                        equipment_id,
+                        executor_id,
+                    )
                     .await
                     .map_err(map_dispatch_writer_error)?;
                 Ok(serde_json::json!({
@@ -813,7 +851,9 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 }))
             }
             "StandOccupation.release" => {
-                let request = ReleaseResourceRequest { released_by: Some(executor_id.to_string()) };
+                let request = ReleaseResourceRequest {
+                    released_by: Some(executor_id.to_string()),
+                };
                 let perms = vec!["ontology:stand.manage".to_string()];
                 let occupation = self
                     .ontology_svc
@@ -847,7 +887,9 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 }))
             }
             "GateAssignment.release" => {
-                let request = ReleaseResourceRequest { released_by: Some(executor_id.to_string()) };
+                let request = ReleaseResourceRequest {
+                    released_by: Some(executor_id.to_string()),
+                };
                 let perms = vec!["ontology:gate.manage".to_string()];
                 let assignment = self
                     .ontology_svc
@@ -880,7 +922,9 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                 }))
             }
             "CarouselAssignment.release" => {
-                let request = ReleaseResourceRequest { released_by: Some(executor_id.to_string()) };
+                let request = ReleaseResourceRequest {
+                    released_by: Some(executor_id.to_string()),
+                };
                 let perms = vec!["ontology:carousel.manage".to_string()];
                 let assignment = self
                     .ontology_svc
@@ -899,7 +943,9 @@ impl<U: UnitOfWork> DomainActionExecutor<U> {
                     .assign_slot_in_tx(tx, object_id, slot_code, user_id, executor_id)
                     .await
                     .map_err(map_dispatch_writer_error)?;
-                Ok(serde_json::json!({ "success": true, "order_id": order.id, "slot_code": slot_code, "user_id": user_id }))
+                Ok(
+                    serde_json::json!({ "success": true, "order_id": order.id, "slot_code": slot_code, "user_id": user_id }),
+                )
             }
             "DispatchOrder.unassign_slot" => {
                 let slot_code = required_string(arguments, &["slot_code"], "slot_code")?;
@@ -940,7 +986,9 @@ fn parse_dt_arg(arguments: &Value, key: &str) -> Result<chrono::DateTime<chrono:
         Some(Value::String(raw)) => raw
             .parse::<chrono::DateTime<chrono::Utc>>()
             .map_err(|_| DomainActionError::Validation(format!("`{key}` is not an RFC3339 datetime"))),
-        _ => Err(DomainActionError::Validation(format!("`{key}` is required as an RFC3339 datetime"))),
+        _ => Err(DomainActionError::Validation(format!(
+            "`{key}` is required as an RFC3339 datetime"
+        ))),
     }
 }
 
@@ -1030,7 +1078,9 @@ fn parse_optional_string_array(arguments: &Value, key: &str) -> Result<Option<Ve
             }
             Ok(Some(out))
         }
-        Some(_) => Err(DomainActionError::Validation(format!("`{key}` must be an array of strings"))),
+        Some(_) => Err(DomainActionError::Validation(format!(
+            "`{key}` must be an array of strings"
+        ))),
     }
 }
 

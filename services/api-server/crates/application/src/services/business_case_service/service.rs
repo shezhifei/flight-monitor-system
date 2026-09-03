@@ -36,6 +36,7 @@ pub struct BusinessCaseService<
 /// This enables test-only fake implementations without coupling the copilot
 /// service to `PgBusinessCaseRepository`.
 #[async_trait::async_trait]
+#[allow(clippy::too_many_arguments)]
 pub trait BusinessCaseServiceOps: Send + Sync {
     async fn get(&self, case_id: &str) -> Result<Option<FlightBusinessCase>, DomainError>;
     async fn get_accessible(
@@ -544,6 +545,7 @@ impl<
             .ok_or_else(|| DomainError::Internal("failed to enrich created business case".into()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_for_viewer(
         &self,
         case_type: &str,
@@ -645,6 +647,7 @@ impl<
             .ok_or_else(|| DomainError::Internal("failed to enrich workflow business case".into()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_workflow_case_for_viewer(
         &self,
         flight_id: &str,

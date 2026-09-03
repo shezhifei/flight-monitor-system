@@ -16,10 +16,10 @@ fms-domain = { path = "../domain" }
 fms-application = { path = "../application" }
 fms-infrastructure = { path = "../infrastructure" }
 fms-api = { path = "../api" }
+fms-runtime = { path = "../runtime" }
 
 # Web framework
 actix-web = { workspace = true, features = ["rustls-0_23"] }
-actix-rt = { workspace = true }
 actix-cors = { workspace = true }
 
 # Async
@@ -60,3 +60,7 @@ num_cpus = "1.16"
 
 [target.'cfg(unix)'.dependencies]
 pprof = { version = "0.14", features = ["flamegraph"] }
+
+[dev-dependencies]
+# di 测试用 fms_application::in_memory_repos 组装测试控制服务。
+fms-application = { path = "../application", features = ["test-support"] }

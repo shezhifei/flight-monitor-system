@@ -3,12 +3,10 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 
 use fms_domain::error::DomainError;
-use fms_domain::models::metadata_catalog::{
-    CatalogEntrySource, MetadataCatalog, MetadataCatalogEntry,
-};
-use fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository;
 use fms_domain::models::field_overlay::FieldOverlay;
+use fms_domain::models::metadata_catalog::{CatalogEntrySource, MetadataCatalog, MetadataCatalogEntry};
 use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
+use fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository;
 
 pub struct PgMetadataCatalogRepository {
     pool: PgPool,
@@ -162,11 +160,7 @@ impl MetadataCatalogRepository for PgMetadataCatalogRepository {
             .ok_or_else(|| DomainError::Internal("catalog entry save returned no row".into()))
     }
 
-    async fn find_entry(
-        &self,
-        catalog_code: &str,
-        code: &str,
-    ) -> Result<Option<MetadataCatalogEntry>, DomainError> {
+    async fn find_entry(&self, catalog_code: &str, code: &str) -> Result<Option<MetadataCatalogEntry>, DomainError> {
         let row = sqlx::query(
             r#"
             SELECT catalog_code, code, name, rank, payload, is_active, source, created_at, updated_at
@@ -255,11 +249,23 @@ impl MetadataCatalogRepository for PgMetadataCatalogRepository {
 
 fn field_overlay_from_row(row: &sqlx::postgres::PgRow) -> FieldOverlay {
     FieldOverlay {
-        object_name: row.get("object_name"), field_name: row.get("field_name"), field_type: row.get("field_type"),
-        catalog_code: row.get("catalog_code"), object_name_target: row.get("object_name_target"), required: row.get("required"),
-        list_visible: row.get("list_visible"), filterable: row.get("filterable"), widget: row.get("widget"), description: row.get("description"),
-        visible_when: row.get("visible_when"), max_length: row.get("max_length"), min: row.get("min_value"), max: row.get("max_value"),
-        is_active: row.get("is_active"), created_at: row.get("created_at"), updated_at: row.get("updated_at"),
+        object_name: row.get("object_name"),
+        field_name: row.get("field_name"),
+        field_type: row.get("field_type"),
+        catalog_code: row.get("catalog_code"),
+        object_name_target: row.get("object_name_target"),
+        required: row.get("required"),
+        list_visible: row.get("list_visible"),
+        filterable: row.get("filterable"),
+        widget: row.get("widget"),
+        description: row.get("description"),
+        visible_when: row.get("visible_when"),
+        max_length: row.get("max_length"),
+        min: row.get("min_value"),
+        max: row.get("max_value"),
+        is_active: row.get("is_active"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
     }
 }
 
@@ -280,10 +286,25 @@ impl FieldOverlayRepository for PgMetadataCatalogRepository {
             .bind(&overlay.object_name).bind(&overlay.field_name).bind(&overlay.field_type).bind(&overlay.catalog_code).bind(&overlay.object_name_target)
             .bind(overlay.required).bind(overlay.list_visible).bind(overlay.filterable).bind(&overlay.widget).bind(&overlay.description).bind(&overlay.visible_when)
             .bind(overlay.max_length).bind(overlay.min).bind(overlay.max).bind(overlay.is_active).execute(&self.pool).await.map_err(|e| DomainError::Internal(e.to_string()))?;
-        self.find(&overlay.object_name, &overlay.field_name).await?.ok_or_else(|| DomainError::Internal("field overlay save returned no row".into()))
+        self.find(&overlay.object_name, &overlay.field_name)
+            .await?
+            .ok_or_else(|| DomainError::Internal("field overlay save returned no row".into()))
     }
-    async fn set_active(&self, object_name: &str, field_name: &str, is_active: bool) -> Result<Option<FieldOverlay>, DomainError> {
-        sqlx::query("UPDATE ontology_field_overlays SET is_active=$3, updated_at=NOW() WHERE object_name=$1 AND field_name=$2").bind(object_name).bind(field_name).bind(is_active).execute(&self.pool).await.map_err(|e| DomainError::Internal(e.to_string()))?;
+    async fn set_active(
+        &self,
+        object_name: &str,
+        field_name: &str,
+        is_active: bool,
+    ) -> Result<Option<FieldOverlay>, DomainError> {
+        sqlx::query(
+            "UPDATE ontology_field_overlays SET is_active=$3, updated_at=NOW() WHERE object_name=$1 AND field_name=$2",
+        )
+        .bind(object_name)
+        .bind(field_name)
+        .bind(is_active)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
         self.find(object_name, field_name).await
     }
 

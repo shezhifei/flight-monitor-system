@@ -62,7 +62,10 @@ pub fn normalize_catalog_code(raw: &str) -> Result<String, String> {
     if code.is_empty() || code.len() > 64 {
         return Err("码表 code 不能为空且最长 64".into());
     }
-    if !code.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+    if !code
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    {
         return Err("码表 code 只允许小写字母、数字和下划线".into());
     }
     Ok(code)

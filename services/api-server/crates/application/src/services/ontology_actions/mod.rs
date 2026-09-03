@@ -108,7 +108,11 @@ impl OntologyActionServices {
             anomaly_escalation: AnomalyEscalationAdvisorService::new(anomaly_repo.clone()),
             delay: DelayAdvisorService::new(flight_repo, dispatch_repo, anomaly_repo),
             notification_broadcast: NotificationBroadcastAdvisorService::new(),
-            personnel_context: PersonnelContextService::new(user_repo, personnel_runtime_repo, qualification_grant_repo),
+            personnel_context: PersonnelContextService::new(
+                user_repo,
+                personnel_runtime_repo,
+                qualification_grant_repo,
+            ),
             team_context: TeamContextService::new(team_repo),
             equipment_context: EquipmentContextService::new(equipment_repo),
         }

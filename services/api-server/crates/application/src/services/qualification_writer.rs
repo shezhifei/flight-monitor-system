@@ -31,7 +31,11 @@ impl<U: UnitOfWork> UowQualificationAttributeWriter<U> {
         reference_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<U::Tx> + Send + Sync>,
         uow: Arc<U>,
     ) -> Self {
-        Self { qualification_repo, reference_repo, uow }
+        Self {
+            qualification_repo,
+            reference_repo,
+            uow,
+        }
     }
 }
 

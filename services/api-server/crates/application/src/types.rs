@@ -259,9 +259,9 @@ pub type ConcreteDispatchResourceService = DispatchResourceService<
 /// 空间目录资源服务，绑定 Postgres 仓储。
 pub type ConcreteTerminalResourceService = TerminalResourceService<dyn TerminalRepository + Send + Sync>;
 
-use crate::services::metadata_catalog_service::MetadataCatalogService;
 use crate::services::field_overlay_service::FieldOverlayService;
 use crate::services::flight_monitor_row_service::FlightMonitorRowService;
+use crate::services::metadata_catalog_service::MetadataCatalogService;
 use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
 use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository;
 use fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository;

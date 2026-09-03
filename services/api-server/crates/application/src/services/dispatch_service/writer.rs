@@ -17,7 +17,7 @@ use fms_domain::models::dispatch::*;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderMemberTransactionalRepository,
     DispatchOrderRepository, DispatchOrderTransactionalRepository, EquipmentRepository, PersonnelRuntimeRepository,
-    QualificationGrantRepository, TeamRepository,
+    QualificationGrantRepository,
 };
 use fms_domain::ports::user_repository::UserRepository;
 
@@ -31,7 +31,6 @@ pub struct DispatchOrderWriter<Tx> {
     order_tx_repo: Arc<dyn DispatchOrderTransactionalRepository<Tx> + Send + Sync>,
     member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
     member_tx_repo: Arc<dyn DispatchOrderMemberTransactionalRepository<Tx> + Send + Sync>,
-    team_repo: Arc<dyn TeamRepository + Send + Sync>,
     qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
     qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
     personnel_runtime_repo: Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
@@ -46,7 +45,6 @@ impl<Tx> DispatchOrderWriter<Tx> {
         order_tx_repo: Arc<dyn DispatchOrderTransactionalRepository<Tx> + Send + Sync>,
         member_repo: Arc<dyn DispatchOrderMemberRepository + Send + Sync>,
         member_tx_repo: Arc<dyn DispatchOrderMemberTransactionalRepository<Tx> + Send + Sync>,
-        team_repo: Arc<dyn TeamRepository + Send + Sync>,
         qualification_grant_repo: Arc<dyn QualificationGrantRepository + Send + Sync>,
         qualification_repo: Arc<dyn DepartmentQualificationRepository + Send + Sync>,
         personnel_runtime_repo: Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
@@ -59,7 +57,6 @@ impl<Tx> DispatchOrderWriter<Tx> {
             order_tx_repo,
             member_repo,
             member_tx_repo,
-            team_repo,
             qualification_grant_repo,
             qualification_repo,
             personnel_runtime_repo,
@@ -358,7 +355,8 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
             .find(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code))
             .cloned()
             .ok_or_else(|| DomainError::ValidationError(format!("工单 {order_id} 不存在槽位 {slot_code}")))?;
-        self.validate_slot_personnel(&order, slot_code, &requirement, user_id).await?;
+        self.validate_slot_personnel(&order, slot_code, &requirement, user_id)
+            .await?;
 
         let now = Utc::now();
         let existing_members = self.member_repo.find_by_order(&order.id).await?;
@@ -467,7 +465,9 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
             .iter()
             .any(|item| item.get("slot_code").and_then(Value::as_str) == Some(slot_code))
         {
-            return Err(DomainError::ValidationError(format!("工单 {order_id} 不存在槽位 {slot_code}")));
+            return Err(DomainError::ValidationError(format!(
+                "工单 {order_id} 不存在槽位 {slot_code}"
+            )));
         }
 
         let now = Utc::now();
@@ -589,11 +589,13 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
         self.assert_order_assignable(&order)?;
 
         let before = order.crew_requirement_snapshot.len();
-        order.crew_requirement_snapshot.retain(|item| {
-            item.get("slot_code").and_then(Value::as_str) != Some(slot_code)
-        });
+        order
+            .crew_requirement_snapshot
+            .retain(|item| item.get("slot_code").and_then(Value::as_str) != Some(slot_code));
         if order.crew_requirement_snapshot.len() == before {
-            return Err(DomainError::ValidationError(format!("工单 {order_id} 不存在槽位 {slot_code}")));
+            return Err(DomainError::ValidationError(format!(
+                "工单 {order_id} 不存在槽位 {slot_code}"
+            )));
         }
 
         let now = Utc::now();
@@ -739,8 +741,7 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
         let before = order.equipment_assignment.len();
         order.equipment_assignment.retain(|entry| {
             let equipment_matches = entry.get("equipment_id").and_then(Value::as_str) == Some(equipment_id);
-            let slot_matches =
-                slot_code.is_none() || entry.get("slot_code").and_then(Value::as_str) == slot_code;
+            let slot_matches = slot_code.is_none() || entry.get("slot_code").and_then(Value::as_str) == slot_code;
             !(equipment_matches && slot_matches)
         });
         if order.equipment_assignment.len() == before {
@@ -788,7 +789,10 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
 
     /// 已完结（completed/cancelled）的工单不允许改槽。
     fn assert_order_assignable(&self, order: &DispatchOrder) -> Result<(), DomainError> {
-        if matches!(order.status, DispatchOrderStatus::Completed | DispatchOrderStatus::Cancelled) {
+        if matches!(
+            order.status,
+            DispatchOrderStatus::Completed | DispatchOrderStatus::Cancelled
+        ) {
             return Err(DomainError::BusinessRuleViolation(format!(
                 "工单 {} 已{}，不允许修改槽位",
                 order.id,
@@ -823,7 +827,10 @@ impl<Tx: Send> DispatchOrderWriter<Tx> {
 
         // 在岗：personnel_runtime 无行视为 off_duty → 拒绝。
         let runtime = self.personnel_runtime_repo.find_by_user(user_id).await?;
-        if runtime.as_ref().is_none_or(|r| r.current_status != PersonnelStatus::OnDuty) {
+        if runtime
+            .as_ref()
+            .is_none_or(|r| r.current_status != PersonnelStatus::OnDuty)
+        {
             return Err(DomainError::BusinessRuleViolation(format!(
                 "人员 {user_id} 不在岗（off duty），不能指派到槽位 {slot_code}"
             )));

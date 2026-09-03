@@ -427,7 +427,7 @@ async fn main() -> std::io::Result<()> {
             .map_err(crate::config::io_other)?;
     }
 
-    server_result.map_err(Into::into)
+    server_result
 }
 
 fn http_access_log_enabled() -> bool {

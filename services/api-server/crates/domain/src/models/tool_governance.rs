@@ -278,7 +278,7 @@ impl RustToolGovernanceResolver {
     /// should require authorization.
     pub fn is_known_public_l0(tool_name: &str) -> bool {
         let name = tool_name.trim();
-        RUST_PUBLIC_L0_TOOLS.iter().any(|t| *t == name)
+        RUST_PUBLIC_L0_TOOLS.contains(&name)
     }
 
     fn classify_unknown_tool(tool_name: &str) -> ResolvedToolGovernance {

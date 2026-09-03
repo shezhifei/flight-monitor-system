@@ -21,8 +21,7 @@ pub(crate) use crate::sse::hub::{normalize_event_source_message, SseHub, SseMess
 pub(crate) use crate::types::ConcreteNotificationService;
 pub(crate) use fms_application::services::authorization_service::PermissionCatalog;
 pub(crate) use fms_application::services::notification_service::{
-    CollaborationEventRecorder, DispatchBatchNotificationCreate, NoCollaborationEvents,
-    NotificationCollaborationEvents, NotificationDeliveryPublisher, NotificationMetricsRecorder,
+    DispatchBatchNotificationCreate, NotificationDeliveryPublisher, NotificationMetricsRecorder,
     NotificationPreferenceUpdate, NotificationReceiptGroupSync, NotificationService,
 };
 pub(crate) use fms_application::services::online_status_service::OnlineStatusService;

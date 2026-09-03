@@ -11,6 +11,7 @@ use crate::di::types::*;
 use crate::config::{env_flag, env_i64};
 use fms_application::services::anomaly_service::AnomalyService;
 use fms_application::services::attribute_validation::RepositoryObjectReferenceValidator;
+use fms_application::services::department_writer::UowDepartmentAttributeWriter;
 use fms_application::services::dispatch_analytics_service::DispatchAnalyticsService;
 use fms_application::services::dispatch_chat_service::DispatchChatService;
 use fms_application::services::dispatch_collaboration_query_service::DispatchCollaborationQueryService;
@@ -25,28 +26,33 @@ use fms_application::services::dispatch_service::{
     DispatchNotificationServiceDependencies, DispatchOrderServiceDependencies, DispatchResourceServiceDependencies,
     DispatchRuleServiceDependencies, DispatchService, DispatchServiceDependencies,
 };
+use fms_application::services::equipment_type_writer::UowEquipmentTypeAttributeWriter;
+use fms_application::services::equipment_writer::UowEquipmentAttributeWriter;
 use fms_application::services::event_rule_admin_service::EventRuleAdminService;
+use fms_application::services::field_overlay_service::FieldOverlayService;
+use fms_application::services::flight_monitor_row_service::FlightMonitorRowService;
 use fms_application::services::llm_eval_service::LLMEvalService;
+use fms_application::services::metadata_catalog_service::MetadataCatalogService;
+use fms_application::services::personnel_runtime_writer::UowPersonnelRuntimeAttributeWriter;
+use fms_application::services::qualification_writer::UowQualificationAttributeWriter;
 use fms_application::services::resource_availability_service::{
     ResourceAvailabilityGateway, ResourceAvailabilityService,
 };
 use fms_application::services::resource_utilization_service::ResourceUtilizationService;
-use fms_application::services::metadata_catalog_service::MetadataCatalogService;
-use fms_application::services::field_overlay_service::FieldOverlayService;
-use fms_application::services::personnel_runtime_writer::UowPersonnelRuntimeAttributeWriter;
-use fms_application::services::department_writer::UowDepartmentAttributeWriter;
-use fms_application::services::team_writer::UowTeamAttributeWriter;
-use fms_application::services::equipment_type_writer::UowEquipmentTypeAttributeWriter;
-use fms_application::services::equipment_writer::UowEquipmentAttributeWriter;
 use fms_application::services::task_type_writer::UowTaskTypeAttributeWriter;
 use fms_application::services::team_type_writer::UowTeamTypeAttributeWriter;
-use fms_application::services::qualification_writer::UowQualificationAttributeWriter;
-use fms_application::services::terminal_resource_writer::UowTerminalResourceAttributeWriter;
-use fms_application::services::flight_monitor_row_service::FlightMonitorRowService;
+use fms_application::services::team_writer::UowTeamAttributeWriter;
 use fms_application::services::terminal_resource_service::TerminalResourceService;
+use fms_application::services::terminal_resource_writer::UowTerminalResourceAttributeWriter;
 use fms_application::services::workflow_dispatch_service::WorkflowDispatchService;
 use fms_domain::broadcaster::Broadcaster;
 
+use fms_domain::ports::dispatch_repository::{
+    DepartmentQualificationTransactionalRepository, DepartmentTransactionalRepository,
+    EquipmentTransactionalRepository, EquipmentTypeTransactionalRepository, PersonnelRuntimeTransactionalRepository,
+    TaskTypeTransactionalRepository, TeamTransactionalRepository, TeamTypeTransactionalRepository,
+    TerminalResourceTransactionalRepository,
+};
 use fms_domain::ports::dispatch_repository::{
     DepartmentRepository, DispatchOrderRepository, EquipmentRepository, EquipmentTypeRepository,
     PersonnelRuntimeRepository, ScheduleExceptionRepository, ShiftInstanceRepository, ShiftTemplateRepository,
@@ -54,14 +60,8 @@ use fms_domain::ports::dispatch_repository::{
 };
 use fms_domain::ports::event_rule_repository::EventRuleRepository;
 use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
-use fms_domain::ports::dispatch_repository::{
-    DepartmentQualificationTransactionalRepository, DepartmentTransactionalRepository,
-    EquipmentTransactionalRepository, EquipmentTypeTransactionalRepository, PersonnelRuntimeTransactionalRepository,
-    TaskTypeTransactionalRepository, TeamTransactionalRepository, TeamTypeTransactionalRepository,
-    TerminalResourceTransactionalRepository,
-};
-use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceTransactionalRepository;
 use fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository;
+use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceTransactionalRepository;
 use fms_domain::ports::user_repository::UserRepository;
 use fms_domain::ports::workflow_dispatch_repository::WorkflowDispatchRepository;
 use fms_infrastructure::repositories::pg_event_rule_repository::PgEventRuleRepository;
@@ -91,6 +91,7 @@ pub(crate) struct DispatchServices {
     pub field_overlay_svc: Arc<ConcreteFieldOverlayService>,
     pub flight_monitor_row_svc: Arc<ConcreteFlightMonitorRowService>,
     pub resource_utilization_svc: Arc<ResourceUtilizationService>,
+    #[allow(dead_code)]
     pub resource_availability_svc: Arc<ResourceAvailabilityService>,
     pub workflow_dispatch_svc: Arc<ConcreteWorkflowDispatchService>,
     pub anomaly_svc: Arc<ConcreteAnomalyService>,
@@ -235,8 +236,7 @@ pub(crate) fn build_dispatch_services(
         department_reference_tx_repo,
         repos.unit_of_work.clone(),
     ));
-    let team_tx_repo: Arc<dyn TeamTransactionalRepository<PgTx> + Send + Sync> =
-        repos.team_repo.clone();
+    let team_tx_repo: Arc<dyn TeamTransactionalRepository<PgTx> + Send + Sync> = repos.team_repo.clone();
     let team_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
         Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let team_writer = Arc::new(UowTeamAttributeWriter::new(
@@ -246,15 +246,15 @@ pub(crate) fn build_dispatch_services(
     ));
     let equipment_type_tx_repo: Arc<dyn EquipmentTypeTransactionalRepository<PgTx> + Send + Sync> =
         repos.equipment_type_repo.clone();
-    let equipment_type_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
-        Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
+    let equipment_type_reference_tx_repo: Arc<
+        dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync,
+    > = Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let equipment_type_writer = Arc::new(UowEquipmentTypeAttributeWriter::new(
         equipment_type_tx_repo,
         equipment_type_reference_tx_repo,
         repos.unit_of_work.clone(),
     ));
-    let equipment_tx_repo: Arc<dyn EquipmentTransactionalRepository<PgTx> + Send + Sync> =
-        repos.equipment_repo.clone();
+    let equipment_tx_repo: Arc<dyn EquipmentTransactionalRepository<PgTx> + Send + Sync> = repos.equipment_repo.clone();
     let equipment_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
         Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let equipment_writer = Arc::new(UowEquipmentAttributeWriter::new(
@@ -262,8 +262,7 @@ pub(crate) fn build_dispatch_services(
         equipment_reference_tx_repo,
         repos.unit_of_work.clone(),
     ));
-    let task_type_tx_repo: Arc<dyn TaskTypeTransactionalRepository<PgTx> + Send + Sync> =
-        repos.task_type_repo.clone();
+    let task_type_tx_repo: Arc<dyn TaskTypeTransactionalRepository<PgTx> + Send + Sync> = repos.task_type_repo.clone();
     let task_type_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
         Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let task_type_writer = Arc::new(UowTaskTypeAttributeWriter::new(
@@ -271,8 +270,7 @@ pub(crate) fn build_dispatch_services(
         task_type_reference_tx_repo,
         repos.unit_of_work.clone(),
     ));
-    let team_type_tx_repo: Arc<dyn TeamTypeTransactionalRepository<PgTx> + Send + Sync> =
-        repos.team_type_repo.clone();
+    let team_type_tx_repo: Arc<dyn TeamTypeTransactionalRepository<PgTx> + Send + Sync> = repos.team_type_repo.clone();
     let team_type_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
         Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let team_type_writer = Arc::new(UowTeamTypeAttributeWriter::new(
@@ -282,8 +280,9 @@ pub(crate) fn build_dispatch_services(
     ));
     let qualification_tx_repo: Arc<dyn DepartmentQualificationTransactionalRepository<PgTx> + Send + Sync> =
         repos.qualification_repo.clone();
-    let qualification_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
-        Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
+    let qualification_reference_tx_repo: Arc<
+        dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync,
+    > = Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let qualification_writer = Arc::new(UowQualificationAttributeWriter::new(
         qualification_tx_repo,
         qualification_reference_tx_repo,
@@ -291,79 +290,91 @@ pub(crate) fn build_dispatch_services(
     ));
     let terminal_resource_tx_repo: Arc<dyn TerminalResourceTransactionalRepository<PgTx> + Send + Sync> =
         repos.terminal_repo.clone();
-    let terminal_resource_reference_tx_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync> =
-        Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
+    let terminal_resource_reference_tx_repo: Arc<
+        dyn OntologyAttributeReferenceTransactionalRepository<PgTx> + Send + Sync,
+    > = Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone()));
     let terminal_resource_writer = Arc::new(UowTerminalResourceAttributeWriter::new(
         terminal_resource_tx_repo,
         terminal_resource_reference_tx_repo,
         repos.unit_of_work.clone(),
     ));
-    let dispatch_resource_svc = Arc::new(DispatchResourceService::new(
-        repos.department_repo.clone() as Arc<dyn DepartmentRepository + Send + Sync>,
-        repos.team_type_repo.clone() as Arc<dyn TeamTypeRepository + Send + Sync>,
-        repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
-        repos.team_member_repo.clone() as Arc<dyn TeamMemberRepository + Send + Sync>,
-        repos.equipment_type_repo.clone() as Arc<dyn EquipmentTypeRepository + Send + Sync>,
-        repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
-        repos.stand_repo.clone() as Arc<dyn StandRepository + Send + Sync>,
-        repos.task_type_repo.clone() as Arc<dyn TaskTypeRepository + Send + Sync>,
-        repos.personnel_runtime_repo.clone() as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
-        repos.user_repo.clone() as Arc<dyn UserRepository + Send + Sync>,
-    ).with_field_overlay_repository(
-        repos.metadata_catalog_repo.clone()
-            as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>,
-    ).with_reference_repository(Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone())))
-    .with_personnel_runtime_writer(personnel_runtime_writer)
-    .with_department_writer(department_writer)
-    .with_team_writer(team_writer)
-    .with_equipment_type_writer(equipment_type_writer)
-    .with_equipment_writer(equipment_writer)
-    .with_task_type_writer(task_type_writer)
-    .with_team_type_writer(team_type_writer));
+    let dispatch_resource_svc = Arc::new(
+        DispatchResourceService::new(
+            repos.department_repo.clone() as Arc<dyn DepartmentRepository + Send + Sync>,
+            repos.team_type_repo.clone() as Arc<dyn TeamTypeRepository + Send + Sync>,
+            repos.team_repo.clone() as Arc<dyn TeamRepository + Send + Sync>,
+            repos.team_member_repo.clone() as Arc<dyn TeamMemberRepository + Send + Sync>,
+            repos.equipment_type_repo.clone() as Arc<dyn EquipmentTypeRepository + Send + Sync>,
+            repos.equipment_repo.clone() as Arc<dyn EquipmentRepository + Send + Sync>,
+            repos.stand_repo.clone() as Arc<dyn StandRepository + Send + Sync>,
+            repos.task_type_repo.clone() as Arc<dyn TaskTypeRepository + Send + Sync>,
+            repos.personnel_runtime_repo.clone() as Arc<dyn PersonnelRuntimeRepository + Send + Sync>,
+            repos.user_repo.clone() as Arc<dyn UserRepository + Send + Sync>,
+        )
+        .with_field_overlay_repository(repos.metadata_catalog_repo.clone()
+            as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>)
+        .with_reference_repository(Arc::new(PgOntologyAttributeReferenceRepository::new(
+            repos.pool.clone(),
+        )))
+        .with_personnel_runtime_writer(personnel_runtime_writer)
+        .with_department_writer(department_writer)
+        .with_team_writer(team_writer)
+        .with_equipment_type_writer(equipment_type_writer)
+        .with_equipment_writer(equipment_writer)
+        .with_task_type_writer(task_type_writer)
+        .with_team_type_writer(team_type_writer),
+    );
     let terminal_resource_svc: Arc<ConcreteTerminalResourceService> = Arc::new(
         TerminalResourceService::new(repos.terminal_repo.clone() as Arc<dyn TerminalRepository + Send + Sync>)
-            .with_field_overlay_repository(
-                repos.metadata_catalog_repo.clone()
-                    as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>,
-            )
-            .with_reference_repository(Arc::new(PgOntologyAttributeReferenceRepository::new(repos.pool.clone())))
+            .with_field_overlay_repository(repos.metadata_catalog_repo.clone()
+                as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>)
+            .with_reference_repository(Arc::new(PgOntologyAttributeReferenceRepository::new(
+                repos.pool.clone(),
+            )))
             .with_stand_repository(repos.stand_repo.clone() as Arc<dyn StandRepository + Send + Sync>)
             .with_attribute_writer(terminal_resource_writer),
     );
     let metadata_catalog_svc: Arc<ConcreteMetadataCatalogService> = Arc::new(MetadataCatalogService::new(
         repos.metadata_catalog_repo.clone() as Arc<dyn MetadataCatalogRepository + Send + Sync>,
     ));
-    let field_overlay_svc: Arc<ConcreteFieldOverlayService> = Arc::new(FieldOverlayService::new(
-        repos.metadata_catalog_repo.clone() as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>,
-    ));
-    let flight_monitor_row_svc: Arc<ConcreteFlightMonitorRowService> = Arc::new(FlightMonitorRowService::new(
-        repos.flight_monitor_row_repo.clone() as Arc<dyn fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository + Send + Sync>,
-    ));
+    let field_overlay_svc: Arc<ConcreteFieldOverlayService> =
+        Arc::new(FieldOverlayService::new(repos.metadata_catalog_repo.clone()
+            as Arc<
+                dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync,
+            >));
+    let flight_monitor_row_svc: Arc<ConcreteFlightMonitorRowService> =
+        Arc::new(FlightMonitorRowService::new(repos.flight_monitor_row_repo.clone()
+            as Arc<
+                dyn fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository + Send + Sync,
+            >));
     let resource_utilization_svc = Arc::new(ResourceUtilizationService::new(repos.dispatch_order_repo.clone()));
-    let dispatch_rule_svc = Arc::new(DispatchRuleService::new(
-        repos.department_repo.clone(),
-        repos.qualification_repo.clone(),
-        repos.qualification_grant_repo.clone(),
-        repos.task_type_requirement_repo.clone(),
-        repos.generation_rule_repo.clone(),
-        repos.adjustment_rule_repo.clone(),
-        repos.temporary_task_template_repo.clone(),
-    ).with_field_overlay_repository(
-        repos.metadata_catalog_repo.clone()
-            as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>,
-    ).with_object_reference_validator(Arc::new(RepositoryObjectReferenceValidator::new(
-        field_overlay_repo.clone(),
-        repos.department_repo.clone(),
-        repos.team_repo.clone(),
-        repos.team_type_repo.clone(),
-        repos.equipment_type_repo.clone(),
-        repos.equipment_repo.clone(),
-        repos.stand_repo.clone(),
-        repos.task_type_repo.clone(),
-        repos.user_repo.clone(),
-        repos.terminal_repo.clone(),
-        repos.qualification_repo.clone(),
-    ))).with_qualification_writer(qualification_writer));
+    let dispatch_rule_svc = Arc::new(
+        DispatchRuleService::new(
+            repos.department_repo.clone(),
+            repos.qualification_repo.clone(),
+            repos.qualification_grant_repo.clone(),
+            repos.task_type_requirement_repo.clone(),
+            repos.generation_rule_repo.clone(),
+            repos.adjustment_rule_repo.clone(),
+            repos.temporary_task_template_repo.clone(),
+        )
+        .with_field_overlay_repository(repos.metadata_catalog_repo.clone()
+            as Arc<dyn fms_domain::ports::field_overlay_repository::FieldOverlayRepository + Send + Sync>)
+        .with_object_reference_validator(Arc::new(RepositoryObjectReferenceValidator::new(
+            field_overlay_repo.clone(),
+            repos.department_repo.clone(),
+            repos.team_repo.clone(),
+            repos.team_type_repo.clone(),
+            repos.equipment_type_repo.clone(),
+            repos.equipment_repo.clone(),
+            repos.stand_repo.clone(),
+            repos.task_type_repo.clone(),
+            repos.user_repo.clone(),
+            repos.terminal_repo.clone(),
+            repos.qualification_repo.clone(),
+        )))
+        .with_qualification_writer(qualification_writer),
+    );
     let event_rule_repo: Arc<dyn EventRuleRepository + Send + Sync> =
         Arc::new(PgEventRuleRepository::new(repos.pool.clone()));
     let event_rule_dispatch_order_repo: Arc<dyn DispatchOrderRepository + Send + Sync> =

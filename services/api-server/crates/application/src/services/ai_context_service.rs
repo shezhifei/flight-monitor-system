@@ -23,7 +23,6 @@ pub enum AiContextError {
 
 pub struct AiContextService {
     flight_service: Arc<ConcreteFlightService>,
-    authorization_service: Arc<AuthorizationService>,
     dispatch_query_service: Option<Arc<ConcreteDispatchQueryService>>,
     anomaly_service: Option<Arc<ConcreteAnomalyService>>,
     business_case_service: Option<Arc<ConcreteBusinessCaseService>>,
@@ -36,10 +35,9 @@ pub struct AiContextService {
 }
 
 impl AiContextService {
-    pub fn new(flight_service: Arc<ConcreteFlightService>, authorization_service: Arc<AuthorizationService>) -> Self {
+    pub fn new(flight_service: Arc<ConcreteFlightService>) -> Self {
         Self {
             flight_service,
-            authorization_service,
             dispatch_query_service: None,
             anomaly_service: None,
             business_case_service: None,
@@ -304,7 +302,10 @@ impl AiContextService {
             "BaggageCarousel" => self.load_snapshot(AiContextSnapshotKind::BaggageCarousel, obj_id).await,
             "StandOccupation" => self.load_snapshot(AiContextSnapshotKind::StandOccupation, obj_id).await,
             "GateAssignment" => self.load_snapshot(AiContextSnapshotKind::GateAssignment, obj_id).await,
-            "CarouselAssignment" => self.load_snapshot(AiContextSnapshotKind::CarouselAssignment, obj_id).await,
+            "CarouselAssignment" => {
+                self.load_snapshot(AiContextSnapshotKind::CarouselAssignment, obj_id)
+                    .await
+            }
             "Department" => self.load_snapshot(AiContextSnapshotKind::Department, obj_id).await,
             "EquipmentType" => self.load_snapshot(AiContextSnapshotKind::EquipmentType, obj_id).await,
             "Aircraft" => self.load_snapshot(AiContextSnapshotKind::Aircraft, obj_id).await,
@@ -391,8 +392,8 @@ fn can_read_context_object_type(user_permissions: &[String], object_type: &str) 
             "dispatch_order.read",
             "dispatch_order.update",
         ][..],
-        "Stand" | "Team" | "Equipment" | "Terminal" | "Gate" | "BaggageCarousel" | "Department"
-        | "EquipmentType" | "Qualification" | "TaskType" => &[
+        "Stand" | "Team" | "Equipment" | "Terminal" | "Gate" | "BaggageCarousel" | "Department" | "EquipmentType"
+        | "Qualification" | "TaskType" => &[
             "dispatch:read",
             "dispatch:write",
             "dispatch:manage",
@@ -402,7 +403,11 @@ fn can_read_context_object_type(user_permissions: &[String], object_type: &str) 
         ][..],
         "StandOccupation" => &["ontology:stand.manage", "ontology.stand.manage", "ontology:manage"][..],
         "GateAssignment" => &["ontology:gate.manage", "ontology.gate.manage", "ontology:manage"][..],
-        "CarouselAssignment" => &["ontology:carousel.manage", "ontology.carousel.manage", "ontology:manage"][..],
+        "CarouselAssignment" => &[
+            "ontology:carousel.manage",
+            "ontology.carousel.manage",
+            "ontology:manage",
+        ][..],
         "Personnel" => &[
             "ontology:personnel.manage",
             "ontology.personnel.manage",
@@ -519,12 +524,9 @@ mod tests {
     }
 
     fn service() -> AiContextService {
-        AiContextService::new(
-            Arc::new(crate::services::flight_service::FlightService::new(Arc::new(
-                EmptyFlightRepository,
-            ))),
-            Arc::new(AuthorizationService),
-        )
+        AiContextService::new(Arc::new(crate::services::flight_service::FlightService::new(Arc::new(
+            EmptyFlightRepository,
+        ))))
     }
 
     #[tokio::test]
@@ -555,16 +557,44 @@ mod tests {
             .build_envelope("admin", &["*".to_string()], None, "nl_query", "hello", &[])
             .await
             .unwrap();
-        assert!(envelope.ontology.allowed_object_types.contains(&"Personnel".to_string()));
+        assert!(envelope
+            .ontology
+            .allowed_object_types
+            .contains(&"Personnel".to_string()));
         assert!(envelope.ontology.allowed_object_types.contains(&"Terminal".to_string()));
-        assert!(envelope.ontology.allowed_object_types.contains(&"CarouselAssignment".to_string()));
-        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "FlightLeg"));
+        assert!(envelope
+            .ontology
+            .allowed_object_types
+            .contains(&"CarouselAssignment".to_string()));
+        assert!(!envelope
+            .ontology
+            .allowed_object_types
+            .iter()
+            .any(|item| item == "FlightLeg"));
         assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "Todo"));
-        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "Notification"));
-        assert!(!envelope.ontology.allowed_object_types.iter().any(|item| item == "WorkflowRun"));
-        assert!(envelope.ontology.allowed_actions.contains(&"Flight.add_note".to_string()));
-        assert!(envelope.ontology.allowed_actions.contains(&"DispatchOrder.assign_slot".to_string()));
-        assert!(!envelope.ontology.allowed_actions.iter().any(|item| item == "Flight.change_stand"));
+        assert!(!envelope
+            .ontology
+            .allowed_object_types
+            .iter()
+            .any(|item| item == "Notification"));
+        assert!(!envelope
+            .ontology
+            .allowed_object_types
+            .iter()
+            .any(|item| item == "WorkflowRun"));
+        assert!(envelope
+            .ontology
+            .allowed_actions
+            .contains(&"Flight.add_note".to_string()));
+        assert!(envelope
+            .ontology
+            .allowed_actions
+            .contains(&"DispatchOrder.assign_slot".to_string()));
+        assert!(!envelope
+            .ontology
+            .allowed_actions
+            .iter()
+            .any(|item| item == "Flight.change_stand"));
         assert_eq!(envelope.ontology.risk_ceiling, "medium");
     }
 
@@ -610,7 +640,9 @@ mod tests {
 
     #[async_trait]
     impl AiEntityConfigRepository for CeilingEntityConfigRepository {
-        async fn find_all(&self) -> Result<Vec<fms_domain::models::ai_entity_config::AiEntityConfigRecord>, DomainError> {
+        async fn find_all(
+            &self,
+        ) -> Result<Vec<fms_domain::models::ai_entity_config::AiEntityConfigRecord>, DomainError> {
             Ok(Vec::new())
         }
         async fn find_by_id(
@@ -655,8 +687,15 @@ mod tests {
             .build_envelope("admin", &["*".to_string()], None, "nl_query", "hello", &[])
             .await
             .unwrap();
-        assert!(!envelope.ontology.allowed_actions.iter().any(|item| item == "Flight.add_note"));
-        assert!(envelope.ontology.allowed_actions.contains(&"Flight.update_status".to_string()));
+        assert!(!envelope
+            .ontology
+            .allowed_actions
+            .iter()
+            .any(|item| item == "Flight.add_note"));
+        assert!(envelope
+            .ontology
+            .allowed_actions
+            .contains(&"Flight.update_status".to_string()));
     }
 
     #[tokio::test]

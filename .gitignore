@@ -146,9 +146,8 @@ legacy-backend/
 # Maturin cache
 .maturin/
 
-# Local TLS certificates (development only)
-certs/*.crt
-certs/*.key
+# Local TLS certificates (development only) — 整目录忽略：改名扩展名（.pem/.p12/.csr）或子目录也不入库。
+certs/
 
 # Demo runtime artifacts
 scripts/demo/.runtime/

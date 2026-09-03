@@ -97,7 +97,7 @@ pub async fn create_flight(
     let actor = actor_id(&claims).to_string();
     // Build the create command explicitly from the request body + actor, then
     // enforce the command boundary's invariants before touching the service.
-    let mut command = FlightCreateCommand::new(body.into_inner(), Some(actor.clone()));
+    let command = FlightCreateCommand::new(body.into_inner(), Some(actor.clone()));
     command
         .validate()
         .map_err(|e| ApiError::ValidationError(e.to_string()))?;

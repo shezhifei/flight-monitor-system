@@ -66,7 +66,7 @@ pub(crate) async fn complete_run(
         if raw
             .get("proposals")
             .and_then(|p| p.as_array())
-            .map_or(false, |a| !a.is_empty())
+            .is_some_and(|a| !a.is_empty())
         {
             let output: fms_domain::models::ai_structured_output::AiStructuredOutput =
                 serde_json::from_value(raw.clone())

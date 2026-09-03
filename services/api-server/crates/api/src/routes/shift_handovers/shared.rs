@@ -1,6 +1,6 @@
 //! Shift handover routes aligned with the Python API.
 
-pub(crate) use actix_web::{web, HttpRequest, HttpResponse};
+pub(crate) use actix_web::{HttpRequest, HttpResponse};
 pub(crate) use chrono::NaiveDate;
 pub(crate) use fms_application::schemas::auth_schemas::UserResponse;
 pub(crate) use fms_application::schemas::response::ApiResponse;

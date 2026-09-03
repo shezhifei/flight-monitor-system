@@ -158,10 +158,7 @@ impl DispatchOrderMemberRepository for PgDispatchOrderMemberRepository {
         }
     }
 
-    async fn find_active_slots_for_users(
-        &self,
-        user_ids: &[String],
-    ) -> Result<Vec<serde_json::Value>, DomainError> {
+    async fn find_active_slots_for_users(&self, user_ids: &[String]) -> Result<Vec<serde_json::Value>, DomainError> {
         if user_ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -198,7 +195,9 @@ impl DispatchOrderMemberRepository for PgDispatchOrderMemberRepository {
         for row in rows {
             let slot_code: Option<String> = row.try_get("slot_code").ok();
             let slot_name = Self::slot_name_from_snapshot(
-                row.try_get::<Option<serde_json::Value>, _>("crew_requirement_snapshot").ok().flatten(),
+                row.try_get::<Option<serde_json::Value>, _>("crew_requirement_snapshot")
+                    .ok()
+                    .flatten(),
                 slot_code.as_deref(),
             );
             result.push(serde_json::json!({
@@ -222,10 +221,7 @@ impl DispatchOrderMemberRepository for PgDispatchOrderMemberRepository {
 }
 
 impl PgDispatchOrderMemberRepository {
-    fn slot_name_from_snapshot(
-        snapshot: Option<serde_json::Value>,
-        slot_code: Option<&str>,
-    ) -> Option<String> {
+    fn slot_name_from_snapshot(snapshot: Option<serde_json::Value>, slot_code: Option<&str>) -> Option<String> {
         let slot_code = slot_code?;
         let snapshot = snapshot?;
         let arr = snapshot.as_array()?;

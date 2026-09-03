@@ -92,10 +92,14 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
             "一个 Flight 只能包含一个方向；进出港请分别创建两班并通过 TurnaroundLink 关联".into(),
         ));
     }
-    let canonical_leg = inbound_leg.as_ref().or(outbound_leg.as_ref()).ok_or_else(|| {
-        DomainError::ValidationError("航班创建至少需要 inbound_leg 或 outbound_leg".into())
-    })?;
-    let direction = match (dto.direction.as_deref().map(|value| value.trim().to_ascii_lowercase()), canonical_leg.leg_type) {
+    let canonical_leg = inbound_leg
+        .as_ref()
+        .or(outbound_leg.as_ref())
+        .ok_or_else(|| DomainError::ValidationError("航班创建至少需要 inbound_leg 或 outbound_leg".into()))?;
+    let direction = match (
+        dto.direction.as_deref().map(|value| value.trim().to_ascii_lowercase()),
+        canonical_leg.leg_type,
+    ) {
         (Some(value), LegType::Inbound) if value == "inbound" => Some(value),
         (Some(value), LegType::Outbound) if value == "outbound" => Some(value),
         (Some(_), _) => {
@@ -108,7 +112,10 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
 
     Ok(Flight {
         flight_id: FlightId(dto.flight_id.unwrap_or_else(|| ulid::Ulid::new().to_string())),
-        flight_number: dto.flight_number.or_else(|| Some(canonical_leg.flight_no.clone())).map(FlightNumber),
+        flight_number: dto
+            .flight_number
+            .or_else(|| Some(canonical_leg.flight_no.clone()))
+            .map(FlightNumber),
         airline_code: dto.airline_code,
         registration: dto.registration,
         aircraft_type_detail: dto.aircraft_type_detail.map(AircraftType),
@@ -118,7 +125,11 @@ pub fn from_create(dto: FlightCreate) -> Result<Flight, DomainError> {
         position: dto.position,
         baggage_carousel: dto.baggage_carousel,
         scheduled_departure: if is_inbound { None } else { dto.scheduled_departure },
-        scheduled_arrival: if is_inbound { dto.scheduled_arrival.or(canonical_leg.scheduled_time) } else { None },
+        scheduled_arrival: if is_inbound {
+            dto.scheduled_arrival.or(canonical_leg.scheduled_time)
+        } else {
+            None
+        },
         estimated_departure: if is_inbound { None } else { dto.estimated_departure },
         estimated_arrival: if is_inbound { dto.estimated_arrival } else { None },
         actual_departure: if is_inbound { None } else { dto.actual_departure },

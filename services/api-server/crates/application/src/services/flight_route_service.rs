@@ -198,7 +198,7 @@ impl FlightRouteService {
         match self.flight_service.execute_update(command).await? {
             Some(flight) => {
                 let flight = self.runtime.enrich_flight(flight).await?;
-                let status_changed = changed_fields.iter().any(|field| *field == "status");
+                let status_changed = changed_fields.contains(&"status");
                 let audit_changed_fields: Vec<String> =
                     changed_fields.iter().map(|field| (*field).to_owned()).collect();
                 let audit = self
@@ -398,11 +398,11 @@ mod tests {
     fn base_flight() -> FlightResponse {
         FlightResponse {
             flight_id: Some("flight-001".to_string()),
-        row_id: None,
-        link_id: None,
-        kind: None,
-        inbound_flight_id: None,
-        outbound_flight_id: None,
+            row_id: None,
+            link_id: None,
+            kind: None,
+            inbound_flight_id: None,
+            outbound_flight_id: None,
             flight_number: Some("MU1234".to_string()),
             airline_code: None,
             registration: None,

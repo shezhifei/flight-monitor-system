@@ -10,7 +10,7 @@ use crate::services::runtime_error_monitor::record_service_unavailable_backgroun
 use fms_application::schemas::business_case_workflow_schemas::BusinessCaseWorkflowStartRequest;
 use fms_application::schemas::response::ApiResponse;
 use fms_application::services::auth_service::AuthService;
-use fms_application::services::authorization_service::{AuthorizationService, PermissionCatalog};
+use fms_application::services::authorization_service::PermissionCatalog;
 use fms_application::services::business_case_workflow_service::BusinessCaseWorkflowService;
 use fms_application::services::cache_invalidation_service::{CacheInvalidationKey, CacheInvalidationService};
 use fms_application::services::operator_identity_service::OperatorIdentityService;

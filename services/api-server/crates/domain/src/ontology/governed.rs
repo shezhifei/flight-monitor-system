@@ -6,8 +6,8 @@
 //! 入口（HTTP / validator / generate / ingest / execute 校验）都必须经过这里。
 
 use crate::models::ai_ontology::OntologySchema;
-use crate::models::field_overlay::FieldOverlay;
 use crate::models::ai_proposal::RiskLevel;
+use crate::models::field_overlay::FieldOverlay;
 use crate::ontology::flight_ops_v1::build_flight_ops_v1_schema;
 
 /// 覆盖已知 `(object, action)` 键的启用 / 风险 / 审批。只能覆盖代码 schema 里
@@ -71,20 +71,31 @@ pub fn load_governed_schema_with_fields(
 ) -> OntologySchema {
     let mut schema = load_governed_schema(action_overlays);
     for overlay in field_overlays.iter().filter(|item| item.is_active) {
-        let Some(object) = schema.objects.get_mut(&overlay.object_name) else { continue };
-        let field = object.fields.entry(overlay.field_name.clone()).or_insert_with(|| crate::models::ai_ontology::OntologyFieldDef {
-            name: overlay.field_name.clone(), field_type: overlay.field_type.clone(), description: overlay.description.clone().unwrap_or_default(), required: overlay.required,
-            ..Default::default()
+        let Some(object) = schema.objects.get_mut(&overlay.object_name) else {
+            continue;
+        };
+        let field = object.fields.entry(overlay.field_name.clone()).or_insert_with(|| {
+            crate::models::ai_ontology::OntologyFieldDef {
+                name: overlay.field_name.clone(),
+                field_type: overlay.field_type.clone(),
+                description: overlay.description.clone().unwrap_or_default(),
+                required: overlay.required,
+                ..Default::default()
+            }
         });
         // 代码核心字段不允许被 overlay 改类型；扩展字段以 overlay 的类型创建。
-        if field.field_type != overlay.field_type && !field.field_type.is_empty() { continue; }
+        if field.field_type != overlay.field_type && !field.field_type.is_empty() {
+            continue;
+        }
         field.catalog_code = overlay.catalog_code.clone();
         field.object_name_target = overlay.object_name_target.clone();
         field.required = overlay.required;
         field.list_visible = Some(overlay.list_visible);
         field.filterable = Some(overlay.filterable);
         field.widget = overlay.widget.clone();
-        if let Some(description) = &overlay.description { field.description = description.clone(); }
+        if let Some(description) = &overlay.description {
+            field.description = description.clone();
+        }
         field.visible_when = overlay.visible_when.clone();
         field.max_length = overlay.max_length;
         field.min = overlay.min;
@@ -117,10 +128,7 @@ mod tests {
 
     #[test]
     fn unknown_object_or_action_is_ignored() {
-        let overlays = vec![
-            overlay("DoesNotExist", "create"),
-            overlay("Flight", "does_not_exist"),
-        ];
+        let overlays = vec![overlay("DoesNotExist", "create"), overlay("Flight", "does_not_exist")];
         let schema = load_governed_schema(&overlays);
         assert!(schema.objects.contains_key("Flight"));
     }
@@ -182,12 +190,28 @@ mod tests {
 
     #[test]
     fn field_overlay_adds_extension_without_changing_action_contract() {
-        let schema = load_governed_schema_with_fields(&[], &[FieldOverlay {
-            object_name: "Stand".into(), field_name: "max_size_category".into(), field_type: "catalog_ref".into(),
-            catalog_code: Some("icao_size".into()), object_name_target: None, required: false, list_visible: true,
-            filterable: true, widget: Some("select".into()), description: Some("最大机型等级".into()), visible_when: None,
-            max_length: None, min: None, max: None, is_active: true, created_at: None, updated_at: None,
-        }]);
+        let schema = load_governed_schema_with_fields(
+            &[],
+            &[FieldOverlay {
+                object_name: "Stand".into(),
+                field_name: "max_size_category".into(),
+                field_type: "catalog_ref".into(),
+                catalog_code: Some("icao_size".into()),
+                object_name_target: None,
+                required: false,
+                list_visible: true,
+                filterable: true,
+                widget: Some("select".into()),
+                description: Some("最大机型等级".into()),
+                visible_when: None,
+                max_length: None,
+                min: None,
+                max: None,
+                is_active: true,
+                created_at: None,
+                updated_at: None,
+            }],
+        );
         let field = &schema.objects["Stand"].fields["max_size_category"];
         assert_eq!(field.catalog_code.as_deref(), Some("icao_size"));
         assert_eq!(field.widget.as_deref(), Some("select"));

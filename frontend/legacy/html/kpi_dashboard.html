@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPI 仪表盘 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/vendor/js/echarts.min.js"></script>
+    <link rel="stylesheet" href="/frontend/css/workspace_unified_theme.css?v=4">
+    <link rel="stylesheet" href="/frontend/css/kpi_dashboard_enhanced.css?v=2">
+</head>
+<body class="workspace-page data-hub-page kpi-dashboard-page">
+    <div class="page data-hub-shell">
+        <header class="utility-bar dashboard-topbar">
+            <div class="utility-main">
+                <a href="/frontend/html/dashboard.html" class="home-link" title="返回工作台">
+                    <img src="/frontend/icons/home.svg" class="svg-icon" style="width:18px;height:18px;" alt="返回">
+                </a>
+                <div class="dashboard-title-block">
+                    <span class="page-kicker">Performance Analytics</span>
+                    <span class="page-title">KPI 诊断台</span>
+                    <span class="utility-note">所有核心数字都必须带参照系，而不是裸指标</span>
+                </div>
+                <nav class="utility-nav" aria-label="分析导航">
+                    <a class="active" href="/frontend/html/kpi_dashboard.html">KPI</a>
+                    <a href="/frontend/html/operations_review_report.html">运行复盘</a>
+                </nav>
+            </div>
+        </header>
+
+        <section class="panel dashboard-ribbon kpi-toolbar-panel">
+            <div class="dashboard-ribbon-copy">
+                <span class="section-eyebrow">诊断模式</span>
+                <h2 class="dashboard-ribbon-title">KPI 诊断台</h2>
+            </div>
+            <div class="dashboard-ribbon-actions kpi-toolbar-actions">
+                <div class="kpi-toolbar-group kpi-range-group">
+                    <select id="timeRange" aria-label="时间范围">
+                        <option value="today">今日</option>
+                        <option value="this_week">本周</option>
+                        <option value="this_month">本月</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div class="kpi-toolbar-group kpi-custom-range is-hidden" id="customRangeGroup">
+                    <input type="date" id="startDate" disabled>
+                    <input type="date" id="endDate" disabled>
+                </div>
+                <div class="kpi-toolbar-group kpi-action-group">
+                    <button class="btn primary" id="refreshBtn">更新数据</button>
+                    <button class="btn" id="logoutBtn">退出</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel verdict-panel">
+            <div class="section-headline">
+                <div class="section-heading-block">
+                    <h2 class="section-title">3 秒判断</h2>
+                </div>
+                <span class="section-meta" id="snapshotTime">--</span>
+            </div>
+            <div class="decision-strip">
+                <article class="decision-pill"><span class="decision-label">今天达标没有</span><strong id="decisionAttainment">等待更新</strong></article>
+                <article class="decision-pill"><span class="decision-label">差距来自哪里</span><strong id="decisionSource">等待诊断</strong></article>
+                <article class="decision-pill"><span class="decision-label">下一步查哪层</span><strong id="decisionNextStep">等待建议</strong></article>
+            </div>
+            <div class="verdict-layout">
+                <div class="verdict-copy">
+                    <span class="verdict-kicker">Today's Verdict</span>
+                    <div class="verdict-head">
+                        <strong class="verdict-lead" id="verdictLead">等待诊断结论...</strong>
+                        <span class="verdict-chip is-pending" id="verdictStateChip">待更新</span>
+                    </div>
+                    <p class="verdict-support" id="verdictSupport">更新后会基于目标、阈值和历史生成结论。</p>
+                </div>
+                <div class="scoreboard">
+                    <article class="score-cell"><span class="score-label">出港准点率</span><strong id="scoreDepartureValue">-</strong><span id="scoreDepartureNote">目标 90%</span></article>
+                    <article class="score-cell"><span class="score-label">距目标差</span><strong id="scoreGapValue">-</strong><span id="scoreGapNote">参照历史末值</span></article>
+                    <article class="score-cell"><span class="score-label">过站尾差</span><strong id="scoreTurnValue">-</strong><span id="scoreTurnNote">阈值 15 分</span></article>
+                    <article class="score-cell"><span class="score-label">服务稳定度</span><strong id="scoreServiceValue">-</strong><span id="scoreServiceNote">目标 95%</span></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="diagnostic-board" id="kpiGrid">
+            <article class="panel trend-stage spotlight-panel">
+                <div class="section-headline">
+                    <div class="section-heading-block">
+                        <h2 class="section-title">目标差趋势</h2>
+                    </div>
+                    <span class="section-meta" id="trendMeta">目标 90%</span>
+                </div>
+                <div class="trend-context">
+                    <div class="layer-summary">
+                        <strong id="trendBoardLead">等待趋势数据...</strong>
+                        <p id="trendBoardSupport">近 7 日会被转换为“离目标还有多远”的信号。</p>
+                    </div>
+                    <span class="delta-badge" id="trendDeltaBadge">等待更新</span>
+                </div>
+                <div class="chart-shell chart-shell-trend"><div id="trendBars" style="width:100%;min-height:260px"></div></div>
+            </article>
+
+            <article class="panel time-layer-panel">
+                <div class="section-headline">
+                    <div class="section-heading-block">
+                        <h2 class="section-title">时间压力</h2>
+                    </div>
+                    <span class="section-meta" id="hourlyMeta">等待更新</span>
+                </div>
+                <div class="layer-summary"><strong id="timePressureLead">等待时段诊断...</strong><p id="timePressureSupport">更新后定位最该回看的时段。</p></div>
+                <div class="chart-shell"><div id="hourlyBars" style="width:100%;min-height:220px"></div></div>
+            </article>
+
+            <article class="panel tail-layer-panel">
+                <div class="section-headline">
+                    <div class="section-heading-block">
+                        <h2 class="section-title">尾部拖累</h2>
+                    </div>
+                    <span class="section-meta" id="distributionMeta">等待更新</span>
+                </div>
+                <div class="layer-summary"><strong id="tailPressureLead">等待尾部诊断...</strong><p id="tailPressureSupport">更新后判断尾差是否超过阈值。</p></div>
+                <div class="chart-shell"><div id="distributionBars" style="width:100%;min-height:220px"></div></div>
+            </article>
+
+            <article class="panel node-layer-panel">
+                <div class="section-headline">
+                    <div class="section-heading-block">
+                        <h2 class="section-title">节点拖累</h2>
+                    </div>
+                    <span class="section-meta" id="nodesSummaryText">等待节点数据</span>
+                </div>
+                <div class="signal-grid">
+                    <article class="signal-card"><span>P90 过站</span><strong id="p90Turnaround">-</strong><span id="turnaroundInsightText">等待快照</span></article>
+                    <article class="signal-card"><span>设备利用率</span><strong id="equipmentRate">-</strong><span id="equipmentInsightText">等待快照</span></article>
+                    <article class="signal-card"><span>异常航班占比</span><strong id="abnormalRatio">-</strong><span id="abnormalInsightText">等待快照</span></article>
+                </div>
+                <div class="layer-summary"><strong id="nodePressureLead">等待节点诊断...</strong><p id="nodePressureSupport">更新后定位最弱节点及其与目标的偏差。</p></div>
+                <div class="chart-shell chart-shell-nodes"><div class="chart-scroll"><div class="line-list" id="serviceNodes"></div></div></div>
+            </article>
+        </section>
+    </div>
+
+    <script>
+        const KPI_BASE = `${window.location.origin}/api/v2/kpi`;
+        const OTP_TARGET = 0.9;
+        const ARRIVAL_TARGET = 0.9;
+        const SERVICE_TARGET = 0.95;
+        const TURN_TAIL_THRESHOLD = 15;
+        const ABNORMAL_WARNING = 0.1;
+        const EQUIPMENT_HIGH_WATERMARK = 0.8;
+        let eventSource = null;
+        const state = { snapshot: null, trend: [], hourly: [], dist: [], nodes: [] };
+
+        /* ---- ECharts shared theme ---- */
+        const DH = {
+            text: '#8298b5', textBright: '#e8f0fa', surface: 'transparent',
+            accent: '#4db8ff', ok: '#2ec47e', warn: '#f0a030', crit: '#ef5350',
+            grid: 'rgba(100,140,190,0.08)', axis: 'rgba(100,140,190,0.2)',
+            font: 'system-ui, -apple-system, sans-serif',
+        };
+        const _charts = {};
+        function ensureChart(id) {
+            if (_charts[id]) return _charts[id];
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const c = echarts.init(el, null, { renderer: 'canvas' });
+            _charts[id] = c;
+            return c;
+        }
+        window.addEventListener('resize', () => Object.values(_charts).forEach(c => c.resize()));
+
+        document.addEventListener("DOMContentLoaded", init);
+        async function init() { if (!await Auth.requireAuthAsync()) return; bindEvents(); await reloadDashboard(); connectStream(); }
+        function bindEvents() { document.getElementById("refreshBtn").addEventListener("click", reloadDashboard); document.getElementById("logoutBtn").addEventListener("click", () => Auth.logout()); document.getElementById("timeRange").addEventListener("change", toggleCustomDateInputs); toggleCustomDateInputs(); }
+        function toggleCustomDateInputs() { const c = document.getElementById("timeRange").value === "custom"; document.getElementById("startDate").disabled = !c; document.getElementById("endDate").disabled = !c; document.getElementById("customRangeGroup").classList.toggle("is-hidden", !c); }
+        function buildParams() { const r = document.getElementById("timeRange").value, p = new URLSearchParams({ time_range: r }); if (r === "custom") { const s = document.getElementById("startDate").value, e = document.getElementById("endDate").value; if (s) p.set("start_date", s); if (e) p.set("end_date", e); } return p; }
+        async function reloadDashboard() { const p = buildParams(); await Promise.all([loadSnapshot(p), loadTrend(), loadNodes()]); renderDecisions(); }
+        async function loadSnapshot(p) { const resp = await Auth.fetch(`${KPI_BASE}/snapshot?${p.toString()}`); if (!resp.ok) { state.snapshot = null; state.hourly = []; state.dist = []; renderSnapshot(null); renderBars("hourlyBars", [], "time"); renderBars("distributionBars", [], "tail"); return; } const body = await resp.json(), d = body.data || {}; state.snapshot = d; state.hourly = Array.isArray(d.hourly_flight_volume) ? d.hourly_flight_volume : []; state.dist = Array.isArray(d.turnaround_distribution) ? d.turnaround_distribution : []; renderSnapshot(d); renderBars("hourlyBars", state.hourly, "time"); renderBars("distributionBars", state.dist, "tail"); }
+        async function loadTrend() { const resp = await Auth.fetch(`${KPI_BASE}/trend?metric=on_time_rate&days=7`); if (!resp.ok) { state.trend = []; renderTrend([]); return; } const data = await resp.json(); state.trend = Array.isArray(data.items) ? data.items : []; renderTrend(state.trend); }
+        async function loadNodes() { const day = new Date().toISOString().slice(0, 10), resp = await Auth.fetch(`${KPI_BASE}/service-nodes?date=${day}`), box = document.getElementById("serviceNodes"); if (!resp.ok) { state.nodes = []; box.innerHTML = '<div class="empty chart-empty">暂无节点数据</div>'; setText("nodesSummaryText", "节点数据暂不可用"); setText("nodePressureLead", "节点诊断待更新"); setText("nodePressureSupport", "当前无法判断最弱节点。"); return; } const data = await resp.json(); state.nodes = Array.isArray(data.items) ? data.items : []; renderNodes(state.nodes); }
+        function renderSnapshot(d) {
+            const dep = num(d && d.on_time_departure_rate), arr = num(d && d.on_time_arrival_rate), avg = num(d && d.turnaround_time_avg_minutes), p90 = num(d && d.turnaround_time_p90_minutes), srv = num(d && d.service_node_compliance_rate), eq = num(d && d.equipment_utilization_rate), abn = num(d && d.abnormal_flight_ratio), tail = avg === null || p90 === null ? null : p90 - avg;
+            setText("snapshotTime", d && d.calculated_at ? `更新时间: ${fmtTime(d.calculated_at)}` : "等待更新");
+            setText("scoreDepartureValue", pct(dep)); setText("scoreDepartureNote", dep === null ? "目标 90%" : `目标 90% | ${gapText(dep, OTP_TARGET)}`);
+            setText("scoreGapValue", dep === null ? "-" : pt(dep - OTP_TARGET)); setText("scoreGapNote", arr === null ? "参照到港目标 90%" : `到港 ${pct(arr)} | ${gapText(arr, ARRIVAL_TARGET)}`);
+            setText("scoreTurnValue", tail === null ? "-" : `${tail.toFixed(1)} 分`); setText("scoreTurnNote", avg === null || p90 === null ? "阈值 15 分" : `均值 ${one(avg)} | P90 ${one(p90)} | 阈值 ${TURN_TAIL_THRESHOLD} 分`);
+            setText("scoreServiceValue", pct(srv)); setText("scoreServiceNote", srv === null ? "目标 95%" : `目标 95% | ${gapText(srv, SERVICE_TARGET)} | 异常 ${pct(abn)}`);
+            setText("p90Turnaround", p90 === null ? "-" : `${one(p90)} 分`); setText("equipmentRate", pct(eq)); setText("abnormalRatio", pct(abn));
+            setText("turnaroundInsightText", avg === null || p90 === null ? "等待快照" : `尾差 ${one(p90 - avg)} 分，${p90 - avg >= TURN_TAIL_THRESHOLD ? "已触线" : "未触线"}`);
+            setText("equipmentInsightText", eq === null ? "等待快照" : eq >= EQUIPMENT_HIGH_WATERMARK ? `高于高水位 ${pct(EQUIPMENT_HIGH_WATERMARK)}` : `低于高水位 ${pt(eq - EQUIPMENT_HIGH_WATERMARK)}`);
+            setText("abnormalInsightText", abn === null ? "等待快照" : abn >= ABNORMAL_WARNING ? `高于警戒线 ${pct(ABNORMAL_WARNING)}` : `低于警戒线 ${pt(abn - ABNORMAL_WARNING)}`);
+        }
+        /* ---- ECharts: 7-day trend line ---- */
+        function renderTrend(items) {
+            const chart = ensureChart('trendBars');
+            if (!chart) return;
+            if (!items.length) {
+                chart.clear(); chart.showLoading({ text: '暂无趋势数据', color: DH.accent, textColor: DH.text, maskColor: 'rgba(5,11,20,0.6)' });
+                setText("trendMeta", "目标 90%"); setText("trendBoardLead", "等待趋势数据..."); setText("trendBoardSupport", "近 7 日将展示相对目标的偏离。"); setText("trendDeltaBadge", "等待更新"); return;
+            }
+            chart.hideLoading();
+            const dates = items.map(i => shortDate(i.date));
+            const vals = items.map(i => +((num(i.value) || 0) * 100).toFixed(1));
+            let first = vals[0], last = vals[vals.length - 1];
+            let peak = items[0], trough = items[0];
+            items.forEach(item => { const v = num(item.value) || 0; if (v > (num(peak.value) || 0)) peak = item; if (v < (num(trough.value) || 0)) trough = item; });
+
+            chart.setOption({
+                grid: { top: 36, right: 16, bottom: 28, left: 46 },
+                tooltip: { trigger: 'axis', backgroundColor: 'rgba(8,16,28,0.92)', borderColor: DH.axis, textStyle: { color: DH.textBright, fontSize: 12 },
+                    formatter: params => { const p = params[0]; return `<b>${p.name}</b><br/>准点率 <b>${p.value}%</b><br/>相对目标 ${(p.value - OTP_TARGET * 100) >= 0 ? '+' : ''}${(p.value - OTP_TARGET * 100).toFixed(1)}pt`; }
+                },
+                xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: DH.axis } }, axisLabel: { color: DH.text, fontSize: 10 }, axisTick: { show: false } },
+                yAxis: { type: 'value', min: v => Math.floor(Math.max(0, v.min - 5)), max: 100, axisLabel: { color: DH.text, fontSize: 10, formatter: '{value}%' }, splitLine: { lineStyle: { color: DH.grid } }, axisLine: { show: false } },
+                series: [{
+                    type: 'line', data: vals, smooth: true, symbol: 'circle', symbolSize: 7,
+                    lineStyle: { width: 2.5, color: DH.accent },
+                    itemStyle: { color: DH.accent, borderColor: '#0a1422', borderWidth: 2 },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(77,184,255,0.22)' }, { offset: 1, color: 'rgba(77,184,255,0)' }]) },
+                    markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: DH.warn, width: 1.5 }, label: { color: DH.warn, fontSize: 10, formatter: '目标 90%' },
+                        data: [{ yAxis: OTP_TARGET * 100 }]
+                    },
+                    markPoint: { symbol: 'circle', symbolSize: 4, itemStyle: { color: DH.crit },
+                        data: [{ type: 'min', name: '低点', label: { show: true, color: DH.crit, fontSize: 9, formatter: '{c}%' } },
+                               { type: 'max', name: '高点', label: { show: true, color: DH.ok, fontSize: 9, formatter: '{c}%' }, itemStyle: { color: DH.ok } }]
+                    }
+                }]
+            }, true);
+
+            setText("trendMeta", `目标 90% | 最新 ${last.toFixed(1)}%`);
+            setText("trendDeltaBadge", `相对首日 ${(last - first) >= 0 ? '+' : ''}${(last - first).toFixed(1)}pt`);
+            setText("trendBoardLead", last >= OTP_TARGET * 100 ? "最新趋势已回到目标线之上。" : last >= (OTP_TARGET - 0.03) * 100 ? "最新趋势贴近目标线，仍有失守风险。" : "最新趋势仍低于目标线，说明问题并非瞬时波动。");
+            setText("trendBoardSupport", `高点 ${shortDate(peak.date)} ${pct(num(peak.value))}，低点 ${shortDate(trough.date)} ${pct(num(trough.value))}。`);
+        }
+        /* ---- ECharts: bar charts (hourly / distribution) ---- */
+        function renderBars(id, items, kind) {
+            const chart = ensureChart(id);
+            if (!chart) return;
+            if (!items.length) {
+                chart.clear(); chart.showLoading({ text: '暂无数据', color: DH.accent, textColor: DH.text, maskColor: 'rgba(5,11,20,0.6)' });
+                if (kind === "time") { setText("hourlyMeta", "暂无时段分布"); setText("timePressureLead", "时段诊断待更新"); setText("timePressureSupport", "当前无法判断问题是否集中在高峰时段。"); }
+                else { setText("distributionMeta", "暂无过站分布"); setText("tailPressureLead", "尾部诊断待更新"); setText("tailPressureSupport", "当前无法判断尾差是否超过阈值。"); }
+                return;
+            }
+            chart.hideLoading();
+            const labels = items.map(item => kind === "time" ? `${String(item.hour).padStart(2, "0")}:00` : String(item.bucket || "-"));
+            const vals = items.map(item => num(item.count) || 0);
+            const total = vals.reduce((s, v) => s + v, 0);
+            const maxVal = Math.max(1, ...vals);
+            let peakIdx = 0; vals.forEach((v, i) => { if (v > vals[peakIdx]) peakIdx = i; });
+            const peak = items[peakIdx];
+            const barColors = vals.map((v, i) => i === peakIdx ? DH.warn : DH.accent);
+
+            chart.setOption({
+                grid: { top: 20, right: 16, bottom: 28, left: 46 },
+                tooltip: { trigger: 'axis', backgroundColor: 'rgba(8,16,28,0.92)', borderColor: DH.axis, textStyle: { color: DH.textBright, fontSize: 12 },
+                    formatter: params => { const p = params[0]; return `<b>${p.name}</b><br/>${p.value} 班 | 占比 ${((p.value / Math.max(total, 1)) * 100).toFixed(0)}%`; }
+                },
+                xAxis: { type: 'category', data: labels, axisLine: { lineStyle: { color: DH.axis } }, axisLabel: { color: DH.text, fontSize: 10, rotate: kind === 'time' ? 45 : 0 }, axisTick: { show: false } },
+                yAxis: { type: 'value', axisLabel: { color: DH.text, fontSize: 10 }, splitLine: { lineStyle: { color: DH.grid } }, axisLine: { show: false } },
+                series: [{
+                    type: 'bar', data: vals.map((v, i) => ({
+                        value: v,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: barColors[i] },
+                                { offset: 1, color: i === peakIdx ? 'rgba(240,160,48,0.18)' : 'rgba(77,184,255,0.18)' }
+                            ]),
+                            borderRadius: [3, 3, 0, 0]
+                        }
+                    })),
+                    barMaxWidth: 28,
+                }]
+            }, true);
+
+            if (kind === "time") {
+                const avg = total / Math.max(items.length, 1), ratio = (num(peak.count) || 0) / Math.max(avg, 1);
+                setText("hourlyMeta", `峰值 ${String(peak.hour).padStart(2, "0")}:00 | 均值倍率 ${ratio.toFixed(1)}x`);
+                setText("timePressureLead", `时间压力主要集中在 ${String(peak.hour).padStart(2, "0")}:00。`);
+                setText("timePressureSupport", `该时段班量是均值的 ${ratio.toFixed(1)} 倍，应优先回看该窗口。`);
+            } else {
+                const s = state.snapshot, avg = num(s && s.turnaround_time_avg_minutes), p90 = num(s && s.turnaround_time_p90_minutes), tail = avg === null || p90 === null ? null : p90 - avg;
+                setText("distributionMeta", `峰值区间 ${esc(String(peak.bucket || "-"))} | 尾差 ${tail === null ? "-" : `${one(tail)} 分`}`);
+                setText("tailPressureLead", tail === null ? "尾部诊断待更新" : tail >= TURN_TAIL_THRESHOLD ? "尾部已触及阈值，应排查长过站样本。" : "尾部暂未失控，更像时段或节点问题。");
+                setText("tailPressureSupport", tail === null ? "当前缺少均值或 P90 数据。" : `均值 ${one(avg)} 分，P90 ${one(p90)} 分，尾差 ${one(tail)} 分。`);
+            }
+        }
+        function renderNodes(items) {
+            const box = document.getElementById("serviceNodes"); box.innerHTML = "";
+            if (!items.length) { box.innerHTML = '<div class="empty chart-empty">暂无节点数据</div>'; setText("nodesSummaryText", "暂无节点排行"); setText("nodePressureLead", "节点诊断待更新"); setText("nodePressureSupport", "当前无法定位最弱节点。"); return; }
+            const weak = [...items].sort((a, b) => (num(a.rate) || 0) - (num(b.rate) || 0))[0], wr = num(weak.rate) || 0;
+            setText("nodesSummaryText", `最弱节点 ${clean(weak.node)} | ${pt(wr - SERVICE_TARGET)}`); setText("nodePressureLead", `${clean(weak.node)} 是当前最弱节点。`); setText("nodePressureSupport", `节点达成率 ${pct(wr)}，相对 95% 目标 ${pt(wr - SERVICE_TARGET)}。`);
+            items.forEach((item) => { const r = num(item.rate) || 0; const row = document.createElement("div"); row.className = `line-item ${tone(r - SERVICE_TARGET)}`; row.innerHTML = `<div class="node-header"><span>${esc(item.node)}</span><span class="node-value">${pct(r)}</span></div><div class="track"><span class="goal-marker" style="left:${SERVICE_TARGET * 100}%"></span><span class="fill" style="width:${Math.max(0, Math.min(100, r * 100))}%"></span></div><div class="node-meta">相对目标 ${pt(r - SERVICE_TARGET)}</div>`; box.appendChild(row); });
+        }
+        function renderDecisions() {
+            const s = state.snapshot, dep = num(s && s.on_time_departure_rate), srv = num(s && s.service_node_compliance_rate), avg = num(s && s.turnaround_time_avg_minutes), p90 = num(s && s.turnaround_time_p90_minutes);
+            if (dep === null) { chip("pending", "待更新"); setText("decisionAttainment", "等待更新"); setText("decisionSource", "等待诊断"); setText("decisionNextStep", "等待建议"); setText("verdictLead", "等待诊断结论..."); setText("verdictSupport", "当前尚未收到足够数据。"); return; }
+            const time = signalTime(), tail = signalTail(avg, p90), node = signalNode(srv), top = [time, tail, node].sort((a, b) => b.score - a.score)[0], depGap = dep - OTP_TARGET, srvGap = srv === null ? 0 : srv - SERVICE_TARGET;
+            const level = depGap >= 0 && srvGap >= -0.02 ? ["good", "基本达标"] : depGap >= -0.03 && srvGap >= -0.05 && tail.score < 28 ? ["watch", "临近目标线"] : ["critical", "未达标"];
+            chip(level[0], level[1]); setText("decisionAttainment", `${level[1]} | ${pt(depGap)}`); setText("decisionSource", top.source); setText("decisionNextStep", top.next); setText("verdictLead", level[0] === "good" ? `今天仍在目标线内，但最值得盯防的是 ${top.name}。` : level[0] === "watch" ? `今天贴近目标线边缘，当前主要压力来自 ${top.name}。` : `今天已偏离目标线，优先拆解 ${top.name}。`); setText("verdictSupport", `出港准点率 ${pct(dep)}，服务稳定度 ${pct(srv)}，尾差 ${avg === null || p90 === null ? "-" : `${one(p90 - avg)} 分`}。当前诊断主线：${top.source}。`);
+        }
+        function signalTime() { if (!state.hourly.length) return { name: "时间层", score: 0, source: "时间层待更新", next: "先补齐时段分布" }; const total = state.hourly.reduce((s, x) => s + (num(x.count) || 0), 0), avg = total / Math.max(state.hourly.length, 1); let peak = state.hourly[0]; state.hourly.forEach((x) => { if ((num(x.count) || 0) > (num(peak.count) || 0)) peak = x; }); const ratio = (num(peak.count) || 0) / Math.max(avg, 1); return { name: "时间层", score: ratio >= 1.9 ? 26 : ratio >= 1.5 ? 16 : ratio >= 1.2 ? 8 : 4, source: `时间层偏压，峰值 ${String(peak.hour).padStart(2, "0")}:00 达到均值 ${ratio.toFixed(1)}x`, next: `先查时间层 -> ${String(peak.hour).padStart(2, "0")}:00 窗口` }; }
+        function signalTail(avg, p90) { if (avg === null || p90 === null) return { name: "尾部层", score: 0, source: "尾部层待更新", next: "先补齐过站分布" }; const gap = p90 - avg; return { name: "尾部层", score: gap >= TURN_TAIL_THRESHOLD + 8 ? 28 : gap >= TURN_TAIL_THRESHOLD ? 18 : gap >= 8 ? 10 : 4, source: `尾部层尾差 ${one(gap)} 分`, next: "先查尾部层 -> 长过站样本" }; }
+        function signalNode(srv) { if (!state.nodes.length) return { name: "节点层", score: srv !== null && srv < SERVICE_TARGET ? 12 : 0, source: srv === null ? "节点层待更新" : `节点层整体 ${pct(srv)}，缺少排行`, next: "先补齐节点排行" }; const weak = [...state.nodes].sort((a, b) => (num(a.rate) || 0) - (num(b.rate) || 0))[0], gap = (num(weak.rate) || 0) - SERVICE_TARGET; return { name: "节点层", score: gap <= -0.15 ? 30 : gap <= -0.08 ? 20 : gap <= -0.03 ? 12 : 6, source: `节点层最弱 ${clean(weak.node)}，相对目标 ${pt(gap)}`, next: `先查节点层 -> ${clean(weak.node)}` }; }
+        function closeStream() { if (!eventSource) return; try { eventSource.close(); } catch (_error) { } eventSource = null; }
+        async function reconnectStream(options = {}) { if (document.visibilityState === "hidden") return; if (typeof Auth === "undefined" || typeof Auth.getEventSource !== "function") return; if (typeof Auth.requireAuthAsync === "function") { const ok = await Auth.requireAuthAsync(); if (!ok) return; } if (options.forceRefreshToken && typeof Auth.invalidateSSEToken === "function") Auth.invalidateSSEToken(); if (typeof Auth.refreshSSEToken === "function") { try { await Auth.refreshSSEToken(Boolean(options.forceRefreshToken)); } catch (_error) { } } connectStream(); }
+        function connectStream() { closeStream(); if (typeof Auth === "undefined" || typeof Auth.getEventSource !== "function") return; eventSource = Auth.getEventSource(`${KPI_BASE}/stream`, { clientScope: "kpi-dashboard" }); eventSource.onmessage = () => reloadDashboard(); eventSource.onerror = () => setTimeout(() => reloadDashboard(), 500); }
+        function chip(level, text) { const el = document.getElementById("verdictStateChip"); el.classList.remove("is-good", "is-watch", "is-critical", "is-pending"); el.classList.add(`is-${level}`); el.textContent = text; }
+        function setText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+        function num(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+        function pct(v) { return num(v) === null ? "-" : `${(num(v) * 100).toFixed(1)}%`; }
+        function one(v) { return num(v) === null ? "-" : num(v).toFixed(1); }
+        function pt(v) { return num(v) === null ? "-" : `${num(v) > 0 ? "+" : ""}${(num(v) * 100).toFixed(1)}pt`; }
+        function gapText(a, t) { return num(a) === null ? "-" : num(a) - t >= 0 ? `高于目标 ${pt(num(a) - t)}` : `低于目标 ${pt(num(a) - t)}`; }
+        function fmtTime(v) { const d = new Date(v); return Number.isNaN(d.getTime()) ? String(v || "--") : d.toLocaleString("zh-CN", { hour12: false }); }
+        function shortDate(v) { const d = new Date(v); return Number.isNaN(d.getTime()) ? String(v || "--").slice(5) : `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+        function tone(g) { return g >= 0 ? "is-good" : g >= -0.03 ? "is-watch" : "is-critical"; }
+        function clean(v) { return String(v ?? "").replace(/\s+/g, " ").trim(); }
+        function esc(v) { return String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
+        window.addEventListener("beforeunload", () => { closeStream(); });
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { closeStream(); return; } void reconnectStream({ forceRefreshToken: true }); });
+        window.addEventListener("online", () => { if (document.visibilityState === "hidden") return; void reconnectStream({ forceRefreshToken: true }); });
+    </script>
+</body>
+</html>

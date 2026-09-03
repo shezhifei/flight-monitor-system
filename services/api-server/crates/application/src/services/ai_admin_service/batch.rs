@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 #[derive(Debug, Clone)]
 pub(super) struct BatchExecutionConfig {
     pub(super) base_url: String,

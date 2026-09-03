@@ -1,17 +1,12 @@
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
-use tracing::warn;
+use std::collections::HashSet;
 
-use crate::schemas::dispatch_schemas::*;
-use crate::services::notification_service::DispatchBatchNotificationCreate;
 use fms_domain::error::DomainError;
-use fms_domain::models::anomaly::{AnomalySeverity, AnomalyType};
 use fms_domain::models::dispatch::*;
-use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 
-use super::{DispatchService, NULL_VALUE};
+use super::DispatchService;
 
 impl DispatchService {
     pub(super) const ACTIVE_CONFLICT_STATUSES: [&'static str; 3] = ["pending", "assigned", "in_progress"];

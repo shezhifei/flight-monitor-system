@@ -12,7 +12,7 @@ use fms_application::schemas::workflow_form_schemas::{
     CreateWorkflowFormBindingRequest, CreateWorkflowFormTemplateRequest, SubmitWorkflowFormRequest,
 };
 use fms_application::services::auth_service::AuthService;
-use fms_application::services::authorization_service::{AuthorizationService, PermissionCatalog};
+use fms_application::services::authorization_service::PermissionCatalog;
 use fms_application::services::workflow_form_service::{WorkflowFormActor, WorkflowFormService};
 
 #[derive(Debug, Deserialize)]

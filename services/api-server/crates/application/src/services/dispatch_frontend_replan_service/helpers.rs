@@ -271,10 +271,7 @@ pub(crate) fn resolve_start_window(
     earliest_start_time: Option<DateTime<Utc>>,
     flex_minutes: Option<i32>,
 ) -> Option<DateTime<Utc>> {
-    let earliest = match earliest_start_time {
-        Some(value) => value,
-        None => return None,
-    };
+    let earliest = earliest_start_time?;
     if is_locked_order(order) {
         return Some(earliest);
     }

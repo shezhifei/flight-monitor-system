@@ -1,17 +1,14 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
-use std::time::Instant;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
-use fms_domain::models::flight::Flight;
-use fms_domain::models::flight_leg::FlightTypeCode;
 
 use crate::schemas::dispatch_schemas::*;
 
 use super::helpers;
-use super::{DispatchService, GeneratedFlightDispatchRequest, PreparedWindowOrder, ReplanExecutionResult, NULL_VALUE};
+use super::{DispatchService, ReplanExecutionResult, NULL_VALUE};
 
 impl DispatchService {
     async fn execute_replan(
@@ -59,7 +56,7 @@ impl DispatchService {
         let can_mutate = |order_id: &str| mutable_order_ids.map(|ids| ids.contains(order_id)).unwrap_or(true);
 
         let mut suggestions_by_order: HashMap<String, Value> = HashMap::new();
-        for (_, group_orders) in grouped.iter_mut() {
+        for group_orders in grouped.values_mut() {
             group_orders.sort_by_key(|order| Self::effective_interval(order, fallback_now).0);
             for index in 1..group_orders.len() {
                 let previous = &group_orders[index - 1];

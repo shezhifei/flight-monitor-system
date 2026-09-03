@@ -10,6 +10,7 @@
 
 #[cfg(test)]
 mod split_assert {
+    #![allow(clippy::module_inception)]
     // --- (1) Re-export reachability -----------------------------------------
     // These `use` declarations compile-check that each refactored package still
     // exposes its public types at the same path. `#[allow(unused_imports)]`

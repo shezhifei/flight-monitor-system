@@ -197,7 +197,7 @@ impl NonceReplayStore for RedisBucketNonceStore {
 
             let lua_result = timeout(
                 Duration::from_millis(self.timeout_ms),
-                self.exec_lua_cmd(&mut *conn, &sha, &key, nonce, ttl),
+                self.exec_lua_cmd(&mut conn, &sha, &key, nonce, ttl),
             )
             .await;
 
@@ -290,7 +290,11 @@ impl LocalTtlNonceStore {
     }
 
     fn maybe_cleanup(&self, now: Instant) {
-        if self.inserts_since_cleanup.fetch_add(1, Ordering::Relaxed) % 4096 == 0 {
+        if self
+            .inserts_since_cleanup
+            .fetch_add(1, Ordering::Relaxed)
+            .is_multiple_of(4096)
+        {
             self.cache.retain(|_, bucket| now < bucket.expires_at);
         }
     }

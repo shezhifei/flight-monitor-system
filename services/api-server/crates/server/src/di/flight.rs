@@ -138,7 +138,9 @@ pub(crate) fn build_flight_services(
             .with_metadata_catalogs(Arc::new(
                 fms_application::services::metadata_catalog_service::MetadataCatalogService::new(
                     repos.metadata_catalog_repo.clone()
-                        as Arc<dyn fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository + Send + Sync>,
+                        as Arc<
+                            dyn fms_domain::ports::metadata_catalog_repository::MetadataCatalogRepository + Send + Sync,
+                        >,
                 ),
             ))
             .with_turnaround_link_repository(Arc::new(PgTurnaroundLinkRepository::new(repos.pool.clone())))
@@ -170,16 +172,17 @@ pub(crate) fn build_flight_services(
         repos.qualification_grant_repo.clone();
     let equipment_port: Arc<dyn EquipmentRepository + Send + Sync> = repos.equipment_repo.clone();
 
-    let ontology_writer: Arc<OntologyWriter<_>> = Arc::new(OntologyWriter::new(
-        flight_repo_port.clone(),
-        link_port.clone(),
-        ontology_tx.clone(),
-        flight_tx_repo.clone(),
-        outbox_tx_repo.clone(),
-        repos.unit_of_work.clone(),
-    ).with_monitor_row_repository(
-        monitor_row_tx_repo.clone(),
-    ));
+    let ontology_writer: Arc<OntologyWriter<_>> = Arc::new(
+        OntologyWriter::new(
+            flight_repo_port.clone(),
+            link_port.clone(),
+            ontology_tx.clone(),
+            flight_tx_repo.clone(),
+            outbox_tx_repo.clone(),
+            repos.unit_of_work.clone(),
+        )
+        .with_monitor_row_repository(monitor_row_tx_repo.clone()),
+    );
     let ontology_svc = Arc::new(
         OntologyService::new(
             flight_repo_port.clone(),

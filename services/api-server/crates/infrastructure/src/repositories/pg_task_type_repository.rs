@@ -126,9 +126,7 @@ impl TaskTypeRepository for PgTaskTypeRepository {
 }
 
 #[async_trait]
-impl<'tx> TaskTypeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
-    for PgTaskTypeRepository
-{
+impl<'tx> TaskTypeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgTaskTypeRepository {
     async fn save_in_tx(
         &self,
         tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,

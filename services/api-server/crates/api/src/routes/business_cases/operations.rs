@@ -20,6 +20,7 @@ use super::shared::{
     StatusUpdateRequest,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn append_to_case(
     svc: web::Data<Arc<BusinessCaseService>>,
     auth_svc: web::Data<Arc<AuthService>>,

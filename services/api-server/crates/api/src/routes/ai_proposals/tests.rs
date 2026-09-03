@@ -1,10 +1,11 @@
+#![allow(clippy::await_holding_lock)]
+
 use super::*;
 use crate::middleware::jwt::JwtSecret;
 use crate::test_support::{
     ai_run_event_types, cleanup_outbox_by_aggregate_id, cleanup_todo_by_id, ensure_test_user,
     insert_idempotent_conflict_proposal, outbox_count_by_aggregate_id, outbox_count_by_event_type,
-    proposal_status_by_id, todo_count_by_source, todo_exists_by_source, todo_exists_by_source_id,
-    todo_title_by_source_id,
+    proposal_status_by_id, todo_exists_by_source_id, todo_title_by_source_id,
 };
 use actix_web::{http::StatusCode, test, App};
 use fms_application::services::ai_action_proposal_service::{
@@ -549,25 +550,22 @@ async fn build_test_executor(
     };
     use fms_domain::ports::domain_event_outbox_repository::DomainEventOutboxTransactionalRepository;
     use fms_domain::ports::flight_repository::{FlightRepository, FlightTransactionalRepository};
-    use fms_domain::ports::ontology_repository::{
-        AircraftRepository, CarouselAssignmentRepository, GateAssignmentRepository, OntologyTransactionalRepository,
-        ResourceAdjustmentSuggestionRepository, StandOccupationRepository, TurnaroundLinkRepository,
-    };
+    use fms_domain::ports::ontology_repository::OntologyTransactionalRepository;
     use fms_infrastructure::repositories::pg_ontology_repository::{
         PgAircraftRepository, PgCarouselAssignmentRepository, PgGateAssignmentRepository,
         PgResourceAdjustmentSuggestionRepository, PgStandOccupationRepository, PgTurnaroundLinkRepository,
     };
     use fms_infrastructure::repositories::{
         pg_anomaly_repository::PgAnomalyRepository, pg_business_case_repository::PgBusinessCaseRepository,
+        pg_department_repository::PgDepartmentRepository,
         pg_dispatch_collaboration_repository::PgDispatchCollaborationRepository,
-        pg_department_repository::PgDepartmentRepository, pg_dispatch_order_repository::PgDispatchOrderRepository,
-        pg_equipment_repository::PgEquipmentRepository, pg_equipment_type_repository::PgEquipmentTypeRepository,
-        pg_flight_repository::PgFlightRepository, pg_label_repository::PgLabelRepository,
-        pg_notification_repository::PgNotificationRepository, pg_personnel_runtime_repository::PgPersonnelRuntimeRepository,
-        pg_stand_repository::PgStandRepository, pg_task_type_repository::PgTaskTypeRepository,
-        pg_team_member_repository::PgTeamMemberRepository, pg_team_repository::PgTeamRepository,
-        pg_team_type_repository::PgTeamTypeRepository, pg_todo_repository::PgTodoRepository,
-        pg_user_repository::PgUserRepository,
+        pg_dispatch_order_repository::PgDispatchOrderRepository, pg_equipment_repository::PgEquipmentRepository,
+        pg_equipment_type_repository::PgEquipmentTypeRepository, pg_flight_repository::PgFlightRepository,
+        pg_label_repository::PgLabelRepository, pg_notification_repository::PgNotificationRepository,
+        pg_personnel_runtime_repository::PgPersonnelRuntimeRepository, pg_stand_repository::PgStandRepository,
+        pg_task_type_repository::PgTaskTypeRepository, pg_team_member_repository::PgTeamMemberRepository,
+        pg_team_repository::PgTeamRepository, pg_team_type_repository::PgTeamTypeRepository,
+        pg_todo_repository::PgTodoRepository, pg_user_repository::PgUserRepository,
     };
 
     let flight_repo = Arc::new(PgFlightRepository::new(pool.clone()));
@@ -617,8 +615,6 @@ async fn build_test_executor(
                         + Sync,
                 >,
             Arc::new(fms_application::test_support::UnwiredRepository)
-                as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
-            Arc::new(fms_application::test_support::UnwiredRepository)
                 as Arc<dyn fms_domain::ports::dispatch_repository::QualificationGrantRepository + Send + Sync>,
             Arc::new(fms_application::test_support::UnwiredRepository)
                 as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentQualificationRepository + Send + Sync>,
@@ -642,13 +638,13 @@ async fn build_test_executor(
     let notification_collaboration_repo_port: Arc<
         dyn fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository + Send + Sync,
     > = collaboration_repo.clone();
-    let notification_tx_repo_port: Arc<
+    let _notification_tx_repo_port: Arc<
         dyn fms_domain::ports::notification_repository::NotificationTransactionalRepository<
                 sqlx::Transaction<'static, sqlx::Postgres>,
             > + Send
             + Sync,
     > = notification_repo.clone();
-    let notification_service = Arc::new(NotificationService::new(
+    let _notification_service = Arc::new(NotificationService::new(
         notification_repo_port,
         notification_pref_repo_port,
         Arc::new(CollaborationEventRecorder::new(notification_collaboration_repo_port))
@@ -661,10 +657,10 @@ async fn build_test_executor(
     let anomaly_repo = Arc::new(PgAnomalyRepository::new(pool.clone()));
 
     let label_repo = Arc::new(PgLabelRepository::new(pool.clone()));
-    let label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
+    let _label_service = Arc::new(LabelService::new(label_repo, Arc::new(NoopBroadcaster)));
 
     let todo_repo = Arc::new(PgTodoRepository::new(pool.clone()));
-    let todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
+    let _todo_writer: Arc<TodoWriter<sqlx::Transaction<'static, sqlx::Postgres>>> =
         Arc::new(TodoWriter::new(todo_repo.clone(), todo_repo));
 
     let business_case_pg_repo = Arc::new(PgBusinessCaseRepository::new(pool.clone()));
@@ -715,24 +711,32 @@ async fn build_test_executor(
         link_repo,
         suggestion_repo,
         carousel_repo,
-        Arc::new(fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository::new(
-            pool.clone(),
-        )),
+        Arc::new(fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository::new(pool.clone())),
         ontology_writer,
     ));
 
     let dispatch_resource_svc: Arc<fms_application::types::ConcreteDispatchResourceService> = Arc::new(
         fms_application::services::dispatch_resource_service::DispatchResourceService::new(
-            Arc::new(PgDepartmentRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentRepository + Send + Sync>,
-            Arc::new(PgTeamTypeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TeamTypeRepository + Send + Sync>,
-            Arc::new(PgTeamRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
-            Arc::new(PgTeamMemberRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TeamMemberRepository + Send + Sync>,
-            Arc::new(PgEquipmentTypeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentTypeRepository + Send + Sync>,
-            Arc::new(PgEquipmentRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentRepository + Send + Sync>,
-            Arc::new(PgStandRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::StandRepository + Send + Sync>,
-            Arc::new(PgTaskTypeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::TaskTypeRepository + Send + Sync>,
-            Arc::new(PgPersonnelRuntimeRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
-            Arc::new(PgUserRepository::new(pool.clone())) as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
+            Arc::new(PgDepartmentRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::DepartmentRepository + Send + Sync>,
+            Arc::new(PgTeamTypeRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::TeamTypeRepository + Send + Sync>,
+            Arc::new(PgTeamRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::TeamRepository + Send + Sync>,
+            Arc::new(PgTeamMemberRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::TeamMemberRepository + Send + Sync>,
+            Arc::new(PgEquipmentTypeRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentTypeRepository + Send + Sync>,
+            Arc::new(PgEquipmentRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::EquipmentRepository + Send + Sync>,
+            Arc::new(PgStandRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::StandRepository + Send + Sync>,
+            Arc::new(PgTaskTypeRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::TaskTypeRepository + Send + Sync>,
+            Arc::new(PgPersonnelRuntimeRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::dispatch_repository::PersonnelRuntimeRepository + Send + Sync>,
+            Arc::new(PgUserRepository::new(pool.clone()))
+                as Arc<dyn fms_domain::ports::user_repository::UserRepository + Send + Sync>,
         ),
     );
 
@@ -745,11 +749,12 @@ async fn build_test_executor(
         business_case_writer,
         ontology_svc,
         dispatch_resource_svc,
-        Arc::new(fms_application::services::terminal_resource_service::TerminalResourceService::new(
-            Arc::new(fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository::new(
-                pool.clone(),
-            )) as Arc<dyn fms_domain::ports::dispatch_repository::TerminalRepository + Send + Sync>,
-        )) as Arc<fms_application::types::ConcreteTerminalResourceService>,
+        Arc::new(
+            fms_application::services::terminal_resource_service::TerminalResourceService::new(Arc::new(
+                fms_infrastructure::repositories::pg_terminal_repository::PgTerminalRepository::new(pool.clone()),
+            )
+                as Arc<dyn fms_domain::ports::dispatch_repository::TerminalRepository + Send + Sync>),
+        ) as Arc<fms_application::types::ConcreteTerminalResourceService>,
         outbox_repo,
         anomaly_repo,
         Arc::new(fms_infrastructure::db::transaction::PgUnitOfWork::new(pool)),
@@ -896,13 +901,12 @@ async fn seed_smoke_flight(pool: &sqlx::PgPool, flight_id: &str) {
 }
 
 async fn smoke_flight_remarks(pool: &sqlx::PgPool, flight_id: &str) -> Option<String> {
-    let row: Option<(Option<String>,)> =
-        sqlx::query_as("SELECT flight_remarks FROM flights WHERE flight_id = $1")
-            .bind(flight_id)
-            .fetch_optional(pool)
-            .await
-            .ok()
-            .flatten();
+    let row: Option<(Option<String>,)> = sqlx::query_as("SELECT flight_remarks FROM flights WHERE flight_id = $1")
+        .bind(flight_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten();
     row.and_then(|(value,)| value)
 }
 

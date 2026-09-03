@@ -248,7 +248,7 @@ impl NLQueryService {
             })
             .map(|entry| entry.value().clone())
             .collect();
-        items.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+        items.sort_by_key(|left| std::cmp::Reverse(left.updated_at));
 
         let total_count = items.len();
         let paged: Vec<_> = items.into_iter().skip(offset).take(limit).collect();

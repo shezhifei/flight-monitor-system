@@ -1,0 +1,930 @@
+/* --- Layout Structure --- */
+.container {
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-app);
+    overflow: hidden;
+}
+
+.flight-monitor-page .container {
+    position: fixed;
+    inset: 0;
+    height: auto;
+}
+
+/* --- Sidebar (Flight List) --- */
+.flight-list-panel {
+    width: var(--sidebar-width);
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    /* Subtle divider */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex-shrink: 0;
+    backdrop-filter: saturate(180%) blur(20px);
+    /* macOS sidebar effect */
+    overflow-y: auto;
+    padding: var(--layout-flight-list-panel-padding);
+    position: relative;
+    transition: width 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
+    /* Spring motion for view switching */
+}
+
+.flight-workbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: var(--layout-flight-workbar-padding-top) 0 2px;
+    margin-bottom: 0;
+    background:
+        linear-gradient(180deg, rgba(245, 247, 251, 0.98) 0%, rgba(245, 247, 251, 0.94) 78%, rgba(245, 247, 251, 0.72) 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+/* Disable transition during manual resize for instant responsiveness */
+.flight-list-panel.resizing {
+    transition: none !important;
+}
+
+/* View Transition Utilities */
+.view-content {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-scale-exit {
+    opacity: 0;
+    transform: scale(0.98);
+    pointer-events: none;
+}
+
+.fade-slide-enter {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.view-hidden {
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Ensure it doesn't collapse */
+    height: 100%;
+    /* Ensure it doesn't collapse */
+    transform: translateY(10px);
+    /* Initial slide position for enter */
+}
+
+
+/* --- Detail Panel (Main Content) --- */
+/* --- Detail Panel (Main Content) --- */
+.flight-detail-panel {
+    flex: 1;
+    background-color: var(--bg-sidebar);
+    /* Light Gray Background */
+    padding: 20px;
+    display: flex;
+    /* FLEX PARENT */
+    flex-direction: column;
+    /* Ensure it fills parent height until breakpoint tokens override it */
+    overflow: hidden;
+    /* Prevent body scroll, handle inside components */
+    min-width: 0;
+    position: var(--layout-detail-panel-position);
+    inset: var(--layout-detail-panel-inset);
+    height: var(--layout-detail-panel-height);
+    border-top: var(--layout-detail-panel-border-top);
+    border-right: var(--layout-detail-panel-border-right);
+    transform: var(--layout-detail-panel-transform);
+    transition: var(--layout-detail-panel-transition);
+    box-shadow: var(--layout-detail-panel-shadow);
+    z-index: var(--layout-detail-panel-z-index);
+}
+
+.detail-panel-shell {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    background:
+        linear-gradient(180deg, rgba(245, 247, 251, 0.98) 0%, rgba(245, 247, 251, 0.94) 76%, rgba(245, 247, 251, 0.8) 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding-bottom: 12px;
+}
+
+/* The main content container inside detail panel */
+#flightDetail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* Critical for nested flex/grid */
+    overflow: hidden;
+}
+
+/* --- Dashboard Grid Layout --- */
+.detail-dashboard {
+    display: grid;
+    grid-template-columns: var(--layout-detail-dashboard-columns);
+    /* Increased to 380px for better readability */
+    grid-template-rows: var(--layout-detail-dashboard-rows);
+    /* Top header, KPI strip, bottom content */
+    gap: 20px;
+
+    height: 100%;
+    /* Fill the panel */
+    min-height: 0;
+    /* Important for grid/flex nesting */
+    flex: 1;
+}
+
+.detail-col-left {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    /* Prevent flex overflow */
+    height: 100%;
+    /* For scrolling support if needed */
+    overflow-y: auto;
+    /* Allow left side to scroll independently if too tall */
+    padding-right: 4px;
+    /* Space for scrollbar */
+}
+
+.detail-col-right {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+    /* Container implies no external scroll */
+}
+
+/* --- Layout V4: Combined Header --- */
+.header-combined-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+}
+
+.header-left-group {
+    display: flex;
+    align-items: stretch;
+    flex: 0 0 auto;
+    /* Don't shrink */
+}
+
+.header-right-group {
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    background-color: transparent;
+    border-left: none;
+    flex: 1;
+    /* Take remaining space */
+    justify-content: flex-end;
+    /* Align KPIs to right */
+}
+
+.header-kpi-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 16px;
+    /* Reduced margin */
+    min-width: 40px;
+    /* Reduced min-width */
+}
+
+.header-kpi-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.header-kpi-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* --- Secondary KPI Strip (Row 2) --- */
+.secondary-kpi-strip {
+    display: flex;
+    justify-content: space-around;
+    /* Distribute evenly */
+    align-items: center;
+    padding: 20px 32px;
+}
+
+.secondary-kpi-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.secondary-kpi-label {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    /* Lighter grey for label */
+    margin-bottom: 6px;
+}
+
+.secondary-kpi-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* --- Dashboard Cards --- */
+.detail-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    position: relative;
+    transition: box-shadow 0.2s ease;
+    flex-shrink: 1;
+    min-width: 0;
+    /* Allow shrinking in flex/grid containers */
+}
+
+.detail-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    /* Hover lift */
+}
+
+/* Specific Card Styles */
+.detail-header-card {
+    padding: 20px;
+}
+
+.kpi-strip {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
+    gap: 8px;
+}
+
+.info-grid-card {
+    padding: 20px;
+    flex: 1;
+    /* Allow this to grow if left column needs to fill space? No, usually compact. */
+    overflow-y: auto;
+    /* Just in case */
+}
+
+.ops-card {
+    flex: 1;
+    /* Grow to fill RIGHT column height */
+    display: flex;
+    flex-direction: column;
+    height: var(--layout-ops-card-height);
+    min-height: 0;
+    /* Allow shrinking */
+}
+
+/* --- Inner Components --- */
+
+/* KPI Item */
+.kpi-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 8px;
+    border-right: 1px solid var(--border-light);
+}
+
+.kpi-item:last-child {
+    border-right: none;
+}
+
+.kpi-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.kpi-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'MiSans', sans-serif;
+}
+
+.kpi-value small {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+    margin-left: 2px;
+}
+
+/* Info Grid Compact */
+.info-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 Columns for dense left panel */
+    gap: 16px 12px;
+}
+
+.info-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-field label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-bottom: 2px;
+}
+
+.info-field span {
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+/* Operations Content placeholders */
+.ops-gantt-area {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-light);
+    flex: 0 0 auto;
+    /* Natural height */
+}
+
+.ops-log-area {
+    padding: 0;
+    /* List items have padding */
+    flex: 1;
+    overflow-y: auto;
+    background: #FAFAFA;
+    /* Slightly different bg for log area */
+}
+
+/* --- Resizable Divider --- */
+.resizer {
+    display: var(--layout-resizer-display) !important;
+    width: 6px;
+    background-color: var(--bg-sidebar);
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 10;
+    /* no transition for instant responsiveness during drag */
+}
+
+.resizer:hover {
+    background-color: rgba(0, 122, 255, 0.1);
+}
+
+.resizer:active {
+    background-color: rgba(0, 122, 255, 0.2);
+}
+
+/* Visual indicator for resizer */
+.resizer::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 30px;
+    width: 2px;
+    background-color: transparent;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.resizer:hover::before {
+    background-color: rgba(0, 122, 255, 0.3);
+}
+
+.resizer:active::before {
+    background-color: rgba(0, 122, 255, 0.5);
+}
+
+/* Panel Headers */
+.panel-header {
+    padding: 16px 20px;
+    background-color: var(--bg-sidebar);
+    /* Sticky header */
+    border-bottom: 1px solid var(--border-light);
+    z-index: 10;
+}
+
+.panel-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none;
+    /* Remove old border */
+}
+
+.flight-panel-title {
+    margin-bottom: 0;
+    gap: 14px;
+    flex-direction: var(--layout-flight-panel-title-direction);
+    align-items: var(--layout-flight-panel-title-align);
+}
+
+.flight-panel-title-group,
+.detail-panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.flight-panel-heading {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.flight-panel-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.flight-panel-title-text {
+    font-size: 19px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+.flight-home-link {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    text-decoration: none;
+}
+
+.flight-home-link .svg-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.flight-panel-meta {
+    display: flex;
+    align-items: center;
+    justify-content: var(--layout-flight-panel-meta-justify);
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.flight-result-pill,
+.flight-connection-pill {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.flight-result-pill {
+    background: rgba(15, 23, 42, 0.06);
+    color: var(--text-primary);
+}
+
+.detail-panel-title {
+    margin-bottom: 10px;
+    gap: 12px;
+    flex-direction: var(--layout-detail-panel-title-direction);
+    align-items: var(--layout-detail-panel-title-align);
+}
+
+.detail-summary-bar {
+    display: none;
+}
+
+.detail-summary-bar.is-visible {
+    display: block;
+}
+
+.detail-drawer-close {
+    display: var(--layout-detail-drawer-close-display);
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.last-updated {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0 15px;
+    flex-shrink: 0;
+}
+
+/* Legacy Header Style */
+.header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px var(--shadow-medium);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* --- Section Layout --- */
+.detail-section {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 24px;
+    box-shadow: none;
+    flex: 0 0 auto;
+}
+
+.flight-info-section {
+    flex: 0 0 auto;
+}
+
+.events-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 24px 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.detail-label {
+    font-size: 11px;
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: var(--fw-semibold);
+    font-feature-settings: "tnum" 1;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+    width: 100%;
+}
+
+/* --- Dashboard Layout (Detail Panel) --- */
+.detail-billboard {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-billboard-id {
+    font-size: 32px;
+    font-weight: var(--fw-heavy);
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    font-feature-settings: "tnum" 1;
+}
+
+.detail-billboard-route {
+    font-size: 16px;
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+}
+
+.detail-billboard-date {
+    font-size: 14px;
+    font-weight: var(--fw-regular);
+    color: var(--text-tertiary);
+    font-feature-settings: "tnum" 1;
+}
+
+.vital-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 24px 16px;
+    margin-bottom: 32px;
+    padding: 0;
+}
+
+.vital-card {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    text-align: left;
+    transition: none;
+    border: none;
+}
+
+.vital-card:last-child {
+    border: none;
+}
+
+.vital-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.vital-card-label {
+    font-size: 11px;
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+.vital-card-value {
+    font-size: 26px;
+    font-weight: var(--fw-heavy);
+    color: var(--text-primary);
+    font-feature-settings: "tnum" 1;
+    line-height: 1.2;
+}
+
+.vital-card-value.highlight-green {
+    color: var(--system-green);
+}
+
+.vital-card-value.highlight-orange {
+    color: var(--system-orange);
+}
+
+.vital-card-value.highlight-blue {
+    color: var(--system-blue);
+}
+
+
+/* Time type colors for vital cards */
+.vital-card-value.time-scheduled {
+    color: var(--text-primary);
+}
+
+.vital-card-value.time-estimated {
+    color: var(--system-purple);
+}
+
+.vital-card-value.time-actual {
+    color: var(--system-red);
+}
+
+/* --- Form Layout --- */
+.form-row {
+    display: flex;
+    flex-direction: var(--layout-form-row-direction);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+/* --- Modal Layout --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s ease;
+}
+
+.modal-content {
+    background-color: var(--surface-color);
+    margin: var(--layout-modal-content-margin);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: var(--layout-modal-content-width);
+    max-width: 90%;
+    box-shadow: 0 8px 32px var(--shadow-heavy);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.event-form-grid {
+    display: grid;
+    grid-template-columns: var(--layout-event-form-grid-columns);
+    gap: 1rem;
+}
+
+.event-form-grid .form-group {
+    margin-bottom: 0;
+}
+
+/* --- Error Panel Layout --- */
+.error-panel {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    width: 400px;
+    max-height: 300px;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 12px var(--shadow-medium);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+}
+
+.error-panel-header {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.error-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem;
+}
+
+.error-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--danger-color);
+    color: white;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--shadow-medium);
+    z-index: 999;
+    font-weight: 700;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.flight-detail-panel.detail-open {
+    transform: var(--layout-detail-panel-open-transform);
+}
+
+/* Remaining cross-file overrides stay local until components.css owns them. */
+@media (max-width: 768px) {
+    .search-controls {
+        flex-direction: column;
+    }
+
+    .search-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+}
+
+@media (max-width: 600px) {
+    .flight-item {
+        padding: 1rem;
+    }
+
+    .flight-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .flight-route {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .flight-times {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+
+/* ── Labels System ── */
+.label-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid;
+    line-height: 1.6;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.label-pill:hover {
+    filter: brightness(0.95);
+}
+
+.labels-card {
+    padding: 12px 16px !important;
+}
+
+.labels-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.labels-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.labels-group-title {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-right: 2px;
+}

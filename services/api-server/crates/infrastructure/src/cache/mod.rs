@@ -137,6 +137,18 @@ pub async fn ping_pool(pool: &RedisPool) -> Result<bool, InfraError> {
     Ok(pong.eq_ignore_ascii_case("PONG"))
 }
 
+/// 用一次 PING 测量 Redis 往返时延（毫秒，保留 2 位小数）。
+///
+/// 计时覆盖「从池取连接 + PING」两段，即调用方实际感受到的时延。
+/// 取不到连接或 PING 未返回 PONG 时返回 `None`，由调用方决定如何呈现「未连接」。
+pub async fn measure_ping_latency(pool: &RedisPool) -> Option<f64> {
+    let start = std::time::Instant::now();
+    if !ping_pool(pool).await.unwrap_or(false) {
+        return None;
+    }
+    Some((start.elapsed().as_secs_f64() * 1000.0 * 100.0).round() / 100.0)
+}
+
 /// 获取 Redis 连接池状态信息
 pub async fn get_pool_status(pool: &RedisPool) -> PoolStatus {
     PoolStatus {

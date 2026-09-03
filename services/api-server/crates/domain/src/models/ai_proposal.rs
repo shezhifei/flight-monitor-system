@@ -122,8 +122,9 @@ impl ApprovalPolicy {
 // ActionProposalStatus — 建议状态
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ActionProposalStatus {
+    #[default]
     Draft = 0,
     Validating = 1,
     Pending = 2,
@@ -189,12 +190,6 @@ impl ActionProposalStatus {
 
     pub fn can_execute(self) -> bool {
         self == Self::Approved
-    }
-}
-
-impl Default for ActionProposalStatus {
-    fn default() -> Self {
-        Self::Draft
     }
 }
 
@@ -389,21 +384,21 @@ impl AiActionProposal {
     }
 
     pub fn transition_to(&mut self, new_status: ActionProposalStatus) -> Result<(), String> {
-        let valid = match (self.status, new_status) {
-            (ActionProposalStatus::Draft, ActionProposalStatus::Validating) => true,
-            (ActionProposalStatus::Draft, ActionProposalStatus::Cancelled) => true,
-            (ActionProposalStatus::Validating, ActionProposalStatus::Pending) => true,
-            (ActionProposalStatus::Validating, ActionProposalStatus::Rejected) => true,
-            (ActionProposalStatus::Validating, ActionProposalStatus::Cancelled) => true,
-            (ActionProposalStatus::Pending, ActionProposalStatus::Approved) => true,
-            (ActionProposalStatus::Pending, ActionProposalStatus::Rejected) => true,
-            (ActionProposalStatus::Pending, ActionProposalStatus::Expired) => true,
-            (ActionProposalStatus::Approved, ActionProposalStatus::Executing) => true,
-            (ActionProposalStatus::Approved, ActionProposalStatus::Cancelled) => true,
-            (ActionProposalStatus::Executing, ActionProposalStatus::Executed) => true,
-            (ActionProposalStatus::Executing, ActionProposalStatus::Failed) => true,
-            _ => false,
-        };
+        let valid = matches!(
+            (self.status, new_status),
+            (ActionProposalStatus::Draft, ActionProposalStatus::Validating)
+                | (ActionProposalStatus::Draft, ActionProposalStatus::Cancelled)
+                | (ActionProposalStatus::Validating, ActionProposalStatus::Pending)
+                | (ActionProposalStatus::Validating, ActionProposalStatus::Rejected)
+                | (ActionProposalStatus::Validating, ActionProposalStatus::Cancelled)
+                | (ActionProposalStatus::Pending, ActionProposalStatus::Approved)
+                | (ActionProposalStatus::Pending, ActionProposalStatus::Rejected)
+                | (ActionProposalStatus::Pending, ActionProposalStatus::Expired)
+                | (ActionProposalStatus::Approved, ActionProposalStatus::Executing)
+                | (ActionProposalStatus::Approved, ActionProposalStatus::Cancelled)
+                | (ActionProposalStatus::Executing, ActionProposalStatus::Executed)
+                | (ActionProposalStatus::Executing, ActionProposalStatus::Failed)
+        );
 
         if valid {
             self.status = new_status;

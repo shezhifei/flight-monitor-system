@@ -112,7 +112,7 @@ fn make_flight_for_test(
     };
 
     let leg = FlightLeg {
-        leg_type: leg_type.clone(),
+        leg_type,
         flight_no: flight_no.to_string(),
         flight_type: FlightTypeCode::Domestic,
         mission: None,
@@ -477,7 +477,7 @@ async fn test_canonical_gate_baggage_commit_creates_three_cases_with_extra_info(
             case.context.get("copilot_batch_id").and_then(|v| v.as_str()),
             Some(draft.batch_id.as_str())
         );
-        assert!(case.context.get("copilot_action_id").is_some());
+        assert!(case.context.contains_key("copilot_action_id"));
     }
 }
 

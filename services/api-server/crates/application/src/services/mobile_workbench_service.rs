@@ -195,7 +195,7 @@ impl MobileWorkbenchService {
             })
             .collect::<Vec<_>>();
         self.annotate_order_states(&mut order_items).await?;
-        order_items.sort_by(|left, right| compare_order_items(left, right));
+        order_items.sort_by(compare_order_items);
 
         let order_counts = order_items.iter().fold(
             json!({

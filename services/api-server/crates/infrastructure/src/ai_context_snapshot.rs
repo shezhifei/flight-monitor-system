@@ -109,7 +109,10 @@ mod tests {
             (AiContextSnapshotKind::EquipmentType, "FROM equipment_types"),
             (AiContextSnapshotKind::Aircraft, "FROM aircraft"),
             (AiContextSnapshotKind::TurnaroundLink, "FROM turnaround_links"),
-            (AiContextSnapshotKind::Qualification, "FROM department_qualification_catalog"),
+            (
+                AiContextSnapshotKind::Qualification,
+                "FROM department_qualification_catalog",
+            ),
             (AiContextSnapshotKind::TaskType, "FROM task_types"),
             (AiContextSnapshotKind::Personnel, "FROM users"),
         ];

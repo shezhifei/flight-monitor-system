@@ -53,12 +53,7 @@ where
         let mut tx = self.uow.begin().await?;
         let saved = self.department_repo.save_in_tx(&mut tx, department).await?;
         self.reference_repo
-            .replace_owner_references_in_tx(
-                &mut tx,
-                "Department",
-                &saved.id,
-                references,
-            )
+            .replace_owner_references_in_tx(&mut tx, "Department", &saved.id, references)
             .await?;
         self.uow.commit(tx).await?;
         Ok(saved)

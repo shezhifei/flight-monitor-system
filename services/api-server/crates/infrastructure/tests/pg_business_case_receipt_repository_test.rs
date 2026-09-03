@@ -212,7 +212,7 @@ async fn find_by_id_populates_workflow_receipt_from_notifications(pool: PgPool) 
     // Other context keys must be preserved untouched.
     assert_eq!(case.context.get("some_other_key"), Some(&json!("untouched")));
     // The legacy snapshot key MUST NOT have reappeared.
-    assert!(case.context.get("workflow_receipt").is_none());
+    assert!(!case.context.contains_key("workflow_receipt"));
 }
 
 #[ignore = "requires DATABASE_URL with PostgreSQL"]
@@ -328,7 +328,7 @@ async fn find_by_id_returns_none_when_no_workflow_run(pool: PgPool) {
     let case = repo.find_by_id("case-5").await.expect("query").expect("case exists");
 
     assert!(case.workflow_receipt.is_none());
-    assert!(case.context.get("workflow_receipt").is_none());
+    assert!(!case.context.contains_key("workflow_receipt"));
 }
 
 #[ignore = "requires DATABASE_URL with PostgreSQL"]

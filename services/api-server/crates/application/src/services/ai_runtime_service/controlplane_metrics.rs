@@ -51,10 +51,13 @@ mod tests {
     use metrics::{Counter, Gauge, Histogram, Key, KeyName, Metadata, Recorder, SharedString, Unit};
     use std::sync::{Arc, Mutex};
 
+    type HistogramSample = (String, Vec<(String, String)>, f64);
+    type HistogramSamples = Vec<HistogramSample>;
+
     struct CapturingHistogram {
         name: String,
         labels: Vec<(String, String)>,
-        samples: Arc<Mutex<Vec<(String, Vec<(String, String)>, f64)>>>,
+        samples: Arc<Mutex<HistogramSamples>>,
     }
 
     impl metrics::HistogramFn for CapturingHistogram {
@@ -70,7 +73,7 @@ mod tests {
     /// shared capture list owned by the test.
     #[derive(Default)]
     struct HistogramCaptureRecorder {
-        captures: Arc<Mutex<Vec<(String, Vec<(String, String)>, f64)>>>,
+        captures: Arc<Mutex<HistogramSamples>>,
     }
 
     impl Recorder for HistogramCaptureRecorder {

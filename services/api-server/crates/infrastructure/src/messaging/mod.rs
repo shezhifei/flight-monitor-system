@@ -347,15 +347,23 @@ mod tests {
                 let Ok((mut stream, _peer)) = listener.accept().await else {
                     break;
                 };
-                let action = server_actions
-                    .lock()
-                    .expect("StubGateway: actions lock poisoned")
-                    .pop_front();
                 let paths = server_paths.clone();
                 let attempts = server_attempts.clone();
+                let actions = server_actions.clone();
                 tokio::spawn(async move {
-                    attempts.fetch_add(1, Ordering::SeqCst);
+                    // Read the whole request (headers *and* body) before responding.
+                    // Responding while bytes remain in the socket receive buffer makes
+                    // the later `drop(stream)` emit an RST instead of a FIN, which can
+                    // discard the response before the client reads it — that was the
+                    // source of this test's intermittent failures.
                     let path = read_request_path(&mut stream).await;
+
+                    // Consume one action per *request*, in request order. Popping in
+                    // the accept loop instead ties actions to connections, so any
+                    // connection accepted without carrying a request would desync the
+                    // queue from the retry sequence.
+                    let action = actions.lock().expect("StubGateway: actions lock poisoned").pop_front();
+                    attempts.fetch_add(1, Ordering::SeqCst);
                     paths.lock().expect("StubGateway: paths lock poisoned").push(path);
 
                     let Some(action) = action else {
@@ -379,18 +387,40 @@ mod tests {
         }
     }
 
+    /// Reads one request off `stream`: the request line plus headers, and then
+    /// the body as declared by `Content-Length`.
+    ///
+    /// Draining the body matters. Any bytes left unread in the socket receive
+    /// buffer turn the eventual close into an RST, which can throw away the
+    /// response the server already wrote.
     async fn read_request_path(stream: &mut tokio::net::TcpStream) -> String {
         let mut buffer = Vec::new();
         let mut chunk = [0_u8; 1024];
-        loop {
+
+        let header_end = loop {
             let read = stream.read(&mut chunk).await.expect("read test request");
+            if read == 0 {
+                break buffer.len();
+            }
+            buffer.extend_from_slice(&chunk[..read]);
+            if let Some(index) = buffer.windows(4).position(|window| window == b"\r\n\r\n") {
+                break index + 4;
+            }
+        };
+
+        let content_length = String::from_utf8_lossy(&buffer[..header_end])
+            .lines()
+            .filter_map(|line| line.split_once(':'))
+            .find(|(name, _)| name.eq_ignore_ascii_case("content-length"))
+            .and_then(|(_, value)| value.trim().parse::<usize>().ok())
+            .unwrap_or(0);
+
+        while buffer.len() - header_end < content_length {
+            let read = stream.read(&mut chunk).await.expect("read test request body");
             if read == 0 {
                 break;
             }
             buffer.extend_from_slice(&chunk[..read]);
-            if buffer.windows(4).any(|window| window == b"\r\n\r\n") {
-                break;
-            }
         }
 
         let request = String::from_utf8_lossy(&buffer);
@@ -414,5 +444,9 @@ mod tests {
             .write_all(response.as_bytes())
             .await
             .expect("write test response");
+        stream.flush().await.expect("flush test response");
+        // Half-close the write side so the client sees a clean EOF instead of
+        // racing an RST from the socket drop.
+        stream.shutdown().await.expect("shutdown test gateway connection");
     }
 }

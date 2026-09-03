@@ -1,22 +1,17 @@
 use chrono::{DateTime, Utc};
-use metrics::{counter, histogram};
 use serde_json::{json, Map, Value};
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use ulid::Ulid;
 
 use super::service::{
-    AiRuntimeError, AiToolExecutionSpec, AI_QUERY_MISROUTE_TOTAL_METRIC, AI_QUERY_MISSELECTION_TOTAL_METRIC,
-    AI_QUERY_ROUTE_TOTAL_METRIC, AI_QUERY_SELECTION_TOTAL_METRIC, AI_REPORT_SCHEMA_VALIDATION_ERROR_COUNT_METRIC,
-    AI_REPORT_SCHEMA_VALIDATION_TOTAL_METRIC, CHAIN_RETENTION_HOURS, DEFAULT_TODO_GRAPH_PILOT_ENTITY_ID,
-    EXECUTION_RETENTION_HOURS, MAX_CHAINS, MAX_EXECUTIONS, MAX_PENDING_ACTIONS, METRIC_SAMPLE_WINDOW,
-    PENDING_ACTION_RETENTION_MINUTES, READY_COMPLETION_RATE_MIN, READY_DUPLICATE_TOOL_EXECUTION_BLOCKED_TOTAL_MAX,
+    AiRuntimeError, AiToolExecutionSpec, READY_COMPLETION_RATE_MIN, READY_DUPLICATE_TOOL_EXECUTION_BLOCKED_TOTAL_MAX,
     READY_DUPLICATE_TOOL_EXECUTION_TOTAL_MAX, READY_GRAPH_FALLBACK_RATE_MAX, READY_GRAPH_REQUESTED_TOTAL_MIN,
     READY_GRAPH_RESUME_SUCCESS_RATE_MIN, READY_GRAPH_RESUME_TOTAL_MIN, READY_STALE_PENDING_TOTAL_MAX,
     ROLLBACK_GRAPH_FALLBACK_RATE_GT, ROLLBACK_GRAPH_REQUESTED_TOTAL_MIN, ROLLBACK_GRAPH_RESUME_SUCCESS_RATE_LT,
     ROLLBACK_GRAPH_RESUME_TOTAL_MIN,
 };
-use super::types::{ChainRecord, ExecutionRecord, PendingActionRecord};
+use super::types::{ExecutionRecord, PendingActionRecord};
 
 pub(super) fn ensure_action_open(action: &mut PendingActionRecord, now: DateTime<Utc>) -> Result<(), AiRuntimeError> {
     if action.status == "expired" {
@@ -68,7 +63,7 @@ pub(super) fn build_read_tool_output(
     let query_type = infer_query_type(&spec.tool_name, tool_args);
     let arguments = normalize_object(tool_args.clone());
     let filters = extract_filters(&arguments);
-    let matches_estimate = estimate_matches(&arguments, &query_type);
+    let matches_estimate = estimate_matches(&arguments, query_type);
     let summary = format!(
         "{} completed with {} estimated match(es)",
         spec.tool_name, matches_estimate

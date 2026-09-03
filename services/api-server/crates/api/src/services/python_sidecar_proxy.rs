@@ -603,6 +603,7 @@ async fn build_passthrough_response(resp: reqwest::Response) -> HttpResponse {
 }
 
 #[cfg(test)]
+#[allow(clippy::await_holding_lock)]
 mod tests {
     use super::*;
     use actix_web::test::TestRequest;

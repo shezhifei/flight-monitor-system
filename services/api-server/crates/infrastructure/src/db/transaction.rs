@@ -166,6 +166,38 @@ impl TransactionManager {
     }
 }
 
+/// [`UnitOfWork`] 的 Postgres 适配器。
+///
+/// 这里是 `Transaction<'static, Postgres>` 唯一被具体化的地方。`'static` 不是放宽：
+/// `Pool::begin()` 返回的事务自己拥有 `PoolConnection`，所以它的真实类型就是 `'static`。
+pub struct PgUnitOfWork {
+    pool: PgPool,
+}
+
+impl PgUnitOfWork {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl UnitOfWork for PgUnitOfWork {
+    type Tx = sqlx::Transaction<'static, sqlx::Postgres>;
+
+    async fn begin(&self) -> Result<Self::Tx, DomainError> {
+        self.pool
+            .begin()
+            .await
+            .map_err(|error| DomainError::Internal(format!("failed to start transaction: {error}")))
+    }
+
+    async fn commit(&self, tx: Self::Tx) -> Result<(), DomainError> {
+        tx.commit()
+            .await
+            .map_err(|error| DomainError::Internal(format!("failed to commit transaction: {error}")))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,62 +253,5 @@ mod tests {
         let timeout_ms = 30u64 * 1000;
         let sql = format!("SET LOCAL statement_timeout = {}", timeout_ms);
         assert_eq!(sql, "SET LOCAL statement_timeout = 30000");
-    }
-
-    #[test]
-    fn begin_returns_result_err_on_set_failure() {
-        // Compile-time verification: begin() returns Result, meaning errors from
-        // SET TRANSACTION ISOLATION LEVEL and SET LOCAL statement_timeout propagate
-        // to the caller instead of being silently swallowed via .ok().
-        //
-        // If .ok() were used (fail-silent), these errors would be discarded and the
-        // caller would unknowingly run at a lower isolation level or without a timeout.
-        // With ? propagation, a failed SET causes begin() to return Err, preventing
-        // silent correctness violations.
-        fn assert_result_type<T, E>(_: &Result<T, E>) {}
-        let _check = |r: Result<sqlx::Transaction<'static, sqlx::Postgres>, sqlx::Error>| {
-            assert_result_type(&r);
-        };
-        // The function signature alone is the test: if .ok() were used this would
-        // still compile as Result (because pool.begin().await? returns Result), but
-        // the critical semantic is that execute errors are propagated via ? not .ok().
-        // This test serves as a canary — if someone reverts to .ok(), a comment review
-        // is required.
-        assert!(
-            true,
-            "SET TRANSACTION/SET LOCAL errors must propagate via ?, not be discarded with .ok()"
-        );
-    }
-}
-
-/// [`UnitOfWork`] 的 Postgres 适配器。
-///
-/// 这里是 `Transaction<'static, Postgres>` 唯一被具体化的地方。`'static` 不是放宽：
-/// `Pool::begin()` 返回的事务自己拥有 `PoolConnection`，所以它的真实类型就是 `'static`。
-pub struct PgUnitOfWork {
-    pool: PgPool,
-}
-
-impl PgUnitOfWork {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait::async_trait]
-impl UnitOfWork for PgUnitOfWork {
-    type Tx = sqlx::Transaction<'static, sqlx::Postgres>;
-
-    async fn begin(&self) -> Result<Self::Tx, DomainError> {
-        self.pool
-            .begin()
-            .await
-            .map_err(|error| DomainError::Internal(format!("failed to start transaction: {error}")))
-    }
-
-    async fn commit(&self, tx: Self::Tx) -> Result<(), DomainError> {
-        tx.commit()
-            .await
-            .map_err(|error| DomainError::Internal(format!("failed to commit transaction: {error}")))
     }
 }

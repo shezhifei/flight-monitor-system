@@ -12,7 +12,7 @@ use tracing::{debug, error};
 use super::case_loader::{
     build_reasoning_block, cancelled_attempt, error_attempt, extract_chat_reasoning_content,
     extract_chat_response_content, extract_chat_tool_response, extract_chat_usage, extract_responses_reasoning_content,
-    extract_responses_text, extract_responses_tool_response, extract_responses_usage, has_value, parse_json_like_text,
+    extract_responses_text, extract_responses_tool_response, extract_responses_usage, parse_json_like_text,
     retryable_status, should_fallback_to_text_mode, strip_nulls, truncate_text, value_bool, value_f64, value_str,
 };
 use super::service::LLMEvalService;
@@ -200,7 +200,7 @@ impl LLMEvalService {
                 case_results.push(self.aggregate_case_results(definition, attempts));
             }
         }
-        case_results.sort_by(|left, right| value_str(left, "case_id").cmp(&value_str(right, "case_id")));
+        case_results.sort_by(|left, right| value_str(left, "case_id").cmp(value_str(right, "case_id")));
         let metrics = self.aggregate_profile_metrics(&case_results, repeat_count);
         self.set_profile_result(
             &job_id,

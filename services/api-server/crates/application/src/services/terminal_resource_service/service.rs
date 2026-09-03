@@ -11,19 +11,19 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use fms_domain::error::DomainError;
-use fms_domain::models::dispatch::{
-    BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory,
+use crate::services::attribute_validation::{
+    collect_attribute_references, sync_attribute_references, validate_attributes,
 };
-use fms_domain::models::field_overlay::OntologyFieldType;
-use fms_domain::ports::dispatch_repository::{StandRepository, TerminalRepository};
-use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
-use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceRepository;
-use crate::services::attribute_validation::{collect_attribute_references, sync_attribute_references, validate_attributes};
 use crate::services::stand_composition::{
     composed_of_codes, validate_stand_composition as validate_composition_snapshot,
 };
 use crate::services::terminal_resource_writer::TerminalResourceAttributeTransactionalWriter;
+use fms_domain::error::DomainError;
+use fms_domain::models::dispatch::{BaggageCarousel, Gate, Stand, Terminal, TerminalDirectory};
+use fms_domain::models::field_overlay::OntologyFieldType;
+use fms_domain::ports::dispatch_repository::{StandRepository, TerminalRepository};
+use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
+use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceRepository;
 
 use super::schemas::{
     CarouselCreate, CarouselUpdate, GateCreate, GateUpdate, StandCreate, StandUpdate, TerminalCreate, TerminalUpdate,
@@ -99,15 +99,15 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         self
     }
 
-    pub fn with_reference_repository(mut self, repo: Arc<dyn OntologyAttributeReferenceRepository + Send + Sync>) -> Self {
+    pub fn with_reference_repository(
+        mut self,
+        repo: Arc<dyn OntologyAttributeReferenceRepository + Send + Sync>,
+    ) -> Self {
         self.reference_repo = Some(repo);
         self
     }
 
-    pub fn with_attribute_writer(
-        mut self,
-        writer: Arc<dyn TerminalResourceAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_attribute_writer(mut self, writer: Arc<dyn TerminalResourceAttributeTransactionalWriter>) -> Self {
         self.attribute_writer = Some(writer);
         self
     }
@@ -149,29 +149,33 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         // 仅无 writer 的替代路径需要这里的非事务同步兜底。
         if self.attribute_writer.is_none() {
             sync_attribute_references(
-                "Terminal", &saved.terminal_id, &saved.attributes,
-                self.field_overlay_repo.as_ref(), self.reference_repo.as_ref(),
-            ).await?;
+                "Terminal",
+                &saved.terminal_id,
+                &saved.attributes,
+                self.field_overlay_repo.as_ref(),
+                self.reference_repo.as_ref(),
+            )
+            .await?;
         }
         Ok(saved)
     }
 
-    pub async fn update_terminal(
-        &self,
-        terminal_id: &str,
-        payload: TerminalUpdate,
-    ) -> Result<Terminal, DomainError> {
+    pub async fn update_terminal(&self, terminal_id: &str, payload: TerminalUpdate) -> Result<Terminal, DomainError> {
         let mut terminal = self
             .terminal_repo
             .find_terminal_by_id(terminal_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "terminal", id: terminal_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "terminal",
+                id: terminal_id.to_string(),
+            })?;
         if let Some(name) = payload.name {
             terminal.name = require_non_empty(&name, "name")?;
         }
         if let Some(attributes) = payload.attributes {
             terminal.attributes = self.validate_attributes_for("Terminal", attributes).await?;
-            self.validate_object_references("Terminal", &terminal.attributes).await?;
+            self.validate_object_references("Terminal", &terminal.attributes)
+                .await?;
         }
         let saved = if let Some(writer) = self.attribute_writer.as_ref() {
             let references = collect_attribute_references(
@@ -187,9 +191,13 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         };
         if self.attribute_writer.is_none() {
             sync_attribute_references(
-                "Terminal", &saved.terminal_id, &saved.attributes,
-                self.field_overlay_repo.as_ref(), self.reference_repo.as_ref(),
-            ).await?;
+                "Terminal",
+                &saved.terminal_id,
+                &saved.attributes,
+                self.field_overlay_repo.as_ref(),
+                self.reference_repo.as_ref(),
+            )
+            .await?;
         }
         Ok(saved)
     }
@@ -200,7 +208,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_terminal_by_id(terminal_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "terminal", id: terminal_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "terminal",
+                id: terminal_id.to_string(),
+            })?;
         if !terminal.is_active {
             return Ok(terminal);
         }
@@ -232,7 +243,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             conflicts.append(&mut occ);
         }
         if !conflicts.is_empty() {
-            return Err(conflict_with_details("停用楼失败：存在未结束占用/分配", Value::Array(conflicts)));
+            return Err(conflict_with_details(
+                "停用楼失败：存在未结束占用/分配",
+                Value::Array(conflicts),
+            ));
         }
 
         if let Some(writer) = self.attribute_writer.as_ref() {
@@ -260,7 +274,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_terminal_by_id(&terminal_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "terminal", id: terminal_id.clone() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "terminal",
+                id: terminal_id.clone(),
+            })?;
         if !terminal.is_active {
             return Err(DomainError::BusinessRuleViolation(
                 "不能向已停用航站楼添加登机口".into(),
@@ -271,7 +288,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         let gate = Gate {
             gate_id: ulid::Ulid::new().to_string(),
             code: require_non_empty(&payload.code, "code")?,
-            name: payload.name.map(|value| value.trim().to_string()).filter(|v| !v.is_empty()),
+            name: payload
+                .name
+                .map(|value| value.trim().to_string())
+                .filter(|v| !v.is_empty()),
             is_active: true,
             created_at: None,
             updated_at: None,
@@ -295,9 +315,13 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         // 无 writer 兜底路径：owner 保存后补齐成员关系与 reference index。
         if self.attribute_writer.is_none() {
             sync_attribute_references(
-                "Gate", &gate.gate_id, &gate.attributes,
-                self.field_overlay_repo.as_ref(), self.reference_repo.as_ref(),
-            ).await?;
+                "Gate",
+                &gate.gate_id,
+                &gate.attributes,
+                self.field_overlay_repo.as_ref(),
+                self.reference_repo.as_ref(),
+            )
+            .await?;
             self.terminal_repo.add_gate(&terminal_id, &gate.gate_id).await?;
         }
         Ok(gate)
@@ -308,7 +332,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_gate_by_id(gate_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "gate", id: gate_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "gate",
+                id: gate_id.to_string(),
+            })?;
         if let Some(name) = payload.name {
             gate.name = Some(require_non_empty(&name, "name")?);
         }
@@ -324,7 +351,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
                 .await?;
                 let conflicts = self.terminal_repo.active_gate_assignments(&gate.code).await?;
                 if !conflicts.is_empty() {
-                    return Err(conflict_with_details("停用登机口失败：存在未结束分配", Value::Array(conflicts)));
+                    return Err(conflict_with_details(
+                        "停用登机口失败：存在未结束分配",
+                        Value::Array(conflicts),
+                    ));
                 }
             }
             gate.is_active = is_active;
@@ -347,9 +377,13 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         };
         if self.attribute_writer.is_none() {
             sync_attribute_references(
-                "Gate", &saved.gate_id, &saved.attributes,
-                self.field_overlay_repo.as_ref(), self.reference_repo.as_ref(),
-            ).await?;
+                "Gate",
+                &saved.gate_id,
+                &saved.attributes,
+                self.field_overlay_repo.as_ref(),
+                self.reference_repo.as_ref(),
+            )
+            .await?;
         }
         Ok(saved)
     }
@@ -360,7 +394,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_gate_by_id(gate_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "gate", id: gate_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "gate",
+                id: gate_id.to_string(),
+            })?;
         if !gate.is_active {
             return Ok(gate);
         }
@@ -373,7 +410,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         .await?;
         let conflicts = self.terminal_repo.active_gate_assignments(&gate.code).await?;
         if !conflicts.is_empty() {
-            return Err(conflict_with_details("停用登机口失败：存在未结束分配", Value::Array(conflicts)));
+            return Err(conflict_with_details(
+                "停用登机口失败：存在未结束分配",
+                Value::Array(conflicts),
+            ));
         }
         if let Some(writer) = self.attribute_writer.as_ref() {
             let mut gate = gate;
@@ -400,7 +440,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_terminal_by_id(&terminal_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "terminal", id: terminal_id.clone() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "terminal",
+                id: terminal_id.clone(),
+            })?;
         if !terminal.is_active {
             return Err(DomainError::BusinessRuleViolation(
                 "不能向已停用航站楼添加行李转盘".into(),
@@ -410,13 +453,19 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         let carousel = BaggageCarousel {
             carousel_id: ulid::Ulid::new().to_string(),
             code: require_non_empty(&payload.code, "code")?,
-            name: payload.name.map(|value| value.trim().to_string()).filter(|v| !v.is_empty()),
+            name: payload
+                .name
+                .map(|value| value.trim().to_string())
+                .filter(|v| !v.is_empty()),
             is_active: true,
             created_at: None,
             updated_at: None,
-            attributes: self.validate_attributes_for("BaggageCarousel", payload.attributes).await?,
+            attributes: self
+                .validate_attributes_for("BaggageCarousel", payload.attributes)
+                .await?,
         };
-        self.validate_object_references("BaggageCarousel", &carousel.attributes).await?;
+        self.validate_object_references("BaggageCarousel", &carousel.attributes)
+            .await?;
         let carousel = if let Some(writer) = self.attribute_writer.as_ref() {
             let references = collect_attribute_references(
                 "BaggageCarousel",
@@ -434,10 +483,16 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         // 无 writer 兜底路径：owner 保存后补齐成员关系与 reference index。
         if self.attribute_writer.is_none() {
             sync_attribute_references(
-                "BaggageCarousel", &carousel.carousel_id, &carousel.attributes,
-                self.field_overlay_repo.as_ref(), self.reference_repo.as_ref(),
-            ).await?;
-            self.terminal_repo.add_carousel(&terminal_id, &carousel.carousel_id).await?;
+                "BaggageCarousel",
+                &carousel.carousel_id,
+                &carousel.attributes,
+                self.field_overlay_repo.as_ref(),
+                self.reference_repo.as_ref(),
+            )
+            .await?;
+            self.terminal_repo
+                .add_carousel(&terminal_id, &carousel.carousel_id)
+                .await?;
         }
         Ok(carousel)
     }
@@ -451,7 +506,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_carousel_by_id(carousel_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "carousel", id: carousel_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "carousel",
+                id: carousel_id.to_string(),
+            })?;
         if let Some(name) = payload.name {
             carousel.name = Some(require_non_empty(&name, "name")?);
         }
@@ -467,14 +525,18 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
                 .await?;
                 let conflicts = self.terminal_repo.active_carousel_assignments(&carousel.code).await?;
                 if !conflicts.is_empty() {
-                    return Err(conflict_with_details("停用行李转盘失败：存在未结束分配", Value::Array(conflicts)));
+                    return Err(conflict_with_details(
+                        "停用行李转盘失败：存在未结束分配",
+                        Value::Array(conflicts),
+                    ));
                 }
             }
             carousel.is_active = is_active;
         }
         if let Some(attributes) = payload.attributes {
             carousel.attributes = self.validate_attributes_for("BaggageCarousel", attributes).await?;
-            self.validate_object_references("BaggageCarousel", &carousel.attributes).await?;
+            self.validate_object_references("BaggageCarousel", &carousel.attributes)
+                .await?;
         }
         let saved = if let Some(writer) = self.attribute_writer.as_ref() {
             let references = collect_attribute_references(
@@ -490,9 +552,13 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         };
         if self.attribute_writer.is_none() {
             sync_attribute_references(
-                "BaggageCarousel", &saved.carousel_id, &saved.attributes,
-                self.field_overlay_repo.as_ref(), self.reference_repo.as_ref(),
-            ).await?;
+                "BaggageCarousel",
+                &saved.carousel_id,
+                &saved.attributes,
+                self.field_overlay_repo.as_ref(),
+                self.reference_repo.as_ref(),
+            )
+            .await?;
         }
         Ok(saved)
     }
@@ -503,7 +569,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_carousel_by_id(carousel_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "carousel", id: carousel_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "carousel",
+                id: carousel_id.to_string(),
+            })?;
         if !carousel.is_active {
             return Ok(carousel);
         }
@@ -516,7 +585,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         .await?;
         let conflicts = self.terminal_repo.active_carousel_assignments(&carousel.code).await?;
         if !conflicts.is_empty() {
-            return Err(conflict_with_details("停用行李转盘失败：存在未结束分配", Value::Array(conflicts)));
+            return Err(conflict_with_details(
+                "停用行李转盘失败：存在未结束分配",
+                Value::Array(conflicts),
+            ));
         }
         if let Some(writer) = self.attribute_writer.as_ref() {
             let mut carousel = carousel;
@@ -553,9 +625,7 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
                 id: terminal_id.clone(),
             })?;
         if !terminal.is_active {
-            return Err(DomainError::BusinessRuleViolation(
-                "不能向已停用航站楼添加机位".into(),
-            ));
+            return Err(DomainError::BusinessRuleViolation("不能向已停用航站楼添加机位".into()));
         }
         self.validate_stand_gate_terminal(&terminal.code, &attributes).await?;
 
@@ -586,13 +656,9 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             created_at: None,
         };
         let stand = if let Some(writer) = self.attribute_writer.as_ref() {
-            let references = collect_attribute_references(
-                "Stand",
-                &stand.id,
-                &stand.attributes,
-                self.field_overlay_repo.as_ref(),
-            )
-            .await?;
+            let references =
+                collect_attribute_references("Stand", &stand.id, &stand.attributes, self.field_overlay_repo.as_ref())
+                    .await?;
             writer
                 .save_stand_with_terminal_and_references(&terminal_id, &stand, &references)
                 .await?
@@ -667,16 +733,13 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         }
         self.validate_stand_composition(&stand.code, &stand.attributes).await?;
         if let Some(terminal_code) = stand.terminal.as_deref() {
-            self.validate_stand_gate_terminal(terminal_code, &stand.attributes).await?;
+            self.validate_stand_gate_terminal(terminal_code, &stand.attributes)
+                .await?;
         }
         let stand = if let Some(writer) = self.attribute_writer.as_ref() {
-            let references = collect_attribute_references(
-                "Stand",
-                &stand.id,
-                &stand.attributes,
-                self.field_overlay_repo.as_ref(),
-            )
-            .await?;
+            let references =
+                collect_attribute_references("Stand", &stand.id, &stand.attributes, self.field_overlay_repo.as_ref())
+                    .await?;
             writer.save_stand_with_references(&stand, &references).await?
         } else {
             self.terminal_repo.save_stand(&stand).await?
@@ -725,7 +788,9 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
                 .map(|nested| nested.iter().any(|item| item.as_str() == Some(stand_code)))
                 .unwrap_or(false)
             {
-                return Err(DomainError::Conflict(format!("机位组成关系会形成环: {stand_code} ↔ {child_code}")));
+                return Err(DomainError::Conflict(format!(
+                    "机位组成关系会形成环: {stand_code} ↔ {child_code}"
+                )));
             }
         }
         Ok(())
@@ -749,20 +814,39 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         };
         let overlays = field_repo.list(Some(object_name), false).await?;
         for field in overlays.iter().filter(|item| item.is_active) {
-            let Some(field_type) = OntologyFieldType::parse(&field.field_type) else { continue; };
-            if !field_type.is_object() { continue; }
-            let Some(target_name) = field.object_name_target.as_deref() else { continue; };
-            let Some(raw) = map.get(&field.field_name) else { continue; };
+            let Some(field_type) = OntologyFieldType::parse(&field.field_type) else {
+                continue;
+            };
+            if !field_type.is_object() {
+                continue;
+            }
+            let Some(target_name) = field.object_name_target.as_deref() else {
+                continue;
+            };
+            let Some(raw) = map.get(&field.field_name) else {
+                continue;
+            };
             let keys: Vec<&str> = match field_type {
                 OntologyFieldType::ObjectRef => raw.as_str().into_iter().collect(),
-                OntologyFieldType::ObjectRefArray => raw.as_array().map(|items| items.iter().filter_map(Value::as_str).collect()).unwrap_or_default(),
+                OntologyFieldType::ObjectRefArray => raw
+                    .as_array()
+                    .map(|items| items.iter().filter_map(Value::as_str).collect())
+                    .unwrap_or_default(),
                 _ => Vec::new(),
             };
             for key in keys {
                 let active = match target_name {
-                    "Terminal" => self.terminal_repo.find_terminal_by_code(key).await?.map(|v| v.is_active),
+                    "Terminal" => self
+                        .terminal_repo
+                        .find_terminal_by_code(key)
+                        .await?
+                        .map(|v| v.is_active),
                     "Gate" => self.terminal_repo.find_gate_by_code(key).await?.map(|v| v.is_active),
-                    "BaggageCarousel" => self.terminal_repo.find_carousel_by_code(key).await?.map(|v| v.is_active),
+                    "BaggageCarousel" => self
+                        .terminal_repo
+                        .find_carousel_by_code(key)
+                        .await?
+                        .map(|v| v.is_active),
                     "Stand" => self.terminal_repo.find_stand_by_code(key).await?.map(|v| v.is_active),
                     _ => None,
                 };
@@ -784,20 +868,37 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
         let overlays = field_repo.list(Some("Stand"), false).await?;
         let remote = map.get("stand_use").and_then(Value::as_str) == Some("remote")
             || map.get("use").and_then(Value::as_str) == Some("remote");
-        for field in overlays.iter().filter(|item| item.is_active && item.object_name_target.as_deref() == Some("Gate")) {
-            let Some(raw) = map.get(&field.field_name) else { continue; };
+        for field in overlays
+            .iter()
+            .filter(|item| item.is_active && item.object_name_target.as_deref() == Some("Gate"))
+        {
+            let Some(raw) = map.get(&field.field_name) else {
+                continue;
+            };
             if remote {
-                return Err(DomainError::ValidationError(format!("远机位不能填写登机口: Stand.{}", field.field_name)));
+                return Err(DomainError::ValidationError(format!(
+                    "远机位不能填写登机口: Stand.{}",
+                    field.field_name
+                )));
             }
             let keys: Vec<&str> = match OntologyFieldType::parse(&field.field_type) {
                 Some(OntologyFieldType::ObjectRef) => raw.as_str().into_iter().collect(),
-                Some(OntologyFieldType::ObjectRefArray) => raw.as_array().map(|items| items.iter().filter_map(Value::as_str).collect()).unwrap_or_default(),
+                Some(OntologyFieldType::ObjectRefArray) => raw
+                    .as_array()
+                    .map(|items| items.iter().filter_map(Value::as_str).collect())
+                    .unwrap_or_default(),
                 _ => continue,
             };
             for key in keys {
                 match self.terminal_repo.gate_locale_by_code(key).await? {
-                    fms_domain::ports::dispatch_repository::FacilityLocale::Terminal { code, .. } if code == terminal_code => {}
-                    _ => return Err(DomainError::ValidationError(format!("扩展字段 Stand.{} 引用的登机口必须与机位位于同一航站楼: {key}", field.field_name))),
+                    fms_domain::ports::dispatch_repository::FacilityLocale::Terminal { code, .. }
+                        if code == terminal_code => {}
+                    _ => {
+                        return Err(DomainError::ValidationError(format!(
+                            "扩展字段 Stand.{} 引用的登机口必须与机位位于同一航站楼: {key}",
+                            field.field_name
+                        )))
+                    }
                 }
             }
         }
@@ -850,10 +951,16 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_stand_by_id(stand_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "stand", id: stand_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "stand",
+                id: stand_id.to_string(),
+            })?;
         let conflicts = self.terminal_repo.active_stand_occupations(&stand.code).await?;
         if !conflicts.is_empty() {
-            return Err(conflict_with_details("移出机位失败：存在未结束占用", Value::Array(conflicts)));
+            return Err(conflict_with_details(
+                "移出机位失败：存在未结束占用",
+                Value::Array(conflicts),
+            ));
         }
         self.terminal_repo.remove_stand(stand_id).await
     }
@@ -868,10 +975,16 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_gate_by_id(gate_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "gate", id: gate_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "gate",
+                id: gate_id.to_string(),
+            })?;
         let conflicts = self.terminal_repo.active_gate_assignments(&gate.code).await?;
         if !conflicts.is_empty() {
-            return Err(conflict_with_details("移出登机口失败：存在未结束分配", Value::Array(conflicts)));
+            return Err(conflict_with_details(
+                "移出登机口失败：存在未结束分配",
+                Value::Array(conflicts),
+            ));
         }
         self.terminal_repo.remove_gate(gate_id).await
     }
@@ -886,10 +999,16 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_carousel_by_id(carousel_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "carousel", id: carousel_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "carousel",
+                id: carousel_id.to_string(),
+            })?;
         let conflicts = self.terminal_repo.active_carousel_assignments(&carousel.code).await?;
         if !conflicts.is_empty() {
-            return Err(conflict_with_details("移出转盘失败：存在未结束分配", Value::Array(conflicts)));
+            return Err(conflict_with_details(
+                "移出转盘失败：存在未结束分配",
+                Value::Array(conflicts),
+            ));
         }
         self.terminal_repo.remove_carousel(carousel_id).await
     }
@@ -906,7 +1025,10 @@ impl<TR: TerminalRepository + Sync + ?Sized> TerminalResourceService<TR> {
             .terminal_repo
             .find_terminal_by_id(terminal_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound { entity_type: "terminal", id: terminal_id.to_string() })?;
+            .ok_or_else(|| DomainError::NotFound {
+                entity_type: "terminal",
+                id: terminal_id.to_string(),
+            })?;
         if !terminal.is_active {
             return Err(DomainError::BusinessRuleViolation("不能向已停用航站楼添加成员".into()));
         }

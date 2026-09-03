@@ -192,7 +192,7 @@ impl DashboardWorkbenchService {
             }
         }
 
-        unresolved.sort_by(|left, right| right.detected_at.cmp(&left.detected_at));
+        unresolved.sort_by_key(|left| std::cmp::Reverse(left.detected_at));
         recent_changes.extend(unresolved.iter().take(4).map(anomaly_recent_change));
 
         let high_risk_refs = unresolved
@@ -327,7 +327,7 @@ impl DashboardWorkbenchService {
             }
         }
 
-        unresolved.sort_by(|left, right| right.detected_at.cmp(&left.detected_at));
+        unresolved.sort_by_key(|left| std::cmp::Reverse(left.detected_at));
         recent_changes.extend(unresolved.iter().take(4).map(anomaly_recent_change));
 
         let high_risk_refs = unresolved

@@ -418,7 +418,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/carousels/assignments", web::post().to(allocate_carousel))
             .route("/carousels/assignments/{id}", web::patch().to(adjust_carousel))
             .route("/carousels/assignments/{id}/release", web::post().to(release_carousel))
-            .route("/flights/{flight_id}/carousels", web::get().to(list_carousel_assignments))
+            .route(
+                "/flights/{flight_id}/carousels",
+                web::get().to(list_carousel_assignments),
+            )
             .route("/turnaround-links", web::post().to(create_turnaround_link))
             .route("/turnaround-links/{id}/break", web::post().to(break_turnaround_link))
             .route("/turnaround-links/auto-scan", web::post().to(auto_link_scan))

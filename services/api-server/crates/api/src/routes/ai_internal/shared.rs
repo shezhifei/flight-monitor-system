@@ -1,6 +1,6 @@
 pub(crate) use crate::error::ApiError;
 pub(crate) use crate::middleware::service_identity::ServiceIdentity;
-pub(crate) use actix_web::{web, HttpResponse};
+pub(crate) use actix_web::HttpResponse;
 pub(crate) use fms_application::services::ai_job_service::AiJobService;
 pub(crate) use serde::Deserialize;
 pub(crate) use serde_json::{json, Value};

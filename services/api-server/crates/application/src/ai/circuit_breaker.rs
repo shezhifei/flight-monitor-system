@@ -109,7 +109,7 @@ impl CircuitBreaker {
     }
 
     pub async fn current_state(&self) -> CircuitState {
-        self.state.read().await.clone()
+        *self.state.read().await
     }
 
     pub fn total_requests(&self) -> u64 {

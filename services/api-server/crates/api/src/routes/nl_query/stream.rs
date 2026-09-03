@@ -246,7 +246,7 @@ pub(crate) async fn query_natural_language_stream(
 
             let client_stream = async_stream::stream! {
                 while let Some(item) = chunk_rx.recv().await {
-                    yield item.map_err(|e| actix_web::error::ErrorInternalServerError(e));
+                    yield item.map_err(actix_web::error::ErrorInternalServerError);
                 }
             };
 

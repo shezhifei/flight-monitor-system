@@ -1,9 +1,9 @@
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use async_trait::async_trait;
 
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -18,11 +18,11 @@ use crate::schemas::flight_schemas::{FlightCreate, FlightLegPayload, FlightUpdat
 use crate::services::flight_commands::{FlightCreateCommand, FlightUpdateCommand};
 use crate::types::{ConcreteFlightService, ConcreteMetadataCatalogService};
 use fms_domain::error::DomainError;
+use fms_domain::models::flight::Flight;
 use fms_domain::models::ontology_v1::{TurnaroundLink, TurnaroundLinkSource, TurnaroundLinkStatus};
+use fms_domain::models::value_objects::FlightId;
 use fms_domain::ports::flight_monitor_row_repository::FlightMonitorRowRepository;
 use fms_domain::ports::ontology_repository::TurnaroundLinkRepository;
-use fms_domain::models::value_objects::FlightId;
-use fms_domain::models::flight::Flight;
 
 const DEFAULT_STORAGE_ROOT: &str = "data/flight_imports";
 const DEFAULT_SOURCE_SYSTEM: &str = "payload_import";
@@ -141,26 +141,17 @@ impl FlightImportService {
         self
     }
 
-    pub fn with_turnaround_link_repository(
-        mut self,
-        repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>,
-    ) -> Self {
+    pub fn with_turnaround_link_repository(mut self, repo: Arc<dyn TurnaroundLinkRepository + Send + Sync>) -> Self {
         self.turnaround_link_repo = Some(repo);
         self
     }
 
-    pub fn with_monitor_row_repository(
-        mut self,
-        repo: Arc<dyn FlightMonitorRowRepository + Send + Sync>,
-    ) -> Self {
+    pub fn with_monitor_row_repository(mut self, repo: Arc<dyn FlightMonitorRowRepository + Send + Sync>) -> Self {
         self.monitor_row_repo = Some(repo);
         self
     }
 
-    pub fn with_pair_transactional_writer(
-        mut self,
-        writer: Arc<dyn FlightImportPairTransactionalWriter>,
-    ) -> Self {
+    pub fn with_pair_transactional_writer(mut self, writer: Arc<dyn FlightImportPairTransactionalWriter>) -> Self {
         self.pair_writer = Some(writer);
         self
     }
@@ -182,10 +173,7 @@ impl FlightImportService {
         normalized: &NormalizedFlightPayload,
         actor_id: &str,
     ) -> Result<Vec<String>, FlightImportError> {
-        let command = FlightCreateCommand::new(
-            normalized.to_create_payload(),
-            Some(actor_id.to_string()),
-        );
+        let command = FlightCreateCommand::new(normalized.to_create_payload(), Some(actor_id.to_string()));
         command
             .validate()
             .map_err(|error| FlightImportError::Validation(error.to_string()))?;
@@ -205,12 +193,14 @@ impl FlightImportService {
         normalized: &NormalizedFlightPayload,
         actor_id: &str,
     ) -> Result<Vec<String>, FlightImportError> {
-        let link_repo = self.turnaround_link_repo.as_ref().ok_or_else(|| {
-            FlightImportError::Conflict("导入双腿航班需要 TurnaroundLink repository".into())
-        })?;
-        let monitor_repo = self.monitor_row_repo.as_ref().ok_or_else(|| {
-            FlightImportError::Conflict("导入双腿航班需要监控宽表 repository".into())
-        })?;
+        let link_repo = self
+            .turnaround_link_repo
+            .as_ref()
+            .ok_or_else(|| FlightImportError::Conflict("导入双腿航班需要 TurnaroundLink repository".into()))?;
+        let monitor_repo = self
+            .monitor_row_repo
+            .as_ref()
+            .ok_or_else(|| FlightImportError::Conflict("导入双腿航班需要监控宽表 repository".into()))?;
         let seed = normalized
             .flight_id
             .as_deref()
@@ -453,7 +443,8 @@ impl FlightImportService {
                     };
                     match result {
                         Ok(created_ids) => {
-                            self.ingest_aircraft_type(normalized.aircraft_type_detail.as_deref()).await;
+                            self.ingest_aircraft_type(normalized.aircraft_type_detail.as_deref())
+                                .await;
                             if let Some(first_id) = created_ids.first() {
                                 committed_row.matched_flight_id = Some(first_id.clone());
                             }
@@ -1250,41 +1241,6 @@ fn env_first(keys: &[&str]) -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{build_airport_context_payload, directional_import_id, normalize_airport_aliases};
-
-    #[test]
-    fn airport_context_payload_inserts_display_name_first_and_dedupes_aliases() {
-        let payload = build_airport_context_payload(
-            "szx",
-            "深圳",
-            vec!["深圳机场".into(), "深圳".into(), " 深圳机场 ".into()],
-        );
-
-        assert_eq!(payload["code"], "SZX");
-        assert_eq!(payload["display_name"], "深圳");
-        assert_eq!(payload["name_aliases"], serde_json::json!(["深圳", "深圳机场"]));
-    }
-
-    #[test]
-    fn airport_context_aliases_fall_back_to_site_placeholder() {
-        let aliases = normalize_airport_aliases("  ", vec![" ".into(), "广州机场".into()]);
-
-        assert_eq!(aliases, vec!["本站".to_string(), "广州机场".to_string()]);
-    }
-
-    #[test]
-    fn directional_import_ids_are_stable_and_distinct() {
-        let inbound = directional_import_id("import-row-42", "inbound");
-        let outbound = directional_import_id("import-row-42", "outbound");
-        assert_eq!(inbound.len(), 26);
-        assert_eq!(outbound.len(), 26);
-        assert_ne!(inbound, outbound);
-        assert_eq!(inbound, directional_import_id("import-row-42", "inbound"));
-    }
-}
-
 fn build_summary(
     rows: &[FlightImportPreviewRowSchema],
     top_errors: &[String],
@@ -1327,4 +1283,39 @@ fn io_error(error: std::io::Error) -> FlightImportError {
 
 fn map_domain_error(error: fms_domain::error::DomainError) -> FlightImportError {
     FlightImportError::Internal(error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_airport_context_payload, directional_import_id, normalize_airport_aliases};
+
+    #[test]
+    fn airport_context_payload_inserts_display_name_first_and_dedupes_aliases() {
+        let payload = build_airport_context_payload(
+            "szx",
+            "深圳",
+            vec!["深圳机场".into(), "深圳".into(), " 深圳机场 ".into()],
+        );
+
+        assert_eq!(payload["code"], "SZX");
+        assert_eq!(payload["display_name"], "深圳");
+        assert_eq!(payload["name_aliases"], serde_json::json!(["深圳", "深圳机场"]));
+    }
+
+    #[test]
+    fn airport_context_aliases_fall_back_to_site_placeholder() {
+        let aliases = normalize_airport_aliases("  ", vec![" ".into(), "广州机场".into()]);
+
+        assert_eq!(aliases, vec!["本站".to_string(), "广州机场".to_string()]);
+    }
+
+    #[test]
+    fn directional_import_ids_are_stable_and_distinct() {
+        let inbound = directional_import_id("import-row-42", "inbound");
+        let outbound = directional_import_id("import-row-42", "outbound");
+        assert_eq!(inbound.len(), 26);
+        assert_eq!(outbound.len(), 26);
+        assert_ne!(inbound, outbound);
+        assert_eq!(inbound, directional_import_id("import-row-42", "inbound"));
+    }
 }

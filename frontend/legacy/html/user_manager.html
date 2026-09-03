@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户与权限管理 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/admin-layout.css">
+    <link rel="stylesheet" href="/frontend/css/admin-page.css">
+    <script src="/frontend/js/auth.js"></script>
+    <style>
+        /* --- Local Overrides --- */
+        .section-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section-content.active {
+            display: block;
+        }
+
+        /* Search Bar for Sections */
+        .section-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .search-group {
+            position: relative;
+            width: 320px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 60px !important;
+            /* Increased left padding to avoid emoji overlap */
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--system-blue);
+            box-shadow: 0 0 0 3px var(--system-blue-subtle);
+        }
+
+        /* Table responsiveness */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .table-container table {
+            width: 100%;
+            min-width: 700px;
+            table-layout: auto;
+        }
+
+        .table-container th,
+        .table-container td {
+            white-space: nowrap;
+            padding: 12px 16px;
+        }
+
+        .table-container th:last-child,
+        .table-container td:last-child {
+            text-align: right;
+            /* Right-align actions column */
+        }
+
+        /* Pagination - Right aligned */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding: 12px 0;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Button visibility fixes */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--system-blue);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--system-blue-hover, #0066cc);
+        }
+
+        .btn-secondary {
+            background: rgba(60, 60, 67, 0.08);
+            /* Light gray for visibility */
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(60, 60, 67, 0.12);
+        }
+
+        .btn-danger {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--system-red);
+            border: 1px solid rgba(255, 59, 48, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 59, 48, 0.2);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Stats Cards (Optional for Dashboard feel inside User Manager) */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Role Tags */
+        .role-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .role-tag {
+            background: var(--system-gray6);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .role-tag.admin {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--system-red);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--system-green);
+        }
+
+        .badge-warning {
+            background: rgba(255, 149, 0, 0.15);
+            color: var(--system-orange);
+        }
+
+        .badge-danger {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--system-red);
+        }
+
+        .badge-info {
+            background: var(--system-blue-subtle);
+            color: var(--system-blue);
+        }
+
+        /* Custom Modal - Right aligned via Absolute Positioning */
+        .custom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            display: none;
+            z-index: 2000;
+            /* Higher z-index to ensure it's on top */
+        }
+
+        .custom-overlay.show {
+            display: block;
+        }
+
+        .custom-modal {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+
+            width: 420px;
+            height: 85vh;
+            max-height: 85vh;
+            overflow: hidden;
+
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            animation: customModalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes customModalSlideIn {
+            from {
+                opacity: 0;
+                transform: translate(50px, -50%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(0, -50%);
+            }
+        }
+
+        /* Custom Modal Internal Styles */
+        .custom-modal .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .custom-modal .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .custom-modal .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .custom-modal .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .custom-modal .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .custom-modal .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: rgba(248, 248, 248, 0.6);
+        }
+
+        /* Uniform input styling in custom modal */
+        .custom-modal .form-input {
+            background: #fff;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--text-primary);
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .custom-modal .form-input:focus {
+            border-color: var(--system-blue);
+            box-shadow: 0 0 0 3px var(--system-blue-subtle);
+            outline: none;
+        }
+
+        /* Improved Cancel button visibility in modals */
+        .custom-modal .btn-secondary {
+            background: rgba(120, 120, 128, 0.16);
+            color: var(--text-primary);
+            border: none;
+        }
+
+        .custom-modal .btn-secondary:hover {
+            background: rgba(120, 120, 128, 0.24);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: rgba(248, 248, 248, 0.5);
+        }
+
+        /* Improved Cancel button visibility */
+        .modal-footer .btn-secondary {
+            background: rgba(120, 120, 128, 0.16);
+            color: var(--text-primary);
+            border: none;
+        }
+
+        .modal-footer .btn-secondary:hover {
+            background: rgba(120, 120, 128, 0.24);
+        }
+
+        /* Checkbox Group in Modal */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--system-gray6);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border-radius: var(--radius-s);
+            box-shadow: var(--shadow-md);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: toastSlideIn 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--system-green);
+        }
+
+        .toast-error {
+            border-left: 4px solid var(--system-red);
+        }
+
+        .toast-warning {
+            border-left: 4px solid var(--system-orange);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            margin-left: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="/frontend/icons/users.svg" class="svg-icon svg-icon-lg" style="vertical-align: -4px;">
+                    <span>用户管理</span>
+                </div>
+                <div class="sidebar-subtitle">统一管理用户、角色、权限与模板配置。</div>
+            </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">用户与权限</div>
+                    <div class="nav-item active" onclick="switchSection('users')" data-section="users">
+                        <span class="nav-item-icon"><img src="/frontend/icons/users.svg" class="svg-icon"></span>
+                        <span>用户列表</span>
+                    </div>
+                    <div class="nav-item" onclick="switchSection('roles')" data-section="roles">
+                        <span class="nav-item-icon"><img src="/frontend/icons/lock.svg" class="svg-icon"></span>
+                        <span>角色管理</span>
+                    </div>
+                    <div class="nav-item" onclick="switchSection('permissions')" data-section="permissions">
+                        <span class="nav-item-icon"><img src="/frontend/icons/security.svg" class="svg-icon"></span>
+                        <span>权限列表</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">模板</div>
+                    <div class="nav-item" onclick="switchSection('templates')" data-section="templates">
+                        <span class="nav-item-icon"><img src="/frontend/icons/detail.svg" class="svg-icon"></span>
+                        <span>模板管理</span>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">标签配置</div>
+                    <div class="nav-item" onclick="switchSection('labels')" data-section="labels">
+                        <span class="nav-item-icon"><img src="/frontend/icons/detail.svg" class="svg-icon"></span>
+                        <span>标签管理</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">加载中...</div>
+                        <div class="user-role" id="userRole">...</div>
+                    </div>
+                </div>
+                <div class="sidebar-footer-actions">
+                    <button class="logout-btn" onclick="logout()" title="退出登录">
+                        <img src="/frontend/icons/logout.svg" class="svg-icon" style="width:14px;height:14px;">
+                    </button>
+                    <a href="/frontend/html/dashboard.html" class="nav-item sidebar-home-link">
+                        <span class="nav-item-icon"><img src="/frontend/icons/home.svg" class="svg-icon"></span>
+                        <span>返回工作台</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="content-heading">
+                    <div class="content-title" id="pageTitle">用户列表</div>
+                    <div class="content-subtitle" id="pageSubtitle">查看账号状态、分配角色权限，并维护权限模板。</div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshData()"><img src="/frontend/icons/refresh.svg"
+                            class="svg-icon-sm" style="vertical-align: -2px;"> 刷新</button>
+                    <button class="btn btn-primary" id="addBtn" onclick="handleAddAction()"><img
+                            src="/frontend/icons/add.svg" class="svg-icon-sm" style="vertical-align: -2px;">
+                        添加用户</button>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <!-- Users Section -->
+                <div id="section-users" class="section-content active">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"
+                                    style="width:16px;height:16px;"></span>
+                            <input type="text" class="search-input" id="userSearch" placeholder="搜索用户名或邮箱...">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>邮箱</th>
+                                    <th>角色</th>
+                                    <th>状态</th>
+                                    <th>上次登录</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <div class="pagination-info" id="userPaginationInfo">显示 1-10 / 共 0 条</div>
+                        <div class="pagination-controls">
+                            <button class="btn btn-secondary btn-sm" onclick="prevPage('users')" id="userPrevBtn"
+                                disabled>上一页</button>
+                            <button class="btn btn-secondary btn-sm" onclick="nextPage('users')"
+                                id="userNextBtn">下一页</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roles Section -->
+                <div id="section-roles" class="section-content">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"
+                                    style="width:16px;height:16px;"></span>
+                            <input type="text" class="search-input" id="roleSearch" placeholder="搜索角色名称...">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>角色名称</th>
+                                    <th>描述</th>
+                                    <th>权限数量</th>
+                                    <th>用户数量</th>
+                                    <th>类型</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rolesTableBody">
+                                <!-- Roles will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Permissions Section -->
+                <div id="section-permissions" class="section-content">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"
+                                    style="width:16px;height:16px;"></span>
+                            <input type="text" class="search-input" id="permissionSearch" placeholder="搜索权限代码...">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>权限代码</th>
+                                    <th>描述</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="permissionsTableBody">
+                                <!-- Permissions will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Templates Section -->
+                <div id="section-templates" class="section-content">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon"
+                                    style="width:16px;height:16px;"></span>
+                            <input type="text" class="search-input" id="templateSearch" placeholder="搜索模板名称...">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>模板名称</th>
+                                    <th>模板代码</th>
+                                    <th>分类</th>
+                                    <th>权限数量</th>
+                                    <th>类型</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="templatesTableBody">
+                                <!-- Templates will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Labels Section -->
+                <div id="section-labels" class="section-content">
+                    <div class="section-toolbar">
+                        <div class="search-group">
+                            <span class="search-icon"><img src="/frontend/icons/search.svg" class="svg-icon" style="width:16px;height:16px;"></span>
+                            <input type="text" class="search-input" id="labelSearch" placeholder="搜索标签代码或名称...">
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="labelScopeFilter" class="form-input" style="width: 120px; padding: 8px 12px;">
+                                <option value="">全部范围</option>
+                                <option value="flight">航班级</option>
+                                <option value="leg">航段级</option>
+                                <option value="both">两者</option>
+                            </select>
+                            <select id="labelCategoryFilter" class="form-input" style="width: 100px; padding: 8px 12px;">
+                                <option value="">全部类型</option>
+                                <option value="system">系统</option>
+                                <option value="custom">自定义</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>颜色</th>
+                                    <th>代码</th>
+                                    <th>名称</th>
+                                    <th>范围</th>
+                                    <th>类型</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="labelsTableBody">
+                                <!-- Labels will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div class="custom-overlay" id="userModal">
+        <div class="custom-modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="userModalTitle">添加用户</h2>
+                <button class="modal-close" onclick="closeUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" id="userUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" class="form-input" id="userEmail" required>
+                    </div>
+
+                    <div class="form-group" id="passwordGroup">
+                        <label class="form-label">密码</label>
+                        <div style="position: relative;">
+                            <input type="password" class="form-input" id="userPassword" style="padding-right: 40px;">
+                            <button type="button" id="togglePassword" onclick="togglePasswordVisibility()"
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px;">
+                                <img src="/frontend/icons/password_visible.svg" class="svg-icon svg-icon-md">
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 组织架构字段 -->
+                    <div class="form-group">
+                        <label class="form-label">所属科室</label>
+                        <input type="text" class="form-input" id="userDepartment" list="userDepartmentOptions"
+                            placeholder="如：地服科、客服科" onfocus="showDepartmentSuggestions()"
+                            onclick="showDepartmentSuggestions()">
+                        <datalist id="userDepartmentOptions"></datalist>
+                    </div>
+                    <div style="display: flex; gap: 16px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">职级</label>
+                            <select class="form-input" id="userJobLevel">
+                                <option value="1">1 - 一线员工</option>
+                                <option value="2">2 - 班组长</option>
+                                <option value="3">3 - 主管</option>
+                                <option value="4">4 - 经理</option>
+                                <option value="5">5 - 总监</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">职位名称</label>
+                            <input type="text" class="form-input" id="userJobTitle" placeholder="如：调度员">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">分配角色</label>
+                        <div class="checkbox-group" id="roleCheckboxes">
+                            <!-- Role checkboxes will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; margin-top: 10px;">
+                        <label class="checkbox-item" style="background:none; padding-left:0;">
+                            <input type="checkbox" id="userIsAdmin">
+                            管理员权限
+                        </label>
+                        <label class="checkbox-item" style="background:none; padding-left:0;">
+                            <input type="checkbox" id="userIsActive" checked>
+                            启用账户
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUserModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveUser()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Role Modal -->
+    <div class="custom-overlay" id="roleModal">
+        <div class="custom-modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="roleModalTitle">添加角色</h2>
+                <button class="modal-close" onclick="closeRoleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="roleForm">
+                    <input type="hidden" id="roleId">
+
+                    <div class="form-group">
+                        <label class="form-label">角色名称</label>
+                        <input type="text" class="form-input" id="roleName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="roleDescription">
+                    </div>
+
+                    <div class="form-group"
+                        style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <label class="form-label" style="margin-bottom: 8px;">快速应用模板</label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <select class="form-input" id="roleTemplateSelect" style="flex: 1; min-width: 150px;">
+                                <option value="">选择模板...</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="applyTemplateToRole('replace')">替换</button>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="applyTemplateToRole('append')">追加</button>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="clearRolePermissions()">清空</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">选择权限</label>
+                        <div class="checkbox-group" id="permissionCheckboxes">
+                            <!-- Permission checkboxes will be loaded here -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRoleModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveRole()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Template Modal -->
+    <div class="custom-overlay" id="templateModal">
+        <div class="custom-modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="templateModalTitle">添加模板</h2>
+                <button class="modal-close" onclick="closeTemplateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm">
+                    <input type="hidden" id="templateId">
+
+                    <div class="form-group">
+                        <label class="form-label">模板名称</label>
+                        <input type="text" class="form-input" id="templateName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">模板代码</label>
+                        <input type="text" class="form-input" id="templateCode" placeholder="例如: dispatch_admin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">分类</label>
+                        <select class="form-input" id="templateCategory">
+                            <option value="">请选择分类</option>
+                            <option value="dispatch">派工</option>
+                            <option value="flight">航班</option>
+                            <option value="user">用户</option>
+                            <option value="system">系统</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="templateDescription">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">选择权限</label>
+                        <div class="checkbox-group" id="templatePermissionCheckboxes">
+                            <!-- Permission checkboxes will be loaded here -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTemplateModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTemplate()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Label Modal -->
+    <div class="custom-overlay" id="labelModal">
+        <div class="custom-modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="labelModalTitle">添加标签</h2>
+                <button class="modal-close" onclick="closeLabelModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="labelForm">
+                    <input type="hidden" id="labelId">
+
+                    <div class="form-group">
+                        <label class="form-label">标签代码</label>
+                        <input type="text" class="form-input" id="labelCode" placeholder="如: vip" required>
+                        <small style="color: var(--text-secondary); font-size: 12px;">英文、数字、下划线，3-20字符</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">显示名称</label>
+                        <input type="text" class="form-input" id="labelName" placeholder="如: VIP" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">颜色</label>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <input type="color" id="labelColorPicker" value="#6B7280" style="width: 48px; height: 36px; border: 1px solid var(--border-light); border-radius: 6px; cursor: pointer; padding: 2px;">
+                            <input type="text" class="form-input" id="labelColorText" value="#6B7280" style="flex: 1;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">图标 (可选)</label>
+                        <input type="text" class="form-input" id="labelIcon" placeholder="emoji 或图标名称">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">适用范围</label>
+                        <select class="form-input" id="labelScope">
+                            <option value="flight">航班级</option>
+                            <option value="leg">航段级</option>
+                            <option value="both">两者</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="labelActiveGroup">
+                        <label class="checkbox-item" style="background: none; padding-left: 0;">
+                            <input type="checkbox" id="labelIsActive" checked>
+                            启用标签
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeLabelModal()">取消</button>
+                <button class="btn btn-primary" id="labelSaveBtn" onclick="saveLabel()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // 动态获取API基础URL
+        const API_BASE = `${window.location.origin}/api/v2`;
+        const REFERENCE_DEPARTMENT_API_BASE = `${API_BASE}/reference/departments`;
+        const AUTH_TEMPLATE_API_BASE = `${API_BASE}/auth/admin/permission-templates`;
+
+        // State
+        let users = [];
+        let roles = [];
+        let permissions = [];
+        let templates = [];
+        let departmentSuggestions = [];
+        let departmentSuggestionsLoaded = false;
+        let currentUserPage = 1;
+        const pageSize = 10;
+        let currentSection = 'users';
+
+        // ========== Navigation ==========
+        function switchSection(section) {
+            currentSection = section;
+
+            // Update Sidebar
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active');
+
+            // Update Content
+            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`section-${section}`).classList.add('active');
+
+            // Update Header
+            const titles = {
+                'users': '用户列表',
+                'roles': '角色管理',
+                'permissions': '权限列表',
+                'templates': '模板管理'
+            };
+            const subtitles = {
+                'users': '查看账号状态、部门信息与登录情况。',
+                'roles': '维护角色定义及角色与权限的组合关系。',
+                'permissions': '查看系统权限清单及分配范围。',
+                'templates': '维护权限模板，便于角色快速复用。'
+            };
+            document.getElementById('pageTitle').textContent = titles[section];
+            document.getElementById('pageSubtitle').textContent = subtitles[section];
+
+            // Update Add Button
+            const addBtn = document.getElementById('addBtn');
+            if (section === 'permissions') {
+                addBtn.style.display = 'none';
+            } else {
+                addBtn.style.display = 'block';
+                const btnLabels = {
+                    'users': '添加用户',
+                    'roles': '添加角色',
+                    'templates': '添加模板'
+                };
+                addBtn.innerHTML = `<img src="/frontend/icons/add.svg" class="svg-icon-sm" style="vertical-align: -2px;"> ${btnLabels[section]}`;
+            }
+        }
+
+        function handleAddAction() {
+            if (currentSection === 'users') openAddUserModal();
+            else if (currentSection === 'roles') openAddRoleModal();
+            else if (currentSection === 'templates') openAddTemplateModal();
+        }
+
+        // ========== Authentication ==========
+        function getAuthToken() {
+            return Auth.getToken();
+        }
+
+        function getAuthHeaders() {
+            return Auth.getAuthHeaders();
+        }
+
+        async function checkAuth() {
+            if (!(await Auth.requireAuthAsync())) return false;
+
+            try {
+                const response = await Auth.fetch(`${API_BASE}/auth/me`);
+
+                if (!response.ok) {
+                    throw new Error('Unauthorized');
+                }
+
+                const user = await response.json();
+                updateUserInfo(user);
+                return true;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                // For demo/development, allow viewing without auth if API fails
+                return true;
+            }
+        }
+
+        function updateUserInfo(user) {
+            document.getElementById('userName').textContent = user.username || '管理员';
+            document.getElementById('userRole').textContent = user.is_admin ? '系统管理员' : '普通用户';
+            const avatarEl = document.getElementById('userAvatar');
+            if (avatarEl) {
+                avatarEl.textContent = (user.username || 'A').charAt(0).toUpperCase();
+            }
+        }
+
+        function logout() {
+            Auth.logout();
+        }
+
+        // ========== Data Loading ==========
+        async function loadUsers() {
+            try {
+                const response = await Auth.fetch(`${API_BASE}/auth/users`, { headers: getAuthHeaders() });
+                if (response.ok) users = await response.json();
+                else users = getDemoUsers();
+                renderUsers();
+                syncDepartmentSuggestionsFromUsers();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                users = getDemoUsers();
+                renderUsers();
+                syncDepartmentSuggestionsFromUsers();
+            }
+        }
+
+        async function loadRoles() {
+            try {
+                const response = await Auth.fetch(`${API_BASE}/auth/roles`, { headers: getAuthHeaders() });
+                if (response.ok) roles = await response.json();
+                else roles = getDemoRoles();
+                renderRoles();
+            } catch (error) {
+                console.error('Error loading roles:', error);
+                roles = getDemoRoles();
+                renderRoles();
+            }
+        }
+
+        async function loadPermissions() {
+            try {
+                const response = await Auth.fetch(`${API_BASE}/auth/permissions`, { headers: getAuthHeaders() });
+                if (response.ok) permissions = await response.json();
+                else permissions = getDemoPermissions();
+                renderPermissions();
+            } catch (error) {
+                console.error('Error loading permissions:', error);
+                permissions = getDemoPermissions();
+                renderPermissions();
+            }
+        }
+
+        // Demo Data (Fallback)
+        function getDemoUsers() {
+            return [
+                { id: '1', username: 'admin', email: 'admin@localhost', is_admin: true, is_active: true, is_verified: true, roles: ['admin'], last_login_at: new Date().toISOString() },
+                { id: '2', username: 'operator1', email: 'operator1@localhost', is_admin: false, is_active: true, is_verified: true, roles: ['operator'], last_login_at: null }
+            ];
+        }
+        function getDemoRoles() {
+            return [
+                { id: '1', name: 'admin', description: '系统管理员', is_system: true, permissions: ['*'], user_count: 1 },
+                { id: '2', name: 'operator', description: '操作员', is_system: true, permissions: ['user:read', 'flight:read'], user_count: 1 }
+            ];
+        }
+        function getDemoPermissions() {
+            return [
+                { name: 'user:read', description: '查看用户信息', is_active: true },
+                { name: 'user:create', description: '创建用户', is_active: true },
+                { name: 'flight:read', description: '查看航班信息', is_active: true }
+            ];
+        }
+
+        function normalizeDepartmentName(value) {
+            const normalized = (value || '').trim();
+            return normalized || null;
+        }
+
+        function getDemoDepartments() {
+            const fallback = users
+                .map(user => normalizeDepartmentName(user.department))
+                .filter(Boolean);
+            return Array.from(new Set(fallback)).sort((left, right) => left.localeCompare(right, 'zh-CN'));
+        }
+
+        function buildDepartmentSuggestionsFromDirectory(items) {
+            const names = Array.isArray(items)
+                ? items
+                    .map(item => normalizeDepartmentName(item?.name || item?.department_name || item))
+                    .filter(Boolean)
+                : [];
+            return Array.from(new Set(names)).sort((left, right) => left.localeCompare(right, 'zh-CN'));
+        }
+
+        function renderDepartmentSuggestions() {
+            const dataList = document.getElementById('userDepartmentOptions');
+            if (!dataList) return;
+            dataList.innerHTML = '';
+            departmentSuggestions.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                dataList.appendChild(option);
+            });
+        }
+
+        function syncDepartmentSuggestionsFromUsers() {
+            if (departmentSuggestionsLoaded && departmentSuggestions.length > 0) return;
+            departmentSuggestions = getDemoDepartments();
+            renderDepartmentSuggestions();
+        }
+
+        async function loadDepartmentSuggestions(force = false) {
+            if (!force && departmentSuggestionsLoaded) {
+                return departmentSuggestions;
+            }
+
+            try {
+                  const response = await Auth.fetch(`${REFERENCE_DEPARTMENT_API_BASE}?page_size=200`, { headers: getAuthHeaders() });
+                if (!response.ok) {
+                    throw new Error('Failed to load departments');
+                }
+
+                const payload = await response.json();
+                departmentSuggestions = Array.from(
+                    new Set([
+                        ...buildDepartmentSuggestionsFromDirectory(payload?.data),
+                        ...getDemoDepartments(),
+                    ]),
+                ).sort((left, right) => left.localeCompare(right, 'zh-CN'));
+                departmentSuggestionsLoaded = true;
+                renderDepartmentSuggestions();
+                return departmentSuggestions;
+            } catch (error) {
+                console.error('Error loading department suggestions:', error);
+                departmentSuggestions = getDemoDepartments();
+                departmentSuggestionsLoaded = true;
+                renderDepartmentSuggestions();
+                return departmentSuggestions;
+            }
+        }
+
+        async function ensureDepartmentSuggestionsLoaded() {
+            if (departmentSuggestionsLoaded) {
+                return departmentSuggestions;
+            }
+            return await loadDepartmentSuggestions();
+        }
+
+        async function refreshUserDirectoryData() {
+            await Promise.all([
+                loadUsers(),
+                loadDepartmentSuggestions(true),
+            ]);
+        }
+
+        // ========== Rendering ==========
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const filtered = users.filter(u => u.username.toLowerCase().includes(searchTerm) || u.email.toLowerCase().includes(searchTerm));
+
+            const start = (currentUserPage - 1) * pageSize;
+            const paged = filtered.slice(start, start + pageSize);
+
+            if (paged.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6"><div style="text-align:center;padding:20px;color:var(--text-secondary)">没有找到用户</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = paged.map(user => `
+                <tr>
+                    <td><strong>${escapeHtml(user.username)}</strong>${user.is_admin ? '<span class="badge badge-danger" style="margin-left:4px">Admin</span>' : ''}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td><div class="role-tags">${(user.roles || []).map(r => `<span class="role-tag ${r === 'admin' ? 'admin' : ''}">${escapeHtml(r)}</span>`).join('')}</div></td>
+                    <td>${user.is_active ? '<span class="badge badge-success">启用</span>' : '<span class="badge badge-danger">禁用</span>'}</td>
+                    <td>${formatDate(user.last_login_at)}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editUser('${user.id}')">编辑</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser('${user.id}')">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('userPaginationInfo').textContent = `显示 ${start + 1}-${Math.min(start + pageSize, filtered.length)} / 共 ${filtered.length} 条`;
+            document.getElementById('userPrevBtn').disabled = currentUserPage <= 1;
+            document.getElementById('userNextBtn').disabled = start + pageSize >= filtered.length;
+        }
+
+        function renderRoles() {
+            const tbody = document.getElementById('rolesTableBody');
+            const searchTerm = document.getElementById('roleSearch').value.toLowerCase();
+            const filtered = roles.filter(r => r.name.toLowerCase().includes(searchTerm));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6"><div style="text-align:center;padding:20px;color:var(--text-secondary)">没有找到角色</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(role => `
+                <tr>
+                    <td><strong>${escapeHtml(role.name)}</strong></td>
+                    <td>${escapeHtml(role.description || '-')}</td>
+                    <td>${(role.permissions || []).length}</td>
+                    <td>${role.user_count || 0}</td>
+                    <td>${role.is_system ? '<span class="badge badge-info">系统</span>' : '<span class="badge badge-warning">自定义</span>'}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editRole('${role.id}')">编辑</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRole('${role.id}')" ${role.is_system ? 'disabled' : ''}>删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPermissions() {
+            const tbody = document.getElementById('permissionsTableBody');
+            const searchTerm = document.getElementById('permissionSearch').value.toLowerCase();
+            const filtered = permissions.filter(p => p.name.toLowerCase().includes(searchTerm));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3"><div style="text-align:center;padding:20px;color:var(--text-secondary)">没有找到权限</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(perm => `
+                <tr>
+                    <td><code>${escapeHtml(perm.name)}</code></td>
+                    <td>${escapeHtml(perm.description || '-')}</td>
+                    <td>${perm.is_active ? '<span class="badge badge-success">启用</span>' : '<span class="badge badge-danger">禁用</span>'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ========== Modals & Actions ==========
+        async function openAddUserModal() {
+            await ensureDepartmentSuggestionsLoaded();
+            document.getElementById('userModalTitle').textContent = '添加用户';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('userPassword').placeholder = '请输入密码';
+            // 重置组织架构字段到默认值
+            document.getElementById('userJobLevel').value = '1';
+            renderRoleCheckboxes();
+            document.getElementById('userModal').classList.add('show');
+            showDepartmentSuggestions();
+        }
+
+        async function editUser(id) {
+            const user = users.find(u => u.id === id);
+            if (!user) return;
+            await ensureDepartmentSuggestionsLoaded();
+            document.getElementById('userModalTitle').textContent = '编辑用户';
+            document.getElementById('userId').value = user.id;
+            document.getElementById('userUsername').value = user.username;
+            document.getElementById('userEmail').value = user.email;
+            document.getElementById('userIsAdmin').checked = user.is_admin;
+            document.getElementById('userIsActive').checked = user.is_active;
+            // 组织架构字段
+            document.getElementById('userDepartment').value = user.department || '';
+            document.getElementById('userJobLevel').value = user.job_level || 1;
+            document.getElementById('userJobTitle').value = user.job_title || '';
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('userPassword').placeholder = '留空保持不变';
+            renderRoleCheckboxes(user.roles || []);
+            document.getElementById('userModal').classList.add('show');
+            showDepartmentSuggestions();
+        }
+
+        function closeUserModal() { document.getElementById('userModal').classList.remove('show'); }
+
+        function showDepartmentSuggestions() {
+            const input = document.getElementById('userDepartment');
+            if (!input || typeof input.showPicker !== 'function') {
+                return;
+            }
+            try {
+                input.showPicker();
+            } catch (error) {
+                console.debug('Department picker unavailable:', error);
+            }
+        }
+
+        function openAddRoleModal() {
+            document.getElementById('roleModalTitle').textContent = '添加角色';
+            document.getElementById('roleForm').reset();
+            document.getElementById('roleId').value = '';
+            renderPermissionCheckboxes();
+            renderRoleTemplateSelect();
+            document.getElementById('roleModal').classList.add('show');
+        }
+
+        function editRole(id) {
+            const role = roles.find(r => r.id === id);
+            if (!role) return;
+            document.getElementById('roleModalTitle').textContent = '编辑角色';
+            document.getElementById('roleId').value = role.id;
+            document.getElementById('roleName').value = role.name;
+            document.getElementById('roleDescription').value = role.description;
+            renderPermissionCheckboxes(role.permissions || []);
+            renderRoleTemplateSelect();
+            document.getElementById('roleModal').classList.add('show');
+        }
+
+        function closeRoleModal() { document.getElementById('roleModal').classList.remove('show'); }
+
+        function renderRoleCheckboxes(selected = []) {
+            document.getElementById('roleCheckboxes').innerHTML = roles.map(r => `
+                <div class="checkbox-item">
+                    <input type="checkbox" id="r_${r.id}" value="${r.name}" ${selected.includes(r.name) ? 'checked' : ''}>
+                    <label for="r_${r.id}">${escapeHtml(r.name)}</label>
+                </div>
+            `).join('');
+        }
+
+        function renderPermissionCheckboxes(selected = []) {
+            document.getElementById('permissionCheckboxes').innerHTML = permissions.map(p => `
+                <div class="checkbox-item">
+                    <input type="checkbox" id="p_${p.name}" value="${p.name}" ${selected.includes(p.name) ? 'checked' : ''}>
+                    <label for="p_${p.name}">${escapeHtml(p.name)}</label>
+                </div>
+            `).join('');
+        }
+
+        function renderRoleTemplateSelect() {
+            const categoryLabels = { dispatch: '派工', flight: '航班', user: '用户', system: '系统' };
+            document.getElementById('roleTemplateSelect').innerHTML = '<option value="">选择模板...</option>' +
+                templates.map(t => `<option value="${t.id}">[${categoryLabels[t.category] || t.category || '其他'}] ${escapeHtml(t.name)}</option>`).join('');
+        }
+
+        function applyTemplateToRole(mode) {
+            const templateId = document.getElementById('roleTemplateSelect').value;
+            if (!templateId) { showToast('请先选择模板', 'warning'); return; }
+            const template = templates.find(t => t.id === templateId);
+            if (!template) return;
+
+            if (mode === 'replace') {
+                // 清空所有权限再勾选模板权限
+                document.querySelectorAll('#permissionCheckboxes input').forEach(cb => {
+                    cb.checked = template.permissions.includes(cb.value);
+                });
+            } else if (mode === 'append') {
+                // 追加模板权限
+                template.permissions.forEach(perm => {
+                    const cb = document.querySelector(`#permissionCheckboxes input[value="${perm}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+            showToast(`已${mode === 'replace' ? '替换' : '追加'}模板 "${template.name}" 的权限`, 'success');
+        }
+
+        function clearRolePermissions() {
+            document.querySelectorAll('#permissionCheckboxes input').forEach(cb => cb.checked = false);
+            showToast('已清空所有权限', 'info');
+        }
+
+        // ========== CRUD Operations ==========
+        async function saveUser() {
+            const id = document.getElementById('userId').value;
+            const username = document.getElementById('userUsername').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            const password = document.getElementById('userPassword').value;
+            const isAdmin = document.getElementById('userIsAdmin').checked;
+            const isActive = document.getElementById('userIsActive').checked;
+            const selectedRoles = Array.from(document.querySelectorAll('#roleCheckboxes input:checked')).map(cb => cb.value);
+            // 组织架构字段
+            const department = normalizeDepartmentName(document.getElementById('userDepartment').value);
+            const jobLevel = parseInt(document.getElementById('userJobLevel').value) || 1;
+            const jobTitle = document.getElementById('userJobTitle').value.trim() || null;
+
+            if (!username || !email) { showToast('请填写完整信息', 'warning'); return; }
+
+            const userData = {
+                username, email, is_admin: isAdmin, is_active: isActive, roles: selectedRoles,
+                department, job_level: jobLevel, job_title: jobTitle
+            };
+            if (password) userData.password = password;
+
+            try {
+                const url = id ? `${API_BASE}/auth/users/${id}` : `${API_BASE}/auth/register`;
+                const method = id ? 'PUT' : 'POST';
+                const res = await Auth.fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(userData) });
+                if (!res.ok) throw new Error('Failed');
+
+                showToast(id ? '用户已更新' : '用户已创建', 'success');
+                closeUserModal();
+                await refreshUserDirectoryData();
+            } catch (e) {
+                // Demo fallback
+                if (id) {
+                    const idx = users.findIndex(u => u.id === id);
+                    if (idx >= 0) users[idx] = { ...users[idx], ...userData };
+                } else {
+                    users.push({ id: Date.now().toString(), ...userData, is_verified: false, last_login_at: null });
+                }
+                departmentSuggestionsLoaded = false;
+                syncDepartmentSuggestionsFromUsers();
+                showToast('操作成功 (演示模式)', 'success');
+                closeUserModal();
+                renderUsers();
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('确定删除?')) return;
+            try {
+                const res = await Auth.fetch(`${API_BASE}/auth/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                if (!res.ok) throw new Error('Failed');
+                showToast('已删除', 'success');
+                await refreshUserDirectoryData();
+            } catch (e) {
+                users = users.filter(u => u.id !== id);
+                departmentSuggestionsLoaded = false;
+                syncDepartmentSuggestionsFromUsers();
+                showToast('已删除 (演示模式)', 'success');
+                renderUsers();
+            }
+        }
+
+        async function saveRole() {
+            const id = document.getElementById('roleId').value;
+            const name = document.getElementById('roleName').value.trim();
+            const description = document.getElementById('roleDescription').value.trim();
+            const selectedPermissions = Array.from(document.querySelectorAll('#permissionCheckboxes input:checked')).map(cb => cb.value);
+
+            if (!name) { showToast('请填写角色名称', 'warning'); return; }
+            const roleData = { name, description, permissions: selectedPermissions };
+
+            try {
+                const url = id ? `${API_BASE}/auth/roles/${id}` : `${API_BASE}/auth/roles`;
+                const method = id ? 'PUT' : 'POST';
+                const res = await Auth.fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(roleData) });
+                if (!res.ok) throw new Error('Failed');
+                showToast('操作成功', 'success');
+                closeRoleModal();
+                loadRoles();
+            } catch (e) {
+                if (id) {
+                    const idx = roles.findIndex(r => r.id === id);
+                    if (idx >= 0) roles[idx] = { ...roles[idx], ...roleData };
+                } else {
+                    roles.push({ id: Date.now().toString(), ...roleData, is_system: false, user_count: 0 });
+                }
+                showToast('操作成功 (演示模式)', 'success');
+                closeRoleModal();
+                renderRoles();
+            }
+        }
+
+        async function deleteRole(id) {
+            const role = roles.find(r => r.id === id);
+            if (role?.is_system) { showToast('系统角色不可删除', 'warning'); return; }
+            if (!confirm('确定 删除?')) return;
+
+            try {
+                const res = await Auth.fetch(`${API_BASE}/auth/roles/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                if (!res.ok) throw new Error('Failed');
+                showToast('已删除', 'success');
+                loadRoles();
+            } catch (e) {
+                roles = roles.filter(r => r.id !== id);
+                showToast('已删除 (演示模式)', 'success');
+                renderRoles();
+            }
+        }
+
+        // ========== Utils ==========
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('userPassword');
+            const toggleBtn = document.getElementById('togglePassword');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.innerHTML = '<img src="/frontend/icons/password_unvisible.svg" class="svg-icon svg-icon-md">';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.innerHTML = '<img src="/frontend/icons/password_visible.svg" class="svg-icon svg-icon-md">';
+            }
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<span>${msg}</span><button class="toast-close" onclick="this.parentElement.remove()"><img src="/frontend/icons/cancel.svg" class="svg-icon-sm"></button>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function formatDate(str) {
+            if (!str) return '-';
+            return new Date(str).toLocaleString('zh-CN');
+        }
+
+        function refreshData() {
+            refreshUserDirectoryData(); loadRoles(); loadPermissions(); loadTemplates();
+            showToast('数据已刷新');
+        }
+
+        function prevPage(type) { if (currentUserPage > 1) { currentUserPage--; renderUsers(); } }
+        function nextPage(type) { currentUserPage++; renderUsers(); }
+
+        // ========== Template Management ==========
+        async function loadTemplates() {
+            try {
+                const res = await Auth.fetch(AUTH_TEMPLATE_API_BASE, { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const payload = await res.json();
+                    templates = Array.isArray(payload?.data) ? payload.data : [];
+                    renderTemplates();
+                } else {
+                    templates = [];
+                    renderTemplates();
+                }
+            } catch (e) {
+                console.error('Failed to load templates:', e);
+                templates = [];
+                renderTemplates();
+            }
+        }
+
+        function renderTemplates() {
+            const search = document.getElementById('templateSearch')?.value.toLowerCase() || '';
+            const filtered = templates.filter(t =>
+                t.name.toLowerCase().includes(search) ||
+                (t.code || '').toLowerCase().includes(search)
+            );
+
+            const categoryLabels = { dispatch: '派工', flight: '航班', user: '用户', system: '系统' };
+
+            document.getElementById('templatesTableBody').innerHTML = filtered.map(t => `
+                <tr>
+                    <td><strong>${escapeHtml(t.name)}</strong></td>
+                    <td><code>${escapeHtml(t.code || '-')}</code></td>
+                    <td>${categoryLabels[t.category] || t.category || '-'}</td>
+                    <td><span class="badge badge-info">${t.permissions?.length || 0} 项</span></td>
+                    <td>${t.is_system ? '<span class="badge badge-warning">系统</span>' : '<span class="badge badge-success">自定义</span>'}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editTemplate('${t.id}')">编辑</button>
+                        ${!t.is_system ? `<button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t.id}')">删除</button>` : ''}
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" style="text-align:center;color:#999;">暂无模板</td></tr>';
+        }
+
+        function openAddTemplateModal() {
+            document.getElementById('templateModalTitle').textContent = '添加模板';
+            document.getElementById('templateForm').reset();
+            document.getElementById('templateId').value = '';
+            renderTemplatePermissionCheckboxes();
+            document.getElementById('templateModal').classList.add('show');
+        }
+
+        function editTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            if (!template) return;
+            document.getElementById('templateModalTitle').textContent = '编辑模板';
+            document.getElementById('templateId').value = template.id;
+            document.getElementById('templateName').value = template.name;
+            document.getElementById('templateCode').value = template.code || '';
+            document.getElementById('templateCategory').value = template.category || '';
+            document.getElementById('templateDescription').value = template.description || '';
+            renderTemplatePermissionCheckboxes(template.permissions || []);
+            document.getElementById('templateModal').classList.add('show');
+        }
+
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.remove('show');
+        }
+
+        function renderTemplatePermissionCheckboxes(selected = []) {
+            document.getElementById('templatePermissionCheckboxes').innerHTML = permissions.map(p => `
+                <div class="checkbox-item">
+                    <input type="checkbox" id="tp_${p.name}" value="${p.name}" ${selected.includes(p.name) ? 'checked' : ''}>
+                    <label for="tp_${p.name}">${escapeHtml(p.name)}</label>
+                </div>
+            `).join('');
+        }
+
+        async function saveTemplate() {
+            const id = document.getElementById('templateId').value;
+            const name = document.getElementById('templateName').value.trim();
+            const code = document.getElementById('templateCode').value.trim() || null;
+            const category = document.getElementById('templateCategory').value || null;
+            const description = document.getElementById('templateDescription').value.trim() || null;
+            const selectedPerms = Array.from(document.querySelectorAll('#templatePermissionCheckboxes input:checked')).map(cb => cb.value);
+
+            if (!name) { showToast('请填写模板名称', 'warning'); return; }
+
+            const data = { name, code, category, description, permissions: selectedPerms };
+
+            try {
+                const url = id ? `${AUTH_TEMPLATE_API_BASE}/${id}` : AUTH_TEMPLATE_API_BASE;
+                const method = id ? 'PUT' : 'POST';
+                const res = await Auth.fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(data) });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || err.error || err.message || '操作失败');
+                }
+                showToast(id ? '模板已更新' : '模板已创建', 'success');
+                closeTemplateModal();
+                loadTemplates();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function deleteTemplate(id) {
+            if (!confirm('确定删除此模板?')) return;
+            try {
+                const res = await Auth.fetch(`${AUTH_TEMPLATE_API_BASE}/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                if (!res.ok) throw new Error('删除失败');
+                showToast('模板已删除', 'success');
+                loadTemplates();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // ========== Labels ==========
+        const LABEL_API_BASE = `${API_BASE}/labels`;
+
+        let labels = [];
+
+        async function loadLabels() {
+            try {
+                const res = await Auth.fetch(`${LABEL_API_BASE}?active_only=false`);
+                if (res.ok) {
+                    const payload = await res.json();
+                    labels = payload.data || payload || [];
+                } else {
+                    labels = getDemoLabels();
+                }
+            } catch (e) {
+                labels = getDemoLabels();
+            }
+            renderLabels();
+        }
+
+        function getDemoLabels() {
+            return [
+                { label_id: '1', code: 'vip', name: 'VIP', color: '#EF4444', icon: '⭐', scope: 'flight', category: 'system', is_active: true },
+                { label_id: '2', code: 'delay', name: '延误', color: '#F59E0B', icon: '⏰', scope: 'both', category: 'system', is_active: true },
+                { label_id: '3', code: 'priority', name: '优先保障', color: '#10B981', icon: '🚀', scope: 'flight', category: 'custom', is_active: true },
+            ];
+        }
+
+        function renderLabels() {
+            const search = document.getElementById('labelSearch').value.toLowerCase();
+            const scopeFilter = document.getElementById('labelScopeFilter').value;
+            const categoryFilter = document.getElementById('labelCategoryFilter').value;
+
+            const filtered = labels.filter(l => {
+                const matchSearch = l.code.toLowerCase().includes(search) || l.name.toLowerCase().includes(search);
+                const matchScope = !scopeFilter || l.scope === scopeFilter || l.scope === 'both';
+                const matchCategory = !categoryFilter || l.category === categoryFilter;
+                return matchSearch && matchScope && matchCategory;
+            });
+
+            const scopeLabels = { flight: '航班级', leg: '航段级', both: '两者' };
+            const tbody = document.getElementById('labelsTableBody');
+
+            tbody.innerHTML = filtered.map(l => `
+                <tr>
+                    <td><span style="display:inline-block;width:20px;height:20px;background:${l.color};border-radius:4px;border:1px solid rgba(0,0,0,0.1);"></span></td>
+                    <td><code style="background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px;">${escapeHtml(l.code)}</code></td>
+                    <td>${l.icon ? l.icon + ' ' : ''}${escapeHtml(l.name)}</td>
+                    <td>${scopeLabels[l.scope] || l.scope}</td>
+                    <td>${l.category === 'system'
+                        ? '<span class="badge badge-info">系统</span>'
+                        : '<span class="badge badge-warning">自定义</span>'}</td>
+                    <td>${l.is_active
+                        ? '<span class="badge badge-success">启用</span>'
+                        : '<span class="badge">停用</span>'}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editLabel('${l.label_id}')" ${!currentUser?.is_admin ? 'disabled' : ''}>编辑</button>
+                        ${l.category !== 'system'
+                            ? `<button class="btn btn-danger btn-sm" onclick="deleteLabel('${l.label_id}')" ${!currentUser?.is_admin ? 'disabled' : ''}>删除</button>`
+                            : ''}
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" style="text-align:center;color:#999;padding:24px;">暂无标签</td></tr>';
+        }
+
+        function openLabelModal(isEdit = false) {
+            if (!currentUser?.is_admin) {
+                showToast('无权限操作', 'warning');
+                return;
+            }
+            document.getElementById('labelModalTitle').textContent = isEdit ? '编辑标签' : '添加标签';
+            document.getElementById('labelCode').disabled = isEdit;
+            document.getElementById('labelScope').disabled = isEdit;
+            document.getElementById('labelActiveGroup').style.display = isEdit ? 'block' : 'none';
+            document.getElementById('labelForm').reset();
+            document.getElementById('labelId').value = '';
+            document.getElementById('labelColorPicker').value = '#6B7280';
+            document.getElementById('labelColorText').value = '#6B7280';
+            document.getElementById('labelIsActive').checked = true;
+            document.getElementById('labelModal').classList.add('show');
+        }
+
+        function closeLabelModal() {
+            document.getElementById('labelModal').classList.remove('show');
+        }
+
+        function editLabel(id) {
+            if (!currentUser?.is_admin) {
+                showToast('无权限操作', 'warning');
+                return;
+            }
+            const label = labels.find(l => l.label_id === id);
+            if (!label) return;
+
+            document.getElementById('labelModalTitle').textContent = '编辑标签';
+            document.getElementById('labelId').value = label.label_id;
+            document.getElementById('labelCode').value = label.code;
+            document.getElementById('labelCode').disabled = true;
+            document.getElementById('labelName').value = label.name;
+            document.getElementById('labelColorPicker').value = label.color.startsWith('#') ? label.color : '#6B7280';
+            document.getElementById('labelColorText').value = label.color.startsWith('#') ? label.color : '#6B7280';
+            document.getElementById('labelIcon').value = label.icon || '';
+            document.getElementById('labelScope').value = label.scope;
+            document.getElementById('labelScope').disabled = true;
+            document.getElementById('labelIsActive').checked = label.is_active;
+            document.getElementById('labelActiveGroup').style.display = 'block';
+            document.getElementById('labelModal').classList.add('show');
+        }
+
+        async function saveLabel() {
+            const id = document.getElementById('labelId').value;
+            const code = document.getElementById('labelCode').value.trim();
+            const name = document.getElementById('labelName').value.trim();
+            const color = document.getElementById('labelColorText').value.trim();
+            const icon = document.getElementById('labelIcon').value.trim() || null;
+            const scope = document.getElementById('labelScope').value;
+            const is_active = document.getElementById('labelIsActive').checked;
+
+            if (!code || !name) {
+                showToast('请填写代码和名称', 'warning');
+                return;
+            }
+
+            const data = { code, name, color, icon, scope, is_active };
+
+            try {
+                const url = id ? `${LABEL_API_BASE}/${id}` : LABEL_API_BASE;
+                const method = id ? 'PUT' : 'POST';
+                const res = await Auth.fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(data) });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || err.error || err.message || '操作失败');
+                }
+                showToast(id ? '标签已更新' : '标签已创建', 'success');
+                closeLabelModal();
+                loadLabels();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function deleteLabel(id) {
+            if (!currentUser?.is_admin) {
+                showToast('无权限操作', 'warning');
+                return;
+            }
+            if (!confirm('确定删除此标签?')) return;
+            try {
+                const res = await Auth.fetch(`${LABEL_API_BASE}/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                if (!res.ok) throw new Error('删除失败');
+                showToast('标签已删除', 'success');
+                loadLabels();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('userSearch').addEventListener('input', renderUsers);
+        document.getElementById('roleSearch').addEventListener('input', renderRoles);
+        document.getElementById('permissionSearch').addEventListener('input', renderPermissions);
+        document.getElementById('templateSearch')?.addEventListener('input', renderTemplates);
+        document.getElementById('labelSearch')?.addEventListener('input', renderLabels);
+        document.getElementById('labelScopeFilter')?.addEventListener('change', renderLabels);
+        document.getElementById('labelCategoryFilter')?.addEventListener('change', renderLabels);
+
+        document.getElementById('labelColorPicker')?.addEventListener('input', (e) => {
+            document.getElementById('labelColorText').value = e.target.value;
+        });
+        document.getElementById('labelColorText')?.addEventListener('input', (e) => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                document.getElementById('labelColorPicker').value = e.target.value;
+            }
+        });
+
+        const originalSwitchSection = switchSection;
+        switchSection = function(section) {
+            originalSwitchSection(section);
+            if (section === 'labels') {
+                loadLabels();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            refreshUserDirectoryData();
+            loadRoles();
+            loadPermissions();
+            loadTemplates();
+        });
+    </script>
+</body>
+
+</html>

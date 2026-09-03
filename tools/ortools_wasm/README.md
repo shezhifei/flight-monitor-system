@@ -64,9 +64,12 @@ python legacy-backend/scripts/ortools/install_local_release.py \
   --release-dir dist/ortools/v9.14-bridge.4 --project-root . --force
 ```
 
-`--project-root` matters: the script derives its default root from its own
-location, which resolves inside `legacy-backend/` and installs to the wrong
-vendor directory.
+`--project-root` matters for **both** ortools scripts: each derives its default
+root from `Path(__file__).resolve().parents[2]`, which resolves to
+`legacy-backend/` rather than the repository root. Without the flag,
+`install_local_release.py` installs into `legacy-backend/frontend/vendor/ortools/`
+and `fetch_prebuilt.py` fails to find `active-manifest.json` at all. Always pass
+`--project-root .` from the repository root.
 
 Verify the installed artifact against the fixture assertions and the golden
 baseline:
@@ -130,19 +133,33 @@ Scale captures are scratch output and are not committed as goldens.
 
 1. Rebuild from pinned upstream source (see Build above).
 2. Fixture tests run against the generated JS/WASM pair.
-3. Upload individual assets and the bundle to an immutable GitHub Release tag.
-4. `frontend/vendor/ortools/active-manifest.json` is then updated to the published
+3. Normalize build-host paths out of the binary before uploading. The release
+   tag is public and immutable, but `build_release.sh` passes no
+   `-ffile-prefix-map`, so the wasm embeds the absolute source paths of whatever
+   `--work-dir` was used -- the bridge.4 artifact carries
+   `/home/<user>/ortools-wasm-work/...` 186 times. Build under a neutral
+   `--work-dir` and/or add a prefix map so the published binary does not record
+   the builder's home directory layout.
+4. Upload individual assets and the bundle to an immutable GitHub Release tag.
+5. `frontend/vendor/ortools/active-manifest.json` is then updated to the published
    artifact digests. It tracks the *published* release, so it lags a locally
    installed artifact until a release is actually cut --
    `runtime-manifest.json` is what the app loads.
+
+   Fill in every `assets.<name>.sha256` with the real published digest; do not
+   leave them `null`. `fetch_prebuilt.py` resolves an expected digest by falling
+   back to `manifest.json` and then `SHA256SUMS`, both downloaded from the same
+   release as the payload, and it accepts `manifest`/`SHA256SUMS` themselves
+   unverified when no expected digest is pinned. With nulls in the tracked
+   manifest the release authenticates against itself and pins nothing.
 
 ## Runtime flow
 
 Development and production both consume prebuilt artifacts through:
 
 - `frontend/vendor/ortools/active-manifest.json`
-- `scripts/ortools/fetch_prebuilt.py`
-- `scripts/ortools/install_local_release.py`
+- `legacy-backend/scripts/ortools/fetch_prebuilt.py`
+- `legacy-backend/scripts/ortools/install_local_release.py`
 - `frontend/vendor/ortools/runtime-manifest.json`
 
 The application never builds OR-Tools at runtime.

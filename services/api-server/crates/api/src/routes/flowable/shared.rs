@@ -6,7 +6,7 @@ pub(crate) use crate::error::ApiError;
 pub(crate) use crate::middleware::jwt::JwtAuth;
 pub(crate) use crate::services::runtime_error_monitor::record_service_unavailable_background;
 pub(crate) use actix_multipart::Multipart;
-pub(crate) use actix_web::{web, Error as ActixError, HttpRequest, HttpResponse};
+pub(crate) use actix_web::{Error as ActixError, HttpRequest, HttpResponse};
 pub(crate) use fms_application::schemas::flowable_draft_schemas::FlowableDraftAssistantChatRequest;
 pub(crate) use fms_application::services::authorization_service::{
     AuthorizationService, PermissionCatalog, ScopeLevel,

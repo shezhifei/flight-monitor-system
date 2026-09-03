@@ -211,10 +211,7 @@ async fn dispatch_get_status_returns_conflicts() {
         .await
         .expect("get_status");
     assert_eq!(result["dispatch_order"]["status"], "in_progress");
-    assert_eq!(
-        result["dispatch_order"]["members"][0]["source_team_id"],
-        "TEAM1"
-    );
+    assert_eq!(result["dispatch_order"]["members"][0]["source_team_id"], "TEAM1");
     assert!(result["team"].is_null());
     assert_eq!(result["conflicts"][0]["description"], "equip conflict");
     assert!(result["evidence"].is_object());
@@ -673,11 +670,7 @@ async fn team_get_context_returns_profile_with_active_members() {
 #[tokio::test]
 async fn team_get_context_missing_team_is_not_found() {
     let svc = empty();
-    let err = svc
-        .team_context
-        .get(&json!({"team_id": "MISSING"}))
-        .await
-        .unwrap_err();
+    let err = svc.team_context.get(&json!({"team_id": "MISSING"})).await.unwrap_err();
     assert!(matches!(err, OntologyActionError::NotFound(_)));
 }
 

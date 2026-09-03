@@ -58,7 +58,12 @@ impl<R: FieldOverlayRepository + ?Sized> FieldOverlayService<R> {
             .get(&object_name)
             .ok_or_else(|| DomainError::ValidationError(format!("未知本体对象: {object_name}")))?;
         if let Some(visible_when) = payload.visible_when.as_ref() {
-            validate_visible_when(visible_when, &field_name, object, &self.repo.list(Some(&object_name), false).await?)?;
+            validate_visible_when(
+                visible_when,
+                &field_name,
+                object,
+                &self.repo.list(Some(&object_name), false).await?,
+            )?;
         }
         if let Some(target) = &payload.object_name_target {
             if !schema.objects.contains_key(target) {
@@ -66,7 +71,7 @@ impl<R: FieldOverlayRepository + ?Sized> FieldOverlayService<R> {
             }
         }
         if let Some(core) = object.fields.get(&field_name) {
-            if core.field_type.to_ascii_lowercase() != payload.field_type.to_ascii_lowercase() {
+            if !core.field_type.eq_ignore_ascii_case(&payload.field_type) {
                 return Err(DomainError::Conflict("核心字段不能修改类型".into()));
             }
         }
@@ -136,16 +141,25 @@ fn validate_visible_when(
     overlays: &[FieldOverlay],
 ) -> Result<(), DomainError> {
     let Some(map) = value.as_object() else {
-        return Err(DomainError::ValidationError("visible_when 必须是 { field, op, value } 对象".into()));
+        return Err(DomainError::ValidationError(
+            "visible_when 必须是 { field, op, value } 对象".into(),
+        ));
     };
-    let dependency = map.get("field").and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty());
-    let dependency = dependency.ok_or_else(|| DomainError::ValidationError("visible_when.field 必须是非空字符串".into()))?;
+    let dependency = map
+        .get("field")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+    let dependency =
+        dependency.ok_or_else(|| DomainError::ValidationError("visible_when.field 必须是非空字符串".into()))?;
     if dependency == field_name {
         return Err(DomainError::ValidationError("visible_when.field 不能引用自身".into()));
     }
     let known = object.fields.contains_key(dependency) || overlays.iter().any(|item| item.field_name == dependency);
     if !known {
-        return Err(DomainError::ValidationError(format!("visible_when 引用了未知字段: {dependency}")));
+        return Err(DomainError::ValidationError(format!(
+            "visible_when 引用了未知字段: {dependency}"
+        )));
     }
     let op = map.get("op").and_then(Value::as_str).map(str::trim).unwrap_or("eq");
     if !matches!(op, "eq" | "neq" | "in" | "not_in" | "gt" | "gte" | "lt" | "lte") {

@@ -34,7 +34,7 @@ const QUERY_TOKEN_ALLOWED_PREFIXES: &[&str] = &[
     "/api/v2/ai/realtime/audio",
 ];
 const SSE_QUERY_TOKEN_AUTH_ENV: &str = "SSE_QUERY_TOKEN_AUTH_ENABLED";
-const ACCESS_TOKEN_COOKIE: &str = "access_token";
+pub(crate) const ACCESS_TOKEN_COOKIE: &str = "access_token";
 
 /// JWT 密钥共享状态 (通过 `web::Data` 注入)
 #[derive(Clone)]
@@ -359,6 +359,7 @@ fn build_jwt_validation_full(audience: Option<&JwtAudience>, algorithm: Algorith
 }
 
 /// Backwards-compatible audience-only builder used by existing tests (HS256, no issuer).
+#[allow(dead_code)]
 fn build_jwt_validation(audience: Option<&JwtAudience>) -> Validation {
     build_jwt_validation_full(audience, Algorithm::HS256, None)
 }
@@ -507,7 +508,8 @@ mod tests {
 
     #[test]
     fn request_token_rejects_sse_query_tokens_by_default() {
-        for uri in ["/api/v2/flights/stream?sse_token=good"] {
+        {
+            let uri = "/api/v2/flights/stream?sse_token=good";
             let request = TestRequest::with_uri(uri).to_http_request();
 
             assert!(

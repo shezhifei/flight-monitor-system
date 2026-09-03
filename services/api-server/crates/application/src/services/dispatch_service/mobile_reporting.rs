@@ -8,7 +8,7 @@ use fms_domain::models::dispatch::*;
 use crate::schemas::dispatch_schemas::*;
 
 use super::helpers;
-use super::{DispatchService, NULL_VALUE};
+use super::DispatchService;
 
 impl DispatchService {
     pub async fn report_eta(

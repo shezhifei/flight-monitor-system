@@ -174,9 +174,7 @@ impl EquipmentTypeRepository for PgEquipmentTypeRepository {
 }
 
 #[async_trait]
-impl<'tx> EquipmentTypeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
-    for PgEquipmentTypeRepository
-{
+impl<'tx> EquipmentTypeTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgEquipmentTypeRepository {
     async fn save_in_tx(
         &self,
         tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,

@@ -127,7 +127,9 @@ pub async fn update_equipment(
 ) -> Result<HttpResponse, ApiError> {
     claims.ensure_permission("equipment:manage")?;
     let actor_id = claims.0.sub.as_deref().unwrap_or("unknown");
-    let saved = svc.update_equipment(&path.into_inner(), body.into_inner(), actor_id).await?;
+    let saved = svc
+        .update_equipment(&path.into_inner(), body.into_inner(), actor_id)
+        .await?;
     Ok(ok_resp(&req, to_equipment_response(saved)))
 }
 

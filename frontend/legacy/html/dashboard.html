@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作台 - 航班监控系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/frontend/css/main.css">
+    <link rel="stylesheet" href="/frontend/css/dashboard_handover.css">
+    <link rel="stylesheet" href="/frontend/css/dashboard_frontline_workbench.css">
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/js/components/toast.js"></script>
+    <script src="/frontend/js/components/loading.js"></script>
+    <script src="/frontend/js/components/empty_error.js"></script>
+    <script src="/frontend/js/components/header.js"></script>
+    <script src="/frontend/js/dashboard_handover.js"></script>
+    <script src="/frontend/js/dashboard_frontline_workbench.js"></script>
+    <style>
+        /* --- Dashboard – Swiss Modernism 2.0 --- */
+        body {
+            background: #F8FAFC;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid #E2E8F0;
+            padding: 0 48px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 650;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.3px;
+            color: #1E293B;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-info {
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        .user-name {
+            font-weight: 550;
+            font-size: 13px;
+            color: #1E293B;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: #94A3B8;
+        }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid #E2E8F0;
+            color: #64748B;
+            font-size: 12px;
+            font-weight: 550;
+            cursor: pointer;
+            padding: 6px 14px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .logout-btn:hover {
+            background: #FEF2F2;
+            border-color: #FECACA;
+            color: #DC2626;
+        }
+
+        .svg-icon {
+            width: 32px;
+            height: 32px;
+            vertical-align: middle;
+        }
+
+        .logo .svg-icon {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Full-Width Container */
+        .dashboard-container {
+            width: 100%;
+            padding: 36px 48px 48px;
+            flex: 1;
+        }
+
+        /* Welcome Header */
+        .header-section {
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #E2E8F0;
+            animation: dbFadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0F172A;
+            margin: 0 0 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .welcome-subtitle {
+            color: #94A3B8;
+            font-size: 14px;
+            font-weight: 400;
+            margin: 0;
+        }
+
+        /* Bento Grid – fixed 4 columns */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            grid-auto-flow: dense;
+        }
+
+        /* Handover card: 2×2 large tile */
+        .dashboard-handover-card {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        /* Card */
+        .bento-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 22px 24px;
+            text-decoration: none;
+            color: #1E293B;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            min-height: 160px;
+        }
+
+        .bento-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+            border-color: #CBD5E1;
+        }
+
+        .bento-card:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .card-wide {
+            grid-column: span 2;
+        }
+
+        /* Icon (44px touch target) */
+        .card-icon-container {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            transition: transform 0.2s ease-out;
+            flex-shrink: 0;
+        }
+
+        .card-icon-container .svg-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .bento-card:hover .card-icon-container {
+            transform: scale(1.06);
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 650;
+            color: #0F172A;
+            margin-bottom: 4px;
+            letter-spacing: -0.2px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: #94A3B8;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-action {
+            margin-top: 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #94A3B8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.15s ease, transform 0.15s ease;
+        }
+
+        .bento-card:hover .card-action {
+            color: #3B82F6;
+            transform: translateX(2px);
+        }
+
+        /* Theme Colors */
+        .theme-blue .card-icon-container {
+            background: rgba(59, 130, 246, 0.08);
+            color: #3B82F6;
+        }
+
+        .theme-purple .card-icon-container {
+            background: rgba(139, 92, 246, 0.08);
+            color: #8B5CF6;
+        }
+
+        .theme-orange .card-icon-container {
+            background: rgba(249, 115, 22, 0.08);
+            color: #F97316;
+        }
+
+        .theme-green .card-icon-container {
+            background: rgba(16, 185, 129, 0.08);
+            color: #10B981;
+        }
+
+        .theme-gray .card-icon-container {
+            background: rgba(100, 116, 139, 0.08);
+            color: #64748B;
+        }
+
+        /* Animation */
+        @keyframes dbFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .navbar {
+                padding: 0 32px;
+            }
+
+            .dashboard-container {
+                padding: 28px 32px 40px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .dashboard-handover-card {
+                grid-row: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 20px;
+                height: 52px;
+            }
+
+            .dashboard-container {
+                padding: 24px 20px 32px;
+            }
+
+            .welcome-title {
+                font-size: 24px;
+            }
+
+            .bento-card {
+                min-height: 140px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .card-wide {
+                grid-column: span 1;
+            }
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="navbar-host"></div>
+
+    <div class="dashboard-container">
+        <div class="header-section">
+            <h1 class="welcome-title">欢迎回来, <span id="welcomeName">用户</span></h1>
+            <p class="welcome-subtitle">所有系统模块均已就绪</p>
+        </div>
+
+        <div class="grid" id="moduleGrid">
+            <!-- Bento Cards will be injected here -->
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = `${window.location.origin}/api/v2`;
+
+        const ALL_MODULES = [
+            {
+                id: 'monitor',
+                title: '实时航班监控',
+                desc: '全景视图查看所有航班动态、登机口变更及即时延误预警。',
+                icon: '<img src="/frontend/icons/bar_chart.svg" class="svg-icon">',
+                theme: 'theme-blue',
+                url: '/frontend/html/flight_monitor.html',
+                size: 'card-wide',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'flight:read')
+            },
+            {
+                id: 'flight_imports',
+                title: '航班导入中心',
+                desc: '管理航班数据导入、批次状态和错误回放。',
+                icon: '<img src="/frontend/icons/refresh.svg" class="svg-icon">',
+                theme: 'theme-gray',
+                url: '/frontend/html/flight_imports.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'flight:read')
+            },
+            {
+                id: 'users',
+                title: '用户管理',
+                desc: '管理账号生命周期、角色授权及组织架构。',
+                icon: '<img src="/frontend/icons/users.svg" class="svg-icon">',
+                theme: 'theme-purple',
+                url: '/frontend/html/user_manager.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'user:read')
+            },
+            {
+                id: 'ai',
+                title: 'AI 中心',
+                desc: 'AI 实体配置、实时监控与 LLM 评测实验室。',
+                icon: '<img src="/frontend/icons/ai.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/ai_config_center.html',
+                size: 'card-wide',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'ai:chat') || hasRole(user, 'admin')
+            },
+            {
+                id: 'ai_monitor',
+                title: 'AI 监控大屏',
+                desc: '实时观察 AI Agent 运行态势与执行质量指标。',
+                icon: '<img src="/frontend/icons/activity.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/ai_monitor.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'ai:chat') || hasRole(user, 'admin')
+            },
+            {
+                id: 'llm_eval',
+                title: 'LLM 评测实验室',
+                desc: '模型对比、评测任务和效果回归分析。',
+                icon: '<img src="/frontend/icons/detail.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/llm_eval_lab.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'ai:chat') || hasRole(user, 'admin')
+            },
+            {
+                id: 'nl_query',
+                title: '自然语言查询',
+                desc: '用自然语言查询航班、异常与运行统计结果。',
+                icon: '<img src="/frontend/icons/messages.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/nl_query.html',
+                size: 'card-wide',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'ai:chat')
+            },
+            {
+                id: 'anomaly_monitor',
+                title: '异常监控中心',
+                desc: '集中查看异常告警、升级状态并进行处置确认。',
+                icon: '<img src="/frontend/icons/activity.svg" class="svg-icon">',
+                theme: 'theme-orange',
+                url: '/frontend/html/anomaly_monitor.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'flight:read')
+            },
+            {
+                id: 'kpi_dashboard',
+                title: '数据分析',
+                desc: 'KPI 仪表盘、准点率趋势与运行复盘报表。',
+                icon: '<img src="/frontend/icons/bar_chart.svg" class="svg-icon">',
+                theme: 'theme-blue',
+                url: '/frontend/html/kpi_dashboard.html',
+                size: 'card-wide',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'flight:read')
+            },
+            {
+                id: 'ops_review_report',
+                title: '运行复盘报告',
+                desc: '查看与导出运行复盘摘要及关键指标。',
+                icon: '<img src="/frontend/icons/detail.svg" class="svg-icon">',
+                theme: 'theme-blue',
+                url: '/frontend/html/operations_review_report.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'flight:read')
+            },
+            {
+                id: 'command_center',
+                title: '指挥中心大屏',
+                desc: '汇聚航班、异常与派工态势，适配值班席位实时决策。',
+                icon: '<img src="/frontend/icons/activity.svg" class="svg-icon">',
+                theme: 'theme-blue',
+                url: '/frontend/html/command_center.html',
+                size: 'card-wide',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'flight:read')
+            },
+            {
+                id: 'config',
+                title: '系统管理',
+                desc: '系统运行状态监控、功能开关配置与全局参数。',
+                icon: '<img src="/frontend/icons/settings.svg" class="svg-icon">',
+                theme: 'theme-orange',
+                url: '/frontend/html/system_status.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasRole(user, 'admin')
+            },
+            {
+                id: 'system_flags',
+                title: '系统开关配置',
+                desc: '管理系统功能开关、策略阈值和实验参数。',
+                icon: '<img src="/frontend/icons/settings.svg" class="svg-icon">',
+                theme: 'theme-orange',
+                url: '/frontend/html/system_flags.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasRole(user, 'admin')
+            },
+            {
+                id: 'bpmn',
+                title: '流程管理',
+                desc: 'Flowable 业务流程编排。',
+                icon: '<img src="/frontend/icons/refresh.svg" class="svg-icon">',
+                theme: 'theme-gray',
+                url: '/frontend/html/flowable_modeler.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasRole(user, 'admin')
+            },
+            {
+                id: 'label_manager',
+                title: '标签管理',
+                desc: '维护航班标签模板，支持航班级和航段级标签。',
+                icon: '<img src="/frontend/icons/edit.svg" class="svg-icon">',
+                theme: 'theme-gray',
+                url: '/frontend/html/label_manager.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasRole(user, 'admin')
+            },
+            {
+                id: 'dispatch',
+                title: '派工中心',
+                desc: '甘特调度台、任务分配与资源利用率分析。',
+                icon: '<img src="/frontend/icons/detail.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/dispatch_board.html',
+                size: 'card-wide',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'dispatch:view')
+            },
+            {
+                id: 'dispatch_utilization',
+                title: '资源利用率',
+                desc: '查看派工资源利用率、效率分布与趋势变化。',
+                icon: '<img src="/frontend/icons/bar_chart.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/resource_utilization.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'dispatch:view')
+            },
+            {
+                id: 'dispatch_rule_center',
+                title: '派工规则中心',
+                desc: '配置调度规则、资质约束与仿真策略。',
+                icon: '<img src="/frontend/icons/settings.svg" class="svg-icon">',
+                theme: 'theme-green',
+                url: '/frontend/html/dispatch_rule_center.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'dispatch:manage') || hasPermission(user, 'dispatch:view')
+            },
+            {
+                id: 'resource',
+                title: '派工资源',
+                desc: '统一管理班组、成员、设备及类型配置。',
+                icon: '<img src="/frontend/icons/users.svg" class="svg-icon">',
+                theme: 'theme-purple',
+                url: '/frontend/html/resource_manager.html',
+                size: '',
+                checkPermission: (user) => user.is_admin || hasPermission(user, 'team:manage') || hasPermission(user, 'equipment:manage')
+            }
+        ];
+
+        async function init() {
+            if (!(await Auth.requireAuthAsync())) return;
+
+            try {
+                DashboardHandover.ensureMounted();
+                const response = await Auth.fetch(`${API_BASE}/auth/me`, {
+                    headers: DashboardHandover.getOperatorContextHeaders(),
+                });
+
+                if (!response.ok) throw new Error('Unauthorized');
+
+                const user = await response.json();
+                renderUserInfo(user);
+                renderModules(user);
+                DashboardHandover.setCurrentUser(user);
+            } catch (error) {
+                console.error('Auth Error:', error);
+                window.location.href = '/frontend/html/login.html';
+            }
+        }
+
+        function hasPermission(user, perm) {
+            return user.permissions && user.permissions.includes(perm);
+        }
+
+        function hasRole(user, role) {
+            return user.roles && user.roles.includes(role);
+        }
+
+        function renderUserInfo(user) {
+            const operatorLabel = user.effective_operator_label || user.username;
+            document.getElementById('welcomeName').textContent = operatorLabel;
+            // Re-render header with user info
+            if (window.Header) {
+                window.Header.render('#navbar-host', {
+                    title: '工作台',
+                    user: user,
+                    onLogout: logout
+                });
+            }
+        }
+
+        function renderModules(user) {
+            const grid = document.getElementById('moduleGrid');
+            grid.innerHTML = '';
+
+            if (DashboardFrontlineWorkbench.canAccess(user)) {
+                grid.appendChild(DashboardFrontlineWorkbench.createCard(user));
+            }
+
+            if (DashboardHandover.canAccess(user)) {
+                grid.appendChild(DashboardHandover.createCard(user));
+            }
+
+            if (DashboardFrontlineWorkbench.canViewBurdenMetrics(user)) {
+                grid.appendChild(DashboardFrontlineWorkbench.createBurdenCard(user));
+            }
+
+            const availableModules = ALL_MODULES.filter(mod => mod.checkPermission(user));
+
+            if (
+                availableModules.length === 0
+                && !DashboardHandover.canAccess(user)
+                && !DashboardFrontlineWorkbench.canAccess(user)
+                && !DashboardFrontlineWorkbench.canViewBurdenMetrics(user)
+            ) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px;">暂无可用模块权限，请联系管理员。</div>';
+                return;
+            }
+
+            availableModules.forEach((mod, index) => {
+                const card = document.createElement('a');
+                const leadCardCount = [
+                    DashboardFrontlineWorkbench.canAccess(user),
+                    DashboardHandover.canAccess(user),
+                    DashboardFrontlineWorkbench.canViewBurdenMetrics(user),
+                ].filter(Boolean).length;
+                const delayIndex = leadCardCount > 0 ? index + leadCardCount : index;
+                card.style.animation = `fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) ${delayIndex * 0.06}s backwards`;
+
+                card.className = `bento-card ${mod.theme} ${mod.size || ''}`;
+                card.href = mod.url;
+                card.innerHTML = `
+                    <div class="card-icon-container">${mod.icon}</div>
+                    <div class="card-content">
+                        <div class="card-title">${mod.title}</div>
+                        <div class="card-desc">${mod.desc}</div>
+                    </div>
+                    <div class="card-action">进入模块 <span>→</span></div>
+                `;
+                grid.appendChild(card);
+            });
+
+            DashboardFrontlineWorkbench.afterRenderModules(user, {
+                onUserUpdated: renderUserInfo,
+            });
+            DashboardHandover.afterRenderModules(user, {
+                onUserUpdated: renderUserInfo,
+            });
+        }
+
+        function logout() {
+            Auth.logout();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+    <div id="dashboard-ai-widget-root" data-ai-entry="dashboard_ai_widget"></div>
+    <script src="/frontend/js/ai_entry_loader.js"></script>
+</body>
+
+</html>

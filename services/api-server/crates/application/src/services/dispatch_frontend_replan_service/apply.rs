@@ -744,7 +744,7 @@ mod tests {
     use chrono::{Duration, TimeZone, Utc};
     use fms_domain::error::DomainError;
     use fms_domain::models::dispatch::{
-        AssigneeType, DispatchLockLevel, DispatchOrder, DispatchOrderStatus, DispatchType, ScheduleSource,
+        DispatchLockLevel, DispatchOrder, DispatchOrderStatus, DispatchType, ScheduleSource,
     };
     use serde_json::json;
 

@@ -134,9 +134,8 @@ impl PgDomainEventOutboxRepository {
 
     /// 重新统计未发布事件数并刷新 `fms_outbox_pending_events` (Gauge)。
     async fn refresh_pending_gauge(&self) {
-        match self.count_unpublished().await {
-            Ok(count) => metrics::gauge!("fms_outbox_pending_events").set(count as f64),
-            Err(_) => {}
+        if let Ok(count) = self.count_unpublished().await {
+            metrics::gauge!("fms_outbox_pending_events").set(count as f64)
         }
     }
 
@@ -171,7 +170,7 @@ impl PgDomainEventOutboxRepository {
         .await
         .map_err(|error| DomainError::Internal(format!("failed to lock pending domain event outbox rows: {error}")))?;
 
-        rows.into_iter().map(|row| decode_outbox_row(row)).collect()
+        rows.into_iter().map(decode_outbox_row).collect()
     }
 }
 

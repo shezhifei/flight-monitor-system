@@ -14,19 +14,21 @@ use fms_domain::ports::dispatch_repository::{
     DepartmentRepository, EquipmentRepository, EquipmentTypeRepository, PersonnelRuntimeRepository, StandRepository,
     TaskTypeRepository, TeamMemberRepository, TeamRepository, TeamTypeRepository,
 };
-use fms_domain::ports::user_repository::UserRepository;
 use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
 use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceRepository;
+use fms_domain::ports::user_repository::UserRepository;
 
 use super::mappers::{equipment_status_value, parse_personnel_status};
-use crate::services::attribute_validation::{collect_attribute_references, sync_attribute_references, validate_attributes};
-use crate::services::personnel_runtime_writer::PersonnelRuntimeAttributeTransactionalWriter;
+use crate::services::attribute_validation::{
+    collect_attribute_references, sync_attribute_references, validate_attributes,
+};
 use crate::services::department_writer::DepartmentAttributeTransactionalWriter;
-use crate::services::team_writer::TeamAttributeTransactionalWriter;
 use crate::services::equipment_type_writer::EquipmentTypeAttributeTransactionalWriter;
 use crate::services::equipment_writer::EquipmentAttributeTransactionalWriter;
+use crate::services::personnel_runtime_writer::PersonnelRuntimeAttributeTransactionalWriter;
 use crate::services::task_type_writer::TaskTypeAttributeTransactionalWriter;
 use crate::services::team_type_writer::TeamTypeAttributeTransactionalWriter;
+use crate::services::team_writer::TeamAttributeTransactionalWriter;
 
 pub struct DispatchResourceService<
     DR: DepartmentRepository + ?Sized,
@@ -109,10 +111,7 @@ impl<
         }
     }
 
-    pub fn with_field_overlay_repository(
-        mut self,
-        repo: Arc<dyn FieldOverlayRepository + Send + Sync>,
-    ) -> Self {
+    pub fn with_field_overlay_repository(mut self, repo: Arc<dyn FieldOverlayRepository + Send + Sync>) -> Self {
         self.field_overlay_repo = Some(repo);
         self
     }
@@ -133,55 +132,42 @@ impl<
         self
     }
 
-    pub fn with_department_writer(
-        mut self,
-        writer: Arc<dyn DepartmentAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_department_writer(mut self, writer: Arc<dyn DepartmentAttributeTransactionalWriter>) -> Self {
         self.department_writer = Some(writer);
         self
     }
 
-    pub fn with_team_writer(
-        mut self,
-        writer: Arc<dyn TeamAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_team_writer(mut self, writer: Arc<dyn TeamAttributeTransactionalWriter>) -> Self {
         self.team_writer = Some(writer);
         self
     }
 
-    pub fn with_equipment_type_writer(
-        mut self,
-        writer: Arc<dyn EquipmentTypeAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_equipment_type_writer(mut self, writer: Arc<dyn EquipmentTypeAttributeTransactionalWriter>) -> Self {
         self.equipment_type_writer = Some(writer);
         self
     }
 
-    pub fn with_equipment_writer(
-        mut self,
-        writer: Arc<dyn EquipmentAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_equipment_writer(mut self, writer: Arc<dyn EquipmentAttributeTransactionalWriter>) -> Self {
         self.equipment_writer = Some(writer);
         self
     }
 
-    pub fn with_task_type_writer(
-        mut self,
-        writer: Arc<dyn TaskTypeAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_task_type_writer(mut self, writer: Arc<dyn TaskTypeAttributeTransactionalWriter>) -> Self {
         self.task_type_writer = Some(writer);
         self
     }
 
-    pub fn with_team_type_writer(
-        mut self,
-        writer: Arc<dyn TeamTypeAttributeTransactionalWriter>,
-    ) -> Self {
+    pub fn with_team_type_writer(mut self, writer: Arc<dyn TeamTypeAttributeTransactionalWriter>) -> Self {
         self.team_type_writer = Some(writer);
         self
     }
 
-    async fn sync_references(&self, object_name: &str, object_id: &str, attributes: &serde_json::Value) -> Result<(), DomainError> {
+    async fn sync_references(
+        &self,
+        object_name: &str,
+        object_id: &str,
+        attributes: &serde_json::Value,
+    ) -> Result<(), DomainError> {
         sync_attribute_references(
             object_name,
             object_id,
@@ -235,19 +221,34 @@ impl<
         Ok(())
     }
 
-    async fn validate_object_references(&self, object_name: &str, attributes: &serde_json::Value) -> Result<(), DomainError> {
+    async fn validate_object_references(
+        &self,
+        object_name: &str,
+        attributes: &serde_json::Value,
+    ) -> Result<(), DomainError> {
         let (Some(field_repo), Some(map)) = (self.field_overlay_repo.as_ref(), attributes.as_object()) else {
             return Ok(());
         };
         let overlays = field_repo.list(Some(object_name), false).await?;
         for field in overlays.iter().filter(|item| item.is_active) {
-            let Some(field_type) = OntologyFieldType::parse(&field.field_type) else { continue; };
-            if !field_type.is_object() { continue; }
-            let Some(target) = field.object_name_target.as_deref() else { continue; };
-            let Some(raw) = map.get(&field.field_name) else { continue; };
+            let Some(field_type) = OntologyFieldType::parse(&field.field_type) else {
+                continue;
+            };
+            if !field_type.is_object() {
+                continue;
+            }
+            let Some(target) = field.object_name_target.as_deref() else {
+                continue;
+            };
+            let Some(raw) = map.get(&field.field_name) else {
+                continue;
+            };
             let keys: Vec<&str> = match field_type {
                 OntologyFieldType::ObjectRef => raw.as_str().into_iter().collect(),
-                OntologyFieldType::ObjectRefArray => raw.as_array().map(|v| v.iter().filter_map(serde_json::Value::as_str).collect()).unwrap_or_default(),
+                OntologyFieldType::ObjectRefArray => raw
+                    .as_array()
+                    .map(|v| v.iter().filter_map(serde_json::Value::as_str).collect())
+                    .unwrap_or_default(),
                 _ => Vec::new(),
             };
             for key in keys {
@@ -257,13 +258,26 @@ impl<
                     "TeamType" => self.team_type_repo.find_by_id(key).await?.map(|v| v.is_active),
                     "EquipmentType" => self.equipment_type_repo.find_by_id(key).await?.map(|v| v.is_active),
                     "Equipment" => self.equipment_repo.find_by_id(key).await?.map(|v| v.is_active),
-                    "Stand" => self.stand_repo.find_by_id(key).await?.or(self.stand_repo.find_by_code(key).await?).map(|v| v.is_active),
-                    "TaskType" => self.task_type_repo.find_by_id(key).await?.or(self.task_type_repo.find_by_code(key).await?).map(|v| v.is_active),
+                    "Stand" => self
+                        .stand_repo
+                        .find_by_id(key)
+                        .await?
+                        .or(self.stand_repo.find_by_code(key).await?)
+                        .map(|v| v.is_active),
+                    "TaskType" => self
+                        .task_type_repo
+                        .find_by_id(key)
+                        .await?
+                        .or(self.task_type_repo.find_by_code(key).await?)
+                        .map(|v| v.is_active),
                     "Personnel" => self.user_repo.find_by_id(key).await?.map(|v| v.is_active),
                     _ => None,
                 };
                 if active != Some(true) {
-                    return Err(DomainError::Conflict(format!("扩展字段 {object_name}.{} 引用了不存在或已停用的 {target}: {key}", field.field_name)));
+                    return Err(DomainError::Conflict(format!(
+                        "扩展字段 {object_name}.{} 引用了不存在或已停用的 {target}: {key}",
+                        field.field_name
+                    )));
                 }
             }
         }
@@ -290,7 +304,8 @@ impl<
     }
 
     pub async fn create_department(&self, payload: DepartmentCreate) -> Result<Department, DomainError> {
-        let attributes = validate_attributes("Department", payload.attributes, self.field_overlay_repo.as_ref()).await?;
+        let attributes =
+            validate_attributes("Department", payload.attributes, self.field_overlay_repo.as_ref()).await?;
         self.validate_object_references("Department", &attributes).await?;
         let department = Department {
             id: ulid::Ulid::new().to_string(),
@@ -335,7 +350,13 @@ impl<
             department.name = require_non_empty(&name, "name")?;
         }
         if payload.code.is_some() {
-            self.ensure_key_change_allowed("Department", department_id, department.code.as_deref(), payload.code.as_deref()).await?;
+            self.ensure_key_change_allowed(
+                "Department",
+                department_id,
+                department.code.as_deref(),
+                payload.code.as_deref(),
+            )
+            .await?;
             department.code = normalize_optional_string(payload.code);
         }
         if payload.description.is_some() {
@@ -354,8 +375,10 @@ impl<
             department.is_active = is_active;
         }
         if let Some(attributes) = payload.attributes {
-            department.attributes = validate_attributes("Department", attributes, self.field_overlay_repo.as_ref()).await?;
-            self.validate_object_references("Department", &department.attributes).await?;
+            department.attributes =
+                validate_attributes("Department", attributes, self.field_overlay_repo.as_ref()).await?;
+            self.validate_object_references("Department", &department.attributes)
+                .await?;
         }
 
         if let Some(writer) = self.department_writer.as_ref() {
@@ -439,7 +462,13 @@ impl<
             team_type.department_id = normalize_optional_string(payload.department_id);
         }
         if payload.code.is_some() {
-            self.ensure_key_change_allowed("TeamType", team_type_id, team_type.code.as_deref(), payload.code.as_deref()).await?;
+            self.ensure_key_change_allowed(
+                "TeamType",
+                team_type_id,
+                team_type.code.as_deref(),
+                payload.code.as_deref(),
+            )
+            .await?;
             team_type.code = normalize_optional_string(payload.code);
         }
         if payload.description.is_some() {
@@ -455,8 +484,10 @@ impl<
             team_type.task_types = normalize_string_list(task_types);
         }
         if let Some(attributes) = payload.attributes {
-            team_type.attributes = validate_attributes("TeamType", attributes, self.field_overlay_repo.as_ref()).await?;
-            self.validate_object_references("TeamType", &team_type.attributes).await?;
+            team_type.attributes =
+                validate_attributes("TeamType", attributes, self.field_overlay_repo.as_ref()).await?;
+            self.validate_object_references("TeamType", &team_type.attributes)
+                .await?;
         }
 
         if let Some(writer) = self.team_type_writer.as_ref() {
@@ -535,13 +566,9 @@ impl<
         };
 
         if let Some(writer) = self.team_writer.as_ref() {
-            let references = collect_attribute_references(
-                "Team",
-                &team.id,
-                &team.attributes,
-                self.field_overlay_repo.as_ref(),
-            )
-            .await?;
+            let references =
+                collect_attribute_references("Team", &team.id, &team.attributes, self.field_overlay_repo.as_ref())
+                    .await?;
             return writer.save_with_references(&team, &references).await;
         }
         let saved = self.team_repo.save(&team).await?;
@@ -569,7 +596,8 @@ impl<
             team.department_id = Some(department_id);
         }
         if payload.code.is_some() {
-            self.ensure_key_change_allowed("Team", team_id, team.code.as_deref(), payload.code.as_deref()).await?;
+            self.ensure_key_change_allowed("Team", team_id, team.code.as_deref(), payload.code.as_deref())
+                .await?;
             team.code = normalize_optional_string(payload.code);
         }
         if payload.leader_id.is_some() {
@@ -590,13 +618,9 @@ impl<
         }
 
         if let Some(writer) = self.team_writer.as_ref() {
-            let references = collect_attribute_references(
-                "Team",
-                &team.id,
-                &team.attributes,
-                self.field_overlay_repo.as_ref(),
-            )
-            .await?;
+            let references =
+                collect_attribute_references("Team", &team.id, &team.attributes, self.field_overlay_repo.as_ref())
+                    .await?;
             return writer.save_with_references(&team, &references).await;
         }
         let saved = self.team_repo.save(&team).await?;
@@ -615,13 +639,9 @@ impl<
         self.ensure_not_referenced("Team", team_id).await?;
         team.is_active = false;
         if let Some(writer) = self.team_writer.as_ref() {
-            let references = collect_attribute_references(
-                "Team",
-                &team.id,
-                &team.attributes,
-                self.field_overlay_repo.as_ref(),
-            )
-            .await?;
+            let references =
+                collect_attribute_references("Team", &team.id, &team.attributes, self.field_overlay_repo.as_ref())
+                    .await?;
             writer.save_with_references(&team, &references).await?;
             return Ok(());
         }
@@ -733,7 +753,8 @@ impl<
     }
 
     pub async fn create_equipment_type(&self, payload: EquipmentTypeCreate) -> Result<EquipmentType, DomainError> {
-        let attributes = validate_attributes("EquipmentType", payload.attributes, self.field_overlay_repo.as_ref()).await?;
+        let attributes =
+            validate_attributes("EquipmentType", payload.attributes, self.field_overlay_repo.as_ref()).await?;
         self.validate_object_references("EquipmentType", &attributes).await?;
         let equipment_type = EquipmentType {
             id: ulid::Ulid::new().to_string(),
@@ -760,7 +781,8 @@ impl<
             return writer.save_with_references(&equipment_type, &references).await;
         }
         let saved = self.equipment_type_repo.save(&equipment_type).await?;
-        self.sync_references("EquipmentType", &saved.id, &saved.attributes).await?;
+        self.sync_references("EquipmentType", &saved.id, &saved.attributes)
+            .await?;
         Ok(saved)
     }
 
@@ -779,7 +801,13 @@ impl<
             equipment_type.name = require_non_empty(&name, "name")?;
         }
         if payload.code.is_some() {
-            self.ensure_key_change_allowed("EquipmentType", equipment_type_id, equipment_type.code.as_deref(), payload.code.as_deref()).await?;
+            self.ensure_key_change_allowed(
+                "EquipmentType",
+                equipment_type_id,
+                equipment_type.code.as_deref(),
+                payload.code.as_deref(),
+            )
+            .await?;
             equipment_type.code = normalize_optional_string(payload.code);
         }
         if payload.category.is_some() {
@@ -795,8 +823,10 @@ impl<
             equipment_type.description = normalize_optional_string(payload.description);
         }
         if let Some(attributes) = payload.attributes {
-            equipment_type.attributes = validate_attributes("EquipmentType", attributes, self.field_overlay_repo.as_ref()).await?;
-            self.validate_object_references("EquipmentType", &equipment_type.attributes).await?;
+            equipment_type.attributes =
+                validate_attributes("EquipmentType", attributes, self.field_overlay_repo.as_ref()).await?;
+            self.validate_object_references("EquipmentType", &equipment_type.attributes)
+                .await?;
         }
 
         if let Some(writer) = self.equipment_type_writer.as_ref() {
@@ -810,7 +840,8 @@ impl<
             return writer.save_with_references(&equipment_type, &references).await;
         }
         let saved = self.equipment_type_repo.save(&equipment_type).await?;
-        self.sync_references("EquipmentType", &saved.id, &saved.attributes).await?;
+        self.sync_references("EquipmentType", &saved.id, &saved.attributes)
+            .await?;
         Ok(saved)
     }
 
@@ -933,7 +964,8 @@ impl<
             .await?;
 
         if let Some(code) = payload.code {
-            self.ensure_key_change_allowed("Equipment", equipment_id, Some(&equipment.code), Some(&code)).await?;
+            self.ensure_key_change_allowed("Equipment", equipment_id, Some(&equipment.code), Some(&code))
+                .await?;
             equipment.code = require_non_empty(&code, "code")?;
         }
         if payload.equipment_type_id.is_some() {
@@ -965,8 +997,10 @@ impl<
             equipment.is_active = is_active;
         }
         if let Some(attributes) = payload.attributes {
-            equipment.attributes = validate_attributes("Equipment", attributes, self.field_overlay_repo.as_ref()).await?;
-            self.validate_object_references("Equipment", &equipment.attributes).await?;
+            equipment.attributes =
+                validate_attributes("Equipment", attributes, self.field_overlay_repo.as_ref()).await?;
+            self.validate_object_references("Equipment", &equipment.attributes)
+                .await?;
         }
 
         if let Some(writer) = self.equipment_writer.as_ref() {
@@ -1058,7 +1092,11 @@ impl<
         self.stand_repo.save(&stand).await
     }
 
-    async fn validate_stand_composition(&self, stand_code: &str, attributes: &serde_json::Value) -> Result<(), DomainError> {
+    async fn validate_stand_composition(
+        &self,
+        stand_code: &str,
+        attributes: &serde_json::Value,
+    ) -> Result<(), DomainError> {
         let composed_of = crate::services::stand_composition::composed_of_codes(attributes);
         if composed_of.is_empty() {
             return Ok(());
@@ -1173,7 +1211,8 @@ impl<
             return Ok(runtime);
         }
         let saved = self.personnel_runtime_repo.save(&runtime).await?;
-        self.sync_references("Personnel", &saved.user_id, &saved.attributes).await?;
+        self.sync_references("Personnel", &saved.user_id, &saved.attributes)
+            .await?;
         Ok(saved)
     }
 
@@ -1207,7 +1246,8 @@ impl<
             return Ok(runtime);
         }
         let saved = self.personnel_runtime_repo.save(&runtime).await?;
-        self.sync_references("Personnel", &saved.user_id, &saved.attributes).await?;
+        self.sync_references("Personnel", &saved.user_id, &saved.attributes)
+            .await?;
         Ok(saved)
     }
 
@@ -1246,7 +1286,8 @@ impl<
             return Ok(runtime);
         }
         let saved = self.personnel_runtime_repo.save(&runtime).await?;
-        self.sync_references("Personnel", &saved.user_id, &saved.attributes).await?;
+        self.sync_references("Personnel", &saved.user_id, &saved.attributes)
+            .await?;
         Ok(saved)
     }
 
@@ -1493,8 +1534,8 @@ fn normalize_optional_string(value: Option<String>) -> Option<String> {
     })
 }
 
-fn normalize_optional_ref<'a>(value: Option<&'a str>) -> Option<&'a str> {
-    value.and_then(|item| if item.trim().is_empty() { None } else { Some(item) })
+fn normalize_optional_ref(value: Option<&str>) -> Option<&str> {
+    value.filter(|&item| !item.trim().is_empty())
 }
 
 fn normalize_string_list(values: Vec<String>) -> Vec<String> {

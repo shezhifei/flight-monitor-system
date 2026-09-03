@@ -28,9 +28,11 @@ use std::time::{Duration as StdDuration, Instant};
 use tracing::{info, warn};
 
 use fms_domain::error::DomainError;
+#[cfg(test)]
+use fms_domain::models::dispatch::AssigneeType;
 use fms_domain::models::dispatch::{
-    dispatch_overrun_dedupe_key, resolve_completion_warning_lead_minutes, AlertSeverity, AssigneeType,
-    CompletionWarningLeadSource, DepartmentRuleStatus, DispatchAlert, DispatchOrder, DispatchOrderStatus, LegScope,
+    dispatch_overrun_dedupe_key, resolve_completion_warning_lead_minutes, AlertSeverity, CompletionWarningLeadSource,
+    DepartmentRuleStatus, DispatchAlert, DispatchOrder, DispatchOrderStatus, LegScope,
 };
 use fms_domain::ports::dispatch_repository::{
     DispatchAlertRepository, DispatchOrderRepository, FlightGenerationRuleRepository,

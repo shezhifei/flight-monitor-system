@@ -19,7 +19,7 @@ pub struct OntologyObjectDef {
     pub actions: HashMap<String, OntologyActionDef>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct OntologyFieldDef {
     pub name: String,
     pub field_type: String,
@@ -43,26 +43,6 @@ pub struct OntologyFieldDef {
     pub min: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max: Option<f64>,
-}
-
-impl Default for OntologyFieldDef {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            field_type: String::new(),
-            description: String::new(),
-            required: false,
-            catalog_code: None,
-            object_name_target: None,
-            list_visible: None,
-            filterable: None,
-            widget: None,
-            visible_when: None,
-            max_length: None,
-            min: None,
-            max: None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

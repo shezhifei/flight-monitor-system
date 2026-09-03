@@ -75,6 +75,12 @@ pub struct AiActionProposalService {
     audit_recorder: Option<Arc<dyn AiProposalAuditEventRecorder>>,
     proposal_execution_enabled_override: Option<bool>,
 }
+impl Default for AiActionProposalService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AiActionProposalService {
     pub fn new() -> Self {
         Self {
@@ -188,9 +194,7 @@ impl AiActionProposalService {
         &self,
         req: GenerateProposalRequest,
     ) -> Result<AiActionProposal, AiActionProposalError> {
-        let action_def = self
-            .governed_action_def(&req.object_type, &req.action_name)
-            .await?;
+        let action_def = self.governed_action_def(&req.object_type, &req.action_name).await?;
 
         let proposal_id = format!("prop_{}", Ulid::new());
         let now = Utc::now();
@@ -683,7 +687,7 @@ impl AiActionProposalService {
                         &req.executor_id,
                     )
                     .await
-                    .map_err(|e| AiActionProposalError::execution(&e.to_string()))?;
+                    .map_err(|e| AiActionProposalError::execution(e.to_string()))?;
 
                 let val = receipt.result.clone();
                 proposal.mark_executed(&req.executor_id, val.clone());
@@ -971,10 +975,7 @@ impl AiActionProposalService {
             Some(repo) => match repo.load_action_overlays().await {
                 Ok(overlays) => overlays,
                 Err(error) => {
-                    tracing::warn!(
-                        "failed to load AI ontology overlays for proposal generation: {}",
-                        error
-                    );
+                    tracing::warn!("failed to load AI ontology overlays for proposal generation: {}", error);
                     Vec::new()
                 }
             },
@@ -1092,13 +1093,13 @@ impl AiActionProposalService {
         approver_id: &str,
         approver_permissions: &[String],
     ) -> Result<(), AiActionProposalError> {
-        if proposal.approval_policy == ApprovalPolicy::RequireSupervisorApproval {
-            if !AuthorizationService::has_ai_supervisor_approval_grant(approver_permissions) {
-                return Err(AiActionProposalError::forbidden(format!(
-                    "actor {} is not allowed to supervisor-approve proposal {}",
-                    approver_id, proposal.proposal_id
-                )));
-            }
+        if proposal.approval_policy == ApprovalPolicy::RequireSupervisorApproval
+            && !AuthorizationService::has_ai_supervisor_approval_grant(approver_permissions)
+        {
+            return Err(AiActionProposalError::forbidden(format!(
+                "actor {} is not allowed to supervisor-approve proposal {}",
+                approver_id, proposal.proposal_id
+            )));
         }
 
         if proposal.approval_policy == ApprovalPolicy::RequireFlowableApproval {
@@ -1229,53 +1230,27 @@ impl AiActionProposalService {
 
         for (param_name, param_def) in &action_def.parameters {
             let val = proposal.arguments.get(param_name);
-            if param_def.required {
-                if val.is_none() || matches!(val, Some(v) if v.is_null()) {
-                    return Err(AiActionProposalError::validation(format!(
-                        "Required parameter '{}' is missing in proposal arguments",
-                        param_name
-                    )));
-                }
+            if param_def.required && (val.is_none() || matches!(val, Some(v) if v.is_null())) {
+                return Err(AiActionProposalError::validation(format!(
+                    "Required parameter '{}' is missing in proposal arguments",
+                    param_name
+                )));
             }
 
-            if let Some(v) = val {
-                if !v.is_null() {
-                    let type_lower = param_def.param_type.to_lowercase();
-                    match type_lower.as_str() {
-                        "string" | "text" => {
-                            if !v.is_string() {
-                                return Err(AiActionProposalError::validation(format!(
-                                    "Parameter '{}' expects string, got {:?}",
-                                    param_name, v
-                                )));
-                            }
-                        }
-                        "boolean" | "bool" => {
-                            if !v.is_boolean() {
-                                return Err(AiActionProposalError::validation(format!(
-                                    "Parameter '{}' expects boolean, got {:?}",
-                                    param_name, v
-                                )));
-                            }
-                        }
-                        "integer" | "int" | "double" | "number" | "float" => {
-                            if !v.is_number() {
-                                return Err(AiActionProposalError::validation(format!(
-                                    "Parameter '{}' expects number, got {:?}",
-                                    param_name, v
-                                )));
-                            }
-                        }
-                        "array" => {
-                            if !v.is_array() {
-                                return Err(AiActionProposalError::validation(format!(
-                                    "Parameter '{}' expects array, got {:?}",
-                                    param_name, v
-                                )));
-                            }
-                        }
-                        _ => {}
-                    }
+            if let Some(v) = val.filter(|value| !value.is_null()) {
+                let type_lower = param_def.param_type.to_lowercase();
+                let invalid_expected_type = match type_lower.as_str() {
+                    "string" | "text" if !v.is_string() => Some("string"),
+                    "boolean" | "bool" if !v.is_boolean() => Some("boolean"),
+                    "integer" | "int" | "double" | "number" | "float" if !v.is_number() => Some("number"),
+                    "array" if !v.is_array() => Some("array"),
+                    _ => None,
+                };
+                if let Some(expected_type) = invalid_expected_type {
+                    return Err(AiActionProposalError::validation(format!(
+                        "Parameter '{}' expects {}, got {:?}",
+                        param_name, expected_type, v
+                    )));
                 }
             }
         }
@@ -1324,14 +1299,13 @@ impl AiActionProposalService {
                     .map_err(|e| AiActionProposalError::internal(e.to_string()))?;
 
                 match anomaly {
-                    Some(anomaly) => {
-                        if anomaly.status.as_ref() == "resolved" {
-                            return Err(AiActionProposalError::conflict(format!(
-                                "Constraint validation failed: Anomaly '{}' is already resolved",
-                                proposal.object_id
-                            )));
-                        }
+                    Some(anomaly) if anomaly.status.as_ref() == "resolved" => {
+                        return Err(AiActionProposalError::conflict(format!(
+                            "Constraint validation failed: Anomaly '{}' is already resolved",
+                            proposal.object_id
+                        )));
                     }
+                    Some(_) => {}
                     None => {
                         return Err(AiActionProposalError::conflict(format!(
                             "Constraint validation failed: Anomaly '{}' does not exist",

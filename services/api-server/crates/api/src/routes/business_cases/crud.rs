@@ -73,6 +73,7 @@ pub(crate) async fn get_business_case(
     Ok(ok_resp(case, "获取成功"))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn create_business_case(
     svc: web::Data<Arc<BusinessCaseService>>,
     flight_svc: web::Data<Arc<FlightService>>,

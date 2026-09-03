@@ -54,12 +54,7 @@ where
         let mut tx = self.uow.begin().await?;
         self.runtime_repo.save_in_tx(&mut tx, runtime).await?;
         self.reference_repo
-            .replace_owner_references_in_tx(
-                &mut tx,
-                "Personnel",
-                &runtime.user_id,
-                references,
-            )
+            .replace_owner_references_in_tx(&mut tx, "Personnel", &runtime.user_id, references)
             .await?;
         self.uow.commit(tx).await
     }

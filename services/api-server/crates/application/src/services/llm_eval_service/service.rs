@@ -11,7 +11,7 @@ use super::case_loader::{
     value_to_string, value_to_upper,
 };
 use super::error::LLMEvalServiceError;
-use super::types::{EvalCaseDefinition, EvalJob, EvalProfileSnapshot, EvalProgress, LLMEvalState, RuntimeProfile};
+use super::types::{EvalCaseDefinition, EvalJob, EvalProfileSnapshot, EvalProgress, LLMEvalState};
 use crate::schemas::llm_eval_schemas::{
     EvalProfileRequest, EvalRunOptionsRequest, LLMEvalCompareResponse, LLMEvalJobCreateResponse,
 };
@@ -540,7 +540,7 @@ impl LLMEvalService {
                     "error_rate": metrics.get("error_rate").cloned().unwrap_or_else(|| json!(0.0)),
                     "fallback_rate": metrics.get("fallback_rate").cloned().unwrap_or_else(|| json!(0.0)),
                     "p95_latency_ms": metrics.get("p95_latency_ms").cloned().unwrap_or_else(|| json!(0)),
-                    "has_reasoning": metrics.get("has_reasoning").cloned().unwrap_or_else(|| json!(false)),
+                    "has_reasoning": metrics.get("has_reasoning").cloned().unwrap_or(json!(false)),
                     "total_reasoning_tokens": metrics.get("total_reasoning_tokens").cloned().unwrap_or_else(|| json!(0)),
                 }))
             })

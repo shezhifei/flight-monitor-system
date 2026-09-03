@@ -25,7 +25,7 @@ use tracing::{info, warn};
 use ulid::Ulid;
 
 use crate::schemas::ontology_schemas::{
-    AdjustGateRequest, AdjustStandRequest, AdjustCarouselRequest, AircraftResourceView, AllocateCarouselRequest,
+    AdjustCarouselRequest, AdjustGateRequest, AdjustStandRequest, AircraftResourceView, AllocateCarouselRequest,
     AllocateGateRequest, AllocateStandRequest, AutoLinkScanRequest, AutoLinkScanResult, BreakTurnaroundLinkRequest,
     CarouselAssignmentResult, ConfirmDraftFlightsRequest, ConfirmDraftFlightsResponse, CreateSuggestionRequest,
     CreateTurnaroundLinkRequest, FlightResourceView, GateAssignmentResult, ReassignAircraftRequest,
@@ -671,9 +671,7 @@ impl OntologyService {
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .unwrap_or(actor_id);
-        self.tx_ops
-            .release_stand_tx(occupation_id, released_by)
-            .await
+        self.tx_ops.release_stand_tx(occupation_id, released_by).await
     }
 
     // -----------------------------------------------------------------------
@@ -691,9 +689,7 @@ impl OntologyService {
         let gate_code = request.gate_code.trim();
         let flight_id = request.flight_id.trim();
         if gate_code.is_empty() || flight_id.is_empty() {
-            return Err(OntologyError::validation(
-                "gate_code and flight_id must not be empty",
-            ));
+            return Err(OntologyError::validation("gate_code and flight_id must not be empty"));
         }
         Self::ensure_time_window(request.starts_at, request.ends_at)?;
 
@@ -730,12 +726,18 @@ impl OntologyService {
         };
 
         let consistency_warnings = self
-            .build_gate_consistency_warnings(&assignment.registration, &gate_code, now)
+            .build_gate_consistency_warnings(&assignment.registration, gate_code, now)
             .await?;
 
         let outcome = self
             .tx_ops
-            .allocate_gate_tx(&assignment.registration, &assignment, request.sync_flight_plan, gate_code, actor_id)
+            .allocate_gate_tx(
+                &assignment.registration,
+                &assignment,
+                request.sync_flight_plan,
+                gate_code,
+                actor_id,
+            )
             .await?;
         let effective = match outcome {
             GateCreateOutcome::Inserted => assignment,
@@ -806,9 +808,7 @@ impl OntologyService {
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .unwrap_or(actor_id);
-        self.tx_ops
-            .release_gate_tx(assignment_id, released_by)
-            .await
+        self.tx_ops.release_gate_tx(assignment_id, released_by).await
     }
 
     // -----------------------------------------------------------------------
@@ -899,7 +899,12 @@ impl OntologyService {
                 "carousel assignment {assignment_id} is not active"
             )));
         }
-        if let Some(code) = request.carousel_code.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        if let Some(code) = request
+            .carousel_code
+            .as_ref()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+        {
             updated.carousel_code = code.to_string();
         }
         if let Some(starts) = request.starts_at {
@@ -948,7 +953,10 @@ impl OntologyService {
         if flight_id.is_empty() {
             return Err(OntologyError::validation("flight_id must not be empty"));
         }
-        Ok(self.carousel_repo.list_by_flight(flight_id, limit.clamp(1, 500)).await?)
+        Ok(self
+            .carousel_repo
+            .list_by_flight(flight_id, limit.clamp(1, 500))
+            .await?)
     }
 
     // -----------------------------------------------------------------------
@@ -1168,7 +1176,7 @@ impl OntologyService {
         match self.tx_ops.create_turnaround_link_tx(&link).await {
             Ok(()) => Ok(Some(link.id)),
             Err(OntologyError::Internal(msg)) if msg.contains("duplicate") || msg.contains("unique") => Ok(None),
-            Err(e) => Err(OntologyError::from(e)),
+            Err(e) => Err(e),
         }
     }
 
@@ -1283,12 +1291,8 @@ impl OntologyService {
     /// 通过时返回该设施所属 `Terminal.code`（供展示列推导楼）。
     fn ensure_facility_locale(locale: FacilityLocale, facility: &str) -> Result<String, OntologyError> {
         match locale {
-            FacilityLocale::Unknown => Err(OntologyError::validation(format!(
-                "{facility} code not in directory"
-            ))),
-            FacilityLocale::Inactive => {
-                Err(OntologyError::validation(format!("{facility} is not active")))
-            }
+            FacilityLocale::Unknown => Err(OntologyError::validation(format!("{facility} code not in directory"))),
+            FacilityLocale::Inactive => Err(OntologyError::validation(format!("{facility} is not active"))),
             FacilityLocale::NoTerminal => Err(OntologyError::validation(format!(
                 "{facility} not attached to any terminal"
             ))),

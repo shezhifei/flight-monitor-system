@@ -12,11 +12,12 @@ use crate::error::DomainError;
 // ---------------------------------------------------------------------------
 
 /// 待办事项优先级
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TodoPriority {
     Critical,
     High,
+    #[default]
     Medium,
     Low,
     Background,
@@ -49,12 +50,6 @@ impl TodoPriority {
     }
 }
 
-impl Default for TodoPriority {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
-
 impl AsRef<str> for TodoPriority {
     fn as_ref(&self) -> &str {
         match self {
@@ -68,9 +63,10 @@ impl AsRef<str> for TodoPriority {
 }
 
 /// 待办事项状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TodoStatus {
+    #[default]
     Pending,
     InProgress,
     Completed,
@@ -103,12 +99,6 @@ impl TodoStatus {
     /// 是否为终态
     pub fn is_terminal(self) -> bool {
         matches!(self, Self::Completed | Self::Cancelled)
-    }
-}
-
-impl Default for TodoStatus {
-    fn default() -> Self {
-        Self::Pending
     }
 }
 

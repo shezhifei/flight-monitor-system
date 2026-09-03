@@ -158,12 +158,13 @@ impl DispatchOrderAdjusterHandler {
         }
 
         for rule in &generation_rules {
-            if rule.event_patterns.contains(&event.event_type) {
-                if self.evaluate_conditions(&rule.conditions, &event.payload) {
-                    if let Some(order) = Self::apply_generation_rule(rule, event)? {
-                        generated_orders.push(order);
-                    }
-                }
+            if !rule.event_patterns.contains(&event.event_type)
+                || !self.evaluate_conditions(&rule.conditions, &event.payload)
+            {
+                continue;
+            }
+            if let Some(order) = Self::apply_generation_rule(rule, event)? {
+                generated_orders.push(order);
             }
         }
 

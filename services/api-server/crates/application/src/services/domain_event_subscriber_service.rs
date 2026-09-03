@@ -286,7 +286,7 @@ const AI_JOB_EVENT_TYPES: [&str; 4] = [
 ];
 
 fn is_ai_job_event_type(event_type: &str) -> bool {
-    AI_JOB_EVENT_TYPES.iter().any(|t| *t == event_type)
+    AI_JOB_EVENT_TYPES.contains(&event_type)
 }
 
 fn ai_job_sse_event_name(event_type: &str) -> Option<&'static str> {

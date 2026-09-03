@@ -1,0 +1,570 @@
+/* --- Data Tables Premium Styling (High Density) --- */
+
+.table-container {
+    background: #F5F5F7;
+    /* Reduced glare background */
+    border-radius: var(--radius-m);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Ensure it fills container */
+    border: 1px solid var(--border-light);
+    /* Restore outer border */
+}
+
+.table-scroll-wrapper {
+    overflow: auto;
+    /* Enable scrolling in both directions if needed */
+    flex: 1;
+    position: relative;
+    width: 100%;
+}
+
+table {
+    width: max-content;
+    /* Allow table to grow beyond container width */
+    min-width: 100%;
+    /* But at least fill the container */
+    border-collapse: collapse;
+    table-layout: auto;
+    /* Adaptive column widths */
+    background: white;
+    /* Card-like look for the table itself */
+}
+
+/* --- Row Status Background Colors --- */
+/* 0: 计划中 - 白色 */
+tr.row-scheduled {
+    background-color: #FFFFFF;
+}
+
+tr.row-scheduled:hover {
+    background-color: #F8F9FA;
+}
+
+/* 1: 前站起飞 - 浅橙黄色 */
+tr.row-prev-departed {
+    background-color: #FFF8E1;
+}
+
+tr.row-prev-departed:hover {
+    background-color: #FFECB3;
+}
+
+/* 2: 到达本站 - 天蓝色 */
+tr.row-arrived {
+    background-color: #E3F2FD;
+}
+
+tr.row-arrived:hover {
+    background-color: #BBDEFB;
+}
+
+/* 3: 值机结束 - 浅水绿蓝色 */
+tr.row-checkin-end {
+    background-color: #E0F7FA;
+}
+
+tr.row-checkin-end:hover {
+    background-color: #B2EBF2;
+}
+
+/* 4: 登机 - 浅灰蓝色 */
+tr.row-boarding {
+    background-color: #ECEFF1;
+}
+
+tr.row-boarding:hover {
+    background-color: #CFD8DC;
+}
+
+/* 5: 催促登机 - 浅灰蓝色 (同4) */
+tr.row-boarding-urge {
+    background-color: #ECEFF1;
+}
+
+tr.row-boarding-urge:hover {
+    background-color: #CFD8DC;
+}
+
+/* 6: 结束登机 - 绿色 */
+tr.row-boarding-ended {
+    background-color: #E8F5E9;
+}
+
+tr.row-boarding-ended:hover {
+    background-color: #C8E6C9;
+}
+
+/* 7: 已起飞 - 灰色 */
+tr.row-departed {
+    background-color: #F5F5F5;
+}
+
+tr.row-departed:hover {
+    background-color: #EEEEEE;
+}
+
+/* 8: 到下站 - 灰色 (同7) */
+tr.row-next-arrived {
+    background-color: #F5F5F5;
+}
+
+tr.row-next-arrived:hover {
+    background-color: #EEEEEE;
+}
+
+/* 9: 取消 - 灰色条纹 */
+tr.row-cancelled {
+    background: repeating-linear-gradient(45deg,
+            #F5F5F5,
+            #F5F5F5 10px,
+            #E0E0E0 10px,
+            #E0E0E0 20px);
+}
+
+tr.row-cancelled:hover {
+    background: repeating-linear-gradient(45deg,
+            #EEEEEE,
+            #EEEEEE 10px,
+            #BDBDBD 10px,
+            #BDBDBD 20px);
+}
+
+tr.row-cancelled td {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* 10: 延误 - 品红色 */
+tr.row-delayed {
+    background-color: #FCE4EC;
+}
+
+tr.row-delayed:hover {
+    background-color: #F8BBD9;
+}
+
+/* Selected row overlay */
+tr.row-selected {
+    box-shadow: inset 0 0 0 2px rgba(0, 122, 255, 0.5);
+}
+
+#flightTableBody tr[data-flight-id]:focus-visible {
+    outline: 2px solid rgba(0, 122, 255, 0.45);
+    outline-offset: -2px;
+}
+
+/* --- Header Styling --- */
+thead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+th {
+    background: rgba(245, 245, 247, 0.95);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+
+    padding: 8px 10px;
+    /* Minimal padding */
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    /* Slightly bolder */
+    color: var(--text-secondary);
+    letter-spacing: -0.01em;
+
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+    /* Remove vertical borders */
+    white-space: nowrap;
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s;
+    height: auto;
+    min-height: 40px;
+    padding: 8px 10px;
+    /* Fixed height for header */
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+th:first-child {
+    padding-left: 12px;
+}
+
+th:last-child {
+    padding-right: 12px;
+}
+
+th.sortable {
+    cursor: pointer;
+}
+
+th.sortable:hover {
+    background-color: rgba(235, 235, 240, 0.9);
+}
+
+/* --- Body/Row Styling --- */
+td {
+    padding: 4px 8px;
+    /* Minimized padding for density */
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    /* Remove vertical borders */
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    /* Uniform weight */
+    text-align: center;
+    vertical-align: middle;
+    /* Keep middle for single line alignment */
+    white-space: nowrap;
+    /* Prevent wrapping */
+    overflow: visible;
+    /* Show content */
+    transition: background-color 0.15s ease;
+    line-height: normal;
+    /* Default line height for tight packing */
+    height: auto;
+    min-height: 40px;
+    /* Consistent row height */
+    box-sizing: border-box;
+}
+
+td:first-child {
+    padding-left: 12px;
+    font-weight: 500;
+}
+
+td:last-child {
+    padding-right: 12px;
+}
+
+th[aria-sort="ascending"]::after {
+    content: " \2191";
+    font-size: 12px;
+}
+
+th[aria-sort="descending"]::after {
+    content: " \2193";
+    font-size: 12px;
+}
+
+th[aria-sort="none"]::after {
+    content: " \2195";
+    color: #8b9097;
+    font-size: 11px;
+}
+
+tr.virtual-spacer-row {
+    background: transparent !important;
+    pointer-events: none;
+}
+
+tr.virtual-spacer-row td {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+}
+
+/* Column Zebra Striping */
+td:nth-child(even),
+th:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* --- Status Pills (Compact) --- */
+.cell-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    /* Reduced padding */
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 50px;
+    line-height: 1.2;
+    height: auto;
+}
+
+/* Define status colors specifically for table */
+.status-scheduled {
+    background-color: #E3F2FD;
+    color: #1565C0;
+}
+
+/* Blue */
+.status-boarding {
+    background-color: #FFF3E0;
+    color: #EF6C00;
+}
+
+/* Orange */
+.status-boarding-ended {
+    background-color: #FBE9E7;
+    color: #D84315;
+}
+
+/* Deep Orange */
+.status-departed {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+/* Green */
+.status-delayed {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+
+/* Red */
+.status-arrived {
+    background-color: #F5F5F5;
+    color: #616161;
+}
+
+/* Grey */
+.status-cancelled {
+    background-color: #ECEFF1;
+    color: #546E7A;
+    text-decoration: line-through;
+}
+
+/* Blue Grey */
+.status-prev-departed {
+    background-color: #E3F2FD;
+    color: #1976D2;
+}
+
+/* Light Blue */
+.status-checkin-end {
+    background-color: #FFF8E1;
+    color: #F57C00;
+}
+
+/* Amber */
+.status-boarding-urge {
+    background-color: #FFEBEE;
+    color: #D32F2F;
+}
+
+/* Red warning */
+.status-next-arrived {
+    background-color: #E0F2F1;
+    color: #00796B;
+}
+
+/* Teal */
+
+
+/* --- Cell Content Specifics --- */
+.cell-time {
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    /* Tabular nums */
+    font-size: 18px;
+    /* Increased from 13px */
+    color: var(--text-secondary);
+    letter-spacing: -0.5px;
+}
+
+.time-source-actual {
+    color: #FF3B30 !important;
+    /* Red */
+    font-weight: 600;
+}
+
+.time-source-estimated {
+    color: #AF52DE !important;
+    /* Purple */
+    font-weight: 600;
+}
+
+.time-source-scheduled {
+    color: var(--text-primary) !important;
+    /* Black/Dark Grey */
+}
+
+.cell-route {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Center horizontal */
+    gap: 6px;
+    font-weight: 500;
+}
+
+.route-arrow {
+    color: var(--text-tertiary);
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.cell-vip {
+    color: #FF3B30;
+    font-weight: 700;
+    font-size: 10px;
+    border: 1px solid #FF3B30;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.text-vip {
+    color: #FF3B30 !important;
+}
+
+.text-intl {
+    color: #4169E1 !important;
+    /* Royal Blue - 宝蓝色 */
+    font-weight: 500;
+    /* 正常粗细，不加粗 */
+}
+
+.text-vip-intl {
+    color: #8B2252 !important;
+    /* VIP 红 + 国际蓝的混合 */
+    font-weight: 500;
+    /* 正常粗细 */
+}
+
+/* --- Resizer Handle --- */
+.resizer-handle {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    height: 20px;
+    /* Only show handle in middle */
+    width: 4px;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 25;
+    border-right: 2px solid rgba(0, 0, 0, 0.1);
+    /* Visual indicator */
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+th:hover .resizer-handle {
+    opacity: 1;
+}
+
+.resizer-handle:hover,
+.resizing {
+    border-right-color: var(--system-blue);
+    opacity: 1;
+}
+
+/* --- Drag & Drop Visuals --- */
+th.dragging {
+    opacity: 0.4;
+    background-color: var(--bg-input);
+}
+
+th.drag-over {
+    box-shadow: inset 4px 0 0 var(--system-blue);
+    /* Left border inset effect */
+}
+
+/* --- Flash Animation (Refined) --- */
+@keyframes flash-update {
+    0% {
+        background-color: rgba(52, 199, 89, 0.2);
+    }
+
+    /* Green flash */
+    100% {
+        background-color: transparent;
+    }
+}
+
+.cell-flash {
+    animation: flash-update 1.5s ease-out;
+}
+
+/* --- Scrollbar Customization --- */
+.table-scroll-wrapper::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    /* Creates padding around thumb */
+    background-clip: content-box;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.interactive-cell.empty:hover .cell-placeholder {
+    opacity: 0;
+    /* Clean empty state */
+}
+
+.interactive-cell.filled {
+    font-family: 'SF Mono', monospace;
+    color: var(--text-primary);
+}
+
+.remark-cell {
+    /* Truncate text */
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    /* Override flex for ellipsis */
+    text-align: left;
+}
+
+/* --- Context Menu --- */
+.context-menu {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    min-width: 120px;
+    padding: 4px 0;
+    display: none;
+}
+
+.context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.1s;
+}
+
+.context-menu-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.context-menu-item.danger {
+    color: #FF3B30;
+}
+
+.context-menu-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}

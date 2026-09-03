@@ -240,7 +240,7 @@ pub fn global_runtime_error_monitor() -> Option<Arc<RuntimeErrorMonitor>> {
     GLOBAL_RUNTIME_ERROR_MONITOR
         .get()
         .and_then(|opt| opt.as_ref())
-        .and_then(|weak| Weak::upgrade(weak))
+        .and_then(Weak::upgrade)
 }
 
 pub fn record_runtime_error_background(input: RuntimeErrorInput) {

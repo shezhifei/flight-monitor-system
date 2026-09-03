@@ -278,10 +278,7 @@ pub trait DepartmentQualificationRepository {
     /// or row id, across departments. Used by the shared object-reference
     /// validator; returns the row regardless of active state so callers can
     /// distinguish "不存在" from "已停用". Default: not resolvable.
-    async fn find_catalog_by_key(
-        &self,
-        _key: &str,
-    ) -> Result<Option<DepartmentQualificationCatalog>, DomainError> {
+    async fn find_catalog_by_key(&self, _key: &str) -> Result<Option<DepartmentQualificationCatalog>, DomainError> {
         Ok(None)
     }
     async fn list_catalogs(
@@ -507,12 +504,7 @@ pub trait EquipmentTransactionalRepository<Tx>: Send + Sync {
 pub trait PersonnelRuntimeRepository {
     async fn save(&self, runtime: &PersonnelRuntime) -> Result<PersonnelRuntime, DomainError>;
     async fn find_by_user(&self, user_id: &str) -> Result<Option<PersonnelRuntime>, DomainError>;
-    async fn update_status(
-        &self,
-        user_id: &str,
-        status: &str,
-        updated_by: Option<&str>,
-    ) -> Result<bool, DomainError>;
+    async fn update_status(&self, user_id: &str, status: &str, updated_by: Option<&str>) -> Result<bool, DomainError>;
     async fn update_position(
         &self,
         user_id: &str,
@@ -624,7 +616,11 @@ pub trait TerminalRepository {
 pub trait TerminalResourceTransactionalRepository<Tx>: Send + Sync {
     async fn save_terminal_in_tx(&self, tx: &mut Tx, terminal: &Terminal) -> Result<Terminal, DomainError>;
     async fn save_gate_in_tx(&self, tx: &mut Tx, gate: &Gate) -> Result<Gate, DomainError>;
-    async fn save_carousel_in_tx(&self, tx: &mut Tx, carousel: &BaggageCarousel) -> Result<BaggageCarousel, DomainError>;
+    async fn save_carousel_in_tx(
+        &self,
+        tx: &mut Tx,
+        carousel: &BaggageCarousel,
+    ) -> Result<BaggageCarousel, DomainError>;
     async fn save_stand_in_tx(&self, tx: &mut Tx, stand: &Stand) -> Result<Stand, DomainError>;
     async fn save_gate_with_terminal_in_tx(
         &self,
@@ -734,10 +730,7 @@ pub trait DispatchOrderMemberRepository {
     /// 避免对每人单独 `find_by_user`。每条返回
     /// `user_id / order_id / flight_id / flight_no / task_type / task_type_name /
     /// slot_code / slot_name / status / planned_start_time`。默认空实现供测试替身。
-    async fn find_active_slots_for_users(
-        &self,
-        _user_ids: &[String],
-    ) -> Result<Vec<serde_json::Value>, DomainError> {
+    async fn find_active_slots_for_users(&self, _user_ids: &[String]) -> Result<Vec<serde_json::Value>, DomainError> {
         Ok(Vec::new())
     }
 }

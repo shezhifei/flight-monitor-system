@@ -133,7 +133,11 @@ impl FlightMonitorRowRepository for PgFlightMonitorRowRepository {
         inbound_flight_id: &str,
         outbound_flight_id: &str,
     ) -> Result<(), DomainError> {
-        let mut tx = self.pool.begin().await.map_err(|e| DomainError::Internal(e.to_string()))?;
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| DomainError::Internal(e.to_string()))?;
         <Self as FlightMonitorRowTransactionalRepository<sqlx::Transaction<'_, sqlx::Postgres>>>
             ::merge_turnaround_in_tx(self, &mut tx, link_id, inbound_flight_id, outbound_flight_id)
             .await?;

@@ -395,7 +395,7 @@ impl WorkflowFormService {
             form_code: saved_submission.form_code,
             form_version: saved_submission.form_version,
             flowable_task_completed,
-            business_case: serde_json::to_value(business_case).unwrap_or_else(|_| Value::Null),
+            business_case: serde_json::to_value(business_case).unwrap_or(Value::Null),
         })
     }
 

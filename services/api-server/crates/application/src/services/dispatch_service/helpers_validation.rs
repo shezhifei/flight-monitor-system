@@ -1,15 +1,10 @@
 use chrono::{DateTime, Duration, Utc};
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
-use tracing::warn;
 
 use crate::schemas::dispatch_schemas::*;
-use crate::services::notification_service::DispatchBatchNotificationCreate;
 use fms_domain::error::DomainError;
-use fms_domain::models::anomaly::{AnomalySeverity, AnomalyType};
 use fms_domain::models::dispatch::*;
-use fms_domain::models::dispatch_collaboration::DispatchCollaborationEvent;
 
 use super::{DispatchService, NULL_VALUE};
 
@@ -169,9 +164,7 @@ impl DispatchService {
         equipment_ids
     }
 
-    pub(super) fn assignment_driver_binding(
-        assignment: &Value,
-    ) -> (Option<AssigneeType>, Option<String>) {
+    pub(super) fn assignment_driver_binding(assignment: &Value) -> (Option<AssigneeType>, Option<String>) {
         let driver_type = match Self::assignment_string_field(assignment, "driver_type").as_deref() {
             Some("individual") => Some(AssigneeType::Individual),
             _ => assignment
@@ -716,15 +709,12 @@ impl DispatchService {
             .filter(|item| !item.is_empty())
     }
 
-    pub(super) fn normalize_optional_ref<'a>(value: Option<&'a str>) -> Option<&'a str> {
+    pub(super) fn normalize_optional_ref(value: Option<&str>) -> Option<&str> {
         value.map(str::trim).filter(|item| !item.is_empty())
     }
 
-    pub(super) fn should_auto_create_checkin_member(
-        individual_user_id: Option<&str>,
-        actor_id: &str,
-    ) -> bool {
-        individual_user_id.as_deref().is_some_and(|user_id| user_id == actor_id)
+    pub(super) fn should_auto_create_checkin_member(individual_user_id: Option<&str>, actor_id: &str) -> bool {
+        individual_user_id.is_some_and(|user_id| user_id == actor_id)
     }
 
     pub(super) fn serialize_crew_requirement_snapshot(requirements: &[TaskTypeCrewSlotRequirement]) -> Vec<Value> {

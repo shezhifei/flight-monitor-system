@@ -97,7 +97,7 @@ impl ResourceAvailabilityService {
         planned_start_time: DateTime<Utc>,
         planned_end_time: DateTime<Utc>,
         terminal: Option<&str>,
-        exclude_order_id: Option<&str>,
+        _exclude_order_id: Option<&str>,
     ) -> Result<ResourceAvailability, DomainError> {
         let resource_id = team.id.clone();
         if !team.is_active {
@@ -446,7 +446,7 @@ impl ResourceAvailabilityService {
         let leave_records = self
             .schedule_exception_repo
             .find_leave_records(
-                &[resource_id.clone()],
+                std::slice::from_ref(&resource_id),
                 None,
                 Some(planned_start_time),
                 Some(planned_end_time),
@@ -469,7 +469,7 @@ impl ResourceAvailabilityService {
         }
 
         if let Some(rest_violation) = self
-            .check_member_rest(&[resource_id.clone()], planned_start_time, min_rest_minutes)
+            .check_member_rest(std::slice::from_ref(&resource_id), planned_start_time, min_rest_minutes)
             .await?
         {
             return Ok(unavailable(

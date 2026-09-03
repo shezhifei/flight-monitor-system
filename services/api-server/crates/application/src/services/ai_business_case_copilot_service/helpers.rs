@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::Serialize;
 use serde_json::{json, Value};
 
@@ -9,7 +9,6 @@ use fms_domain::models::ai_copilot::AiCopilotBusinessCaseBatch;
 use fms_domain::models::business_case::FlightBusinessCase;
 use fms_domain::models::flight::Flight;
 use fms_domain::models::value_objects::FlightStatus;
-use fms_domain::ports::ai_copilot_repository::AiCopilotBusinessCaseBatchRepository;
 
 use crate::services::business_case_service::BusinessCaseServiceOps;
 use crate::services::business_case_workflow_service::{BusinessCaseWorkflowBatchItem, WorkflowActor};
@@ -208,8 +207,8 @@ pub(super) fn validate_and_enrich_action(
             &case_props.binding_policy.allowed_leg_types
         };
 
-        if (leg_hint == "unknown" || leg_hint.is_empty()) && effective_default_leg.is_some() {
-            resolved_leg = effective_default_leg.as_deref().unwrap().to_string();
+        if let Some(default_leg) = effective_default_leg.filter(|_| leg_hint == "unknown" || leg_hint.is_empty()) {
+            resolved_leg = default_leg.to_string();
         }
 
         if !effective_allowed_legs.is_empty() && !effective_allowed_legs.contains(&resolved_leg) {
@@ -469,10 +468,7 @@ pub(super) fn match_flight(
             status: Some(flight.status.label().to_string()),
         };
 
-        if best_candidate
-            .as_ref()
-            .map_or(true, |best| candidate.score > best.score)
-        {
+        if best_candidate.as_ref().is_none_or(|best| candidate.score > best.score) {
             best_candidate = Some(candidate);
         }
     }

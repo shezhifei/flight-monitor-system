@@ -7,12 +7,12 @@ use chrono::{DateTime, Utc};
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
+use crate::repositories::pg_ontology_attribute_reference_repository::PgOntologyAttributeReferenceRepository;
 use fms_domain::error::DomainError;
 use fms_domain::models::dispatch::*;
 use fms_domain::ports::dispatch_repository::{
     CreateDispatchOrderCommand, DispatchOrderRepository, DispatchOrderTransactionalRepository,
 };
-use crate::repositories::pg_ontology_attribute_reference_repository::PgOntologyAttributeReferenceRepository;
 
 pub struct PgDispatchOrderRepository {
     pool: PgPool,
@@ -921,7 +921,7 @@ impl DispatchOrderRepository for PgDispatchOrderRepository {
             .filter(|status| !status.is_empty())
             .collect::<Vec<_>>();
 
-        if !include_cancelled && !normalized_statuses.iter().any(|status| *status == "cancelled") {
+        if !include_cancelled && !normalized_statuses.contains(&"cancelled") {
             builder.push(" AND d.status != 'cancelled'");
         }
         if !normalized_statuses.is_empty() {

@@ -18,6 +18,7 @@ pub(crate) use std::time::{Duration, Instant};
 
 pub(crate) use crate::error::ApiError;
 pub(crate) use crate::middleware::jwt::JwtAuth;
+pub(crate) use crate::middleware::jwt::ACCESS_TOKEN_COOKIE;
 pub(crate) use crate::request_context::{
     build_ip_subnet_hash, build_user_agent_hash, extract_client_ip, extract_user_agent,
 };
@@ -28,7 +29,6 @@ pub(crate) use fms_application::services::online_status_service::OnlineStatusSer
 pub(crate) use fms_application::services::operator_identity_service::OperatorIdentityService;
 pub(crate) const DEFAULT_LOGIN_FAILURE_LIMIT: u32 = 5;
 pub(crate) const DEFAULT_LOGIN_FAILURE_WINDOW_SECS: u64 = 15 * 60;
-pub(crate) const ACCESS_TOKEN_COOKIE: &str = "access_token";
 pub(crate) const REFRESH_TOKEN_COOKIE: &str = "refresh_token";
 pub(crate) const DEFAULT_REFRESH_COOKIE_DAYS: i64 = 7;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

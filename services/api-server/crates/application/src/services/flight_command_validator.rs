@@ -122,12 +122,12 @@ pub async fn validate_create_payload(
             ));
         }
         if let Some(leg) = dto.inbound_leg.as_ref() {
-            if normalized != "inbound" || leg.leg_type.trim().to_ascii_lowercase() != "inbound" {
+            if normalized != "inbound" || !leg.leg_type.trim().eq_ignore_ascii_case("inbound") {
                 return Err(DomainError::ValidationError("direction 与 inbound_leg 不一致".into()));
             }
         }
         if let Some(leg) = dto.outbound_leg.as_ref() {
-            if normalized != "outbound" || leg.leg_type.trim().to_ascii_lowercase() != "outbound" {
+            if normalized != "outbound" || !leg.leg_type.trim().eq_ignore_ascii_case("outbound") {
                 return Err(DomainError::ValidationError("direction 与 outbound_leg 不一致".into()));
             }
         }

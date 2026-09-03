@@ -13,7 +13,7 @@ use crate::services::dispatch_chat_service::DispatchChatService;
 use crate::services::legal_resource_miner::LegalResourceMiner;
 use crate::types::ConcreteNotificationService;
 use fms_domain::error::DomainError;
-use fms_domain::models::dispatch::{AssigneeType, DispatchOrder};
+use fms_domain::models::dispatch::DispatchOrder;
 use fms_domain::ports::dispatch_collaboration_repository::DispatchCollaborationRepository;
 use fms_domain::ports::dispatch_repository::{
     DepartmentQualificationRepository, DispatchOrderMemberRepository, DispatchOrderRepository,

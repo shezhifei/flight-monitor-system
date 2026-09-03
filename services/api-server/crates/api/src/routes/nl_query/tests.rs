@@ -1,3 +1,5 @@
+#![allow(clippy::await_holding_lock)]
+
 use super::*;
 use crate::middleware::jwt::JwtSecret;
 use crate::services::ai_runtime_client::AiRuntimeClient;
@@ -144,8 +146,7 @@ async fn build_services(
     let flight_svc = Arc::new(fms_application::services::flight_service::FlightService::new(
         flight_repo,
     ));
-    let auth_svc = Arc::new(fms_application::services::authorization_service::AuthorizationService);
-    let context_svc = Arc::new(AiContextService::new(flight_svc, auth_svc));
+    let context_svc = Arc::new(AiContextService::new(flight_svc));
     let job_svc = Arc::new(AiJobService::new(
         Arc::new(fms_infrastructure::repositories::pg_ai_job_repository::PgAiJobRepository::new(pool.clone())),
         Arc::new(fms_infrastructure::repositories::pg_ai_run_repository::PgAiRunRepository::new(pool.clone())),
@@ -1373,7 +1374,7 @@ async fn test_streaming_python_valid_proposals_creates_proposals() {
         .await
         .expect("list proposals");
     assert!(
-        proposals.len() >= 1,
+        !proposals.is_empty(),
         "at least one proposal must be created for run {}",
         env_run_id
     );
@@ -2354,7 +2355,7 @@ async fn test_stream_with_tools_enabled_write_action_creates_proposal() {
         .await
         .expect("list proposals");
     assert!(
-        proposals.len() >= 1,
+        !proposals.is_empty(),
         "at least one proposal must be created for run {}",
         env_run_id
     );
@@ -2769,7 +2770,7 @@ async fn test_live_sidecar_smoke_ai_runtime_contract() {
     assert_eq!(output.status, "succeeded", "degraded answer is still succeeded");
 
     // degraded=true + status=succeeded is NOT a business failure
-    assert!(output.limitations.len() > 0, "no LLM key should produce limitations");
+    assert!(!output.limitations.is_empty(), "no LLM key should produce limitations");
     assert_eq!(output.status, "succeeded", "degraded must not be treated as failed");
 
     // Cleanup

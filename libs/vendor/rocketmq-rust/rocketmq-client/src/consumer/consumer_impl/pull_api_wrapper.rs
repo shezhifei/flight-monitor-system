@@ -332,10 +332,7 @@ impl PullAPIWrapper {
             )
             .await
         } else {
-            Err(mq_client_err!(format!(
-                "The broker[{}] not exist",
-                mq.broker_name(),
-            )))
+            Err(mq_client_err!(format!("The broker[{}] not exist", mq.broker_name(),)))
         }
     }
 
@@ -435,10 +432,7 @@ impl PullAPIWrapper {
                 )
                 .await
         } else {
-            Err(mq_client_err!(format!(
-                "The broker[{}] not exist",
-                mq.broker_name(),
-            )))
+            Err(mq_client_err!(format!("The broker[{}] not exist", mq.broker_name(),)))
         }
     }
 

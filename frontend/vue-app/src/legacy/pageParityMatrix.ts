@@ -115,7 +115,7 @@ export type SurfaceParityRow =
   | RedirectSurfaceParityRow
   | DebugExcludedSurfaceParityRow;
 
-const LEGACY_HTML_ROOT = 'frontend/backup/legacy-frontend-archive/html';
+const LEGACY_HTML_ROOT = 'frontend/legacy/html';
 const PARITY_ROOT = 'frontend/vue-app';
 
 /** Screenshot basename prefixes (must match capture.metadata.json file names). */

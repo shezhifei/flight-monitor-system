@@ -1,5 +1,6 @@
 """Static guards for schema-driven object-reference validation."""
 
+import re
 from pathlib import Path
 
 
@@ -116,7 +117,7 @@ def test_team_owner_and_reference_index_share_uow() -> None:
 def test_team_resource_service_prefers_atomic_writer_when_wired() -> None:
     source = RESOURCE_SERVICE.read_text(encoding="utf-8")
     assert "with_team_writer" in source
-    assert source.count('collect_attribute_references(\n                "Team"') >= 3
+    assert len(re.findall(r'collect_attribute_references\(\s*"Team"', source)) >= 3
     assert "writer.save_with_references(&team, &references).await" in source
 
 
@@ -170,13 +171,13 @@ def test_terminal_resource_owner_and_reference_index_share_uow() -> None:
     assert "TerminalResourceAttributeTransactionalWriter" in source
     # 全部 7 个 writer 方法：四类基础 save + 三个带 Terminal attach 的 save。
     for save_call in (
-        "self.resource_repo.save_terminal_in_tx",
-        "self.resource_repo.save_gate_in_tx",
-        "self.resource_repo.save_gate_with_terminal_in_tx",
-        "self.resource_repo.save_carousel_in_tx",
-        "self.resource_repo.save_carousel_with_terminal_in_tx",
-        "self.resource_repo.save_stand_in_tx",
-        "self.resource_repo.save_stand_with_terminal_in_tx",
+        "save_terminal_in_tx",
+        "save_gate_in_tx",
+        "save_gate_with_terminal_in_tx",
+        "save_carousel_in_tx",
+        "save_carousel_with_terminal_in_tx",
+        "save_stand_in_tx",
+        "save_stand_with_terminal_in_tx",
     ):
         assert save_call in source, f"missing writer call: {save_call}"
     # 每个方法内 owner 保存、引用替换、commit 必须在同一事务里顺序出现。
@@ -195,7 +196,9 @@ def test_terminal_resource_owner_and_reference_index_share_uow() -> None:
         rest = source[start + 1:]
         end = start + 1 + rest.index("async fn ") if "async fn " in rest else len(source)
         body = source[start:end]
-        save_pos = body.index("self.resource_repo.save_")
+        save_match = re.search(r"self\s*\.\s*resource_repo", body)
+        assert save_match is not None, f"{method}: missing transactional owner save"
+        save_pos = save_match.start()
         replace_pos = body.index("replace_owner_references_in_tx")
         commit_pos = body.index("self.uow.commit(tx).await?")
         assert save_pos < replace_pos < commit_pos, (

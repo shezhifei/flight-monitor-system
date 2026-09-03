@@ -77,9 +77,7 @@ pub async fn list_orders(
         "error": null,
         "request_id": request_id(&req),
     });
-    let body = web::Bytes::from(
-        serde_json::to_vec(&payload).map_err(|error| ApiError::Internal(error.to_string()))?,
-    );
+    let body = web::Bytes::from(serde_json::to_vec(&payload).map_err(|error| ApiError::Internal(error.to_string()))?);
     DISPATCH_ORDER_LIST_CACHE.store(body.clone());
     Ok(json_bytes_response(body))
 }

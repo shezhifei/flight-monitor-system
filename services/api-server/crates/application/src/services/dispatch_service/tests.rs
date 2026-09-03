@@ -63,8 +63,6 @@ impl DispatchOrderRepository for RecordingDispatchOrderRepo {
         unimplemented!()
     }
 
-
-
     async fn find_by_user(&self, _user_id: &str, _status: Option<&str>) -> Result<Vec<DispatchOrder>, DomainError> {
         unimplemented!()
     }

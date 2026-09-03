@@ -290,7 +290,7 @@ pub enum ToolAuthorizationError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::ai_runtime_service::tool_authorization_service::FeatureFlagSource as _;
+
     use fms_domain::models::tool_governance::{ObjectPolicy, ResolvedToolGovernance, ToolGovernancePreset};
     use serde_json::json;
     use std::collections::HashMap;
@@ -381,7 +381,7 @@ mod tests {
     #[tokio::test]
     async fn protected_tool_denied_when_requester_missing() {
         let governance = protected_governance(
-            "flight_update_status".into(),
+            "flight_update_status",
             vec!["flight:write".into()],
             ObjectPolicy {
                 object_type_arg: None,
@@ -406,7 +406,7 @@ mod tests {
     #[tokio::test]
     async fn protected_tool_denied_when_permission_undeclared() {
         let governance = protected_governance(
-            "todo_create".into(),
+            "todo_create",
             vec!["__PLACEHOLDER__".into()],
             ObjectPolicy {
                 object_type_arg: None,
@@ -430,7 +430,7 @@ mod tests {
     #[tokio::test]
     async fn protected_tool_returns_proposal_only_for_standard_requester() {
         let governance = protected_governance(
-            "todo_create".into(),
+            "todo_create",
             vec!["todo:write".into()],
             ObjectPolicy {
                 object_type_arg: None,
@@ -457,7 +457,7 @@ mod tests {
     #[tokio::test]
     async fn protected_tool_allows_direct_when_requester_has_all_permissions() {
         let mut governance = protected_governance(
-            "flight_update_status".into(),
+            "flight_update_status",
             vec!["flight:write".into()],
             ObjectPolicy {
                 object_type_arg: None,
@@ -488,7 +488,7 @@ mod tests {
     #[tokio::test]
     async fn protected_tool_denied_when_object_policy_rejects_target() {
         let governance = protected_governance(
-            "flight_update_status".into(),
+            "flight_update_status",
             vec!["flight:write".into()],
             ObjectPolicy {
                 object_type_arg: Some("flight_id".into()),
@@ -516,7 +516,7 @@ mod tests {
     #[tokio::test]
     async fn feature_flag_can_demote_direct_to_proposal_only() {
         let mut governance = protected_governance(
-            "flight_update_status".into(),
+            "flight_update_status",
             vec!["flight:write".into()],
             ObjectPolicy {
                 object_type_arg: None,

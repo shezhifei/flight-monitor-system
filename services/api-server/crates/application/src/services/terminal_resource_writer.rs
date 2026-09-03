@@ -64,7 +64,11 @@ impl<U: UnitOfWork> UowTerminalResourceAttributeWriter<U> {
         reference_repo: Arc<dyn OntologyAttributeReferenceTransactionalRepository<U::Tx> + Send + Sync>,
         uow: Arc<U>,
     ) -> Self {
-        Self { resource_repo, reference_repo, uow }
+        Self {
+            resource_repo,
+            reference_repo,
+            uow,
+        }
     }
 }
 
@@ -81,7 +85,9 @@ where
     ) -> Result<Terminal, DomainError> {
         let mut tx = self.uow.begin().await?;
         let saved = self.resource_repo.save_terminal_in_tx(&mut tx, terminal).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "Terminal", &saved.terminal_id, references).await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "Terminal", &saved.terminal_id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }
@@ -93,7 +99,9 @@ where
     ) -> Result<Gate, DomainError> {
         let mut tx = self.uow.begin().await?;
         let saved = self.resource_repo.save_gate_in_tx(&mut tx, gate).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "Gate", &saved.gate_id, references).await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "Gate", &saved.gate_id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }
@@ -105,8 +113,13 @@ where
         references: &[OntologyAttributeReference],
     ) -> Result<Gate, DomainError> {
         let mut tx = self.uow.begin().await?;
-        let saved = self.resource_repo.save_gate_with_terminal_in_tx(&mut tx, terminal_id, gate).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "Gate", &saved.gate_id, references).await?;
+        let saved = self
+            .resource_repo
+            .save_gate_with_terminal_in_tx(&mut tx, terminal_id, gate)
+            .await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "Gate", &saved.gate_id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }
@@ -118,7 +131,9 @@ where
     ) -> Result<BaggageCarousel, DomainError> {
         let mut tx = self.uow.begin().await?;
         let saved = self.resource_repo.save_carousel_in_tx(&mut tx, carousel).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "BaggageCarousel", &saved.carousel_id, references).await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "BaggageCarousel", &saved.carousel_id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }
@@ -130,8 +145,13 @@ where
         references: &[OntologyAttributeReference],
     ) -> Result<BaggageCarousel, DomainError> {
         let mut tx = self.uow.begin().await?;
-        let saved = self.resource_repo.save_carousel_with_terminal_in_tx(&mut tx, terminal_id, carousel).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "BaggageCarousel", &saved.carousel_id, references).await?;
+        let saved = self
+            .resource_repo
+            .save_carousel_with_terminal_in_tx(&mut tx, terminal_id, carousel)
+            .await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "BaggageCarousel", &saved.carousel_id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }
@@ -143,7 +163,9 @@ where
     ) -> Result<Stand, DomainError> {
         let mut tx = self.uow.begin().await?;
         let saved = self.resource_repo.save_stand_in_tx(&mut tx, stand).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "Stand", &saved.id, references).await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "Stand", &saved.id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }
@@ -155,8 +177,13 @@ where
         references: &[OntologyAttributeReference],
     ) -> Result<Stand, DomainError> {
         let mut tx = self.uow.begin().await?;
-        let saved = self.resource_repo.save_stand_with_terminal_in_tx(&mut tx, terminal_id, stand).await?;
-        self.reference_repo.replace_owner_references_in_tx(&mut tx, "Stand", &saved.id, references).await?;
+        let saved = self
+            .resource_repo
+            .save_stand_with_terminal_in_tx(&mut tx, terminal_id, stand)
+            .await?;
+        self.reference_repo
+            .replace_owner_references_in_tx(&mut tx, "Stand", &saved.id, references)
+            .await?;
         self.uow.commit(tx).await?;
         Ok(saved)
     }

@@ -52,24 +52,17 @@ pub fn validate_stand_composition(
         .map(|code| code.trim().to_ascii_lowercase())
         .collect::<Vec<_>>();
     if child_codes.len() != child_codes.iter().collect::<HashSet<_>>().len() {
-        return Err(DomainError::Conflict(
-            "机位 composed_of 不应重复引用同一子机位".into(),
-        ));
+        return Err(DomainError::Conflict("机位 composed_of 不应重复引用同一子机位".into()));
     }
     if child_codes.iter().any(|code| code == &root) {
         return Err(DomainError::Conflict("机位 composed_of 不能引用自身".into()));
     }
 
     // 子机位必须存在且未停用（业务外键，无物理 FK）。
-    let stand_by_code = |code: &str| {
-        stands
-            .iter()
-            .find(|stand| stand.code.trim().eq_ignore_ascii_case(code))
-    };
+    let stand_by_code = |code: &str| stands.iter().find(|stand| stand.code.trim().eq_ignore_ascii_case(code));
     for (child_key, child_display) in child_codes.iter().zip(composed_of.iter()) {
-        let child = stand_by_code(child_key).ok_or_else(|| {
-            DomainError::Conflict(format!("组成机位 {child_display} 不存在"))
-        })?;
+        let child = stand_by_code(child_key)
+            .ok_or_else(|| DomainError::Conflict(format!("组成机位 {child_display} 不存在")))?;
         if !child.is_active {
             return Err(DomainError::Conflict(format!("组成机位 {child_display} 已停用")));
         }
@@ -174,7 +167,11 @@ mod tests {
 
     #[test]
     fn accepts_flat_composition() {
-        let stands = vec![stand("316", &[], true), stand("316L", &[], true), stand("316R", &[], true)];
+        let stands = vec![
+            stand("316", &[], true),
+            stand("316L", &[], true),
+            stand("316R", &[], true),
+        ];
         assert!(validate_stand_composition("316", &composed(&["316L", "316R"]), &stands).is_ok());
     }
 

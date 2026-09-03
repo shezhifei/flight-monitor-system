@@ -27,7 +27,7 @@ jobs:
           components: clippy, rustfmt
       
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -72,10 +72,15 @@ jobs:
         run: cargo test --lib --bins
       
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v3
+        # v4 semantics: names must be unique per workflow run (v3 overwrote
+        # duplicates), and the artifact root is the matched file's directory
+        # rather than the full `path` prefix. Both hold for these names, and
+        # `performance-gate` below consumes them by name.
+        uses: actions/upload-artifact@v4
         with:
           name: fms-api-binary
           path: services/api-server/target/release/fms-server
+          if-no-files-found: error
       
       # ============================================================
       # Step: Capture Performance Baseline (NEW!)
@@ -95,7 +100,7 @@ jobs:
         continue-on-error: true  # Baseline capture is optional
       
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: steps.baseline.outcome == 'success'
         with:
           name: benchmark-results
@@ -115,14 +120,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      # v3 downloaders cannot reliably see artifacts written by v4 uploaders,
+      # so producer and consumer were moved to v4 together.
+      #
+      # Pre-existing flaw, left as-is deliberately (out of scope for a version
+      # bump): the `benchmark-results` upload is conditional on the optional
+      # baseline step succeeding, while these downloads are unconditional -- so
+      # if baseline capture fails, this job now fails here. They are also dead
+      # weight: the validation step below reads `benches/criterion-baseline`
+      # and `target/criterion`, not `artifacts/benchmarks/`. Fixing this means
+      # deciding which baseline is authoritative, not renaming steps.
       - name: Download benchmark artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: benchmark-results
           path: services/api-server/artifacts/benchmarks/current
       
       - name: Download baseline artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: benchmark-results
           path: services/api-server/artifacts/benchmarks/baseline

@@ -177,15 +177,22 @@ impl OnlineStatusService {
         }
 
         // 当前用户自己占用的席（排除自己，不要按人名排）。
-        let self_position_id = user_map.values().find(|user| {
-            user.is_position() && user.current_occupant_user_id.as_deref() == Some(current_user_id)
-        });
+        let self_position_id = user_map
+            .values()
+            .find(|user| user.is_position() && user.current_occupant_user_id.as_deref() == Some(current_user_id));
 
         // 一次查出在线个人用户的所有活跃工单槽，再按人聚合。
-        let slots = self.dispatch_member_repo.find_active_slots_for_users(&online_personal_ids).await?;
+        let slots = self
+            .dispatch_member_repo
+            .find_active_slots_for_users(&online_personal_ids)
+            .await?;
         let mut slots_by_user: BTreeMap<String, Vec<serde_json::Value>> = BTreeMap::new();
         for slot in slots {
-            let uid = slot.get("user_id").and_then(|value| value.as_str()).unwrap_or_default().to_string();
+            let uid = slot
+                .get("user_id")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default()
+                .to_string();
             slots_by_user.entry(uid).or_default().push(slot);
         }
 
@@ -258,9 +265,9 @@ impl OnlineStatusService {
                 }
             }
             // 个人正占着某个席 -> 只以席行出现。
-            let occupying_seat = user_map
-                .values()
-                .any(|position| position.is_position() && position.current_occupant_user_id.as_deref() == Some(user.id.as_str()));
+            let occupying_seat = user_map.values().any(|position| {
+                position.is_position() && position.current_occupant_user_id.as_deref() == Some(user.id.as_str())
+            });
             if occupying_seat {
                 continue;
             }
@@ -291,7 +298,10 @@ impl OnlineStatusService {
             } else {
                 frontline_with_work.push(base.updated_with(|| {
                     let label = slot_label(&user_slots);
-                    let meta = format!("{display_name} · {}", user.department.as_deref().unwrap_or("未设置科室"));
+                    let meta = format!(
+                        "{display_name} · {}",
+                        user.department.as_deref().unwrap_or("未设置科室")
+                    );
                     json!({
                         "assignments": user_slots,
                         "label": label,
@@ -303,16 +313,27 @@ impl OnlineStatusService {
 
         // 排序：有在办工单的一线排最前（in_progress 优先，其次 planned_start_time），
         // 其后按登录时间排席行，最后是无在办工单的一线（按登录时间倒序）。
-        frontline_with_work
-            .sort_by(|left, right| compare_frontline_order(left, right));
+        frontline_with_work.sort_by(compare_frontline_order);
         seat_rows.sort_by(|left, right| {
-            let left_login = left.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
-            let right_login = right.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
+            let left_login = left
+                .get("login_time")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default();
+            let right_login = right
+                .get("login_time")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default();
             right_login.cmp(left_login)
         });
         frontline_no_work.sort_by(|left, right| {
-            let left_login = left.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
-            let right_login = right.get("login_time").and_then(|value| value.as_str()).unwrap_or_default();
+            let left_login = left
+                .get("login_time")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default();
+            let right_login = right
+                .get("login_time")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default();
             right_login.cmp(left_login)
         });
 
@@ -341,7 +362,10 @@ fn slot_label(user_slots: &[serde_json::Value]) -> String {
     user_slots
         .iter()
         .map(|slot| {
-            let flight = slot.get("flight_no").and_then(|value| value.as_str()).unwrap_or_default();
+            let flight = slot
+                .get("flight_no")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default();
             let task = slot
                 .get("task_type_name")
                 .and_then(|value| value.as_str())
@@ -362,7 +386,11 @@ fn slot_label(user_slots: &[serde_json::Value]) -> String {
 
 fn compare_frontline_order(left: &serde_json::Value, right: &serde_json::Value) -> std::cmp::Ordering {
     fn key(item: &serde_json::Value) -> (u8, String) {
-        let assignments = item.get("assignments").and_then(|value| value.as_array()).cloned().unwrap_or_default();
+        let assignments = item
+            .get("assignments")
+            .and_then(|value| value.as_array())
+            .cloned()
+            .unwrap_or_default();
         let in_progress = assignments
             .iter()
             .any(|slot| slot.get("status").and_then(|value| value.as_str()) == Some("in_progress"));
@@ -622,12 +650,7 @@ mod tests {
         }
     }
 
-    fn sample_position(
-        id: &str,
-        username: &str,
-        department: &str,
-        occupant_user_id: Option<&str>,
-    ) -> User {
+    fn sample_position(id: &str, username: &str, department: &str, occupant_user_id: Option<&str>) -> User {
         let now = Utc::now();
         User {
             id: id.to_string(),
@@ -844,24 +867,20 @@ mod tests {
     async fn frontline_builds_flight_task_slot_label_and_deduplicates_occupant() {
         // u-9 在线且未占席，有两条工单槽 -> 一线行聚合两槽。
         let service = build_service(
-            vec![
-                sample_user("u-9", "charlie", "ground", "装卸员"),
-            ],
+            vec![sample_user("u-9", "charlie", "ground", "装卸员")],
             vec![sample_status("u-9", "active", 5, "127.0.0.5")],
-            vec![
-                serde_json::json!({
-                    "user_id": "u-9",
-                    "order_id": "o-1",
-                    "flight_id": "f-1",
-                    "flight_no": "CA101",
-                    "task_type": "load",
-                    "task_type_name": "装载",
-                    "slot_code": "loader-1",
-                    "slot_name": "装卸一",
-                    "status": "in_progress",
-                    "planned_start_time": "2026-08-26T08:00:00Z",
-                }),
-            ],
+            vec![serde_json::json!({
+                "user_id": "u-9",
+                "order_id": "o-1",
+                "flight_id": "f-1",
+                "flight_no": "CA101",
+                "task_type": "load",
+                "task_type_name": "装载",
+                "slot_code": "loader-1",
+                "slot_name": "装卸一",
+                "status": "in_progress",
+                "planned_start_time": "2026-08-26T08:00:00Z",
+            })],
         );
 
         let payload = service

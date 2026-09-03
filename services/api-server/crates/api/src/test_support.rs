@@ -838,6 +838,7 @@ pub(crate) async fn ensure_test_user(pool: &sqlx::PgPool) -> sqlx::Result<()> {
 }
 
 /// Remove the canonical `test_user` row by id or username.
+#[allow(dead_code)]
 pub(crate) async fn cleanup_test_user(pool: &sqlx::PgPool) -> sqlx::Result<()> {
     sqlx::query("DELETE FROM users WHERE username = 'tester' OR id = 'test_user'")
         .execute(pool)
@@ -854,6 +855,7 @@ pub(crate) async fn todo_exists_by_source_id(pool: &sqlx::PgPool, source_id: &st
 }
 
 /// Return whether any `todos` row matches the given `(source_type, source_id)`.
+#[allow(dead_code)]
 pub(crate) async fn todo_exists_by_source(
     pool: &sqlx::PgPool,
     source_type: &str,
@@ -867,6 +869,7 @@ pub(crate) async fn todo_exists_by_source(
 }
 
 /// Count `todos` rows matching the given `(source_type, source_id)`.
+#[allow(dead_code)]
 pub(crate) async fn todo_count_by_source(pool: &sqlx::PgPool, source_type: &str, source_id: &str) -> sqlx::Result<i64> {
     sqlx::query_scalar("SELECT COUNT(*) FROM todos WHERE source_type = $1 AND source_id = $2")
         .bind(source_type)

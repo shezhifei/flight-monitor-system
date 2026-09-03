@@ -1,17 +1,16 @@
+use async_trait::async_trait;
 use std::collections::HashSet;
 use std::sync::Arc;
-use async_trait::async_trait;
 
 use fms_domain::error::DomainError;
 use fms_domain::models::field_overlay::OntologyFieldType;
-use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
 use fms_domain::models::ontology_attribute_reference::OntologyAttributeReference;
-use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceRepository;
 use fms_domain::ports::dispatch_repository::{
-    DepartmentQualificationRepository, DepartmentRepository, EquipmentRepository,
-    EquipmentTypeRepository, StandRepository, TaskTypeRepository, TeamRepository, TeamTypeRepository,
-    TerminalRepository,
+    DepartmentQualificationRepository, DepartmentRepository, EquipmentRepository, EquipmentTypeRepository,
+    StandRepository, TaskTypeRepository, TeamRepository, TeamTypeRepository, TerminalRepository,
 };
+use fms_domain::ports::field_overlay_repository::FieldOverlayRepository;
+use fms_domain::ports::ontology_attribute_reference_repository::OntologyAttributeReferenceRepository;
 use fms_domain::ports::user_repository::UserRepository;
 use serde_json::{Map, Value};
 
@@ -76,10 +75,18 @@ impl ObjectReferenceValidator for RepositoryObjectReferenceValidator {
         };
         let overlays = self.field_overlay_repo.list(Some(object_name), false).await?;
         for field in overlays.iter().filter(|item| item.is_active) {
-            let Some(field_type) = OntologyFieldType::parse(&field.field_type) else { continue; };
-            if !field_type.is_object() { continue; }
-            let Some(target) = field.object_name_target.as_deref() else { continue; };
-            let Some(raw) = map.get(&field.field_name) else { continue; };
+            let Some(field_type) = OntologyFieldType::parse(&field.field_type) else {
+                continue;
+            };
+            if !field_type.is_object() {
+                continue;
+            }
+            let Some(target) = field.object_name_target.as_deref() else {
+                continue;
+            };
+            let Some(raw) = map.get(&field.field_name) else {
+                continue;
+            };
             let keys: Vec<&str> = match field_type {
                 OntologyFieldType::ObjectRef => raw.as_str().into_iter().collect(),
                 OntologyFieldType::ObjectRefArray => raw
@@ -96,7 +103,11 @@ impl ObjectReferenceValidator for RepositoryObjectReferenceValidator {
                     "Department" => self.department_repo.find_by_id(key).await?.map(|item| item.is_active),
                     "Team" => self.team_repo.find_by_id(key, false).await?.map(|item| item.is_active),
                     "TeamType" => self.team_type_repo.find_by_id(key).await?.map(|item| item.is_active),
-                    "EquipmentType" => self.equipment_type_repo.find_by_id(key).await?.map(|item| item.is_active),
+                    "EquipmentType" => self
+                        .equipment_type_repo
+                        .find_by_id(key)
+                        .await?
+                        .map(|item| item.is_active),
                     "Equipment" => self.equipment_repo.find_by_id(key).await?.map(|item| item.is_active),
                     "Stand" => self
                         .stand_repo
@@ -301,8 +312,14 @@ fn field_is_visible(condition: Option<&Value>, object: &Map<String, Value>) -> b
     match condition.get("op").and_then(Value::as_str).unwrap_or("eq") {
         "eq" => actual == expected,
         "neq" => actual != expected,
-        "in" => expected.as_array().map(|values| values.iter().any(|v| v == actual)).unwrap_or(false),
-        "not_in" => expected.as_array().map(|values| values.iter().all(|v| v != actual)).unwrap_or(true),
+        "in" => expected
+            .as_array()
+            .map(|values| values.iter().any(|v| v == actual))
+            .unwrap_or(false),
+        "not_in" => expected
+            .as_array()
+            .map(|values| values.iter().all(|v| v != actual))
+            .unwrap_or(true),
         "gt" => compare_json_numbers(actual, expected, |a, b| a > b),
         "gte" => compare_json_numbers(actual, expected, |a, b| a >= b),
         "lt" => compare_json_numbers(actual, expected, |a, b| a < b),
@@ -336,9 +353,15 @@ pub async fn collect_attribute_references(
         .ok_or_else(|| DomainError::ValidationError("attributes 必须是 JSON object".into()))?;
     let mut references = Vec::new();
     for field in overlays.iter().filter(|item| item.is_active) {
-        let Some(raw) = object.get(&field.field_name) else { continue; };
-        let Some(field_type) = OntologyFieldType::parse(&field.field_type) else { continue; };
-        if !field_type.is_object() { continue; }
+        let Some(raw) = object.get(&field.field_name) else {
+            continue;
+        };
+        let Some(field_type) = OntologyFieldType::parse(&field.field_type) else {
+            continue;
+        };
+        if !field_type.is_object() {
+            continue;
+        }
         let target_name = field.object_name_target.as_deref().ok_or_else(|| {
             DomainError::ValidationError(format!(
                 "扩展字段 {owner_object_name}.{} 未配置 object_name_target",
@@ -385,7 +408,8 @@ pub async fn sync_attribute_references(
     let (Some(field_repo), Some(reference_repo)) = (field_overlay_repo, reference_repo) else {
         return Ok(());
     };
-    let references = collect_attribute_references(owner_object_name, owner_object_id, attributes, Some(field_repo)).await?;
+    let references =
+        collect_attribute_references(owner_object_name, owner_object_id, attributes, Some(field_repo)).await?;
     reference_repo
         .replace_owner_references(owner_object_name, owner_object_id, &references)
         .await
@@ -445,7 +469,9 @@ mod tests {
         let mut required = overlay("code", "string");
         required.required = true;
         let repo: Arc<dyn FieldOverlayRepository + Send + Sync> = Arc::new(Stub(vec![required]));
-        assert!(validate_attributes("Team", serde_json::json!({}), Some(&repo)).await.is_err());
+        assert!(validate_attributes("Team", serde_json::json!({}), Some(&repo))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
@@ -467,10 +493,8 @@ mod tests {
         let mut child = overlay("child", "string");
         child.visible_when = Some(serde_json::json!({"field": "enabled", "op": "eq", "value": true}));
         child.required = true;
-        let repo: Arc<dyn FieldOverlayRepository + Send + Sync> = Arc::new(Stub(vec![
-            overlay("enabled", "boolean"),
-            child,
-        ]));
+        let repo: Arc<dyn FieldOverlayRepository + Send + Sync> =
+            Arc::new(Stub(vec![overlay("enabled", "boolean"), child]));
         let value = validate_attributes(
             "Team",
             serde_json::json!({"enabled": false, "child": "must-be-dropped"}),

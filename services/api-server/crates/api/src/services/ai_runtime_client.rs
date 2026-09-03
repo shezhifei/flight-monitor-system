@@ -86,6 +86,12 @@ pub struct AiRuntimeClient {
     base_url: String,
 }
 
+impl Default for AiRuntimeClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AiRuntimeClient {
     pub fn new() -> Self {
         Self {
@@ -327,7 +333,7 @@ impl AiRuntimeClient {
     }
 
     pub async fn circuit_state(&self) -> CircuitState {
-        self.breaker.state.read().await.clone()
+        *self.breaker.state.read().await
     }
 
     pub fn metrics(&self) -> Value {

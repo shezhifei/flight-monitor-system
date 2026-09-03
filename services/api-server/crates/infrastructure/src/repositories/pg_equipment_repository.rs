@@ -273,9 +273,7 @@ impl EquipmentRepository for PgEquipmentRepository {
 }
 
 #[async_trait]
-impl<'tx> EquipmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>>
-    for PgEquipmentRepository
-{
+impl<'tx> EquipmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres>> for PgEquipmentRepository {
     async fn save_in_tx(
         &self,
         tx: &mut sqlx::Transaction<'tx, sqlx::Postgres>,
@@ -328,7 +326,12 @@ impl<'tx> EquipmentTransactionalRepository<sqlx::Transaction<'tx, sqlx::Postgres
         .bind(&equipment.current_dispatch_id)
         .bind(equipment.last_maintenance_date)
         .bind(equipment.next_maintenance_date)
-        .bind(equipment.metadata.as_ref().map(|m| serde_json::to_value(m).unwrap_or_default()))
+        .bind(
+            equipment
+                .metadata
+                .as_ref()
+                .map(|m| serde_json::to_value(m).unwrap_or_default()),
+        )
         .bind(equipment.is_active)
         .bind(&equipment.attributes)
         .execute(&mut **tx)
@@ -377,7 +380,9 @@ fn row_to_equipment(row: sqlx::postgres::PgRow) -> Equipment {
             created_at: row.get("equipment_type_created_at"),
             is_active: row.get::<Option<bool>, _>("equipment_type_is_active").unwrap_or(true),
             task_types: Vec::new(),
-            attributes: row.try_get("equipment_type_attributes").unwrap_or_else(|_| serde_json::json!({})),
+            attributes: row
+                .try_get("equipment_type_attributes")
+                .unwrap_or_else(|_| serde_json::json!({})),
         });
 
     Equipment {

@@ -190,12 +190,10 @@ impl DispatchFrontendReplanService {
                             slot_code: Some("lead".to_string()),
                             qualification_code: user.qualification_code.clone(),
                             qualification_level_code: user.qualification_level_code.clone(),
-                            ..TaskCrewMemberResponse::default()
                         }],
                         source_team_ids: user.source_team_id.clone().into_iter().collect(),
                         source_team_names: user.source_team_name.clone().into_iter().collect(),
                         generated_from: "frontend_snapshot_personal".to_string(),
-                        ..TaskCrewResponse::default()
                     },
                 };
                 if self

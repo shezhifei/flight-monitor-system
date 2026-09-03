@@ -122,7 +122,7 @@ fn db_err(error: sqlx::Error) -> AiOntologyRepositoryError {
 mod tests {
     use super::PgAiOntologyRepository;
     use fms_domain::models::ai_proposal::RiskLevel;
-    use fms_domain::ontology::governed::ActionOverlay;
+
     use fms_domain::ports::ai_ontology_repository::AiOntologyRepository;
     use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
@@ -303,10 +303,10 @@ mod tests {
         let objects = repo.count_active_objects().await.expect("count objects");
         assert!(objects >= 1, "governed schema must expose at least one object");
 
-        let write_actions = repo
-            .count_active_write_actions()
-            .await
-            .expect("count write actions");
-        assert!(write_actions >= 1, "governed schema must expose at least one write action");
+        let write_actions = repo.count_active_write_actions().await.expect("count write actions");
+        assert!(
+            write_actions >= 1,
+            "governed schema must expose at least one write action"
+        );
     }
 }

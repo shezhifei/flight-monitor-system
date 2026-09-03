@@ -6,10 +6,18 @@ use serde_json::Value;
 
 use super::EmbeddedFlowableEngine;
 use fms_domain::ports::flowable_gateway::FlowableGateway;
+use fms_runtime::environment::RuntimeEnvironment;
+
+/// 契约测试固定走内存后端：显式传入 `None` 库配置，既不依赖进程
+/// `APP_ENVIRONMENT`（缺库时 production 会拒绝启动），也不受
+/// `FLOWABLE_DATABASE_URL` 残留值影响。
+fn memory_gateway() -> EmbeddedFlowableEngine {
+    EmbeddedFlowableEngine::build(RuntimeEnvironment::Development, None).expect("内存引擎可构造")
+}
 
 #[tokio::test]
 async fn embedded_engine_boots_with_memory_backend() {
-    let gateway = EmbeddedFlowableEngine::try_new_from_env().expect("engine boots");
+    let gateway = memory_gateway();
     // 引擎可用性探针：列出流程定义（空库返回空数组）
     let defs = gateway
         .get_process_definitions(None, None)
@@ -20,7 +28,7 @@ async fn embedded_engine_boots_with_memory_backend() {
 
 #[tokio::test]
 async fn deploy_then_list_definitions_roundtrip() {
-    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let gateway = memory_gateway();
     let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
     let deployed = gateway
         .deploy_process(bpmn, Some("minimal-user-task"), None, None)
@@ -54,7 +62,7 @@ async fn deploy_then_list_definitions_roundtrip() {
 
 #[tokio::test]
 async fn runtime_instance_variables_and_executions_roundtrip() {
-    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let gateway = memory_gateway();
     let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
     gateway
         .deploy_process(bpmn, Some("runtime-test"), None, None)
@@ -132,7 +140,7 @@ async fn runtime_instance_variables_and_executions_roundtrip() {
 
 #[tokio::test]
 async fn task_lifecycle_claim_complete_roundtrip() {
-    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let gateway = memory_gateway();
     let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
     gateway
         .deploy_process(bpmn, Some("task-test"), None, None)
@@ -176,7 +184,7 @@ async fn task_lifecycle_claim_complete_roundtrip() {
 
 #[tokio::test]
 async fn history_records_after_completed_process() {
-    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let gateway = memory_gateway();
     let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
     gateway
         .deploy_process(bpmn, Some("history-test"), None, None)
@@ -251,7 +259,7 @@ async fn history_records_after_completed_process() {
 /// 每步断言 camelCase JSON 形状与关键值。
 #[tokio::test]
 async fn full_gateway_contract_end_to_end() {
-    let gateway = EmbeddedFlowableEngine::try_new_from_env().unwrap();
+    let gateway = memory_gateway();
     let bpmn = include_str!("fixtures/minimal_user_task.bpmn20.xml");
 
     // 1. deploy
@@ -399,4 +407,19 @@ async fn full_gateway_contract_end_to_end() {
         .await
         .unwrap()
         .is_empty());
+}
+
+#[test]
+fn production_without_database_url_is_refused() {
+    // W0-5 fail-closed 回归：production 缺库配置必须拒绝启动，而不是静默降级成
+    // 「启动成功、数据不落库」的内存后端。
+    let error = EmbeddedFlowableEngine::build(RuntimeEnvironment::Production, None)
+        .err()
+        .expect("production 缺 FLOWABLE_DATABASE_URL 必须拒绝启动");
+    assert!(error.to_string().contains("FLOWABLE_DATABASE_URL"));
+}
+
+#[test]
+fn development_without_database_url_boots_memory_backend() {
+    EmbeddedFlowableEngine::build(RuntimeEnvironment::Development, None).expect("开发环境缺库配置应放行内存后端");
 }

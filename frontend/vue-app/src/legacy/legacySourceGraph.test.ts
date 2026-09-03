@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { extractLegacySourceContract } from '../../scripts/parity/legacy-source-graph.mjs';
 
-const legacyRoot = path.resolve(process.cwd(), '..', 'backup', 'legacy-frontend-archive');
+const legacyRoot = path.resolve(process.cwd(), '..', 'legacy');
 
 describe('legacy source dependency graph', () => {
   it('recursively hashes login HTML, CSS imports, fonts, images, and JavaScript-owned icons', async () => {

@@ -11,7 +11,6 @@ use fms_application::services::domain_event_subscriber_service::DomainEventSubsc
 use fms_application::services::flight_service::FlightService;
 use fms_application::services::kpi_aggregation_service::KpiAggregationService;
 use fms_application::services::online_status_service::OnlineStatusService;
-use fms_application::services::runtime_redis_latency::measure_redis_latency_from_env;
 use fms_application::services::system_ops_service::SystemOpsService;
 use fms_application::services::todo_scheduler_service::TodoSchedulerService;
 use fms_domain::ports::message_queue::{MessageHandler, PushConsumer};
@@ -51,6 +50,32 @@ const AI_COPILOT_COMMIT_RECOVERY_MAX_ATTEMPTS_DEFAULT: i32 = DEFAULT_COMMIT_RECO
 pub trait DbPoolStatsSource: Send + Sync {
     fn pool_size(&self) -> u32;
     fn pool_num_idle(&self) -> u32;
+}
+
+/// 一次 Redis 往返探测的结果。
+#[derive(Debug, Clone, Copy)]
+pub struct RedisLatency {
+    pub connected: bool,
+    pub latency_ms: f64,
+}
+
+impl RedisLatency {
+    /// 健康接口沿用既有的「未连接」哨兵值：latency_ms = -1。
+    pub fn disconnected() -> Self {
+        Self {
+            connected: false,
+            latency_ms: -1.0,
+        }
+    }
+}
+
+/// Redis 往返时延端口。
+///
+/// api 层不持有 redis 客户端（属于 infrastructure），只需要「是否连通 + 多少毫秒」
+/// 两个数字，由 DI 注入实现。未配置 redis 时注入的适配器直接返回未连接。
+#[async_trait::async_trait]
+pub trait RedisLatencySource: Send + Sync {
+    async fn measure(&self) -> RedisLatency;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -169,6 +194,7 @@ impl RegisteredTask {
 
 pub struct SchedulerRuntimeService {
     pool_stats: Arc<dyn DbPoolStatsSource>,
+    redis_latency: Arc<dyn RedisLatencySource>,
     flight_sync_repo: Arc<dyn FlightSyncRepository>,
     sse_hub: Arc<SseHub>,
     error_monitor: Arc<RuntimeErrorMonitor>,
@@ -200,6 +226,7 @@ impl SchedulerRuntimeService {
     #[allow(clippy::too_many_arguments)]
     pub async fn new(
         pool_stats: Arc<dyn DbPoolStatsSource>,
+        redis_latency: Arc<dyn RedisLatencySource>,
         flight_sync_repo: Arc<dyn FlightSyncRepository>,
         sse_hub: Arc<SseHub>,
         error_monitor: Arc<RuntimeErrorMonitor>,
@@ -223,6 +250,7 @@ impl SchedulerRuntimeService {
     ) -> Arc<Self> {
         let service = Arc::new(Self {
             pool_stats,
+            redis_latency,
             flight_sync_repo,
             sse_hub,
             error_monitor,
@@ -371,7 +399,7 @@ impl SchedulerRuntimeService {
     pub async fn get_performance_metrics(&self) -> Value {
         let sse_stats = self.sse_hub.stats().await;
         let metrics = self.performance_metrics.snapshot();
-        let redis = measure_redis_latency_from_env().await;
+        let redis = self.redis_latency.measure().await;
 
         build_performance_metrics_payload(
             current_db_pool_metrics(self.pool_stats.as_ref()),

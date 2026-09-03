@@ -1,14 +1,12 @@
 use chrono::{DateTime, Utc};
 use metrics::{counter, histogram};
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
-use ulid::Ulid;
 
 use fms_domain::error::DomainError;
 use fms_domain::ports::todo_agent_context_repository::TodoAgentContextRepository;
@@ -17,8 +15,8 @@ use fms_runtime::spawn_tracked::spawn_tracked;
 
 use crate::services::notification_service::{NotificationCreate, NotificationService};
 
-pub(crate) use super::helpers::*;
-pub(crate) use super::types::*;
+pub(super) use super::helpers::*;
+pub(super) use super::types::*;
 
 #[derive(Debug, Clone)]
 pub struct AiToolExecutionSpec {
@@ -807,7 +805,7 @@ impl AiRuntimeService {
                     user_roles.clone(),
                 )
                 .await;
-            results.insert(todo_id.clone(), result);
+            results.insert(todo_id.to_string(), result);
         }
         json!({
             "total": todo_ids.len(),
@@ -1016,7 +1014,7 @@ impl AiRuntimeService {
             "mode" => labels.mode,
             "report_type" => labels.report_type
         )
-        .record(error_count.max(0) as f64);
+        .record(error_count as f64);
     }
 
     pub async fn query_routing_metrics(&self) -> Value {

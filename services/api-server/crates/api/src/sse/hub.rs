@@ -523,7 +523,7 @@ impl SseHub {
             return false;
         }
 
-        if STATIC_TOPICS.iter().any(|candidate| *candidate == topic) {
+        if STATIC_TOPICS.contains(&topic) {
             return true;
         }
 
@@ -717,6 +717,7 @@ pub struct SseStats {
 }
 
 #[cfg(test)]
+#[allow(clippy::await_holding_lock)]
 mod tests {
     use super::{normalize_event_source_message, SseHub, SseMessage, DEFAULT_MAX_CONNECTIONS};
     use serde_json::json;

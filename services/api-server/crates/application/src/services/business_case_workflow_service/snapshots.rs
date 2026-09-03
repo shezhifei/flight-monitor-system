@@ -39,16 +39,8 @@ pub(super) fn build_flight_context_snapshot(
         Some("inbound") => None,
         _ => flight.outbound_leg.as_ref().map(|leg| leg.flight_no.clone()),
     };
-    insert_opt_string(
-        &mut snapshot,
-        "inbound_flight_no",
-        inbound_flight_no,
-    );
-    insert_opt_string(
-        &mut snapshot,
-        "outbound_flight_no",
-        outbound_flight_no,
-    );
+    insert_opt_string(&mut snapshot, "inbound_flight_no", inbound_flight_no);
+    insert_opt_string(&mut snapshot, "outbound_flight_no", outbound_flight_no);
     insert_opt_string(&mut snapshot, "flight_id", flight.flight_id.clone());
     insert_opt_string(&mut snapshot, "flight_no", flight.flight_number.clone());
     insert_opt_string(&mut snapshot, "airline_code", flight.airline_code.clone());

@@ -126,64 +126,16 @@ pub fn load_cors_allowed_origins_for_environment(
     Ok(normalized_origins)
 }
 
+#[allow(dead_code)]
 pub fn load_cors_allowed_origins_from_env(raw_value: Option<&str>) -> io::Result<Vec<String>> {
     load_cors_allowed_origins_for_environment(raw_value, None)
 }
 
 /// Runtime environment classification for security configuration.
 ///
-/// Fail-closed design: unknown or missing environment values default to
-/// `Production` to ensure security hardening (JWT audience, CORS, CSP, etc.)
-/// cannot be silently disabled by a missing or typo'd env var.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RuntimeEnvironment {
-    /// Development/test environment with relaxed security defaults.
-    Development,
-    /// Production environment with strict security requirements.
-    Production,
-}
-
-impl RuntimeEnvironment {
-    /// Parse environment string into enum. Unknown values map to Production.
-    pub fn from_env_value(value: Option<&str>) -> Self {
-        match value.map(str::trim) {
-            None | Some("") => RuntimeEnvironment::Production,
-            Some(v)
-                if v.eq_ignore_ascii_case("development")
-                    || v.eq_ignore_ascii_case("dev")
-                    || v.eq_ignore_ascii_case("test")
-                    || v.eq_ignore_ascii_case("testing")
-                    || v.eq_ignore_ascii_case("local")
-                    || v.eq_ignore_ascii_case("localhost") =>
-            {
-                RuntimeEnvironment::Development
-            }
-            Some(_) => RuntimeEnvironment::Production,
-        }
-    }
-
-    /// Returns true if this is a production environment.
-    pub fn is_production(&self) -> bool {
-        matches!(self, RuntimeEnvironment::Production)
-    }
-
-    /// Returns the environment name for logging.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            RuntimeEnvironment::Development => "development",
-            RuntimeEnvironment::Production => "production",
-        }
-    }
-}
-
-pub fn runtime_environment() -> Option<String> {
-    std::env::var("APP_ENVIRONMENT")
-        .or_else(|_| std::env::var("APP_ENV"))
-        .or_else(|_| std::env::var("ENVIRONMENT"))
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-}
+/// 定义已下沉到 `fms_runtime::environment`，因为 `infrastructure` 适配器需要同一份
+/// fail-closed 口径而不能反向依赖 server。此处 re-export 保持既有调用点不变。
+pub use fms_runtime::environment::{runtime_environment, RuntimeEnvironment};
 
 pub fn is_production_environment(environment: Option<&str>) -> bool {
     // Fail-closed: only explicit development/test/local values are treated as
@@ -201,6 +153,7 @@ pub fn load_cors_allowed_origins() -> io::Result<Vec<String>> {
     )
 }
 
+#[allow(dead_code)]
 pub fn is_cors_origin_allowed(origin: &str, allowed_origins: &[String]) -> bool {
     let Some(normalized) = normalize_cors_origin(origin) else {
         return false;
@@ -683,6 +636,33 @@ pub fn resolve_jwt_audiences() -> io::Result<Vec<String>> {
     resolve_jwt_audiences_for_environment(std::env::var("JWT_AUDIENCE").ok().as_deref(), environment.as_deref())
 }
 
+// ============================================================
+// Tokio Runtime Configuration Helpers
+// ============================================================
+
+/// 解析自定义 Tokio runtime 配置
+/// 默认值：CPU 核心数 * 2（适用于 IO 密集型场景）
+#[allow(dead_code)]
+pub fn get_tokio_worker_threads() -> usize {
+    std::env::var("TOKIO_WORKER_THREADS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .map(|v: usize| v.max(4))
+        .unwrap_or_else(|| {
+            let cpu_cores = num_cpus::get();
+            cpu_cores.saturating_mul(2) // 默认为 CPU 核心数 * 2
+        })
+}
+
+/// 解析最大 blocking 线程数
+#[allow(dead_code)]
+pub fn get_max_blocking_threads() -> usize {
+    std::env::var("TOKIO_MAX_BLOCKING_THREADS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or_else(|| num_cpus::get() * 8) // 默认 CPU 核心数 * 8
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1000,119 +980,4 @@ mod tests {
             .expect("token should be present");
         assert_eq!(token, "my-secret-token");
     }
-
-    #[test]
-    fn runtime_environment_enum_parses_known_development_values() {
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("development")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("dev")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("test")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("testing")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("local")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("localhost")),
-            RuntimeEnvironment::Development
-        );
-    }
-
-    #[test]
-    fn runtime_environment_enum_defaults_to_production_for_unknown_values() {
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("production")),
-            RuntimeEnvironment::Production
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("prod")),
-            RuntimeEnvironment::Production
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("staging")),
-            RuntimeEnvironment::Production
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("unknown_typo")),
-            RuntimeEnvironment::Production
-        );
-        assert_eq!(RuntimeEnvironment::from_env_value(None), RuntimeEnvironment::Production);
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("")),
-            RuntimeEnvironment::Production
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("  ")),
-            RuntimeEnvironment::Production
-        );
-    }
-
-    #[test]
-    fn runtime_environment_enum_is_case_insensitive() {
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("DEVELOPMENT")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("Development")),
-            RuntimeEnvironment::Development
-        );
-        assert_eq!(
-            RuntimeEnvironment::from_env_value(Some("PRODUCTION")),
-            RuntimeEnvironment::Production
-        );
-    }
-
-    #[test]
-    fn runtime_environment_enum_as_str_returns_canonical_name() {
-        assert_eq!(RuntimeEnvironment::Development.as_str(), "development");
-        assert_eq!(RuntimeEnvironment::Production.as_str(), "production");
-    }
-
-    #[test]
-    fn runtime_environment_enum_is_production_matches_from_env_value() {
-        assert!(RuntimeEnvironment::from_env_value(None).is_production());
-        assert!(RuntimeEnvironment::from_env_value(Some("production")).is_production());
-        assert!(RuntimeEnvironment::from_env_value(Some("unknown")).is_production());
-        assert!(!RuntimeEnvironment::from_env_value(Some("development")).is_production());
-        assert!(!RuntimeEnvironment::from_env_value(Some("test")).is_production());
-    }
-}
-
-// ============================================================
-// Tokio Runtime Configuration Helpers
-// ============================================================
-
-/// 解析自定义 Tokio runtime 配置
-/// 默认值：CPU 核心数 * 2（适用于 IO 密集型场景）
-#[allow(dead_code)]
-pub fn get_tokio_worker_threads() -> usize {
-    std::env::var("TOKIO_WORKER_THREADS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .map(|v: usize| v.max(4))
-        .unwrap_or_else(|| {
-            let cpu_cores = num_cpus::get();
-            cpu_cores.saturating_mul(2) // 默认为 CPU 核心数 * 2
-        })
-}
-
-/// 解析最大 blocking 线程数
-#[allow(dead_code)]
-pub fn get_max_blocking_threads() -> usize {
-    std::env::var("TOKIO_MAX_BLOCKING_THREADS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or_else(|| num_cpus::get() * 8) // 默认 CPU 核心数 * 8
 }

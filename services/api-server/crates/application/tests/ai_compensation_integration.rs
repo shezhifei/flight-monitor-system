@@ -329,7 +329,7 @@ async fn approve_compensation_rejects_unauthorized_approver() {
     );
     plans.upsert(plan).await.unwrap();
     let err = service
-        .approve_compensation("cmp-1", "stranger", &vec!["unrelated:perm".to_string()])
+        .approve_compensation("cmp-1", "stranger", &["unrelated:perm".to_string()])
         .await
         .unwrap_err();
     assert!(matches!(
@@ -349,7 +349,7 @@ async fn approve_compensation_accepts_authorized_approver() {
     );
     plans.upsert(plan).await.unwrap();
     let approved = service
-        .approve_compensation("cmp-1", "ops-lead", &vec!["ai:execute".to_string()])
+        .approve_compensation("cmp-1", "ops-lead", &["ai:execute".to_string()])
         .await
         .unwrap();
     assert_eq!(approved.status, AiCompensationStatus::Approved);

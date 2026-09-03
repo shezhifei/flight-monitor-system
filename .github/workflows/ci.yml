@@ -10,6 +10,150 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # ---------------------------------------------------------------------
+  # D-27 recurrence guard. GitHub does not run an unparsable workflow and
+  # does not surface a check for it: ci.yml and nightly.yml were invalid
+  # YAML since the repo was reinitialised (commit e62c8d8), so every gate
+  # below silently never executed. This job must stay cheap, dependency-light
+  # and free of Docker/Rust/toolchain setup so it always reports.
+  # ---------------------------------------------------------------------
+  workflow-lint:
+    name: Workflow YAML guard — D-27 recurrence
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pyyaml>=6"
+
+      - name: Validate workflow YAML
+        run: python scripts/ci/check_workflow_yaml.py
+
+  # ---------------------------------------------------------------------
+  # D-03: every env key the Rust API reads literally must appear in
+  # .env.example. Note the known-unbounded source reported by the script:
+  # crates/application/src/services/system_flags_service.rs consumes all of
+  # env::vars() dynamically, so it contributes no enumerable key set.
+  # ---------------------------------------------------------------------
+  env-documentation:
+    name: Env var documentation subset — D-03
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Rust env reads are documented
+        run: python scripts/ci/check_env_documentation.py
+
+  # ---------------------------------------------------------------------
+  # D-35: tools/ortools_wasm/upstream-manifest.json (pinned build input) and
+  # frontend/vendor/ortools/active-manifest.json (the only manifest tracked in
+  # git, and the first file the browser fetches) must declare the same
+  # artifact_version. A mismatch means a release was built locally and never
+  # published. Its own job so the failing check is named precisely.
+  # ---------------------------------------------------------------------
+  ortools-release-consistency:
+    name: OR-Tools wasm release consistency — D-35
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compare upstream and active vendored manifests
+        run: python scripts/ci/check_ortools_manifest.py
+
+  # ---------------------------------------------------------------------
+  # D-09: the numbered chain in migrations/ must apply to a clean database.
+  # Throwaway Postgres via a service container (destroyed with the job), so
+  # ordering gaps and missing prerequisites cannot hide behind local state.
+  # ---------------------------------------------------------------------
+  migrations-clean-install:
+    name: Migrations — clean install (sqlx migrate) — D-09
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:ci_throwaway_pg_password@localhost:5432/fms_migrations_ci
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_throwaway_pg_password
+          POSTGRES_DB: fms_migrations_ci
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fms_migrations_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install sqlx-cli (Postgres only)
+        run: cargo install sqlx-cli --no-default-features --features postgres --locked --version 0.8.6
+
+      # Repaired 2026-09-03: 155's remap whitelist previously omitted
+      # dispatch_lock_rules (created with a flight_id column by migrations/053),
+      # so `sqlx migrate run` aborted after 0..154 with
+      #   "F3 apply refused: table public.dispatch_lock_rules with flight_id
+      #    is not in remap whitelist"
+      # dispatch_lock_rules is now remapped to the inbound leg like the other
+      # dispatch-domain tables. This job is expected GREEN; if it goes red
+      # again, the refusal is a real schema drift, not a harness problem.
+      - name: Inspect migration set before applying
+        # sqlx-cli 0.8 has no `migrate validate` subcommand. The empty-database
+        # `run` below is the authoritative syntax/order/prerequisite check;
+        # `info` here confirms discovery and current pending state.
+        run: sqlx migrate info
+
+      - name: Apply migrations to an empty database
+        run: |
+          set -euo pipefail
+          sqlx migrate run
+          sqlx migrate info
+
+      - name: Assert the whole chain is applied
+        run: |
+          set -euo pipefail
+          files=$(find migrations -maxdepth 1 -name '*.sql' | wc -l)
+          applied=$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM _sqlx_migrations")
+          top=$(psql "$DATABASE_URL" -tAc "SELECT max(version) FROM _sqlx_migrations")
+          echo "files: $files, applied rows: $applied, highest version: $top"
+          if [ "$applied" != "$files" ]; then
+            echo "::error::only $applied of $files migration files are recorded in _sqlx_migrations"
+            exit 1
+          fi
+          if [ "$top" != "158" ]; then
+            echo "::error::_sqlx_migrations highest version is $top, expected 158"
+            exit 1
+          fi
+
+      - name: Assert re-running is a no-op (resumable / idempotent)
+        run: |
+          set -euo pipefail
+          before=$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM _sqlx_migrations")
+          sqlx migrate run
+          after=$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM _sqlx_migrations")
+          [ "$before" = "$after" ] || { echo "::error::second run applied more migrations ($before -> $after)"; exit 1; }
+
   rust-api:
     name: Rust API — build & test
     runs-on: ubuntu-latest
@@ -47,8 +191,12 @@ jobs:
       - name: Install cargo-deny
         run: cargo install cargo-deny
 
-      - name: Deny check (advisory)
-        run: cargo deny check
+      - name: Deny check (advisories, licenses, bans, sources)
+        # deny.toml lives at the repository root only; this job's default
+        # working-directory is services/api-server. cargo-deny does search
+        # ancestor directories, but relying on that discovery is exactly what
+        # made D-10 ambiguous, so the policy path is passed explicitly.
+        run: cargo deny --config ../../deny.toml check
 
       - name: Build
         run: cargo build --release
@@ -200,8 +348,8 @@ jobs:
           python agent_validator.py --mode MOCK
         working-directory: ..
 
-  architecture-docs:
-    name: Architecture Docs — consistency
+  repository-meta-tests:
+    name: Repository meta-tests — tests/tools
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -215,20 +363,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest
 
-      - name: Test architecture docs
-        run: |
-          python -m pytest \
-            tests/tools/test_architecture_docs_consistency.py \
-            tests/tools/test_docs_no_stale_references.py \
-            tests/tools/test_ci_architecture_guardrails.py \
-            tests/tools/test_schema_baseline_consistency.py \
-            tests/tools/test_observability_alerting_config.py \
-            tests/tools/test_validate_performance_regression.py \
-            tests/tools/test_sql_bind_parameters.py \
-            tests/tools/test_precommit_performance_check.py \
-            tests/tools/test_performance_migrations.py \
-            tests/tools/test_deploy_security_guardrails.py \
-            -q
+      # D-24: this step used to enumerate 10 of the 20 meta-test modules, so
+      # every module added afterwards was silently unrun. The whole directory
+      # is collected instead; all of them are hermetic (static source/SQL
+      # scanning, or a subprocess against an in-process 127.0.0.1:0 test
+      # server) and need no live service, database or outbound network.
+      - name: Run all repository meta-tests
+        run: python -m pytest tests/tools -q
 
   vue-frontend:
     name: Vue Frontend — typecheck & test
@@ -356,7 +497,13 @@ jobs:
     name: E2E — Playwright against running stack
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    continue-on-error: true
+    # D-26: this job used to carry `continue-on-error: true`, so a broken
+    # full-stack E2E run could never block a merge, while the vue-frontend job
+    # already ran Playwright unguarded (and tests/tools asserts
+    # `continue-on-error` is absent there). Nothing had `needs:
+    # e2e-integration`, so the soft-fail guarded no dependency. If this job
+    # proves flaky, fix or quarantine the individual spec -- do not re-add a
+    # job-level soft-fail.
     defaults:
       run:
         working-directory: frontend/vue-app
@@ -394,7 +541,7 @@ jobs:
           POSTGRES_DB=flight_monitor_dev
           DB_REPLICATION_PASSWORD=rep_ci_password
           REDIS_PASSWORD=redis_ci_password
-TRUSTED_PROXY_CIDRS=127.0.0.1/32
+          TRUSTED_PROXY_CIDRS=127.0.0.1/32
           EOF
 
       - name: Bring up full stack (integration override exposes rust-api on :18443)

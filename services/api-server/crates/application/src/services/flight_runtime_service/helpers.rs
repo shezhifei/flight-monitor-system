@@ -26,7 +26,7 @@ pub(super) fn should_emit_perf_trace(counter: &AtomicU64) -> bool {
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value > 0)
         .unwrap_or(1000);
-    counter.fetch_add(1, Ordering::Relaxed) % sample_rate == 0
+    counter.fetch_add(1, Ordering::Relaxed).is_multiple_of(sample_rate)
 }
 
 pub(super) fn apply_timeline_to_flight(flight: &mut FlightResponse, events: &HashMap<String, DateTime<Utc>>) {

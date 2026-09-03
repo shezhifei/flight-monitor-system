@@ -79,6 +79,12 @@ impl FlowableDraftService {
     }
 }
 
+impl Default for FlowableDraftService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowableDraftService {
     pub fn with_ai_config_repo(mut self, repo: Arc<dyn AiEntityConfigRepository + Send + Sync>) -> Self {
         self.ai_config_repo = Some(repo);
@@ -342,7 +348,7 @@ impl FlowableDraftService {
         let mut output = self.normalize_ai_draft_output(&payload, &model_name, requirements);
         let original_summary = output.draft_summary_markdown.clone();
         let mut original_warnings = output.warnings.clone();
-        let mut original_requirements = output.extracted_requirements.clone();
+        let original_requirements = output.extracted_requirements.clone();
         if let Some(validation_error) = validate_bpmn_xml(&output.draft_bpmn_xml) {
             let (corrected_payload, corrected_model) = self
                 .request_ai_json(
