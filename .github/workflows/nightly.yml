@@ -87,6 +87,9 @@ jobs:
             -out deploy/vault/certs/vault.crt \
             -days 1 -subj "/CN=vault" \
             -addext "subjectAltName=DNS:vault,DNS:vault-02,DNS:localhost,IP:127.0.0.1"
+          # Vault drops root privileges before reading the read-only bind.
+          # These keys exist only for this ephemeral runner and job lifetime.
+          chmod 0644 deploy/vault/certs/vault.crt deploy/vault/certs/vault.key
 
       - name: Bring up distributed stack
         run: docker compose -f deploy/docker/docker-compose.distributed.yml up -d
@@ -208,6 +211,9 @@ jobs:
             -out deploy/vault/certs/vault.crt \
             -days 1 -subj "/CN=vault" \
             -addext "subjectAltName=DNS:vault,DNS:vault-02,DNS:localhost,IP:127.0.0.1"
+          # Vault drops root privileges before reading the read-only bind.
+          # These keys exist only for this ephemeral runner and job lifetime.
+          chmod 0644 deploy/vault/certs/vault.crt deploy/vault/certs/vault.key
 
       - name: Bring up chaos environment
         run: docker compose -f deploy/docker/docker-compose.distributed.yml up -d

@@ -597,6 +597,10 @@ jobs:
             -out deploy/vault/certs/vault.crt \
             -days 1 -subj "/CN=vault" \
             -addext "subjectAltName=DNS:vault,DNS:vault-02,DNS:localhost,IP:127.0.0.1"
+          # The image starts as root and then uses su-exec to run Vault as its
+          # unprivileged user. The generated key defaults to 0600 and is bind
+          # mounted read-only, so make this job-scoped throwaway key readable.
+          chmod 0644 deploy/vault/certs/vault.crt deploy/vault/certs/vault.key
 
       - name: Bring up full stack (integration override exposes rust-api on :18443)
         working-directory: ${{ github.workspace }}

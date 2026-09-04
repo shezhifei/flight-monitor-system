@@ -134,6 +134,11 @@ def test_integration_compose_binds_loopback_and_requires_passwords():
     assert "${REDIS_PASSWORD:-" not in integration
     assert "synchronous_commit=${POSTGRES_SYNCHRONOUS_COMMIT:-local}" in distributed
     assert 'synchronous_standby_names="fm-pg-standby-01"' in distributed
+    assert "05-configure-replication-hba.sh" in distributed
+    replication_hba = (
+        ROOT / "scripts/database/configure_postgres_replication_hba.sh"
+    ).read_text(encoding="utf-8")
+    assert "host replication fm_replicator all scram-sha-256" in replication_hba
     # mq-gateway admin/pull calls dial the broker directly; without this the
     # code default 127.0.0.1:10911 is unreachable from the gateway container.
     assert 'MQ_GATEWAY_BROKER_ADDR: "rocketmq-broker:10911"' in distributed
@@ -214,6 +219,7 @@ def test_e2e_compose_runs_from_repository_root_with_matching_environment():
         assert f"{key}=" in e2e_job, f"E2E runtime env is missing {key}"
 
     for relative_path in (
+        "scripts/database/configure_postgres_replication_hba.sh",
         "scripts/database/bootstrap_flowable_database.sh",
         "scripts/database/bootstrap_flowable_database.sql",
     ):
@@ -223,6 +229,7 @@ def test_e2e_compose_runs_from_repository_root_with_matching_environment():
     # vault container exits immediately and `--wait` fails the whole E2E stack.
     assert "Generate ephemeral Vault TLS certificate" in e2e_job
     assert "deploy/vault/certs/vault.key" in e2e_job
+    assert "chmod 0644 deploy/vault/certs/vault.crt deploy/vault/certs/vault.key" in e2e_job
 
 
 def test_nightly_installs_mutation_tool_and_supplies_compose_environment():
@@ -230,9 +237,16 @@ def test_nightly_installs_mutation_tool_and_supplies_compose_environment():
     mutation_job = _section(nightly_lines, "  mutation-test:", ("  performance-baseline:",))
     performance_job = _section(nightly_lines, "  performance-baseline:", ("  chaos-test:",))
     chaos_job = _section(nightly_lines, "  chaos-test:", ())
+    nightly_text = "\n".join(nightly_lines)
 
     assert mutation_job.index("- name: Install cargo-mutants") < mutation_job.index("- name: Run mutation pilot")
     assert "cargo install cargo-mutants --locked" in mutation_job
+    assert (
+        nightly_text.count(
+            "chmod 0644 deploy/vault/certs/vault.crt deploy/vault/certs/vault.key"
+        )
+        == 2
+    )
     for job in (performance_job, chaos_job):
         assert "- name: Generate minimal runtime env for stack" in job
         # At least the compose bring-up and tear-down steps must receive the
